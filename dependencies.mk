@@ -24,6 +24,11 @@ LSP_COMMON_LIB_NAME        := lsp-common-lib
 LSP_COMMON_LIB_TYPE        := src
 LSP_COMMON_LIB_URL         := https://github.com/sadko4u/$(LSP_COMMON_LIB_NAME).git
 
+LSP_3RD_PARTY_VERSION      := 0.5.0
+LSP_3RD_PARTY_NAME         := lsp-3rd-party
+LSP_3RD_PARTY_TYPE         := src
+LSP_3RD_PARTY_URL          := https://github.com/sadko4u/$(LSP_3RD_PARTY_NAME).git
+
 LSP_DSP_LIB_VERSION        := 0.5.11
 LSP_DSP_LIB_NAME           := lsp-dsp-lib
 LSP_DSP_LIB_TYPE           := src
