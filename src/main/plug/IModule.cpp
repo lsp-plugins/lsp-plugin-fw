@@ -19,14 +19,14 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/plug/Module.h>
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/plug-fw/plug.h>
 
 namespace lsp
 {
     namespace plug
     {
-        Module::Module(const meta::plugin_t *meta)
+        IModule::IModule(const meta::plugin_t *meta)
         {
             pMetadata       = meta;
             pWrapper        = NULL;
@@ -36,11 +36,11 @@ namespace lsp
             bUIActive       = true;
         }
 
-        Module::~Module()
+        IModule::~IModule()
         {
         }
 
-        void Module::activate_ui()
+        void IModule::activate_ui()
         {
             if (bUIActive)
                 return;
@@ -50,7 +50,7 @@ namespace lsp
             ui_activated();
         }
 
-        void Module::deactivate_ui()
+        void IModule::deactivate_ui()
         {
             if (!bUIActive)
                 return;
@@ -60,7 +60,7 @@ namespace lsp
             ui_deactivated();
         }
 
-        void Module::activate()
+        void IModule::activate()
         {
             if (bActivated)
                 return;
@@ -70,7 +70,7 @@ namespace lsp
             pWrapper->query_display_draw();
         }
 
-        void Module::deactivate()
+        void IModule::deactivate()
         {
             if (!bActivated)
                 return;
@@ -80,12 +80,12 @@ namespace lsp
             pWrapper->query_display_draw();
         }
 
-        void Module::init(IWrapper *wrapper)
+        void IModule::init(IWrapper *wrapper)
         {
             pWrapper        = wrapper;
         }
 
-        void Module::set_sample_rate(long sr)
+        void IModule::set_sample_rate(long sr)
         {
             if (fSampleRate == sr)
                 return;
@@ -94,75 +94,75 @@ namespace lsp
             update_sample_rate(sr);
         };
 
-        void Module::update_sample_rate(long sr)
+        void IModule::update_sample_rate(long sr)
         {
         }
 
-        void Module::activated()
+        void IModule::activated()
         {
         }
 
-        void Module::deactivated()
+        void IModule::deactivated()
         {
         }
 
-        void Module::ui_activated()
+        void IModule::ui_activated()
         {
         }
 
-        void Module::ui_deactivated()
+        void IModule::ui_deactivated()
         {
         }
 
-        void Module::destroy()
+        void IModule::destroy()
         {
             vPorts.flush();
             bActivated      = false;
         }
 
-        void Module::update_settings()
+        void IModule::update_settings()
         {
         }
 
-        bool Module::set_position(const position_t *pos)
-        {
-            return false;
-        }
-
-        void Module::process(size_t samples)
-        {
-        }
-
-        bool Module::inline_display(ICanvas *cv, size_t width, size_t height)
+        bool IModule::set_position(const position_t *pos)
         {
             return false;
         }
 
-        KVTStorage *Module::kvt_lock()
+        void IModule::process(size_t samples)
+        {
+        }
+
+        bool IModule::inline_display(ICanvas *cv, size_t width, size_t height)
+        {
+            return false;
+        }
+
+        KVTStorage *IModule::kvt_lock()
         {
             return (pWrapper != NULL) ? pWrapper->kvt_lock() : NULL;
         }
 
-        KVTStorage *Module::kvt_trylock()
+        KVTStorage *IModule::kvt_trylock()
         {
             return (pWrapper != NULL) ? pWrapper->kvt_trylock() : NULL;
         }
 
-        void Module::kvt_release()
+        void IModule::kvt_release()
         {
             if (pWrapper != NULL)
                 pWrapper->kvt_release();
         }
 
-        void Module::state_saved()
+        void IModule::state_saved()
         {
         }
 
-        void Module::state_loaded()
+        void IModule::state_loaded()
         {
         }
 
-        void Module::dump(dspu::IStateDumper *v) const
+        void IModule::dump(dspu::IStateDumper *v) const
         {
         }
     }

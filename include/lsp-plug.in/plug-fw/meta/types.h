@@ -25,6 +25,11 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/common/types.h>
 
+#define LSP_MODULE_VERSION(a, b, c)             uint32_t(((uint32_t(a) & 0xff) << 16) | ((uint32_t(b) & 0xff) << 8) | (uint32_t(c) & 0xff))
+#define LSP_MODULE_VERSION_MAJOR(v)             (uint32_t(((v) >> 16) & 0xff))
+#define LSP_MODULE_VERSION_MINOR(v)             (uint32_t(((v) >> 8) & 0xff))
+#define LSP_MODULE_VERSION_MICRO(v)             (uint32_t((v) & 0xff))
+
 namespace lsp
 {
     namespace meta
@@ -207,6 +212,8 @@ namespace lsp
             PGF_MAIN        = (1 << 2),     // Main input/output group
         };
 
+        typedef uint32_t            version_t;
+
         typedef struct port_group_item_t
         {
             const char         *id;
@@ -252,7 +259,7 @@ namespace lsp
             const char             *homepage;       // Homepage
         } person_t;
 
-        typedef struct plugin__t
+        typedef struct plugin_t
         {
             const char             *name;           // Plugin name
             const char             *description;    // Plugin description
@@ -261,7 +268,7 @@ namespace lsp
             const char             *lv2_uid;        // LV2 unique identifier
             const char             *vst_uid;        // Steinberg VST ID of the plugin
             const uint32_t          ladspa_id;      // LADSPA ID of the plugin
-            const uint32_t          version;        // Version of the plugin
+            const version_t         version;        // Version of the plugin
             const int              *classes;        // List of plugin classes terminated by negative value
             const int               extensions;     // Additional extensions
             const port_t           *ports;          // List of all ports
@@ -269,6 +276,7 @@ namespace lsp
             const char             *ui_presets;     // Prefix of the preset location
             const port_group_t     *port_groups;    // List of all port groups
         } plugin_t;
+
     }
 }
 

@@ -19,26 +19,32 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_BACK_PLUGIN_H_
-#define LSP_PLUG_IN_PLUG_FW_BACK_PLUGIN_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_BACK_IMODULE_H_
+#define LSP_PLUG_IN_PLUG_FW_BACK_IMODULE_H_
+
+#ifndef LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_
+    #error "Use #include <lsp-plug.in/plug-fw/plug.h>"
+#endif /* LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/plug-fw/meta/types.h>
-#include <lsp-plug.in/dsp-units/iface/IStateDumper.h>
+
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/dsp-units/iface/IStateDumper.h>
 
 namespace lsp
 {
     namespace plug
     {
+        class IWrapper;
+
         /**
          * Main plugin class
          */
-        class Module
+        class IModule
         {
             private:
-                Module &operator = (const Module &);
+                IModule &operator = (const IModule &);
 
             protected:
                 lltl::parray<IPort>         vPorts;
@@ -51,8 +57,8 @@ namespace lsp
                 bool                        bUIActive;
 
             public:
-                explicit Module(const meta::plugin_t *meta);
-                virtual ~Module();
+                explicit IModule(const meta::plugin_t *meta);
+                virtual ~IModule();
 
                 /** Initialize plugin module
                  *
@@ -179,6 +185,4 @@ namespace lsp
     }
 }
 
-
-
-#endif /* LSP_PLUG_IN_PLUG_FW_BACK_PLUGIN_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_BACK_IMODULE_H_ */
