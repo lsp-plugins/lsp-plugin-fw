@@ -33,7 +33,7 @@
 
 namespace lsp
 {
-    namespace plug
+    namespace meta
     {
 
         /**

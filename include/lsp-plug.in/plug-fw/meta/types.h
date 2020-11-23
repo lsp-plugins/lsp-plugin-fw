@@ -27,7 +27,7 @@
 
 namespace lsp
 {
-    namespace plug
+    namespace meta
     {
         enum unit_t
         {
@@ -252,7 +252,7 @@ namespace lsp
             const char             *homepage;       // Homepage
         } person_t;
 
-        typedef struct plugin_metadata_t
+        typedef struct plugin__t
         {
             const char             *name;           // Plugin name
             const char             *description;    // Plugin description
@@ -268,7 +268,7 @@ namespace lsp
             const char             *ui_resource;    // Location of the UI file resource
             const char             *ui_presets;     // Prefix of the preset location
             const port_group_t     *port_groups;    // List of all port groups
-        } plugin_metadata_t;
+        } plugin_t;
     }
 }
 
