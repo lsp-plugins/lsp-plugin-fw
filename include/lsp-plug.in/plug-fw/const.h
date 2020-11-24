@@ -19,19 +19,13 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_PLUG_H_
-#define LSP_PLUG_IN_PLUG_FW_PLUG_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CONST_H_
+#define LSP_PLUG_IN_PLUG_FW_CONST_H_
 
-#include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/plug-fw/meta/types.h>
+#define BPM_MIN                             1.0f                /* Minimum BPM                                      */
+#define BPM_MAX                             1000.0f             /* Maximum BPM                                      */
+#define BPM_DEFAULT                         120.0f              /* Default BPM                                      */
+#define DEFAULT_TICKS_PER_BEAT              1920.0f             /* Default tick per beat resolution                 */
+#define MIDI_EVENTS_MAX                     4096                /* Maximum number of MIDI events per buffer         */
 
-#define LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_
-    #include <lsp-plug.in/plug-fw/plug/data.h>
-    #include <lsp-plug.in/plug-fw/plug/IPort.h>
-    #include <lsp-plug.in/plug-fw/plug/ICanvas.h>
-    #include <lsp-plug.in/plug-fw/plug/IWrapper.h>
-    #include <lsp-plug.in/plug-fw/plug/IModule.h>
-#undef LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_
-
-
-#endif /* LSP_PLUG_IN_PLUG_FW_PLUG_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CONST_H_ */

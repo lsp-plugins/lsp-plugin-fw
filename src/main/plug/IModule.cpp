@@ -138,12 +138,12 @@ namespace lsp
             return false;
         }
 
-        KVTStorage *IModule::kvt_lock()
+        util::KVTStorage *IModule::kvt_lock()
         {
             return (pWrapper != NULL) ? pWrapper->kvt_lock() : NULL;
         }
 
-        KVTStorage *IModule::kvt_trylock()
+        util::KVTStorage *IModule::kvt_trylock()
         {
             return (pWrapper != NULL) ? pWrapper->kvt_trylock() : NULL;
         }

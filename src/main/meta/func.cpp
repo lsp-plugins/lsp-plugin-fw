@@ -26,7 +26,7 @@
 
 namespace lsp
 {
-    namespace plug
+    namespace meta
     {
         typedef struct unit_desc_t
         {

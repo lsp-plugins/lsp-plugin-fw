@@ -27,6 +27,10 @@
 #endif /* LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/plug/IPort.h>
+#include <lsp-plug.in/plug-fw/plug/ICanvas.h>
+#include <lsp-plug.in/plug-fw/plug/data.h>
+#include <lsp-plug.in/plug-fw/util/KVTStorage.h>
 
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/lltl/parray.h>
@@ -64,69 +68,69 @@ namespace lsp
                  *
                  * @param wrapper plugin wrapper interface
                  */
-                virtual void            init(IWrapper *wrapper);
+                virtual void                init(IWrapper *wrapper);
 
                 /** Destroy plugin module
                  *
                  */
-                virtual void            destroy();
+                virtual void                destroy();
 
             public:
-                const meta::plugin_t *metadata() const      { return pMetadata;         };
-                inline ssize_t latency() const              { return nLatency;          };
-                inline void set_latency(ssize_t latency)    { nLatency = latency;       };
+                const meta::plugin_t       *metadata() const                { return pMetadata;         }
+                inline ssize_t              latency() const                 { return nLatency;          }
+                inline void                 set_latency(ssize_t latency)    { nLatency = latency;       }
 
-                inline bool add_port(IPort *port)           { return vPorts.add(port);  };
-                inline IPort *port(size_t id)               { return vPorts[id];        };
-                inline size_t ports_count() const           { return vPorts.size();     };
+                inline bool                 add_port(IPort *port)           { return vPorts.add(port);  }
+                inline IPort               *port(size_t id)                 { return vPorts[id];        }
+                inline size_t               ports_count() const             { return vPorts.size();     }
 
-                void set_sample_rate(long sr);
+                void                        set_sample_rate(long sr);
 
-                inline long get_sample_rate() const         { return fSampleRate;       };
-                inline bool active() const                  { return bActivated;        };
-                inline bool ui_active() const               { return bUIActive;         };
+                inline long                 get_sample_rate() const         { return fSampleRate;       }
+                inline bool                 active() const                  { return bActivated;        }
+                inline bool                 ui_active() const               { return bUIActive;         }
 
-                inline IWrapper *wrapper()                  { return pWrapper;          };
+                inline IWrapper            *wrapper()                       { return pWrapper;          }
 
-                void                    activate_ui();
-                void                    deactivate_ui();
-                void                    activate();
-                void                    deactivate();
+                void                        activate_ui();
+                void                        deactivate_ui();
+                void                        activate();
+                void                        deactivate();
 
             public:
                 /** Update sample rate of data processing
                  *
                  * @param sr new sample rate
                  */
-                virtual void            update_sample_rate(long sr);
+                virtual void                update_sample_rate(long sr);
 
                 /** Triggered plugin activation
                  *
                  */
-                virtual void            activated();
+                virtual void                activated();
 
                 /** Triggered UI activation
                  *
                  */
-                virtual void            ui_activated();
+                virtual void                ui_activated();
 
                 /** Triggered input port change, need to update configuration
                  *
                  */
-                virtual void            update_settings();
+                virtual void                update_settings();
 
                 /** Report current time position for plugin
                  *
                  * @param pos current time position
                  * @return true if need to call for plugin setting update
                  */
-                virtual bool            set_position(const position_t *pos);
+                virtual bool                set_position(const position_t *pos);
 
                 /** Process data
                  *
                  * @param samples number of samples to process
                  */
-                virtual void            process(size_t samples);
+                virtual void                process(size_t samples);
 
                 /** Draw inline display on canvas
                  * This feature will not work unless E_INLINE_DISPLAY extension is
@@ -137,50 +141,50 @@ namespace lsp
                  * @param height maximum canvas height
                  * @return status of operation
                  */
-                virtual bool            inline_display(ICanvas *cv, size_t width, size_t height);
+                virtual bool                inline_display(ICanvas *cv, size_t width, size_t height);
 
                 /** Triggered UI deactivation
                  *
                  */
-                virtual void            ui_deactivated();
+                virtual void                ui_deactivated();
 
                 /** Triggered plugin deactivation
                  *
                  */
-                virtual void            deactivated();
+                virtual void                deactivated();
 
                 /**
                  * Lock the KVT storage
                  * @return pointer to KVT storage or NULL
                  */
-                virtual KVTStorage     *kvt_lock();
+                virtual util::KVTStorage   *kvt_lock();
 
                 /**
                  * Try to lock the KVT storage
                  * @return pointer to KVT storage or NULL if not locked/not supported
                  */
-                virtual KVTStorage     *kvt_trylock();
+                virtual util::KVTStorage   *kvt_trylock();
 
                 /**
                  * Release the KVT storage
                  */
-                virtual void            kvt_release();
+                virtual void                kvt_release();
 
                 /** Callback for case when plugin's state has been saved
                  *
                  */
-                virtual void            state_saved();
+                virtual void                state_saved();
 
                 /** Callback for case when plugin's state has been loaded
                  *
                  */
-                virtual void            state_loaded();
+                virtual void                state_loaded();
 
                 /**
                  * Dump plugin state
                  * @param v state dumper
                  */
-                virtual void            dump(dspu::IStateDumper *v) const;
+                virtual void                dump(dspu::IStateDumper *v) const;
         };
     }
 }

@@ -27,6 +27,8 @@
 #endif /* LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/plug/data.h>
+#include <lsp-plug.in/plug-fw/util/KVTStorage.h>
 #include <lsp-plug.in/ipc/IExecutor.h>
 
 namespace lsp
@@ -82,13 +84,13 @@ namespace lsp
                  * this is non-RT-safe operation
                  * @return pointer to KVT storage or NULL if KVT is not supported
                  */
-                virtual KVTStorage         *kvt_lock();
+                virtual util::KVTStorage   *kvt_lock();
 
                 /**
                  * Try to lock KVT storage and return pointer to the storage on success
                  * @return pointer to KVT storage or NULL
                  */
-                virtual KVTStorage         *kvt_trylock();
+                virtual util::KVTStorage   *kvt_trylock();
 
                 /**
                  * Release the KVT storage
