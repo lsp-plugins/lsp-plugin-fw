@@ -19,20 +19,35 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_PLUG_H_
-#define LSP_PLUG_IN_PLUG_FW_PLUG_H_
+#include <lsp-plug.in/plug-fw/plug.h>
 
-#include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/plug-fw/meta/types.h>
+namespace lsp
+{
+    namespace plug
+    {
+        Factory *Factory::pRoot = NULL;
 
-#define LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_
-    #include <lsp-plug.in/plug-fw/plug/data.h>
-    #include <lsp-plug.in/plug-fw/plug/IPort.h>
-    #include <lsp-plug.in/plug-fw/plug/ICanvas.h>
-    #include <lsp-plug.in/plug-fw/plug/IWrapper.h>
-    #include <lsp-plug.in/plug-fw/plug/IModule.h>
-    #include <lsp-plug.in/plug-fw/plug/Factory.h>
-#undef LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_
+        Factory::Factory()
+        {
+            pNext       = pRoot;
+            pRoot       = this;
+        }
+
+        Factory::~Factory()
+        {
+            pNext       = NULL;
+        }
+
+        const meta::plugin_t *Factory::enumerate(size_t index) const
+        {
+            return NULL;
+        }
+
+        IModule *Factory::create(size_t index)
+        {
+            return NULL;
+        }
+    }
+}
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_PLUG_H_ */
