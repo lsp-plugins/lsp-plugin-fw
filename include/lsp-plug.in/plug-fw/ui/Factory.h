@@ -19,12 +19,12 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_PLUG_FACTORY_H_
-#define LSP_PLUG_IN_PLUG_FW_PLUG_FACTORY_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_UI_FACTORY_H_
+#define LSP_PLUG_IN_PLUG_FW_UI_FACTORY_H_
 
-#ifndef LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_
-    #error "Use #include <lsp-plug.in/plug-fw/plug.h>"
-#endif /* LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_ */
+#ifndef LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
+    #error "Use #include <lsp-plug.in/plug-fw/ui.h>"
+#endif /* LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
@@ -33,10 +33,10 @@
 
 namespace lsp
 {
-    namespace plug
+    namespace ui
     {
         /**
-         * Factory for plugin module
+         * Factory for UI module
          */
         class LSP_SYMBOL_HIDDEN Factory
         {
@@ -53,15 +53,15 @@ namespace lsp
 
             public:
                 /**
-                 * Enumerate the metadata for plugins produced by the factory
-                 * @param index index of plugin starting with 0 and growing with 1
+                 * Enumerate the metadata for plugin UIs produced by the factory
+                 * @param index index of plugin UI starting with 0 and growing with 1
                  * @return plugin metadata or NULL if there is no more data in enumeration
                  */
                 virtual const meta::plugin_t   *enumerate(size_t index) const;
 
                 /**
-                 * Create plugin module
-                 * @param index index of plugin
+                 * Create plugin UI module
+                 * @param index index of plugin UI
                  * @return pointer to created plugin, plugin should be destroyed by
                  *         the operator delete call
                  */
@@ -70,4 +70,4 @@ namespace lsp
     }
 }
 
-#endif /* LSP_PLUG_IN_PLUG_FW_PLUG_FACTORY_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_UI_FACTORY_H_ */
