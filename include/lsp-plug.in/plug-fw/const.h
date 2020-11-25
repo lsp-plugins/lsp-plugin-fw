@@ -22,6 +22,18 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_CONST_H_
 #define LSP_PLUG_IN_PLUG_FW_CONST_H_
 
+#include <lsp-plug.in/dsp-units/const.h>
+
+// Derived constants
+#define DEFAULT_SAMPLE_RATE                 LSP_DSP_UNITS_DEFAULT_SAMPLE_RATE
+#define AIR_ADIABATIC_INDEX                 LSP_DSP_UNITS_AIR_ADIABATIC_INDEX
+#define AIR_MOLAR_MASS                      LSP_DSP_UNITS_AIR_MOLAR_MASS
+#define GAS_CONSTANT                        LSP_DSP_UNITS_GAS_CONSTANT
+#define TEMP_ABS_ZERO                       LSP_DSP_UNITS_TEMP_ABS_ZERO
+#define SPEC_FREQ_MIN                       LSP_DSP_UNITS_SPEC_FREQ_MIN
+#define SPEC_FREQ_MAX                       LSP_DSP_UNITS_SPEC_FREQ_MAX
+
+// Other constants
 #define BPM_MIN                             1.0f                /* Minimum BPM                                      */
 #define BPM_MAX                             1000.0f             /* Maximum BPM                                      */
 #define BPM_DEFAULT                         120.0f              /* Default BPM                                      */
