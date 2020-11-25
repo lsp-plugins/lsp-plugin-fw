@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_UTIL_KVTSTORAGE_H_
-#define LSP_PLUG_IN_PLUG_FW_UTIL_KVTSTORAGE_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CORE_KVTSTORAGE_H_
+#define LSP_PLUG_IN_PLUG_FW_CORE_KVTSTORAGE_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/common/status.h>
@@ -29,7 +29,7 @@
 
 namespace lsp
 {
-    namespace util
+    namespace core
     {
         enum kvt_param_type_t
         {
@@ -536,4 +536,4 @@ namespace lsp
     }
 }
 
-#endif /* LSP_PLUG_IN_PLUG_FW_UTIL_KVTSTORAGE_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CORE_KVTSTORAGE_H_ */

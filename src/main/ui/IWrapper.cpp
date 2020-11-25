@@ -43,12 +43,12 @@ namespace lsp
         {
         }
 
-        util::KVTStorage *IWrapper::kvt_lock()
+        core::KVTStorage *IWrapper::kvt_lock()
         {
             return NULL;
         }
 
-        util::KVTStorage *IWrapper::kvt_trylock()
+        core::KVTStorage *IWrapper::kvt_trylock()
         {
             return NULL;
         }

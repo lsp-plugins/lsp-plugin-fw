@@ -19,12 +19,12 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/util/JsonDumper.h>
+#include <lsp-plug.in/plug-fw/core/JsonDumper.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
 namespace lsp
 {
-    namespace util
+    namespace core
     {
         JsonDumper::JsonDumper()
         {

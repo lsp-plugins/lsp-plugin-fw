@@ -20,10 +20,10 @@
  */
 
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/util/JsonDumper.h>
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/plug-fw/core/JsonDumper.h>
 
 namespace lsp
 {
@@ -57,12 +57,12 @@ namespace lsp
             return NULL;
         }
 
-        util::KVTStorage *IWrapper::kvt_lock()
+        core::KVTStorage *IWrapper::kvt_lock()
         {
             return NULL;
         }
 
-        util::KVTStorage *IWrapper::kvt_trylock()
+        core::KVTStorage *IWrapper::kvt_trylock()
         {
             return NULL;
         }
@@ -127,7 +127,7 @@ namespace lsp
 
             lsp_info("Dumping plugin state to file:\n%s...", path.as_utf8());
 
-            util::JsonDumper v;
+            core::JsonDumper v;
             if ((res = v.open(&path)) != STATUS_OK)
             {
                 lsp_warn("Could not create file %s: %d", path.as_utf8(), int(res));

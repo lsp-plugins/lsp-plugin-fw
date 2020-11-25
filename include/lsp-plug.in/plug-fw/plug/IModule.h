@@ -30,7 +30,7 @@
 #include <lsp-plug.in/plug-fw/plug/IPort.h>
 #include <lsp-plug.in/plug-fw/plug/ICanvas.h>
 #include <lsp-plug.in/plug-fw/plug/data.h>
-#include <lsp-plug.in/plug-fw/util/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/lltl/parray.h>
@@ -157,13 +157,13 @@ namespace lsp
                  * Lock the KVT storage
                  * @return pointer to KVT storage or NULL
                  */
-                virtual util::KVTStorage   *kvt_lock();
+                virtual core::KVTStorage   *kvt_lock();
 
                 /**
                  * Try to lock the KVT storage
                  * @return pointer to KVT storage or NULL if not locked/not supported
                  */
-                virtual util::KVTStorage   *kvt_trylock();
+                virtual core::KVTStorage   *kvt_trylock();
 
                 /**
                  * Release the KVT storage

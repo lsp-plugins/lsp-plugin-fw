@@ -20,12 +20,12 @@
  */
 
 #include <lsp-plug.in/plug-fw/const.h>
+#include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/util/KVTDispatcher.h>
 
 namespace lsp
 {
-    namespace util
+    namespace core
     {
         KVTDispatcher::KVTDispatcher(KVTStorage *kvt, ipc::Mutex *mutex)
         {

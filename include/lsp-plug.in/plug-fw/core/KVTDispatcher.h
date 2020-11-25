@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_UTIL_KVTDISPATCHER_H_
-#define LSP_PLUG_IN_PLUG_FW_UTIL_KVTDISPATCHER_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CORE_KVTDISPATCHER_H_
+#define LSP_PLUG_IN_PLUG_FW_CORE_KVTDISPATCHER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/ipc/Thread.h>
@@ -29,7 +29,7 @@
 
 namespace lsp
 {
-    namespace util
+    namespace core
     {
         class KVTDispatcher: public ipc::Thread
         {
@@ -79,4 +79,4 @@ namespace lsp
 }
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_UTIL_KVTDISPATCHER_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CORE_KVTDISPATCHER_H_ */
