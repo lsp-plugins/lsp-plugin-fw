@@ -23,8 +23,8 @@
 #define LSP_PLUG_IN_PLUG_FW_META_PORTS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
-#include <lsp-plug.in/dsp-units/const.h>
 
 // Port definitions for metadata
 #define AUDIO_INPUT(id, label) \
@@ -226,5 +226,47 @@
     }
 
 #define PORT_GROUPS_END     { NULL, NULL }
+
+namespace lsp
+{
+    namespace meta
+    {
+        // Common stereo port names
+        extern const char PORT_NAME_BYPASS[];
+        extern const char PORT_NAME_INPUT[];
+        extern const char PORT_NAME_OUTPUT[];
+        extern const char PORT_NAME_SIDECHAIN[];
+        extern const char PORT_NAME_INPUT_L[];
+        extern const char PORT_NAME_INPUT_R[];
+        extern const char PORT_NAME_OUTPUT_L[];
+        extern const char PORT_NAME_OUTPUT_R[];
+        extern const char PORT_NAME_SIDECHAIN_L[];
+        extern const char PORT_NAME_SIDECHAIN_R[];
+
+        // Port groups
+        extern const port_group_item_t mono_in_group_ports[];
+        extern const port_group_item_t mono_sidechain_group_ports[];
+        extern const port_group_item_t mono_out_group_ports[];
+
+        extern const port_group_item_t stereo_in_group_ports[];
+        extern const port_group_item_t stereo_sidechain_group_ports[];
+        extern const port_group_item_t stereo_out_group_ports[];
+
+        extern const port_group_t mono_plugin_port_groups[];
+        extern const port_group_t mono_plugin_sidechain_port_groups[];
+
+        extern const port_group_t mono_to_stereo_plugin_port_groups[];
+        extern const port_group_t stereo_plugin_port_groups[];
+        extern const port_group_t stereo_plugin_sidechain_port_groups[];
+
+        // Miscellaneous lists
+        extern const port_item_t file_channels[];
+        extern const port_item_t midi_channels[];
+        extern const port_item_t octaves[];
+        extern const port_item_t notes[];
+        extern const port_item_t fft_windows[];
+        extern const port_item_t fft_envelopes[];
+    }
+}
 
 #endif /* LSP_PLUG_IN_PLUG_FW_META_PORTS_H_ */
