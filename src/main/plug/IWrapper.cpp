@@ -36,6 +36,7 @@ namespace lsp
 
         IWrapper::~IWrapper()
         {
+            pPlugin     = NULL;
         }
 
         ipc::IExecutor *IWrapper::get_executor()

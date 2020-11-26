@@ -23,10 +23,12 @@
 #define LSP_PLUG_IN_PLUG_FW_PLUG_DATA_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/protocol/midi.h>
 #include <lsp-plug.in/protocol/osc.h>
+#include <lsp-plug.in/stdlib/string.h>
 
 namespace lsp
 {
@@ -174,6 +176,63 @@ namespace lsp
                 bool sync(const frame_buffer_t *fb);
 
         } frame_buffer_t;
+
+        // Midi port structure
+        typedef struct midi_t
+        {
+            size_t          nEvents;
+            midi::event_t   vEvents[MIDI_EVENTS_MAX];
+
+            inline bool push(const midi::event_t *me)
+            {
+                if (nEvents >= MIDI_EVENTS_MAX)
+                    return false;
+                vEvents[nEvents++]      = *me;
+                return true;
+            }
+
+            inline bool push(const midi::event_t &me)
+            {
+                return push(&me);
+            }
+
+            inline bool push_all(const midi_t *src)
+            {
+                size_t avail    = MIDI_EVENTS_MAX - nEvents;
+                size_t count    = (src->nEvents > avail) ? avail : src->nEvents;
+                if (count > 0)
+                {
+                    ::memcpy(&vEvents[nEvents], src->vEvents, count * sizeof(midi::event_t));
+                    nEvents        += count;
+                }
+
+                return count >= src->nEvents;
+            }
+
+            inline bool push_all(const midi_t &src)
+            {
+                return push_all(&src);
+            }
+
+            inline void copy_from(const midi_t *src)
+            {
+                nEvents     = src->nEvents;
+                if (nEvents > 0)
+                    ::memcpy(vEvents, src->vEvents, nEvents * sizeof(midi::event_t));
+            }
+
+            inline void copy_to(midi_t *dst) const
+            {
+                dst->copy_from(this);
+            }
+
+            inline void clear()
+            {
+                nEvents     = 0;
+            }
+
+            void sort();
+        } midi_t;
 
         /**
          * Buffer to transfer OSC packets between two threads.

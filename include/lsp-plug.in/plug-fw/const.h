@@ -22,6 +22,7 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_CONST_H_
 #define LSP_PLUG_IN_PLUG_FW_CONST_H_
 
+#include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/dsp-units/const.h>
 
 // Derived constants

@@ -25,16 +25,34 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 
-#define IS_OUT_PORT(p)      ((p)->flags & F_OUT)
-#define IS_IN_PORT(p)       (!((p)->flags & F_OUT))
-#define IS_GROWING_PORT(p)  (((p)->flags & (F_GROWING | F_UPPER | F_LOWER)) == (F_GROWING | F_UPPER | F_LOWER))
-#define IS_LOWERING_PORT(p) (((p)->flags & (F_LOWERING | F_UPPER | F_LOWER)) == (F_LOWERING | F_UPPER | F_LOWER))
-#define IS_TRIGGER_PORT(p)  ((p)->flags & F_TRG)
-
 namespace lsp
 {
     namespace meta
     {
+        static inline bool is_out_port(const port_t *p)
+        {
+            return p->flags & F_OUT;
+        }
+
+        static inline bool is_in_port(const port_t *p)
+        {
+            return !(p->flags & F_OUT);
+        }
+
+        static inline bool is_trigger_port(const port_t *p)
+        {
+            return p->flags & F_TRG;
+        }
+
+        static inline bool is_growing_port(const port_t *p)
+        {
+            return (p->flags & (F_GROWING | F_UPPER | F_LOWER)) == (F_GROWING | F_UPPER | F_LOWER);
+        }
+
+        static inline bool is_lowering_port(const port_t *p)
+        {
+            return (p->flags & (F_LOWERING | F_UPPER | F_LOWER)) == (F_LOWERING | F_UPPER | F_LOWER);
+        }
 
         /**
          * Get name of the unit
