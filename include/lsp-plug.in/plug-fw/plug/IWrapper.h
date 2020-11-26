@@ -35,7 +35,7 @@ namespace lsp
 {
     namespace plug
     {
-        class IModule;
+        class Module;
 
         /**
          * Plugin wrapper interface
@@ -46,10 +46,10 @@ namespace lsp
                 IWrapper & operator = (const IWrapper &);
 
             protected:
-                IModule        *pPlugin;
+                Module        *pPlugin;
 
             public:
-                explicit IWrapper(IModule *plugin);
+                explicit IWrapper(Module *plugin);
                 virtual ~IWrapper();
 
             public:

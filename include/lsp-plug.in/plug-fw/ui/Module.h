@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_UI_IMODULE_H_
-#define LSP_PLUG_IN_PLUG_FW_UI_IMODULE_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_UI_MODULE_H_
+#define LSP_PLUG_IN_PLUG_FW_UI_MODULE_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
     #error "Use #include <lsp-plug.in/plug-fw/ui/ui.h>"
@@ -40,10 +40,10 @@ namespace lsp
         /**
          * UI Module
          */
-        class IModule
+        class Module
         {
             private:
-                IModule &operator = (const IModule &);
+                Module &operator = (const Module &);
 
             protected:
                 const meta::plugin_t       *pMetadata;
@@ -56,18 +56,15 @@ namespace lsp
                 lltl::parray<tk::Widget>    vTkWidgets;
 
             public:
-                explicit IModule(const meta::plugin_t *meta, IWrapper *wrapper);
-                virtual ~IModule();
+                explicit Module(const meta::plugin_t *meta);
+                virtual ~Module();
 
                 /** Initialize UI
                  *
-                 * @param root_widget root widget to use as a base
                  * @param wrapper plugin wrapper
-                 * @param argc number of arguments
-                 * @param argv list of arguments
                  * @return status of operation
                  */
-                virtual status_t            init();
+                virtual status_t            init(IWrapper *wrapper);
 
                 /**
                  * Destroy the UI
@@ -120,4 +117,4 @@ namespace lsp
     }
 }
 
-#endif /* LSP_PLUG_IN_PLUG_FW_UI_IMODULE_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_UI_MODULE_H_ */

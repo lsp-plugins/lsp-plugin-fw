@@ -25,18 +25,18 @@ namespace lsp
 {
     namespace ui
     {
-        IModule::IModule(const meta::plugin_t *meta, IWrapper *wrapper)
+        Module::Module(const meta::plugin_t *meta)
         {
             pMetadata       = meta;
-            pWrapper        = wrapper;
+            pWrapper        = NULL;
         }
 
-        IModule::~IModule()
+        Module::~Module()
         {
             destroy();
         }
 
-        void IModule::destroy()
+        void Module::destroy()
         {
             // Clear ports
             vSortedPorts.clear();
@@ -45,16 +45,18 @@ namespace lsp
             vCustomPorts.clear();
         }
 
-        status_t IModule::init()
+        status_t Module::init(IWrapper *wrapper)
         {
+            pWrapper        = wrapper;
+
             return STATUS_OK;
         }
 
-        void IModule::position_updated(const plug::position_t *pos)
+        void Module::position_updated(const plug::position_t *pos)
         {
         }
 
-        status_t IModule::add_port(IPort *port)
+        status_t Module::add_port(IPort *port)
         {
             if (!vPorts.add(port))
                 return STATUS_NO_MEM;
@@ -63,7 +65,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IModule::add_custom_port(IPort *port)
+        status_t Module::add_custom_port(IPort *port)
         {
             if (!vCustomPorts.add(port))
                 return STATUS_NO_MEM;
@@ -72,7 +74,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        IPort *IModule::port(const char *name)
+        IPort *Module::port(const char *name)
         {
 //            // Check aliases
 //            size_t n_aliases = vAliases.size();
@@ -200,7 +202,7 @@ namespace lsp
             return NULL;
         }
 
-        void IModule::sync_meta_ports()
+        void Module::sync_meta_ports()
         {
         }
 

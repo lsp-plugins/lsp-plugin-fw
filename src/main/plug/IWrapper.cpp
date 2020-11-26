@@ -29,7 +29,7 @@ namespace lsp
 {
     namespace plug
     {
-        IWrapper::IWrapper(IModule *plugin)
+        IWrapper::IWrapper(Module *plugin)
         {
             pPlugin     = plugin;
         }

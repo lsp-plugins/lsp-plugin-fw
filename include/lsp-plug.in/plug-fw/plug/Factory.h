@@ -40,7 +40,7 @@ namespace lsp
          * @param meta
          * @return
          */
-        typedef IModule * (*factory_func_t)(const meta::plugin_t *meta);
+        typedef Module * (* factory_func_t)(const meta::plugin_t *meta);
 
         /**
          * Factory for plugin module
@@ -76,7 +76,7 @@ namespace lsp
                  * @return pointer to created plugin or NULL on error.
                  * Plugin should be destroyed by the operator delete call
                  */
-                virtual IModule                *create(const meta::plugin_t *meta) const;
+                virtual Module                 *create(const meta::plugin_t *meta) const;
         };
     }
 }

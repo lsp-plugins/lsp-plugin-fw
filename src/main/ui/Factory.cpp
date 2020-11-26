@@ -31,6 +31,27 @@ namespace lsp
         {
             pNext       = pRoot;
             pRoot       = this;
+            pFunc       = NULL;
+            vList       = NULL;
+            nItems      = 0;
+        }
+
+        Factory::Factory(factory_func_t func, const meta::plugin_t **list, size_t items)
+        {
+            pNext       = pRoot;
+            pRoot       = this;
+            pFunc       = func;
+            vList       = list;
+            nItems      = items;
+        }
+
+        Factory::Factory(const meta::plugin_t **list, size_t items)
+        {
+            pNext       = pRoot;
+            pRoot       = this;
+            pFunc       = NULL;
+            vList       = list;
+            nItems      = items;
         }
 
         Factory::~Factory()
@@ -43,8 +64,14 @@ namespace lsp
             return NULL;
         }
 
-        IModule *Factory::create(size_t index)
+        Module *Factory::create(const meta::plugin_t *meta) const
         {
+            for (size_t i=0; i<nItems; ++i)
+            {
+                if (meta == vList[i])
+                    return (pFunc != NULL) ? pFunc(meta) : new ui::Module(meta);
+            }
+
             return NULL;
         }
     }

@@ -33,7 +33,7 @@ namespace lsp
 {
     namespace ui
     {
-        class IModule;
+        class Module;
 
         /**
          * UI wrapper
@@ -44,10 +44,10 @@ namespace lsp
                 IWrapper & operator = (const IWrapper &);
 
             protected:
-                IModule        *pUI;
+                Module        *pUI;
 
             public:
-                explicit IWrapper(IModule *ui);
+                explicit IWrapper(Module *ui);
                 virtual ~IWrapper();
 
             public:

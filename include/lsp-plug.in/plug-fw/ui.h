@@ -29,7 +29,7 @@
     #include <lsp-plug.in/plug-fw/ui/IPort.h>
     #include <lsp-plug.in/plug-fw/ui/IPortListener.h>
     #include <lsp-plug.in/plug-fw/ui/IWrapper.h>
-    #include <lsp-plug.in/plug-fw/ui/IModule.h>
+    #include <lsp-plug.in/plug-fw/ui/Module.h>
     #include <lsp-plug.in/plug-fw/ui/Factory.h>
 #undef LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
 

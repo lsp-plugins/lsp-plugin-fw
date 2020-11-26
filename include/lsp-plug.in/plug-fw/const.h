@@ -43,5 +43,6 @@
 #define MIDI_EVENTS_MAX                     4096                /* Maximum number of MIDI events per buffer         */
 #define OSC_BUFFER_MAX                      0x100000            /* Maximum size of the OSC messaging buffer (bytes) */
 #define OSC_PACKET_MAX                      0x10000             /* Maximum size of the OSC packet (bytes)           */
+#define OPTIMAL_ALIGN                       64                  /* Optimal data structure alignment                 */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CONST_H_ */

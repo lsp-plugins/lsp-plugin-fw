@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_BACK_IMODULE_H_
-#define LSP_PLUG_IN_PLUG_FW_BACK_IMODULE_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_BACK_MODULE_H_
+#define LSP_PLUG_IN_PLUG_FW_BACK_MODULE_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_
     #error "Use #include <lsp-plug.in/plug-fw/plug.h>"
@@ -45,10 +45,10 @@ namespace lsp
         /**
          * Main plugin class
          */
-        class IModule
+        class Module
         {
             private:
-                IModule &operator = (const IModule &);
+                Module &operator = (const Module &);
 
             protected:
                 lltl::parray<IPort>         vPorts;
@@ -61,8 +61,8 @@ namespace lsp
                 bool                        bUIActive;
 
             public:
-                explicit IModule(const meta::plugin_t *meta);
-                virtual ~IModule();
+                explicit Module(const meta::plugin_t *meta);
+                virtual ~Module();
 
                 /** Initialize plugin module
                  *
@@ -189,4 +189,4 @@ namespace lsp
     }
 }
 
-#endif /* LSP_PLUG_IN_PLUG_FW_BACK_IMODULE_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_BACK_MODULE_H_ */

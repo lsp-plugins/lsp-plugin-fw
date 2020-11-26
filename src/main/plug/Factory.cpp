@@ -55,7 +55,7 @@ namespace lsp
             return (index < nItems) ? vList[index] : NULL;
         }
 
-        IModule *Factory::create(const meta::plugin_t *meta) const
+        Module *Factory::create(const meta::plugin_t *meta) const
         {
             for (size_t i=0; i<nItems; ++i)
             {

@@ -36,6 +36,13 @@ namespace lsp
     namespace ui
     {
         /**
+         * Factory function
+         * @param meta
+         * @return
+         */
+        typedef Module * (* factory_func_t)(const meta::plugin_t *meta);
+
+        /**
          * Factory for UI module
          */
         class LSP_SYMBOL_HIDDEN Factory
@@ -44,11 +51,16 @@ namespace lsp
                 Factory & operator = (const Factory &);
 
             private:
-                static Factory     *pRoot;
-                Factory            *pNext;
+                static Factory         *pRoot;
+                Factory                *pNext;
+                factory_func_t          pFunc;
+                const meta::plugin_t  **vList;
+                size_t                  nItems;
 
             public:
                 explicit Factory();
+                explicit Factory(factory_func_t func, const meta::plugin_t **list, size_t items);
+                explicit Factory(const meta::plugin_t **list, size_t items);
                 virtual ~Factory();
 
             public:
@@ -61,11 +73,11 @@ namespace lsp
 
                 /**
                  * Create plugin UI module
-                 * @param index index of plugin UI
-                 * @return pointer to created plugin, plugin should be destroyed by
-                 *         the operator delete call
+                 * @param meta plugin metadata
+                 * @return pointer to created plugin UI or NULL on error.
+                 * Plugin UI module should be destroyed by the operator delete call
                  */
-                virtual IModule                *create(size_t index);
+                virtual Module                 *create(const meta::plugin_t *meta) const;
         };
     }
 }

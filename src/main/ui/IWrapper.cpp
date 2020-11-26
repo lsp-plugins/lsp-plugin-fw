@@ -25,7 +25,7 @@ namespace lsp
 {
     namespace ui
     {
-        IWrapper::IWrapper(IModule *ui)
+        IWrapper::IWrapper(Module *ui)
         {
             pUI         = ui;
         }

@@ -26,7 +26,7 @@ namespace lsp
 {
     namespace plug
     {
-        IModule::IModule(const meta::plugin_t *meta)
+        Module::Module(const meta::plugin_t *meta)
         {
             pMetadata       = meta;
             pWrapper        = NULL;
@@ -36,11 +36,11 @@ namespace lsp
             bUIActive       = true;
         }
 
-        IModule::~IModule()
+        Module::~Module()
         {
         }
 
-        void IModule::activate_ui()
+        void Module::activate_ui()
         {
             if (bUIActive)
                 return;
@@ -50,7 +50,7 @@ namespace lsp
             ui_activated();
         }
 
-        void IModule::deactivate_ui()
+        void Module::deactivate_ui()
         {
             if (!bUIActive)
                 return;
@@ -60,7 +60,7 @@ namespace lsp
             ui_deactivated();
         }
 
-        void IModule::activate()
+        void Module::activate()
         {
             if (bActivated)
                 return;
@@ -70,7 +70,7 @@ namespace lsp
             pWrapper->query_display_draw();
         }
 
-        void IModule::deactivate()
+        void Module::deactivate()
         {
             if (!bActivated)
                 return;
@@ -80,12 +80,12 @@ namespace lsp
             pWrapper->query_display_draw();
         }
 
-        void IModule::init(IWrapper *wrapper)
+        void Module::init(IWrapper *wrapper)
         {
             pWrapper        = wrapper;
         }
 
-        void IModule::set_sample_rate(long sr)
+        void Module::set_sample_rate(long sr)
         {
             if (fSampleRate == sr)
                 return;
@@ -94,75 +94,75 @@ namespace lsp
             update_sample_rate(sr);
         };
 
-        void IModule::update_sample_rate(long sr)
+        void Module::update_sample_rate(long sr)
         {
         }
 
-        void IModule::activated()
+        void Module::activated()
         {
         }
 
-        void IModule::deactivated()
+        void Module::deactivated()
         {
         }
 
-        void IModule::ui_activated()
+        void Module::ui_activated()
         {
         }
 
-        void IModule::ui_deactivated()
+        void Module::ui_deactivated()
         {
         }
 
-        void IModule::destroy()
+        void Module::destroy()
         {
             vPorts.flush();
             bActivated      = false;
         }
 
-        void IModule::update_settings()
+        void Module::update_settings()
         {
         }
 
-        bool IModule::set_position(const position_t *pos)
-        {
-            return false;
-        }
-
-        void IModule::process(size_t samples)
-        {
-        }
-
-        bool IModule::inline_display(ICanvas *cv, size_t width, size_t height)
+        bool Module::set_position(const position_t *pos)
         {
             return false;
         }
 
-        core::KVTStorage *IModule::kvt_lock()
+        void Module::process(size_t samples)
+        {
+        }
+
+        bool Module::inline_display(ICanvas *cv, size_t width, size_t height)
+        {
+            return false;
+        }
+
+        core::KVTStorage *Module::kvt_lock()
         {
             return (pWrapper != NULL) ? pWrapper->kvt_lock() : NULL;
         }
 
-        core::KVTStorage *IModule::kvt_trylock()
+        core::KVTStorage *Module::kvt_trylock()
         {
             return (pWrapper != NULL) ? pWrapper->kvt_trylock() : NULL;
         }
 
-        void IModule::kvt_release()
+        void Module::kvt_release()
         {
             if (pWrapper != NULL)
                 pWrapper->kvt_release();
         }
 
-        void IModule::state_saved()
+        void Module::state_saved()
         {
         }
 
-        void IModule::state_loaded()
+        void Module::state_loaded()
         {
         }
 
-        void IModule::dump(dspu::IStateDumper *v) const
+        void Module::dump(dspu::IStateDumper *v) const
         {
         }
     }

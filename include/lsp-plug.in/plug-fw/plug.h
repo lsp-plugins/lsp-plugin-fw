@@ -30,7 +30,7 @@
     #include <lsp-plug.in/plug-fw/plug/IPort.h>
     #include <lsp-plug.in/plug-fw/plug/ICanvas.h>
     #include <lsp-plug.in/plug-fw/plug/IWrapper.h>
-    #include <lsp-plug.in/plug-fw/plug/IModule.h>
+    #include <lsp-plug.in/plug-fw/plug/Module.h>
     #include <lsp-plug.in/plug-fw/plug/Factory.h>
 #undef LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_
 
