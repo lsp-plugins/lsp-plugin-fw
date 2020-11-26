@@ -30,11 +30,14 @@
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/common/status.h>
 
 namespace lsp
 {
     namespace plug
     {
+        class Factory;
+
         /**
          * Factory function
          * @param meta
@@ -64,6 +67,19 @@ namespace lsp
 
             public:
                 /**
+                 * Get root registered factory
+                 * @return root registered factory
+                 */
+                static inline Factory          *root()      { return pRoot;             }
+
+                /**
+                 * Get next registered factory
+                 * @return next registered factory
+                 */
+                inline Factory                 *next()      { return pNext;             }
+
+            public:
+                /**
                  * Enumerate the metadata for plugins produced by the factory
                  * @param index index of plugin starting with 0 and growing with 1
                  * @return plugin metadata or NULL if there is no more data in enumeration
@@ -72,7 +88,7 @@ namespace lsp
 
                 /**
                  * Create plugin module
-                 * @param meta plugin metadata
+                 * @param meta plugin metadata returned from enumerate() method
                  * @return pointer to created plugin or NULL on error.
                  * Plugin should be destroyed by the operator delete call
                  */

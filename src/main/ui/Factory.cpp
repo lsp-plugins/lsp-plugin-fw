@@ -61,11 +61,14 @@ namespace lsp
 
         const meta::plugin_t *Factory::enumerate(size_t index) const
         {
-            return NULL;
+            return (vList != NULL) && (index < nItems) ? vList[index] : NULL;
         }
 
         Module *Factory::create(const meta::plugin_t *meta) const
         {
+            if (vList == NULL)
+                return NULL;
+
             for (size_t i=0; i<nItems; ++i)
             {
                 if (meta == vList[i])

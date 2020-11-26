@@ -65,15 +65,28 @@ namespace lsp
 
             public:
                 /**
-                 * Enumerate the metadata for plugin UIs produced by the factory
-                 * @param index index of plugin UI starting with 0 and growing with 1
+                 * Get root registered factory
+                 * @return root registered factory
+                 */
+                static inline Factory          *root()      { return pRoot;             }
+
+                /**
+                 * Get next registered factory
+                 * @return next registered factory
+                 */
+                inline Factory                 *next()      { return pNext;             }
+
+            public:
+                /**
+                 * Enumerate the metadata for plugins produced by the factory
+                 * @param index index of plugin starting with 0 and growing with 1
                  * @return plugin metadata or NULL if there is no more data in enumeration
                  */
                 virtual const meta::plugin_t   *enumerate(size_t index) const;
 
                 /**
                  * Create plugin UI module
-                 * @param meta plugin metadata
+                 * @param meta plugin metadata returned from enumerate() method
                  * @return pointer to created plugin UI or NULL on error.
                  * Plugin UI module should be destroyed by the operator delete call
                  */
