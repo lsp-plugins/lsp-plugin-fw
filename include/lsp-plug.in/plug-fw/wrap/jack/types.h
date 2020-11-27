@@ -149,8 +149,6 @@ namespace lsp
 
         typedef struct mesh_t: public plug::mesh_t
         {
-            uint8_t    *pRaw;
-
             static mesh_t *create(const meta::port_t *meta)
             {
                 size_t buffers      = meta->step;
@@ -162,8 +160,7 @@ namespace lsp
                 mesh_size           = align_size(mesh_size, OPTIMAL_ALIGN);
 
                 // Allocate pointer
-                uint8_t *prdata     = NULL;
-                uint8_t *ptr        = alloc_aligned<uint8_t>(prdata, mesh_size + buf_size * buffers, OPTIMAL_ALIGN);
+                uint8_t *ptr        = static_cast<uint8_t *>(malloc(mesh_size + buf_size * buffers));
                 if (ptr == NULL)
                     return NULL;
 
@@ -172,7 +169,6 @@ namespace lsp
                 mesh->nState        = plug::M_EMPTY;
                 mesh->nBuffers      = 0;
                 mesh->nItems        = 0;
-                mesh->pRaw          = prdata;
                 ptr                += mesh_size;
                 for (size_t i=0; i<buffers; ++i)
                 {
@@ -185,9 +181,8 @@ namespace lsp
 
             static void destroy(mesh_t *mesh)
             {
-                if (mesh->pRaw == NULL)
-                    return;
-                free_aligned(mesh->pRaw);
+                if (mesh != NULL)
+                    free(mesh);
             }
         } mesh_t;
 
@@ -195,4 +190,4 @@ namespace lsp
 }
 
 
-#endif /* INCLUDE_LSP_PLUG_IN_PLUG_FW_WRAP_JACK_TYPES_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_TYPES_H_ */

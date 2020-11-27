@@ -92,6 +92,10 @@ LIBSNDFILE_VERSION         := system
 LIBSNDFILE_NAME            := sndfile
 LIBSNDFILE_TYPE            := pkg
 
+LIBJACK_VERSION            := system
+LIBJACK_NAME               := jack
+LIBJACK_TYPE               := pkg
+
 ifeq ($(PLATFORM),Windows)
   STDLIB_VERSION             := system
   STDLIB_TYPE                := opt

@@ -31,6 +31,8 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/ws/ws.h>
 #include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/runtime/system.h>
+#include <lsp-plug.in/ipc/Thread.h>
 
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/ui.h>
@@ -74,10 +76,13 @@ namespace lsp
     {
         typedef struct jack_wrapper_t
         {
-            size_t          nSync;
-            JACKWrapper    *pWrapper;
-            LSPWindow      *pWindow;
-            timespec        nLastReconnect;
+            size_t              nSync;              // Synchronization request
+            plug::Module       *pPlugin;            // Plugin
+            ui::Module         *pUI;                // Plugin UI
+            jack::Wrapper      *pWrapper;           // Plugin wrapper
+//            LSPWindow      *pWindow;
+            ws::timestamp_t     nLastReconnect;
+            volatile bool       bInterrupt;         // Interrupt signal received
         } jack_wrapper_t;
 
         typedef struct jack_cmdline_t
@@ -88,6 +93,9 @@ namespace lsp
             bool            headless;
             bool            list;
         } jack_config_t;
+
+        // JACK wrapper
+        static jack_wrapper_t  jack_wrapper;
 
         status_t jack_parse_cmdline(jack_cmdline_t *cfg, const char *plugin_id, int argc, const char **argv)
         {
@@ -222,7 +230,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t jack_create_plugin(plug::Module **plug, const char *id)
+        status_t jack_create_plugin(jack_wrapper_t *w, const char *id)
         {
             // Lookup plugin identifier among all registered plugin factories
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
@@ -238,7 +246,7 @@ namespace lsp
                     if (!::strcmp(meta->lv2_uid, id))
                     {
                         // Instantiate the plugin and return
-                        if ((*plug = f->create(meta)) != NULL)
+                        if ((w->pPlugin = f->create(meta)) != NULL)
                             return STATUS_OK;
 
                         fprintf(stderr, "Plugin instantiation error: %s\n", id);
@@ -252,7 +260,7 @@ namespace lsp
             return STATUS_BAD_ARGUMENTS;
         }
 
-        status_t jack_create_ui(ui::Module **pui, const char *id)
+        status_t jack_create_ui(jack_wrapper_t *w, const char *id)
         {
             // Lookup plugin identifier among all registered plugin factories
             for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
@@ -268,7 +276,7 @@ namespace lsp
                     if (!::strcmp(meta->lv2_uid, id))
                     {
                         // Instantiate the plugin UI and return
-                        if ((*pui = f->create(meta)) != NULL)
+                        if ((w->pUI = f->create(meta)) != NULL)
                             return STATUS_OK;
 
                         fprintf(stderr, "Plugin UI instantiation error: %s\n", id);
@@ -282,126 +290,250 @@ namespace lsp
             return STATUS_OK;
         }
 
-        static status_t jack_ui_sync(ws::timestamp_t time, void *arg)
+        #if defined(PLATFORM_WINDOWS)
+            static BOOL WINAPI jack_ctrlc_handler(DWORD dwCtrlType)
+            {
+                if (dwCtrlType != CTRL_C_EVENT)
+                    return FALSE;
+
+                jack_wrapper.bInterrupt     = true;
+                return TRUE:
+            }
+
+        #elif defined(PLATFORM_POSIX)
+            static void jack_sigint_handler(int sig)
+            {
+                if (sig == SIGINT)
+                    jack_wrapper.bInterrupt     = true;
+            }
+        #endif /* PLATFORM_POSIX */
+
+        static void jack_destroy_wrapper(jack_wrapper_t *w)
+        {
+            // Disconnect the wrapper
+            if (w->pWrapper != NULL)
+                w->pWrapper->disconnect();
+            // TODO: disconnect UI wrapper
+
+            // Destroy plugin UI
+            if (w->pUI != NULL)
+            {
+                w->pUI->destroy();
+                delete w->pUI;
+                w->pUI          = NULL;
+            }
+
+            // TODO: destroy UI wrapper
+
+            // Destroy plugin
+            if (w->pPlugin != NULL)
+            {
+                w->pPlugin->destroy();
+                delete w->pPlugin;
+                w->pPlugin      = NULL;
+            }
+
+            // Destroy wrapper
+            if (w->pWrapper != NULL)
+            {
+                w->pWrapper->destroy();
+                delete w->pWrapper;
+                w->pWrapper     = NULL;
+            }
+        }
+
+        static status_t jack_init_wrapper(jack_wrapper_t *w, const jack_cmdline_t &cmdline)
+        {
+            status_t res;
+
+            lsp_trace("Initializing wrapper");
+
+            // Create plugin module
+            if ((res = jack_create_plugin(w, cmdline.plugin_id)) != STATUS_OK)
+            {
+                jack_destroy_wrapper(w);
+                return res;
+            }
+
+            // Need to instantiate plugin UI?
+            if (!cmdline.headless)
+            {
+                if ((res = jack_create_ui(w, cmdline.plugin_id)) != STATUS_OK)
+                {
+                    jack_destroy_wrapper(w);
+                    return res;
+                }
+            }
+
+            #if defined(PLATFORM_WINDOWS)
+                // Handle the Ctrl-C event from console
+                SetConsoleCtrlHandler(jack_ctrlc_handler, TRUE);
+            #elif defined(PLATFORM_POSIX)
+                // Ignore SIGPIPE signal since JACK can suddenly lose socket connection
+                signal(SIGPIPE, SIG_IGN);
+                // Handle the Ctrl-C event from console
+                signal(SIGINT, jack_sigint_handler);
+            #endif
+
+            // Initialize plugin wrapper
+            w->pWrapper     = new jack::Wrapper(w->pPlugin);
+            if (w->pWrapper == NULL)
+            {
+                jack_destroy_wrapper(w);
+                return STATUS_NO_MEM;
+            }
+
+            if ((res = w->pWrapper->init()) != STATUS_OK)
+            {
+                jack_destroy_wrapper(w);
+                return res;
+            }
+
+            // TODO: Initialize UI wrapper
+            if (w->pUI!= NULL)
+            {
+            }
+
+            // TODO: Load configuration (if specified in parameters)
+//            if ((status == STATUS_OK) && (cfg.cfg_file != NULL))
+//            {
+//                status = pui->import_settings(cfg.cfg_file, false);
+//                if (status != STATUS_OK)
+//                    fprintf(stderr, "Error loading configuration file: %s\n", get_status(status));
+//            }
+
+            return STATUS_OK;
+        }
+
+        static status_t jack_sync(ws::timestamp_t sched, ws::timestamp_t ctime, void *arg)
         {
             if (arg == NULL)
                 return STATUS_BAD_STATE;
 
-            jack_wrapper_t *wrapper = static_cast<jack_wrapper_t *>(arg);
-            JACKWrapper *jw         = wrapper->pWrapper;
+            jack_wrapper_t *w       = static_cast<jack_wrapper_t *>(arg);
+            jack::Wrapper *jw       = w->pWrapper;
 
             // If connection to JACK was lost - notify
             if (jw->connection_lost())
             {
-                lsp_trace("Connection to JACK was lost");
-
-                // Perform disconnect action
+                // Disconnect wrapper and remember last connection time
+                fprintf(stderr, "Connection to JACK was lost\n");
                 jw->disconnect();
-
-                // Remember last connection time
-                clock_gettime(CLOCK_REALTIME, &wrapper->nLastReconnect);
+                w->nLastReconnect       = ctime;
             }
 
             // If we are currently in disconnected state - try to perform a connection
             if (jw->disconnected())
             {
-                timespec ctime;
-                clock_gettime(CLOCK_REALTIME, &ctime);
-                wssize_t delta = (ctime.tv_sec - wrapper->nLastReconnect.tv_sec) * 1000 + (ctime.tv_nsec - wrapper->nLastReconnect.tv_nsec) / 1000000;
-
                 // Try each second to make new connection
-                if (delta >= 1000)
+                if ((ctime - w->nLastReconnect) >= 1000)
                 {
-                    lsp_trace("Trying to connect to JACK");
+                    printf("Trying to connect to JACK\n");
                     if (jw->connect() == STATUS_OK)
                     {
-                        lsp_trace("Successful connected to JACK");
-                        wrapper->nSync = 0;
+                        lsp_trace("Successfully connected to JACK");
+                        w->nSync        = 0;
                     }
-                    wrapper->nLastReconnect     = ctime;
+                    w->nLastReconnect   = ctime;
                 }
             }
 
             // If we are connected - do usual stuff
             if (jw->connected())
             {
-                if (!(wrapper->nSync++))
-                    wrapper->pWindow->query_resize();
-            }
-
+                // TODO
+//                if (!(wrapper->nSync++))
+//                    wrapper->pWindow->query_resize();
             // Transfer changes from DSP to UI
-            wrapper->pWrapper->transfer_dsp_to_ui();
+//            wrapper->pWrapper->transfer_dsp_to_ui(); // TODO
+            }
 
             return STATUS_OK;
         }
 
-        int jack_plugin_main(
-            const jack_cmdline_t &cfg,
-            plug::Module *plugin, ui::Module *pui
-        )
+        status_t jack_plugin_main(jack_wrapper_t *w)
         {
-            int status               = STATUS_OK;
-            jack_wrapper_t  wrapper;
+            status_t res        = STATUS_OK;
+            ssize_t period      = 40; // 40 ms period (25 frames per second)
 
-            // Create wrapper
-            lsp_trace("Creating wrapper");
-            JACKWrapper w(plugin, pui);
-
-            // Initialize
-            lsp_trace("Initializing wrapper");
-            status                  = w.init(argc, argv);
-
-            // Load configuration (if specified in parameters)
-            if ((status == STATUS_OK) && (cfg.cfg_file != NULL))
+            if (w->pUI != NULL)
             {
-                status = pui->import_settings(cfg.cfg_file, false);
-                if (status != STATUS_OK)
-                    fprintf(stderr, "Error loading configuration file: %s\n", get_status(status));
-            }
-
-            // Enter the main lifecycle
-            if (status == STATUS_OK)
-            {
-                dsp::context_t ctx;
-                dsp::start(&ctx);
-
-                // Perform initial connection
-                lsp_trace("Connecting to JACK server");
-                w.connect();
-                clock_gettime(CLOCK_REALTIME, &wrapper.nLastReconnect);
-
-                // Create timer for transferring DSP -> UI data
-                lsp_trace("Creating timer");
-                wrapper.nSync       = 0;
-                wrapper.pWrapper    = &w;
-                wrapper.pWindow     = pui->root_window();
-
-                LSPTimer tmr;
-                tmr.bind(pui->display());
-                tmr.set_handler(jack_ui_sync, &wrapper);
-                tmr.launch(0, 40); // 25 Hz rate
-
-                // Do UI interaction
-                lsp_trace("Calling main function");
-                w.show_ui();
-                pui->main();
-                tmr.cancel();
-
-                dsp::finish(&ctx);
+                // TODO
             }
             else
-                lsp_error("Error initializing Jack wrapper");
-
-            // Destroy objects
-            w.disconnect();
-            if (pui != NULL)
             {
-                pui->destroy();
-                delete pui;
-            }
-            w.destroy();
+                system::time_t  ctime;
+                ws::timestamp_t ts1, ts2;
 
-            return status;
+                // Initialize wrapper structure and set-up signal handlers
+                while (!w->bInterrupt)
+                {
+                    system::get_time(&ctime);
+                    ts1     = ctime.seconds * 1000 + ctime.nanos / 1000000;
+
+                    if ((res = jack_sync(ts1, ts1, w)) != STATUS_OK)
+                    {
+                        fprintf(stderr, "Unexpected error, code=%d", res);
+                        return res;
+                    }
+
+                    // Perform a small sleep before new iteration
+                    system::get_time(&ctime);
+                    ts2     = ctime.seconds * 1000 + ctime.nanos / 1000000;
+
+                    wssize_t delay   = ts1 + period - ts2;
+                    if (delay > 0)
+                        ipc::Thread::sleep(lsp_max(delay, period));
+                }
+            }
+
+            printf("Plugin execution interrupted\n");
+
+            return res;
+
+            //            // Enter the main lifecycle
+            //            if (status == STATUS_OK)
+            //            {
+            //                dsp::context_t ctx;
+            //                dsp::start(&ctx);
+            //
+            //                // Perform initial connection
+            //                lsp_trace("Connecting to JACK server");
+            //                w.connect();
+            //                clock_gettime(CLOCK_REALTIME, &wrapper.nLastReconnect);
+            //
+            //                // Create timer for transferring DSP -> UI data
+            //                lsp_trace("Creating timer");
+            //                wrapper.nSync       = 0;
+            //                wrapper.pWrapper    = &w;
+            //                wrapper.pWindow     = pui->root_window();
+            //
+            //                LSPTimer tmr;
+            //                tmr.bind(pui->display());
+            //                tmr.set_handler(jack_ui_sync, &wrapper);
+            //                tmr.launch(0, 40); // 25 Hz rate
+            //
+            //                // Do UI interaction
+            //                lsp_trace("Calling main function");
+            //                w.show_ui();
+            //                pui->main();
+            //                tmr.cancel();
+            //
+            //                dsp::finish(&ctx);
+            //            }
+            //            else
+            //                lsp_error("Error initializing Jack wrapper");
+            //
+            //            // Destroy objects
+            //            w.disconnect();
+            //            if (pui != NULL)
+            //            {
+            //                pui->destroy();
+            //                delete pui;
+            //            }
+            //            w.destroy();
+            //
+            //            return status;
         }
     }
 }
@@ -415,13 +547,16 @@ extern "C"
 
     int JACK_MAIN_FUNCTION(const char *plugin_id, int argc, const char **argv)
     {
-        status_t res        = STATUS_OK;
-        plug::Module *plug  = NULL;
-        ui::Module *pui     = NULL;
+        status_t res            = STATUS_OK;
 
-        #ifdef PLATFORM_POSIX
-            signal(SIGPIPE, SIG_IGN); // Ignore SIGPIPE signal since JACK can suddenly lose socket connection
-        #endif
+        // Initialize wrapper with empty data
+        wrap::jack_wrapper_t *w = &wrap::jack_wrapper;
+        w->nSync                = 0;
+        w->pPlugin              = NULL;
+        w->pUI                  = NULL;
+        w->pWrapper             = NULL;
+        w->bInterrupt           = false;
+        w->nLastReconnect       = 0;
 
 //        lsp_debug_init("jack");
 //        init_locale();
@@ -449,34 +584,16 @@ extern "C"
         // Initialize DSP
         dsp::init();
 
-        // Create plugin module
-        if ((res = wrap::jack_create_plugin(&plug, plugin_id)) != STATUS_OK)
-            return -res;
+        // Initialize plugin wrapper
+        res = wrap::jack_init_wrapper(&wrap::jack_wrapper, cmdline);
+        if (res == STATUS_OK) // Try to launch instantiated objects
+            res = wrap::jack_plugin_main(&wrap::jack_wrapper);
 
-        // Need to instantiate plugin UI?
-        if (!cmdline.headless)
-        {
-            if ((res = wrap::jack_create_ui(&pui, plugin_id)) != STATUS_OK)
-                return -res;
-        }
+        // Destroy JACK wrapper
+        wrap::jack_destroy_wrapper(&wrap::jack_wrapper);
 
-        // Try to launch instantiated objects
-        res = jack_plugin_main(cmdline, plug, pui);
-
-        // Destroy objects
-        if (pui != NULL)
-        {
-            pui->destroy();
-            delete pui;
-        }
-        if (plug != NULL)
-        {
-            plug->destroy();
-            delete plug;
-        }
-
-        // Output error
-        return -res;
+        // Return result
+        return (res == STATUS_OK) ? 0 : -res;
     }
 
 //    LSP_LIBRARY_EXPORT

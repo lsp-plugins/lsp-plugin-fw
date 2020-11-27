@@ -23,6 +23,7 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/stdlib/math.h>
+#include <lsp-plug.in/common/alloc.h>
 
 namespace lsp
 {
@@ -204,6 +205,71 @@ namespace lsp
                     value = port->min;
             }
             return value;
+        }
+
+        port_t *clone_port_metadata(const port_t *metadata, const char *postfix)
+        {
+            if (metadata == NULL)
+                return NULL;
+
+            size_t  postfix_len     = (postfix != NULL) ? strlen(postfix) : 0;
+            size_t  string_bytes    = 0;
+            size_t  elements        = 1; // At least PORTS_END should be present
+
+            for (const port_t *p=metadata; p->id != NULL; ++p)
+            {
+                elements        ++;
+                if (postfix_len > 0)
+                    string_bytes    += strlen(p->id) + postfix_len + 1;
+            }
+
+            // Calculate the overall allocation size
+            size_t to_copy          = sizeof(port_t) * elements;
+            string_bytes            = align_size(string_bytes, DEFAULT_ALIGN);
+            elements                = align_size(to_copy, DEFAULT_ALIGN);
+            size_t allocate         = string_bytes + elements;
+            uint8_t *ptr            = static_cast<uint8_t *>(malloc(allocate));
+            port_t *meta            = reinterpret_cast<port_t *>(ptr);
+
+            // Copy port metadata
+            ::memcpy(meta, metadata, to_copy);
+
+            // Update identifiers if needed
+            if (postfix_len > 0)
+            {
+                port_t *m               = meta;
+                char *dst               = reinterpret_cast<char *>(ptr + elements);
+
+                for (const port_t *p=metadata; p->id != NULL; ++p, ++m)
+                {
+                    m->id                   = dst;
+                    size_t slen             = strlen(p->id);
+                    memcpy(dst, p->id, slen);
+                    dst                    += slen;
+                    memcpy(dst, postfix, postfix_len);
+                    dst                    += postfix_len;
+                    *(dst++)                = '\0';
+                }
+            }
+
+            return meta;
+        }
+
+        void drop_port_metadata(port_t *metadata)
+        {
+            if (metadata != NULL)
+                free(metadata);
+        }
+
+        size_t port_list_size(const port_t *metadata)
+        {
+            size_t count = 0;
+            while (metadata->id != NULL)
+            {
+                count       ++;
+                metadata    ++;
+            }
+            return count;
         }
     }
 }

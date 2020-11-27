@@ -151,8 +151,6 @@ namespace lsp
 
                 virtual bool                        kvt_release();
 
-                virtual void                        state_changed();
-
             public:
                 inline jack_client_t               *client()                { return pClient;                   }
                 inline bool                         initialized() const     { return nState != S_CREATED;       }
@@ -612,6 +610,11 @@ namespace lsp
             jack::Wrapper *_this    = static_cast<jack::Wrapper *>(arg);
             _this->nState           = S_CONN_LOST;
             lsp_warn("JACK NOTIFICATION: shutdown");
+        }
+
+        plug::ICanvas *Wrapper::create_canvas(plug::ICanvas *&cv, size_t width, size_t height)
+        {
+            return NULL; // TODO
         }
     }
 }
