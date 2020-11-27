@@ -471,7 +471,101 @@ namespace lsp
 
         void Wrapper::create_port(const meta::port_t *port, const char *postfix)
         {
-            // TODO
+            jack::Port *jp  = NULL;
+
+            switch (port->role)
+            {
+                case meta::R_MESH:
+                    jp      = new jack::MeshPort(port, this);
+                    break;
+
+                case meta::R_FBUFFER:
+                    jp      = new jack::FrameBufferPort(port, this);
+                    break;
+
+                case meta::R_MIDI:
+                case meta::R_AUDIO:
+                {
+                    jack::DataPort *jdp = new jack::DataPort(port, this);
+                    vDataPorts.add(jdp);
+                    jp      = jdp;
+                    break;
+                }
+
+                case meta::R_OSC:
+                    jp      = new jack::OscPort(port, this);
+                    break;
+
+                case meta::R_PATH:
+                    jp      = new jack::PathPort(port, this);
+                    break;
+
+                case meta::R_CONTROL:
+                case meta::R_BYPASS:
+                    jp      = new jack::ControlPort(port, this);
+                    break;
+
+                case meta::R_METER:
+                    jp      = new jack::MeterPort(port, this);
+                    break;
+
+                case meta::R_PORT_SET:
+                {
+                    char postfix_buf[MAX_PARAM_ID_BYTES];
+                    jack::PortGroup     *pg      = new jack::PortGroup(port, this);
+                    pg->init();
+                    vPorts.add(pg);
+                    pPlugin->add_port(pg);
+
+                    for (size_t row=0; row<pg->rows(); ++row)
+                    {
+                        // Generate postfix
+                        snprintf(postfix_buf, sizeof(postfix_buf)-1, "%s_%d", (postfix != NULL) ? postfix : "", int(row));
+
+                        // Clone port metadata
+                        meta::port_t *cm        = clone_port_metadata(port->members, postfix_buf);
+                        if (cm != NULL)
+                        {
+                            vGenMetadata.add(cm);
+
+                            for (; cm->id != NULL; ++cm)
+                            {
+                                if (meta::is_growing_port(cm))
+                                    cm->start    = cm->min + ((cm->max - cm->min) * row) / float(pg->rows());
+                                else if (meta::is_lowering_port(cm))
+                                    cm->start    = cm->max - ((cm->max - cm->min) * row) / float(pg->rows());
+
+                                create_port(cm, postfix_buf);
+                            }
+                        }
+                    }
+
+                    break;
+                }
+
+                default:
+                    break;
+            }
+
+            if (jp != NULL)
+            {
+                jp->init();
+                #ifdef LSP_DEBUG
+                    const char *src_id = jp->metadata()->id;
+
+                    JACKPort **vp = vPorts.get_array();
+                    for (size_t i=0, n=vPorts.size(); i<n; ++i)
+                    {
+                        if (!::strcmp(src_id, vp[i]->metadata()->id))
+                        {
+                            lsp_error("ERROR: port %s already defined", src_id);
+                        }
+                    }
+                #endif /* LSP_DEBUG */
+
+                vPorts.add(jp);
+                pPlugin->add_port(jp);
+            }
         }
 
         int Wrapper::latency_callback(jack_latency_callback_mode_t mode)

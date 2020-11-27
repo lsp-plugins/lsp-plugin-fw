@@ -25,6 +25,7 @@
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/stdlib/stdlib.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/dsp-units/const.h>
 
@@ -547,6 +548,20 @@ namespace lsp
             atomic_add(&nSize, -(psize + sizeof(uint32_t)));
 
             return psize;
+        }
+
+        static int compare_midi_events(const void *p1, const void *p2)
+        {
+            const midi::event_t *e1 = reinterpret_cast<const midi::event_t *>(p1);
+            const midi::event_t *e2 = reinterpret_cast<const midi::event_t *>(p2);
+            return (e1->timestamp < e2->timestamp) ? -1 :
+                    (e1->timestamp > e2->timestamp) ? 1 : 0;
+        }
+
+        void midi_t::sort()
+        {
+            if (nEvents > 1)
+                ::qsort(vEvents, sizeof(midi::event_t), nEvents, compare_midi_events);
         }
     }
 }
