@@ -105,14 +105,34 @@ define hdrconfig =
   $(if $($(name)_MFLAGS),,  $(eval $(name)_MFLAGS  := $(if $(builtin),"-D$(name)_BUILTIN -fvisibility=hidden")))
 endef
 
+define plugconfig =
+  $(eval name=$(1))
+  $(eval builtin=$(patsubst $(ARTIFACT_NAME),,$($(name)_NAME)))
+  $(if $($(name)_PATH),,    $(eval $(name)_PATH    := $(MODULES)/$($(name)_NAME)))
+  $(if $($(name)_DESC),,    $(eval $(name)_DESC    := $($(name)_DESC)))
+  $(if $($(name)_INC),,     $(eval $(name)_INC     := $($(name)_PATH)/include))
+  $(if $($(name)_SRC),,     $(eval $(name)_SRC     := $($(name)_PATH)/src))
+  $(if $($(name)_TEST),,    $(eval $(name)_TEST    := $($(name)_PATH)/test))
+  $(if $($(name)_TESTING),, $(eval $(name)_TESTING := 0))
+  $(if $($(name)_BIN),,     $(eval $(name)_BIN     := $(BUILDDIR)/$($(name)_NAME)))
+  $(if $($(name)_CFLAGS),,  $(eval $(name)_CFLAGS  := "-I\"$($(name)_INC)\"" $(if $(builtin),"-D$(name)_BUILTIN")))
+  $(if $($(name)_LDLAGS),,  $(eval $(name)_LDFLAGS :=))
+  $(if $($(name)_OBJ_META),,$(eval $(name)_OBJ_META:= "$($(name)_BIN)/$($(name)_NAME)-meta.o"))
+  $(if $($(name)_OBJ_DSP),, $(eval $(name)_OBJ_DSP := "$($(name)_BIN)/$($(name)_NAME)-dsp.o"))
+  $(if $($(name)_OBJ_UI),,  $(eval $(name)_OBJ_UI  := "$($(name)_BIN)/$($(name)_NAME)-ui.o"))
+  $(if $($(name)_OBJ_TEST),,$(eval $(name)_OBJ_TEST:= "$($(name)_BIN)/$($(name)_NAME)-test.o"))
+  $(if $($(name)_MFLAGS),,  $(eval $(name)_MFLAGS  := $(if $(builtin),"-D$(name)_BUILTIN -fvisibility=hidden")))
+endef
+
 define vardef =
   $(eval name = $(1))
   # Override variables if they are not defined
-  $(if $(findstring pkg,$($(name)_TYPE)), $(eval $(call pkgconfig, $(name))))
-  $(if $(findstring src,$($(name)_TYPE)), $(eval $(call srcconfig, $(name))))
-  $(if $(findstring hdr,$($(name)_TYPE)), $(eval $(call hdrconfig, $(name))))
-  $(if $(findstring lib,$($(name)_TYPE)), $(eval $(call libconfig, $(name))))
-  $(if $(findstring opt,$($(name)_TYPE)), $(eval $(call optconfig, $(name))))
+  $(if $(findstring pkg, $($(name)_TYPE)), $(eval $(call pkgconfig,  $(name))))
+  $(if $(findstring src, $($(name)_TYPE)), $(eval $(call srcconfig,  $(name))))
+  $(if $(findstring plug,$($(name)_TYPE)), $(eval $(call plugconfig, $(name))))
+  $(if $(findstring hdr, $($(name)_TYPE)), $(eval $(call hdrconfig,  $(name))))
+  $(if $(findstring lib, $($(name)_TYPE)), $(eval $(call libconfig,  $(name))))
+  $(if $(findstring opt, $($(name)_TYPE)), $(eval $(call optconfig,  $(name))))
 endef
 
 # Define predefined variables
@@ -155,6 +175,9 @@ CONFIG_VARS = \
     $(name)_MFLAGS \
     $(name)_LDFLAGS \
     $(name)_OBJ \
+    $(name)_OBJ_META \
+    $(name)_OBJ_DSP \
+    $(name)_OBJ_UI \
   )
 
 .DEFAULT_GOAL      := config
@@ -187,11 +210,12 @@ help: | toolvars sysvars
 	@echo "  <ARTIFACT>_SRC            path to source code files of the artifact"
 	@echo "  <ARTIFACT>_TEST           location of test files of the artifact"
 	@echo "  <ARTIFACT>_TYPE           artifact usage type"
-	@echo "                            - src - use sources and headers from git"
-	@echo "                            - hdr - use headers only from git"
-	@echo "                            - pkg - use pkgconfig for configuration"
-	@echo "                            - lib - use system headers and -l<libname> flags"
-	@echo "                            - opt - use optional configuration"
+	@echo "                            - src  - use sources and headers from git"
+	@echo "                            - hdr  - use headers only from git"
+	@echo "                            - pkg  - use pkgconfig for configuration"
+	@echo "                            - plug - use source as plugin for LSP plugin framework"
+	@echo "                            - lib  - use system headers and -l<libname> flags"
+	@echo "                            - opt  - use optional configuration"
 	@echo "  <ARTIFACT>_URL            location of the artifact git repoisitory"
 	@echo "  <ARTIFACT>_VERSION        version of the artifact used for building"
 	@echo ""

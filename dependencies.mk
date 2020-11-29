@@ -26,7 +26,7 @@ LSP_COMMON_LIB_URL         := https://github.com/sadko4u/$(LSP_COMMON_LIB_NAME).
 
 LSP_3RD_PARTY_VERSION      := 0.5.0
 LSP_3RD_PARTY_NAME         := lsp-3rd-party
-LSP_3RD_PARTY_TYPE         := src
+LSP_3RD_PARTY_TYPE         := hdr
 LSP_3RD_PARTY_URL          := https://github.com/sadko4u/$(LSP_3RD_PARTY_NAME).git
 
 LSP_DSP_LIB_VERSION        := 0.5.11
@@ -95,6 +95,17 @@ LIBSNDFILE_TYPE            := pkg
 LIBJACK_VERSION            := system
 LIBJACK_NAME               := jack
 LIBJACK_TYPE               := pkg
+
+# For test (and build) purpose
+LSP_PLUGINS_SHARED_VERSION              := 0.5.0
+LSP_PLUGINS_SHARED_NAME                 := lsp-plugins-shared
+LSP_PLUGINS_SHARED_TYPE                 := src
+LSP_PLUGINS_SHARED_URL                  := https://github.com/sadko4u/$(LSP_PLUGINS_SHARED_NAME).git
+
+LSP_PLUGINS_COMP_DELAY_VERSION          := 1.0.2
+LSP_PLUGINS_COMP_DELAY_NAME             := lsp-plugins-comp-delay
+LSP_PLUGINS_COMP_DELAY_TYPE             := plug
+LSP_PLUGINS_COMP_DELAY_URL              := https://github.com/sadko4u/$(LSP_PLUGINS_COMP_DELAY_NAME).git
 
 ifeq ($(PLATFORM),Windows)
   STDLIB_VERSION             := system

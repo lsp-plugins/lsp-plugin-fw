@@ -28,7 +28,7 @@ ifneq ($(TREE),1)
 endif
 include $(BASEDIR)/project.mk
 
-SYS_DEPENDENCIES        = $(DEPENDENCIES) $(TEST_DEPENDENCIES)
+SYS_DEPENDENCIES_UNIQ   = $(call uniq,$(DEPENDENCIES) $(TEST_DEPENDENCIES))
 ALL_DEPENDENCIES_UNIQ   = $(call uniq,$(ALL_DEPENDENCIES))
 
 # Find the proper branch of the GIT repository
@@ -50,17 +50,19 @@ ifeq ($(TREE),1)
 endif
 
 # Form list of modules, exclude all modules that have 'system' version
-SRC_MODULES         = $(foreach dep, $(SYS_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
-HDR_MODULES         = $(foreach dep, $(SYS_DEPENDENCIES), $(if $(findstring hdr,$($(dep)_TYPE)),$(dep)))
+SRC_MODULES         = $(foreach dep, $(SYS_DEPENDENCIES_UNIQ), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
+HDR_MODULES         = $(foreach dep, $(SYS_DEPENDENCIES_UNIQ), $(if $(findstring hdr,$($(dep)_TYPE)),$(dep)))
+PLUG_MODULES        = $(foreach dep, $(SYS_DEPENDENCIES_UNIQ), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
 ALL_SRC_MODULES     = $(foreach dep, $(ALL_DEPENDENCIES_UNIQ), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
 ALL_HDR_MODULES     = $(foreach dep, $(ALL_DEPENDENCIES_UNIQ), $(if $(findstring hdr,$($(dep)_TYPE)),$(dep)))
+ALL_PLUG_MODULES    = $(foreach dep, $(ALL_DEPENDENCIES_UNIQ), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
 ALL_PATHS           = $(foreach dep, $(ALL_SRC_MODULES) $(ALL_HDR_MODULES), $($(dep)_PATH))
 
 # Branches
 .PHONY: $(ALL_SRC_MODULES) $(ALL_HDR_MODULES) $(ALL_PATHS)
 .PHONY: fetch prune clean
 
-$(ALL_SRC_MODULES) $(ALL_HDR_MODULES):
+$(ALL_SRC_MODULES) $(ALL_HDR_MODULES) $(ALL_PLUG_MODULES):
 	@echo "Cloning $($(@)_URL) -> $($(@)_PATH) [$($(@)_BRANCH)]"
 	@test -f "$($(@)_PATH)/.git/config" || $(GIT) clone "$($(@)_URL)" "$($(@)_PATH)"
 	@$(GIT) -C "$($(@)_PATH)" reset --hard
@@ -75,9 +77,9 @@ $(ALL_PATHS):
 	@echo "Removing $(notdir $(@))"
 	@-rm -rf $(@)
 
-fetch: $(SRC_MODULES) $(HDR_MODULES)
+fetch: $(SRC_MODULES) $(HDR_MODULES) $(PLUG_MODULES)
 
-tree: $(ALL_SRC_MODULES) $(ALL_HDR_MODULES)
+tree: $(ALL_SRC_MODULES) $(ALL_HDR_MODULES) $(ALL_PLUG_MODULES)
 
 clean:
 	@echo rm -rf "$($(ARTIFACT_VARS)_BIN)/$(ARTIFACT_NAME)"
