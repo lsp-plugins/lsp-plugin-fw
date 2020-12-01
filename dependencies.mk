@@ -69,11 +69,6 @@ LSP_R3D_GLX_LIB_NAME       := lsp-r3d-glx-lib
 LSP_R3D_GLX_LIB_TYPE       := src
 LSP_R3D_GLX_LIB_URL        := https://github.com/sadko4u/$(LSP_R3D_GLX_LIB_NAME).git
 
-LSP_WS_LIB_VERSION         := 0.5.3
-LSP_WS_LIB_NAME            := lsp-ws-lib
-LSP_WS_LIB_TYPE            := src
-LSP_WS_LIB_URL             := https://github.com/sadko4u/$(LSP_WS_LIB_NAME).git
-
 LSP_TK_LIB_VERSION         := 0.5.0
 LSP_TK_LIB_NAME            := lsp-tk-lib
 LSP_TK_LIB_TYPE            := src
@@ -95,6 +90,18 @@ LIBSNDFILE_TYPE            := pkg
 LIBJACK_VERSION            := system
 LIBJACK_NAME               := jack
 LIBJACK_TYPE               := pkg
+
+LIBX11_VERSION             := system
+LIBX11_NAME                := x11
+LIBX11_TYPE                := pkg
+
+LIBCAIRO_VERSION           := system
+LIBCAIRO_NAME              := cairo
+LIBCAIRO_TYPE              := pkg
+
+LIBGL_VERSION              := system
+LIBGL_NAME                 := gl
+LIBGL_TYPE                 := pkg
 
 # For test (and build) purpose
 LSP_PLUGINS_SHARED_VERSION              := 0.5.0

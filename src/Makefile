@@ -18,62 +18,108 @@
 # along with lsp-tk-lib.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-CONFIG                 := $(CURDIR)/.config.mk
+CONFIG                     := $(CURDIR)/.config.mk
 
 include $(CONFIG)
 include $(CURDIR)/../project.mk
 include $(CURDIR)/../make/functions.mk
 
 # Artifact settings
-ARTIFACT_BIN            = $($(ARTIFACT_VARS)_BIN)
+ARTIFACT_BIN                = $($(ARTIFACT_VARS)_BIN)
+ARTIFACT_NAME               = $($(ARTIFACT_VARS)_NAME)
+ARTIFACT_VERSION            = $($(ARTIFACT_VARS)_VERSION)
+ARTIFACT_OBJ_CORE           = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-core.o
+ARTIFACT_OBJ_META           = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-meta.o
+ARTIFACT_OBJ_DSP            = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-dsp.o
+ARTIFACT_OBJ_UI             = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-ui.o
+ARTIFACT_OBJ_TEST           = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-test.o
+ARTIFACT_OBJ                = $(ARTIFACT_OBJ_CORE) $(ARTIFACT_OBJ_META) $(ARTIFACT_OBJ_DSP) $(ARTIFACT_OBJ_UI)
 
-# Source code location
-CXX_SRC_MAIN_CORE       = $(call rwildcard, main/core, *.cpp)
-CXX_SRC_MAIN_META       = $(call rwildcard, main/meta, *.cpp)
-CXX_SRC_MAIN_DSP        = $(call rwildcard, main/plug, *.cpp)
-CXX_SRC_MAIN_UI         = $(call rwildcard, main/ui, *.cpp)
-CXX_SRC_MAIN_WRAP       = $(call rwildcard, main/wrap, *.cpp)
-CXX_SRC_TEST            = $(call rwildcard, test, *.cpp)
-CXX_SRC_ALL             = $(CXX_SRC_MAIN_CORE) $(CXX_SRC_MAIN_META) $(CXX_SRC_MAIN_DSP) $(CXX_SRC_MAIN_UI) $(CXX_SRC_MAIN_WRAP)
+DEPENDENCIES_UI             = $(filter LSP_R3D_IFACE LSP_WS_LIB LSP_R3D_BASE LSP_R3D_GLX LSP_TK_LIB, $(DEPENDENCIES))
+DEPENDENCIES_LIBS           = $(filter-out $(DEPENDENCIES_UI) TEST_FW, $(DEPENDENCIES))
 
-CFLAGS_DEPS             = $(foreach dep, $(DEPENDENCIES) $(ARTIFACT_VARS), $(if $($(dep)_CFLAGS), $($(dep)_CFLAGS)))
-BUILD_DEPS              = $(foreach dep, $(DEPENDENCIES), $(if $($(dep)_OBJ), $(dep)))
-BUILD_DEPS             += $(foreach dep, $(DEPENDENCIES), $(if $($(dep)_OBJ_META)$($(dep)_OBJ_DSP)$($(dep)_OBJ_UI), $(dep)))
+# Utilities
+# TODO
 
-CXX_DEP_ALL             = $(foreach src,$(CXX_SRC_ALL) $(CXX_SRC_TEST),$(patsubst %.cpp,$(ARTIFACT_BIN)/%.d,$(src)))
-CXX_DEP_FILE            = $(patsubst $(ARTIFACT_BIN)/%.d,%.cpp,$(@))
-CXX_DEP_TARGET          = $(patsubst $(ARTIFACT_BIN)/%.d,%.o,$(@))
+# Binaries
+ARTIFACT_LIB_JACK           = $(ARTIFACT_BIN)/lib$(ARTIFACT_NAME)-jack-$(ARTIFACT_VERSION)$(LIBRARY_EXT)
+ARTIFACT_LIB_JACK_LIBS      = LIBJACK LIBSNDFILE LIBX11 LIBCAIRO
+ARTIFACT_LIB_JACK_OBJS      = $(ARTIFACT_OBJ_CORE) $(ARTIFACT_OBJ_META) $(ARTIFACT_OBJ_DSP) $(ARTIFACT_OBJ_UI)
+ARTIFACT_LIB_JACK_LDFLAGS   = $(foreach dep, $(ARTIFACT_LIB_JACK_LIBS), $($(dep)_LDFLAGS))
 
 ifeq ($(TEST), 1)
-  ifeq ($($(ARTIFACT_VARS)_TESTING),1)
-    CXX_ALL                += $(CXX_SRCTEST)
-    BUILD_ALL              += $(ARTIFACT_TESTBIN)
-  endif
-  DEPENDENCIES           += $(TEST_DEPENDENCIES)
+  ARTIFACT_LIB_JACK_LIBS     += LIBGL
 endif
+
+ifeq ($(PLATFORM),BSD)
+  ARTIFACT_LIB_JACK_LIBS     += LIBICONV
+endif
+
+# Source code location
+CXX_SRC_MAIN_CORE           = $(call rwildcard, main/core, *.cpp)
+CXX_SRC_MAIN_META           = $(call rwildcard, main/meta, *.cpp)
+CXX_SRC_MAIN_DSP            = $(call rwildcard, main/plug, *.cpp)
+CXX_SRC_MAIN_UI             = $(call rwildcard, main/ui, *.cpp)
+CXX_SRC_MAIN_WRAP           = $(call rwildcard, main/wrap, *.cpp)
+CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
+CXX_SRC                     = $(CXX_SRC_MAIN_CORE) $(CXX_SRC_MAIN_META) $(CXX_SRC_MAIN_DSP) $(CXX_SRC_MAIN_UI) $(CXX_SRC_MAIN_WRAP)
+
+# Object files
+OBJ_STUB                    = $(patsubst %.cpp, %.o, $(CXX_SRC_STUB))
+OBJ_MAIN_CORE               = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_CORE))
+OBJ_MAIN_META               = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_META))
+OBJ_MAIN_DSP                = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_DSP))
+OBJ_MAIN_UI                 = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_UI))
+OBJ_TEST                    = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_TEST))
+OBJ                         = $(OBJ_MAIN_CORE) $(OBJ_MAIN_META) $(OBJ_MAIN_DSP) $(OBJ_MAIN_UI)
+
+OBJ_PLUG_META               = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_META))
+OBJ_PLUG_DSP                = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_DSP))
+OBJ_PLUG_UI                 = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_UI))
+OBJ_PLUG_TEST               = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_TEST))
+OBJ_PLUG                    = $(OBJ_PLUG_META) $(OBJ_PLUG_DSP) $(OBJ_PLUG_UI)
+
+OBJ_UI                      = $(foreach dep, $(DEPENDENCIES_UI), $($(dep)_OBJ))
+OBJ_LIBS                    = $(foreach dep, $(DEPENDENCIES_LIBS), $($(dep)_OBJ))
+
+CFLAGS_DEPS                 = $(foreach dep, $(DEPENDENCIES) $(ARTIFACT_VARS), $(if $($(dep)_CFLAGS), $($(dep)_CFLAGS)))
+BUILD_DEPS                  = $(foreach dep, $(DEPENDENCIES), $(if $($(dep)_OBJ), $(dep)))
+PLUG_DEPS                   = $(foreach dep, $(DEPENDENCIES), $(if $($(dep)_OBJ_META), $(dep)))
+
+ifeq ($(TEST), 1)
+  CXX_SRC                    += $(CXX_SRC_TEST)
+  ARTIFACT_OBJ               += $(ARTIFACT_OBJ_TEST)
+  OBJ                        += $(OBJ_TEST)
+  DEPENDENCIES               += $(TEST_DEPENDENCIES)
+endif
+
+CXX_FILE                    = $(patsubst $(ARTIFACT_BIN)/%.o,%.cpp, $(@))
+CXX_DEP_ALL                 = $(foreach src, $(CXX_SRC),$(patsubst %.cpp,$(ARTIFACT_BIN)/%.d,$(src)))
+CXX_DEP_FILE                = $(patsubst $(ARTIFACT_BIN)/%.d,%.cpp,$(@))
+CXX_DEP_TARGET              = $(patsubst $(ARTIFACT_BIN)/%.d,%.o,$(@))
 
 ifeq ($(NO_DEPENDENCIES),1)
-  BUILD_DEPS              =
+  BUILD_DEPS                  =
+  PLUG_DEPS                   =
 endif
 
-$(info ARTIFACT_BIN = $(ARTIFACT_BIN))
-$(info CXX_DEP_ALL = $(CXX_DEP_ALL))
-$(info BUILD_DEPS = $(BUILD_DEPS))
+
+$(info DEPENDENCIES_UI   = $(DEPENDENCIES_UI))
+$(info DEPENDENCIES_LIBS = $(DEPENDENCIES_LIBS))
+$(info OBJ_UI   = $(OBJ_UI))
+$(info OBJ_LIBS = $(OBJ_LIBS))
 
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
 .PHONY: $(BUILD_DEPS)
 
-compile:
-
-all: $(BUILD_DEPS)
-
+# Dependencies
 dep_clean:
 
 $(CXX_DEP_ALL): dep_clean
 	@echo "  dep  [$(ARTIFACT_NAME)] $(CXX_DEP_FILE)"
 	@mkdir -p $(dir $(@))
-	$(CXX) -MM -MT "\$$($(ARTIFACT_VARS)_BIN)/$(CXX_DEP_TARGET)" -MF $(@) $(CXX_DEP_FILE) $(CXXFLAGS) $(INCLUDE) $(CFLAGS_DEPS)
+	$(CXX) -MM -MT "\$$(ARTIFACT_BIN)/$(CXX_DEP_TARGET)" -MF $(@) $(CXX_DEP_FILE) $(CXXFLAGS) $(INCLUDE) $(CFLAGS_DEPS)
 
 depend: $(CXX_DEP_ALL)
 	$(foreach dep,$(DEPENDENCIES) $(ARTIFACT_VARS),\
@@ -86,10 +132,46 @@ depend: $(CXX_DEP_ALL)
 	)
 	@cat $(CXX_DEP_ALL) | sed -E "$(SED_RULES)" >Makefile.d
 
-$(BUILD_DEPS):
+$(BUILD_DEPS) $(PLUG_DEPS):
 	@echo "make [$($(@)_NAME)]"
 	@$(MAKE) -s -C "$($(@)_PATH)" compile CONFIG="$(CONFIG)" NO_DEPENDENCIES="1" DEMO_TEST="0"
 
+# Compilation
+$(OBJ):
+	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(CXX_FILE)"
+	@mkdir -p $(dir $@)
+	@$(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(ARTIFACT_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(CFLAGS_DEPS)
+
+compile:
+
+# Linking targets
+$(ARTIFACT_OBJ_CORE): $(OBJ_MAIN_CORE)
+	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_CORE))"
+	@$(LD) -o $(ARTIFACT_OBJ_CORE) -r $(OBJ_MAIN_CORE)
+	
+$(ARTIFACT_OBJ_META): $(OBJ_MAIN_META)
+	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_META))"
+	@$(LD) -o $(ARTIFACT_OBJ_META) -r $(OBJ_MAIN_META)
+	
+$(ARTIFACT_OBJ_DSP): $(OBJ_MAIN_DSP)
+	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_DSP))"
+	@$(LD) -o $(ARTIFACT_OBJ_DSP) -r $(OBJ_MAIN_DSP)
+	
+$(ARTIFACT_OBJ_UI): $(OBJ_MAIN_UI)
+	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_UI))"
+	@$(LD) -o $(ARTIFACT_OBJ_UI) -r $(OBJ_MAIN_UI)
+	
+$(ARTIFACT_OBJ_TEST): $(OBJ_TEST)
+	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_TEST))"
+	@$(LD) -o $(ARTIFACT_OBJ_TEST) -r $(OBJ_TEST)
+
+# Binaries
+$(ARTIFACT_LIB_JACK): $(BUILD_DEPS) $(PLUG_DEPS) $(ARTIFACT_LIB_JACK_OBJS)
+	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
+	@$(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_OBJS) $(OBJ_PLUG) $(OBJ_UI) $(OBJ_LIBS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
+
+# All targets
+all: $(ARTIFACT_LIB_JACK)
 
 #CXX_SRCMAIN             = $(call rwildcard, main, *.cpp)
 #CXX_SRCEXT              =
