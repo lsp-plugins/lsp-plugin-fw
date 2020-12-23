@@ -176,7 +176,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        ssize_t jack_metadata_sort_func(const meta::plugin_t *a, const meta::plugin_t *b)
+        static ssize_t jack_metadata_sort_func(const meta::plugin_t *a, const meta::plugin_t *b)
         {
             return strcmp(a->lv2_uid, b->lv2_uid);
         }

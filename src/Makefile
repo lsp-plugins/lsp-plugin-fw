@@ -35,11 +35,19 @@ ARTIFACT_OBJ_UI             = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-ui.o
 ARTIFACT_OBJ_TEST           = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-test.o
 ARTIFACT_OBJ                = $(ARTIFACT_OBJ_CORE) $(ARTIFACT_OBJ_META) $(ARTIFACT_OBJ_DSP) $(ARTIFACT_OBJ_UI)
 
-DEPENDENCIES_UI             = $(filter LSP_R3D_IFACE LSP_WS_LIB LSP_R3D_BASE LSP_R3D_GLX LSP_TK_LIB, $(DEPENDENCIES))
+DEPENDENCIES_UI             = $(filter LSP_R3D_IFACE LSP_WS_LIB LSP_R3D_BASE_LIB LSP_R3D_GLX_LIB LSP_TK_LIB, $(DEPENDENCIES))
 DEPENDENCIES_LIBS           = $(filter-out $(DEPENDENCIES_UI) TEST_FW, $(DEPENDENCIES))
 
 # Utilities
-# TODO
+UTL_BIN_PATH                = $(ARTIFACT_BIN)/util
+UTL_JACK_MAKE_OBJ           = $(UTL_BIN_PATH)/jack_make.o
+UTL_JACK_MAKE_DEPS          = $(ARTIFACT_OBJ_CORE) $(ARTIFACT_OBJ_META) $(ARTIFACT_OBJ_DSP) \
+                              $(OBJ_PLUG_META) $(OBJ_PLUG_DSP) \
+                              $(OBJ_LIBS)
+UTL_JACK_MAKE               = $(UTL_BIN_PATH)/jack_make$(EXECUTABLE_EXT)
+
+# Format-related paths
+FMT_JACK_PATH               = $(ARTIFACT_BIN)/jack
 
 # Binaries
 ARTIFACT_LIB_JACK           = $(ARTIFACT_BIN)/lib$(ARTIFACT_NAME)-jack-$(ARTIFACT_VERSION)$(LIBRARY_EXT)
@@ -61,8 +69,9 @@ CXX_SRC_MAIN_META           = $(call rwildcard, main/meta, *.cpp)
 CXX_SRC_MAIN_DSP            = $(call rwildcard, main/plug, *.cpp)
 CXX_SRC_MAIN_UI             = $(call rwildcard, main/ui, *.cpp)
 CXX_SRC_MAIN_WRAP           = $(call rwildcard, main/wrap, *.cpp)
+CXX_SRC_UTIL                = $(call rwildcard, util, *.cpp)
 CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
-CXX_SRC                     = $(CXX_SRC_MAIN_CORE) $(CXX_SRC_MAIN_META) $(CXX_SRC_MAIN_DSP) $(CXX_SRC_MAIN_UI) $(CXX_SRC_MAIN_WRAP)
+CXX_SRC                     = $(CXX_SRC_MAIN_CORE) $(CXX_SRC_MAIN_META) $(CXX_SRC_MAIN_DSP) $(CXX_SRC_MAIN_UI) $(CXX_SRC_MAIN_WRAP) $(CXX_SRC_UTIL)
 
 # Object files
 OBJ_STUB                    = $(patsubst %.cpp, %.o, $(CXX_SRC_STUB))
@@ -70,8 +79,9 @@ OBJ_MAIN_CORE               = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_M
 OBJ_MAIN_META               = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_META))
 OBJ_MAIN_DSP                = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_DSP))
 OBJ_MAIN_UI                 = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_UI))
+OBJ_UTIL                    = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_UTIL))
 OBJ_TEST                    = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_TEST))
-OBJ                         = $(OBJ_MAIN_CORE) $(OBJ_MAIN_META) $(OBJ_MAIN_DSP) $(OBJ_MAIN_UI)
+OBJ                         = $(OBJ_MAIN_CORE) $(OBJ_MAIN_META) $(OBJ_MAIN_DSP) $(OBJ_MAIN_UI) $(OBJ_UTIL)
 
 OBJ_PLUG_META               = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_META))
 OBJ_PLUG_DSP                = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_DSP))
@@ -106,11 +116,14 @@ endif
 
 $(info DEPENDENCIES_UI   = $(DEPENDENCIES_UI))
 $(info DEPENDENCIES_LIBS = $(DEPENDENCIES_LIBS))
+$(info OBJ      = $(OBJ))
+$(info OBJ_PLUG_META = $(OBJ_PLUG_META))
 $(info OBJ_UI   = $(OBJ_UI))
 $(info OBJ_LIBS = $(OBJ_LIBS))
 
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
+.PHONY: jack ladspa dssi lv2 vst
 .PHONY: $(BUILD_DEPS)
 
 # Dependencies
@@ -165,13 +178,25 @@ $(ARTIFACT_OBJ_TEST): $(OBJ_TEST)
 	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_TEST))"
 	@$(LD) -o $(ARTIFACT_OBJ_TEST) -r $(OBJ_TEST)
 
+# Utilities
+$(UTL_JACK_MAKE): $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_DEPS)
+	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(UTL_JACK_MAKE))"
+	@mkdir -p $(UTL_BIN_PATH)
+	@echo $(CXX) -o $(UTL_JACK_MAKE) $(UTL_JACK_MAKE_OBJ)  $(UTL_JACK_MAKE_DEPS) $(EXE_FLAGS)
+	@$(CXX) -o $(UTL_JACK_MAKE) $(UTL_JACK_MAKE_OBJ)  $(UTL_JACK_MAKE_DEPS) $(EXE_FLAGS)
+
 # Binaries
 $(ARTIFACT_LIB_JACK): $(BUILD_DEPS) $(PLUG_DEPS) $(ARTIFACT_LIB_JACK_OBJS)
 	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
 	@$(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_OBJS) $(OBJ_PLUG) $(OBJ_UI) $(OBJ_LIBS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
 
 # All targets
-all: $(ARTIFACT_LIB_JACK)
+jack: $(UTL_JACK_MAKE)
+	@echo "  $(notdir $(UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(ARTIFACT_BIN)%,%, $(FMT_JACK_PATH))"
+	@mkdir -p "$(FMT_JACK_PATH)"
+	@$(UTL_JACK_MAKE) "$(FMT_JACK_PATH)"
+
+all: $(ARTIFACT_LIB_JACK) $(UTL_JACK_MAKE) jack
 
 #CXX_SRCMAIN             = $(call rwildcard, main, *.cpp)
 #CXX_SRCEXT              =
