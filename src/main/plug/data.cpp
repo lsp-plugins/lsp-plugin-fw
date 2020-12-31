@@ -561,7 +561,7 @@ namespace lsp
         void midi_t::sort()
         {
             if (nEvents > 1)
-                ::qsort(vEvents, sizeof(midi::event_t), nEvents, compare_midi_events);
+                ::qsort(vEvents, nEvents, sizeof(midi::event_t), compare_midi_events);
         }
     }
 }
