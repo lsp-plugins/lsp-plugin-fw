@@ -26,56 +26,85 @@ ARTIFACT_HEADERS            = lsp-plug.in
 ARTIFACT_EXPORT_ALL         = 1
 ARTIFACT_VERSION            = 0.5.0-devel
 
-# List of dependencies
-DEPENDENCIES = \
+#------------------------------------------------------------------------------
+# Plugin dependencies
+DEPENDENCIES_PLUGINS = \
+  LSP_PLUGINS_SHARED \
+  LSP_PLUGINS_COMP_DELAY
+
+#------------------------------------------------------------------------------
+# Jack build dependencies
+DEPENDENCIES_JACK = \
   STDLIB \
+  LIBJACK \
   LSP_COMMON_LIB \
   LSP_3RD_PARTY \
   LSP_DSP_LIB \
   LSP_DSP_UNITS \
   LSP_LLTL_LIB \
   LSP_RUNTIME_LIB \
+
+UI_DEPENDENCIES_JACK = \
   LSP_R3D_IFACE \
   LSP_WS_LIB \
   LSP_TK_LIB
 
-TEST_DEPENDENCIES = \
-  LIBGL \
-  TEST_STDLIB \
-  LSP_R3D_BASE_LIB \
-  LSP_R3D_GLX_LIB \
-  LSP_TEST_FW \
-  LSP_PLUGINS_SHARED \
-  LSP_PLUGINS_COMP_DELAY
-
-LINUX_DEPENDENCIES = \
-  LIBSNDFILE \
-  LIBX11 \
-  LIBCAIRO \
-  LIBJACK
-
-BSD_DEPENDENCIES = \
-  LIBSNDFILE \
-  LIBX11 \
-  LIBCAIRO \
-  LIBJACK \
-  LIBICONV
-
-# For Linux-based systems, use libsndfile
 ifeq ($(PLATFORM),Linux)
-  DEPENDENCIES             += $(LINUX_DEPENDENCIES)
+  DEPENDENCIES_JACK += \
+    LIBJACK \
+    LIBSNDFILE
+
+  UI_DEPENDENCIES_JACK += \
+    LIBJACK \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO
 endif
 
-# For BSD-based systems, use libsndfile
 ifeq ($(PLATFORM),BSD)
-  DEPENDENCIES             += $(BSD_DEPENDENCIES)
+  DEPENDENCIES_JACK += \
+    LIBJACK \
+    LIBSNDFILE \ 
+    LIBICONV
+    
+  UI_DEPENDENCIES_JACK += \
+    LIBJACK \
+    LIBSNDFILE \
+    LIBICONV \
+    LIBX11 \
+    LIBCAIRO
 endif
 
+#------------------------------------------------------------------------------
+# List of dependencies
+DEPENDENCIES = \
+  $(DEPENDENCIES_PLUGINS) \
+  $(DEPENDENCIES_JACK) \
+  $(UI_DEPENDENCIES_JACK)
+
+TEST_DEPENDENCIES = \
+  LSP_TEST_FW \
+  LSP_R3D_BASE_LIB \
+  LSP_R3D_GLX_LIB
+
+#------------------------------------------------------------------------------
+# Platform-specific dependencies
+ifeq ($(PLATFORM),Linux)
+  TEST_DEPENDENCIES += \
+    LIBGL
+endif
+
+ifeq ($(PLATFORM),BSD)
+  TEST_DEPENDENCIES += \
+    LIBGL
+endif
+
+#------------------------------------------------------------------------------
 # All possible dependencies
 ALL_DEPENDENCIES = \
-  $(DEPENDENCIES) \
-  $(TEST_DEPENDENCIES) \
-  $(LINUX_DEPENDENCIES) \
-  $(BSD_DEPENDENCIES)
+  $(DEPENDENCIES_PLUGINS) \
+  $(DEPENDENCIES_JACK) \
+  $(UI_DEPENDENCIES_JACK) \
+  $(TEST_DEPENDENCIES)
 
 

@@ -36,8 +36,10 @@ include $(BASEDIR)/make/system.mk
 include $(BASEDIR)/project.mk
 include $(BASEDIR)/make/tools.mk
 include $(BASEDIR)/dependencies.mk
+include $(BASEDIR)/make/functions.mk
 
-DEPENDENCIES               += $(TEST_DEPENDENCIES)
+UNIQ_DEPENDENCIES          := $(call uniq, $(DEPENDENCIES) $(TEST_DEPENDENCIES))
+DEPENDENCIES                = $(UNIQ_DEPENDENCIES)
 
 ifeq ($(findstring -devel,$(ARTIFACT_VERSION)),-devel)
   $(foreach dep, $(DEPENDENCIES), \
