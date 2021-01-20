@@ -32,17 +32,18 @@ DEPENDENCIES_PLUGINS = \
   LSP_PLUGINS_SHARED \
   LSP_PLUGINS_COMP_DELAY
 
-#------------------------------------------------------------------------------
-# Jack build dependencies
-DEPENDENCIES_JACK = \
+DEPENDENCIES_COMMON = \
   STDLIB \
-  LIBJACK \
   LSP_COMMON_LIB \
-  LSP_3RD_PARTY \
   LSP_DSP_LIB \
   LSP_DSP_UNITS \
   LSP_LLTL_LIB \
   LSP_RUNTIME_LIB \
+
+#------------------------------------------------------------------------------
+# Jack build dependencies
+DEPENDENCIES_JACK = \
+  $(DEPENDENCIES_COMMON)
 
 UI_DEPENDENCIES_JACK = \
   LSP_R3D_IFACE \
