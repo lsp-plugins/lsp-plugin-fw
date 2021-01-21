@@ -32,8 +32,11 @@ DEPENDENCIES_PLUGINS = \
   LSP_PLUGINS_SHARED \
   LSP_PLUGINS_COMP_DELAY
 
+DEPENDENCIES_SHARED =
+
 DEPENDENCIES_COMMON = \
-  STDLIB \
+  $(DEPENDENCIES_SHARED) \
+  LIBPTHREAD \
   LSP_COMMON_LIB \
   LSP_DSP_LIB \
   LSP_DSP_UNITS \
@@ -65,13 +68,11 @@ endif
 ifeq ($(PLATFORM),BSD)
   DEPENDENCIES_JACK += \
     LIBJACK \
-    LIBSNDFILE \ 
-    LIBICONV
+    LIBSNDFILE
     
   UI_DEPENDENCIES_JACK += \
     LIBJACK \
     LIBSNDFILE \
-    LIBICONV \
     LIBX11 \
     LIBCAIRO
 endif
@@ -93,17 +94,32 @@ TEST_DEPENDENCIES = \
 ifeq ($(PLATFORM),Linux)
   TEST_DEPENDENCIES += \
     LIBGL
+  
+  DEPENDENCIES_SHARED += \
+    LIBDL
 endif
 
 ifeq ($(PLATFORM),BSD)
   TEST_DEPENDENCIES += \
     LIBGL
+
+  DEPENDENCIES_SHARED += \
+    LIBDL
+    
+  DEPENDENCIES_COMMON += \
+    LIBICONV
+endif
+
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_COMMON += \
+    LIBWINDOWS
 endif
 
 #------------------------------------------------------------------------------
 # All possible dependencies
 ALL_DEPENDENCIES = \
   $(DEPENDENCIES_PLUGINS) \
+  $(DEPENDENCIES_SHARED) \
   $(DEPENDENCIES_JACK) \
   $(UI_DEPENDENCIES_JACK) \
   $(TEST_DEPENDENCIES)

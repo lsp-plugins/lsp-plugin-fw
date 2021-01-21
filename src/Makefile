@@ -192,6 +192,10 @@ jack: $(UTL_JACK_MAKE)
 	@echo "  $(notdir $(UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(ARTIFACT_BIN)/%,%, $(FMT_JACK_PATH))"
 	@mkdir -p "$(FMT_JACK_PATH)"
 	@$(UTL_JACK_MAKE) "$(FMT_JACK_PATH)"
+	@echo "  make JACK"
+	@make -C "$(FMT_JACK_PATH)" CONFIG="$(CONFIG)" LIBS="" \
+	         LDFLAGS="$(call query,LDFLAGS,$(DEPENDENCIES_SHARED))" \
+	         INCLUDE="$(INCLUDE) -I$($(ARTIFACT_VARS)_INC)"
 
 all: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK) jack
 

@@ -203,43 +203,90 @@ namespace lsp
             return STATUS_OK;
         }
 
-//        int gen_makefile(const char *path)
-//        {
-//            char fname[PATH_MAX];
-//            snprintf(fname, PATH_MAX, "%s/Makefile", path);
-//            printf("Generating makefile %s\n", fname);
-//
-//            // Generate file
-//            FILE *out = fopen(fname, "w");
-//            if (out == NULL)
-//            {
-//                int code = errno;
-//                fprintf(stderr, "Error creating file %s, code=%d\n", fname, code);
-//                return -2;
-//            }
-//
-//            fprintf(out, "# Auto generated makefile, do not edit\n\n");
-//
-//            fprintf(out, "FILES                   = $(patsubst %%.cpp, %%, $(wildcard *.cpp))\n");
-//            fprintf(out, "FILE                    = $(@:%%=%%.cpp)\n");
-//            fprintf(out, "\n");
-//
-//            fprintf(out, ".PHONY: all\n\n");
-//
-//            fprintf(out, "all: $(FILES)\n\n");
-//
-//            fprintf(out, "$(FILES):\n");
-//            fprintf(out, "\t@echo \"  $(CXX) $(FILE)\"\n");
-//            fprintf(out, "\t@$(CXX) -o $(@) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDE) $(FILE) $(EXE_FLAGS) $(DL_LIBS)\n\n");
-//
-//            fprintf(out, "install: $(FILES)\n");
-//            fprintf(out, "\t@$(INSTALL) $(FILES) $(TARGET_PATH)/");
-//
-//            // Close file
-//            fclose(out);
-//
-//            return 0;
-//        }
+        status_t make_filename(LSPString *fname, const char *lv2_uid)
+        {
+            if (!fname->set_ascii(lv2_uid))
+                return STATUS_NO_MEM;
+            fname->replace_all('_', '-');
+            return STATUS_OK;
+        }
+
+        status_t gen_makefile(const io::Path *base, lltl::parray<meta::plugin_t> *list)
+        {
+            io::Path path;
+            LSPString fname;
+            status_t res;
+
+            if ((res = path.set(base, "Makefile")) != STATUS_OK)
+                return res;
+            printf("Generating makefile\n");
+
+            // Generate file
+            FILE *out = fopen(path.as_native(), "w");
+            if (out == NULL)
+            {
+                int code = errno;
+                fprintf(stderr, "Error creating file %s, errno=%d\n", path.as_native(), code);
+                return STATUS_IO_ERROR;
+            }
+
+            fprintf(out, "# Auto generated makefile, do not edit\n\n");
+            fprintf(out, "CONFIG := $(CURDIR)/.config.mk\n\n");
+            fprintf(out, "include $(CONFIG)\n\n");
+
+            fprintf(out, "# Output files\n");
+            fprintf(out, "FILES = \\\n");
+            for (size_t i=0, n=list->size(); i<n; )
+            {
+                // Get plugin metadata
+                const meta::plugin_t *meta = list->uget(i);
+                if ((res = make_filename(&fname, meta->lv2_uid)) != STATUS_OK)
+                    return res;
+
+                fprintf(out, "  %s$(EXECUTABLE_EXT)", fname.get_utf8());
+                if (++i >= n)
+                    fprintf(out, "\n\n");
+                else
+                    fprintf(out, " \\\n");
+            }
+
+            fprintf(out, "FILE = $(@:%%$(EXECUTABLE_EXT)=%%.cpp)\n");
+            fprintf(out, "\n");
+
+            fprintf(out, ".DEFAULT_GOAL := all\n");
+            fprintf(out, ".PHONY: all install\n");
+
+            fprintf(out, "\n");
+            fprintf(out, "all: $(FILES)\n");
+
+            fprintf(out, "\n");
+            fprintf(out, "$(FILES):\n");
+            fprintf(out, "\t@echo \"  $(CXX) $(FILE)\"\n");
+            fprintf(out, "\t@echo $(CXX) -o $(@) $(CXXFLAGS) $(INCLUDE) $(FILE) $(LIBS) $(EXE_FLAGS) $(LDFLAGS)\n");
+            fprintf(out, "\t@$(CXX) -o $(@) $(CXXFLAGS) $(INCLUDE) $(FILE) $(LIBS) $(EXE_FLAGS) $(LDFLAGS)\n");
+
+            fprintf(out, "\n");
+            fprintf(out, "install: $(FILES)\n");
+            fprintf(out, "\t@$(INSTALL) $(FILES) $(TARGET_PATH)/\n");
+
+            fprintf(out, "\n");
+            fprintf(out, "# Dependencies\n");
+            for (size_t i=0, n=list->size(); i<n; ++i)
+            {
+                // Get plugin metadata
+                const meta::plugin_t *meta = list->uget(i);
+                if ((res = make_filename(&fname, meta->lv2_uid)) != STATUS_OK)
+                    return res;
+
+                const char *name = fname.get_utf8();
+                fprintf(out, "%s$(EXECUTABLE_EXT): %s.cpp\n", name, name);
+            }
+
+            // Close file
+            fclose(out);
+
+            return 0;
+        }
 
         status_t main(const char *base)
         {
@@ -262,13 +309,11 @@ namespace lsp
             for (size_t i=0, n=list.size(); i<n; ++i)
             {
                 // Get plugin metadata
-                meta::plugin_t *meta = list.uget(i);
+                const meta::plugin_t *meta = list.uget(i);
 
                 // Get file path
-                if (!fname.set_ascii(meta->lv2_uid))
-                    return STATUS_NO_MEM;
-                fname.replace_all('_', '-');
-
+                if ((res = make_filename(&fname, meta->lv2_uid)) != STATUS_OK)
+                    return res;
                 if (!fname.append_ascii(".cpp"))
                     return STATUS_NO_MEM;
                 if ((res = file.set(&path, &fname)) != STATUS_OK)
@@ -283,9 +328,7 @@ namespace lsp
                     return res;
             }
 
-//            code = gen_makefile(path);
-
-            return res;
+            return gen_makefile(&path, &list);
         }
     }
 }
@@ -295,7 +338,11 @@ int main(int argc, const char **argv)
 {
     if (argc <= 0)
         fprintf(stderr, "required destination path");
-    return lsp::jack_make::main(argv[1]);
+    lsp::status_t res = lsp::jack_make::main(argv[1]);
+    if (res != lsp::STATUS_OK)
+        fprintf(stderr, "Error while generating build files, code=%d", int(res));
+
+    return res;
 }
 #endif /* LSP_IDE_DEBUG */
 

@@ -79,10 +79,6 @@ LSP_TEST_FW_NAME           := lsp-test-fw
 LSP_TEST_FW_TYPE           := src
 LSP_TEST_FW_URL            := https://github.com/sadko4u/$(LSP_TEST_FW_NAME).git
 
-LIBICONV_VERSION           := system
-LIBICONV_TYPE              := opt
-LIBICONV_LDFLAGS           := -liconv
-
 LIBSNDFILE_VERSION         := system
 LIBSNDFILE_NAME            := sndfile
 LIBSNDFILE_TYPE            := pkg
@@ -103,6 +99,26 @@ LIBGL_VERSION              := system
 LIBGL_NAME                 := gl
 LIBGL_TYPE                 := pkg
 
+LIBICONV_VERSION           := system
+LIBICONV_TYPE              := libiconv
+LIBICONV_TYPE              := opt
+LIBICONV_LDFLAGS           := -liconv
+
+LIBDL_VERSION              := system
+LIBDL_NAME                 := libdl
+LIBDL_TYPE                 := opt
+LIBDL_LDFLAGS              := -ldl
+
+LIBPTHREAD_VERSION         := system
+LIBPTHREAD_NAME            := libpthread
+LIBPTHREAD_TYPE            := opt
+LIBPTHREAD_LDFLAGS         := -ldl
+
+LIBWINDOWS_VERSION         := system
+LIBWINDOWS_NAME            := libwindows
+LIBWINDOWS_TYPE            := opt
+LIBWINDOWS_LDFLAGS         := -lshlwapi -lwinmm -lmsacm32
+
 # For test (and build) purpose
 LSP_PLUGINS_SHARED_VERSION              := 0.5.0
 LSP_PLUGINS_SHARED_NAME                 := lsp-plugins-shared
@@ -113,14 +129,4 @@ LSP_PLUGINS_COMP_DELAY_VERSION          := 1.0.2
 LSP_PLUGINS_COMP_DELAY_NAME             := lsp-plugins-comp-delay
 LSP_PLUGINS_COMP_DELAY_TYPE             := plug
 LSP_PLUGINS_COMP_DELAY_URL              := https://github.com/sadko4u/$(LSP_PLUGINS_COMP_DELAY_NAME).git
-
-ifeq ($(PLATFORM),Windows)
-  STDLIB_VERSION             := system
-  STDLIB_TYPE                := opt
-  STDLIB_LDFLAGS             := -lpthread -lshlwapi -lwinmm -lmsacm32
-else
-  STDLIB_VERSION             := system
-  STDLIB_TYPE                := opt
-  STDLIB_LDFLAGS             := -lpthread -ldl
-endif
 

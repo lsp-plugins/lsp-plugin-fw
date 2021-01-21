@@ -23,3 +23,6 @@ uniq                    = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(fir
 
 # Recursively lookup directory for specific file pattern
 rwildcard               = $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
+
+# Fetch different flags from symbolic dependencies
+query                   = $(foreach d, $(call uniq, $2), $($(d)_$1))
