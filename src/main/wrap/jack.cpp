@@ -37,6 +37,7 @@
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 
+#include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/ports.h>
@@ -597,11 +598,14 @@ extern "C"
         return (res == STATUS_OK) ? 0 : -res;
     }
 
-//    LSP_LIBRARY_EXPORT
-//    const char *JACK_GET_VERSION()
-//    {
-//        return LSP_MAIN_VERSION;
-//    }
+#ifndef LSP_IDE_DEBUG
+    LSP_CSYMBOL_EXPORT
+    LSP_DEF_VERSION_FUNC_HEADER
+    {
+        static const ::lsp::version_t v=LSP_DEF_VERSION(1, 0, 0);
+        return &v;
+    }
+#endif /* LSP_IDE_DEBUG */
 
 #ifdef __cplusplus
 }

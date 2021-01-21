@@ -123,23 +123,32 @@ namespace lsp
             }
 
             // Write to file
-            fprintf(out,   "//------------------------------------------------------------------------------\n");
-            fprintf(out,   "// File:            %s\n", name->get_utf8());
-            fprintf(out,   "// JACK Plugin:     %s - %s [JACK]\n", meta->name, meta->description);
-            fprintf(out,   "// JACK UID:        '%s'\n", meta->lv2_uid);
-            fprintf(out,   "// Version:         %d.%d.%d\n",
+            fprintf(out,    "//------------------------------------------------------------------------------\n");
+            fprintf(out,    "// File:            %s\n", name->get_utf8());
+            fprintf(out,    "// JACK Plugin:     %s - %s [JACK]\n", meta->name, meta->description);
+            fprintf(out,    "// JACK UID:        '%s'\n", meta->lv2_uid);
+            fprintf(out,    "// Version:         %d.%d.%d\n",
                     LSP_MODULE_VERSION_MAJOR(meta->version),
                     LSP_MODULE_VERSION_MINOR(meta->version),
                     LSP_MODULE_VERSION_MICRO(meta->version)
                 );
-            fprintf(out,   "//------------------------------------------------------------------------------\n\n");
+            fprintf(out,    "//------------------------------------------------------------------------------\n\n");
 
             // Write code
-            fprintf(out,   "// Pass Plugin UID for factory function\n");
-            fprintf(out,   "#define JACK_PLUGIN_UID     \"%s\"\n\n", meta->lv2_uid);
+            fprintf(out,    "// Pass Plugin UID for factory function\n");
+            fprintf(out,    "#define JACK_PLUGIN_UID     \"%s\"\n", meta->lv2_uid);
+            fprintf(out,    "\n");
 
-            fprintf(out,   "// Include factory function implementation\n");
-            fprintf(out,   "#include <lsp-plug.in/wrap/jack/main.h>\n\n");
+            fprintf(out,    "#include <lsp-plug.in/common/types.h>\n");
+            fprintf(out,    "\n");
+
+            fprintf(out,    "static const ::lsp::version_t REQUIRED_PACKAGE_VERSION = LSP_DEF_VERSION(1, 0, 0);\n");
+            fprintf(out,    "\n");
+
+            fprintf(out,    "// Include factory function implementation\n");
+            fprintf(out,    "#define LSP_PLUG_IN_JACK_MAIN_IMPL\n");
+            fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/jack/main.h>\n");
+            fprintf(out,    "#undef LSP_PLUG_IN_JACK_MAIN_IMPL\n");
 
             // Close file
             fclose(out);

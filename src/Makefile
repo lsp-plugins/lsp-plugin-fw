@@ -194,8 +194,9 @@ jack: $(UTL_JACK_MAKE)
 	@$(UTL_JACK_MAKE) "$(FMT_JACK_PATH)"
 	@echo "  make JACK"
 	@make -C "$(FMT_JACK_PATH)" CONFIG="$(CONFIG)" LIBS="" \
+	         CXXFLAGS="$(CXXFLAGS) -DINSTALL_PREFIX=\"$(PREFIX)\"" \
 	         LDFLAGS="$(call query,LDFLAGS,$(DEPENDENCIES_SHARED))" \
-	         INCLUDE="$(INCLUDE) -I$($(ARTIFACT_VARS)_INC)"
+	         INCLUDE="$(INCLUDE) -I$($(ARTIFACT_VARS)_INC) $(call query,CFLAGS,$(DEPENDENCIES))"
 
 all: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK) jack
 
