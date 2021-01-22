@@ -19,16 +19,21 @@
 #
 
 BASEDIR            := $(CURDIR)
+PLUGLIST           := $(BASEDIR)/plugins.mk
+DEPLIST            := $(BASEDIR)/dependencies.mk
+PROJECT            := $(BASEDIR)/project.mk
 CONFIG             := $(CURDIR)/.config.mk
 
 include $(BASEDIR)/make/functions.mk
-include $(BASEDIR)/dependencies.mk
-ifneq ($(TREE),1)
+ifeq ($(TREE),1)
+  include $(DEPLIST)
+  include $(PLUGLIST)
+  include $(PROJECT)  
+else
   -include $(CONFIG)
 endif
-include $(BASEDIR)/project.mk
 
-SYS_DEPENDENCIES_UNIQ   = $(call uniq,$(DEPENDENCIES) $(TEST_DEPENDENCIES))
+SYS_DEPENDENCIES_UNIQ   = $(call uniq,$(DEPENDENCIES) $(TEST_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
 ALL_DEPENDENCIES_UNIQ   = $(call uniq,$(ALL_DEPENDENCIES))
 
 # Find the proper branch of the GIT repository

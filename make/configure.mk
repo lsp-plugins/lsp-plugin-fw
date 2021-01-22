@@ -26,6 +26,7 @@ INCDIR                     := $(PREFIX)/include
 BASEDIR                    := $(CURDIR)
 BUILDDIR                   := $(BASEDIR)/.build
 CONFIG                     := $(BASEDIR)/.config.mk
+PLUGLIST                   := $(BASEDIR)/plugins.mk
 MODULES                    := $(BASEDIR)/modules
 TEST                       := 0
 DEBUG                      := 0
@@ -37,19 +38,33 @@ include $(BASEDIR)/project.mk
 include $(BASEDIR)/make/tools.mk
 include $(BASEDIR)/dependencies.mk
 include $(BASEDIR)/make/functions.mk
+include $(PLUGLIST)
 
-UNIQ_DEPENDENCIES          := $(call uniq, $(DEPENDENCIES) $(TEST_DEPENDENCIES))
+DEPENDENCY_VARS            := DEPENDENCIES TEST_DEPENDENCIES PLUGIN_DEPENDENCIES BUILD_DEPENDENCIES ALL_DEPENDENCIES
+
+# Compute unique dependencies
+UNIQ_DEPENDENCIES          := $(call uniq, $(DEPENDENCIES))
+UNIQ_TEST_DEPENDENCIES     := $(call uniq, $(TEST_DEPENDENCIES))
+UNIQ_PLUGIN_DEPENDENCIES   := $(call uniq, $(PLUGIN_DEPENDENCIES))
+UNIQ_ALL_DEPENDENCIES      := $(call uniq, $(ALL_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
+UNIQ_BUILD_DEPENDENCIES    := $(call uniq, $(DEPENDENCIES) $(TEST_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
+
+# Re-assign variables
 DEPENDENCIES                = $(UNIQ_DEPENDENCIES)
+TEST_DEPENDENCIES           = $(UNIQ_TEST_DEPENDENCIES)
+PLUGIN_DEPENDENCIES         = $(UNIQ_PLUGIN_DEPENDENCIES)
+ALL_DEPENDENCIES            = $(UNIQ_ALL_DEPENDENCIES)
+BUILD_DEPENDENCIES          = $(UNIQ_BUILD_DEPENDENCIES)
 
 ifeq ($(findstring -devel,$(ARTIFACT_VERSION)),-devel)
-  $(foreach dep, $(DEPENDENCIES), \
+  $(foreach dep, $(BUILD_DEPENDENCIES), \
     $(eval $(dep)_BRANCH=devel) \
   )
   # Strip '-devel' from version
   tmp_version :=$(shell echo "$(ARTIFACT_VERSION)" | sed s/-devel//g)
   ARTIFACT_VERSION=$(tmp_version)
 else
-  $(foreach dep, $(DEPENDENCIES), \
+  $(foreach dep, $(BUILD_DEPENDENCIES), \
     $(eval \
       $(dep)_BRANCH="$($(dep)_VERSION)" \
     ) \
@@ -154,13 +169,14 @@ endif
 $(ARTIFACT_VARS)_TESTING    = $(TEST)
 $(ARTIFACT_VARS)_TYPE      := src
 
-OVERALL_DEPS := $(DEPENDENCIES) $(ARTIFACT_VARS)
+OVERALL_DEPS := $(ALL_DEPENDENCIES) $(ARTIFACT_VARS)
 __tmp := $(foreach dep,$(OVERALL_DEPS),$(call vardef, $(dep)))
 
 CONFIG_VARS = \
   $(COMMON_VARS) \
+  $(DEPENDENCY_VARS) \
   $(TOOL_VARS) \
-  $(foreach name, $(OVERALL_DEPS), \
+  $(foreach name, $(ALL_DEPENDENCIES) $(ARTIFACT_VARS), \
     $(name)_NAME \
     $(name)_DESC \
     $(name)_VERSION \
@@ -222,5 +238,8 @@ help: | toolvars sysvars
 	@echo "  <ARTIFACT>_VERSION        version of the artifact used for building"
 	@echo ""
 	@echo "Artifacts used for build:"
-	@echo "  $(DEPENDENCIES)"
+	@echo "  $(BUILD_DEPENDENCIES)"
+	@echo ""
+	@echo "Plugins used for build:"
+	@echo "  $(PLUGINS_DEPENDENCIES)"
 

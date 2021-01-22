@@ -28,37 +28,35 @@ ARTIFACT_VERSION            = 0.5.0-devel
 
 #------------------------------------------------------------------------------
 # Plugin dependencies
-DEPENDENCIES_PLUGINS = \
-  LSP_PLUGINS_SHARED \
-  LSP_PLUGINS_COMP_DELAY
-
-DEPENDENCIES_SHARED =
-
 DEPENDENCIES_COMMON = \
-  $(DEPENDENCIES_SHARED) \
   LIBPTHREAD \
   LSP_COMMON_LIB \
   LSP_DSP_LIB \
   LSP_DSP_UNITS \
   LSP_LLTL_LIB \
   LSP_RUNTIME_LIB \
+  LSP_PLUGINS_SHARED \
+  LSP_3RD_PARTY
+
+DEPENDENCIES_COMMON_UI = \
+  LSP_R3D_IFACE \
+  LSP_WS_LIB \
+  LSP_TK_LIB
 
 #------------------------------------------------------------------------------
 # Jack build dependencies
 DEPENDENCIES_JACK = \
   $(DEPENDENCIES_COMMON)
 
-UI_DEPENDENCIES_JACK = \
-  LSP_R3D_IFACE \
-  LSP_WS_LIB \
-  LSP_TK_LIB
+DEPENDENCIES_JACK_UI = \
+  $(DEPENDENCIES_COMMON_UI)
 
 ifeq ($(PLATFORM),Linux)
   DEPENDENCIES_JACK += \
     LIBJACK \
     LIBSNDFILE
 
-  UI_DEPENDENCIES_JACK += \
+  DEPENDENCIES_JACK_UI += \
     LIBJACK \
     LIBSNDFILE \
     LIBX11 \
@@ -70,7 +68,7 @@ ifeq ($(PLATFORM),BSD)
     LIBJACK \
     LIBSNDFILE
     
-  UI_DEPENDENCIES_JACK += \
+  DEPENDENCIES_JACK_UI += \
     LIBJACK \
     LIBSNDFILE \
     LIBX11 \
@@ -94,17 +92,11 @@ TEST_DEPENDENCIES = \
 ifeq ($(PLATFORM),Linux)
   TEST_DEPENDENCIES += \
     LIBGL
-  
-  DEPENDENCIES_SHARED += \
-    LIBDL
 endif
 
 ifeq ($(PLATFORM),BSD)
   TEST_DEPENDENCIES += \
     LIBGL
-
-  DEPENDENCIES_SHARED += \
-    LIBDL
     
   DEPENDENCIES_COMMON += \
     LIBICONV
@@ -112,16 +104,22 @@ endif
 
 ifeq ($(PLATFORM),Windows)
   DEPENDENCIES_COMMON += \
-    LIBWINDOWS
+    LIBWINNT
 endif
 
 #------------------------------------------------------------------------------
 # All possible dependencies
 ALL_DEPENDENCIES = \
-  $(DEPENDENCIES_PLUGINS) \
-  $(DEPENDENCIES_SHARED) \
-  $(DEPENDENCIES_JACK) \
-  $(UI_DEPENDENCIES_JACK) \
-  $(TEST_DEPENDENCIES)
+  $(DEPENDENCIES_COMMON) \
+  $(TEST_DEPENDENCIES) \
+  LIBJACK \
+  LIBGL \
+  LIBSNDFILE \
+  LIBX11 \
+  LIBCAIRO \
+  LIBDL \
+  LIBICONV \
+  LIBWINNT
+
 
 
