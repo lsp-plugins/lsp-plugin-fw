@@ -21,20 +21,44 @@
 CONFIG                     := $(CURDIR)/.config.mk
 
 include $(CONFIG)
+include $(BASEDIR)/make/functions.mk
 
-# Make dependencies unique
-UNIQ_DEPENCENCIES          := $(call uniq,$(DEPENDENCIES))
+#------------------------------------------------------------------------------
+# Framework settings
+LSP_PLUGIN_FW_OBJ_CORE      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
+LSP_PLUGIN_FW_OBJ_META      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-meta.o
+LSP_PLUGIN_FW_OBJ_DSP       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-dsp.o
+LSP_PLUGIN_FW_OBJ_UI        = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui.o
+LSP_PLUGIN_FW_OBJ_TEST      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-test.o
+LSP_PLUGIN_FW_OBJ           = $(LSP_PLUGIN_FW_OBJ_CORE) $(LSP_PLUGIN_FW_OBJ_META) $(LSP_PLUGIN_FW_OBJ_DSP) $(LSP_PLUGIN_FW_OBJ_UI)
+LSP_PLUGIN_FW_MFLAGS       += $(foreach dep,$(BUILD_DEPENDENCIES),-DUSE_$(dep))
+LSP_PLUGIN_FW_CFLAGS       += $(foreach dep,$(BUILD_DEPENDENCIES), $($(dep)_CFLAGS))
 
-# Artifact settings
-ARTIFACT_BIN                = $($(ARTIFACT_VARS)_BIN)
-ARTIFACT_NAME               = $($(ARTIFACT_VARS)_NAME)
-ARTIFACT_VERSION            = $($(ARTIFACT_VARS)_VERSION)
-ARTIFACT_OBJ_CORE           = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-core.o
-ARTIFACT_OBJ_META           = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-meta.o
-ARTIFACT_OBJ_DSP            = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-dsp.o
-ARTIFACT_OBJ_UI             = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-ui.o
-ARTIFACT_OBJ_TEST           = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-test.o
-ARTIFACT_OBJ                = $(ARTIFACT_OBJ_CORE) $(ARTIFACT_OBJ_META) $(ARTIFACT_OBJ_DSP) $(ARTIFACT_OBJ_UI)
+# Source code location
+CXX_SRC_CORE                = $(call rwildcard, main/core, *.cpp)
+CXX_SRC_META                = $(call rwildcard, main/meta, *.cpp)
+CXX_SRC_DSP                 = $(call rwildcard, main/plug, *.cpp)
+CXX_SRC_UI                  = $(call rwildcard, main/ui, *.cpp)
+CXX_SRC_WRAP                = $(call rwildcard, main/wrap, *.cpp)
+CXX_SRC_UTIL                = $(call rwildcard, util, *.cpp)
+CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
+CXX_SRC                     = $(CXX_SRC_CORE) $(CXX_SRC_META) $(CXX_SRC_DSP) $(CXX_SRC_UI) $(CXX_SRC_WRAP) $(CXX_SRC_UTIL)
+
+# Object files
+OBJ_STUB                    = $(patsubst %.cpp, %.o, $(CXX_SRC_STUB))
+OBJ_CORE                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_CORE))
+OBJ_META                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_META))
+OBJ_DSP                     = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_DSP))
+OBJ_UI                      = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UI))
+OBJ_UTIL                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UTIL))
+OBJ_TEST                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_TEST))
+OBJ                         = $(OBJ_CORE) $(OBJ_META) $(OBJ_DSP) $(OBJ_UI) $(OBJ_UTIL)
+
+ifeq ($(TEST),1)
+  CXX_SRC                    += $(CXX_SRC_TEST)
+  OBJ                        += $(OBJ_TEST)
+  LSP_PLUGIN_FW_OBJ          += $(LSP_PLUGIN_FW_OBJ_TEST)
+endif
 
 # Utilities
 UTL_BIN_PATH                = $(ARTIFACT_BIN)/util
@@ -46,74 +70,68 @@ UTL_JACK_MAKE_LDFLAGS       = $(foreach dep, $(call uniq, $(DEPENDENCIES_COMMON)
 UTL_JACK_MAKE_OBJS          = $(ARTIFACT_OBJ_CORE) $(ARTIFACT_OBJ_META) $(ARTIFACT_OBJ_DSP) \
                               $(OBJ_PLUG_META) $(OBJ_PLUG_DSP)
 
-# Format-related paths
-FMT_JACK_PATH               = $(ARTIFACT_BIN)/jack
+#------------------------------------------------------------------------------
+# Nested variables
+SRC_DEPS                    = $(foreach dep, $(BUILD_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
+PLUG_DEPS                   = $(foreach dep, $(BUILD_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
+BIN_DEPS                    = $(foreach dep, $(BUILD_DEPENDENCIES), $(if $(findstring bin,$($(dep)_TYPE)),$(dep)))
 
-# Binaries
-ARTIFACT_LIB_JACK           = $(ARTIFACT_BIN)/lib$(ARTIFACT_NAME)-jack-$(ARTIFACT_VERSION)$(LIBRARY_EXT)
-ARTIFACT_LIB_JACK_DEPS      = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $(UI_DEPENDENCIES_JACK)), $(if $($(dep)_OBJ), $(dep)))
-ARTIFACT_LIB_JACK_LIBS      = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $(UI_DEPENDENCIES_JACK)), $($(dep)_OBJ))
-ARTIFACT_LIB_JACK_LDFLAGS   = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $(UI_DEPENDENCIES_JACK)), $($(dep)_LDFLAGS))
-ARTIFACT_LIB_JACK_OBJS      = $(ARTIFACT_OBJ_CORE) $(ARTIFACT_OBJ_META) $(ARTIFACT_OBJ_DSP) $(ARTIFACT_OBJ_UI) \
-                              $(OBJ_PLUG_META) $(OBJ_PLUG_DSP) $(OBJ_PLUG_UI)
+#------------------------------------------------------------------------------
+# Functional variables
+CXX_FILE                    = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.o,%.cpp, $(@))
 
-# Source code location
-CXX_SRC_MAIN_CORE           = $(call rwildcard, main/core, *.cpp)
-CXX_SRC_MAIN_META           = $(call rwildcard, main/meta, *.cpp)
-CXX_SRC_MAIN_DSP            = $(call rwildcard, main/plug, *.cpp)
-CXX_SRC_MAIN_UI             = $(call rwildcard, main/ui, *.cpp)
-CXX_SRC_MAIN_WRAP           = $(call rwildcard, main/wrap, *.cpp)
-CXX_SRC_UTIL                = $(call rwildcard, util, *.cpp)
-CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
-CXX_SRC                     = $(CXX_SRC_MAIN_CORE) $(CXX_SRC_MAIN_META) $(CXX_SRC_MAIN_DSP) $(CXX_SRC_MAIN_UI) $(CXX_SRC_MAIN_WRAP) $(CXX_SRC_UTIL)
+## Format-related paths
+#FMT_JACK_PATH               = $(ARTIFACT_BIN)/jack
+#
+## Binaries
+#ARTIFACT_LIB_JACK           = $(ARTIFACT_BIN)/lib$(ARTIFACT_NAME)-jack-$(ARTIFACT_VERSION)$(LIBRARY_EXT)
+#ARTIFACT_LIB_JACK_DEPS      = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $(UI_DEPENDENCIES_JACK)), $(if $($(dep)_OBJ), $(dep)))
+#ARTIFACT_LIB_JACK_LIBS      = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $(UI_DEPENDENCIES_JACK)), $($(dep)_OBJ))
+#ARTIFACT_LIB_JACK_LDFLAGS   = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $(UI_DEPENDENCIES_JACK)), $($(dep)_LDFLAGS))
+#ARTIFACT_LIB_JACK_OBJS      = $(ARTIFACT_OBJ_CORE) $(ARTIFACT_OBJ_META) $(ARTIFACT_OBJ_DSP) $(ARTIFACT_OBJ_UI) \
+#                              $(OBJ_PLUG_META) $(OBJ_PLUG_DSP) $(OBJ_PLUG_UI)
+#
+#OBJ_PLUG_META               = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_META))
+#OBJ_PLUG_DSP                = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_DSP))
+#OBJ_PLUG_UI                 = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_UI))
+#OBJ_PLUG_TEST               = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_TEST))
+#OBJ_PLUG                    = $(OBJ_PLUG_META) $(OBJ_PLUG_DSP) $(OBJ_PLUG_UI)
+#
+#CFLAGS_DEPS                 = $(foreach dep, $(DEPENDENCIES) $(ARTIFACT_VARS), $(if $($(dep)_CFLAGS), $($(dep)_CFLAGS)))
+#BUILD_DEPS                  = $(foreach dep, $(DEPENDENCIES), $(if $($(dep)_OBJ), $(dep)))
+#PLUGIN_DEPS                 = $(foreach dep, $(DEPENDENCIES), $(if $($(dep)_OBJ_META), $(dep)))
+#
+#ifeq ($(TEST), 1)
+#  CXX_SRC                    += $(CXX_SRC_TEST)
+#  ARTIFACT_OBJ               += $(ARTIFACT_OBJ_TEST)
+#  OBJ                        += $(OBJ_TEST)
+#  DEPENDENCIES               += $(TEST_DEPENDENCIES)
+#endif
+#
+#CXX_FILE                    = $(patsubst $(ARTIFACT_BIN)/%.o,%.cpp, $(@))
+#CXX_DEP_ALL                 = $(foreach src, $(CXX_SRC),$(patsubst %.cpp,$(ARTIFACT_BIN)/%.d,$(src)))
+#CXX_DEP_FILE                = $(patsubst $(ARTIFACT_BIN)/%.d,%.cpp,$(@))
+#CXX_DEP_TARGET              = $(patsubst $(ARTIFACT_BIN)/%.d,%.o,$(@))
+#
+#ifeq ($(NO_DEPENDENCIES),1)
+#  BUILD_DEPS                  =
+#  PLUGIN_DEPS                 =
+#endif
+#
+#$(info PLUGIN_DEPS = $(PLUGIN_DEPS))
+#$(info OBJ_PLUG_META = $(OBJ_PLUG_META))
+#$(info OBJ_PLUG_DSP = $(OBJ_PLUG_DSP))
+#$(info OBJ_PLUG_UI = $(OBJ_PLUG_UI))
+#$(info OBJ_PLUG_TEST = $(OBJ_PLUG_TEST))
+#$(info UTL_JACK_MAKE_DEPS = $(UTL_JACK_MAKE_DEPS))
+#$(info UTL_JACK_MAKE_OBJ = $(UTL_JACK_MAKE_OBJ))
+#$(info UTL_JACK_MAKE_OBJS = $(UTL_JACK_MAKE_OBJS))
+#$(info UTL_JACK_MAKE_LIBS = $(UTL_JACK_MAKE_LIBS))
+#$(info $(UTL_JACK_MAKE): $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_DEPS) $(PLUGIN_DEPS))
 
-# Object files
-OBJ_STUB                    = $(patsubst %.cpp, %.o, $(CXX_SRC_STUB))
-OBJ_MAIN_CORE               = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_CORE))
-OBJ_MAIN_META               = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_META))
-OBJ_MAIN_DSP                = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_DSP))
-OBJ_MAIN_UI                 = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN_UI))
-OBJ_UTIL                    = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_UTIL))
-OBJ_TEST                    = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_TEST))
-OBJ                         = $(OBJ_MAIN_CORE) $(OBJ_MAIN_META) $(OBJ_MAIN_DSP) $(OBJ_MAIN_UI) $(OBJ_UTIL)
-
-OBJ_PLUG_META               = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_META))
-OBJ_PLUG_DSP                = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_DSP))
-OBJ_PLUG_UI                 = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_UI))
-OBJ_PLUG_TEST               = $(foreach dep, $(DEPENDENCIES), $($(dep)_OBJ_TEST))
-OBJ_PLUG                    = $(OBJ_PLUG_META) $(OBJ_PLUG_DSP) $(OBJ_PLUG_UI)
-
-CFLAGS_DEPS                 = $(foreach dep, $(DEPENDENCIES) $(ARTIFACT_VARS), $(if $($(dep)_CFLAGS), $($(dep)_CFLAGS)))
-BUILD_DEPS                  = $(foreach dep, $(DEPENDENCIES), $(if $($(dep)_OBJ), $(dep)))
-PLUGIN_DEPS                 = $(foreach dep, $(DEPENDENCIES), $(if $($(dep)_OBJ_META), $(dep)))
-
-ifeq ($(TEST), 1)
-  CXX_SRC                    += $(CXX_SRC_TEST)
-  ARTIFACT_OBJ               += $(ARTIFACT_OBJ_TEST)
-  OBJ                        += $(OBJ_TEST)
-  DEPENDENCIES               += $(TEST_DEPENDENCIES)
-endif
-
-CXX_FILE                    = $(patsubst $(ARTIFACT_BIN)/%.o,%.cpp, $(@))
-CXX_DEP_ALL                 = $(foreach src, $(CXX_SRC),$(patsubst %.cpp,$(ARTIFACT_BIN)/%.d,$(src)))
-CXX_DEP_FILE                = $(patsubst $(ARTIFACT_BIN)/%.d,%.cpp,$(@))
-CXX_DEP_TARGET              = $(patsubst $(ARTIFACT_BIN)/%.d,%.o,$(@))
-
-ifeq ($(NO_DEPENDENCIES),1)
-  BUILD_DEPS                  =
-  PLUGIN_DEPS                 =
-endif
-
-$(info PLUGIN_DEPS = $(PLUGIN_DEPS))
-$(info OBJ_PLUG_META = $(OBJ_PLUG_META))
-$(info OBJ_PLUG_DSP = $(OBJ_PLUG_DSP))
-$(info OBJ_PLUG_UI = $(OBJ_PLUG_UI))
-$(info OBJ_PLUG_TEST = $(OBJ_PLUG_TEST))
-$(info UTL_JACK_MAKE_DEPS = $(UTL_JACK_MAKE_DEPS))
-$(info UTL_JACK_MAKE_OBJ = $(UTL_JACK_MAKE_OBJ))
-$(info UTL_JACK_MAKE_OBJS = $(UTL_JACK_MAKE_OBJS))
-$(info UTL_JACK_MAKE_LIBS = $(UTL_JACK_MAKE_LIBS))
-$(info $(UTL_JACK_MAKE): $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_DEPS) $(PLUGIN_DEPS))
+$(info LSP_PLUGIN_FW_OBJ = $(LSP_PLUGIN_FW_OBJ))
+$(info CXX_SRC_TEST = $(CXX_SRC_TEST))
+$(info CXX_SRC = $(CXX_SRC))
 
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
@@ -121,82 +139,89 @@ $(info $(UTL_JACK_MAKE): $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_DEPS) $(PLUGIN_DEP
 .PHONY: $(BUILD_DEPS)
 
 # Dependencies
-dep_clean:
+#dep_clean:
+#
+#$(CXX_DEP_ALL): dep_clean
+#	@echo "  dep  [$(ARTIFACT_NAME)] $(CXX_DEP_FILE)"
+#	@mkdir -p $(dir $(@))
+#	$(CXX) -MM -MT "\$$(ARTIFACT_BIN)/$(CXX_DEP_TARGET)" -MF $(@) $(CXX_DEP_FILE) $(CXXFLAGS) $(INCLUDE) $(CFLAGS_DEPS)
+#
+#depend: $(CXX_DEP_ALL)
+#	$(foreach dep,$(DEPENDENCIES) $(ARTIFACT_VARS),\
+#	  $(if $($(dep)_INC), \
+#	    $(eval SED_RULES += s/$(shell echo "$($(dep)_INC)" | sed "s/\\//\\\\\//g")/\$$$$\\($(dep)_INC\\)/g;)\
+#	  )\
+#	  $(if $($(dep)_BIN), \
+#	    $(eval SED_RULES += s/$(shell echo "$($(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\($(dep)_BIN\\)/g;)\
+#	  )\
+#	)
+#	@cat $(CXX_DEP_ALL) | sed -E "$(SED_RULES)" >Makefile.d
+#
 
-$(CXX_DEP_ALL): dep_clean
-	@echo "  dep  [$(ARTIFACT_NAME)] $(CXX_DEP_FILE)"
-	@mkdir -p $(dir $(@))
-	$(CXX) -MM -MT "\$$(ARTIFACT_BIN)/$(CXX_DEP_TARGET)" -MF $(@) $(CXX_DEP_FILE) $(CXXFLAGS) $(INCLUDE) $(CFLAGS_DEPS)
-
-depend: $(CXX_DEP_ALL)
-	$(foreach dep,$(DEPENDENCIES) $(ARTIFACT_VARS),\
-	  $(if $($(dep)_INC), \
-	    $(eval SED_RULES += s/$(shell echo "$($(dep)_INC)" | sed "s/\\//\\\\\//g")/\$$$$\\($(dep)_INC\\)/g;)\
-	  )\
-	  $(if $($(dep)_BIN), \
-	    $(eval SED_RULES += s/$(shell echo "$($(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\($(dep)_BIN\\)/g;)\
-	  )\
-	)
-	@cat $(CXX_DEP_ALL) | sed -E "$(SED_RULES)" >Makefile.d
-
-$(BUILD_DEPS) $(PLUGIN_DEPS):
+$(SRC_DEPS) $(PLUG_DEPS):
 	@echo "make [$($(@)_NAME)]"
 	@$(MAKE) -s -C "$($(@)_PATH)" compile CONFIG="$(CONFIG)" NO_DEPENDENCIES="1" DEMO_TEST="0"
 
+$(BIN_DEPS):
+	@echo "make [$($(@)_NAME)]"
+	@$(MAKE) -s -C "$($(@)_PATH)" all CONFIG="$(CONFIG)" NO_DEPENDENCIES="1" DEMO_TEST="0"
+
 # Compilation
 $(OBJ):
-	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(CXX_FILE)"
+	@echo "  $(CXX)  [$(LSP_PLUGIN_FW_OBJ)] $(CXX_FILE)"
 	@mkdir -p $(dir $@)
-	@$(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(ARTIFACT_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(CFLAGS_DEPS)
+	@$(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
 
-compile:
-
+#compile:
+#
 # Linking targets
-$(ARTIFACT_OBJ_CORE): $(OBJ_MAIN_CORE)
-	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_CORE))"
-	@$(LD) -o $(ARTIFACT_OBJ_CORE) -r $(OBJ_MAIN_CORE)
+$(LSP_PLUGIN_FW_OBJ_CORE): $(OBJ_CORE)
+	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_CORE))"
+	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_CORE) -r $(OBJ_CORE)
 	
-$(ARTIFACT_OBJ_META): $(OBJ_MAIN_META)
-	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_META))"
-	@$(LD) -o $(ARTIFACT_OBJ_META) -r $(OBJ_MAIN_META)
+$(LSP_PLUGIN_FW_OBJ_META): $(OBJ_META)
+	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_META))"
+	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_META) -r $(OBJ_META)
 	
-$(ARTIFACT_OBJ_DSP): $(OBJ_MAIN_DSP)
-	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_DSP))"
-	@$(LD) -o $(ARTIFACT_OBJ_DSP) -r $(OBJ_MAIN_DSP)
+$(LSP_PLUGIN_FW_OBJ_DSP): $(OBJ_DSP)
+	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_DSP))"
+	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_DSP) -r $(OBJ_DSP)
 	
-$(ARTIFACT_OBJ_UI): $(OBJ_MAIN_UI)
-	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_UI))"
-	@$(LD) -o $(ARTIFACT_OBJ_UI) -r $(OBJ_MAIN_UI)
+$(LSP_PLUGIN_FW_OBJ_UI): $(OBJ_UI)
+	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_UI))"
+	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_UI) -r $(OBJ_UI)
 	
-$(ARTIFACT_OBJ_TEST): $(OBJ_TEST)
-	@echo "  $(LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ_TEST))"
-	@$(LD) -o $(ARTIFACT_OBJ_TEST) -r $(OBJ_TEST)
+$(LSP_PLUGIN_FW_OBJ_TEST): $(OBJ_TEST)
+	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_TEST))"
+	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_TEST) -r $(OBJ_TEST)
 
-# Utilities
-$(UTL_JACK_MAKE): $(ARTIFACT_OBJ) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_DEPS) $(PLUGIN_DEPS)
-	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(UTL_JACK_MAKE))"
-	@mkdir -p $(UTL_BIN_PATH)
-	@echo $(CXX) -o $(UTL_JACK_MAKE) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_LIBS) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS) 
-	@$(CXX) -o $(UTL_JACK_MAKE) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_LIBS) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
-
-# Binaries
-$(ARTIFACT_LIB_JACK): $(ARTIFACT_OBJ) $(ARTIFACT_LIB_JACK_DEPS) $(PLUGIN_DEPS)
-	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
-	@echo $(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
-	@$(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
-
-# All targets
-jack: $(UTL_JACK_MAKE)
-	@echo "  $(notdir $(UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(ARTIFACT_BIN)/%,%, $(FMT_JACK_PATH))"
-	@mkdir -p "$(FMT_JACK_PATH)"
-	@$(UTL_JACK_MAKE) "$(FMT_JACK_PATH)"
-	@echo "  make JACK"
-	@make -C "$(FMT_JACK_PATH)" CONFIG="$(CONFIG)" LIBS="" \
-	         CXXFLAGS="$(CXXFLAGS) -DINSTALL_PREFIX=\"$(PREFIX)\"" \
-	         LDFLAGS="$(call query,LDFLAGS,$(DEPENDENCIES_SHARED))" \
-	         INCLUDE="$(INCLUDE) -I$($(ARTIFACT_VARS)_INC) $(call query,CFLAGS,$(DEPENDENCIES))"
-
-all: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK) jack
+#
+## Utilities
+#$(UTL_JACK_MAKE): $(ARTIFACT_OBJ) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_DEPS) $(PLUGIN_DEPS)
+#	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(UTL_JACK_MAKE))"
+#	@mkdir -p $(UTL_BIN_PATH)
+#	@echo $(CXX) -o $(UTL_JACK_MAKE) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_LIBS) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS) 
+#	@$(CXX) -o $(UTL_JACK_MAKE) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_LIBS) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
+#
+## Binaries
+#$(ARTIFACT_LIB_JACK): $(ARTIFACT_OBJ) $(ARTIFACT_LIB_JACK_DEPS) $(PLUGIN_DEPS)
+#	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
+#	@echo $(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
+#	@$(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
+#
+## All targets
+#jack: $(UTL_JACK_MAKE)
+#	@echo "  $(notdir $(UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(ARTIFACT_BIN)/%,%, $(FMT_JACK_PATH))"
+#	@mkdir -p "$(FMT_JACK_PATH)"
+#	@$(UTL_JACK_MAKE) "$(FMT_JACK_PATH)"
+#	@echo "  make JACK"
+#	@make -C "$(FMT_JACK_PATH)" CONFIG="$(CONFIG)" LIBS="" \
+#	         CXXFLAGS="$(CXXFLAGS) -DINSTALL_PREFIX=\"$(PREFIX)\"" \
+#	         LDFLAGS="$(call query,LDFLAGS,$(DEPENDENCIES_SHARED))" \
+#	         INCLUDE="$(INCLUDE) -I$($(ARTIFACT_VARS)_INC) $(call query,CFLAGS,$(DEPENDENCIES))"
+#
+all: $(SRC_DEPS) $(BIN_DEPS) $(LSP_PLUGIN_FW_OBJ)
+#$(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK) jack
 
 #CXX_SRCMAIN             = $(call rwildcard, main, *.cpp)
 #CXX_SRCEXT              =
@@ -329,7 +354,6 @@ all: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK) jack
 #	@-rm -f $(CXX_INSTHEADERS)
 #	@echo "Uninstall OK"
 #
-
 
 
 # Dependencies

@@ -40,14 +40,18 @@ include $(BASEDIR)/dependencies.mk
 include $(BASEDIR)/make/functions.mk
 include $(PLUGLIST)
 
-DEPENDENCY_VARS            := DEPENDENCIES TEST_DEPENDENCIES PLUGIN_DEPENDENCIES BUILD_DEPENDENCIES ALL_DEPENDENCIES
+DEPENDENCY_VARS             = DEPENDENCIES TEST_DEPENDENCIES PLUGIN_DEPENDENCIES BUILD_DEPENDENCIES ALL_DEPENDENCIES
+BUILD_DEPENDENCIES          = $(DEPENDENCIES) $(PLUGIN_DEPENDENCIES)
+ifeq ($(TEST), 1)
+  BUILD_DEPENDENCIES         += $(TEST_DEPENDENCIES)
+endif
 
 # Compute unique dependencies
 UNIQ_DEPENDENCIES          := $(call uniq, $(DEPENDENCIES))
 UNIQ_TEST_DEPENDENCIES     := $(call uniq, $(TEST_DEPENDENCIES))
 UNIQ_PLUGIN_DEPENDENCIES   := $(call uniq, $(PLUGIN_DEPENDENCIES))
-UNIQ_ALL_DEPENDENCIES      := $(call uniq, $(ALL_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
-UNIQ_BUILD_DEPENDENCIES    := $(call uniq, $(DEPENDENCIES) $(TEST_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
+UNIQ_BUILD_DEPENDENCIES    := $(call uniq, $(BUILD_DEPENDENCIES))
+UNIQ_ALL_DEPENDENCIES      := $(call uniq, $(ALL_DEPENDENCIES) $(BUILD_DEPENDENCIES))
 
 # Re-assign variables
 DEPENDENCIES                = $(UNIQ_DEPENDENCIES)
@@ -146,6 +150,7 @@ define vardef =
   # Override variables if they are not defined
   $(if $(findstring pkg, $($(name)_TYPE)), $(eval $(call pkgconfig,  $(name))))
   $(if $(findstring src, $($(name)_TYPE)), $(eval $(call srcconfig,  $(name))))
+  $(if $(findstring bin, $($(name)_TYPE)), $(eval $(call srcconfig,  $(name))))
   $(if $(findstring plug,$($(name)_TYPE)), $(eval $(call plugconfig, $(name))))
   $(if $(findstring hdr, $($(name)_TYPE)), $(eval $(call hdrconfig,  $(name))))
   $(if $(findstring lib, $($(name)_TYPE)), $(eval $(call libconfig,  $(name))))
@@ -228,12 +233,13 @@ help: | toolvars sysvars
 	@echo "  <ARTIFACT>_SRC            path to source code files of the artifact"
 	@echo "  <ARTIFACT>_TEST           location of test files of the artifact"
 	@echo "  <ARTIFACT>_TYPE           artifact usage type"
-	@echo "                            - src  - use sources and headers from git"
+	@echo "                            - bin  - binaries build from source code"
 	@echo "                            - hdr  - use headers only from git"
-	@echo "                            - pkg  - use pkgconfig for configuration"
-	@echo "                            - plug - use source as plugin for LSP plugin framework"
 	@echo "                            - lib  - use system headers and -l<libname> flags"
 	@echo "                            - opt  - use optional configuration"
+	@echo "                            - pkg  - use pkgconfig for configuration"
+	@echo "                            - plug - use source as plugin for LSP plugin framework"
+	@echo "                            - src  - use sources and headers from git"
 	@echo "  <ARTIFACT>_URL            location of the artifact git repoisitory"
 	@echo "  <ARTIFACT>_VERSION        version of the artifact used for building"
 	@echo ""

@@ -66,7 +66,7 @@ LSP_R3D_BASE_LIB_URL       := https://github.com/sadko4u/$(LSP_R3D_BASE_LIB_NAME
 
 LSP_R3D_GLX_LIB_VERSION    := 0.5.3
 LSP_R3D_GLX_LIB_NAME       := lsp-r3d-glx-lib
-LSP_R3D_GLX_LIB_TYPE       := src
+LSP_R3D_GLX_LIB_TYPE       := bin
 LSP_R3D_GLX_LIB_URL        := https://github.com/sadko4u/$(LSP_R3D_GLX_LIB_NAME).git
 
 LSP_TK_LIB_VERSION         := 0.5.0
