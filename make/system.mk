@@ -161,6 +161,9 @@ COMMON_VARS = \
 	BINDIR \
 	INCDIR \
 	TEMPDIR \
+	BASEDIR \
+	BUILDDIR \
+	MODULES \
 	TEST \
 	DEBUG \
 	PROFILE \
@@ -171,13 +174,16 @@ COMMON_VARS = \
 sysvars:
 	@echo "List of available system variables:"
 	@echo "  ARCHITECTURE              target architecture to perform build"
+	@echo "  BASEDIR                   base directory location"
 	@echo "  BINDIR                    location of the binaries"
+	@echo "  BUILDDIR                  build directory location"
 	@echo "  DEBUG                     build with debug options"
 	@echo "  EXECUTABLE_EXT            file extension for executable files"
 	@echo "  INCDIR                    location of the header files"
 	@echo "  LIBDIR                    location of the library"
 	@echo "  LIBRARY_EXT               file extension for library files"
 	@echo "  LIBRARY_PREFIX            prefix used for library file"
+	@echo "  MODULES                   destination path to fetch modules"
 	@echo "  PKGCONFIG_EXT             file extension for pkgconfig files"
 	@echo "  PLATFORM                  target software platform to perform build"
 	@echo "  PREFIX                    installation prefix for binary files"

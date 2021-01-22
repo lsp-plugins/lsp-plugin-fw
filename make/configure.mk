@@ -176,7 +176,7 @@ CONFIG_VARS = \
   $(COMMON_VARS) \
   $(DEPENDENCY_VARS) \
   $(TOOL_VARS) \
-  $(foreach name, $(ALL_DEPENDENCIES) $(ARTIFACT_VARS), \
+  $(foreach name, ARTIFACT $(ALL_DEPENDENCIES) $(ARTIFACT_VARS), \
     $(name)_NAME \
     $(name)_DESC \
     $(name)_VERSION \

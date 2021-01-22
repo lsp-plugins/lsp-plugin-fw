@@ -21,8 +21,6 @@
 CONFIG                     := $(CURDIR)/.config.mk
 
 include $(CONFIG)
-include $(CURDIR)/../project.mk
-include $(CURDIR)/../make/functions.mk
 
 # Make dependencies unique
 UNIQ_DEPENCENCIES          := $(call uniq,$(DEPENDENCIES))

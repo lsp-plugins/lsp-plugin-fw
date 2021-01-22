@@ -24,6 +24,8 @@ BASEDIR                    := $(CURDIR)
 MODULES                    := $(BASEDIR)/modules
 BUILDDIR                   := $(BASEDIR)/.build
 CONFIG                     := $(BASEDIR)/.config.mk
+PLUGINS                    := $(BASEDIR)/plugins.mk
+PROJECT                    := $(BASEDIR)/project.mk
 
 # Basic initialization
 # Checks
@@ -75,11 +77,17 @@ prune: clean
 # Configuration-related targets
 .PHONY: config help chkconfig
 
+CONFIG_VARS = \
+    CONFIG="$(CONFIG)" \
+    PLUGINS="$(PLUGINS)" \
+    PROJECT="$(PROJECT)" \
+    MODULES="$(MODULES)"
+
 testconfig:
-	@$(MAKE) -s -f "$(BASEDIR)/make/configure.mk" $(@) CONFIG="$(CONFIG)" TEST="1" $(MAKEFLAGS)
+	@$(MAKE) -s -f "$(BASEDIR)/make/configure.mk" $(@) $(CONFIG_VARS) TEST="1" $(MAKEFLAGS)
 
 config:
-	@$(MAKE) -s -f "$(BASEDIR)/make/configure.mk" $(@) CONFIG="$(CONFIG)" $(MAKEFLAGS)
+	@$(MAKE) -s -f "$(BASEDIR)/make/configure.mk" $(@) $(CONFIG_VARS) $(MAKEFLAGS)
 
 # Release-related targets
 .PHONY: distsrc
