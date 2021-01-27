@@ -25,50 +25,35 @@ BINDIR                     := $(PREFIX)/bin
 INCDIR                     := $(PREFIX)/include
 BASEDIR                    := $(CURDIR)
 BUILDDIR                   := $(BASEDIR)/.build
-CONFIG                     := $(BASEDIR)/.config.mk
-PLUGLIST                   := $(BASEDIR)/plugins.mk
 MODULES                    := $(BASEDIR)/modules
+CONFIG                     := $(BASEDIR)/.config.mk
+PLUGINS                    := $(BASEDIR)/plugins.mk
 TEST                       := 0
 DEBUG                      := 0
 PROFILE                    := 0
 TRACE                      := 0
 
+include $(BASEDIR)/make/functions.mk
 include $(BASEDIR)/make/system.mk
-include $(BASEDIR)/project.mk
 include $(BASEDIR)/make/tools.mk
 include $(BASEDIR)/dependencies.mk
-include $(BASEDIR)/make/functions.mk
-include $(PLUGLIST)
+include $(BASEDIR)/project.mk
+include $(PLUGINS)
 
-DEPENDENCY_VARS             = DEPENDENCIES TEST_DEPENDENCIES PLUGIN_DEPENDENCIES BUILD_DEPENDENCIES ALL_DEPENDENCIES
-BUILD_DEPENDENCIES          = $(DEPENDENCIES) $(PLUGIN_DEPENDENCIES)
-ifeq ($(TEST), 1)
-  BUILD_DEPENDENCIES         += $(TEST_DEPENDENCIES)
-endif
-
-# Compute unique dependencies
-UNIQ_DEPENDENCIES          := $(call uniq, $(DEPENDENCIES))
-UNIQ_TEST_DEPENDENCIES     := $(call uniq, $(TEST_DEPENDENCIES))
-UNIQ_PLUGIN_DEPENDENCIES   := $(call uniq, $(PLUGIN_DEPENDENCIES))
-UNIQ_BUILD_DEPENDENCIES    := $(call uniq, $(BUILD_DEPENDENCIES))
-UNIQ_ALL_DEPENDENCIES      := $(call uniq, $(ALL_DEPENDENCIES) $(BUILD_DEPENDENCIES))
-
-# Re-assign variables
+# Compute the full list of dependencies
+UNIQ_DEPENDENCIES          := $(call uniq, $(DEPENDENCIES) $(TEST_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
 DEPENDENCIES                = $(UNIQ_DEPENDENCIES)
-TEST_DEPENDENCIES           = $(UNIQ_TEST_DEPENDENCIES)
-PLUGIN_DEPENDENCIES         = $(UNIQ_PLUGIN_DEPENDENCIES)
-ALL_DEPENDENCIES            = $(UNIQ_ALL_DEPENDENCIES)
-BUILD_DEPENDENCIES          = $(UNIQ_BUILD_DEPENDENCIES)
 
+# Determine versions
 ifeq ($(findstring -devel,$(ARTIFACT_VERSION)),-devel)
-  $(foreach dep, $(BUILD_DEPENDENCIES), \
+  $(foreach dep, $(DEPENDENCIES), \
     $(eval $(dep)_BRANCH=devel) \
   )
   # Strip '-devel' from version
   tmp_version :=$(shell echo "$(ARTIFACT_VERSION)" | sed s/-devel//g)
   ARTIFACT_VERSION=$(tmp_version)
 else
-  $(foreach dep, $(BUILD_DEPENDENCIES), \
+  $(foreach dep, $(DEPENDENCIES), \
     $(eval \
       $(dep)_BRANCH="$($(dep)_VERSION)" \
     ) \
@@ -158,30 +143,29 @@ define vardef =
 endef
 
 # Define predefined variables
-ifndef $(ARTIFACT_VARS)_NAME
-  $(ARTIFACT_VARS)_NAME      := $(ARTIFACT_NAME)
+ifndef $(ARTIFACT_ID)_NAME
+  $(ARTIFACT_ID)_NAME        := $(ARTIFACT_NAME)
 endif
-ifndef $(ARTIFACT_VARS)_DESC
-  $(ARTIFACT_VARS)_DESC      := $(ARTIFACT_DESC)
+ifndef $(ARTIFACT_ID)_DESC
+  $(ARTIFACT_ID)_DESC        := $(ARTIFACT_DESC)
 endif
-ifndef $(ARTIFACT_VARS)_VERSION 
-  $(ARTIFACT_VARS)_VERSION   := $(ARTIFACT_VERSION)
+ifndef $(ARTIFACT_ID)_VERSION 
+  $(ARTIFACT_ID)_VERSION     := $(ARTIFACT_VERSION)
 endif
-ifndef $(ARTIFACT_VARS)_PATH
-  $(ARTIFACT_VARS)_PATH      := $(BASEDIR)
+ifndef $(ARTIFACT_ID)_PATH
+  $(ARTIFACT_ID)_PATH        := $(BASEDIR)
 endif
 
-$(ARTIFACT_VARS)_TESTING    = $(TEST)
-$(ARTIFACT_VARS)_TYPE      := src
+$(ARTIFACT_ID)_TESTING      = $(TEST)
+$(ARTIFACT_ID)_TYPE        := src
 
-OVERALL_DEPS := $(ALL_DEPENDENCIES) $(ARTIFACT_VARS)
+OVERALL_DEPS := $(DEPENDENCIES) $(ARTIFACT_ID)
 __tmp := $(foreach dep,$(OVERALL_DEPS),$(call vardef, $(dep)))
 
 CONFIG_VARS = \
   $(COMMON_VARS) \
-  $(DEPENDENCY_VARS) \
   $(TOOL_VARS) \
-  $(foreach name, ARTIFACT $(ALL_DEPENDENCIES) $(ARTIFACT_VARS), \
+  $(foreach name, $(OVERALL_DEPS), \
     $(name)_NAME \
     $(name)_DESC \
     $(name)_VERSION \
@@ -244,7 +228,7 @@ help: | toolvars sysvars
 	@echo "  <ARTIFACT>_VERSION        version of the artifact used for building"
 	@echo ""
 	@echo "Artifacts used for build:"
-	@echo "  $(BUILD_DEPENDENCIES)"
+	@echo "  $(DEPENDENCIES)"
 	@echo ""
 	@echo "Plugins used for build:"
 	@echo "  $(PLUGINS_DEPENDENCIES)"

@@ -104,23 +104,33 @@ LIBGL_VERSION              := system
 LIBGL_NAME                 := gl
 LIBGL_TYPE                 := pkg
 
-LIBICONV_VERSION           := system
-LIBICONV_TYPE              := libiconv
-LIBICONV_TYPE              := opt
-LIBICONV_LDFLAGS           := -liconv
+LIBPTHREAD_VERSION         := system
+LIBPTHREAD_NAME            := libpthread
+LIBPTHREAD_TYPE            := opt
+LIBPTHREAD_LDFLAGS         := -ldl
 
 LIBDL_VERSION              := system
 LIBDL_NAME                 := libdl
 LIBDL_TYPE                 := opt
 LIBDL_LDFLAGS              := -ldl
 
-LIBPTHREAD_VERSION         := system
-LIBPTHREAD_NAME            := libpthread
-LIBPTHREAD_TYPE            := opt
-LIBPTHREAD_LDFLAGS         := -ldl
+LIBICONV_VERSION           := system
+LIBICONV_TYPE              := libiconv
+LIBICONV_TYPE              := opt
+LIBICONV_LDFLAGS           := -liconv
 
-LIBWINNT_VERSION           := system
-LIBWINNT_NAME              := libwinnt
-LIBWINNT_TYPE              := opt
-LIBWINNT_LDFLAGS           := -lshlwapi -lwinmm -lmsacm32
+LIBSHLWAPI_VERSION         := system
+LIBSHLWAPI_NAME            := libshlwapi
+LIBSHLWAPI_TYPE            := opt
+LIBSHLWAPI_LDFLAGS         := -lshlwapi
+
+LIBWINMM_VERSION           := system
+LIBWINMM_NAME              := libwinmm
+LIBWINMM_TYPE              := opt
+LIBWINMM_LDFLAGS           := -lwinmm
+
+LIBMSACM_VERSION           := system
+LIBMSACM_NAME              := libmsacm
+LIBMSACM_TYPE              := opt
+LIBMSACM_LDFLAGS           := -lmsacm32
 

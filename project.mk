@@ -19,9 +19,9 @@
 #
 
 # Package version
+ARTIFACT_ID                 = LSP_PLUGIN_FW
 ARTIFACT_NAME               = lsp-plugin-fw
 ARTIFACT_DESC               = Plugin framework for building LSP Plugins
-ARTIFACT_VARS               = LSP_PLUGIN_FW
 ARTIFACT_HEADERS            = lsp-plug.in
 ARTIFACT_EXPORT_ALL         = 1
 ARTIFACT_VERSION            = 0.5.0-devel
@@ -30,6 +30,7 @@ ARTIFACT_VERSION            = 0.5.0-devel
 # Plugin dependencies
 DEPENDENCIES_COMMON = \
   LIBPTHREAD \
+  LIBDL \
   LSP_COMMON_LIB \
   LSP_DSP_LIB \
   LSP_DSP_UNITS \
@@ -75,6 +76,13 @@ ifeq ($(PLATFORM),BSD)
     LIBCAIRO
 endif
 
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES             += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+endif
+
 #------------------------------------------------------------------------------
 # List of dependencies
 DEPENDENCIES = \
@@ -103,8 +111,10 @@ ifeq ($(PLATFORM),BSD)
 endif
 
 ifeq ($(PLATFORM),Windows)
-  DEPENDENCIES_COMMON += \
-    LIBWINNT
+  DEPENDENCIES_COMMON   += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
 endif
 
 #------------------------------------------------------------------------------

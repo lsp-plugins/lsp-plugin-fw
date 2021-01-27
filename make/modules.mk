@@ -19,7 +19,7 @@
 #
 
 BASEDIR            := $(CURDIR)
-PLUGLIST           := $(BASEDIR)/plugins.mk
+PLUGINS            := $(BASEDIR)/plugins.mk
 DEPLIST            := $(BASEDIR)/dependencies.mk
 PROJECT            := $(BASEDIR)/project.mk
 CONFIG             := $(CURDIR)/.config.mk
@@ -27,27 +27,27 @@ CONFIG             := $(CURDIR)/.config.mk
 include $(BASEDIR)/make/functions.mk
 ifeq ($(TREE),1)
   include $(DEPLIST)
-  include $(PLUGLIST)
-  include $(PROJECT)  
+  include $(PLUGINS)
 else
   -include $(CONFIG)
 endif
+include $(PROJECT)
 
-SYS_DEPENDENCIES_UNIQ   = $(call uniq,$(DEPENDENCIES) $(TEST_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
-ALL_DEPENDENCIES_UNIQ   = $(call uniq,$(ALL_DEPENDENCIES))
+UNIQ_DEPENDENCIES       = $(call uniq,$(DEPENDENCIES) $(TEST_DEPENDENCIES))
+UNIQ_ALL_DEPENDENCIES  := $(call uniq,$(ALL_DEPENDENCIES))
 
 # Find the proper branch of the GIT repository
 ifeq ($(TREE),1)
-  MODULES            := $(BASEDIR)/modules
-  GIT                := git
+  MODULES                := $(BASEDIR)/modules
+  GIT                    := git
   
   ifeq ($(findstring -devel,$(ARTIFACT_VERSION)),-devel)
-    $(foreach dep, $(ALL_DEPENDENCIES_UNIQ), \
+    $(foreach dep, $(UNIQ_ALL_DEPENDENCIES), \
       $(eval $(dep)_BRANCH=devel) \
       $(eval $(dep)_PATH=$(MODULES)/$($(dep)_NAME)) \
     )
   else
-    $(foreach dep, $(ALL_DEPENDENCIES_UNIQ), \
+    $(foreach dep, $(UNIQ_ALL_DEPENDENCIES), \
       $(eval $(dep)_BRANCH="$($(dep)_VERSION)") \
       $(eval $(dep)_PATH=$(MODULES)/$($(dep)_NAME)) \
     )
