@@ -142,9 +142,6 @@ namespace lsp
             fprintf(out,    "#include <lsp-plug.in/common/types.h>\n");
             fprintf(out,    "\n");
 
-            fprintf(out,    "static const ::lsp::version_t REQUIRED_PACKAGE_VERSION = LSP_DEF_VERSION(1, 0, 0);\n");
-            fprintf(out,    "\n");
-
             fprintf(out,    "// Include factory function implementation\n");
             fprintf(out,    "#define LSP_PLUG_IN_JACK_MAIN_IMPL\n");
             fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/jack/main.h>\n");
@@ -240,8 +237,10 @@ namespace lsp
             }
 
             fprintf(out, "# Auto generated makefile, do not edit\n\n");
-            fprintf(out, "CONFIG := $(CURDIR)/.config.mk\n\n");
-            fprintf(out, "include $(CONFIG)\n\n");
+            fprintf(out, "CONFIG := $(CURDIR)/.config.mk\n");
+            fprintf(out, "SETTINGS := $(CURDIR)/.settings.mk\n\n");
+            fprintf(out, "include $(CONFIG)\n");
+            fprintf(out, "include $(SETTINGS)\n\n");
 
             fprintf(out, "# Output files\n");
             fprintf(out, "FILES = \\\n");
@@ -271,8 +270,8 @@ namespace lsp
             fprintf(out, "\n");
             fprintf(out, "$(FILES):\n");
             fprintf(out, "\t@echo \"  $(CXX) $(FILE)\"\n");
-            fprintf(out, "\t@echo $(CXX) -o $(@) $(CXXFLAGS) $(INCLUDE) $(FILE) $(LIBS) $(EXE_FLAGS) $(LDFLAGS)\n");
-            fprintf(out, "\t@$(CXX) -o $(@) $(CXXFLAGS) $(INCLUDE) $(FILE) $(LIBS) $(EXE_FLAGS) $(LDFLAGS)\n");
+            fprintf(out, "\t@echo $(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
+            fprintf(out, "\t@$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");
             fprintf(out, "install: $(FILES)\n");

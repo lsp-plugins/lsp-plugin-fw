@@ -27,14 +27,17 @@ CONFIG             := $(CURDIR)/.config.mk
 include $(BASEDIR)/make/functions.mk
 ifeq ($(TREE),1)
   include $(DEPLIST)
-  include $(PLUGINS)
 else
   -include $(CONFIG)
 endif
+
+include $(PLUGINS)
 include $(PROJECT)
 
-UNIQ_DEPENDENCIES       = $(call uniq,$(DEPENDENCIES) $(TEST_DEPENDENCIES))
-UNIQ_ALL_DEPENDENCIES  := $(call uniq,$(ALL_DEPENDENCIES))
+UNIQ_DEPENDENCIES       = $(call uniq,$(DEPENDENCIES) $(TEST_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
+UNIQ_ALL_DEPENDENCIES  := $(call uniq,$(ALL_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
+
+$(info UNIQ_DEPENDENCIES = $(UNIQ_DEPENDENCIES))
 
 # Find the proper branch of the GIT repository
 ifeq ($(TREE),1)
@@ -55,19 +58,21 @@ ifeq ($(TREE),1)
 endif
 
 # Form list of modules, exclude all modules that have 'system' version
-SRC_MODULES         = $(foreach dep, $(SYS_DEPENDENCIES_UNIQ), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
-HDR_MODULES         = $(foreach dep, $(SYS_DEPENDENCIES_UNIQ), $(if $(findstring hdr,$($(dep)_TYPE)),$(dep)))
-PLUG_MODULES        = $(foreach dep, $(SYS_DEPENDENCIES_UNIQ), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
-ALL_SRC_MODULES     = $(foreach dep, $(ALL_DEPENDENCIES_UNIQ), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
-ALL_HDR_MODULES     = $(foreach dep, $(ALL_DEPENDENCIES_UNIQ), $(if $(findstring hdr,$($(dep)_TYPE)),$(dep)))
-ALL_PLUG_MODULES    = $(foreach dep, $(ALL_DEPENDENCIES_UNIQ), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
-ALL_PATHS           = $(foreach dep, $(ALL_SRC_MODULES) $(ALL_HDR_MODULES), $($(dep)_PATH))
+SRC_MODULES         = $(foreach dep, $(UNIQ_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
+HDR_MODULES         = $(foreach dep, $(UNIQ_DEPENDENCIES), $(if $(findstring hdr,$($(dep)_TYPE)),$(dep)))
+BIN_MODULES         = $(foreach dep, $(UNIQ_DEPENDENCIES), $(if $(findstring bin,$($(dep)_TYPE)),$(dep)))
+PLUG_MODULES        = $(foreach dep, $(UNIQ_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
+ALL_SRC_MODULES     = $(foreach dep, $(UNIQ_ALL_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
+ALL_HDR_MODULES     = $(foreach dep, $(UNIQ_ALL_DEPENDENCIES), $(if $(findstring hdr,$($(dep)_TYPE)),$(dep)))
+ALL_BIN_MODULES     = $(foreach dep, $(UNIQ_ALL_DEPENDENCIES), $(if $(findstring bin,$($(dep)_TYPE)),$(dep)))
+ALL_PLUG_MODULES    = $(foreach dep, $(UNIQ_ALL_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
+ALL_PATHS           = $(foreach dep, $(ALL_SRC_MODULES) $(ALL_HDR_MODULES) $(ALL_BIN_MODULES) $(ALL_PLUG_MODULES), $($(dep)_PATH))
 
 # Branches
-.PHONY: $(ALL_SRC_MODULES) $(ALL_HDR_MODULES) $(ALL_PATHS)
+.PHONY: $(ALL_SRC_MODULES) $(ALL_HDR_MODULES) $(ALL_BIN_MODULES) $(ALL_PATHS)
 .PHONY: fetch prune clean
 
-$(ALL_SRC_MODULES) $(ALL_HDR_MODULES) $(ALL_PLUG_MODULES):
+$(ALL_SRC_MODULES) $(ALL_HDR_MODULES) $(ALL_BIN_MODULES) $(ALL_PLUG_MODULES):
 	@echo "Cloning $($(@)_URL) -> $($(@)_PATH) [$($(@)_BRANCH)]"
 	@test -f "$($(@)_PATH)/.git/config" || $(GIT) clone "$($(@)_URL)" "$($(@)_PATH)"
 	@$(GIT) -C "$($(@)_PATH)" reset --hard
@@ -82,9 +87,9 @@ $(ALL_PATHS):
 	@echo "Removing $(notdir $(@))"
 	@-rm -rf $(@)
 
-fetch: $(SRC_MODULES) $(HDR_MODULES) $(PLUG_MODULES)
+fetch: $(SRC_MODULES) $(HDR_MODULES) $(BIN_MODULES) $(PLUG_MODULES)
 
-tree: $(ALL_SRC_MODULES) $(ALL_HDR_MODULES) $(ALL_PLUG_MODULES)
+tree: $(ALL_SRC_MODULES) $(ALL_HDR_MODULES) $(ALL_BIN_MODULES) $(ALL_PLUG_MODULES)
 
 clean:
 	@echo rm -rf "$($(ARTIFACT_VARS)_BIN)/$(ARTIFACT_NAME)"

@@ -18,12 +18,15 @@
 # along with lsp-plugin-fw.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+# Specify plugin package version
+PLUGIN_PACKAGE_VERSION                  := 0.0.1
+
 # Specify description of plugin dependency
-PLUGINS_COMP_DELAY_VERSION        	:= 1.0.2
-PLUGINS_COMP_DELAY_NAME             := lsp-plugins-comp-delay
-PLUGINS_COMP_DELAY_TYPE             := plug
-PLUGINS_COMP_DELAY_URL              := https://github.com/sadko4u/$(PLUGINS_COMP_DELAY_NAME).git
+LSP_PLUGINS_COMP_DELAY_VERSION        	:= 1.0.2
+LSP_PLUGINS_COMP_DELAY_NAME             := lsp-plugins-comp-delay
+LSP_PLUGINS_COMP_DELAY_TYPE             := plug
+LSP_PLUGINS_COMP_DELAY_URL              := https://github.com/sadko4u/$(PLUGINS_COMP_DELAY_NAME).git
 
 # List of all plugin dependencies
 PLUGIN_DEPENDENCIES = \
-  PLUGINS_COMP_DELAY
+  LSP_PLUGINS_COMP_DELAY

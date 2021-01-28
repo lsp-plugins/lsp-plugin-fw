@@ -66,7 +66,7 @@ namespace lsp
         NULL
     };
 
-    static jack_main_function_t lookup_jack_main(void **hInstance, const char *path)
+    static jack_main_function_t lookup_jack_main(void **hInstance, const version_t *required, const char *path)
     {
         lsp_trace("Searching core library at %s", path);
 
@@ -132,7 +132,7 @@ namespace lsp
                 if (strstr(de->d_name, LSP_ARTIFACT_ID) == NULL)
                     continue;
 
-                jack_main_function_t f = lookup_jack_main(hInstance, ptr);
+                jack_main_function_t f = lookup_jack_main(hInstance, required, ptr);
                 if (f != NULL)
                 {
                     free(ptr);
@@ -167,20 +167,23 @@ namespace lsp
                 }
 
                 // Check package version
-                const version_t *req = &REQUIRED_PACKAGE_VERSION;
                 const version_t *ret = vf();
-                if (ret == NULL)
+                if ((ret == NULL) || (ret->branch == NULL))
                 {
-                    lsp_trace("No version returned, ignoring binary", ret);
+                    lsp_trace("No version or bad version returned, ignoring binary", ret);
                     // Close library
                     dlclose(inst);
                     continue;
                 }
-                else if ((ret->major != req->major) || (ret->minor != req->minor) || (ret->micro != req->micro))
+                else if ((ret->major != required->major) ||
+                         (ret->minor != required->minor) ||
+                         (ret->micro != required->micro) ||
+                         (strcmp(ret->branch, required->branch) != 0)
+                    )
                 {
-                    lsp_trace("wrong version %d.%d.%d returned, expected %d.%d.%d, ignoring binary",
-                            ret->major, ret->minor, ret->micro,
-                            req->major, req->minor, req->micro
+                    lsp_trace("wrong version %d.%d.%d '%s' returned, expected %d.%d.%d '%s', ignoring binary",
+                            ret->major, ret->minor, ret->micro, ret->branch,
+                            required->major, required->minor, required->micro required->branch
                         );
                     // Close library
                     dlclose(inst);
@@ -211,7 +214,7 @@ namespace lsp
         return NULL;
     }
 
-    static jack_main_function_t get_jack_main_function(void **hInstance, const char *binary_path)
+    static jack_main_function_t get_jack_main_function(void **hInstance, const version_t *required, const char *binary_path)
     {
         lsp_debug("Trying to find CORE library");
 
@@ -226,7 +229,7 @@ namespace lsp
             if (rchr != NULL)
             {
                 *rchr       = '\0';
-                jack_main   = lookup_jack_main(hInstance, path);
+                jack_main   = lookup_jack_main(hInstance, required, path);
             }
         }
 
@@ -256,24 +259,24 @@ namespace lsp
         if ((jack_main == NULL) && (homedir != NULL))
         {
             lsp_trace("home directory = %s", homedir);
-            jack_main       = lookup_jack_main(hInstance, homedir);
+            jack_main       = lookup_jack_main(hInstance, required, homedir);
 
             if (jack_main == NULL)
             {
                 snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib", homedir);
-                jack_main       = lookup_jack_main(hInstance, path);
+                jack_main       = lookup_jack_main(hInstance, required, path);
             }
 
             if (jack_main == NULL)
             {
                 snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib64", homedir);
-                jack_main       = lookup_jack_main(hInstance, path);
+                jack_main       = lookup_jack_main(hInstance, required, path);
             }
 
             if (jack_main == NULL)
             {
                 snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "bin", homedir);
-                jack_main       = lookup_jack_main(hInstance, path);
+                jack_main       = lookup_jack_main(hInstance, required, path);
             }
         }
 
@@ -282,7 +285,7 @@ namespace lsp
         {
             for (const char **p = jack_core_paths; (p != NULL) && (*p != NULL); ++p)
             {
-                jack_main       = lookup_jack_main(hInstance, *p);
+                jack_main       = lookup_jack_main(hInstance, required, *p);
                 if (jack_main != NULL)
                     break;
             }
@@ -294,7 +297,7 @@ namespace lsp
             char *libpath = get_library_path();
             if (libpath != NULL)
             {
-                jack_main     = lookup_jack_main(hInstance, libpath);
+                jack_main     = lookup_jack_main(hInstance, required, libpath);
                 ::free(libpath);
             }
         }
@@ -306,17 +309,17 @@ namespace lsp
             {
                 for (char **p = paths; (p != NULL) && (*p != NULL); ++p)
                 {
-                    jack_main     = lookup_jack_main(hInstance, *p);
+                    jack_main     = lookup_jack_main(hInstance, required, *p);
                     if (jack_main != NULL)
                         break;
 
                     snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib", *p);
-                    jack_main       = lookup_jack_main(hInstance, path);
+                    jack_main       = lookup_jack_main(hInstance, required, path);
                     if (jack_main != NULL)
                         break;
 
                     snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib64", *p);
-                    jack_main       = lookup_jack_main(hInstance, path);
+                    jack_main       = lookup_jack_main(hInstance, required, path);
                     if (jack_main != NULL)
                         break;
                 }
@@ -339,11 +342,18 @@ int main(int argc, const char **argv)
 {
     using namespace lsp;
     void *hInstance;
+    static const version_t version =
+    {
+        PLUGIN_PACKAGE_MAJOR,
+        PLUGIN_PACKAGE_MINOR,
+        PLUGIN_PACKAGE_MICRO,
+        PLUGIN_PACKAGE_BRANCH
+    };
 
-    jack_main_function_t jack_main = get_jack_main_function(&hInstance, argv[0]);
+    jack_main_function_t jack_main = get_jack_main_function(&hInstance, &version, argv[0]);
     if (jack_main == NULL)
     {
-        lsp_error("Could not find LSP JACK core library");
+        lsp_error("Could not find JACK plugin core library");
         return -STATUS_NOT_FOUND;
     }
 

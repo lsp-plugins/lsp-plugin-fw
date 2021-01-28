@@ -107,7 +107,7 @@ LIBGL_TYPE                 := pkg
 LIBPTHREAD_VERSION         := system
 LIBPTHREAD_NAME            := libpthread
 LIBPTHREAD_TYPE            := opt
-LIBPTHREAD_LDFLAGS         := -ldl
+LIBPTHREAD_LDFLAGS         := -lpthread
 
 LIBDL_VERSION              := system
 LIBDL_NAME                 := libdl
