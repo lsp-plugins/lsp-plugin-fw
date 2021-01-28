@@ -242,8 +242,24 @@ namespace lsp
             fprintf(out, "include $(CONFIG)\n");
             fprintf(out, "include $(SETTINGS)\n\n");
 
+            fprintf(out, "# Source files\n");
+            fprintf(out, "CXX_FILES = \\\n");
+            for (size_t i=0, n=list->size(); i<n; )
+            {
+                // Get plugin metadata
+                const meta::plugin_t *meta = list->uget(i);
+                if ((res = make_filename(&fname, meta->lv2_uid)) != STATUS_OK)
+                    return res;
+
+                fprintf(out, "  %s.cpp", fname.get_utf8());
+                if (++i >= n)
+                    fprintf(out, "\n\n");
+                else
+                    fprintf(out, " \\\n");
+            }
+
             fprintf(out, "# Output files\n");
-            fprintf(out, "FILES = \\\n");
+            fprintf(out, "OBJ_FILES = \\\n");
             for (size_t i=0, n=list->size(); i<n; )
             {
                 // Get plugin metadata
@@ -259,36 +275,37 @@ namespace lsp
             }
 
             fprintf(out, "FILE = $(@:%%$(EXECUTABLE_EXT)=%%.cpp)\n");
+            fprintf(out, "DEP_CXX = $(foreach src,$(CXX_FILES),$(patsubst %%.cpp,%%.d,$(src)))\n");
+            fprintf(out, "DEP_CXX_FILE = $(patsubst %%.d,%%.cpp,$(@))\n");
+            fprintf(out, "DEP_DEP_FILE = $(patsubst %%.d,%%$(EXECUTABLE_EXT),$(@))\n");
             fprintf(out, "\n");
 
             fprintf(out, ".DEFAULT_GOAL := all\n");
-            fprintf(out, ".PHONY: all install\n");
+            fprintf(out, ".PHONY: all install dep_clean depend\n");
 
             fprintf(out, "\n");
-            fprintf(out, "all: $(FILES)\n");
+            fprintf(out, "$(DEP_CXX): dep_clean\n");
+            fprintf(out, "\t$(CXX) -MM -MT \"$(DEP_DEP_FILE)\" -MF $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(DEP_CXX_FILE)\n");
 
             fprintf(out, "\n");
-            fprintf(out, "$(FILES):\n");
+            fprintf(out, "depend: $(DEP_CXX)\n");
+            fprintf(out, "\t@cat $(DEP_CXX) >Makefile.d\n");
+
+            fprintf(out, "\n");
+            fprintf(out, "all: $(OBJ_FILES)\n");
+
+            fprintf(out, "\n");
+            fprintf(out, "$(OBJ_FILES):\n");
             fprintf(out, "\t@echo \"  $(CXX) $(FILE)\"\n");
-            fprintf(out, "\t@echo $(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
             fprintf(out, "\t@$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");
-            fprintf(out, "install: $(FILES)\n");
+            fprintf(out, "install: $(OBJ_FILES)\n");
             fprintf(out, "\t@$(INSTALL) $(FILES) $(TARGET_PATH)/\n");
 
             fprintf(out, "\n");
             fprintf(out, "# Dependencies\n");
-            for (size_t i=0, n=list->size(); i<n; ++i)
-            {
-                // Get plugin metadata
-                const meta::plugin_t *meta = list->uget(i);
-                if ((res = make_filename(&fname, meta->lv2_uid)) != STATUS_OK)
-                    return res;
-
-                const char *name = fname.get_utf8();
-                fprintf(out, "%s$(EXECUTABLE_EXT): %s.cpp\n", name, name);
-            }
+            fprintf(out, "-include Makefile.d\n");
 
             // Close file
             fclose(out);
