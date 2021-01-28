@@ -43,3 +43,9 @@ dquery                  = $(foreach d,$(call uniq, $2),$(if $($(d)_$(strip $1)),
 # $(call cquery, OBJ_META, BIN, $(DEPENDENCIES))
 cquery                  = $(foreach d,$(call uniq, $3),$(if $($(d)_$(strip $1)),$($(d)_$(strip $2))))
 
+# Fetch different versions from version string
+# $(call vmajor, <version-string>)
+vmajor                  = $(shell echo "$(strip $1)" | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)(-(.*))?/\1/')
+vminor                  = $(shell echo "$(strip $1)" | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)(-(.*))?/\2/')
+vmicro                  = $(shell echo "$(strip $1)" | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)(-(.*))?/\3/')
+vbranch                 = $(shell echo "$(strip $1)" | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)(-(.*))?/\5/')

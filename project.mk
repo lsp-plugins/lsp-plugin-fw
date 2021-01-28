@@ -42,7 +42,9 @@ DEPENDENCIES_COMMON = \
 DEPENDENCIES_COMMON_UI = \
   LSP_R3D_IFACE \
   LSP_WS_LIB \
-  LSP_TK_LIB
+  LSP_TK_LIB \
+  LSP_R3D_BASE_LIB \
+  LSP_R3D_GLX_LIB
 
 #------------------------------------------------------------------------------
 # Jack build dependencies
@@ -96,9 +98,7 @@ DEPENDENCIES = \
   $(DEPENDENCIES_JACK_UI)
 
 TEST_DEPENDENCIES = \
-  LSP_TEST_FW \
-  LSP_R3D_BASE_LIB \
-  LSP_R3D_GLX_LIB
+  LSP_TEST_FW
 
 #------------------------------------------------------------------------------
 # Platform-specific dependencies

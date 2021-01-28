@@ -30,8 +30,11 @@ include $(BASEDIR)/../make/functions.mk
 
 ifeq ($(TEST),1)
   UNIQ_DEPENDENCIES      := $(call uniq, $(DEPENDENCIES) $(TEST_DEPENDENCIES))
-  DEPENDENCIES            = $(UNIQ_DEPENDENCIES)
+else
+  UNIQ_DEPENDENCIES      := $(call uniq, $(DEPENDENCIES))
 endif
+BIN_DEPENDENCIES        = $(foreach dep,$(UNIQ_DEPENDENCIES),$(if $(findstring bin,$($(dep)_TYPE)),$(dep)))
+DEPENDENCIES            = $(filter-out $(BIN_DEPENDENCIES), $(UNIQ_DEPENDENCIES))
 
 #------------------------------------------------------------------------------
 # Framework settings
@@ -122,11 +125,13 @@ ARTIFACT_LIB_JACK_OBJS      = \
   $(OBJ_PLUG_UI) \
   $(OBJ_WRAP_JACK)
 
+BIN_INSTALL                 = $(foreach dep, $(BIN_DEPENDENCIES), install_$(dep))
+BIN_ARTIFACT_ID             = $(patsubst install_%,%,$(@))
+
 #------------------------------------------------------------------------------
 # Nested variables
 SRC_DEPS                    = $(foreach dep, $(DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
 PLUG_DEPS                   = $(foreach dep, $(DEPENDENCIES) $(PLUGIN_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
-BIN_DEPS                    = $(foreach dep, $(DEPENDENCIES), $(if $(findstring bin,$($(dep)_TYPE)),$(dep)))
 
 #------------------------------------------------------------------------------
 # Functional variables
@@ -134,32 +139,27 @@ CXX_FILE                    = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.o,%.cpp, $(@))
 
 #------------------------------------------------------------------------------
 # Plugin instance settings
-PLUGIN_PACKAGE_MAJOR       := $(shell echo "$(PLUGIN_PACKAGE_VERSION)" | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)(-(.*))?/\1/')
-PLUGIN_PACKAGE_MINOR       := $(shell echo "$(PLUGIN_PACKAGE_VERSION)" | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)(-(.*))?/\2/')
-PLUGIN_PACKAGE_MICRO       := $(shell echo "$(PLUGIN_PACKAGE_VERSION)" | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)(-(.*))?/\3/')
-PLUGIN_PACKAGE_BRANCH      := $(shell echo "$(PLUGIN_PACKAGE_VERSION)" | sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+)(-(.*))?/\5/')
+PLUGIN_PACKAGE_MAJOR       := $(call vmajor,$(PLUGIN_PACKAGE_VERSION))
+PLUGIN_PACKAGE_MINOR       := $(call vminor,$(PLUGIN_PACKAGE_VERSION))
+PLUGIN_PACKAGE_MICRO       := $(call vmicro,$(PLUGIN_PACKAGE_VERSION))
+PLUGIN_PACKAGE_BRANCH      := $(call vbranch,$(PLUGIN_PACKAGE_VERSION))
 
 WRAP_JACK_CFLAGS           := \
-  -DINSTALL_PREFIX=\\\"$(PREFIX)\\\" \
+  -DINSTALL_PREFIX=\"$(PREFIX)\" \
   -DPLUGIN_PACKAGE_MAJOR=$(PLUGIN_PACKAGE_MAJOR) \
   -DPLUGIN_PACKAGE_MINOR=$(PLUGIN_PACKAGE_MINOR) \
   -DPLUGIN_PACKAGE_MICRO=$(PLUGIN_PACKAGE_MICRO) \
-  -DPLUGIN_PACKAGE_BRANCH=\\\"$(PLUGIN_PACKAGE_BRANCH)\\\" \
-  -DLSP_ARTIFACT_ID=\\\"$($(ARTIFACT_ID)_NAME)\\\"
+  -DPLUGIN_PACKAGE_BRANCH=\"$(PLUGIN_PACKAGE_BRANCH)\" \
+  -DLSP_ARTIFACT_ID=\"$($(ARTIFACT_ID)_NAME)\"
 WRAP_JACK_LDFLAGS          := $(call query,LDFLAGS,$(DEPENDENCIES_JACK_WRAP))
 WRAP_JACK_OBJS             := $(call query,OBJ,$(DEPENDENCIES_JACK_WRAP))
 WRAP_JACK_INC              := $(call query,CFLAGS,$(DEPENDENCIES_JACK_WRAP) LSP_PLUGIN_FW)
-
-$(info LSP_PLUGIN_FW_OBJ = $(LSP_PLUGIN_FW_OBJ))
-$(info PLUGIN_INSTANCE_CFLAGS = $(PLUGIN_INSTANCE_CFLAGS))
-$(info CXX_SRC_TEST = $(CXX_SRC_TEST))
-$(info CXX_SRC = $(CXX_SRC))
-$(info OBJ = $(OBJ))
 
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
 .PHONY: jack ladspa dssi lv2 vst
 .PHONY: $(DEPENDENCIES)
+.PHONY: $(BIN_INSTALL)
 
 #------------------------------------------------------------------------------
 # Dependencies
@@ -187,7 +187,7 @@ $(SRC_DEPS) $(PLUG_DEPS):
 	@echo $(MAKE) -s -C "$($(@)_PATH)" compile PROJECT="$(PROJECT)" CONFIG="$(CONFIG)" ARTIFACT_ID="$(@)" NO_DEPENDENCIES="1" DEMO_TEST="0"
 	@$(MAKE) -s -C "$($(@)_PATH)" compile PROJECT="$(PROJECT)" CONFIG="$(CONFIG)" ARTIFACT_ID="$(@)" NO_DEPENDENCIES="1" DEMO_TEST="0"
 
-$(BIN_DEPS):
+$(BIN_DEPENDENCIES):
 	@echo "make [$($(@)_NAME)]"
 	@$(MAKE) -s -C "$($(@)_PATH)" all CONFIG="$(CONFIG)" DEMO_TEST="0"
 
@@ -199,7 +199,7 @@ $(OBJ):
 	@echo $(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
 	@$(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
 
-$(OBJ_WRAP_JACK): EXT_FLAGS=$(PLUGIN_INSTANCE_CFLAGS)
+$(OBJ_WRAP_JACK): EXT_FLAGS=$(WRAP_JACK_CFLAGS)
 
 #compile:
 
@@ -230,10 +230,11 @@ $(LSP_PLUGIN_FW_OBJ_TEST): $(OBJ_TEST)
 $(UTL_JACK_MAKE): $(LSP_PLUGIN_FW_OBJ) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_DEPS) $(PLUG_DEPS)
 	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(UTL_JACK_MAKE))"
 	@mkdir -p $(UTL_BIN_PATH)
+	@echo $(CXX) -o $(UTL_JACK_MAKE) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_LIBS) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
 	@$(CXX) -o $(UTL_JACK_MAKE) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_LIBS) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
 
 #------------------------------------------------------------------------------
-## Binaries
+# Binaries
 $(ARTIFACT_LIB_JACK): $(LSP_PLUGIN_FW_OBJ) $(OBJ_WRAP_JACK) $(ARTIFACT_LIB_JACK_DEPS) $(PLUG_DEPS)
 	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
 	@echo $(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
@@ -245,16 +246,28 @@ jack: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
 	@mkdir -p "$(ARTIFACT_LIB_JACK_PATH)"
 	@$(UTL_JACK_MAKE) "$(ARTIFACT_LIB_JACK_PATH)"
 	@echo "  make JACK"
-	@echo "" > $(ARTIFACT_LIB_JACK_SETTINGS)
-	@echo "EXT_OBJS=$(WRAP_JACK_OBJS)" >> $(ARTIFACT_LIB_JACK_SETTINGS)
-	@echo "EXT_CFLAGS=$(WRAP_JACK_CFLAGS)" >> $(ARTIFACT_LIB_JACK_SETTINGS)
-	@echo "EXT_CXXFLAGS=$(WRAP_JACK_CFLAGS)" >> $(ARTIFACT_LIB_JACK_SETTINGS)
-	@echo "EXT_LDFLAGS=$(WRAP_JACK_LDFLAGS)" >> $(ARTIFACT_LIB_JACK_SETTINGS)
-	@echo "EXT_INCLUDE=$(WRAP_JACK_INC)" >> $(ARTIFACT_LIB_JACK_SETTINGS)
+	@echo -e \
+	  "# Auto-generated script, do not edit\n\n" \
+	  "EXT_OBJS=$(WRAP_JACK_OBJS)\n" \
+	  "EXT_CFLAGS=$(WRAP_JACK_CFLAGS)\n" \
+	  "EXT_CXXFLAGS=$(WRAP_JACK_CFLAGS)\n" \
+	  "EXT_LDFLAGS=$(WRAP_JACK_LDFLAGS)\n" \
+	  "EXT_INCLUDE=$(WRAP_JACK_INC)\n" | \
+	  sed -E 's/\"/\\\"/g' > $(ARTIFACT_LIB_JACK_SETTINGS)
 	@make -C "$(ARTIFACT_LIB_JACK_PATH)" depend CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 	@make -C "$(ARTIFACT_LIB_JACK_PATH)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 all: jack
+
+#------------------------------------------------------------------------------
+# Installation
+$(BIN_INSTALL):
+	@echo "INSTALL $(notdir $($(BIN_ARTIFACT_ID)_PATH))"
+	@echo make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
+	@make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
+
+install: $(BIN_INSTALL)
+	
 
 # Dependencies
 -include $(CURDIR)/Makefile.d
