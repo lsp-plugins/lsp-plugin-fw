@@ -42,24 +42,6 @@
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/ui_wrapper.h>
 
-//
-//#include <core/lib.h>
-//#include <core/debug.h>
-//#include <core/status.h>
-//#include <core/ipc/NativeExecutor.h>
-//
-//#include <dsp/dsp.h>
-//
-//#include <ui/ui_locale.h>
-//#include <core/stdlib/string.h>
-//
-//#include <plugins/plugins.h>
-//#include <metadata/plugins.h>
-//
-//#include <container/const.h>
-//#include <container/jack/wrapper.h>
-//
-
 #ifdef PLATFORM_POSIX
     #include <signal.h>
 #endif /* PLATFORM_POSIX */
@@ -81,7 +63,7 @@ namespace lsp
             plug::Module       *pPlugin;            // Plugin
             ui::Module         *pUI;                // Plugin UI
             jack::Wrapper      *pWrapper;           // Plugin wrapper
-//            LSPWindow      *pWindow;
+            jack::UIWrapper    *pUIWrapper;         // Plugin UI wrapper
             ws::timestamp_t     nLastReconnect;
             volatile bool       bInterrupt;         // Interrupt signal received
         } jack_wrapper_t;
@@ -314,7 +296,6 @@ namespace lsp
             // Disconnect the wrapper
             if (w->pWrapper != NULL)
                 w->pWrapper->disconnect();
-            // TODO: disconnect UI wrapper
 
             // Destroy plugin UI
             if (w->pUI != NULL)
@@ -324,7 +305,13 @@ namespace lsp
                 w->pUI          = NULL;
             }
 
-            // TODO: destroy UI wrapper
+            // Destroy UI wrapper
+            if (w->pUIWrapper != NULL)
+            {
+                w->pUIWrapper->destroy();
+                delete w->pUIWrapper;
+                w->pUIWrapper   = NULL;
+            }
 
             // Destroy plugin
             if (w->pPlugin != NULL)
@@ -390,9 +377,21 @@ namespace lsp
                 return res;
             }
 
-            // TODO: Initialize UI wrapper
+            // Initialize UI wrapper
             if (w->pUI != NULL)
             {
+                w->pUIWrapper   = new jack::UIWrapper(w->pWrapper, w->pUI);
+                if (w->pUIWrapper == NULL)
+                {
+                    jack_destroy_wrapper(w);
+                    return STATUS_NO_MEM;
+                }
+
+                if ((res = w->pUIWrapper->init()) != STATUS_OK)
+                {
+                    jack_destroy_wrapper(w);
+                    return res;
+                }
             }
 
             // TODO: Load configuration (if specified in parameters)
@@ -442,11 +441,18 @@ namespace lsp
             // If we are connected - do usual stuff
             if (jw->connected())
             {
+                // Sync state (transfer DSP to UI)
+                if (w->pUIWrapper != NULL)
+                {
+                    // Transfer changes from DSP to UI
+                    w->pUIWrapper->sync(sched);
+                    // Perform main event loop for the UI
+                    w->pUIWrapper->main_iteration();
+                }
+
                 // TODO
 //                if (!(wrapper->nSync++))
 //                    wrapper->pWindow->query_resize();
-            // Transfer changes from DSP to UI
-//            wrapper->pWrapper->transfer_dsp_to_ui(); // TODO
             }
 
             return STATUS_OK;
@@ -457,38 +463,32 @@ namespace lsp
             status_t res        = STATUS_OK;
             ssize_t period      = 40; // 40 ms period (25 frames per second)
 
-            if (w->pUI != NULL)
-            {
-                // TODO
-            }
-            else
-            {
-                system::time_t  ctime;
-                ws::timestamp_t ts1, ts2;
+            system::time_t  ctime;
+            ws::timestamp_t ts1, ts2;
 
-                // Initialize wrapper structure and set-up signal handlers
-                while (!w->bInterrupt)
+            // Initialize wrapper structure and set-up signal handlers
+            while (!w->bInterrupt)
+            {
+                system::get_time(&ctime);
+                ts1     = ctime.seconds * 1000 + ctime.nanos / 1000000;
+
+                // Synchronize with JACK
+                if ((res = jack_sync(ts1, ts1, w)) != STATUS_OK)
                 {
-                    system::get_time(&ctime);
-                    ts1     = ctime.seconds * 1000 + ctime.nanos / 1000000;
-
-                    if ((res = jack_sync(ts1, ts1, w)) != STATUS_OK)
-                    {
-                        fprintf(stderr, "Unexpected error, code=%d", res);
-                        return res;
-                    }
-
-                    // Perform a small sleep before new iteration
-                    system::get_time(&ctime);
-                    ts2     = ctime.seconds * 1000 + ctime.nanos / 1000000;
-
-                    wssize_t delay   = ts1 + period - ts2;
-                    if (delay > 0)
-                        ipc::Thread::sleep(lsp_max(delay, period));
+                    fprintf(stderr, "Unexpected error, code=%d", res);
+                    return res;
                 }
 
-                fprintf(stderr, "\nPlugin execution interrupted\n");
+                // Perform a small sleep before new iteration
+                system::get_time(&ctime);
+                ts2     = ctime.seconds * 1000 + ctime.nanos / 1000000;
+
+                wssize_t delay   = ts1 + period - ts2;
+                if (delay > 0)
+                    ipc::Thread::sleep(lsp_max(delay, period));
             }
+
+            fprintf(stderr, "\nPlugin execution interrupted\n");
 
             return res;
         }
@@ -513,6 +513,7 @@ extern "C"
         w->pPlugin              = NULL;
         w->pUI                  = NULL;
         w->pWrapper             = NULL;
+        w->pUIWrapper           = NULL;
         w->bInterrupt           = false;
         w->nLastReconnect       = 0;
 

@@ -26,10 +26,11 @@
     #error "Use #include <lsp-plug.in/plug-fw/ui/ui.h>"
 #endif /* LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_ */
 
-#include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/tk/tk.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 
 namespace lsp
 {
@@ -112,6 +113,14 @@ namespace lsp
                  * Synchronize state of meta ports
                  */
                 void                        sync_meta_ports();
+
+                /**
+                 * Notify the write of the KVT parameter
+                 * @param storage KVT storage
+                 * @param id kvt parameter identifier
+                 * @param value KVT parameter value
+                 */
+                virtual void                kvt_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value);
 
         };
     }

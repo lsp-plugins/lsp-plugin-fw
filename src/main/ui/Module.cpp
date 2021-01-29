@@ -206,6 +206,9 @@ namespace lsp
         {
         }
 
+        void Module::kvt_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value)
+        {
+        }
     }
 }
 
