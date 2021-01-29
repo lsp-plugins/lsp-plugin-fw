@@ -391,7 +391,7 @@ namespace lsp
             }
 
             // TODO: Initialize UI wrapper
-            if (w->pUI!= NULL)
+            if (w->pUI != NULL)
             {
             }
 
@@ -418,7 +418,7 @@ namespace lsp
             if (jw->connection_lost())
             {
                 // Disconnect wrapper and remember last connection time
-                fprintf(stderr, "Connection to JACK was lost\n");
+                fprintf(stderr, "Connection to JACK has been lost\n");
                 jw->disconnect();
                 w->nLastReconnect       = ctime;
             }
@@ -432,7 +432,7 @@ namespace lsp
                     printf("Trying to connect to JACK\n");
                     if (jw->connect() == STATUS_OK)
                     {
-                        lsp_trace("Successfully connected to JACK");
+                        printf("Successfully connected to JACK\n");
                         w->nSync        = 0;
                     }
                     w->nLastReconnect   = ctime;

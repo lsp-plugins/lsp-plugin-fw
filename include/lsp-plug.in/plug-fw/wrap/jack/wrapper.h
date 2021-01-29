@@ -155,7 +155,7 @@ namespace lsp
                 inline jack_client_t               *client()                { return pClient;                   }
                 inline bool                         initialized() const     { return nState != S_CREATED;       }
                 inline bool                         connected() const       { return nState == S_CONNECTED;     }
-                inline bool                         disconnected() const    { return nState == S_DISCONNECTED;  }
+                inline bool                         disconnected() const    { return (nState == S_DISCONNECTED) || (nState == S_INITIALIZED); }
                 inline bool                         connection_lost() const { return nState == S_CONN_LOST;     }
 
                 status_t                            connect();
