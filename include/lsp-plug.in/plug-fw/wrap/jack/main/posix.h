@@ -22,6 +22,8 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_
 #define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_
 
+#include <lsp-plug.in/plug-fw/version.h>
+
 #ifndef LSP_PLUG_IN_JACK_MAIN_IMPL
     #error "This header should not be included directly"
 #endif /* LSP_PLUG_IN_JACK_MAIN_IMPL */

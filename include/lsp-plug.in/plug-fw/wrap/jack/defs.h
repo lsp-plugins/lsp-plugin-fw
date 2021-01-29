@@ -22,6 +22,7 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_DEFS_H_
 #define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_DEFS_H_
 
+#include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/common/types.h>
 
 #define JACK_MAIN_FUNCTION          plug_fw_jack_main

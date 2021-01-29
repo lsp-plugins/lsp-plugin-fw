@@ -73,6 +73,7 @@ namespace lsp
                 core::KVTStorage                sKVT;               // Key-value tree
                 ipc::Mutex                      sKVTMutex;          // Key-value tree mutex
 
+                atomic_t                        nPosition;          // Position counter
                 plug::position_t                sPosition;          // Actual time position
 
                 volatile atomic_t               nQueryDrawReq;      // QueryDraw request
@@ -81,6 +82,7 @@ namespace lsp
                 atomic_t                        nDumpResp;          // Dump state to file response
 
                 lltl::parray<jack::Port>        vPorts;             // All ports
+                lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
                 lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
@@ -109,6 +111,7 @@ namespace lsp
                     pExecutor       = NULL;
                     pCanvas         = NULL;
 
+                    nPosition       = 0;
                     plug::position_t::init(&sPosition);
 
                     nQueryDrawReq   = 0;
@@ -161,6 +164,9 @@ namespace lsp
                 status_t                            connect();
                 status_t                            disconnect();
 
+                jack::Port                         *port_by_id(const char *id);
+                jack::Port                         *port_by_idx(size_t index);
+
 //            public:
 //                bool transfer_dsp_to_ui();
 //
@@ -190,6 +196,13 @@ namespace lsp
 {
     namespace jack
     {
+        static ssize_t cmp_port_identifiers(const jack::Port *pa, const jack::Port *pb)
+        {
+            const meta::port_t *a = pa->metadata();
+            const meta::port_t *b = pb->metadata();
+            return strcmp(a->id, b->id);
+        }
+
         status_t Wrapper::init()
         {
             // Obtain plugin metadata
@@ -200,6 +213,11 @@ namespace lsp
             // Create ports
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(port, NULL);
+
+            // Generate list of sorted ports by identifier
+            if (!vSortedPorts.add(vPorts))
+                return STATUS_NO_MEM;
+            vSortedPorts.qsort(cmp_port_identifiers);
 
             // Initialize plugin and UI
             if (pPlugin != NULL)
@@ -437,6 +455,7 @@ namespace lsp
                 delete p;
             }
             vPorts.flush();
+            vSortedPorts.flush();
 
             // Cleanup generated metadata
             for (size_t i=0, n=vGenMetadata.size(); i<n; ++i)
@@ -511,7 +530,7 @@ namespace lsp
 
                 case meta::R_PORT_SET:
                 {
-                    char postfix_buf[MAX_PARAM_ID_BYTES];
+                    LSPString postfix_str;
                     jack::PortGroup     *pg      = new jack::PortGroup(port, this);
                     pg->init();
                     vPorts.add(pg);
@@ -520,10 +539,11 @@ namespace lsp
                     for (size_t row=0; row<pg->rows(); ++row)
                     {
                         // Generate postfix
-                        snprintf(postfix_buf, sizeof(postfix_buf)-1, "%s_%d", (postfix != NULL) ? postfix : "", int(row));
+                        postfix_str.fmt_ascii("%s_%d", (postfix != NULL) ? postfix : "", int(row));
+                        postfix                 = postfix_str.get_ascii();
 
                         // Clone port metadata
-                        meta::port_t *cm        = clone_port_metadata(port->members, postfix_buf);
+                        meta::port_t *cm        = clone_port_metadata(port->members, postfix);
                         if (cm != NULL)
                         {
                             vGenMetadata.add(cm);
@@ -535,7 +555,7 @@ namespace lsp
                                 else if (meta::is_lowering_port(cm))
                                     cm->start    = cm->max - ((cm->max - cm->min) * row) / float(pg->rows());
 
-                                create_port(cm, postfix_buf);
+                                create_port(cm, postfix);
                             }
                         }
                     }
@@ -552,11 +572,10 @@ namespace lsp
                 jp->init();
                 #ifdef LSP_DEBUG
                     const char *src_id = jp->metadata()->id;
-
-                    JACKPort **vp = vPorts.get_array();
                     for (size_t i=0, n=vPorts.size(); i<n; ++i)
                     {
-                        if (!::strcmp(src_id, vp[i]->metadata()->id))
+                        jack::Port *p = vPorts.uget(i);
+                        if (!strcmp(src_id, p->metadata()->id))
                         {
                             lsp_error("ERROR: port %s already defined", src_id);
                         }
@@ -611,8 +630,9 @@ namespace lsp
             if (pPlugin->set_position(&npos))
                 bUpdateSettings = true;
 
-            // Update current position
+            // Update current position and increment version counter
             sPosition = npos;
+            atomic_add(&nPosition, 1);
 
             return 0;
         }
@@ -709,6 +729,32 @@ namespace lsp
         plug::ICanvas *Wrapper::create_canvas(plug::ICanvas *&cv, size_t width, size_t height)
         {
             return NULL; // TODO
+        }
+
+        jack::Port *Wrapper::port_by_idx(size_t index)
+        {
+            return vPorts.get(index);
+        }
+
+        jack::Port *Wrapper::port_by_id(const char *id)
+        {
+            ssize_t first = 0, last = vPorts.size() - 1;
+            while (first <= last)
+            {
+                ssize_t middle = (first + last) >> 1;
+                jack::Port *p = vPorts.uget(middle);
+                const meta::port_t *meta = p->metadata();
+                int cmp = strcmp(meta->id, id);
+
+                if (cmp < 0)
+                    last    = middle - 1;
+                else if (cmp > 0)
+                    first   = middle + 1;
+                else
+                    return p;
+            }
+
+            return NULL;
         }
     }
 }

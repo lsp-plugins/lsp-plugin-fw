@@ -40,7 +40,7 @@
 #include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/ports.h>
+#include <lsp-plug.in/plug-fw/wrap/jack/ui_wrapper.h>
 
 //
 //#include <core/lib.h>
@@ -486,55 +486,11 @@ namespace lsp
                     if (delay > 0)
                         ipc::Thread::sleep(lsp_max(delay, period));
                 }
+
+                fprintf(stderr, "\nPlugin execution interrupted\n");
             }
 
-            printf("Plugin execution interrupted\n");
-
             return res;
-
-            //            // Enter the main lifecycle
-            //            if (status == STATUS_OK)
-            //            {
-            //                dsp::context_t ctx;
-            //                dsp::start(&ctx);
-            //
-            //                // Perform initial connection
-            //                lsp_trace("Connecting to JACK server");
-            //                w.connect();
-            //                clock_gettime(CLOCK_REALTIME, &wrapper.nLastReconnect);
-            //
-            //                // Create timer for transferring DSP -> UI data
-            //                lsp_trace("Creating timer");
-            //                wrapper.nSync       = 0;
-            //                wrapper.pWrapper    = &w;
-            //                wrapper.pWindow     = pui->root_window();
-            //
-            //                LSPTimer tmr;
-            //                tmr.bind(pui->display());
-            //                tmr.set_handler(jack_ui_sync, &wrapper);
-            //                tmr.launch(0, 40); // 25 Hz rate
-            //
-            //                // Do UI interaction
-            //                lsp_trace("Calling main function");
-            //                w.show_ui();
-            //                pui->main();
-            //                tmr.cancel();
-            //
-            //                dsp::finish(&ctx);
-            //            }
-            //            else
-            //                lsp_error("Error initializing Jack wrapper");
-            //
-            //            // Destroy objects
-            //            w.disconnect();
-            //            if (pui != NULL)
-            //            {
-            //                pui->destroy();
-            //                delete pui;
-            //            }
-            //            w.destroy();
-            //
-            //            return status;
         }
     }
 }
