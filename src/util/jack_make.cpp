@@ -301,7 +301,7 @@ namespace lsp
 
             fprintf(out, "\n");
             fprintf(out, "install: $(OBJ_FILES)\n");
-            fprintf(out, "\t@$(INSTALL) $(FILES) $(TARGET_PATH)/\n");
+            fprintf(out, "\t@$(INSTALL) $(OBJ_FILES) $(DESTDIR)/\n");
 
             fprintf(out, "\n");
             fprintf(out, "# Dependencies\n");

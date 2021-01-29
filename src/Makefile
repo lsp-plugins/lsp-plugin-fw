@@ -165,6 +165,7 @@ DEP_CFLAGS              = $(call query,CFLAGS,$(ALL_DEPENDENCIES))
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
 .PHONY: jack ladspa dssi lv2 vst
+.PHONY: install_jack
 .PHONY: $(DEPENDENCIES)
 .PHONY: $(BIN_INSTALL)
 
@@ -274,8 +275,14 @@ $(BIN_INSTALL):
 	@echo make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 	@make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 
-install: $(BIN_INSTALL)
-	
+install_jack:
+	@echo "INSTALL jack"
+	@mkdir -p "$(DESTDIR)/$(BINDIR)"
+	@make -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
+
+install: $(BIN_INSTALL) install_jack
+	@echo "INSTALL $(notdir $(ARTIFACT_LIB_JACK))"
+	@$(INSTALL) $(ARTIFACT_LIB_JACK) "$(DESTDIR)/$(LIBDIR)"
 
 # Dependencies
 -include $(CURDIR)/Makefile.d
