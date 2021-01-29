@@ -155,6 +155,13 @@ WRAP_JACK_LDFLAGS          := $(call query,LDFLAGS,$(DEPENDENCIES_JACK_WRAP))
 WRAP_JACK_OBJS             := $(call query,OBJ,$(DEPENDENCIES_JACK_WRAP))
 WRAP_JACK_INC              := $(call query,CFLAGS,$(DEPENDENCIES_JACK_WRAP) LSP_PLUGIN_FW)
 
+#------------------------------------------------------------------------------
+# Dependencies
+DEP_CXX                 = $(foreach src,$(CXX_SRC),$(patsubst %.cpp,$(ARTIFACT_BIN)/%.d,$(src)))
+DEP_CXX_FILE            = $(patsubst $(ARTIFACT_BIN)/%.d,%.cpp,$(@))
+DEP_DEP_FILE            = $(patsubst $(ARTIFACT_BIN)/%.d,%.o,$(@))
+DEP_CFLAGS              = $(call query,CFLAGS,$(ALL_DEPENDENCIES))
+
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
 .PHONY: jack ladspa dssi lv2 vst
@@ -163,25 +170,26 @@ WRAP_JACK_INC              := $(call query,CFLAGS,$(DEPENDENCIES_JACK_WRAP) LSP_
 
 #------------------------------------------------------------------------------
 # Dependencies
-#dep_clean:
-#
-#$(CXX_DEP_ALL): dep_clean
-#	@echo "  dep  [$(ARTIFACT_NAME)] $(CXX_DEP_FILE)"
-#	@mkdir -p $(dir $(@))
-#	$(CXX) -MM -MT "\$$(ARTIFACT_BIN)/$(CXX_DEP_TARGET)" -MF $(@) $(CXX_DEP_FILE) $(CXXFLAGS) $(INCLUDE) $(CFLAGS_DEPS)
-#
-#depend: $(CXX_DEP_ALL)
-#	$(foreach dep,$(DEPENDENCIES) $(ARTIFACT_ID),\
-#	  $(if $($(dep)_INC), \
-#	    $(eval SED_RULES += s/$(shell echo "$($(dep)_INC)" | sed "s/\\//\\\\\//g")/\$$$$\\($(dep)_INC\\)/g;)\
-#	  )\
-#	  $(if $($(dep)_BIN), \
-#	    $(eval SED_RULES += s/$(shell echo "$($(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\($(dep)_BIN\\)/g;)\
-#	  )\
-#	)
-#	@cat $(CXX_DEP_ALL) | sed -E "$(SED_RULES)" >Makefile.d
-#
+dep_clean:
 
+$(DEP_CXX): dep_clean
+	@echo "  dep  [$(ARTIFACT_NAME)] $(DEP_CXX_FILE)"
+	@mkdir -p $(dir $(@))
+	$(CXX) -MM -MT "\$$($(ARTIFACT_ID)_BIN)/$(DEP_DEP_FILE)" -MF $(@) $(DEP_CXX_FILE) $(CXXFLAGS) $(INCLUDE) $(DEP_CFLAGS)
+
+depend: $(DEP_CXX)
+	$(foreach dep,$(ALL_DEPENDENCIES) $(ARTIFACT_ID),\
+	  $(if $($(dep)_INC), \
+	    $(eval SED_RULES += s/$(shell echo "$($(dep)_INC)" | sed "s/\\//\\\\\//g")/\$$$$\\($(dep)_INC\\)/g;)\
+	  )\
+	  $(if $($(dep)_BIN), \
+	    $(eval SED_RULES += s/$(shell echo "$($(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\($(dep)_BIN\\)/g;)\
+	  )\
+	)
+	@cat $(DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.d
+
+#------------------------------------------------------------------------------
+# Derived source code libraries
 $(SRC_DEPS) $(PLUG_DEPS):
 	@echo "make [$($(@)_NAME)]"
 	@echo $(MAKE) -s -C "$($(@)_PATH)" compile PROJECT="$(PROJECT)" CONFIG="$(CONFIG)" ARTIFACT_ID="$(@)" NO_DEPENDENCIES="1" DEMO_TEST="0"
