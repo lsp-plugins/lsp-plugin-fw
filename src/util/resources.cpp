@@ -35,9 +35,9 @@ namespace lsp
     {
         typedef struct context_t
         {
-            lltl::pphash<LSPString, LSPString> themes;      // XML files (themes)
+            lltl::pphash<LSPString, LSPString> schema;      // XML files (schemas)
             lltl::pphash<LSPString, LSPString> ui;          // XML files (UI)
-            lltl::pphash<LSPString, LSPString> presets;     // Preset files
+            lltl::pphash<LSPString, LSPString> preset;      // Preset files
         } context_t;
 
         /**
@@ -65,8 +65,8 @@ namespace lsp
             lltl::parray<LSPString> paths;
 
             // Drop themes
-            ctx->themes.values(&paths);
-            ctx->themes.flush();
+            ctx->schema.values(&paths);
+            ctx->schema.flush();
             drop_paths(&paths);
 
             // Drop UI files
@@ -75,24 +75,48 @@ namespace lsp
             drop_paths(&paths);
 
             // Drop preset files
-            ctx->presets.values(&paths);
-            ctx->presets.flush();
+            ctx->preset.values(&paths);
+            ctx->preset.flush();
             drop_paths(&paths);
         }
 
-        status_t theme_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
+        status_t add_unique_file(lltl::pphash<LSPString, LSPString> *dst, const LSPString *relative, const LSPString *full)
         {
+            LSPString *path = dst->get(relative);
+            if (path != NULL)
+            {
+                fprintf(stderr,
+                        "Resource file '%s' conflicts with '%s', can not proceed",
+                        full->get_native(), path->get_native()
+                );
+                return STATUS_DUPLICATED;
+            }
+
+            if ((path = full->clone()) == NULL)
+                return STATUS_NO_MEM;
+
+            if (!dst->create(relative, path))
+            {
+                delete path;
+                return STATUS_NO_MEM;
+            }
+
             return STATUS_OK;
+        }
+
+        status_t schema_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
+        {
+            return add_unique_file(&ctx->schema, relative, full);
         }
 
         status_t ui_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
         {
-            return STATUS_OK;
+            return add_unique_file(&ctx->ui, relative, full);
         }
 
         status_t preset_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
         {
-            return STATUS_OK;
+            return add_unique_file(&ctx->preset, relative, full);
         }
 
         status_t i18n_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
@@ -161,6 +185,8 @@ namespace lsp
                             drop_paths(&subdirs);
                             return res;
                         }
+
+                        printf("  found  dir: %s\n", rel.as_native());
                     }
                 }
                 else if (pattern->test(&item))
@@ -220,17 +246,13 @@ namespace lsp
             io::Path base, full;
             if ((res = base.set(path, "res/main")) != STATUS_OK)
                 return res;
-            if ((res = full.set(path, &base)) != STATUS_OK)
-                return res;
-
-            printf("Scanning directory %s\n", full.as_native());
 
             // Lookup for specific resources
-            if ((res = scan_files(&base, "themes", "*.xml", ctx, theme_handler)) != STATUS_OK)
+            if ((res = scan_files(&base, "schema", "*.xml", ctx, schema_handler)) != STATUS_OK)
                 return res;
             if ((res = scan_files(&base, "ui", "*.xml", ctx, ui_handler)) != STATUS_OK)
                 return res;
-            if ((res = scan_files(&base, "presets", "*.preset", ctx, preset_handler)) != STATUS_OK)
+            if ((res = scan_files(&base, "preset", "*.preset", ctx, preset_handler)) != STATUS_OK)
                 return res;
             if ((res = scan_files(&base, "i18n", "*.json", ctx, i18n_handler)) != STATUS_OK)
                 return res;
@@ -253,17 +275,21 @@ namespace lsp
                 return res;
             if ((res = dir.canonicalize()) != STATUS_OK)
                 return res;
-            if ((res = dir.remove_last(&pattern)) != STATUS_OK)
+            if ((res = dir.get_last(&pattern)) != STATUS_OK)
                 return res;
 
             // Check if there is no pattern
             if (pattern.length() <= 0)
             {
+                printf("Scanning directory '%s' for resources\n", dir.as_native());
                 if ((res = scan_resources(dir.as_string(), ctx)) != STATUS_OK)
                     return res;
+                return STATUS_OK;
             }
 
-            // Parse pattern
+            // Update path and pattern
+            if ((res = dir.remove_last()) != STATUS_OK)
+                return res;
             if ((res = pat.set(&pattern)) != STATUS_OK)
                 return res;
 
@@ -290,12 +316,12 @@ namespace lsp
                 }
 
                 // This should be a directory and not dots
-                if ((fa.type != io::fattr_t::FT_DIRECTORY) &&
+                if ((fa.type != io::fattr_t::FT_DIRECTORY) ||
                     (io::Path::is_dots(&item)))
                     continue;
 
                 // Match the directory to the pattern
-                if (!pattern.match(&item))
+                if (!pat.test(&item))
                     continue;
 
                 // We found a child resource directory, add to list
@@ -326,7 +352,7 @@ namespace lsp
             for (size_t i=0, n=matched.size(); i<n; ++i)
             {
                 respath = matched.uget(i);
-                printf("Scanning directory %s for resources\n", respath->get_native());
+                printf("Scanning directory '%s' for resources\n", respath->get_native());
                 if ((res = scan_resources(respath, ctx)) != STATUS_OK)
                 {
                     drop_paths(&matched);
