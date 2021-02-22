@@ -234,6 +234,36 @@ namespace lsp
                 }
         };
 
+        class UIStreamPort: public UIPort
+        {
+            private:
+                plug::stream_t     *pStream;
+
+            public:
+                explicit UIStreamPort(jack::Port *port): UIPort(port)
+                {
+                    pStream     = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
+                }
+
+                virtual ~UIStreamPort()
+                {
+                    plug::stream_t::destroy(pStream);
+                    pStream     = NULL;
+                }
+
+            public:
+                virtual bool sync()
+                {
+                    plug::stream_t *stream = pPort->buffer<plug::stream_t>();
+                    return (stream != NULL) ? pStream->sync(stream) : false;
+                }
+
+                virtual void *buffer()
+                {
+                    return pStream;
+                }
+        };
+
         class UIFrameBufferPort: public UIPort
         {
             private:

@@ -30,6 +30,8 @@
 #include <lsp-plug.in/protocol/osc.h>
 #include <lsp-plug.in/stdlib/string.h>
 
+#define STREAM_MESH_ALIGN           0x40
+
 namespace lsp
 {
     namespace plug
@@ -77,6 +79,138 @@ namespace lsp
                 nState      = M_WAIT; // This should be the last operation
             }
         } mesh_t;
+
+        // Streaming mesh
+        typedef struct stream_t
+        {
+            protected:
+                typedef struct frame_t
+                {
+                    volatile uint32_t   id;         // Unique frame identifier
+                    size_t              head;       // Head of the frame
+                    size_t              tail;       // The tail of frame
+                    size_t              length;     // The overall length of the frame
+                } frame_t;
+
+                size_t                  nFrames;    // Number of frames
+                size_t                  nChannels;  // Number of channels
+                size_t                  nBufMax;    // Maximum size of buffer
+                size_t                  nBufCap;    // Buffer capacity
+                size_t                  nFrameCap;  // Capacity in frames
+
+                volatile uint32_t       nFrameId;   // Current frame identifier
+
+                frame_t                *vFrames;    // List of frames
+                float                 **vChannels;  // Channel data
+
+                uint8_t                *pData;      // Allocated channel data
+
+            public:
+                static stream_t        *create(size_t channels, size_t frames, size_t capacity);
+                static void             destroy(stream_t *buf);
+
+            public:
+                /**
+                 * Get the overall number of channels
+                 * @return overall number of channels
+                 */
+                inline size_t           channels() const    { return nChannels;     }
+
+                /**
+                 * Get actual number of frames
+                 * @return actual number of frames
+                 */
+                inline size_t           frames() const      { return nFrames;       }
+
+                /**
+                 * Get capacity of the mesh
+                 * @return capacity of the mesh
+                 */
+                inline size_t           capacity() const    { return nBufMax;       }
+
+                /**
+                 * Get head position of the incremental frame block
+                 * @return head position of the frame block
+                 */
+                ssize_t                 get_head(uint32_t frame) const;
+
+                /**
+                 * Get tail position of the incremental frame block
+                 * @return tail position of the frame block
+                 */
+                ssize_t                 get_tail(uint32_t frame) const;
+
+                /**
+                 * Get size of the incremental frame block
+                 * @return size of the frame block
+                 */
+                ssize_t                 get_size(uint32_t frame) const;
+
+                /**
+                 * Get start position of the whole frame (including previously stored data)
+                 * @return start the start position of the frame
+                 */
+                ssize_t                 get_position(uint32_t frame) const;
+
+                /**
+                 * Get the whole length of the frame (including previously stored data)
+                 * @param frame frame identifier
+                 * @return the length of the whole frame
+                 */
+                ssize_t                 get_length(uint32_t frame) const;
+
+                /**
+                 * Get the identifier of head frame
+                 * @return identifier of head frame
+                 */
+                inline uint32_t         frame_id() const        { return nFrameId;      }
+
+                /**
+                 * Begin write of frame data
+                 * @param size the required size of frame
+                 * @return the actual size of allocated frame
+                 */
+                size_t                  add_frame(size_t size);
+
+                /**
+                 * Write data to the channel
+                 * @param channel channel to write data
+                 * @param data source buffer to write
+                 * @param off the offset inside the frame
+                 * @param count number of elements to write
+                 * @return number of elements written or negative error code
+                 */
+                ssize_t                 write_frame(size_t channel, const float *data, size_t off, size_t count);
+
+                /**
+                 * Read frame data of the last frame
+                 * @param channel channel number
+                 * @param data destination buffer
+                 * @param off offset relative to the beginning of the whole frame
+                 * @param count number of elements to read
+                 * @return number of elements read or negative error code
+                 */
+                ssize_t                 read(size_t channel, float *data, size_t off, size_t count);
+
+                /**
+                 * Commit the new frame to the list of frames
+                 * @return true if frame has been committed
+                 */
+                bool                    commit_frame();
+
+                /**
+                 * Sync state with another stream
+                 * @param src stream to perform the sync
+                 * @return status of operation
+                 */
+                bool                    sync(const stream_t *src);
+
+                /**
+                 * Clear the stream and set current frame
+                 * @param current current frame
+                 */
+                void                    clear(uint32_t current);
+        } stream_t;
 
         /**
          * This interface describes frame buffer. All data is stored as a single rolling frame.

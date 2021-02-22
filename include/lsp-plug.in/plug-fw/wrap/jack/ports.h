@@ -497,6 +497,41 @@ namespace lsp
                 }
         };
 
+        class StreamPort: public Port
+        {
+            private:
+                plug::stream_t     *pStream;
+
+            public:
+                explicit StreamPort(const meta::port_t *meta, Wrapper *w): Port(meta, w)
+                {
+                    pStream     = NULL;
+                }
+
+                virtual ~StreamPort()
+                {
+                    pStream     = NULL;
+                }
+
+            public:
+                virtual void *buffer()
+                {
+                    return pStream;
+                }
+
+                virtual int init()
+                {
+                    pStream = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
+                    return (pStream == NULL) ? STATUS_NO_MEM : STATUS_OK;
+                }
+
+                virtual void destroy()
+                {
+                    plug::stream_t::destroy(pStream);
+                    pStream     = NULL;
+                }
+        };
+
         class FrameBufferPort: public Port
         {
             private:

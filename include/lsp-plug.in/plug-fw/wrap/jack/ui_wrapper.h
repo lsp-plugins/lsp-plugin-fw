@@ -181,6 +181,12 @@ namespace lsp
                         vSyncPorts.add(jup);
                     break;
 
+                case meta::R_STREAM:
+                    jup     = new jack::UIStreamPort(jp);
+                    if (meta::is_out_port(port))
+                        vSyncPorts.add(jup);
+                    break;
+
                 case meta::R_OSC:
                     if (meta::is_out_port(port))
                     {

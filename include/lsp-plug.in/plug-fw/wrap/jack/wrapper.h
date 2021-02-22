@@ -502,6 +502,10 @@ namespace lsp
                     jp      = new jack::FrameBufferPort(port, this);
                     break;
 
+                case meta::R_STREAM:
+                    jp      = new jack::StreamPort(port, this);
+                    break;
+
                 case meta::R_MIDI:
                 case meta::R_AUDIO:
                 {
