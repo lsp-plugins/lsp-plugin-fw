@@ -306,7 +306,7 @@ namespace lsp
                 }
             }
             #else
-                kvt->commit_all(KVT_RX);    // Just clear all RX queue for non-debug version
+                kvt->commit_all(core::KVT_RX);    // Just clear all RX queue for non-debug version
             #endif
         }
 

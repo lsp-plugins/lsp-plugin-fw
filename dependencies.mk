@@ -19,7 +19,7 @@
 #
 
 # Variables that describe dependencies
-LSP_COMMON_LIB_VERSION     := 1.0.11
+LSP_COMMON_LIB_VERSION     := 1.0.12
 LSP_COMMON_LIB_NAME        := lsp-common-lib
 LSP_COMMON_LIB_TYPE        := src
 LSP_COMMON_LIB_URL         := https://github.com/sadko4u/$(LSP_COMMON_LIB_NAME).git
@@ -29,22 +29,22 @@ LSP_3RD_PARTY_NAME         := lsp-3rd-party
 LSP_3RD_PARTY_TYPE         := hdr
 LSP_3RD_PARTY_URL          := https://github.com/sadko4u/$(LSP_3RD_PARTY_NAME).git
 
-LSP_DSP_LIB_VERSION        := 0.5.11
+LSP_DSP_LIB_VERSION        := 0.5.12
 LSP_DSP_LIB_NAME           := lsp-dsp-lib
 LSP_DSP_LIB_TYPE           := src
 LSP_DSP_LIB_URL            := https://github.com/sadko4u/$(LSP_DSP_LIB_NAME).git
 
-LSP_DSP_UNITS_VERSION      := 0.5.0
+LSP_DSP_UNITS_VERSION      := 0.5.1
 LSP_DSP_UNITS_NAME         := lsp-dsp-units
 LSP_DSP_UNITS_TYPE         := src
 LSP_DSP_UNITS_URL          := https://github.com/sadko4u/$(LSP_DSP_UNITS_NAME).git
 
-LSP_RUNTIME_LIB_VERSION    := 0.5.6
+LSP_RUNTIME_LIB_VERSION    := 0.5.7
 LSP_RUNTIME_LIB_NAME       := lsp-runtime-lib
 LSP_RUNTIME_LIB_TYPE       := src
 LSP_RUNTIME_LIB_URL        := https://github.com/sadko4u/$(LSP_RUNTIME_LIB_NAME).git
 
-LSP_LLTL_LIB_VERSION       := 0.5.5
+LSP_LLTL_LIB_VERSION       := 0.5.6
 LSP_LLTL_LIB_NAME          := lsp-lltl-lib
 LSP_LLTL_LIB_TYPE          := src
 LSP_LLTL_LIB_URL           := https://github.com/sadko4u/$(LSP_LLTL_LIB_NAME).git
@@ -74,7 +74,7 @@ LSP_TK_LIB_NAME            := lsp-tk-lib
 LSP_TK_LIB_TYPE            := src
 LSP_TK_LIB_URL             := https://github.com/sadko4u/$(LSP_TK_LIB_NAME).git
 
-LSP_TEST_FW_VERSION        := 1.0.6
+LSP_TEST_FW_VERSION        := 1.0.7
 LSP_TEST_FW_NAME           := lsp-test-fw
 LSP_TEST_FW_TYPE           := src
 LSP_TEST_FW_URL            := https://github.com/sadko4u/$(LSP_TEST_FW_NAME).git
