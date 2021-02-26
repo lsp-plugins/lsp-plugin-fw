@@ -134,6 +134,9 @@ namespace lsp
             // Obtain the whole list of fields
             if ((res = sjo.fields(&fields)) != STATUS_OK)
                 return res;
+            fields.qsort();
+
+            printf("  file '%s': src_size=%d, dst_size=%d\n", full->get_native(), int(sjo.size()), int(djo.size()));
 
             for (size_t i=0, n=fields.size(); i<n; ++i)
             {
@@ -154,12 +157,18 @@ namespace lsp
                 if (!path->append(field))
                     return STATUS_NO_MEM;
 
+                fprintf(stderr, "  file '%s': merging '%s'\n", full->get_native(), path->get_native());
+
                 json::Node sjn = sjo.get(field);
                 if (sjn.is_object())
                 {
-                    json::Node obj = json::Node::build();
-                    if ((res = djo.set(field, &obj)) != STATUS_OK)
-                        return res;
+                    json::Node obj = djo.get(field);
+                    if (!obj.is_object())
+                    {
+                        obj = json::Object::build();
+                        if ((res = djo.set(field, &obj)) != STATUS_OK)
+                            return res;
+                    }
                     if ((res = merge_i18n(path, &obj, &sjn, full)) != STATUS_OK)
                         return res;
                 }
@@ -170,8 +179,8 @@ namespace lsp
                         fprintf(stderr, "  file '%s': overrided property '%s'\n", full->get_native(), path->get_native());
                         return STATUS_CORRUPTED;
                     }
-                    if (!djo.set(field, sjn))
-                        return STATUS_NO_MEM;
+                    if ((res = djo.set(field, sjn)) != STATUS_OK)
+                        return res;
                 }
                 else
                 {
@@ -362,10 +371,13 @@ namespace lsp
             // Lookup for specific resources
             io::Dir dir;
             if ((res = dir.open(&base)) != STATUS_OK)
-                return res;
+                return STATUS_OK;
 
             while ((res = dir.read(&child)) == STATUS_OK)
             {
+                if (io::Path::is_dots(&child))
+                    continue;
+
                 if (child.equals_ascii("schema"))
                     res = scan_files(&base, &child, "*.xml", ctx, schema_handler);
                 else if (child.equals_ascii("ui"))
@@ -375,13 +387,16 @@ namespace lsp
                 else if (child.equals_ascii("i18n"))
                     res = scan_files(&base, &child, "*.json", ctx, i18n_handler);
                 else
-                    res = scan_files(&base, &child, "*.json", ctx, other_handler);
+                    res = scan_files(&base, &child, "*", ctx, other_handler);
 
                 if (res != STATUS_OK)
                     return res;
             }
+            if (res == STATUS_EOF)
+                res     = STATUS_OK;
 
-            return STATUS_OK;
+            ssize_t xres = dir.close();
+            return (res != STATUS_OK) ? res : xres;
         }
 
         status_t lookup_path(const char *path, context_t *ctx)
