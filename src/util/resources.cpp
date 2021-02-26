@@ -28,6 +28,7 @@
 #include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/io/PathPattern.h>
+#include <lsp-plug.in/fmt/json/dom.h>
 
 namespace lsp
 {
@@ -35,9 +36,11 @@ namespace lsp
     {
         typedef struct context_t
         {
-            lltl::pphash<LSPString, LSPString> schema;      // XML files (schemas)
-            lltl::pphash<LSPString, LSPString> ui;          // XML files (UI)
-            lltl::pphash<LSPString, LSPString> preset;      // Preset files
+            lltl::pphash<LSPString, LSPString>  schema;         // XML files (schemas)
+            lltl::pphash<LSPString, LSPString>  ui;             // XML files (UI)
+            lltl::pphash<LSPString, LSPString>  preset;         // Preset files
+            lltl::pphash<LSPString, json::Node> i18n;           // INternationalization data
+            lltl::pphash<LSPString, LSPString>  other;          // Other files
         } context_t;
 
         /**
@@ -63,6 +66,7 @@ namespace lsp
         void destroy_context(context_t *ctx)
         {
             lltl::parray<LSPString> paths;
+            lltl::parray<json::Node> i18n;
 
             // Drop themes
             ctx->schema.values(&paths);
@@ -77,6 +81,22 @@ namespace lsp
             // Drop preset files
             ctx->preset.values(&paths);
             ctx->preset.flush();
+            drop_paths(&paths);
+
+            // Drop internationalization
+            ctx->i18n.values(&i18n);
+            ctx->i18n.flush();
+            for (size_t i=0, n=i18n.size(); i<n; ++i)
+            {
+                json::Node *node = i18n.get(i);
+                if (node != NULL)
+                    delete node;
+            }
+            i18n.flush();
+
+            // Drop other files
+            ctx->other.values(&paths);
+            ctx->other.flush();
             drop_paths(&paths);
         }
 
@@ -104,6 +124,68 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t merge_i18n(LSPString *path, json::Node *dst, const json::Node *src, const LSPString *full)
+        {
+            status_t res;
+            lltl::parray<LSPString> fields;
+            json::Object sjo = src;
+            json::Object djo = dst;
+
+            // Obtain the whole list of fields
+            if ((res = sjo.fields(&fields)) != STATUS_OK)
+                return res;
+
+            for (size_t i=0, n=fields.size(); i<n; ++i)
+            {
+                const LSPString *field = fields.uget(i);
+                if (field == NULL)
+                {
+                    fprintf(stderr, "  file '%s': corrupted JSON object\n", full->get_native());
+                    return STATUS_BAD_STATE;
+                }
+
+                // Form the path of property
+                size_t len = path->length();
+                if (len > 0)
+                {
+                    if (!path->append_ascii("->"))
+                        return STATUS_NO_MEM;
+                }
+                if (!path->append(field))
+                    return STATUS_NO_MEM;
+
+                json::Node sjn = sjo.get(field);
+                if (sjn.is_object())
+                {
+                    json::Node obj = json::Node::build();
+                    if ((res = djo.set(field, &obj)) != STATUS_OK)
+                        return res;
+                    if ((res = merge_i18n(path, &obj, &sjn, full)) != STATUS_OK)
+                        return res;
+                }
+                else if (sjn.is_string())
+                {
+                    if (djo.contains(field))
+                    {
+                        fprintf(stderr, "  file '%s': overrided property '%s'\n", full->get_native(), path->get_native());
+                        return STATUS_CORRUPTED;
+                    }
+                    if (!djo.set(field, sjn))
+                        return STATUS_NO_MEM;
+                }
+                else
+                {
+                    fprintf(stderr, "  file '%s': unsupported object type '%s'\n", full->get_native(), sjn.stype());
+                    return STATUS_BAD_STATE;
+                }
+
+                // Truncate the path
+                path->set_length(len);
+            }
+
+            return STATUS_OK;
+        }
+
         status_t schema_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
         {
             return add_unique_file(&ctx->schema, relative, full);
@@ -119,9 +201,41 @@ namespace lsp
             return add_unique_file(&ctx->preset, relative, full);
         }
 
+        status_t other_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
+        {
+            return add_unique_file(&ctx->other, relative, full);
+        }
+
         status_t i18n_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
         {
-            return STATUS_OK;
+            status_t res;
+            LSPString path;
+            json::Node *node = new json::Node();
+            if (node == NULL)
+                return STATUS_NO_MEM;
+
+            if ((res = json::dom_load(full, node, json::JSON_LEGACY, "UTF-8")) != STATUS_OK)
+            {
+                fprintf(stderr, "  file '%s': failed to load, error code=%d\n", full->get_native(), int(res));
+                delete node;
+                return res;
+            }
+
+            if (!node->is_object())
+            {
+                fprintf(stderr, "  file '%s': not a JSON object\n", full->get_native());
+                delete node;
+                return STATUS_CORRUPTED;
+            }
+
+            // Check that node previously existed
+            json::Node *dst = ctx->i18n.get(relative);
+            if (dst == NULL)
+                res = (ctx->i18n.create(relative, node)) ? STATUS_OK : STATUS_NO_MEM;
+            else
+                res = merge_i18n(&path, dst, node, full);
+
+            return res;
         }
 
         status_t scan_files(
@@ -222,25 +336,23 @@ namespace lsp
         }
 
         status_t scan_files(
-            const io::Path *base, const char *child, const char *pattern,
+            const io::Path *base, const LSPString *child, const char *pattern,
             context_t *ctx, file_handler_t handler
         )
         {
             status_t res;
-            LSPString cpath;
             io::PathPattern pat;
 
-            if (!cpath.set_utf8(child))
-                return STATUS_NO_MEM;
             if ((res = pat.set(pattern)) != STATUS_OK)
                 return res;
 
-            return scan_files(base, &cpath, &pat, ctx, handler);
+            return scan_files(base, child, &pat, ctx, handler);
         }
 
         status_t scan_resources(const LSPString *path, context_t *ctx)
         {
             status_t res;
+            LSPString child;
 
             // Compute the base path
             io::Path base, full;
@@ -248,14 +360,26 @@ namespace lsp
                 return res;
 
             // Lookup for specific resources
-            if ((res = scan_files(&base, "schema", "*.xml", ctx, schema_handler)) != STATUS_OK)
+            io::Dir dir;
+            if ((res = dir.open(&base)) != STATUS_OK)
                 return res;
-            if ((res = scan_files(&base, "ui", "*.xml", ctx, ui_handler)) != STATUS_OK)
-                return res;
-            if ((res = scan_files(&base, "preset", "*.preset", ctx, preset_handler)) != STATUS_OK)
-                return res;
-            if ((res = scan_files(&base, "i18n", "*.json", ctx, i18n_handler)) != STATUS_OK)
-                return res;
+
+            while ((res = dir.read(&child)) == STATUS_OK)
+            {
+                if (child.equals_ascii("schema"))
+                    res = scan_files(&base, &child, "*.xml", ctx, schema_handler);
+                else if (child.equals_ascii("ui"))
+                    res = scan_files(&base, &child, "*.xml", ctx, ui_handler);
+                else if (child.equals_ascii("preset"))
+                    res = scan_files(&base, &child, "*.preset", ctx, preset_handler);
+                else if (child.equals_ascii("i18n"))
+                    res = scan_files(&base, &child, "*.json", ctx, i18n_handler);
+                else
+                    res = scan_files(&base, &child, "*.json", ctx, other_handler);
+
+                if (res != STATUS_OK)
+                    return res;
+            }
 
             return STATUS_OK;
         }
@@ -370,14 +494,19 @@ namespace lsp
             context_t ctx;
             status_t res;
 
+            // Scan for resource path
             for (size_t i=0; i<npaths; ++i)
             {
                 if ((res = lookup_path(paths[i], &ctx)) != STATUS_OK)
                 {
+                    // Destroy context and return error
                     destroy_context(&ctx);
                     return res;
                 }
             }
+
+            // Destroy context
+            destroy_context(&ctx);
 
             return STATUS_OK;
         }
