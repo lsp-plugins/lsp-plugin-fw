@@ -136,8 +136,6 @@ namespace lsp
                 return res;
             fields.qsort();
 
-            printf("  file '%s': src_size=%d, dst_size=%d\n", full->get_native(), int(sjo.size()), int(djo.size()));
-
             for (size_t i=0, n=fields.size(); i<n; ++i)
             {
                 const LSPString *field = fields.uget(i);
@@ -156,8 +154,6 @@ namespace lsp
                 }
                 if (!path->append(field))
                     return STATUS_NO_MEM;
-
-                fprintf(stderr, "  file '%s': merging '%s'\n", full->get_native(), path->get_native());
 
                 json::Node sjn = sjo.get(field);
                 if (sjn.is_object())
@@ -504,6 +500,91 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t export_files(const io::Path *dst, lltl::pphash<LSPString, LSPString> *files)
+        {
+            io::Path df;
+            status_t res;
+            wssize_t nbytes;
+            lltl::parray<LSPString> flist;
+
+            if (!files->keys(&flist))
+                return STATUS_NO_MEM;
+
+            flist.qsort();
+
+            for (size_t i=0, n=flist.size(); i<n; ++i)
+            {
+                const LSPString *name = flist.uget(i);
+                const LSPString *source = files->get(name);
+
+                if ((name == NULL) || (source == NULL))
+                    return STATUS_BAD_STATE;
+                if ((res = df.set(dst, name)) != STATUS_OK)
+                    return res;
+
+                printf("  copying %s -> %s\n", source->get_native(), df.as_native());
+
+                if ((res = df.mkparent(true)) != STATUS_OK)
+                {
+                    fprintf(stderr, "Could not create directory for file: %s\n", df.as_native());
+                    return res;
+                }
+                if ((nbytes = io::File::copy(source, &df)) < 0)
+                {
+                    fprintf(stderr, "Could not create file: %s\n", df.as_native());
+                    return -nbytes;
+                }
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t export_i18n(const io::Path *dst, lltl::pphash<LSPString, json::Node> *files)
+        {
+            io::Path df;
+            status_t res;
+            lltl::parray<LSPString> flist;
+            json::serial_flags_t settings;
+
+            if (!files->keys(&flist))
+                return STATUS_NO_MEM;
+
+            flist.qsort();
+
+            json::init_serial_flags(&settings);
+            settings.version    = json::JSON_LEGACY;
+            settings.ident      = '\t';
+            settings.padding    = 1;
+            settings.separator  = true;
+            settings.multiline  = true;
+
+            for (size_t i=0, n=flist.size(); i<n; ++i)
+            {
+                const LSPString *name = flist.uget(i);
+                const json::Node *node = files->get(name);
+
+                if ((name == NULL) || (node == NULL))
+                    return STATUS_BAD_STATE;
+                if ((res = df.set(dst, name)) != STATUS_OK)
+                    return res;
+
+                printf("  writing i18n file %s\n", df.as_native());
+
+                if ((res = df.mkparent(true)) != STATUS_OK)
+                {
+                    fprintf(stderr, "Could not create directory for file: %s\n", df.as_native());
+                    return res;
+                }
+                if ((res = json::dom_save(&df, node, &settings, "UTF-8")) != STATUS_OK)
+                {
+                    fprintf(stderr, "Could not write file: %s\n", df.as_native());
+                    return res;
+                }
+            }
+
+            return STATUS_OK;
+        }
+
         status_t build_repository(const char *destdir, const char *const *paths, size_t npaths)
         {
             context_t ctx;
@@ -520,10 +601,26 @@ namespace lsp
                 }
             }
 
+            // Export all resources
+            printf("Generating resource tree");
+
+            io::Path dst;
+            res = dst.set(destdir);
+            if (res == STATUS_OK)
+                res = export_files(&dst, &ctx.schema);
+            if (res == STATUS_OK)
+                res = export_files(&dst, &ctx.ui);
+            if (res == STATUS_OK)
+                res = export_files(&dst, &ctx.preset);
+            if (res == STATUS_OK)
+                res = export_files(&dst, &ctx.other);
+            if (res == STATUS_OK)
+                res = export_i18n(&dst, &ctx.i18n);
+
             // Destroy context
             destroy_context(&ctx);
 
-            return STATUS_OK;
+            return res;
         }
     }
 }
