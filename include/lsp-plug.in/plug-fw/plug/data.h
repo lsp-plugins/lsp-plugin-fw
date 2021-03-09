@@ -31,6 +31,10 @@
 #include <lsp-plug.in/stdlib/string.h>
 
 #define STREAM_MESH_ALIGN           0x40
+#define STREAM_MAX_FRAME_SIZE       0x2000
+#define STREAM_BULK_MAX             0x40
+#define FRAMEBUFFER_BULK_MAX        0x10
+#define MESH_REFRESH_RATE           20
 
 namespace lsp
 {
