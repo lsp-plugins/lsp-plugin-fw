@@ -33,7 +33,7 @@ namespace lsp
 }
 #endif /* LSP_IDE_DEBUG */
 
-INIT_BEGIN(builtin_resources)
+INIT_BEGIN(repository)
 
     INIT_FUNC
     {
