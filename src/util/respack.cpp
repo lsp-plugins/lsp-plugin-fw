@@ -29,8 +29,7 @@
 #include <lsp-plug.in/io/IOutStream.h>
 #include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/resource/Compressor.h>
-
-#define COMPRESSOR_BUFSIZE      0x100000
+#include <lsp-plug.in/plug-fw/core/Resources.h>
 
 namespace lsp
 {
@@ -77,6 +76,8 @@ namespace lsp
 
                     return count;
                 }
+
+                inline size_t   total() const { return nTotal; }
         };
 
         typedef struct context_t
@@ -235,6 +236,7 @@ namespace lsp
 
             fprintf(fd, "#include <lsp-plug.in/common/types.h>\n\n");
             fprintf(fd, "#include <lsp-plug.in/resource/types.h>\n\n");
+            fprintf(fd, "#include <lsp-plug.in/plug-fw/core/Resources.h>\n\n");
 
             // Anonimous namespace start
             fprintf(fd, "namespace {\n\n");
@@ -242,7 +244,7 @@ namespace lsp
             fprintf(fd, "\t{\n");
 
             // Initialize compressor
-            return ctx->c.init(COMPRESSOR_BUFSIZE, ctx->os);
+            return ctx->c.init(LSP_RESOURCE_BUFSZ, ctx->os);
         }
 
         status_t compress_data(context_t *ctx, const io::Path *base)
@@ -332,7 +334,11 @@ namespace lsp
             // End of entries[] array
             fprintf(fd, "\n\t};\n\n");
 
-            // TODO: emit resource factory here
+            // Emit resource factory
+            fprintf(fd, "\tcore::Resources builtin(data, %ld, entries, %ld);\n\n",
+                    long(ctx->os->total()),
+                    long(ctx->c.num_entires())
+                );
 
             // End of anonymous namespace
             fprintf(fd, "}\n");

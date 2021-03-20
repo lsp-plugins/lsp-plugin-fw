@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/test-fw/init.h>
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/io/Dir.h>
 
 #ifdef LSP_IDE_DEBUG
 namespace lsp
@@ -35,6 +36,36 @@ namespace lsp
 
 INIT_BEGIN(repository)
 
+    void remove_dir(const io::Path *path)
+    {
+        io::Path child;
+        LSPString item;
+        io::Dir dir;
+
+        if (dir.open(path) == STATUS_OK)
+        {
+            while (dir.read(&item) == STATUS_OK)
+            {
+                if (io::Path::is_dots(&item))
+                    continue;
+                if (child.set(path, &item) != STATUS_OK)
+                    continue;
+
+                if (child.is_dir())
+                    remove_dir(&child);
+                else
+                {
+                    printf("  removing: %s\n", child.as_native());
+                    child.remove();
+                }
+            }
+        }
+
+        printf("  removing: %s\n", path->as_native());
+        path->remove();
+    }
+
+
     INIT_FUNC
     {
     #ifdef LSP_IDE_DEBUG
@@ -46,6 +77,8 @@ INIT_BEGIN(repository)
 
         io::Path resdir;
         resdir.set(tempdir(), "resources");
+
+        remove_dir(&resdir);
         lsp::resource::build_repository(resdir.as_utf8(), paths, sizeof(paths)/sizeof(const char *));
     #endif /* LSP_IDE_DEBUG */
     }
