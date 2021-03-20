@@ -55,7 +55,7 @@ namespace lsp
                  * @param count the number of resource entries
                  */
                 explicit Resources(const void *data, size_t size, const resource::raw_resource_t *entries, size_t count);
-                ~Resources();
+                virtual ~Resources();
 
             public:
                 /**
@@ -75,7 +75,7 @@ namespace lsp
                  * Create resource loader
                  * @return instantiated resource loader
                  */
-                resource::ILoader *loader();
+                virtual resource::ILoader          *loader();
         };
     }
 }

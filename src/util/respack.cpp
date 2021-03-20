@@ -58,8 +58,8 @@ namespace lsp
                 void    out_byte(uint8_t b)
                 {
                     if (nTotal > 0)
-                        fputc(',', pOut);
-                    if (nTotal & 0xf)
+                        fputs(", ", pOut);
+                    if (!(nTotal & 0xf))
                         fputs("\n\t\t", pOut);
 
                     fprintf(pOut, "0x%02x", b);
@@ -80,15 +80,29 @@ namespace lsp
                 inline size_t   total() const { return nTotal; }
         };
 
-        typedef struct context_t
+        class state_t
         {
-            lltl::pphash<LSPString, lltl::parray<io::Path> > ext;   // Files grouped by extension
-            resource::Compressor    c;                              // Resource compressor
-            FILE                   *fd;                             // File descriptor
-            OutFileStream          *os;                             // Output stream
-        } context_t;
+            public:
+                lltl::pphash<LSPString, lltl::parray<io::Path> > ext;   // Files grouped by extension
+                resource::Compressor    c;                              // Resource compressor
+                FILE                   *fd;                             // File descriptor
+                OutFileStream          *os;                             // Output stream
+                wssize_t                in_bytes;                       // Overall size of input data
 
-        void drop_context(context_t *ctx)
+            public:
+                explicit inline state_t()
+                {
+                    fd          = NULL;
+                    os          = NULL;
+                    in_bytes    = 0;
+                }
+
+                ~state_t()
+                {
+                }
+        };
+
+        void drop_context(state_t *ctx)
         {
             lltl::parray<lltl::parray<io::Path> > vp;
             ctx->ext.values(&vp);
@@ -129,9 +143,12 @@ namespace lsp
 
             vp.flush();
             ctx->ext.flush();
+
+            // Drop context object
+            delete ctx;
         }
 
-        status_t add_file(context_t *ctx, const io::Path *file)
+        status_t add_file(state_t *ctx, const io::Path *file)
         {
             LSPString ext;
             status_t res;
@@ -164,7 +181,7 @@ namespace lsp
             return STATUS_NO_MEM;
         }
 
-        status_t scan_directory(context_t *ctx, const io::Path *base, const io::Path *p)
+        status_t scan_directory(state_t *ctx, const io::Path *base, const io::Path *p)
         {
             io::Dir d;
             io::Path child;
@@ -194,7 +211,7 @@ namespace lsp
                     if ((res = child.remove_base(base)) != STATUS_OK)
                         return res;
 
-                    printf("  found file: %s", child.as_native());
+                    printf("  found file: %s\n", child.as_native());
                     if ((res = add_file(ctx, &child)) != STATUS_OK)
                         return res;
                 }
@@ -209,7 +226,7 @@ namespace lsp
             return res;
         }
 
-        status_t create_resource_file(context_t *ctx, const char *dst)
+        status_t create_resource_file(state_t *ctx, const char *dst)
         {
             FILE *fd;
 
@@ -234,24 +251,26 @@ namespace lsp
             fprintf(fd, " * Resource file, automatically generated, do not edit\n");
             fprintf(fd, " */\n\n");
 
-            fprintf(fd, "#include <lsp-plug.in/common/types.h>\n\n");
-            fprintf(fd, "#include <lsp-plug.in/resource/types.h>\n\n");
-            fprintf(fd, "#include <lsp-plug.in/plug-fw/core/Resources.h>\n\n");
+            fprintf(fd, "#include <lsp-plug.in/common/types.h>\n");
+            fprintf(fd, "#include <lsp-plug.in/resource/types.h>\n");
+            fprintf(fd, "#include <lsp-plug.in/plug-fw/core/Resources.h>\n");
+            fprintf(fd, "\n");
 
             // Anonimous namespace start
             fprintf(fd, "namespace {\n\n");
             fprintf(fd, "\tstatic const uint8_t data[] =\n");
-            fprintf(fd, "\t{\n");
+            fprintf(fd, "\t{");
 
             // Initialize compressor
             return ctx->c.init(LSP_RESOURCE_BUFSZ, ctx->os);
         }
 
-        status_t compress_data(context_t *ctx, const io::Path *base)
+        status_t compress_data(state_t *ctx, const io::Path *base)
         {
             io::Path path;
             io::InFileStream ifs;
             status_t res;
+            wssize_t bytes;
             lltl::parray<LSPString> vk;
             if (!ctx->ext.keys(&vk))
                 return STATUS_NO_MEM;
@@ -288,11 +307,13 @@ namespace lsp
 
                     // Compress the file
                     printf("  compressing file: %s\n", path.as_native());
-                    if ((res = ctx->c.create_file(p, &ifs)) != STATUS_OK)
+                    if ((bytes = ctx->c.create_file(p, &ifs)) < 0)
                     {
-                        fprintf(stderr, "Error compressing file: %s\n", path.as_native());
-                        return res;
+                        fprintf(stderr, "Error compressing file: %s, code=%d\n",
+                                path.as_native(), int(-bytes));
+                        return -bytes;
                     }
+                    ctx->in_bytes  += bytes;
 
                     // Close source file
                     if ((res = ifs.close()) != STATUS_OK)
@@ -304,15 +325,21 @@ namespace lsp
                     return res;
             }
 
+            // Output statistics
+            printf("Input size: %ld, compressed size: %ld, compression ratio: %.2f",
+                    long(ctx->in_bytes), long(ctx->os->total()),
+                    double(ctx->in_bytes) / double(ctx->os->total())
+            );
+
             return STATUS_OK;
         }
 
-        status_t write_entries(context_t *ctx)
+        status_t write_entries(state_t *ctx)
         {
             FILE *fd = ctx->fd;
 
             // End of data[] array
-            fprintf(fd, "\t};\n\n");
+            fprintf(fd, "\n\t};\n\n");
 
             // Start the entries description
             fprintf(fd, "\tstatic const raw_resource_t entries[] =\n");
@@ -325,7 +352,8 @@ namespace lsp
 
                 if (i > 0)
                     fprintf(fd, ",\n");
-                fprintf(fd, "\t\t{ %s, \"%s\", %ld, %ld, %ld, %ld }",
+                fprintf(fd, "\t\t/* %4d */ { %s, \"%s\", %ld, %ld, %ld, %ld }",
+                        int(i),
                         (r->type == resource::RES_DIR) ? "RES_DIR" : "RES_FILE",
                         r->name, long(r->parent), long(r->segment), long(r->offset), long(r->length)
                 );
@@ -348,21 +376,23 @@ namespace lsp
 
         status_t pack_tree(const char *destfile, const char *dir)
         {
-            io::Path path;
-            context_t ctx;
             status_t res;
+            io::Path path;
+            resource::state_t *ctx = new resource::state_t();
+
+            printf("Packing resources to %s from %s\n", destfile, dir);
 
             res     = path.set_native(dir);
             if (res == STATUS_OK)
-                res     = scan_directory(&ctx, &path, &path);
+                res     = scan_directory(ctx, &path, &path);
             if (res == STATUS_OK)
-                res     = create_resource_file(&ctx, destfile);
+                res     = create_resource_file(ctx, destfile);
             if (res == STATUS_OK)
-                res     = compress_data(&ctx, &path);
+                res     = compress_data(ctx, &path);
             if (res == STATUS_OK)
-                res     = write_entries(&ctx);
+                res     = write_entries(ctx);
 
-            drop_context(&ctx);
+            drop_context(ctx);
 
             return res;
         }
