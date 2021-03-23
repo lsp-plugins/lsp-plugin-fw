@@ -38,11 +38,14 @@ DEPENDENCIES            = $(filter-out $(BIN_DEPENDENCIES), $(UNIQ_DEPENDENCIES)
 
 #------------------------------------------------------------------------------
 # Framework settings
+LSP_PLUGIN_FW_SRC_RES       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
+
 LSP_PLUGIN_FW_OBJ_CORE      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
 LSP_PLUGIN_FW_OBJ_META      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-meta.o
 LSP_PLUGIN_FW_OBJ_DSP       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-dsp.o
 LSP_PLUGIN_FW_OBJ_UI        = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui.o
 LSP_PLUGIN_FW_OBJ_TEST      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-test.o
+LSP_PLUGIN_FW_OBJ_RES       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.o
 LSP_PLUGIN_FW_OBJ           = $(LSP_PLUGIN_FW_OBJ_CORE) $(LSP_PLUGIN_FW_OBJ_META) $(LSP_PLUGIN_FW_OBJ_DSP) $(LSP_PLUGIN_FW_OBJ_UI)
 LSP_PLUGIN_FW_MFLAGS       += $(foreach dep,$(DEPENDENCIES),-DUSE_$(dep)) 
 LSP_PLUGIN_FW_CFLAGS       += $(foreach dep,$(DEPENDENCIES), $($(dep)_CFLAGS))
@@ -89,6 +92,8 @@ endif
 #------------------------------------------------------------------------------
 # Utilities
 UTL_BIN_PATH                = $(ARTIFACT_BIN)/util
+UTL_RES_PATH                = $(ARTIFACT_BIN)/res
+
 UTL_JACK_MAKE               = $(UTL_BIN_PATH)/jack_make$(EXECUTABLE_EXT)
 UTL_JACK_MAKE_OBJ           = $(UTL_BIN_PATH)/jack_make.o
 UTL_JACK_MAKE_DEPS          = $(foreach dep, $(call uniq, $(DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
@@ -96,6 +101,20 @@ UTL_JACK_MAKE_LIBS          = $(foreach dep, $(call uniq, $(DEPENDENCIES)), $($(
 UTL_JACK_MAKE_LDFLAGS       = $(foreach dep, $(call uniq, $(DEPENDENCIES)), $($(dep)_LDFLAGS))
 UTL_JACK_MAKE_OBJS          = $(LSP_PLUGIN_FW_OBJ_CORE) $(LSP_PLUGIN_FW_OBJ_META) $(LSP_PLUGIN_FW_OBJ_DSP) \
                               $(OBJ_PLUG_META) $(OBJ_PLUG_DSP)
+
+UTL_REPOSITORY              = $(UTL_BIN_PATH)/repository$(EXECUTABLE_EXT)
+UTL_REPOSITORY_OBJ          = $(UTL_BIN_PATH)/repository.o
+UTL_REPOSITORY_DEPS         = $(foreach dep, $(call uniq, $(DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
+UTL_REPOSITORY_LIBS         = $(foreach dep, $(call uniq, $(DEPENDENCIES)), $($(dep)_OBJ))
+UTL_REPOSITORY_LDFLAGS      = $(foreach dep, $(call uniq, $(DEPENDENCIES)), $($(dep)_LDFLAGS))
+UTL_REPOSITORY_OBJS         = $(LSP_PLUGIN_FW_OBJ_CORE)
+
+UTL_RESPACK                 = $(UTL_BIN_PATH)/respack$(EXECUTABLE_EXT)
+UTL_RESPACK_OBJ             = $(UTL_BIN_PATH)/respack.o
+UTL_RESPACK_DEPS            = $(foreach dep, $(call uniq, $(DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
+UTL_RESPACK_LIBS            = $(foreach dep, $(call uniq, $(DEPENDENCIES)), $($(dep)_OBJ))
+UTL_RESPACK_LDFLAGS         = $(foreach dep, $(call uniq, $(DEPENDENCIES)), $($(dep)_LDFLAGS))
+UTL_RESPACK_OBJS            = $(LSP_PLUGIN_FW_OBJ_CORE)
 
 #------------------------------------------------------------------------------
 # Plugins
@@ -165,6 +184,7 @@ DEP_CFLAGS              = $(call query,CFLAGS,$(ALL_DEPENDENCIES))
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
 .PHONY: jack ladspa dssi lv2 vst
+.PHONY: resources
 .PHONY: install_jack
 .PHONY: $(DEPENDENCIES)
 .PHONY: $(BIN_INSTALL)
@@ -233,23 +253,47 @@ $(LSP_PLUGIN_FW_OBJ_UI): $(OBJ_UI)
 $(LSP_PLUGIN_FW_OBJ_TEST): $(OBJ_TEST)
 	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_TEST))"
 	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_TEST) -r $(OBJ_TEST)
+	
+$(LSP_PLUGIN_FW_OBJ_RES): $(UTL_RESPACK) resources
+	@echo "$(notdir $(UTL_RESPACK)) $(notdir $(LSP_PLUGIN_FW_SRC_RES))"
+	@echo $(UTL_RESPACK) $(LSP_PLUGIN_FW_SRC_RES) $(UTL_RES_PATH)
+	@$(UTL_RESPACK) $(LSP_PLUGIN_FW_SRC_RES) $(UTL_RES_PATH)
+	@echo $(CXX) -o $(@) -c $(LSP_PLUGIN_FW_SRC_RES) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
+	@$(CXX) -o $(@) -c $(LSP_PLUGIN_FW_SRC_RES) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
 
 #------------------------------------------------------------------------------
 # Utilities
-$(UTL_JACK_MAKE): $(LSP_PLUGIN_FW_OBJ) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_DEPS) $(PLUG_DEPS)
-	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(UTL_JACK_MAKE))"
+$(UTL_JACK_MAKE): $(UTL_JACK_MAKE_OBJ) $(LSP_PLUGIN_FW_OBJ) $(UTL_JACK_MAKE_DEPS) $(PLUG_DEPS)
+	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	@mkdir -p $(UTL_BIN_PATH)
-	@echo $(CXX) -o $(UTL_JACK_MAKE) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_LIBS) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
-	@$(CXX) -o $(UTL_JACK_MAKE) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_LIBS) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
+	@echo $(CXX) -o $(@) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
+	@$(CXX) -o $(@) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
+
+$(UTL_REPOSITORY): $(UTL_REPOSITORY_OBJ) $(LSP_PLUGIN_FW_OBJ) $(UTL_REPOSITORY_DEPS) $(PLUG_DEPS)
+	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+	@mkdir -p $(UTL_BIN_PATH)
+	@echo $(CXX) -o $(@) $(UTL_REPOSITORY_OBJ) $(UTL_REPOSITORY_OBJS) $(UTL_REPOSITORY_LIBS) $(EXE_FLAGS) $(UTL_REPOSITORY_LDFLAGS)
+	@$(CXX) -o $(@) $(UTL_REPOSITORY_OBJ) $(UTL_REPOSITORY_OBJS) $(UTL_REPOSITORY_LIBS) $(EXE_FLAGS) $(UTL_REPOSITORY_LDFLAGS)
+
+$(UTL_RESPACK): $(UTL_RESPACK_OBJ) $(LSP_PLUGIN_FW_OBJ) $(UTL_RESPACK_DEPS) $(PLUG_DEPS)
+	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+	@mkdir -p $(UTL_BIN_PATH)
+	@echo $(CXX) -o $(@) $(UTL_RESPACK_OBJ) $(UTL_RESPACK_OBJS) $(UTL_RESPACK_LIBS) $(EXE_FLAGS) $(UTL_RESPACK_LDFLAGS)
+	@$(CXX) -o $(@) $(UTL_RESPACK_OBJ) $(UTL_RESPACK_OBJS) $(UTL_RESPACK_LIBS) $(EXE_FLAGS) $(UTL_RESPACK_LDFLAGS)
 
 #------------------------------------------------------------------------------
 # Binaries
-$(ARTIFACT_LIB_JACK): $(LSP_PLUGIN_FW_OBJ) $(OBJ_WRAP_JACK) $(ARTIFACT_LIB_JACK_DEPS) $(PLUG_DEPS)
+$(ARTIFACT_LIB_JACK): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(OBJ_WRAP_JACK) $(ARTIFACT_LIB_JACK_DEPS) $(PLUG_DEPS)
 	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
 	@echo $(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
 	@$(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
 
 # All targets
+resources: $(UTL_REPOSITORY)
+	@echo "  $(UTL_REPOSITORY)"
+	@echo $(UTL_REPOSITORY) $(UTL_RES_PATH) "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
+	@$(UTL_REPOSITORY) $(UTL_RES_PATH) "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
+
 jack: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
 	@echo "  $(notdir $(UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(ARTIFACT_BIN)/%,%, $(ARTIFACT_LIB_JACK_PATH))"
 	@mkdir -p "$(ARTIFACT_LIB_JACK_PATH)"

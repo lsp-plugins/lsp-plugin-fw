@@ -30,6 +30,7 @@
 #include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/resource/Compressor.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
+#include <lsp-plug.in/runtime/system.h>
 
 namespace lsp
 {
@@ -257,7 +258,10 @@ namespace lsp
             fprintf(fd, "\n");
 
             // Anonimous namespace start
-            fprintf(fd, "namespace {\n\n");
+            fprintf(fd, "namespace\n");
+            fprintf(fd, "{\n\n");
+            fprintf(fd, "\tusing namespace lsp::resource;\n");
+            fprintf(fd, "\tusing namespace lsp::core;\n\n");
             fprintf(fd, "\tstatic const uint8_t data[] =\n");
             fprintf(fd, "\t{");
 
@@ -326,7 +330,7 @@ namespace lsp
             }
 
             // Output statistics
-            printf("Input size: %ld, compressed size: %ld, compression ratio: %.2f",
+            printf("Input size: %ld, compressed size: %ld, compression ratio: %.2f\n",
                     long(ctx->in_bytes), long(ctx->os->total()),
                     double(ctx->in_bytes) / double(ctx->os->total())
             );
@@ -355,7 +359,8 @@ namespace lsp
                 fprintf(fd, "\t\t/* %4d */ { %s, \"%s\", %ld, %ld, %ld, %ld }",
                         int(i),
                         (r->type == resource::RES_DIR) ? "RES_DIR" : "RES_FILE",
-                        r->name, long(r->parent), long(r->segment), long(r->offset), long(r->length)
+                        r->name, long(r->parent), long(r->segment), long(r->offset),
+                        long(r->length)
                 );
             }
 
@@ -363,7 +368,7 @@ namespace lsp
             fprintf(fd, "\n\t};\n\n");
 
             // Emit resource factory
-            fprintf(fd, "\tcore::Resources builtin(data, %ld, entries, %ld);\n\n",
+            fprintf(fd, "\tResources builtin(data, %ld, entries, %ld);\n\n",
                     long(ctx->os->total()),
                     long(ctx->c.num_entires())
                 );
@@ -378,6 +383,9 @@ namespace lsp
         {
             status_t res;
             io::Path path;
+            system::time_t ts, te;
+
+            system::get_time(&ts);
             resource::state_t *ctx = new resource::state_t();
 
             printf("Packing resources to %s from %s\n", destfile, dir);
@@ -394,6 +402,9 @@ namespace lsp
 
             drop_context(ctx);
 
+            system::get_time(&te);
+            printf("Execution time: %.2f s\n", (te.seconds + te.nanos * 1e-9) - (ts.seconds + ts.nanos * 1e-9));
+
             return res;
         }
     }
@@ -403,10 +414,14 @@ namespace lsp
 int main(int argc, const char **argv)
 {
     if (argc < 3)
-        fprintf(stderr, "USAGE: <dst-file> <src-dir>");
+    {
+        fprintf(stderr, "USAGE: <dst-file> <src-dir>\n");
+        return lsp::STATUS_BAD_ARGUMENTS;
+    }
+
     lsp::status_t res = lsp::resource::pack_tree(argv[1], argv[2]);
     if (res != lsp::STATUS_OK)
-        fprintf(stderr, "Error while generating resource file, code=%d", int(res));
+        fprintf(stderr, "Error while generating resource file, code=%d\n", int(res));
 
     return res;
 }

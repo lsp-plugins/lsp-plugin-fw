@@ -207,6 +207,7 @@ TEST                       := 0
 
 # Set-up list of common variables
 COMMON_VARS = \
+    ROOTDIR \
 	PLATFORM \
 	ARCHITECTURE \
 	ARCHITECTURE_CFLAGS \

@@ -24,6 +24,7 @@ LIBDIR                     := $(PREFIX)/lib
 BINDIR                     := $(PREFIX)/bin
 INCDIR                     := $(PREFIX)/include
 BASEDIR                    := $(CURDIR)
+ROOTDIR                    := $(CURDIR)
 BUILDDIR                   := $(BASEDIR)/.build
 MODULES                    := $(BASEDIR)/modules
 CONFIG                     := $(BASEDIR)/.config.mk

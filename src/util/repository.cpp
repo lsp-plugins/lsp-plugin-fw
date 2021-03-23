@@ -24,6 +24,7 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/lltl/phashset.h>
+#include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/io/Path.h>
@@ -575,6 +576,7 @@ namespace lsp
                     fprintf(stderr, "Could not create directory for file: %s\n", df.as_native());
                     return res;
                 }
+
                 if ((res = json::dom_save(&df, node, &settings, "UTF-8")) != STATUS_OK)
                 {
                     fprintf(stderr, "Could not write file: %s\n", df.as_native());
@@ -589,6 +591,9 @@ namespace lsp
         {
             context_t ctx;
             status_t res;
+            system::time_t ts, te;
+
+            system::get_time(&ts);
 
             // Scan for resource path
             for (size_t i=0; i<npaths; ++i)
@@ -602,7 +607,7 @@ namespace lsp
             }
 
             // Export all resources
-            printf("Generating resource tree");
+            printf("Generating resource tree\n");
 
             io::Path dst;
             res = dst.set(destdir);
@@ -620,6 +625,9 @@ namespace lsp
             // Destroy context
             destroy_context(&ctx);
 
+            system::get_time(&te);
+            printf("Execution time: %.2f s\n", (te.seconds + te.nanos * 1e-9) - (ts.seconds + ts.nanos * 1e-9));
+
             return res;
         }
     }
@@ -629,10 +637,14 @@ namespace lsp
 int main(int argc, const char **argv)
 {
     if (argc < 2)
-        fprintf(stderr, "required destination path");
+    {
+        fprintf(stderr, "required destination path\n");
+        return lsp::STATUS_BAD_ARGUMENTS;
+    }
+
     lsp::status_t res = lsp::resource::build_repository(argv[1], &argv[2], argc - 2);
     if (res != lsp::STATUS_OK)
-        fprintf(stderr, "Error while generating build files, code=%d", int(res));
+        fprintf(stderr, "Error while generating build files, code=%d\n", int(res));
 
     return res;
 }
