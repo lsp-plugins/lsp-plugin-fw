@@ -23,6 +23,7 @@
 
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/lltl/parray.h>
 
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -111,6 +112,11 @@ MTEST_BEGIN("", standalone)
             args[i] = argv[i];
 
         printf("Calling JACK_MAIN_FUNCTION\n");
+
+        // Pass the path to resource directory
+        io::Path resdir;
+        resdir.set(tempdir(), "resources");
+        system::set_env_var("LSP_RESOURCE_PATH", resdir.as_string());
 
         // Call the main function
         int result = JACK_MAIN_FUNCTION(argv[0], argc, args);

@@ -29,9 +29,10 @@ namespace lsp
 {
     namespace plug
     {
-        IWrapper::IWrapper(Module *plugin)
+        IWrapper::IWrapper(Module *plugin, resource::ILoader *loader)
         {
             pPlugin     = plugin;
+            pLoader     = loader;
         }
 
         IWrapper::~IWrapper()
@@ -39,7 +40,7 @@ namespace lsp
             pPlugin     = NULL;
         }
 
-        ipc::IExecutor *IWrapper::get_executor()
+        ipc::IExecutor *IWrapper::executor()
         {
             return NULL;
         }

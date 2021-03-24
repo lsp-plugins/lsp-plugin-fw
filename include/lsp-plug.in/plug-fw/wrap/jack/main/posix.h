@@ -162,7 +162,7 @@ namespace lsp
                 module_version_t vf = reinterpret_cast<module_version_t>(dlsym(inst, LSP_VERSION_FUNC_NAME));
                 if (!vf)
                 {
-                    lsp_trace("version function %s not found: %s", JACK_GET_VERSION_NAME, dlerror());
+                    lsp_trace("version function %s not found: %s", LSP_VERSION_FUNC_NAME, dlerror());
                     // Close library
                     dlclose(inst);
                     continue;
@@ -185,7 +185,7 @@ namespace lsp
                 {
                     lsp_trace("wrong version %d.%d.%d '%s' returned, expected %d.%d.%d '%s', ignoring binary",
                             ret->major, ret->minor, ret->micro, ret->branch,
-                            required->major, required->minor, required->micro required->branch
+                            required->major, required->minor, required->micro, required->branch
                         );
                     // Close library
                     dlclose(inst);

@@ -30,6 +30,7 @@
 #include <lsp-plug.in/plug-fw/plug/data.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/ipc/IExecutor.h>
+#include <lsp-plug.in/resource/ILoader.h>
 
 namespace lsp
 {
@@ -46,18 +47,25 @@ namespace lsp
                 IWrapper & operator = (const IWrapper &);
 
             protected:
-                Module        *pPlugin;
+                Module             *pPlugin;
+                resource::ILoader  *pLoader;
 
             public:
-                explicit IWrapper(Module *plugin);
+                explicit IWrapper(Module *plugin, resource::ILoader *loader);
                 virtual ~IWrapper();
 
             public:
+                /**
+                 * Get builtin resource loader
+                 * @return builtin resource loader
+                 */
+                inline resource::ILoader   *resources()         { return pLoader;       }
+
                 /** Get executor service
                  *
                  * @return executor service
                  */
-                virtual ipc::IExecutor     *get_executor();
+                virtual ipc::IExecutor     *executor();
 
                 /** Query for inline display drawing
                  *

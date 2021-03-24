@@ -33,10 +33,13 @@
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/ipc/Thread.h>
+#include <lsp-plug.in/ipc/Library.h>
+#include <lsp-plug.in/resource/DirLoader.h>
 
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 
+#include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
@@ -60,6 +63,7 @@ namespace lsp
         typedef struct jack_wrapper_t
         {
             size_t              nSync;              // Synchronization request
+            resource::ILoader  *pLoader;            // Resource loader
             plug::Module       *pPlugin;            // Plugin
             ui::Module         *pUI;                // Plugin UI
             jack::Wrapper      *pWrapper;           // Plugin wrapper
@@ -328,6 +332,72 @@ namespace lsp
                 delete w->pWrapper;
                 w->pWrapper     = NULL;
             }
+
+            // Desroy resource loader
+            if (w->pLoader != NULL)
+            {
+                delete w->pLoader;
+                w->pLoader      = NULL;
+            }
+        }
+
+        static status_t create_resource_loader(jack_wrapper_t *w)
+        {
+            status_t res;
+
+            // Check that we have built-in resources
+            core::Resources *r = core::Resources::root();
+            if (r != NULL)
+            {
+                w->pLoader  = r->loader();
+
+                if (w->pLoader != NULL)
+                {
+                    lsp_trace("Using built-in resource loader");
+                    return STATUS_OK;
+                }
+            }
+
+
+            // Try to obtain path with resources
+            io::Path fpath;
+            LSPString path;
+
+            if ((res = system::get_env_var("LSP_RESOURCE_PATH", &path)) == STATUS_OK)
+            {
+                // Nothing
+            }
+            else if ((res = ipc::Library::get_self_file(&fpath)) == STATUS_OK)
+            {
+                if ((res = fpath.get_parent(&path)) != STATUS_OK)
+                {
+                    lsp_error("Could not obtain binary path");
+                    return res;
+                }
+            }
+            else if ((res = system::get_current_dir(&path)) != STATUS_OK)
+            {
+                lsp_error("Could not obtain current directory");
+                return res;
+            }
+
+            // Create resource loader
+            resource::DirLoader *dldr = new resource::DirLoader();
+            if (dldr == NULL)
+                return STATUS_NO_MEM;
+
+            if ((res = dldr->set_path(&path)) != STATUS_OK)
+            {
+                delete dldr;
+                return res;
+            }
+
+            dldr->set_enforce(true);
+
+            lsp_trace("Using resource path: %s", path.get_native());
+            w->pLoader      = dldr;
+
+            return STATUS_OK;
         }
 
         static status_t jack_init_wrapper(jack_wrapper_t *w, const jack_cmdline_t &cmdline)
@@ -335,6 +405,14 @@ namespace lsp
             status_t res;
 
             lsp_trace("Initializing wrapper");
+
+            // Create the resource loader
+            if ((res = create_resource_loader(w)) != STATUS_OK)
+            {
+                lsp_error("Could not create resource loader, error: %d", int(res));
+                jack_destroy_wrapper(w);
+                return res;
+            }
 
             // Create plugin module
             if ((res = jack_create_plugin(w, cmdline.plugin_id)) != STATUS_OK)
@@ -364,7 +442,7 @@ namespace lsp
             #endif
 
             // Initialize plugin wrapper
-            w->pWrapper     = new jack::Wrapper(w->pPlugin);
+            w->pWrapper     = new jack::Wrapper(w->pPlugin, w->pLoader);
             if (w->pWrapper == NULL)
             {
                 jack_destroy_wrapper(w);
@@ -510,6 +588,7 @@ extern "C"
         // Initialize wrapper with empty data
         wrap::jack_wrapper_t *w = &wrap::jack_wrapper;
         w->nSync                = 0;
+        w->pLoader              = NULL;
         w->pPlugin              = NULL;
         w->pUI                  = NULL;
         w->pWrapper             = NULL;

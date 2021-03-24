@@ -102,7 +102,7 @@ namespace lsp
                 static void     shutdown(void *arg);
 
             public:
-                Wrapper(plug::Module *plugin): IWrapper(plugin)
+                explicit Wrapper(plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
                 {
                     pClient         = NULL;
                     nState          = S_CREATED;
