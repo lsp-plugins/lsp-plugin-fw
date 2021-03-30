@@ -28,6 +28,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/resource/ILoader.h>
 
 namespace lsp
 {
@@ -44,13 +45,20 @@ namespace lsp
                 IWrapper & operator = (const IWrapper &);
 
             protected:
-                Module        *pUI;
+                Module             *pUI;
+                resource::ILoader  *pLoader;
 
             public:
-                explicit IWrapper(Module *ui);
+                explicit IWrapper(Module *ui, resource::ILoader *loader);
                 virtual ~IWrapper();
 
             public:
+                /**
+                 * Get builtin resource loader
+                 * @return builtin resource loader
+                 */
+                inline resource::ILoader   *resources()         { return pLoader;       }
+
                 /** Callback method, executes when the UI has been shown
                  *
                  */

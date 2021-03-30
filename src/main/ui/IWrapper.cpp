@@ -25,9 +25,10 @@ namespace lsp
 {
     namespace ui
     {
-        IWrapper::IWrapper(Module *ui)
+        IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
         {
             pUI         = ui;
+            pLoader     = loader;
         }
 
         IWrapper::~IWrapper()

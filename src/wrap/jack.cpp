@@ -333,7 +333,7 @@ namespace lsp
                 w->pWrapper     = NULL;
             }
 
-            // Desroy resource loader
+            // Destroy resource loader
             if (w->pLoader != NULL)
             {
                 delete w->pLoader;
@@ -357,7 +357,6 @@ namespace lsp
                     return STATUS_OK;
                 }
             }
-
 
             // Try to obtain path with resources
             io::Path fpath;
@@ -458,14 +457,23 @@ namespace lsp
             // Initialize UI wrapper
             if (w->pUI != NULL)
             {
-                w->pUIWrapper   = new jack::UIWrapper(w->pWrapper, w->pUI);
+                // Create wrapper
+                w->pUIWrapper   = new jack::UIWrapper(w->pWrapper, w->pUI, w->pLoader);
                 if (w->pUIWrapper == NULL)
                 {
                     jack_destroy_wrapper(w);
                     return STATUS_NO_MEM;
                 }
 
+                // Initialize wrapper
                 if ((res = w->pUIWrapper->init()) != STATUS_OK)
+                {
+                    jack_destroy_wrapper(w);
+                    return res;
+                }
+
+                // Initialize plugin UI
+                if ((res = w->pUI->init(w->pUIWrapper)) != STATUS_OK)
                 {
                     jack_destroy_wrapper(w);
                     return res;

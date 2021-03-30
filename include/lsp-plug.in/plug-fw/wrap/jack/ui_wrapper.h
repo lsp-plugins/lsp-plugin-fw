@@ -52,7 +52,7 @@ namespace lsp
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
             public:
-                explicit UIWrapper(jack::Wrapper *wrapper, ui::Module *ui);
+                explicit UIWrapper(jack::Wrapper *wrapper, ui::Module *ui, resource::ILoader *loader);
                 virtual ~UIWrapper();
 
                 virtual status_t init();
@@ -85,7 +85,7 @@ namespace lsp
         };
 
         // Implementation
-        UIWrapper::UIWrapper(jack::Wrapper *wrapper, ui::Module *ui) : ui::IWrapper(ui)
+        UIWrapper::UIWrapper(jack::Wrapper *wrapper, ui::Module *ui, resource::ILoader *loader) : ui::IWrapper(ui, loader)
         {
             pPlugin     = wrapper->pPlugin;
             pWrapper    = wrapper;
