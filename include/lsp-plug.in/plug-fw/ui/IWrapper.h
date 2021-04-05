@@ -29,12 +29,15 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/resource/ILoader.h>
+#include <lsp-plug.in/resource/Environment.h>
+#include <lsp-plug.in/tk/tk.h>
 
 namespace lsp
 {
     namespace ui
     {
         class Module;
+        class SwitchedPort;
 
         /**
          * UI wrapper
@@ -44,13 +47,35 @@ namespace lsp
             private:
                 IWrapper & operator = (const IWrapper &);
 
+                friend class ControlPort;
+                friend class PathPort;
+                friend class SwitchedPort;
+
             protected:
-                Module             *pUI;
-                resource::ILoader  *pLoader;
+                Module                     *pUI;
+                resource::ILoader          *pLoader;
+
+                lltl::parray<IPort>         vPorts;         // All possible ports
+                lltl::parray<IPort>         vSortedPorts;   // Alphabetically-sorted ports
+                lltl::parray<SwitchedPort>  vSwitchedPorts; // Switched ports
+                lltl::parray<IPort>         vConfigPorts;   // Configuration ports
+                lltl::parray<IPort>         vTimePorts;     // Time-related ports
+                lltl::parray<IPort>         vCustomPorts;   // Custom-defined ports
+                lltl::parray<tk::Widget>    vTkWidgets;     // Widgets
+
+                bool                        bSaveConfig;    // Save configuration flag
+
+            protected:
+                static ssize_t  compare_ports(const IPort *a, const IPort *b);
+                size_t          rebuild_sorted_ports();
+                void            global_config_changed(IPort *src);
 
             public:
                 explicit IWrapper(Module *ui, resource::ILoader *loader);
                 virtual ~IWrapper();
+
+                virtual status_t    init();
+                virtual void        destroy();
 
             public:
                 /**
@@ -58,6 +83,35 @@ namespace lsp
                  * @return builtin resource loader
                  */
                 inline resource::ILoader   *resources()         { return pLoader;       }
+
+                /**
+                 * Return port by it's identifier
+                 *
+                 * @param id port identifier
+                 * @return pointer to the port instance or NULL
+                 */
+                IPort                      *port(const char *id);
+
+                /**
+                 * Return port by it's identifier
+                 *
+                 * @param id port identifier
+                 * @return pointer to the port instance or NULL
+                 */
+                IPort                      *port(const LSPString *id);
+
+                /**
+                 * Return port by it's index
+                 * @param idx port index starting with 0
+                 * @return pointer to the port instance or NULL
+                 */
+                IPort                      *port(size_t idx);
+
+                /**
+                 * Get overall ports count
+                 * @return overall ports count
+                 */
+                size_t                      ports() const;
 
                 /** Callback method, executes when the UI has been shown
                  *

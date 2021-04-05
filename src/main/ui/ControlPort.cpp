@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 24 нояб. 2020 г.
+ * Created on: 5 апр. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -20,45 +20,39 @@
  */
 
 #include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/meta/func.h>
 
 namespace lsp
 {
     namespace ui
     {
-        Module::Module(const meta::plugin_t *meta)
+        ControlPort::ControlPort(const meta::port_t *meta, IWrapper *wrapper): IPort(meta)
         {
-            pMetadata       = meta;
-            pWrapper        = NULL;
+            fValue      = meta->start;
+            pWrapper    = wrapper;
         }
 
-        Module::~Module()
+        ControlPort::~ControlPort()
         {
-            destroy();
+            pWrapper    = NULL;
         }
 
-        void Module::destroy()
+        float ControlPort::value()
         {
+            return fValue;
         }
 
-        status_t Module::init(IWrapper *wrapper)
+        void ControlPort::set_value(float value)
         {
-            pWrapper        = wrapper;
+            float v  = meta::limit_value(pMetadata, value);
+            if (fValue == v)
+                return;
 
-            return STATUS_OK;
+            fValue  = v;
+            if (pWrapper != NULL)
+                pWrapper->global_config_changed(this);
         }
-
-        void Module::position_updated(const plug::position_t *pos)
-        {
-        }
-
-        void Module::sync_meta_ports()
-        {
-        }
-
-        void Module::kvt_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value)
-        {
-        }
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

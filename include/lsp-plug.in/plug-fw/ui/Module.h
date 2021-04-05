@@ -28,9 +28,9 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/tk/tk.h>
 #include <lsp-plug.in/lltl/parray.h>
-#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 
 namespace lsp
 {
@@ -49,12 +49,6 @@ namespace lsp
             protected:
                 const meta::plugin_t       *pMetadata;
                 IWrapper                   *pWrapper;
-
-                lltl::parray<IPort>         vPorts;
-                lltl::parray<IPort>         vCustomPorts;
-                lltl::parray<IPort>         vSortedPorts;
-                lltl::parray<IPort>         vConfigPorts;
-                lltl::parray<tk::Widget>    vTkWidgets;
 
             public:
                 explicit Module(const meta::plugin_t *meta);
@@ -81,33 +75,6 @@ namespace lsp
                  *
                  */
                 void                        position_updated(const plug::position_t *pos);
-
-                /** Add plugin port to UI
-                 *
-                 * @param port UI port to communicate with plugin
-                 * @return status of operation
-                 */
-                status_t                    add_port(IPort *port);
-
-                /** Add custom port to UI
-                 *
-                 * @param port custom UI port
-                 * @return status of operation
-                 */
-                status_t                    add_custom_port(IPort *port);
-
-                /** Get INTERNAL port by name
-                 *
-                 * @param name port name
-                 * @return internal port
-                 */
-                IPort                      *port(const char *name);
-
-                /** Get port count
-                 *
-                 * @return number of ports
-                 */
-                inline size_t               ports_count() const     { return vPorts.size(); }
 
                 /**
                  * Synchronize state of meta ports

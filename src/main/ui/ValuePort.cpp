@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 24 нояб. 2020 г.
+ * Created on: 5 апр. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -25,40 +25,36 @@ namespace lsp
 {
     namespace ui
     {
-        Module::Module(const meta::plugin_t *meta)
+        ValuePort::ValuePort(const meta::port_t *meta): IPort(meta)
         {
-            pMetadata       = meta;
-            pWrapper        = NULL;
+            fValue      = meta->start;
+            fPending    = meta->start;
         }
 
-        Module::~Module()
-        {
-            destroy();
-        }
-
-        void Module::destroy()
+        ValuePort::~ValuePort()
         {
         }
 
-        status_t Module::init(IWrapper *wrapper)
+        void ValuePort::commitValue(float value)
         {
-            pWrapper        = wrapper;
-
-            return STATUS_OK;
+            fPending = value;
         }
 
-        void Module::position_updated(const plug::position_t *pos)
+        void ValuePort::sync()
         {
+            if (fValue == fPending)
+                return;
+
+            fValue = fPending;
+            notify_all();
         }
 
-        void Module::sync_meta_ports()
+        float ValuePort::value()
         {
+            return fValue;
         }
 
-        void Module::kvt_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value)
-        {
-        }
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

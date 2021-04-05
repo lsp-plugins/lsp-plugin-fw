@@ -31,6 +31,8 @@
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
 #include <lsp-plug.in/lltl/parray.h>
 
+#include <lsp-plug.in/tk/tk.h>
+
 namespace lsp
 {
     namespace jack
@@ -47,9 +49,10 @@ namespace lsp
                 atomic_t                        nPosition;          // Position counter
                 plug::position_t                sPosition;          // Actual time position
 
-                lltl::parray<jack::UIPort>      vPorts;             // All ports
                 lltl::parray<jack::UIPort>      vSyncPorts;         // Ports for synchronization
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
+
+                tk::Display                    *pDisplay;           // Display object
 
             public:
                 explicit UIWrapper(jack::Wrapper *wrapper, ui::Module *ui, resource::ILoader *loader);
@@ -59,17 +62,21 @@ namespace lsp
                 virtual void destroy();
 
             protected:
-                status_t    create_port(const meta::port_t *port, const char *postfix);
-                void        sync_kvt(core::KVTStorage *kvt);
+                status_t        create_port(const meta::port_t *port, const char *postfix);
+                static ssize_t  compare_ports(const jack::UIPort *a, const jack::UIPort *b);
+                size_t          rebuild_sorted_ports();
+                void            sync_kvt(core::KVTStorage *kvt);
 
             public:
-                virtual core::KVTStorage *kvt_lock();
+                virtual core::KVTStorage   *kvt_lock();
+                virtual core::KVTStorage   *kvt_trylock();
+                virtual bool                kvt_release();
 
-                virtual core::KVTStorage *kvt_trylock();
+                virtual void                dump_state_request();
 
-                virtual bool kvt_release();
-
-                virtual void dump_state_request();
+                virtual ui::IPort          *port(const char *id);
+                virtual ui::IPort          *port(size_t idx);
+                virtual size_t              ports() const;
 
             public:
                 /**
@@ -90,6 +97,7 @@ namespace lsp
             pPlugin     = wrapper->pPlugin;
             pWrapper    = wrapper;
             nPosition   = 0;
+            pDisplay    = NULL;
 
             plug::position_t::init(&sPosition);
         }
@@ -98,6 +106,7 @@ namespace lsp
         {
             pPlugin     = NULL;
             pWrapper    = NULL;
+            pDisplay    = NULL;
         }
 
         status_t UIWrapper::init()
@@ -107,25 +116,52 @@ namespace lsp
             // Force position sync at startup
             nPosition   = pWrapper->nPosition - 1;
 
-            // Create list of ports and sort it in ascending order
+            // Create list of ports and sort it in ascending order by the identifier
             for (const meta::port_t *meta = pUI->metadata()->ports ; meta->id != NULL; ++meta) {
                 if ((res = create_port(meta, NULL)) != STATUS_OK)
                     return res;
             }
+
+            // Initialize parent
+            if ((res = IWrapper::init()) != STATUS_OK)
+                return res;
+
+            // Initialize display settings
+            tk::display_settings_t settings;
+            resource::Environment env;
+
+            settings.resources      = pLoader;
+            settings.environment    = &env;
+
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, "i18n") == STATUS_OK);
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US") == STATUS_OK);
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_SCHEMA_PATH, "schema/lsp-modern.xml") == STATUS_OK);
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins") == STATUS_OK);
+
+            // Create the display
+            pDisplay = new tk::Display(&settings);
+            if (pDisplay == NULL)
+                return STATUS_NO_MEM;
+            if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
+                return res;
 
             return res;
         }
 
         void UIWrapper::destroy()
         {
-            // Destroy ports
-            for (size_t i=0, n=vPorts.size(); i<n; ++i)
+            // Destroy the display
+            if (pDisplay != NULL)
             {
-                jack::UIPort *p = vPorts.uget(i);
-                lsp_trace("destroy UI port id=%s", p->metadata()->id);
-                delete p;
+                pDisplay->destroy();
+                delete pDisplay;
+                pDisplay    = NULL;
             }
-            vPorts.flush();
+
+            // Call the parent class for destroy
+            IWrapper::destroy();
+
+            // Destroy ports
             vSyncPorts.flush();
 
             // Cleanup generated metadata
@@ -135,6 +171,36 @@ namespace lsp
                 lsp_trace("destroy generated UI port metadata %p", port);
                 meta::drop_port_metadata(port);
             }
+        }
+
+        ui::IPort *UIWrapper::port(const char *id)
+        {
+            ssize_t first=0, last = vPorts.size() - 1;
+            while (first <= last)
+            {
+                ssize_t mid             = (first + last) >> 1;
+                ui::IPort *p            = vPorts.uget(mid);
+                int cmp                 = strcmp(id, p->metadata()->id);
+
+                if (cmp < 0)
+                    last                    = mid - 1;
+                else if (cmp > 0)
+                    first                   = mid + 1;
+                else
+                    return p;
+            }
+
+            return NULL;
+        }
+
+        ui::IPort *UIWrapper::port(size_t idx)
+        {
+            return vPorts.get(idx);
+        }
+
+        size_t UIWrapper::ports() const
+        {
+            return vPorts.size();
         }
 
         core::KVTStorage *UIWrapper::kvt_lock()
@@ -217,7 +283,6 @@ namespace lsp
                     jack::PortGroup *pg     = static_cast<jack::PortGroup *>(jp);
                     jack::UIPortGroup *upg  = new jack::UIPortGroup(pg);
                     vPorts.add(upg);
-                    pUI->add_port(upg);
 
                     for (size_t row=0; row<pg->rows(); ++row)
                     {
@@ -251,17 +316,16 @@ namespace lsp
             }
 
             if (jup != NULL)
-            {
                 vPorts.add(jup);
-                pUI->add_port(jup);
-            }
 
             return STATUS_OK;
         }
 
         void UIWrapper::main_iteration()
         {
-            // TODO
+            // Call main iteration for the underlying display
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
         }
 
         void UIWrapper::sync_kvt(core::KVTStorage *kvt)

@@ -26,9 +26,17 @@
 #include <lsp-plug.in/plug-fw/meta/types.h>
 
 #define LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
+    #include <lsp-plug.in/plug-fw/ui/const.h>
+
     #include <lsp-plug.in/plug-fw/ui/IPort.h>
     #include <lsp-plug.in/plug-fw/ui/IPortListener.h>
     #include <lsp-plug.in/plug-fw/ui/IWrapper.h>
+
+    #include <lsp-plug.in/plug-fw/ui/ControlPort.h>
+    #include <lsp-plug.in/plug-fw/ui/PathPort.h>
+    #include <lsp-plug.in/plug-fw/ui/ValuePort.h>
+    #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
+
     #include <lsp-plug.in/plug-fw/ui/Module.h>
     #include <lsp-plug.in/plug-fw/ui/Factory.h>
 #undef LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
