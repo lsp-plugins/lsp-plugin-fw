@@ -31,6 +31,8 @@
 #include <lsp-plug.in/resource/ILoader.h>
 #include <lsp-plug.in/resource/Environment.h>
 #include <lsp-plug.in/tk/tk.h>
+#include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/pphash.h>
 
 namespace lsp
 {
@@ -55,20 +57,22 @@ namespace lsp
                 Module                     *pUI;
                 resource::ILoader          *pLoader;
 
-                lltl::parray<IPort>         vPorts;         // All possible ports
-                lltl::parray<IPort>         vSortedPorts;   // Alphabetically-sorted ports
-                lltl::parray<SwitchedPort>  vSwitchedPorts; // Switched ports
-                lltl::parray<IPort>         vConfigPorts;   // Configuration ports
-                lltl::parray<IPort>         vTimePorts;     // Time-related ports
-                lltl::parray<IPort>         vCustomPorts;   // Custom-defined ports
-                lltl::parray<tk::Widget>    vTkWidgets;     // Widgets
+                lltl::parray<IPort>         vPorts;             // All possible ports
+                lltl::parray<IPort>         vSortedPorts;       // Alphabetically-sorted ports
+                lltl::parray<SwitchedPort>  vSwitchedPorts;     // Switched ports
+                lltl::parray<IPort>         vConfigPorts;       // Configuration ports
+                lltl::parray<IPort>         vTimePorts;         // Time-related ports
+                lltl::parray<IPort>         vCustomPorts;       // Custom-defined ports
+                lltl::parray<tk::Widget>    vTkWidgets;         // Widgets
+                lltl::pphash<LSPString, LSPString> vAliases;    // Port aliases
 
-                bool                        bSaveConfig;    // Save configuration flag
+                bool                        bSaveConfig;        // Save configuration flag
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
                 size_t          rebuild_sorted_ports();
                 void            global_config_changed(IPort *src);
+                status_t        create_alias(const LSPString *id, const LSPString *name);
 
             public:
                 explicit IWrapper(Module *ui, resource::ILoader *loader);
@@ -112,6 +116,18 @@ namespace lsp
                  * @return overall ports count
                  */
                 size_t                      ports() const;
+
+                /**
+                 * Create alias for the port
+                 *
+                 * @param alias the port alias name
+                 * @param id the original port name to create the alias
+                 * @return status of operation
+                 */
+                status_t                    set_port_alias(const char *alias, const char *id);
+                status_t                    set_port_alias(const LSPString *alias, const char *id);
+                status_t                    set_port_alias(const char *alias, const LSPString *id);
+                status_t                    set_port_alias(const LSPString *alias, const LSPString *id);
 
                 /** Callback method, executes when the UI has been shown
                  *

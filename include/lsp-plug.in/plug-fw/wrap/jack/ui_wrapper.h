@@ -133,10 +133,10 @@ namespace lsp
             settings.resources      = pLoader;
             settings.environment    = &env;
 
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, "i18n") == STATUS_OK);
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US") == STATUS_OK);
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_SCHEMA_PATH, "schema/lsp-modern.xml") == STATUS_OK);
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins") == STATUS_OK);
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, "i18n"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_SCHEMA_PATH, "schema/lsp-modern.xml"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
 
             // Create the display
             pDisplay = new tk::Display(&settings);

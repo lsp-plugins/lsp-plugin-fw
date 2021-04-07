@@ -532,8 +532,6 @@ namespace lsp
                 {
                     // Transfer changes from DSP to UI
                     w->pUIWrapper->sync(sched);
-                    // Perform main event loop for the UI
-                    w->pUIWrapper->main_iteration();
                 }
 
                 // TODO
@@ -564,6 +562,10 @@ namespace lsp
                     fprintf(stderr, "Unexpected error, code=%d", res);
                     return res;
                 }
+
+                // Perform main event loop for the UI
+                if (w->pUIWrapper != NULL)
+                    w->pUIWrapper->main_iteration();
 
                 // Perform a small sleep before new iteration
                 system::get_time(&ctime);

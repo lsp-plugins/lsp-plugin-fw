@@ -75,6 +75,19 @@ namespace lsp
 
         void IWrapper::destroy()
         {
+            // Clear all aliases
+            lltl::parray<LSPString> aliases;
+            vAliases.values(&aliases);
+            vAliases.flush();
+
+            for (size_t i=0, n=aliases.size(); i<n; ++i)
+            {
+                LSPString *alias = aliases.uget(i);
+                if (alias != NULL)
+                    delete alias;
+            }
+            aliases.flush();
+
             // Clear sorted ports
             vSortedPorts.flush();
 
@@ -217,22 +230,26 @@ namespace lsp
 
         IPort *IWrapper::port(const char *id)
         {
-//            // Check aliases
-//            size_t n_aliases = vAliases.size();
-//
-//            for (size_t i=0; i<n_aliases; ++i)
-//            {
-//                CtlPortAlias *pa = vAliases.at(i);
-//                if ((pa->id() == NULL) || (pa->alias() == NULL))
-//                    continue;
-//
-//                if (!strcmp(name, pa->id()))
-//                {
-//                    name    = pa->alias();
-//                    break;
-//                }
-//            }
-//
+            // Check for alias
+            lltl::phashset<LSPString> path;
+            LSPString key, *name;
+            if (!key.set_utf8(id))
+                return NULL;
+
+            while ((name = vAliases.get(&key)) != NULL)
+            {
+                if (path.contains(name))
+                {
+                    lsp_warn("Loop while walking through aliases: initial port id=%s", id);
+                    return NULL;
+                }
+                // Update key to current name
+                if (!key.set(name))
+                    return NULL;
+            }
+            if ((id = key.get_utf8()) == NULL)
+                return NULL;
+
             // Check that port name contains index
             if (strchr(id, '[') != NULL)
             {
@@ -341,6 +358,64 @@ namespace lsp
             }
 
             return NULL;
+        }
+
+        status_t IWrapper::set_port_alias(const char *alias, const char *id)
+        {
+            if ((alias == NULL) || (id == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            LSPString ta, ti;
+            if (!ta.set_utf8(alias))
+                return STATUS_NO_MEM;
+            if (!ti.set_utf8(id))
+                return STATUS_NO_MEM;
+
+            return create_alias(&ta, &ti);
+        }
+
+        status_t IWrapper::set_port_alias(const LSPString *alias, const char *id)
+        {
+            if ((alias == NULL) || (id == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            LSPString ti;
+            if (!ti.set_utf8(id))
+                return STATUS_NO_MEM;
+
+            return create_alias(alias, &ti);
+        }
+
+        status_t IWrapper::set_port_alias(const char *alias, const LSPString *id)
+        {
+            if ((alias == NULL) || (id == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            LSPString ta;
+            if (!ta.set_utf8(alias))
+                return STATUS_NO_MEM;
+
+            return create_alias(&ta, id);
+        }
+
+        status_t IWrapper::set_port_alias(const LSPString *alias, const LSPString *id)
+        {
+            if ((alias == NULL) || (id == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            return create_alias(alias, id);
+        }
+
+        status_t IWrapper::create_alias(const LSPString *id, const LSPString *name)
+        {
+            LSPString *cname = name->clone();
+            if (cname == NULL)
+                return STATUS_NO_MEM;
+
+            if (!vAliases.create(id, cname))
+                return STATUS_ALREADY_EXISTS;
+
+            return STATUS_OK;
         }
 
         ssize_t IWrapper::compare_ports(const IPort *a, const IPort *b)
