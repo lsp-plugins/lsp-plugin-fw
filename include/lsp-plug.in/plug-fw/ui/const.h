@@ -80,5 +80,4 @@
 #define TICK_PORT                           TIME_PORT_PREFIX TIME_TICK_PORT
 #define TICKS_PER_BEAT_PORT                 TIME_PORT_PREFIX TIME_TICKS_PER_BEAT_PORT
 
-
 #endif /* LSP_PLUG_IN_PLUG_FW_UI_CONST_H_ */

@@ -115,10 +115,13 @@ namespace lsp
 
             // Force position sync at startup
             nPosition   = pWrapper->nPosition - 1;
+            const meta::plugin_t *meta = pUI->metadata();
+            if (pUI->metadata() == NULL)
+                return STATUS_BAD_STATE;
 
             // Create list of ports and sort it in ascending order by the identifier
-            for (const meta::port_t *meta = pUI->metadata()->ports ; meta->id != NULL; ++meta) {
-                if ((res = create_port(meta, NULL)) != STATUS_OK)
+            for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port) {
+                if ((res = create_port(port, NULL)) != STATUS_OK)
                     return res;
             }
 
@@ -144,6 +147,13 @@ namespace lsp
                 return STATUS_NO_MEM;
             if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
                 return res;
+
+            // Build the UI
+            if (meta->ui_resource != NULL)
+            {
+                if ((res = build_ui(meta->ui_resource)) != STATUS_OK)
+                    return res;
+            }
 
             return res;
         }

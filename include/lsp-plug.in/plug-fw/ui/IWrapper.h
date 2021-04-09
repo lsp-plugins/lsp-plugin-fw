@@ -54,7 +54,7 @@ namespace lsp
                 friend class SwitchedPort;
 
             protected:
-                Module                     *pUI;
+                ui::Module                 *pUI;
                 resource::ILoader          *pLoader;
 
                 lltl::parray<IPort>         vPorts;             // All possible ports
@@ -73,9 +73,10 @@ namespace lsp
                 size_t          rebuild_sorted_ports();
                 void            global_config_changed(IPort *src);
                 status_t        create_alias(const LSPString *id, const LSPString *name);
+                status_t        build_ui(const char *path);
 
             public:
-                explicit IWrapper(Module *ui, resource::ILoader *loader);
+                explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
                 virtual ~IWrapper();
 
                 virtual status_t    init();
@@ -87,6 +88,12 @@ namespace lsp
                  * @return builtin resource loader
                  */
                 inline resource::ILoader   *resources()         { return pLoader;       }
+
+                /**
+                 * Get the wrapped UI
+                 * @return the pointer to the wrapped UI
+                 */
+                inline ui::Module          *ui()                { return pUI;           }
 
                 /**
                  * Return port by it's identifier

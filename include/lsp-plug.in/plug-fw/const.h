@@ -47,4 +47,7 @@
 #define OPTIMAL_ALIGN                       64                  /* Optimal data structure alignment                 */
 #define MAX_PARAM_ID_BYTES                  64
 
+// Prefix for built-in resource
+#define LSP_BUILTIN_PREFIX                  "builtin://"
+
 #endif /* LSP_PLUG_IN_PLUG_FW_CONST_H_ */

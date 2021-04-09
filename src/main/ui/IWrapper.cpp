@@ -22,6 +22,9 @@
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 
+#include <private/ui/UIContext.h>
+#include <private/ui/xml/Handler.h>
+
 namespace lsp
 {
     // Metadata for the wrapper
@@ -461,6 +464,21 @@ namespace lsp
         size_t IWrapper::ports() const
         {
             return vPorts.size();
+        }
+
+        status_t IWrapper::build_ui(const char *path)
+        {
+            // Create context
+            UIContext ctx(this);
+            status_t res = ctx.init();
+            if (res != STATUS_OK)
+                return res;
+
+            // TODO
+//            RootNode root(this);
+//            xml::Handler handler(pLoader);
+//            return handler.parse_resource(path, &root);
+            return STATUS_OK;
         }
     }
 } /* namespace lsp */
