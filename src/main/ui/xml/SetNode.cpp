@@ -20,6 +20,7 @@
  */
 
 #include <private/ui/xml/SetNode.h>
+#include <private/ui/xml/NodeFactory.h>
 
 namespace lsp
 {
@@ -27,6 +28,27 @@ namespace lsp
     {
         namespace xml
         {
+            //-----------------------------------------------------------------
+            NODE_FACTORY_IMPL_START(SetNode)
+                if (!name->equals_ascii("ui:set"))
+                    return STATUS_NOT_FOUND;
+
+                Node *node = new SetNode(context);
+                if (node == NULL)
+                    return STATUS_NO_MEM;
+
+                status_t res = node->init(atts);
+                if (res != STATUS_OK)
+                {
+                    delete node;
+                    return res;
+                }
+
+                *child  = node;
+                return STATUS_OK;
+            NODE_FACTORY_IMPL_END(SetNode)
+
+            //-----------------------------------------------------------------
             SetNode::SetNode(UIContext *ctx): Node(ctx)
             {
             }

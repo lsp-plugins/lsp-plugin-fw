@@ -36,6 +36,11 @@ namespace lsp
             {
             }
 
+            status_t Node::init(const LSPString * const *atts)
+            {
+                return STATUS_OK;
+            }
+
             const LSPString *Node::find_attribute(const LSPString * const *atts, const LSPString *name)
             {
                 for ( ; *atts != NULL; atts += 2)
@@ -76,6 +81,11 @@ namespace lsp
             }
 
             status_t Node::completed(Node *child)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Node::execute()
             {
                 return STATUS_OK;
             }

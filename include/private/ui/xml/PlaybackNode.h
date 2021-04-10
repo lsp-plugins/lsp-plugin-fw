@@ -64,15 +64,13 @@ namespace lsp
                     Node                           *pHandler;
                     lltl::parray<xml_event_t>       vEvents;
 
-                private:
-                    xml_event_t *add_event(event_t ev);
+                protected:
+                    status_t                playback();
+                    xml_event_t            *add_event(event_t ev);
 
                 public:
                     explicit PlaybackNode(UIContext *ctx, Node *handler);
-
                     virtual ~PlaybackNode();
-
-                    virtual status_t init(const LSPString * const *atts);
 
                 public:
                     /**
@@ -82,7 +80,7 @@ namespace lsp
                      * @param atts element attributes
                      * @return status of operation
                      */
-                    virtual status_t playback_start_element(lsp::xml::IXMLHandler *handler, const LSPString *name, const LSPString * const *atts);
+                    virtual status_t        playback_start_element(lsp::xml::IXMLHandler *handler, const LSPString *name, const LSPString * const *atts);
 
                     /**
                      * Playback end element
@@ -91,23 +89,13 @@ namespace lsp
                      * @param atts element attributes
                      * @return status of operation
                      */
-                    virtual status_t playback_end_element(lsp::xml::IXMLHandler *handler, const LSPString *name);
+                    virtual status_t        playback_end_element(lsp::xml::IXMLHandler *handler, const LSPString *name);
 
-                    /**
-                     * Playback recorded data
-                     * @return
-                     */
-                    virtual status_t playback();
+                    virtual status_t        execute();
 
-                    /**
-                     * Execute the body of playback node
-                     * @return status of operation
-                     */
-                    virtual status_t execute();
+                    virtual status_t        start_element(Node **child, const LSPString *name, const LSPString * const *atts);
 
-                    virtual status_t start_element(Node **child, const LSPString *name, const LSPString * const *atts);
-
-                    virtual status_t end_element(const LSPString *name);
+                    virtual status_t        end_element(const LSPString *name);
 
             };
         }

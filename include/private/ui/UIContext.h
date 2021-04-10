@@ -23,6 +23,7 @@
 #define PRIVATE_UI_UICONTEXT_H_
 
 #include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/ctl.h>
 
 #include <lsp-plug.in/expr/Expression.h>
 #include <lsp-plug.in/expr/Variables.h>
@@ -132,6 +133,16 @@ namespace lsp
                  * @return status of operation
                  */
                 status_t eval_int(ssize_t *value, const LSPString *expr);
+
+                /**
+                 * Create widget controller by the tag name
+                 *
+                 * @param name the tag name of the widget
+                 * @return pointer to widget controller
+                 */
+                ctl::Widget *create_widget(const char *name);
+                ctl::Widget *create_widget(const LSPString *name);
+
         };
     }
 }

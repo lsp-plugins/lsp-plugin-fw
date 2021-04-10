@@ -88,11 +88,6 @@ namespace lsp
                 vEvents.flush();
             }
 
-            status_t PlaybackNode::init(const LSPString * const *atts)
-            {
-                return STATUS_OK;
-            }
-
             status_t PlaybackNode::playback_start_element(lsp::xml::IXMLHandler *handler, const LSPString *name, const LSPString * const *atts)
             {
                 return handler->start_element(name, atts);

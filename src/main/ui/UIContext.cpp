@@ -182,6 +182,18 @@ namespace lsp
             *value = v;
             return STATUS_OK;
         }
+
+        ctl::Widget *UIContext::create_widget(const char *name)
+        {
+            // TODO
+            return NULL;
+        }
+
+        ctl::Widget *UIContext::create_widget(const LSPString *name)
+        {
+            // TODO
+            return NULL;
+        }
     }
 }
 

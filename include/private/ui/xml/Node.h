@@ -48,6 +48,8 @@ namespace lsp
                     explicit Node(UIContext *ctx);
                     virtual ~Node();
 
+                    virtual status_t    init(const LSPString * const *atts);
+
                 protected:
                     static const LSPString *find_attribute(const LSPString * const *atts, const LSPString *name);
                     static const LSPString *find_attribute(const LSPString * const *atts, const char *name);
@@ -72,6 +74,12 @@ namespace lsp
                      * @param name tag name
                      */
                     virtual status_t        end_element(const LSPString *name);
+
+                    /**
+                     * Execute the body of node (if required)
+                     * @return status of operation
+                     */
+                    virtual status_t        execute();
 
                     /** Called when there will be no more data
                      *
