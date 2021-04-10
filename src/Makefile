@@ -44,9 +44,16 @@ LSP_PLUGIN_FW_OBJ_CORE      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
 LSP_PLUGIN_FW_OBJ_META      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-meta.o
 LSP_PLUGIN_FW_OBJ_DSP       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-dsp.o
 LSP_PLUGIN_FW_OBJ_UI        = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui.o
+LSP_PLUGIN_FW_OBJ_CTL       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ctl.o
 LSP_PLUGIN_FW_OBJ_TEST      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-test.o
 LSP_PLUGIN_FW_OBJ_RES       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.o
-LSP_PLUGIN_FW_OBJ           = $(LSP_PLUGIN_FW_OBJ_CORE) $(LSP_PLUGIN_FW_OBJ_META) $(LSP_PLUGIN_FW_OBJ_DSP) $(LSP_PLUGIN_FW_OBJ_UI)
+LSP_PLUGIN_FW_OBJ           = \
+  $(LSP_PLUGIN_FW_OBJ_CORE) \
+  $(LSP_PLUGIN_FW_OBJ_META) \
+  $(LSP_PLUGIN_FW_OBJ_DSP) \
+  $(LSP_PLUGIN_FW_OBJ_UI) \
+  $(LSP_PLUGIN_FW_OBJ_CTL)
+
 LSP_PLUGIN_FW_MFLAGS       += $(foreach dep,$(DEPENDENCIES),-DUSE_$(dep)) 
 LSP_PLUGIN_FW_CFLAGS       += $(foreach dep,$(DEPENDENCIES), $($(dep)_CFLAGS))
 
@@ -55,6 +62,7 @@ CXX_SRC_CORE                = $(call rwildcard, main/core, *.cpp)
 CXX_SRC_META                = $(call rwildcard, main/meta, *.cpp)
 CXX_SRC_DSP                 = $(call rwildcard, main/plug, *.cpp)
 CXX_SRC_UI                  = $(call rwildcard, main/ui, *.cpp)
+CXX_SRC_CTL                 = $(call rwildcard, main/ctl, *.cpp)
 CXX_SRC_WRAP_JACK           = wrap/jack.cpp
 CXX_SRC_UTIL                = $(call rwildcard, util, *.cpp)
 CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
@@ -63,6 +71,7 @@ CXX_SRC                     = \
   $(CXX_SRC_META) \
   $(CXX_SRC_DSP) \
   $(CXX_SRC_UI) \
+  $(CXX_SRC_CTL) \
   $(CXX_SRC_WRAP_JACK) \
   $(CXX_SRC_UTIL)
 
@@ -72,6 +81,7 @@ OBJ_CORE                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_
 OBJ_META                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_META))
 OBJ_DSP                     = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_DSP))
 OBJ_UI                      = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UI))
+OBJ_CTL                     = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_CTL))
 OBJ_WRAP_JACK               = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_JACK))
 OBJ_UTIL                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UTIL))
 OBJ_TEST                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_TEST))
@@ -80,6 +90,7 @@ OBJ                         = \
   $(OBJ_META) \
   $(OBJ_DSP) \
   $(OBJ_UI) \
+  $(OBJ_CTL) \
   $(OBJ_UTIL) \
   $(OBJ_WRAP_JACK)
 
@@ -249,6 +260,10 @@ $(LSP_PLUGIN_FW_OBJ_DSP): $(OBJ_DSP)
 $(LSP_PLUGIN_FW_OBJ_UI): $(OBJ_UI)
 	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_UI))"
 	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_UI) -r $(OBJ_UI)
+	
+$(LSP_PLUGIN_FW_OBJ_CTL): $(OBJ_CTL)
+	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_CTL))"
+	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_CTL) -r $(OBJ_CTL)
 	
 $(LSP_PLUGIN_FW_OBJ_TEST): $(OBJ_TEST)
 	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_TEST))"
