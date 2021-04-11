@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef PRIVATE_UI_PORTRESOLVER_H_
-#define PRIVATE_UI_PORTRESOLVER_H_
+#ifndef LSP_PLUG_IN_UI_PORTRESOLVER_H_
+#define LSP_PLUG_IN_UI_PORTRESOLVER_H_
 
 #include <lsp-plug.in/expr/Resolver.h>
 #include <lsp-plug.in/expr/Expression.h>
@@ -43,8 +43,11 @@ namespace lsp
                 ui::IWrapper       *pWrapper;
 
             public:
+                explicit PortResolver();
                 explicit PortResolver(ui::IWrapper *wrapper);
                 virtual ~PortResolver();
+
+                void                init(ui::IWrapper *wrapper);
 
             public:
                 virtual status_t    on_resolved(const LSPString *name, ui::IPort *p);
@@ -58,4 +61,4 @@ namespace lsp
     }
 }
 
-#endif /* PRIVATE_UI_PORTRESOLVER_H_ */
+#endif /* LSP_PLUG_IN_UI_PORTRESOLVER_H_ */

@@ -21,8 +21,8 @@
 
 #include <lsp-plug.in/common/debug.h>
 
+#include <lsp-plug.in/plug-fw/ui/PortResolver.h>
 #include <private/ui/UIContext.h>
-#include <private/ui/PortResolver.h>
 
 namespace lsp
 {

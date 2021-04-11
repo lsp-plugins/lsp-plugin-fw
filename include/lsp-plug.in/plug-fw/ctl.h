@@ -26,6 +26,8 @@
 
 #include <lsp-plug.in/plug-fw/ctl/types.h>
 
+#include <lsp-plug.in/plug-fw/ctl/Expression.h>
+
 #include <lsp-plug.in/plug-fw/ctl/Widget.h>
 
 

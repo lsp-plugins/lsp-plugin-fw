@@ -19,12 +19,17 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <private/ui/PortResolver.h>
+#include <lsp-plug.in/plug-fw/ui/PortResolver.h>
 
 namespace lsp
 {
     namespace ui
     {
+        PortResolver::PortResolver()
+        {
+            pWrapper    = NULL;
+        }
+
         PortResolver::PortResolver(ui::IWrapper *wrapper)
         {
             pWrapper    = wrapper;
@@ -33,6 +38,11 @@ namespace lsp
         PortResolver::~PortResolver()
         {
             pWrapper    = NULL;
+        }
+
+        void PortResolver::init(ui::IWrapper *wrapper)
+        {
+            pWrapper    = wrapper;
         }
 
         status_t PortResolver::resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes)
