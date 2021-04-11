@@ -33,11 +33,29 @@ namespace lsp
 
         Module::~Module()
         {
-            destroy();
+            do_destroy();
         }
 
         void Module::destroy()
         {
+            do_destroy();
+        }
+
+        void Module::do_destroy()
+        {
+            sMapping.flush();
+
+            // Destroy all widgets in reverse order
+            for (size_t i=vWidgets.size(); (i--) > 0;)
+            {
+                tk::Widget *w = vWidgets.uget(i);
+                if (w != NULL)
+                {
+                    w->destroy();
+                    delete w;
+                }
+            }
+            vWidgets.flush();
         }
 
         status_t Module::init(IWrapper *wrapper)
@@ -57,6 +75,35 @@ namespace lsp
 
         void Module::kvt_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value)
         {
+        }
+
+        status_t Module::add_widget(tk::Widget *w)
+        {
+            if (w == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            return (vWidgets.add(w) != NULL) ? STATUS_OK : STATUS_NO_MEM;
+        }
+
+        status_t Module::map_widget(const char *uid, tk::Widget *w)
+        {
+            if (sMapping.create(uid, w))
+                return STATUS_OK;
+            return (sMapping.contains(uid)) ? STATUS_ALREADY_EXISTS : STATUS_NO_MEM;
+        }
+
+        status_t Module::map_widget(const LSPString *uid, tk::Widget *w)
+        {
+            return (uid != NULL) ? map_widget(uid->get_utf8(), w) : STATUS_BAD_ARGUMENTS;
+        }
+
+        tk::Widget *Module::find_widget(const char *uid)
+        {
+            return sMapping.get(uid);
+        }
+
+        tk::Widget *Module::find_widget(const LSPString *uid)
+        {
+            return (uid != NULL) ? find_widget(uid->get_utf8()) : NULL;
         }
     }
 }

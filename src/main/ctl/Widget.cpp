@@ -32,15 +32,6 @@ namespace lsp
             pClass          = &metadata;
             pRegistry       = src;
             pWidget         = widget;
-
-//            pVisibilityID   = NULL;
-//            nVisible        = -1;
-//            nVisibilityKey  = 0;
-//            bVisibilitySet  = false;
-//            bVisibilityKeySet= false;
-//
-//            nMinWidth       = -1;
-//            nMinHeight      = -1;
         }
 
         bool Widget::instance_of(const ctl_class_t *wclass) const
@@ -86,27 +77,80 @@ namespace lsp
 //                    s->set_key(value);
 //            }
 //        }
-//
-//        void Widget::init_color(color_t value, Color *color)
-//        {
-//            LSPDisplay *dpy = (pWidget != NULL) ? pWidget->display() : NULL;
-//            LSPTheme *theme = (dpy != NULL) ? dpy->theme() : NULL;
-//
-//            if (theme != NULL)
-//                theme->get_color(value, color);
-//        }
-//
-//        void Widget::init_color(color_t value, LSPColor *color)
-//        {
-//            LSPDisplay *dpy = (pWidget != NULL) ? pWidget->display() : NULL;
-//            LSPTheme *theme = (dpy != NULL) ? dpy->theme() : NULL;
-//
-//            if (theme != NULL)
-//                theme->get_color(value, color);
-//        }
-//
+
+        bool Widget::set_padding(tk::Padding *pad, const char *name, const char *value)
+        {
+            if (pad == NULL)
+                return false;
+
+            if      (!strcmp(name, "pad"))          PARSE_UINT(value, pad->set_all(__))
+            else if (!strcmp(name, "padding"))      PARSE_UINT(value, pad->set_all(__))
+            else if (!strcmp(name, "hpad"))         PARSE_UINT(value, pad->set_horizontal(__))
+            else if (!strcmp(name, "vpad"))         PARSE_UINT(value, pad->set_vertical(__))
+            else if (!strcmp(name, "lpad"))         PARSE_UINT(value, pad->set_left(__))
+            else if (!strcmp(name, "pad_left"))     PARSE_UINT(value, pad->set_left(__))
+            else if (!strcmp(name, "rpad"))         PARSE_UINT(value, pad->set_right(__))
+            else if (!strcmp(name, "pad_right"))    PARSE_UINT(value, pad->set_right(__))
+            else if (!strcmp(name, "tpad"))         PARSE_UINT(value, pad->set_top(__))
+            else if (!strcmp(name, "pad_top"))      PARSE_UINT(value, pad->set_top(__))
+            else if (!strcmp(name, "bpad"))         PARSE_UINT(value, pad->set_bottom(__))
+            else if (!strcmp(name, "pad_bottom"))   PARSE_UINT(value, pad->set_bottom(__))
+            else return false;
+
+            return true;
+        }
+
+        bool Widget::set_allocation(tk::Allocation *alloc, const char *name, const char *value)
+        {
+            if (alloc == NULL)
+                return false;
+
+            if      (!strcmp(name, "fill"))         PARSE_BOOL(value, alloc->set_fill(__))
+            else if (!strcmp(name, "hfill"))        PARSE_BOOL(value, alloc->set_hfill(__))
+            else if (!strcmp(name, "vfill"))        PARSE_BOOL(value, alloc->set_vfill(__))
+            else if (!strcmp(name, "expand"))       PARSE_BOOL(value, alloc->set_expand(__))
+            else if (!strcmp(name, "hexpand"))      PARSE_BOOL(value, alloc->set_hexpand(__))
+            else if (!strcmp(name, "vexpand"))      PARSE_BOOL(value, alloc->set_vexpand(__))
+            else return false;
+
+            return true;
+        }
+
+        bool Widget::set_constraints(tk::SizeConstraints *c, const char *name, const char *value)
+        {
+            if (c == NULL)
+                return false;
+
+            if      (!strcmp(name, "width"))        PARSE_INT(value, c->set_width(__))
+            else if (!strcmp(name, "wmin"))         PARSE_INT(value, c->set_min_width(__))
+            else if (!strcmp(name, "wmax"))         PARSE_INT(value, c->set_max_width(__))
+            else if (!strcmp(name, "min_width"))    PARSE_INT(value, c->set_min_width(__))
+            else if (!strcmp(name, "max_width"))    PARSE_INT(value, c->set_max_width(__))
+            else if (!strcmp(name, "height"))       PARSE_INT(value, c->set_height(__))
+            else if (!strcmp(name, "hmin"))         PARSE_INT(value, c->set_min_height(__))
+            else if (!strcmp(name, "hmax"))         PARSE_INT(value, c->set_max_height(__))
+            else if (!strcmp(name, "min_height"))   PARSE_INT(value, c->set_min_height(__))
+            else if (!strcmp(name, "max_height"))   PARSE_INT(value, c->set_max_height(__))
+            else return false;
+
+            return true;
+        }
+
         void Widget::set(const char *name, const char *value)
         {
+            if (pWidget == NULL)
+                return;
+
+            if (!strcmp(name, "visibility"))
+                sVisibility.parse(value);
+            else if (!strcmp(name, "brightness"))
+                sBright.parse(value);
+            else if (!strcmp(name, "bright"))
+                sBright.parse(value);
+
+            set_padding(pWidget->padding(), name, value);
+            set_allocation(pWidget->allocation(), name, value);
+
 //            widget_attribute_t att = widget_attribute(name);
 //            if (att != A_UNKNOWN)
 //                set(att, value);
@@ -119,60 +163,6 @@ namespace lsp
 //
 //            switch (att)
 //            {
-//                case A_VISIBILITY_ID:
-//                    lsp_trace("deprecated property visibility_id set to value %s", value);
-//                    if (pVisibilityID != NULL)
-//                        lsp_free(pVisibilityID);
-//                    pVisibilityID = strdup(value);
-//                    break;
-//                case A_VISIBILITY_KEY:
-//                    lsp_trace("deprecated property visibility_key set to value %s", value);
-//                    PARSE_INT(value, nVisibilityKey = __);
-//                    bVisibilityKeySet = true;
-//                    break;
-//                case A_WIDTH:
-//                    PARSE_INT(value, nMinWidth = __);
-//                    break;
-//                case A_HEIGHT:
-//                    PARSE_INT(value, nMinHeight = __);
-//                    break;
-//                case A_VISIBLE:
-//                    PARSE_BOOL(value, nVisible = (__) ? 1 : 0);
-//                    break;
-//                case A_VISIBILITY:
-//                    BIND_EXPR(sVisibility, value);
-//                    bVisibilitySet      = true;
-//                    break;
-//                case A_BRIGHT:
-//                    BIND_EXPR(sBright, value);
-//                    break;
-//                case A_PADDING:
-//                    PARSE_INT(value, pWidget->padding()->set_all(__));
-//                    break;
-//                case A_PAD_LEFT:
-//                    PARSE_INT(value, pWidget->padding()->set_left(__));
-//                    break;
-//                case A_PAD_RIGHT:
-//                    PARSE_INT(value, pWidget->padding()->set_right(__));
-//                    break;
-//                case A_PAD_TOP:
-//                    PARSE_INT(value, pWidget->padding()->set_top(__));
-//                    break;
-//                case A_PAD_BOTTOM:
-//                    PARSE_INT(value, pWidget->padding()->set_bottom(__));
-//                    break;
-//                case A_EXPAND:
-//                    PARSE_BOOL(value, pWidget->set_expand(__));
-//                    break;
-//                case A_FILL:
-//                    PARSE_BOOL(value, pWidget->set_fill(__));
-//                    break;
-//                case A_HFILL:
-//                    PARSE_BOOL(value, pWidget->set_hfill(__));
-//                    break;
-//                case A_VFILL:
-//                    PARSE_BOOL(value, pWidget->set_vfill(__));
-//                    break;
 //                case A_WUID:
 //                    pWidget->set_unique_id(value);
 //                    break;
@@ -202,85 +192,48 @@ namespace lsp
 
         void Widget::end()
         {
-//            if (nVisible >= 0)
-//            {
-//                if (pWidget != NULL)
-//                    pWidget->set_visible(nVisible);
-//            }
-//            if ((pVisibilityID != NULL) && (!bVisibilitySet))
-//            {
-//                // Parse expression
-//                char *str = NULL;
-//                if (!bVisibilityKeySet)
-//                {
-//                    CtlPort *port = pRegistry->port(pVisibilityID);
-//                    const port_t *p = (port != NULL) ? port->metadata() : NULL;
-//                    if ((p != NULL) && (p->unit == U_BOOL))
-//                        nVisibilityKey = 1.0f;
-//                }
-//                int n = asprintf(&str, ":%s ieq %d", pVisibilityID, int(nVisibilityKey));
-//                if ((n >= 0) && (str != NULL))
-//                {
-//                    sVisibility.parse(str);
-//                    free(str);
-//                }
-//            }
-//
-//            // Evaluate expression
-//            if (sVisibility.valid())
-//            {
-//                float value = sVisibility.evaluate();
-//                if (pWidget != NULL)
-//                    pWidget->set_visible(value >= 0.5f);
-//            }
-//
-//            // Evaluate brightness
-//            if (sBright.valid())
-//            {
-//                float value = sBright.evaluate();
-//                pWidget->set_brightness(value);
-//            }
+            // Evaluate expression
+            if (sVisibility.valid())
+            {
+                float value = sVisibility.evaluate();
+                if (pWidget != NULL)
+                    pWidget->visibility()->set(value >= 0.5f);
+            }
+
+            // Evaluate brightness
+            if (sBright.valid())
+            {
+                float value = sBright.evaluate();
+                pWidget->brightness()->set(value);
+            }
         }
 
         void Widget::notify(ui::IPort *port)
         {
-//            if (pWidget == NULL)
-//                return;
-//
-//            // Visibility
-//            if (sVisibility.depends(port))
-//            {
-//                float value = sVisibility.evaluate();
-//                pWidget->set_visible(value >= 0.5f);
-//            }
-//
-//            // Brightness
-//            if (sBright.depends(port))
-//            {
-//                float value = sBright.evaluate();
-//                pWidget->set_brightness(value);
-//            }
+            if (pWidget == NULL)
+                return;
+
+            // Visibility
+            if (sVisibility.depends(port))
+            {
+                float value = sVisibility.evaluate();
+                pWidget->visibility()->set(value >= 0.5f);
+            }
+
+            // Brightness
+            if (sBright.depends(port))
+            {
+                float value = sBright.evaluate();
+                pWidget->brightness()->set(value);
+            }
         }
 
         void Widget::destroy()
         {
-//            sVisibility.destroy();
-//            sBright.destroy();
-//
-//            if (pVisibilityID != NULL)
-//            {
-//                lsp_free(pVisibilityID);
-//                pVisibilityID = NULL;
-//            }
+            sVisibility.destroy();
+            sBright.destroy();
         }
 
-        tk::Widget *Widget::resolve(const char *uid)
-        {
-//            const char *wuid = (pWidget != NULL) ? pWidget->unique_id() : NULL;
-//            if ((wuid != NULL) && (!strcmp(wuid, uid)))
-//                return pWidget;
-            return NULL;
-        }
     }
 } /* namespace lsp */
 

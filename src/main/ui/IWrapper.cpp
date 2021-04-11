@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
+#include <lsp-plug.in/plug-fw/ctl.h>
 
 #include <private/ui/UIContext.h>
 #include <private/ui/xml/Handler.h>
@@ -78,6 +79,18 @@ namespace lsp
 
         void IWrapper::destroy()
         {
+            // Destroy controllers in reverse order
+            for (size_t i=vControllers.size(); (i--) > 0; )
+            {
+                ctl::Widget *w = vControllers.uget(i);
+                if (w != NULL)
+                {
+                    w->destroy();
+                    delete w;
+                }
+            }
+            vControllers.flush();
+
             // Clear all aliases
             lltl::parray<LSPString> aliases;
             vAliases.values(&aliases);
@@ -150,8 +163,6 @@ namespace lsp
                 delete p;
             }
             vPorts.flush();
-
-
         }
 
         status_t IWrapper::init()

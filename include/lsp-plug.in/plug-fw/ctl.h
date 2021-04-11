@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/plug-fw/ctl/types.h>
+#include <lsp-plug.in/plug-fw/ctl/parse.h>
 
 #include <lsp-plug.in/plug-fw/ctl/Expression.h>
 

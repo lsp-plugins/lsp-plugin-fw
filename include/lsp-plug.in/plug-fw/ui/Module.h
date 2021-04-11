@@ -29,8 +29,10 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+
 #include <lsp-plug.in/tk/tk.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/pphash.h>
 
 namespace lsp
 {
@@ -47,8 +49,13 @@ namespace lsp
                 Module &operator = (const Module &);
 
             protected:
-                const meta::plugin_t       *pMetadata;
-                IWrapper                   *pWrapper;
+                const meta::plugin_t               *pMetadata;
+                IWrapper                           *pWrapper;
+                lltl::pphash<char, tk::Widget>      sMapping;
+                lltl::parray<tk::Widget>            vWidgets;
+
+            protected:
+                void                        do_destroy();
 
             public:
                 explicit Module(const meta::plugin_t *meta);
@@ -89,6 +96,29 @@ namespace lsp
                  */
                 virtual void                kvt_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value);
 
+                /**
+                 * Add widget
+                 * @param w widget to add
+                 * @return status of operation
+                 */
+                status_t                    add_widget(tk::Widget *w);
+
+                /**
+                 * Map widget (assign unique identifier)
+                 * @param uid unique identifier of widget
+                 * @param w widget to map
+                 * @return status of operation
+                 */
+                status_t                    map_widget(const char *uid, tk::Widget *w);
+                status_t                    map_widget(const LSPString *uid, tk::Widget *w);
+
+                /**
+                 * Map widget (assign unique identifier)
+                 * @param uid unique identifier of widget
+                 * @return the resolved widget or NULL
+                 */
+                tk::Widget                 *find_widget(const char *uid);
+                tk::Widget                 *find_widget(const LSPString *uid);
         };
     }
 }

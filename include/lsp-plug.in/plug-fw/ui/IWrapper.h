@@ -36,6 +36,11 @@
 
 namespace lsp
 {
+    namespace ctl
+    {
+        class Widget;
+    }
+
     namespace ui
     {
         class Module;
@@ -63,8 +68,8 @@ namespace lsp
                 lltl::parray<IPort>         vConfigPorts;       // Configuration ports
                 lltl::parray<IPort>         vTimePorts;         // Time-related ports
                 lltl::parray<IPort>         vCustomPorts;       // Custom-defined ports
-                lltl::parray<tk::Widget>    vTkWidgets;         // Widgets
                 lltl::pphash<LSPString, LSPString> vAliases;    // Port aliases
+                lltl::parray<ctl::Widget>   vControllers;       // Controllers
 
                 bool                        bSaveConfig;        // Save configuration flag
 
@@ -173,7 +178,5 @@ namespace lsp
     }
 
 } /* namespace lsp */
-
-
 
 #endif /* LSP_PLUG_IN_PLUG_FW_UI_IWRAPPER_H_ */

@@ -42,5 +42,4 @@
     #include <lsp-plug.in/plug-fw/ui/Factory.h>
 #undef LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
 
-
 #endif /* LSP_PLUG_IN_PLUG_FW_UI_H_ */

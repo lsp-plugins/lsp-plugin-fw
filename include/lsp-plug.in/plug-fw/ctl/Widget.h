@@ -26,7 +26,9 @@
 #include <lsp-plug.in/tk/tk.h>
 
 #include <lsp-plug.in/plug-fw/ui.h>
+
 #include <lsp-plug.in/plug-fw/ctl/types.h>
+#include <lsp-plug.in/plug-fw/ctl/Expression.h>
 
 namespace lsp
 {
@@ -46,19 +48,14 @@ namespace lsp
                 tk::Widget         *pWidget;
 
 //                CtlColor        sBgColor;
-//
-//                CtlExpression   sVisibility;
-//                CtlExpression   sBright;
-//                char           *pVisibilityID;
-//                ssize_t         nVisible;
-//                ssize_t         nVisibilityKey;
-//                bool            bVisibilitySet;
-//                bool            bVisibilityKeySet;
-//
-//                ssize_t         nMinWidth;
-//                ssize_t         nMinHeight;
 
-//            protected:
+                Expression          sVisibility;
+                Expression          sBright;
+
+            protected:
+                static bool         set_padding(tk::Padding *pad, const char *name, const char *value);
+                static bool         set_allocation(tk::Allocation *alloc, const char *name, const char *value);
+                static bool         set_constraints(tk::SizeConstraints *c, const char *name, const char *value);
 //                void            init_color(color_t value, Color *color);
 //                void            init_color(color_t value, LSPColor *color);
 //                void            set_lc_attr(widget_attribute_t att, LSPLocalString *s, const char *name, const char *value);
@@ -91,13 +88,6 @@ namespace lsp
                  */
                 virtual void        set(const char *name, const char *value);
 
-//                /** Set attribute to widget controller
-//                 *
-//                 * @param att attribute identifier
-//                 * @param value attribute value
-//                 */
-//                virtual void set(widget_attribute_t att, const char *value);
-
                 /** Begin internal part of controller
                  *
                  */
@@ -119,13 +109,6 @@ namespace lsp
                  * @param port port triggered change
                  */
                 virtual void        notify(ui::IPort *port);
-
-                /**
-                 * Resolve widget by it's unique identifier
-                 * @param uid unique widget identifier
-                 * @return pointer to resolved widget or NULL
-                 */
-                virtual tk::Widget *resolve(const char *uid);
 
             //---------------------------------------------------------------------------------
             // Metadata, casting and type information
