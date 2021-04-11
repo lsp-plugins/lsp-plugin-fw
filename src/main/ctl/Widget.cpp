@@ -30,7 +30,7 @@ namespace lsp
         Widget::Widget(ui::IWrapper *src, tk::Widget *widget)
         {
             pClass          = &metadata;
-            pRegistry       = src;
+            pWrapper        = src;
             pWidget         = widget;
         }
 
@@ -147,30 +147,13 @@ namespace lsp
                 sBright.parse(value);
             else if (!strcmp(name, "bright"))
                 sBright.parse(value);
+            else if (!strcmp(name, "ui:id"))
+                pWrapper->ui()->map_widget(value, pWidget);
 
             set_padding(pWidget->padding(), name, value);
             set_allocation(pWidget->allocation(), name, value);
-
-//            widget_attribute_t att = widget_attribute(name);
-//            if (att != A_UNKNOWN)
-//                set(att, value);
+            sBgColor.set(name, value);
         }
-//
-//        void Widget::set(widget_attribute_t att, const char *value)
-//        {
-//            if (pWidget == NULL)
-//                return;
-//
-//            switch (att)
-//            {
-//                case A_WUID:
-//                    pWidget->set_unique_id(value);
-//                    break;
-//                default:
-//                    sBgColor.set(att, value);
-//                    break;
-//            }
-//        }
 
         status_t Widget::add(Widget *child)
         {
@@ -179,10 +162,11 @@ namespace lsp
 
         status_t Widget::init()
         {
-//            sVisibility.init(pRegistry, this);
-//            sBright.init(pRegistry, this);
-//            if (pWidget != NULL)
-//                sBgColor.init_basic(pRegistry, pWidget, pWidget->bg_color(), A_BG_COLOR);
+            sVisibility.init(pWrapper, this);
+            sBright.init(pWrapper, this);
+            if (pWidget != NULL)
+                sBgColor.init(pWrapper, pWidget->bg_color(), "bg");
+
             return STATUS_OK;
         }
 

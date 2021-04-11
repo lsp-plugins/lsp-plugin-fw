@@ -48,11 +48,10 @@ namespace lsp
 
             protected:
                 const ctl_class_t  *pClass;
-                ui::IWrapper       *pRegistry;
+                ui::IWrapper       *pWrapper;
                 tk::Widget         *pWidget;
 
-//                CtlColor        sBgColor;
-
+                ctl::Color          sBgColor;
                 Expression          sVisibility;
                 Expression          sBright;
 

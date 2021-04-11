@@ -111,9 +111,7 @@ namespace lsp
             expr::value_t value;
             expr::init_value(&value);
 
-            sVars.clear();
-            drop_dependencies();
-            status_t res = sExpr.evaluate(&value);
+            status_t res = evaluate(&value);
             if (res != STATUS_OK)
             {
                 expr::destroy_value(&value);
@@ -132,9 +130,7 @@ namespace lsp
             expr::value_t value;
             expr::init_value(&value);
 
-            sVars.clear();
-            drop_dependencies();
-            status_t res = sExpr.evaluate(idx, &value);
+            status_t res = evaluate(idx, &value);
             if (res != STATUS_OK)
             {
                 expr::destroy_value(&value);
@@ -146,6 +142,20 @@ namespace lsp
             fval = (value.type == expr::VT_FLOAT) ? value.v_float : 0.0f;
             expr::destroy_value(&value);
             return fval;
+        }
+
+        status_t Expression::evaluate(expr::value_t *value)
+        {
+            sVars.clear();
+            drop_dependencies();
+            return sExpr.evaluate(value);
+        }
+
+        status_t Expression::evaluate(size_t idx, expr::value_t *value)
+        {
+            sVars.clear();
+            drop_dependencies();
+            return sExpr.evaluate(idx, value);
         }
 
         float Expression::result(size_t idx)

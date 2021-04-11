@@ -99,6 +99,9 @@ namespace lsp
 
                 float           evaluate();
                 float           evaluate(size_t idx);
+                status_t        evaluate(expr::value_t *value);
+                status_t        evaluate(size_t idx, expr::value_t *value);
+
                 inline size_t   results()                       { return sExpr.results(); }
                 float           result(size_t idx);
                 bool            parse(const char *expr, size_t flags = expr::Expression::FLAG_NONE);

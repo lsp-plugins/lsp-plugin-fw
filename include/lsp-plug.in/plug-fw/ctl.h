@@ -29,6 +29,7 @@
     #include <lsp-plug.in/plug-fw/ctl/parse.h>
 
     #include <lsp-plug.in/plug-fw/ctl/Expression.h>
+    #include <lsp-plug.in/plug-fw/ctl/Color.h>
 
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
