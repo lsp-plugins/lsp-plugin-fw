@@ -44,8 +44,6 @@ namespace lsp
 
             status_t RootNode::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
             {
-                status_t res;
-
                 // Check that root tag is valid
                 if (!name->equals_ascii("plugin"))
                 {
@@ -53,25 +51,10 @@ namespace lsp
                     return STATUS_CORRUPTED;
                 }
 
-                // Create widget
-                ctl::Widget *widget     = pContext->create_widget(name);
+                // Create and initialize widget
+                ctl::Widget *widget     = pContext->create_widget(name, atts);
                 if (widget == NULL)
                     return STATUS_OK;       // No handler
-                if ((res = widget->init()) != STATUS_OK)
-                    return res; // Do not delete widget since it will be deleted automatically
-
-                // Initialize widget parameters
-                for ( ; *atts != NULL; atts += 2)
-                {
-                    LSPString aname, avalue;
-                    if ((res = pContext->eval_string(&aname, atts[0])) != STATUS_OK)
-                        return res;
-                    if ((res = pContext->eval_string(&avalue, atts[1])) != STATUS_OK)
-                        return res;
-
-                    // Set widget attribute
-                    widget->set(aname.get_utf8(), avalue.get_utf8());
-                }
 
                 // Create handler
                 pChild = new WidgetNode(pContext, widget);

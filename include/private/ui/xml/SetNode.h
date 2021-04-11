@@ -22,7 +22,8 @@
 #ifndef PRIVATE_UI_XML_SETNODE_H_
 #define PRIVATE_UI_XML_SETNODE_H_
 
-#include <private/ui/UIContext.h>
+#include <lsp-plug.in/plug-fw/ui.h>
+
 #include <private/ui/xml/Node.h>
 
 namespace lsp

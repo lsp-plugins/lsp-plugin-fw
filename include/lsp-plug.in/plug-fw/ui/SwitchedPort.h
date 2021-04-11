@@ -28,6 +28,8 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
+#include <lsp-plug.in/plug-fw/ui/IPort.h>
+#include <lsp-plug.in/plug-fw/ui/IPortListener.h>
 
 namespace lsp
 {

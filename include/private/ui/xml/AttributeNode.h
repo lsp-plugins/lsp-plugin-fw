@@ -23,8 +23,8 @@
 #define UI_XML_ATTRIBUTENODE_H_
 
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/ui.h>
 
-#include <private/ui/UIContext.h>
 #include <private/ui/xml/Node.h>
 #include <private/ui/xml/PlaybackNode.h>
 

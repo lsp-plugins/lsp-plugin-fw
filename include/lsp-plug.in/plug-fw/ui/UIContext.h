@@ -19,17 +19,27 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef PRIVATE_UI_UICONTEXT_H_
-#define PRIVATE_UI_UICONTEXT_H_
+#ifndef LSP_PLUG_IN_UI_UICONTEXT_H_
+#define LSP_PLUG_IN_UI_UICONTEXT_H_
 
-#include <lsp-plug.in/plug-fw/ui.h>
-#include <lsp-plug.in/plug-fw/ctl.h>
+#ifndef LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
+    #error "Use #include <lsp-plug.in/plug-fw/ui/ui.h>"
+#endif /* LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_ */
+
+#include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/ui/IWrapper.h>
+#include <lsp-plug.in/plug-fw/ui/Module.h>
 
 #include <lsp-plug.in/expr/Expression.h>
 #include <lsp-plug.in/expr/Variables.h>
 
 namespace lsp
 {
+    namespace ctl
+    {
+        class Widget;
+    }
+
     namespace ui
     {
         /**
@@ -140,11 +150,10 @@ namespace lsp
                  * @param name the tag name of the widget
                  * @return pointer to widget controller
                  */
-                ctl::Widget *create_widget(const char *name);
-                ctl::Widget *create_widget(const LSPString *name);
+                ctl::Widget *create_widget(const LSPString *name, const LSPString * const *atts);
 
         };
     }
 }
 
-#endif /* PRIVATE_UI_UICONTEXT_H_ */
+#endif /* LSP_PLUG_IN_UI_UICONTEXT_H_ */

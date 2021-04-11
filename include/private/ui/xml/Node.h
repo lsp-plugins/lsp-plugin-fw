@@ -24,8 +24,7 @@
 
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/runtime/LSPString.h>
-
-#include <private/ui/UIContext.h>
+#include <lsp-plug.in/plug-fw/ui.h>
 
 namespace lsp
 {

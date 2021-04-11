@@ -24,13 +24,14 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
-#include <lsp-plug.in/plug-fw/ctl/types.h>
-#include <lsp-plug.in/plug-fw/ctl/parse.h>
+#define LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
+    #include <lsp-plug.in/plug-fw/ctl/types.h>
+    #include <lsp-plug.in/plug-fw/ctl/parse.h>
 
-#include <lsp-plug.in/plug-fw/ctl/Expression.h>
+    #include <lsp-plug.in/plug-fw/ctl/Expression.h>
 
-#include <lsp-plug.in/plug-fw/ctl/Widget.h>
-
-
+    #include <lsp-plug.in/plug-fw/ctl/Widget.h>
+    #include <lsp-plug.in/plug-fw/ctl/Factory.h>
+#undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_H_ */

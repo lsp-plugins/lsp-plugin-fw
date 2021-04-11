@@ -56,7 +56,7 @@ namespace lsp
                     // Try to instantiate proper node handler
                     for (NodeFactory *f  = NodeFactory::root(); f != NULL; f   = f->next())
                     {
-                        if ((res = f->create_element(&pSpecial, pContext, this, name, atts)) == STATUS_OK)
+                        if ((res = f->create(&pSpecial, pContext, this, name, atts)) == STATUS_OK)
                         {
                             *child  = pSpecial;
                             return res;
@@ -69,25 +69,10 @@ namespace lsp
                     return STATUS_CORRUPTED;
                 }
 
-                // Create widget
-                ctl::Widget *widget         = pContext->create_widget(name);
+                // Create and initialize widget
+                ctl::Widget *widget         = pContext->create_widget(name, atts);
                 if (widget == NULL)
                     return STATUS_OK;       // No handler
-                if ((res = widget->init()) != STATUS_OK)
-                    return res;
-
-                // Initialize pWidget parameters
-                for ( ; *atts != NULL; atts += 2)
-                {
-                    LSPString aname, avalue;
-                    if ((res = pContext->eval_string(&aname, atts[0])) != STATUS_OK)
-                        return res;
-                    if ((res = pContext->eval_string(&avalue, atts[1])) != STATUS_OK)
-                        return res;
-
-                    // Set widget attribute
-                    widget->set(aname.get_utf8(), avalue.get_utf8());
-                }
 
                 // Create handler
                 pChild = new WidgetNode(pContext, widget);

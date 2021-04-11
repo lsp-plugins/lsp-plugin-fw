@@ -21,8 +21,8 @@
 
 #include <lsp-plug.in/common/debug.h>
 
-#include <lsp-plug.in/plug-fw/ui/PortResolver.h>
-#include <private/ui/UIContext.h>
+#include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/ctl.h>
 
 namespace lsp
 {
@@ -36,16 +36,17 @@ namespace lsp
 
         UIContext::~UIContext()
         {
+            // Destroy the stack
             for (size_t i=0, n=vStack.size(); i<n; ++i)
             {
                 expr::Resolver *r = vStack.uget(i);
                 if (r != NULL)
                     delete r;
             }
-
-            vRoot.set_resolver(NULL);
             vStack.flush();
 
+            // Clear the resolver
+            vRoot.set_resolver(NULL);
             if (pResolver != NULL)
             {
                 delete pResolver;
@@ -183,16 +184,52 @@ namespace lsp
             return STATUS_OK;
         }
 
-        ctl::Widget *UIContext::create_widget(const char *name)
+        ctl::Widget *UIContext::create_widget(const LSPString *name, const LSPString * const *atts)
         {
-            // TODO
-            return NULL;
-        }
+            status_t res;
+            if (name == NULL)
+                return NULL;
 
-        ctl::Widget *UIContext::create_widget(const LSPString *name)
-        {
-            // TODO
-            return NULL;
+            // Instantiate the widget
+            ctl::Widget *w = NULL;
+
+            for (ctl::Factory *f = ctl::Factory::root(); f != NULL; f = f->next())
+            {
+                status_t res = f->create(&w, this, name);
+                if (res == STATUS_OK)
+                    break;
+                if (res != STATUS_NOT_FOUND)
+                    return NULL;
+            }
+
+            if (w == NULL)
+                return NULL;
+
+            // Add to controller
+            if (!pWrapper->vControllers.add(w))
+            {
+                delete w;
+                return NULL;
+            }
+
+            // Initialize wiget
+            if ((w->init()) != STATUS_OK)
+                return NULL;
+
+            // Initialize widget attributes
+            for ( ; *atts != NULL; atts += 2)
+            {
+                LSPString aname, avalue;
+                if ((res = eval_string(&aname, atts[0])) != STATUS_OK)
+                    return NULL;
+                if ((res = eval_string(&avalue, atts[1])) != STATUS_OK)
+                    return NULL;
+
+                // Set widget attribute
+                w->set(aname.get_utf8(), avalue.get_utf8());
+            }
+
+            return w;
         }
     }
 }

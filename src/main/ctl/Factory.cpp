@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 10 апр. 2021 г.
+ * Created on: 11 апр. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,32 +19,29 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <private/ui/xml/NodeFactory.h>
+#include <lsp-plug.in/plug-fw/ctl.h>
 
 namespace lsp
 {
-    namespace ui
+    namespace ctl
     {
-        namespace xml
+        Factory *Factory::pRoot     = NULL;
+
+        Factory::Factory()
         {
-            NodeFactory *NodeFactory::pRoot      = NULL;
+            pNext           = pRoot;
+            pRoot           = this;
+        }
 
-            NodeFactory::NodeFactory()
-            {
-                pNext   = pRoot;
-                pRoot   = this;
-            }
+        Factory::~Factory()
+        {
+            pRoot           = NULL;
+            pNext           = NULL;
+        }
 
-            NodeFactory::~NodeFactory()
-            {
-                pRoot   = NULL;
-            }
-
-            status_t NodeFactory::create(Node **child, UIContext *context, Node *parent, const LSPString *name, const LSPString * const *atts)
-            {
-                return STATUS_NOT_FOUND;
-            }
-
+        status_t Factory::create(Widget **ctl, ui::UIContext *context, const LSPString *name)
+        {
+            return STATUS_NOT_FOUND;
         }
     }
 }

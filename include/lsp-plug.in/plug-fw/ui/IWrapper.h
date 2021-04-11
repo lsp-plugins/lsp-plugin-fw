@@ -27,12 +27,16 @@
 #endif /* LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/resource/ILoader.h>
 #include <lsp-plug.in/resource/Environment.h>
 #include <lsp-plug.in/tk/tk.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
+#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+
+#include <lsp-plug.in/plug-fw/ui/IPort.h>
+#include <lsp-plug.in/plug-fw/ui/Module.h>
+#include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
 
 namespace lsp
 {
@@ -44,7 +48,6 @@ namespace lsp
     namespace ui
     {
         class Module;
-        class SwitchedPort;
 
         /**
          * UI wrapper
@@ -57,6 +60,7 @@ namespace lsp
                 friend class ControlPort;
                 friend class PathPort;
                 friend class SwitchedPort;
+                friend class UIContext;
 
             protected:
                 ui::Module                 *pUI;

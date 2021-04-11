@@ -19,7 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/ui/PortResolver.h>
+#include <lsp-plug.in/plug-fw/ui.h>
 
 namespace lsp
 {

@@ -22,6 +22,10 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_PARSE_H_
 #define LSP_PLUG_IN_PLUG_FW_CTL_PARSE_H_
 
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
+    #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
+
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/common/types.h>

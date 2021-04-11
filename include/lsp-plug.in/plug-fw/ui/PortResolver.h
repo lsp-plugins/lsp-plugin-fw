@@ -25,12 +25,13 @@
 #include <lsp-plug.in/expr/Resolver.h>
 #include <lsp-plug.in/expr/Expression.h>
 
-#include <lsp-plug.in/plug-fw/ui.h>
-
 namespace lsp
 {
     namespace ui
     {
+        class IWrapper;
+        class IPort;
+
         /**
          * Port resolver, resolves port by the port name
          */

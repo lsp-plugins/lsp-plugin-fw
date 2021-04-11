@@ -23,8 +23,8 @@
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 
-#include <private/ui/UIContext.h>
 #include <private/ui/xml/Handler.h>
+#include <private/ui/xml/RootNode.h>
 
 namespace lsp
 {
@@ -485,11 +485,10 @@ namespace lsp
             if (res != STATUS_OK)
                 return res;
 
-            // TODO
-//            RootNode root(this);
-//            xml::Handler handler(pLoader);
-//            return handler.parse_resource(path, &root);
-            return STATUS_OK;
+            // Parse the XML document
+            xml::RootNode root(&ctx);
+            xml::Handler handler(pLoader);
+            return handler.parse_resource(path, &root);
         }
     }
 } /* namespace lsp */

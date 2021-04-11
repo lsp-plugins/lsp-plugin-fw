@@ -22,7 +22,8 @@
 #ifndef PRIVATE_UI_XML_NODEFACTORY_H_
 #define PRIVATE_UI_XML_NODEFACTORY_H_
 
-#include <private/ui/UIContext.h>
+#include <lsp-plug.in/plug-fw/ui.h>
+
 #include <private/ui/xml/Node.h>
 
 namespace lsp
@@ -68,7 +69,7 @@ namespace lsp
                      * @param atts list of key=value attributes of the node (the last key element should be NULL)
                      * @return status of operation, STATUS_NOT_FOUND if there is no supported node for this factory
                      */
-                    virtual status_t    create_element(Node **child, UIContext *context, Node *parent, const LSPString *name, const LSPString * const *atts);
+                    virtual status_t    create(Node **child, UIContext *context, Node *parent, const LSPString *name, const LSPString * const *atts);
             };
 
             #define NODE_FACTORY_IMPL_START(fname) \
@@ -79,7 +80,7 @@ namespace lsp
                         virtual ~fname ## Factory() {} \
                     \
                     public: \
-                        virtual status_t create_element(Node **child, UIContext *context, Node *parent, const LSPString *name, const LSPString * const *atts) \
+                        virtual status_t create(Node **child, UIContext *context, Node *parent, const LSPString *name, const LSPString * const *atts) \
                         {
 
             #define NODE_FACTORY_IMPL_END(fname) \

@@ -23,8 +23,8 @@
 #define PRIVATE_UI_XML_WIDGETNODE_H_
 
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/plug-fw/ui.h>
 
-#include <private/ui/UIContext.h>
 #include <private/ui/xml/Node.h>
 #include <private/ui/xml/NodeFactory.h>
 
