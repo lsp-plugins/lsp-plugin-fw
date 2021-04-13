@@ -142,7 +142,9 @@ namespace lsp
                 return;
 
             if (!strcmp(name, "visibility"))
-                sVisibility.parse(value);
+                BIND_EXPR(sVisibility, value)
+            else if (!strcmp(name, "visible"))
+                BIND_EXPR(sVisibility, value)
             else if (!strcmp(name, "brightness"))
                 sBright.parse(value);
             else if (!strcmp(name, "bright"))
@@ -214,8 +216,14 @@ namespace lsp
 
         void Widget::destroy()
         {
+            if ((pWrapper != NULL) && (pWidget != NULL))
+                pWrapper->ui()->unmap_widget(pWidget);
+
             sVisibility.destroy();
             sBright.destroy();
+
+            pWrapper    = NULL;
+            pWidget     = NULL;
         }
 
     }

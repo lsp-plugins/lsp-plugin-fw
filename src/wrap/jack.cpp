@@ -471,13 +471,6 @@ namespace lsp
                     jack_destroy_wrapper(w);
                     return res;
                 }
-
-                // Initialize plugin UI
-                if ((res = w->pUI->init(w->pUIWrapper)) != STATUS_OK)
-                {
-                    jack_destroy_wrapper(w);
-                    return res;
-                }
             }
 
             // TODO: Load configuration (if specified in parameters)
@@ -565,7 +558,11 @@ namespace lsp
 
                 // Perform main event loop for the UI
                 if (w->pUIWrapper != NULL)
+                {
                     w->pUIWrapper->main_iteration();
+                    if (!w->bInterrupt)
+                        w->bInterrupt   = w->pUIWrapper->main_loop_interrupted();
+                }
 
                 // Perform a small sleep before new iteration
                 system::get_time(&ctime);

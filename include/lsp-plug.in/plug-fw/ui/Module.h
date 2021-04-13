@@ -52,11 +52,13 @@ namespace lsp
             protected:
                 const meta::plugin_t               *pMetadata;
                 IWrapper                           *pWrapper;
+                tk::Display                        *pDisplay;           // Display object
                 lltl::pphash<char, tk::Widget>      sMapping;
                 lltl::parray<tk::Widget>            vWidgets;
 
             protected:
                 void                        do_destroy();
+                bool                        remove_item(lltl::parray<tk::Widget> *slist, tk::Widget *w);
 
             public:
                 explicit Module(const meta::plugin_t *meta);
@@ -65,9 +67,10 @@ namespace lsp
                 /** Initialize UI
                  *
                  * @param wrapper plugin wrapper
+                 * @param dpy display object
                  * @return status of operation
                  */
-                virtual status_t            init(IWrapper *wrapper);
+                virtual status_t            init(IWrapper *wrapper, tk::Display *dpy);
 
                 /**
                  * Destroy the UI
@@ -75,8 +78,9 @@ namespace lsp
                 virtual void                destroy();
 
             public:
-                inline const meta::plugin_t    *metadata() const        { return pMetadata;         };
-                inline IWrapper                *wrapper()               { return pWrapper;          };
+                inline const meta::plugin_t    *metadata() const        { return pMetadata;         }
+                inline IWrapper                *wrapper()               { return pWrapper;          }
+                inline tk::Display             *display()               { return pDisplay;          }
 
             public:
                 /** Method executed when the time position of plugin was updated
@@ -112,6 +116,29 @@ namespace lsp
                  */
                 status_t                    map_widget(const char *uid, tk::Widget *w);
                 status_t                    map_widget(const LSPString *uid, tk::Widget *w);
+
+                /**
+                 * Unmap widget by it's identifier
+                 * @param uid unique widget identifier
+                 * @return status of operation
+                 */
+                status_t                    unmap_widget(const char *uid);
+                status_t                    unmap_widget(const LSPString *uid);
+
+                /**
+                 * Unmap widget by it's pointer to the instance
+                 * @param w pointer to widget instance
+                 * @return status of operation
+                 */
+                status_t                    unmap_widget(const tk::Widget *w);
+
+                /**
+                 * Unmap all widgets passed as arguments
+                 * @param w pointer to array of widgets
+                 * @param n size of array
+                 * @return number of unmapped widgets or negative error code
+                 */
+                ssize_t                     unmap_widgets(const tk::Widget * const *w, size_t n);
 
                 /**
                  * Map widget (assign unique identifier)

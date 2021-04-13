@@ -43,8 +43,8 @@ namespace lsp
         class UIWrapper: public ui::IWrapper
         {
             protected:
-                plug::Module       *pPlugin;
-                jack::Wrapper      *pWrapper;
+                plug::Module                   *pPlugin;
+                jack::Wrapper                  *pWrapper;
 
                 atomic_t                        nPosition;          // Position counter
                 plug::position_t                sPosition;          // Actual time position
@@ -146,6 +146,10 @@ namespace lsp
             if (pDisplay == NULL)
                 return STATUS_NO_MEM;
             if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
+                return res;
+
+            // Initialize the UI
+            if ((res = pUI->init(this, pDisplay)) != STATUS_OK)
                 return res;
 
             // Build the UI

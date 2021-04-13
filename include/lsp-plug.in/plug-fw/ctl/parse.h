@@ -89,6 +89,16 @@
 
 #define PARSE_FLAG(var, dst, flag) PARSE_BOOL(var, if (__) dst |= (flag); else dst &= ~(flag))
 
+#define BIND_PORT(ctl, field, id) \
+    { \
+        field   = ctl->port(id); \
+        if (field != NULL) \
+            field->bind(this); \
+    }
+
+#define BIND_EXPR(field, expr) \
+    (field).parse(expr);
+
 namespace lsp
 {
     namespace ctl

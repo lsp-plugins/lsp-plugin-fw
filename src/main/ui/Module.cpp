@@ -29,6 +29,7 @@ namespace lsp
         {
             pMetadata       = meta;
             pWrapper        = NULL;
+            pDisplay        = NULL;
         }
 
         Module::~Module()
@@ -58,9 +59,10 @@ namespace lsp
             vWidgets.flush();
         }
 
-        status_t Module::init(IWrapper *wrapper)
+        status_t Module::init(IWrapper *wrapper, tk::Display *dpy)
         {
             pWrapper        = wrapper;
+            pDisplay        = dpy;
 
             return STATUS_OK;
         }
@@ -104,6 +106,90 @@ namespace lsp
         tk::Widget *Module::find_widget(const LSPString *uid)
         {
             return (uid != NULL) ? find_widget(uid->get_utf8()) : NULL;
+        }
+
+        status_t Module::unmap_widget(const char *uid)
+        {
+            return (sMapping.remove(uid, NULL)) ? STATUS_OK : STATUS_NOT_FOUND;
+        }
+
+        status_t Module::unmap_widget(const LSPString *uid)
+        {
+            return unmap_widget(uid->get_utf8());
+        }
+
+        status_t Module::unmap_widget(const tk::Widget *w)
+        {
+            // TODO: add two-way mapping
+            lltl::parray<char> keys;
+            lltl::parray<tk::Widget> values;
+
+            if (!sMapping.items(&keys, &values))
+                return STATUS_NO_MEM;
+
+            for (size_t i=0, n=values.size(); i<n; ++i)
+            {
+                tk::Widget *xw = values.uget(i);
+                if (w == xw)
+                {
+                    sMapping.remove(keys.uget(i), NULL);
+                    return STATUS_OK;
+                }
+            }
+
+            return STATUS_NOT_FOUND;
+        }
+
+        ssize_t Module::unmap_widgets(const tk::Widget * const *w, size_t n)
+        {
+            lltl::parray<char> keys;
+            lltl::parray<tk::Widget> values;
+            lltl::parray<tk::Widget> list;
+
+            if (!sMapping.items(&keys, &values))
+                return -STATUS_NO_MEM;
+
+            // Prepare sorted list of widgets
+            if (!list.add_n(n, const_cast<tk::Widget **>(w)))
+                return -STATUS_NO_MEM;
+            list.qsort(lltl::ptr_cmp_func);
+
+            // Do main loop
+            size_t unmapped = 0;
+            for (size_t i=0, n=values.size(); i<n; ++i)
+            {
+                tk::Widget *xw = values.uget(i);
+                if (remove_item(&list, xw))
+                {
+                    sMapping.remove(keys.uget(i), NULL);
+                    ++unmapped;
+                }
+            }
+
+            return unmapped;
+        }
+
+        bool Module::remove_item(lltl::parray<tk::Widget> *slist, tk::Widget *w)
+        {
+            // Use binary search
+            ssize_t first = 0, last = slist->size() - 1;
+            while (first <= last)
+            {
+                ssize_t mid = (first + last) >> 1;
+                tk::Widget *c = slist->uget(mid);
+
+                if (w < c)
+                    last        = mid - 1;
+                else if (w > c)
+                    first       = mid + 1;
+                else
+                {
+                    slist->remove(mid);
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

@@ -70,12 +70,12 @@ namespace lsp
                 /** Initialize widget controller
                  *
                  */
-                virtual status_t init();
+                virtual status_t    init();
 
                 /** Destroy widget controller
                  *
                  */
-                virtual void destroy();
+                virtual void        destroy();
 
             public:
                 /** Get widget

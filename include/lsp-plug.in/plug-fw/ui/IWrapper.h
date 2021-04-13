@@ -63,8 +63,16 @@ namespace lsp
                 friend class UIContext;
 
             protected:
+                enum flags_t
+                {
+                    F_QUIT          = 1 << 0,       // Quit main loop flag
+                    F_SAVE_CONFIG   = 1 << 1        // Save configuration flag
+                };
+
+            protected:
                 ui::Module                 *pUI;
                 resource::ILoader          *pLoader;
+                size_t                      nFlags;             // Flags
 
                 lltl::parray<IPort>         vPorts;             // All possible ports
                 lltl::parray<IPort>         vSortedPorts;       // Alphabetically-sorted ports
@@ -74,8 +82,6 @@ namespace lsp
                 lltl::parray<IPort>         vCustomPorts;       // Custom-defined ports
                 lltl::pphash<LSPString, LSPString> vAliases;    // Port aliases
                 lltl::parray<ctl::Widget>   vControllers;       // Controllers
-
-                bool                        bSaveConfig;        // Save configuration flag
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
@@ -178,6 +184,17 @@ namespace lsp
                  * Request plugin for dump of the internal state
                  */
                 virtual void                dump_state_request();
+
+                /**
+                 * Signal to quit main loop
+                 */
+                void                        quit_main_loop();
+
+                /**
+                 * check that main loop is still active
+                 * @return true if main loop is still active
+                 */
+                inline bool                 main_loop_interrupted() const       { return nFlags & F_QUIT;       }
         };
     }
 

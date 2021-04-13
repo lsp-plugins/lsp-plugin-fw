@@ -69,12 +69,14 @@ namespace lsp
         {
             pUI         = ui;
             pLoader     = loader;
-            bSaveConfig = false;
+            nFlags      = 0;
         }
 
         IWrapper::~IWrapper()
         {
             pUI         = NULL;
+            pLoader     = NULL;
+            nFlags      = 0;
         }
 
         void IWrapper::destroy()
@@ -459,7 +461,17 @@ namespace lsp
 
         void IWrapper::global_config_changed(IPort *src)
         {
-            bSaveConfig     = true;
+            nFlags     |= F_SAVE_CONFIG;
+        }
+
+        void IWrapper::quit_main_loop()
+        {
+            nFlags     |= F_QUIT;
+
+            // Notify display to leave main loop
+            tk::Display *dpy = (pUI != NULL) ? pUI->display() : NULL;
+            if (dpy != NULL)
+                dpy->quit_main();
         }
 
         IPort *IWrapper::port(const LSPString *id)
