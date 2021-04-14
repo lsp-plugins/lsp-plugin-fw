@@ -32,6 +32,7 @@
 
 #include <lsp-plug.in/expr/Expression.h>
 #include <lsp-plug.in/expr/Variables.h>
+#include <lsp-plug.in/tk/tk.h>
 
 namespace lsp
 {
@@ -72,6 +73,12 @@ namespace lsp
                  * @return pointer to the UI wrapper
                  */
                 inline ui::IWrapper    *wrapper()           { return pWrapper;          }
+
+                /**
+                 * Get the display
+                 * @return display
+                 */
+                inline tk::Display     *display()           { return (pWrapper != NULL) ? pWrapper->ui()->display() : NULL; }
 
             public:
                 /**
@@ -152,6 +159,12 @@ namespace lsp
                  */
                 ctl::Widget *create_widget(const LSPString *name, const LSPString * const *atts);
 
+                /**
+                 * Add instantiated widget to the list of widgets
+                 * @param w widget to add
+                 * @return status of operation
+                 */
+                status_t add_widget(tk::Widget *w);
         };
     }
 }

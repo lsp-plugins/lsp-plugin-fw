@@ -497,10 +497,14 @@ namespace lsp
             if (res != STATUS_OK)
                 return res;
 
+            LSPString xpath;
+            if (xpath.fmt_utf8("ui/%s", path) <= 0)
+                return STATUS_NO_MEM;
+
             // Parse the XML document
             xml::RootNode root(&ctx);
             xml::Handler handler(pLoader);
-            return handler.parse_resource(path, &root);
+            return handler.parse_resource(&xpath, &root);
         }
     }
 } /* namespace lsp */

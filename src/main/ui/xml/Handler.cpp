@@ -167,6 +167,7 @@ namespace lsp
                 }
 
                 // Find the resource
+                lsp_trace("Reading resource: %s", path->get_native());
                 io::IInStream  *is = pLoader->read_stream(path);
                 if (is == NULL)
                     return STATUS_NOT_FOUND;

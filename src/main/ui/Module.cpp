@@ -30,6 +30,7 @@ namespace lsp
             pMetadata       = meta;
             pWrapper        = NULL;
             pDisplay        = NULL;
+            wRoot           = NULL;
         }
 
         Module::~Module()
@@ -57,6 +58,9 @@ namespace lsp
                 }
             }
             vWidgets.flush();
+
+            // Forget the root widget
+            wRoot       = NULL;
         }
 
         status_t Module::init(IWrapper *wrapper, tk::Display *dpy)

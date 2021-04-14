@@ -27,6 +27,31 @@ namespace lsp
 {
     namespace ctl
     {
+        CTL_FACTORY_IMPL_START(PluginWindow)
+            status_t res;
+            if (!name->equals_ascii("plugin"))
+                return STATUS_NOT_FOUND;
+
+            tk::Window *twnd    = new tk::Window(context->display());
+            if (twnd == NULL)
+                return STATUS_NO_MEM;
+            if ((res = context->add_widget(twnd)) != STATUS_OK)
+            {
+                delete twnd;
+                return res;
+            }
+
+            if ((res = twnd->init()) != STATUS_OK)
+                return res;
+
+            PluginWindow *wnd   = new PluginWindow(context->wrapper(), twnd);
+            if (wnd == NULL)
+                return STATUS_NO_MEM;
+
+            *ctl = wnd;
+            return STATUS_OK;
+        CTL_FACTORY_IMPL_END(PluginWindow)
+
         const ctl_class_t PluginWindow::metadata = { "PluginWindow", &Widget::metadata };
 
         PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget): Widget(src, widget)

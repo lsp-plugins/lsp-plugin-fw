@@ -56,6 +56,9 @@ namespace lsp
                 if (widget == NULL)
                     return STATUS_OK;       // No handler
 
+                // Remember the root widget
+                pContext->ui()->set_root(widget->widget());
+
                 // Create handler
                 pChild = new WidgetNode(pContext, widget);
                 if (pChild == NULL)

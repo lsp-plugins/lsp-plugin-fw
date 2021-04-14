@@ -471,6 +471,10 @@ namespace lsp
                     jack_destroy_wrapper(w);
                     return res;
                 }
+
+                // Show the widget
+                tk::Widget * wnd = w->pUI->root();
+                wnd->show();
             }
 
             // TODO: Load configuration (if specified in parameters)

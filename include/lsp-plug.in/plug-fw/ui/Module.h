@@ -53,6 +53,7 @@ namespace lsp
                 const meta::plugin_t               *pMetadata;
                 IWrapper                           *pWrapper;
                 tk::Display                        *pDisplay;           // Display object
+                tk::Widget                         *wRoot;              // Root widget (window)
                 lltl::pphash<char, tk::Widget>      sMapping;
                 lltl::parray<tk::Widget>            vWidgets;
 
@@ -81,6 +82,9 @@ namespace lsp
                 inline const meta::plugin_t    *metadata() const        { return pMetadata;         }
                 inline IWrapper                *wrapper()               { return pWrapper;          }
                 inline tk::Display             *display()               { return pDisplay;          }
+                inline tk::Widget              *root()                  { return wRoot;             }
+
+                inline void                     set_root(tk::Widget *root)  { wRoot = root;         }
 
             public:
                 /** Method executed when the time position of plugin was updated

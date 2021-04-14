@@ -83,7 +83,7 @@ namespace lsp
                     virtual ~fname ## Factory() {} \
                 \
                 public: \
-                    virtual status_t create(Widget **ctl, ui::UIContext *context, const LSPString *name); \
+                    virtual status_t create(Widget **ctl, ui::UIContext *context, const LSPString *name) \
                     {
 
         #define CTL_FACTORY_IMPL_END(fname) \

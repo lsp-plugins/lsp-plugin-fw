@@ -231,6 +231,16 @@ namespace lsp
 
             return w;
         }
+
+        status_t UIContext::add_widget(tk::Widget *w)
+        {
+            if (pWrapper == NULL)
+                return STATUS_BAD_STATE;
+            ui::Module *ui = pWrapper->ui();
+            if (ui == NULL)
+                return STATUS_BAD_STATE;
+            return ui->add_widget(w);
+        }
     }
 }
 
