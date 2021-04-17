@@ -68,8 +68,6 @@ namespace lsp
                 ui::IPort                  *pLanguage;
                 ui::IPort                  *pRelPaths;
 
-//                bool                bResizable;
-//                LSPWindow          *pWnd;
 //                LSPWindow          *pMessage;
 //                LSPWidget          *vMStud[3];
 //                LSPMenu            *pMenu;
@@ -83,7 +81,7 @@ namespace lsp
 
             protected:
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
-//                static status_t slot_window_show(LSPWidget *sender, void *ptr, void *data);
+                static status_t slot_window_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_message_close(tk::Widget *sender, void *ptr, void *data);
 //
 //                static status_t slot_export_settings_to_file(LSPWidget *sender, void *ptr, void *data);
@@ -114,13 +112,13 @@ namespace lsp
                 void            do_destroy();
                 status_t        show_notification();
 //                status_t        show_menu(size_t actor_id, void *data);
-                tk::Label      *create_label(tk::WidgetContainer *dst, const char *key, float halign = 0.0f);
-                tk::Label      *create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, float halign = 0.0f);
-                tk::Hyperlink  *create_hlink(tk::WidgetContainer *dst, const char *text, float halign = 0.0f);
+                tk::Label      *create_label(tk::WidgetContainer *dst, const char *key, const char *style_name);
+                tk::Label      *create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, const char *style_name);
+                tk::Hyperlink  *create_hlink(tk::WidgetContainer *dst, const char *text, const char *style_name);
+                static void     inject_style(tk::Widget *widget, const char *style_name);
 //                status_t        init_r3d_support(LSPMenu *menu);
 //                status_t        init_i18n_support(LSPMenu *menu);
-//                bool            has_path_ports();
-//                static status_t follow_url(const LSPString *url);
+                bool            has_path_ports();
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);

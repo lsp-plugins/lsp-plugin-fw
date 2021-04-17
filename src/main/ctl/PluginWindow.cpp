@@ -22,11 +22,13 @@
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
+#include <lsp-plug.in/runtime/system.h>
 
 namespace lsp
 {
     namespace ctl
     {
+        //---------------------------------------------------------------------
         CTL_FACTORY_IMPL_START(PluginWindow)
             status_t res;
             if (!name->equals_ascii("plugin"))
@@ -51,6 +53,10 @@ namespace lsp
             *ctl = wnd;
             return STATUS_OK;
         CTL_FACTORY_IMPL_END(PluginWindow)
+
+        //-----------------------------------------------------------------
+        // MessageBox style
+
 
         const ctl_class_t PluginWindow::metadata = { "PluginWindow", &Widget::metadata };
 
@@ -130,12 +136,12 @@ namespace lsp
             return STATUS_OK;
         }
 
-//        status_t PluginWindow::slot_window_show(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            __this->show_notification();
-//            return STATUS_OK;
-//        }
+        status_t PluginWindow::slot_window_show(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            __this->show_notification();
+            return STATUS_OK;
+        }
 
         void PluginWindow::set(const char *name, const char *value)
         {
@@ -406,10 +412,10 @@ namespace lsp
 //                    mstud->slots()->bind(LSPSLOT_SUBMIT, slot_show_menu_right, this);
 //                    grd->add(mstud);
 //            }
-//
-//            // Bind close handler
+
+            // Bind event handlers
             wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
-//            pWnd->slots()->bind(LSPSLOT_SHOW, slot_window_show, this);
+            wnd->slots()->bind(tk::SLOT_SHOW, slot_window_show, this);
 
             return STATUS_OK;
         }
@@ -645,19 +651,19 @@ namespace lsp
 //
 //            return STATUS_OK;
 //        }
-//
-//        bool PluginWindow::has_path_ports()
-//        {
-//            for (size_t i = 0, n = pUI->ports_count(); i < n; ++i)
-//            {
-//                CtlPort *p = pUI->port_by_index(i);
-//                const port_t *meta = (p != NULL) ? p->metadata() : NULL;
-//                if ((meta != NULL) && (meta->role == R_PATH))
-//                    return true;
-//            }
-//            return false;
-//        }
-//
+
+        bool PluginWindow::has_path_ports()
+        {
+            for (size_t i = 0, n = pWrapper->ports(); i < n; ++i)
+            {
+                ui::IPort *p = pWrapper->port(i);
+                const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
+                if ((meta != NULL) && (meta->role == meta::R_PATH))
+                    return true;
+            }
+            return false;
+        }
+
 //        status_t PluginWindow::slot_select_backend(LSPWidget *sender, void *ptr, void *data)
 //        {
 //            backend_sel_t *sel = reinterpret_cast<backend_sel_t *>(ptr);
@@ -945,7 +951,7 @@ namespace lsp
 //                {
 //                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
 //                    {
-//                        if ((res = follow_url(&spath)) == STATUS_OK)
+//                        if ((res = system::follow_url(&spath)) == STATUS_OK)
 //                            return res;
 //                    }
 //                }
@@ -954,7 +960,7 @@ namespace lsp
 //            // Follow the online documentation
 //            if (spath.fmt_utf8("%s?page=manuals&section=%s", LSP_BASE_URI, meta->lv2_uid))
 //            {
-//                if ((res = follow_url(&spath)) == STATUS_OK)
+//                if ((res = system::follow_url(&spath)) == STATUS_OK)
 //                    return res;
 //            }
 //
@@ -977,7 +983,7 @@ namespace lsp
 //                {
 //                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
 //                    {
-//                        if ((res = follow_url(&spath)) == STATUS_OK)
+//                        if ((res = system::follow_url(&spath)) == STATUS_OK)
 //                            return res;
 //                    }
 //                }
@@ -986,38 +992,11 @@ namespace lsp
 //            // Follow the online documentation
 //            if (spath.fmt_utf8("%s?page=manuals&section=controls", LSP_BASE_URI))
 //            {
-//                if ((res = follow_url(&spath)) == STATUS_OK)
+//                if ((res = system::follow_url(&spath)) == STATUS_OK)
 //                    return res;
 //            }
 //
 //            return STATUS_NOT_FOUND;
-//        }
-//
-//        status_t PluginWindow::follow_url(const LSPString *url)
-//        {
-//            #ifdef PLATFORM_WINDOWS
-//                ::ShellExecuteW(
-//                    NULL,               // Not associated with window
-//                    L"open",            // Open hyperlink
-//                    sUrl.get_utf16(),   // The file to execute
-//                    NULL,               // Parameters
-//                    NULL,               // Directory
-//                    SW_SHOWNORMAL       // Show command
-//                );
-//            #else
-//                status_t res;
-//                ipc::Process p;
-//
-//                if ((res = p.set_command("xdg-open")) != STATUS_OK)
-//                    return STATUS_OK;
-//                if ((res = p.add_arg(url)) != STATUS_OK)
-//                    return STATUS_OK;
-//                if ((res = p.launch()) != STATUS_OK)
-//                    return STATUS_OK;
-//                p.wait();
-//            #endif /* PLATFORM_WINDOWS */
-//
-//            return STATUS_OK;
 //        }
 //
 //        status_t PluginWindow::slot_debug_dump(LSPWidget *sender, void *ptr, void *data)
@@ -1130,7 +1109,14 @@ namespace lsp
 //            return STATUS_OK;
 //        }
 
-        tk::Label *PluginWindow::create_label(tk::WidgetContainer *dst, const char *key, float halign)
+        void PluginWindow::inject_style(tk::Widget *widget, const char *style_name)
+        {
+            tk::Style *style = widget->display()->schema()->get(style_name);
+            if (style != NULL)
+                widget->style()->inject_parent(style);
+        }
+
+        tk::Label *PluginWindow::create_label(tk::WidgetContainer *dst, const char *key, const char *style_name)
         {
             tk::Label *lbl = new tk::Label(pWidget->display());
             lbl->init();
@@ -1138,13 +1124,12 @@ namespace lsp
             dst->add(lbl);
 
             lbl->text()->set(key);
-            lbl->allocation()->set_fill(true);
-            lbl->text_layout()->set(halign, 0.5f);
+            inject_style(lbl, style_name);
 
             return lbl;
         }
 
-        tk::Label *PluginWindow::create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, const float halign)
+        tk::Label *PluginWindow::create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, const char *style_name)
         {
             tk::Label *lbl = new tk::Label(pWidget->display());
             lbl->init();
@@ -1152,53 +1137,58 @@ namespace lsp
             dst->add(lbl);
 
             lbl->text()->set(key, params);
-            lbl->allocation()->set_fill(true);
-            lbl->text_layout()->set(halign, 0.5f);
+            inject_style(lbl, style_name);
 
             return lbl;
         }
 
-        tk::Hyperlink *PluginWindow::create_hlink(tk::WidgetContainer *dst, const char *text, float halign)
+        tk::Hyperlink *PluginWindow::create_hlink(tk::WidgetContainer *dst, const char *text, const char *style_name)
         {
-            tk::Align *algn = new tk::Align(pWidget->display());
-            algn->init();
-            vWidgets.add(algn);
-            algn->layout()->set_halign(halign);
-            dst->add(algn);
+//            tk::Align *algn = new tk::Align(pWidget->display());
+//            algn->init();
+//            vWidgets.add(algn);
+//            algn->layout()->set_halign(halign);
+//            dst->add(algn);
 
             tk::Hyperlink *hlink = new tk::Hyperlink(pWidget->display());
             hlink->init();
             vWidgets.add(hlink);
-            algn->add(hlink);
+            dst->add(hlink);
 
-            hlink->url()->set_raw(text);
-            hlink->text()->set_raw(text);
+            hlink->url()->set(text);
+            hlink->text()->set(text);
+            inject_style(hlink, style_name);
+
             return hlink;
         }
 
 
 // TODO: take this from metadata
 #define LSP_MAIN_VERSION                                "0.0.0"
-#define LSP_FULL_NAME                                   "Linux Studio Plugins Project"
-#define LSP_DONATION_URI1                               "https://salt.bountysource.com/teams/lsp-plugins"
-#define LSP_DONATION_URI2                               "https://liberapay.com/sadko4u/donate"
-#define LSP_BASE_URI                                    "http://lsp-plug.in/"
 
         status_t PluginWindow::show_notification()
         {
+            LSPString key, value;
             tk::Window *wnd = tk::widget_cast<tk::Window>(pWidget);
             if (wnd == NULL)
                 return STATUS_BAD_STATE;
 
+            // Get default dictionary
+            i18n::IDictionary *dict = wnd->display()->dictionary();
+            if (dict != NULL)
+            {
+                if (dict->lookup("default", &dict) != STATUS_OK)
+                    dict = NULL;
+            }
+
             // Check that we really need to show notification window
             if (pPVersion != NULL)
             {
-// TODO
-//                const char *v = pPVersion->buffer<char>();
-//                if ((v != NULL) && (strcmp(LSP_MAIN_VERSION, v) == 0))
-//                    return STATUS_OK;
-//
-//                pPVersion->write(LSP_MAIN_VERSION, strlen(LSP_MAIN_VERSION));
+                const char *v = pPVersion->buffer<char>();
+                if ((v != NULL) && (strcmp(LSP_MAIN_VERSION, v) == 0))
+                    return STATUS_OK;
+
+                pPVersion->write(LSP_MAIN_VERSION, strlen(LSP_MAIN_VERSION));
                 pPVersion->notify_all();
             }
 
@@ -1211,12 +1201,14 @@ namespace lsp
                     return STATUS_NO_MEM;
 
                 vWidgets.add(wMessage);
+
                 wMessage->init();
                 wMessage->border_style()->set(ws::BS_DIALOG);
                 wMessage->title()->set("titles.update_notification");
                 wMessage->actions()->deny_all();
                 wMessage->actions()->set_closeable(true);
-                wMessage->padding()->set_all(16);
+                inject_style(wMessage, "GreetingDialog");
+                //wMessage->padding()->set_all(16);
 
                 tk::Box *vbox = new tk::Box(pWidget->display());
                 vbox->init();
@@ -1227,28 +1219,39 @@ namespace lsp
 
                 expr::Parameters p;
 
-                tk::Label *lbl  = create_label(vbox, "headings.greetings");
-                lbl->font()->set_size(24);
-                lbl->font()->set_bold();
+                tk::Label *lbl  = create_label(vbox, "headings.greetings", "GreetingDialog::Heading");
+//                lbl->font()->set_size(24);
+//                lbl->font()->set_bold();
 
                 p.clear();
                 p.set_cstring("version", LSP_MAIN_VERSION);
-                lbl  = create_plabel(vbox, "messages.greetings.0", &p);
+                lbl  = create_plabel(vbox, "messages.greetings.0", &p, "GreetingDialog::Text");
                 lbl->font()->set_bold();
 
                 p.clear();
-                p.set_cstring("project", LSP_FULL_NAME);
-                lbl  = create_plabel(vbox, "messages.greetings.1", &p);
-                lbl  = create_label(vbox, "messages.greetings.2");
-                create_hlink(vbox, LSP_DONATION_URI1, 0.02);
-                create_hlink(vbox, LSP_DONATION_URI2, 0.02);
+                if (dict->lookup("messages.project.name", &value) == STATUS_OK)
+                    p.set_string("project", &value);
+                lbl  = create_plabel(vbox, "messages.greetings.1", &p, "GreetingDialog::Text");
+                lbl  = create_label(vbox, "messages.greetings.2", "GreetingDialog::Text");
 
-                lbl  = create_label(vbox, "messages.greetings.3");
-                lbl  = create_label(vbox, "messages.greetings.4");
+                // Create list of donation URLs
+                if (dict)
+                {
+                    for (int i=0; ; ++i) {
+                        if (!key.fmt_utf8("messages.donations.%d", i))
+                            break;
+                        if (dict->lookup(&key, &value) != STATUS_OK)
+                            break;
+                        create_hlink(vbox, key.get_utf8(), "GreetingDialog::Hlink");
+                    }
+                }
 
-                lbl  = create_label(vbox, "messages.greetings.5", 1.0f);
-                lbl  = create_label(vbox, LSP_FULL_NAME, 1.0f);
-                create_hlink(vbox, LSP_BASE_URI, 1.0f);
+                lbl  = create_label(vbox, "messages.greetings.3", "GreetingDialog::Text");
+                lbl  = create_label(vbox, "messages.greetings.4", "GreetingDialog::Text");
+
+                lbl  = create_label(vbox, "messages.greetings.5", "GreetingDialog::Postscript");
+                lbl  = create_label(vbox, "messages.project.name", "GreetingDialog::Postscript");
+                create_hlink(vbox, "messages.project.url", "GreetingDialog::PostscriptHlink");
 
                 tk::Align *algn = new tk::Align(pWidget->display());
                 algn->init();

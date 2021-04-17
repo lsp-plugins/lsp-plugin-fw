@@ -164,14 +164,6 @@ namespace lsp
 
         void UIWrapper::destroy()
         {
-            // Destroy the display
-            if (pDisplay != NULL)
-            {
-                pDisplay->destroy();
-                delete pDisplay;
-                pDisplay    = NULL;
-            }
-
             // Call the parent class for destroy
             IWrapper::destroy();
 
@@ -184,6 +176,14 @@ namespace lsp
                 meta::port_t *port = vGenMetadata.uget(i);
                 lsp_trace("destroy generated UI port metadata %p", port);
                 meta::drop_port_metadata(port);
+            }
+
+            // Destroy the display
+            if (pDisplay != NULL)
+            {
+                pDisplay->destroy();
+                delete pDisplay;
+                pDisplay    = NULL;
             }
         }
 
