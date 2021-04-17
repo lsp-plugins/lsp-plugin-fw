@@ -68,6 +68,10 @@ namespace lsp
 
             wBox            = NULL;
             wMessage        = NULL;
+            wRack[0]        = NULL;
+            wRack[1]        = NULL;
+            wRack[2]        = NULL;
+            wMenu           = NULL;
 
             pPMStud         = NULL;
             pPVersion       = NULL;
@@ -175,247 +179,275 @@ namespace lsp
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
 
             // Initialize window
-//            tk::Display *dpy    = wnd->display();
-
             wnd->set_class(meta->lv2_uid, "lsp-plugins");
             wnd->role()->set("audio-plugin");
             wnd->title()->set_raw(meta->name);
+            wnd->layout()->set_scale(1.0f);
 
             if (!wnd->nested())
                 wnd->actions()->deny(ws::WA_RESIZE);
 
-
-//            {
-//                // Initialize menu
-//                pMenu = new LSPMenu(dpy);
-//                pMenu->set_unique_id(WUID_MAIN_MENU);
-//                vWidgets.add(pMenu);
-//                pMenu->init();
-//
-//                // Initialize menu items
-//                {
-//                    // Create 'About Plugin' menu item
-//                    LSPMenu *submenu = new LSPMenu(dpy);
-//                    vWidgets.add(submenu);
-//                    submenu->init();
-//                    submenu->set_unique_id(WUID_EXPORT_MENU);
-//
-//                    // Add 'Plugin manual' menu item
-//                    LSPMenuItem *itm     = new LSPMenuItem(dpy);
-//                    vWidgets.add(itm);
-//                    itm->init();
-//                    itm->text()->set("actions.plugin_manual");
-//                    itm->slots()->bind(LSPSLOT_SUBMIT, slot_show_plugin_manual, this);
-//                    pMenu->add(itm);
-//
-//                    // Add 'UI manual' menu item
-//                    itm                 = new LSPMenuItem(dpy);
-//                    vWidgets.add(itm);
-//                    itm->init();
-//                    itm->text()->set("actions.ui_manual");
-//                    itm->slots()->bind(LSPSLOT_SUBMIT, slot_show_ui_manual, this);
-//                    pMenu->add(itm);
-//
-//
-//                    // Add separator
-//                    itm     = new LSPMenuItem(dpy);
-//                    vWidgets.add(itm);
-//                    itm->init();
-//                    itm->set_separator(true);
-//                    pMenu->add(itm);
-//
-//                    // Create export menu
-//                    submenu = new LSPMenu(dpy);
-//                    vWidgets.add(submenu);
-//                    submenu->init();
-//                    submenu->set_unique_id(WUID_EXPORT_MENU);
-//
-//                    itm = new LSPMenuItem(dpy);
-//                    vWidgets.add(itm);
-//                    itm->init();
-//                    itm->text()->set("actions.export");
-//                    itm->set_submenu(submenu);
-//                    pMenu->add(itm);
-//
-//                    // Create export menu items
-//                    {
-//                        LSPMenuItem *child = new LSPMenuItem(dpy);
-//                        vWidgets.add(child);
-//                        child->init();
-//                        child->text()->set("actions.export_settings_to_file");
-//                        child->slots()->bind(LSPSLOT_SUBMIT, slot_export_settings_to_file, this);
-//                        submenu->add(child);
-//
-//                        child = new LSPMenuItem(dpy);
-//                        vWidgets.add(child);
-//                        child->init();
-//                        child->text()->set("actions.export_settings_to_clipboard");
-//                        child->slots()->bind(LSPSLOT_SUBMIT, slot_export_settings_to_clipboard, this);
-//                        submenu->add(child);
-//                    }
-//
-//                    // Create import menu
-//                    submenu = new LSPMenu(dpy);
-//                    vWidgets.add(submenu);
-//                    submenu->init();
-//                    submenu->set_unique_id(WUID_IMPORT_MENU);
-//
-//                    itm = new LSPMenuItem(dpy);
-//                    vWidgets.add(itm);
-//                    itm->init();
-//                    itm->text()->set("actions.import");
-//                    itm->set_submenu(submenu);
-//                    pMenu->add(itm);
-//
-//                    // Create import menu items
-//                    {
-//                        LSPMenuItem *child = new LSPMenuItem(dpy);
-//                        vWidgets.add(child);
-//                        child->init();
-//                        child->text()->set("actions.import_settings_from_file");
-//                        child->slots()->bind(LSPSLOT_SUBMIT, slot_import_settings_from_file, this);
-//                        submenu->add(child);
-//
-//                        child = new LSPMenuItem(dpy);
-//                        vWidgets.add(child);
-//                        child->init();
-//                        child->text()->set("actions.import_settings_from_clipboard");
-//                        child->slots()->bind(LSPSLOT_SUBMIT, slot_import_settings_from_clipboard, this);
-//                        submenu->add(child);
-//                    }
-//
-//                    // Add separator
-//                    itm     = new LSPMenuItem(dpy);
-//                    vWidgets.add(itm);
-//                    itm->init();
-//                    itm->set_separator(true);
-//                    pMenu->add(itm);
-//
-//                    // Create 'Toggle rack mount' menu item
-//                    itm     = new LSPMenuItem(dpy);
-//                    vWidgets.add(itm);
-//                    itm->init();
-//                    itm->text()->set("actions.toggle_rack_mount");
-//                    itm->slots()->bind(LSPSLOT_SUBMIT, slot_toggle_rack_mount, this);
-//                    pMenu->add(itm);
-//
-//                    // Create 'Dump state' menu item if supported
-//                    if (meta->extensions & E_DUMP_STATE)
-//                    {
-//                        itm     = new LSPMenuItem(dpy);
-//                        vWidgets.add(itm);
-//                        itm->init();
-//                        itm->text()->set("actions.debug_dump");
-//                        itm->slots()->bind(LSPSLOT_SUBMIT, slot_debug_dump, this);
-//                        pMenu->add(itm);
-//                    }
-//
-//                    // Create language selection menu
-//                    init_i18n_support(pMenu);
-//
-//                    // Add support of 3D rendering backend switch
-//                    if (meta->extensions & E_3D_BACKEND)
-//                        init_r3d_support(pMenu);
-//                }
-//
-//                // Initialize main grid
-//                LSPGrid *grd = new LSPGrid(dpy);
-//                vWidgets.add(grd);
-//                pWnd->add(grd);
-//                grd->init();
-//                grd->set_rows(2);
-//                grd->set_columns((pPBypass != NULL) ? 4 : 3);
-//
-//                    // Initialize mount studs
-//                    char buf[80];
-//                    sprintf(buf, "%s  %s", LSP_ACRONYM, meta->acronym);
-//
-//                    LSPMountStud *mstud = new LSPMountStud(dpy);
-//                    vMStud[0] = mstud;
-//                    vWidgets.add(mstud);
-//                    mstud->init();
-//                    mstud->set_angle(2);
-//                    mstud->set_text(buf);
-//                    mstud->font()->set_size(12);
-//                    mstud->slots()->bind(LSPSLOT_SUBMIT, slot_show_menu_top, this);
-//                    grd->add(mstud, 1, (pPBypass != NULL) ? 4 : 3);
-//
-//                    mstud   = new LSPMountStud(dpy);
-//                    vMStud[1] = mstud;
-//                    vWidgets.add(mstud);
-//                    mstud->init();
-//                    mstud->set_angle(1);
-//                    mstud->set_text(LSP_ACRONYM);
-//                    mstud->font()->set_size(16);
-//                    mstud->slots()->bind(LSPSLOT_SUBMIT, slot_show_menu_left, this);
-//                    grd->add(mstud);
-//
-//                    if (pPBypass != NULL)
-//                    {
-//                        LSPBox     *box = new LSPBox(dpy, false);
-//                        vWidgets.add(box);
-//                        box->init();
-//                        box->set_fill(false);
-//                        box->padding()->set_all(4);
-//                        grd->add(box);
-//
-//                        LSPLabel   *lbl = new LSPLabel(dpy);
-//                        vWidgets.add(lbl);
-//                        lbl->init();
-//                        lbl->text()->set("labels.bypass");
-//                        box->add(lbl);
-//
-//                        LSPSwitch  *sw  = new LSPSwitch(dpy);
-//                        vWidgets.add(sw);
-//                        sw->init();
-//                        sw->set_size(24);
-//                        sw->set_angle(1);
-//                        box->add(sw);
-//
-//                        LSPLed *led = new LSPLed(dpy);
-//                        vWidgets.add(led);
-//                        led->init();
-//                        init_color(C_RED, led->color());
-//                        led->set_size(8);
-//                        box->add(led);
-//
-//                        CtlWidget *ctl = new CtlSwitch(pRegistry, sw);
-//                        ctl->init();
-//                        ctl->set("id", pPBypass->metadata()->id);
-//                        ctl->begin();
-//                        ctl->end();
-//                        pRegistry->add_widget(ctl);
-//
-//                        ctl = new CtlLed(pRegistry, led);
-//                        ctl->init();
-//                        ctl->set("id", pPBypass->metadata()->id);
-//                        ctl->begin();
-//                        ctl->end();
-//                        pRegistry->add_widget(ctl);
-//                    }
-//
-//                    pBox    = new LSPBox(dpy);
-//                    vWidgets.add(pBox);
-//                    pBox->init();
-//                    pBox->set_expand(true);
-//                    pBox->set_fill(true);
-//                    pBox->padding()->set_all(2);
-//                    grd->add(pBox);
-//
-//                    mstud   = new LSPMountStud(dpy);
-//                    vMStud[2] = mstud;
-//                    vWidgets.add(mstud);
-//                    mstud->init();
-//                    mstud->set_angle(0);
-//                    mstud->set_text(meta->acronym);
-//                    mstud->font()->set_size(16);
-//                    mstud->slots()->bind(LSPSLOT_SUBMIT, slot_show_menu_right, this);
-//                    grd->add(mstud);
-//            }
+            LSP_STATUS_ASSERT(create_main_menu());
+            LSP_STATUS_ASSERT(init_window_layout());
 
             // Bind event handlers
             wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
             wnd->slots()->bind(tk::SLOT_SHOW, slot_window_show, this);
+
+            return STATUS_OK;
+        }
+
+        i18n::IDictionary  *PluginWindow::get_default_dict(tk::Widget *src)
+        {
+            i18n::IDictionary *dict = src->display()->dictionary();
+            if (dict == NULL)
+                return dict;
+
+            if (dict->lookup("default", &dict) != STATUS_OK)
+                dict = NULL;
+
+            return dict;
+        }
+
+        status_t PluginWindow::create_main_menu()
+        {
+            tk::Window *wnd             = tk::widget_cast<tk::Window>(pWidget);
+            tk::Display *dpy            = wnd->display();
+            const meta::plugin_t *meta  = pWrapper->ui()->metadata();
+
+            // Initialize menu
+            wMenu = new tk::Menu(dpy);
+            pWrapper->ui()->map_widget(WUID_MAIN_MENU, wMenu);
+            vWidgets.add(wMenu);
+            wMenu->init();
+
+            // Initialize menu items
+            {
+                // Add 'Plugin manual' menu item
+                tk::MenuItem *itm       = new tk::MenuItem(dpy);
+                vWidgets.add(itm);
+                itm->init();
+                itm->text()->set("actions.plugin_manual");
+                itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_plugin_manual, this);
+                wMenu->add(itm);
+
+                // Add 'UI manual' menu item
+                itm                     = new tk::MenuItem(dpy);
+                vWidgets.add(itm);
+                itm->init();
+                itm->text()->set("actions.ui_manual");
+                itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_ui_manual, this);
+                wMenu->add(itm);
+
+                // Add separator
+                itm     = new tk::MenuItem(dpy);
+                vWidgets.add(itm);
+                itm->init();
+                itm->type()->set_separator();
+                wMenu->add(itm);
+
+                // Create 'Export' submenu and bind to parent
+                tk::Menu *submenu = new tk::Menu(dpy);
+                vWidgets.add(submenu);
+                submenu->init();
+                pWrapper->ui()->map_widget(WUID_EXPORT_MENU, submenu);
+
+                itm = new tk::MenuItem(dpy);
+                vWidgets.add(itm);
+                itm->init();
+                itm->text()->set("actions.export");
+                itm->menu()->set(submenu);
+                wMenu->add(itm);
+
+                // Create 'Export' menu items
+                {
+                    tk::MenuItem *child = new tk::MenuItem(dpy);
+                    vWidgets.add(child);
+                    child->init();
+                    child->text()->set("actions.export_settings_to_file");
+//                    child->slots()->bind(tk::SLOT_SUBMIT, slot_export_settings_to_file, this);
+                    submenu->add(child);
+
+                    child = new tk::MenuItem(dpy);
+                    vWidgets.add(child);
+                    child->init();
+                    child->text()->set("actions.export_settings_to_clipboard");
+//                    child->slots()->bind(tk::SLOT_SUBMIT, slot_export_settings_to_clipboard, this);
+                    submenu->add(child);
+                }
+
+                // Create 'Import' menu and bind to parent
+                submenu = new tk::Menu(dpy);
+                vWidgets.add(submenu);
+                submenu->init();
+                pWrapper->ui()->map_widget(WUID_IMPORT_MENU, submenu);
+
+                itm = new tk::MenuItem(dpy);
+                vWidgets.add(itm);
+                itm->init();
+                itm->text()->set("actions.import");
+                itm->menu()->set(submenu);
+                wMenu->add(itm);
+
+                // Create import menu items
+                {
+                    tk::MenuItem *child = new tk::MenuItem(dpy);
+                    vWidgets.add(child);
+                    child->init();
+                    child->text()->set("actions.import_settings_from_file");
+//                    child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_file, this);
+                    submenu->add(child);
+
+                    child = new tk::MenuItem(dpy);
+                    vWidgets.add(child);
+                    child->init();
+                    child->text()->set("actions.import_settings_from_clipboard");
+//                    child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_clipboard, this);
+                    submenu->add(child);
+                }
+
+                // Add separator
+                itm     = new tk::MenuItem(dpy);
+                vWidgets.add(itm);
+                itm->init();
+                itm->type()->set_separator();
+                wMenu->add(itm);
+
+                // Create 'Toggle rack mount' menu item
+                itm     = new tk::MenuItem(dpy);
+                vWidgets.add(itm);
+                itm->init();
+                itm->text()->set("actions.toggle_rack_mount");
+//                itm->slots()->bind(tk::SLOT_SUBMIT, slot_toggle_rack_mount, this);
+                wMenu->add(itm);
+
+                // Create 'Dump state' menu item if supported
+                if (meta->extensions & meta::E_DUMP_STATE)
+                {
+                    itm     = new tk::MenuItem(dpy);
+                    vWidgets.add(itm);
+                    itm->init();
+                    itm->text()->set("actions.debug_dump");
+                    itm->slots()->bind(tk::SLOT_SUBMIT, slot_debug_dump, this);
+                    wMenu->add(itm);
+                }
+
+//                // Create language selection menu
+//                init_i18n_support(pMenu);
+//
+//                // Add support of 3D rendering backend switch
+//                if (meta->extensions & E_3D_BACKEND)
+//                    init_r3d_support(pMenu);
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::init_window_layout()
+        {
+            tk::Window *wnd             = tk::widget_cast<tk::Window>(pWidget);
+            tk::Display *dpy            = wnd->display();
+            const meta::plugin_t *meta  = pWrapper->ui()->metadata();
+            inject_style(wnd, "PluginWindow");
+
+            // Get default dictionary
+            i18n::IDictionary *dict     = get_default_dict(wnd);
+
+            // Initialize main grid
+            tk::Grid *grd = new tk::Grid(dpy);
+            vWidgets.add(grd);
+            wnd->add(grd);
+
+            grd->init();
+            grd->rows()->set(2);
+            grd->columns()->set((pPBypass != NULL) ? 4 : 3);
+            inject_style(grd, "PluginWindow::Grid");
+
+            // Initialize rack ears
+            LSPString buf, acronym;
+            if (dict != NULL)
+                dict->lookup("project.acronym", &acronym);
+            buf.fmt_utf8("%s %s", acronym.get_utf8(), meta->acronym);
+
+            // Rack ear at the top
+            tk::RackEars *rk_ear = new tk::RackEars(dpy);
+            wRack[0] = rk_ear;
+            vWidgets.add(rk_ear);
+            rk_ear->init();
+            rk_ear->angle()->set(1);
+            rk_ear->text()->set_raw(&buf);
+            rk_ear->slots()->bind(tk::SLOT_SUBMIT, slot_show_menu, this);
+            inject_style(rk_ear, "PluginWindow::RackEarTop");
+            grd->add(rk_ear, 1, (pPBypass != NULL) ? 4 : 3);
+
+            rk_ear   = new tk::RackEars(dpy);
+            wRack[1] = rk_ear;
+            vWidgets.add(rk_ear);
+            rk_ear->init();
+            rk_ear->angle()->set(2);
+            rk_ear->text()->set_raw(&acronym);
+            rk_ear->slots()->bind(tk::SLOT_SUBMIT, slot_show_menu, this);
+            inject_style(rk_ear, "PluginWindow::RackEarSide");
+            grd->add(rk_ear);
+
+            if (pPBypass != NULL)
+            {
+                tk::Box *box = new tk::Box(dpy);
+                vWidgets.add(box);
+                box->init();
+                box->orientation()->set_vertical();
+                inject_style(box, "PluginWindow::Bypass::Box");
+                grd->add(box);
+
+                tk::Label *lbl = new tk::Label(dpy);
+                vWidgets.add(lbl);
+                lbl->init();
+                lbl->text()->set("labels.bypass");
+                inject_style(lbl, "PluginWindow::Bypass::Label");
+                box->add(lbl);
+
+                tk::Switch *sw  = new tk::Switch(dpy);
+                vWidgets.add(sw);
+                sw->init();
+                inject_style(sw, "PluginWindow::Bypass::Switch");
+                box->add(sw);
+
+                tk::Led *led = new tk::Led(dpy);
+                vWidgets.add(led);
+                led->init();
+                inject_style(led, "PluginWindow::Bypass::Led");
+                box->add(led);
+
+//                CtlWidget *ctl = new CtlSwitch(pRegistry, sw);
+//                ctl->init();
+//                ctl->set("id", pPBypass->metadata()->id);
+//                ctl->begin();
+//                ctl->end();
+//                pRegistry->add_widget(ctl);
+//
+//                ctl = new CtlLed(pRegistry, led);
+//                ctl->init();
+//                ctl->set("id", pPBypass->metadata()->id);
+//                ctl->begin();
+//                ctl->end();
+//                pRegistry->add_widget(ctl);
+            }
+
+            wBox    = new tk::Box(dpy);
+            vWidgets.add(wBox);
+            wBox->init();
+            inject_style(wBox, "PluginWindow::Content");
+            grd->add(wBox);
+
+            rk_ear  = new tk::RackEars(dpy);
+            wRack[2]= rk_ear;
+            vWidgets.add(rk_ear);
+            rk_ear->init();
+            rk_ear->angle()->set(0);
+            rk_ear->text()->set_raw(meta->acronym);
+            rk_ear->slots()->bind(tk::SLOT_SUBMIT, slot_show_menu, this);
+            inject_style(rk_ear, "PluginWindow::RackEarSide");
+            grd->add(rk_ear);
 
             return STATUS_OK;
         }
@@ -770,13 +802,13 @@ namespace lsp
         {
             Widget::notify(port);
 
-//            if (port == pPMStud)
-//            {
-//                bool top    = pPMStud->value() < 0.5f;
-//                vMStud[0]->set_visible(top);
-//                vMStud[1]->set_visible(!top);
-//                vMStud[2]->set_visible(!top);
-//            }
+            if (port == pPMStud)
+            {
+                bool top    = pPMStud->value() < 0.5f;
+                wRack[0]->visibility()->set(top);
+                wRack[1]->visibility()->set(!top);
+                wRack[2]->visibility()->set(!top);
+            }
         }
 
         status_t PluginWindow::add(ctl::Widget *child)
@@ -919,124 +951,112 @@ namespace lsp
 //            return STATUS_OK;
 //        }
 
-//        static const char * manual_prefixes[] =
-//        {
-//            LSP_LIB_PREFIX("/share"),
-//            LSP_LIB_PREFIX("/local/share"),
-//            "/usr/share",
-//            "/usr/local/share",
-//            "/share",
-//            NULL
-//        };
-//
-//        status_t PluginWindow::slot_show_plugin_manual(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            const plugin_metadata_t *meta = __this->pUI->metadata();
-//
-//            io::Path path;
-//            LSPString spath;
-//            status_t res;
-//
-//            // Try to open local documentation
-//            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
-//            {
-//                path.fmt("%s/doc/%s/html/plugins/%s.html",
-//                        *prefix, LSP_ARTIFACT_ID, meta->lv2_uid
-//                    );
-//
-//                lsp_trace("Checking path: %s", path.as_utf8());
-//
-//                if (path.exists())
-//                {
-//                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
-//                    {
-//                        if ((res = system::follow_url(&spath)) == STATUS_OK)
-//                            return res;
-//                    }
-//                }
-//            }
-//
-//            // Follow the online documentation
-//            if (spath.fmt_utf8("%s?page=manuals&section=%s", LSP_BASE_URI, meta->lv2_uid))
-//            {
-//                if ((res = system::follow_url(&spath)) == STATUS_OK)
-//                    return res;
-//            }
-//
-//            return STATUS_NOT_FOUND;
-//        }
-//
-//        status_t PluginWindow::slot_show_ui_manual(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            io::Path path;
-//            LSPString spath;
-//            status_t res;
-//
-//            // Try to open local documentation
-//            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
-//            {
-//                path.fmt("%s/doc/%s/html/constrols.html", *prefix, LSP_ARTIFACT_ID);
-//                lsp_trace("Checking path: %s", path.as_utf8());
-//
-//                if (path.exists())
-//                {
-//                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
-//                    {
-//                        if ((res = system::follow_url(&spath)) == STATUS_OK)
-//                            return res;
-//                    }
-//                }
-//            }
-//
-//            // Follow the online documentation
-//            if (spath.fmt_utf8("%s?page=manuals&section=controls", LSP_BASE_URI))
-//            {
-//                if ((res = system::follow_url(&spath)) == STATUS_OK)
-//                    return res;
-//            }
-//
-//            return STATUS_NOT_FOUND;
-//        }
-//
-//        status_t PluginWindow::slot_debug_dump(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            if (__this->pUI != NULL)
-//                __this->pUI->request_state_dump();
-//
-//            return STATUS_OK;
-//        }
-//
-//        status_t PluginWindow::slot_show_menu_top(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            return __this->show_menu(0, data);
-//        }
-//
-//        status_t PluginWindow::slot_show_menu_left(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            return __this->show_menu(1, data);
-//        }
-//
-//        status_t PluginWindow::slot_show_menu_right(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            return __this->show_menu(2, data);
-//        }
-//
-//        status_t PluginWindow::show_menu(size_t actor_id, void *data)
-//        {
-//            LSPWidget *actor = vMStud[actor_id];
-//            if (data != NULL)
-//            {
-//                ws_event_t *ev = static_cast<ws_event_t *>(data);
-//                return pMenu->show(actor, ev);
-//            }
-//
-//            return pMenu->show(actor);
-//        }
+        static const char * manual_prefixes[] =
+        {
+        #ifdef LSP_LIB_PREFIX
+            LSP_LIB_PREFIX("/share"),
+            LSP_LIB_PREFIX("/local/share"),
+        #endif /*  LSP_LIB_PREFIX */
+            "/usr/share",
+            "/usr/local/share",
+            "/share",
+            NULL
+        };
+
+        status_t PluginWindow::slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            const meta::plugin_t *meta = __this->pWrapper->ui()->metadata();
+
+            io::Path path;
+            LSPString spath;
+            status_t res;
+
+            // Try to open local documentation
+            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
+            {
+                path.fmt("%s/doc/%s/html/plugins/%s.html",
+                        *prefix, "lsp-plugins", meta->lv2_uid
+                    );
+
+                lsp_trace("Checking path: %s", path.as_utf8());
+
+                if (path.exists())
+                {
+                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
+                    {
+                        if ((res = system::follow_url(&spath)) == STATUS_OK)
+                            return res;
+                    }
+                }
+            }
+
+            // Follow the online documentation
+            if (spath.fmt_utf8("%s?page=manuals&section=%s", "https://lsp-plug.in/", meta->lv2_uid))
+            {
+                if ((res = system::follow_url(&spath)) == STATUS_OK)
+                    return res;
+            }
+
+            return STATUS_NOT_FOUND;
+        }
+
+        status_t PluginWindow::slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data)
+        {
+            io::Path path;
+            LSPString spath;
+            status_t res;
+
+            // Try to open local documentation
+            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
+            {
+                path.fmt("%s/doc/%s/html/constrols.html", *prefix, "lsp-plugins");
+                lsp_trace("Checking path: %s", path.as_utf8());
+
+                if (path.exists())
+                {
+                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
+                    {
+                        if ((res = system::follow_url(&spath)) == STATUS_OK)
+                            return res;
+                    }
+                }
+            }
+
+            // Follow the online documentation
+            if (spath.fmt_utf8("%s?page=manuals&section=controls", "https://lsp-plug.in/"))
+            {
+                if ((res = system::follow_url(&spath)) == STATUS_OK)
+                    return res;
+            }
+
+            return STATUS_NOT_FOUND;
+        }
+
+        status_t PluginWindow::slot_debug_dump(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            if (__this->pWrapper != NULL)
+                __this->pWrapper->dump_state_request();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_show_menu(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            return __this->show_menu(sender, data);
+        }
+
+        status_t PluginWindow::show_menu(tk::Widget *actor, void *data)
+        {
+            tk::Menu *menu = tk::widget_ptrcast<tk::Menu>(wMenu);
+            if (menu == NULL)
+                return STATUS_OK;
+
+            menu->show();
+            return STATUS_OK;
+        }
 //
 //        status_t PluginWindow::slot_call_export_settings_to_file(LSPWidget *sender, void *ptr, void *data)
 //        {
@@ -1144,12 +1164,6 @@ namespace lsp
 
         tk::Hyperlink *PluginWindow::create_hlink(tk::WidgetContainer *dst, const char *text, const char *style_name)
         {
-//            tk::Align *algn = new tk::Align(pWidget->display());
-//            algn->init();
-//            vWidgets.add(algn);
-//            algn->layout()->set_halign(halign);
-//            dst->add(algn);
-
             tk::Hyperlink *hlink = new tk::Hyperlink(pWidget->display());
             hlink->init();
             vWidgets.add(hlink);
@@ -1174,12 +1188,7 @@ namespace lsp
                 return STATUS_BAD_STATE;
 
             // Get default dictionary
-            i18n::IDictionary *dict = wnd->display()->dictionary();
-            if (dict != NULL)
-            {
-                if (dict->lookup("default", &dict) != STATUS_OK)
-                    dict = NULL;
-            }
+            i18n::IDictionary *dict     = get_default_dict(wnd);
 
             // Check that we really need to show notification window
             if (pPVersion != NULL)
@@ -1229,8 +1238,10 @@ namespace lsp
                 lbl->font()->set_bold();
 
                 p.clear();
-                if (dict->lookup("messages.project.name", &value) == STATUS_OK)
+                if (dict->lookup("project.name", &value) == STATUS_OK)
                     p.set_string("project", &value);
+                if (dict->lookup("project.acronym", &value) == STATUS_OK)
+                    p.set_string("acronym", &value);
                 lbl  = create_plabel(vbox, "messages.greetings.1", &p, "GreetingDialog::Text");
                 lbl  = create_label(vbox, "messages.greetings.2", "GreetingDialog::Text");
 
@@ -1238,7 +1249,7 @@ namespace lsp
                 if (dict)
                 {
                     for (int i=0; ; ++i) {
-                        if (!key.fmt_utf8("messages.donations.%d", i))
+                        if (!key.fmt_utf8("project.donations.%d", i))
                             break;
                         if (dict->lookup(&key, &value) != STATUS_OK)
                             break;
@@ -1250,8 +1261,8 @@ namespace lsp
                 lbl  = create_label(vbox, "messages.greetings.4", "GreetingDialog::Text");
 
                 lbl  = create_label(vbox, "messages.greetings.5", "GreetingDialog::Postscript");
-                lbl  = create_label(vbox, "messages.project.name", "GreetingDialog::Postscript");
-                create_hlink(vbox, "messages.project.url", "GreetingDialog::PostscriptHlink");
+                lbl  = create_label(vbox, "project.name", "GreetingDialog::Postscript");
+                create_hlink(vbox, "project.url", "GreetingDialog::PostscriptHlink");
 
                 tk::Align *algn = new tk::Align(pWidget->display());
                 algn->init();

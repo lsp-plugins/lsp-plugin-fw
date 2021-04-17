@@ -742,13 +742,13 @@ namespace lsp
 
         jack::Port *Wrapper::port_by_id(const char *id)
         {
-            ssize_t first = 0, last = vPorts.size() - 1;
+            ssize_t first = 0, last = vSortedPorts.size() - 1;
             while (first <= last)
             {
                 ssize_t middle = (first + last) >> 1;
-                jack::Port *p = vPorts.uget(middle);
+                jack::Port *p = vSortedPorts.uget(middle);
                 const meta::port_t *meta = p->metadata();
-                int cmp = strcmp(meta->id, id);
+                int cmp = strcmp(id, meta->id);
 
                 if (cmp < 0)
                     last    = middle - 1;
