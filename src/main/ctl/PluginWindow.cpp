@@ -23,6 +23,7 @@
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/runtime/system.h>
+#include <lsp-plug.in/io/OutStringSequence.h>
 
 namespace lsp
 {
@@ -72,6 +73,8 @@ namespace lsp
             wRack[1]        = NULL;
             wRack[2]        = NULL;
             wMenu           = NULL;
+            wExport         = NULL;
+            wImport         = NULL;
 
             pPMStud         = NULL;
             pPVersion       = NULL;
@@ -110,15 +113,25 @@ namespace lsp
             }
             vWidgets.flush();
 
-//            for (size_t i=0, n=vLangSel.size(); i<n; ++i)
-//            {
-//                lang_sel_t *s = vLangSel.at(i);
-//                if (s != NULL)
-//                    delete s;
-//            }
-//
+            // Delete language selection bindings
+            for (size_t i=0, n=vLangSel.size(); i<n; ++i)
+            {
+                lang_sel_t *s = vLangSel.uget(i);
+                if (s != NULL)
+                    delete s;
+            }
+            vLangSel.flush();
+
 //            vBackendSel.flush();
-//            vLangSel.flush();
+
+            wBox            = NULL;
+            wMessage        = NULL;
+            wRack[0]        = NULL;
+            wRack[1]        = NULL;
+            wRack[2]        = NULL;
+            wMenu           = NULL;
+            wExport         = NULL;
+            wImport         = NULL;
         }
 
         status_t PluginWindow::slot_window_close(tk::Widget *sender, void *ptr, void *data)
@@ -141,7 +154,7 @@ namespace lsp
             if (!strcmp(name, "resizable"))
                 PARSE_BOOL(value, bResizable = __)
 
-            tk::Window *wnd = tk::widget_cast<tk::Window>(pWidget);
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
             if (wnd != NULL)
                 set_constraints(wnd->constraints(), name, value);
             Widget::set(name, value);
@@ -152,7 +165,7 @@ namespace lsp
             Widget::init();
 
             // Get window handle
-            tk::Window *wnd = tk::widget_cast<tk::Window>(pWidget);
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
             if (wnd == NULL)
                 return STATUS_BAD_STATE;
 
@@ -200,7 +213,7 @@ namespace lsp
 
         status_t PluginWindow::create_main_menu()
         {
-            tk::Window *wnd             = tk::widget_cast<tk::Window>(pWidget);
+            tk::Window *wnd             = tk::widget_cast<tk::Window>(wWidget);
             tk::Display *dpy            = wnd->display();
             const meta::plugin_t *meta  = pWrapper->ui()->metadata();
 
@@ -254,14 +267,14 @@ namespace lsp
                     vWidgets.add(child);
                     child->init();
                     child->text()->set("actions.export_settings_to_file");
-//                    child->slots()->bind(tk::SLOT_SUBMIT, slot_export_settings_to_file, this);
+                    child->slots()->bind(tk::SLOT_SUBMIT, slot_export_settings_to_file, this);
                     submenu->add(child);
 
                     child = new tk::MenuItem(dpy);
                     vWidgets.add(child);
                     child->init();
                     child->text()->set("actions.export_settings_to_clipboard");
-//                    child->slots()->bind(tk::SLOT_SUBMIT, slot_export_settings_to_clipboard, this);
+                    child->slots()->bind(tk::SLOT_SUBMIT, slot_export_settings_to_clipboard, this);
                     submenu->add(child);
                 }
 
@@ -334,7 +347,7 @@ namespace lsp
 
         status_t PluginWindow::init_window_layout()
         {
-            tk::Window *wnd             = tk::widget_cast<tk::Window>(pWidget);
+            tk::Window *wnd             = tk::widget_cast<tk::Window>(wWidget);
             tk::Display *dpy            = wnd->display();
             const meta::plugin_t *meta  = pWrapper->ui()->metadata();
             inject_style(wnd, "PluginWindow");
@@ -754,7 +767,7 @@ namespace lsp
 
         void PluginWindow::sync_language_selection()
         {
-            tk::Display *dpy    = pWidget->display();
+            tk::Display *dpy    = wWidget->display();
             if (dpy == NULL)
                 return;
 
@@ -774,7 +787,7 @@ namespace lsp
         void PluginWindow::end()
         {
             // Check widget pointer
-            tk::Window *wnd = tk::widget_cast<tk::Window>(pWidget);
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
 
             if (wnd != NULL)
             {
@@ -817,52 +830,64 @@ namespace lsp
             return wBox->add(child->widget());
         }
 
-//        status_t PluginWindow::slot_export_settings_to_file(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            LSPFileDialog *dlg = __this->pExport;
-//            if (dlg == NULL)
-//            {
-//                dlg = new LSPFileDialog(__this->pWnd->display());
-//                __this->vWidgets.add(dlg);
-//                __this->pExport = dlg;
-//
-//                dlg->init();
-//                dlg->set_mode(FDM_SAVE_FILE);
-//                dlg->title()->set("titles.export_settings");
-//                dlg->action_title()->set("actions.save");
-//                dlg->set_use_confirm(true);
-//                dlg->confirm()->set("messages.file.confirm_overwrite");
-//
-//                LSPFileFilter *f = dlg->filter();
-//                {
-//                    LSPFileFilterItem ffi;
-//
-//                    ffi.pattern()->set("*.cfg");
-//                    ffi.title()->set("files.config.lsp");
-//                    ffi.set_extension(".cfg");
-//                    f->add(&ffi);
-//
-//                    ffi.pattern()->set("*");
-//                    ffi.title()->set("files.all");
-//                    ffi.set_extension("");
-//                    f->add(&ffi);
-//                }
-//
-//                // Add 'Relative paths' option
-//                if (__this->has_path_ports())
-//                {
-//                    LSPBox *op_rpath        = new LSPBox(__this->pWnd->display());
-//                    __this->vWidgets.add(op_rpath);
-//                    op_rpath->init();
-//                    op_rpath->set_horizontal(true);
-//                    op_rpath->set_spacing(4);
-//
-//                    // Add switch button
-//                    LSPButton *btn_rpath    = new LSPButton(__this->pWnd->display());
-//                    __this->vWidgets.add(btn_rpath);
-//                    btn_rpath->init();
-//
+        status_t PluginWindow::slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this     = static_cast<PluginWindow *>(ptr);
+            tk::Display *dpy        = _this->wWidget->display();
+            tk::FileDialog *dlg     = _this->wExport;
+
+            if (dlg == NULL)
+            {
+                dlg = new tk::FileDialog(dpy);
+                _this->vWidgets.add(dlg);
+                _this->wExport = dlg;
+
+                dlg->init();
+                dlg->mode()->set(tk::FDM_SAVE_FILE);
+                dlg->title()->set("titles.export_settings");
+                dlg->action_text()->set("actions.save");
+                dlg->use_confirm()->set(true);
+                dlg->confirm_message()->set("messages.file.confirm_overwrite");
+
+                tk::FileFilters *f = dlg->filter();
+                {
+                    tk::FileMask *ffi = f->add();
+                    if (ffi != NULL)
+                    {
+                        ffi->pattern()->set("*.cfg");
+                        ffi->title()->set("files.config.lsp");
+                        ffi->extensions()->set(".cfg");
+                    }
+
+                    ffi = f->add();
+                    if (ffi != NULL)
+                    {
+                        ffi->pattern()->set("*");
+                        ffi->title()->set("files.all");
+                        ffi->extensions()->set("");
+                    }
+                }
+
+                // Add 'Relative paths' option
+                tk::Box *wc = new tk::Box(dpy);
+                _this->vWidgets.add(wc);
+                wc->init();
+                wc->orientation()->set_vertical();
+                wc->allocation()->set_hfill(true);
+
+                if (_this->has_path_ports())
+                {
+                    tk::Box *op_rpath       = new tk::Box(dpy);
+                    _this->vWidgets.add(op_rpath);
+                    op_rpath->init();
+                    op_rpath->orientation()->set_horizontal();
+                    op_rpath->spacing()->set(4);
+
+                    // Add switch button
+                    tk::CheckBox *ck_rpath  = new tk::CheckBox(dpy);
+                    _this->vWidgets.add(ck_rpath);
+                    ck_rpath->init();
+
 //                    CtlWidget *ctl          = new CtlButton(__this->pRegistry, btn_rpath);
 //                    ctl->init();
 //                    ctl->set(A_ID, REL_PATHS_PORT);
@@ -872,31 +897,60 @@ namespace lsp
 //                    ctl->begin();
 //                    ctl->end();
 //                    __this->pRegistry->add_widget(ctl);
-//                    op_rpath->add(btn_rpath);
-//
-//                    // Add label
-//                    LSPLabel *lbl_rpath     = new LSPLabel(__this->pWnd->display());
-//                    __this->vWidgets.add(lbl_rpath);
-//                    lbl_rpath->init();
-//
-//                    lbl_rpath->set_expand(true);
-//                    lbl_rpath->set_halign(0.0f);
-//                    lbl_rpath->text()->set("labels.relative_paths");
-//                    op_rpath->add(lbl_rpath);
-//
-//                    // Add option to dialog
-//                    dlg->add_option(op_rpath);
-//                }
-//
-//                // Bind actions
-//                dlg->bind_action(slot_call_export_settings_to_file, ptr);
-//                dlg->slots()->bind(LSPSLOT_SHOW, slot_fetch_path, __this);
-//                dlg->slots()->bind(LSPSLOT_HIDE, slot_commit_path, __this);
-//            }
-//
-//            return dlg->show(__this->pWnd);
-//        }
-//
+                    op_rpath->add(ck_rpath);
+
+                    // Add label
+                    tk::Label *lbl_rpath     = new tk::Label(dpy);
+                    _this->vWidgets.add(lbl_rpath);
+                    lbl_rpath->init();
+
+                    lbl_rpath->allocation()->set_expand(true);
+                    lbl_rpath->text_layout()->set_halign(-1.0f);
+                    lbl_rpath->text()->set("labels.relative_paths");
+                    op_rpath->add(lbl_rpath);
+
+                    // Add option to dialog
+                    wc->add(op_rpath);
+                }
+
+                // Bind actions
+                if (wc->items()->size() > 0)
+                    dlg->options()->set(wc);
+                dlg->slots()->bind(tk::SLOT_SUBMIT, slot_call_export_settings_to_file, ptr);
+                dlg->slots()->bind(tk::SLOT_SHOW, slot_fetch_path, _this);
+                dlg->slots()->bind(tk::SLOT_HIDE, slot_commit_path, _this);
+            }
+
+            dlg->show(_this->wWidget);
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data)
+        {
+            status_t res;
+            LSPString buf;
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+
+            // Export settings to text buffer
+            io::OutStringSequence sq(&buf);
+            if ((res = __this->pWrapper->export_settings(&sq)) != STATUS_OK)
+                return STATUS_OK;
+            sq.close();
+
+            // Now 'buf' contains serialized configuration, put it to clipboard
+            tk::TextDataSource *ds = new tk::TextDataSource();
+            if (ds == NULL)
+                return STATUS_NO_MEM;
+            ds->acquire();
+            res = ds->set_text(&buf);
+            if (res == STATUS_OK)
+                res = __this->wWidget->display()->set_clipboard(ws::CBUF_CLIPBOARD, ds);
+            ds->release();
+
+            return STATUS_OK;
+        }
+
+
 //        status_t PluginWindow::slot_import_settings_from_file(LSPWidget *sender, void *ptr, void *data)
 //        {
 //            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
@@ -1054,26 +1108,26 @@ namespace lsp
             menu->show();
             return STATUS_OK;
         }
-//
-//        status_t PluginWindow::slot_call_export_settings_to_file(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            bool relative = __this->pRelPaths->get_value() >= 0.5f;
-//            __this->pUI->export_settings(__this->pExport->selected_file(), relative);
-//            return STATUS_OK;
-//        }
-//
+
+        status_t PluginWindow::slot_call_export_settings_to_file(tk::Widget *sender, void *ptr, void *data)
+        {
+            LSPString path;
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            status_t res = _this->wExport->selected_file()->format(&path);
+
+            if (res == STATUS_OK)
+            {
+                bool relative = (_this->pRelPaths != NULL) ? _this->pRelPaths->value() >= 0.5f : false;
+                _this->pWrapper->export_settings(&path, relative);
+            }
+
+            return STATUS_OK;
+        }
+
 //        status_t PluginWindow::slot_call_import_settings_to_file(LSPWidget *sender, void *ptr, void *data)
 //        {
 //            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
 //            __this->pUI->import_settings(__this->pImport->selected_file(), false);
-//            return STATUS_OK;
-//        }
-//
-//        status_t PluginWindow::slot_export_settings_to_clipboard(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            __this->pUI->export_settings_to_clipboard();
 //            return STATUS_OK;
 //        }
 //
@@ -1091,40 +1145,44 @@ namespace lsp
                 __this->wMessage->visibility()->set(false);
             return STATUS_OK;
         }
-//
-//        status_t PluginWindow::slot_fetch_path(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-//            if ((_this == NULL) || (_this->pPath == NULL))
-//                return STATUS_BAD_STATE;
-//
-//            LSPFileDialog *dlg = widget_cast<LSPFileDialog>(sender);
-//            if (dlg == NULL)
-//                return STATUS_OK;
-//
-//            dlg->set_path(_this->pPath->get_buffer<char>());
-//            return STATUS_OK;
-//        }
-//
-//        status_t PluginWindow::slot_commit_path(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-//            if ((_this == NULL) || (_this->pPath == NULL))
-//                return STATUS_BAD_STATE;
-//
-//            LSPFileDialog *dlg = widget_cast<LSPFileDialog>(sender);
-//            if (dlg == NULL)
-//                return STATUS_OK;
-//
-//            const char *path = dlg->path();
-//            if (path != NULL)
-//            {
-//                _this->pPath->write(path, strlen(path));
-//                _this->pPath->notify_all();
-//            }
-//
-//            return STATUS_OK;
-//        }
+
+        status_t PluginWindow::slot_fetch_path(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if ((_this == NULL) || (_this->pPath == NULL))
+                return STATUS_BAD_STATE;
+
+            tk::FileDialog *dlg = tk::widget_cast<tk::FileDialog>(sender);
+            if (dlg == NULL)
+                return STATUS_OK;
+
+            dlg->path()->set_raw(_this->pPath->buffer<char>());
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_commit_path(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if ((_this == NULL) || (_this->pPath == NULL))
+                return STATUS_BAD_STATE;
+
+            tk::FileDialog *dlg = tk::widget_cast<tk::FileDialog>(sender);
+            if (dlg == NULL)
+                return STATUS_OK;
+
+            LSPString tmp_path;
+            if (dlg->path()->format(&tmp_path) == STATUS_OK)
+            {
+                const char *path = tmp_path.get_utf8();
+                if (path != NULL)
+                {
+                    _this->pPath->write(path, strlen(path));
+                    _this->pPath->notify_all();
+                }
+            }
+
+            return STATUS_OK;
+        }
 
         void PluginWindow::inject_style(tk::Widget *widget, const char *style_name)
         {
@@ -1135,7 +1193,7 @@ namespace lsp
 
         tk::Label *PluginWindow::create_label(tk::WidgetContainer *dst, const char *key, const char *style_name)
         {
-            tk::Label *lbl = new tk::Label(pWidget->display());
+            tk::Label *lbl = new tk::Label(wWidget->display());
             lbl->init();
             vWidgets.add(lbl);
             dst->add(lbl);
@@ -1148,7 +1206,7 @@ namespace lsp
 
         tk::Label *PluginWindow::create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, const char *style_name)
         {
-            tk::Label *lbl = new tk::Label(pWidget->display());
+            tk::Label *lbl = new tk::Label(wWidget->display());
             lbl->init();
             vWidgets.add(lbl);
             dst->add(lbl);
@@ -1161,7 +1219,7 @@ namespace lsp
 
         tk::Hyperlink *PluginWindow::create_hlink(tk::WidgetContainer *dst, const char *text, const char *style_name)
         {
-            tk::Hyperlink *hlink = new tk::Hyperlink(pWidget->display());
+            tk::Hyperlink *hlink = new tk::Hyperlink(wWidget->display());
             hlink->init();
             vWidgets.add(hlink);
             dst->add(hlink);
@@ -1180,7 +1238,7 @@ namespace lsp
         status_t PluginWindow::show_notification()
         {
             LSPString key, value;
-            tk::Window *wnd = tk::widget_cast<tk::Window>(pWidget);
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
             if (wnd == NULL)
                 return STATUS_BAD_STATE;
 
@@ -1202,7 +1260,7 @@ namespace lsp
 
             if (wMessage == NULL)
             {
-                wMessage = new tk::Window(pWidget->display());
+                wMessage = new tk::Window(wWidget->display());
                 if (wMessage == NULL)
                     return STATUS_NO_MEM;
 
@@ -1215,7 +1273,7 @@ namespace lsp
                 wMessage->actions()->set_closeable(true);
                 inject_style(wMessage, "GreetingDialog");
 
-                tk::Box *vbox = new tk::Box(pWidget->display());
+                tk::Box *vbox = new tk::Box(wWidget->display());
                 vbox->init();
                 vbox->orientation()->set_vertical();
                 vbox->spacing()->set(8);
@@ -1257,13 +1315,13 @@ namespace lsp
                 lbl  = create_label(vbox, "project.name", "GreetingDialog::Postscript");
                 create_hlink(vbox, "project.url", "GreetingDialog::PostscriptHlink");
 
-                tk::Align *algn = new tk::Align(pWidget->display());
+                tk::Align *algn = new tk::Align(wWidget->display());
                 algn->init();
                 algn->allocation()->set_fill(true);
                 vWidgets.add(algn);
                 vbox->add(algn);
 
-                tk::Button *btn = new tk::Button(pWidget->display());
+                tk::Button *btn = new tk::Button(wWidget->display());
                 btn->init();
                 vWidgets.add(btn);
                 algn->add(btn);

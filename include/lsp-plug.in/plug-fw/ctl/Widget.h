@@ -49,7 +49,7 @@ namespace lsp
             protected:
                 const ctl_class_t  *pClass;
                 ui::IWrapper       *pWrapper;
-                tk::Widget         *pWidget;
+                tk::Widget         *wWidget;
 
                 ctl::Color          sBgColor;
                 Expression          sVisibility;

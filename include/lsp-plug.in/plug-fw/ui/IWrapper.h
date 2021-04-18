@@ -33,6 +33,8 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/io/IOutSequence.h>
+#include <lsp-plug.in/io/Path.h>
 
 #include <lsp-plug.in/plug-fw/ui/IPort.h>
 #include <lsp-plug.in/plug-fw/ui/Module.h>
@@ -195,6 +197,25 @@ namespace lsp
                  * @return true if main loop is still active
                  */
                 inline bool                 main_loop_interrupted() const       { return nFlags & F_QUIT;       }
+
+                /**
+                 * Export settings of the plugin to file/underlying output stream
+                 * @param file file name
+                 * @param relative use relative paths to the exported file
+                 */
+                virtual status_t            export_settings(const char *file, bool relative = false);
+                virtual status_t            export_settings(const io::Path *file, bool relative = false);
+                virtual status_t            export_settings(const LSPString *file, bool relative = false);
+
+                /**
+                 * Export settings
+                 * @param os output stream to perform export
+                 * @param relative the paths will be written relative to the passed path name, can be NULL
+                 * @return status of operation
+                 */
+                virtual status_t            export_settings(io::IOutSequence *os, const char *relative);
+                virtual status_t            export_settings(io::IOutSequence *os, const LSPString *relative);
+                virtual status_t            export_settings(io::IOutSequence *os, const io::Path *relative = NULL);
         };
     }
 

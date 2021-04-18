@@ -62,6 +62,8 @@ namespace lsp
                 tk::Window                 *wMessage;   // Greeting message window
                 tk::Widget                 *wRack[3];   // Rack ears
                 tk::Menu                   *wMenu;      // Menu
+                tk::FileDialog             *wExport;    // Export settings dialog
+                tk::FileDialog             *wImport;    // Import settings dialog
 
                 ui::IPort                  *pPMStud;
                 ui::IPort                  *pPVersion;
@@ -71,10 +73,6 @@ namespace lsp
                 ui::IPort                  *pLanguage;
                 ui::IPort                  *pRelPaths;
 
-//                LSPFileDialog      *pImport;
-//                LSPFileDialog      *pExport;
-
-//
 //                cstorage<backend_sel_t>     vBackendSel;
                 lltl::parray<lang_sel_t>    vLangSel;
 
@@ -86,9 +84,9 @@ namespace lsp
 
                 static status_t slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
-//                static status_t slot_export_settings_to_file(LSPWidget *sender, void *ptr, void *data);
+                static status_t slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
 //                static status_t slot_import_settings_from_file(LSPWidget *sender, void *ptr, void *data);
-//                static status_t slot_export_settings_to_clipboard(LSPWidget *sender, void *ptr, void *data);
 //                static status_t slot_import_settings_from_clipboard(LSPWidget *sender, void *ptr, void *data);
 
                 static status_t slot_toggle_rack_mount(tk::Widget *sender, void *ptr, void *data);
@@ -96,13 +94,13 @@ namespace lsp
 
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t slot_call_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
 
-//                static status_t slot_call_export_settings_to_file(LSPWidget *sender, void *ptr, void *data);
 //                static status_t slot_call_import_settings_to_file(LSPWidget *sender, void *ptr, void *data);
 //
-//
-//                static status_t slot_fetch_path(LSPWidget *sender, void *ptr, void *data);
-//                static status_t slot_commit_path(LSPWidget *sender, void *ptr, void *data);
+
+                static status_t slot_fetch_path(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_commit_path(tk::Widget *sender, void *ptr, void *data);
 //
 //                static status_t slot_select_backend(LSPWidget *sender, void *ptr, void *data);
 

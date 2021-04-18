@@ -22,6 +22,8 @@
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/io/OutFileStream.h>
+#include <lsp-plug.in/io/OutSequence.h>
 
 #include <private/ui/xml/Handler.h>
 #include <private/ui/xml/RootNode.h>
@@ -505,6 +507,81 @@ namespace lsp
             xml::RootNode root(&ctx);
             xml::Handler handler(pLoader);
             return handler.parse_resource(&xpath, &root);
+        }
+
+        status_t IWrapper::export_settings(const char *file, bool relative)
+        {
+            io::Path path;
+            status_t res = path.set(file);
+            if (res != STATUS_OK)
+                return res;
+
+            return export_settings(&path, relative);
+        }
+
+        status_t IWrapper::export_settings(const LSPString *file, bool relative)
+        {
+            io::Path path;
+            status_t res = path.set(file);
+            if (res != STATUS_OK)
+                return res;
+
+            return export_settings(&path, relative);
+        }
+
+        status_t IWrapper::export_settings(const io::Path *file, bool relative)
+        {
+            io::OutFileStream os;
+            io::OutSequence o;
+
+            status_t res = os.open(file, io::File::FM_WRITE_NEW);
+            if (res != STATUS_OK)
+                return res;
+
+            // Wrap
+            if ((res = o.wrap(&os, WRAP_CLOSE, "UTF-8")) != STATUS_OK)
+            {
+                os.close();
+                return res;
+            }
+
+            // Export settings
+            res = export_settings(&o, (relative) ? file : NULL);
+            status_t res2 = o.close();
+
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t IWrapper::export_settings(io::IOutSequence *os, const char *relative)
+        {
+            if (relative == NULL)
+                return export_settings(os, static_cast<io::Path *>(NULL));
+
+            io::Path path;
+            status_t res = path.set(relative);
+            if (res != STATUS_OK)
+                return res;
+
+            return export_settings(os, &path);
+        }
+
+        status_t IWrapper::export_settings(io::IOutSequence *os, const LSPString *relative)
+        {
+            if (relative == NULL)
+                return export_settings(os, static_cast<io::Path *>(NULL));
+
+            io::Path path;
+            status_t res = path.set(relative);
+            if (res != STATUS_OK)
+                return res;
+
+            return export_settings(os, &path);
+        }
+
+        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *relative)
+        {
+            // TODO
+            return STATUS_OK;
         }
     }
 } /* namespace lsp */

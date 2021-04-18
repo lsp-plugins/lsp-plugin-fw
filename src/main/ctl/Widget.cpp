@@ -31,7 +31,7 @@ namespace lsp
         {
             pClass          = &metadata;
             pWrapper        = src;
-            pWidget         = widget;
+            wWidget         = widget;
         }
 
         bool Widget::instance_of(const ctl_class_t *wclass) const
@@ -54,7 +54,7 @@ namespace lsp
 
         tk::Widget *Widget::widget()
         {
-            return pWidget;
+            return wWidget;
         };
 
 //        void Widget::set_lc_attr(widget_attribute_t att, LSPLocalString *s, const char *name, const char *value)
@@ -138,7 +138,7 @@ namespace lsp
 
         void Widget::set(const char *name, const char *value)
         {
-            if (pWidget == NULL)
+            if (wWidget == NULL)
                 return;
 
             if (!strcmp(name, "visibility"))
@@ -150,10 +150,10 @@ namespace lsp
             else if (!strcmp(name, "bright"))
                 sBright.parse(value);
             else if (!strcmp(name, "ui:id"))
-                pWrapper->ui()->map_widget(value, pWidget);
+                pWrapper->ui()->map_widget(value, wWidget);
 
-            set_padding(pWidget->padding(), name, value);
-            set_allocation(pWidget->allocation(), name, value);
+            set_padding(wWidget->padding(), name, value);
+            set_allocation(wWidget->allocation(), name, value);
             sBgColor.set(name, value);
         }
 
@@ -166,8 +166,8 @@ namespace lsp
         {
             sVisibility.init(pWrapper, this);
             sBright.init(pWrapper, this);
-            if (pWidget != NULL)
-                sBgColor.init(pWrapper, pWidget->bg_color(), "bg");
+            if (wWidget != NULL)
+                sBgColor.init(pWrapper, wWidget->bg_color(), "bg");
 
             return STATUS_OK;
         }
@@ -182,48 +182,48 @@ namespace lsp
             if (sVisibility.valid())
             {
                 float value = sVisibility.evaluate();
-                if (pWidget != NULL)
-                    pWidget->visibility()->set(value >= 0.5f);
+                if (wWidget != NULL)
+                    wWidget->visibility()->set(value >= 0.5f);
             }
 
             // Evaluate brightness
             if (sBright.valid())
             {
                 float value = sBright.evaluate();
-                pWidget->brightness()->set(value);
+                wWidget->brightness()->set(value);
             }
         }
 
         void Widget::notify(ui::IPort *port)
         {
-            if (pWidget == NULL)
+            if (wWidget == NULL)
                 return;
 
             // Visibility
             if (sVisibility.depends(port))
             {
                 float value = sVisibility.evaluate();
-                pWidget->visibility()->set(value >= 0.5f);
+                wWidget->visibility()->set(value >= 0.5f);
             }
 
             // Brightness
             if (sBright.depends(port))
             {
                 float value = sBright.evaluate();
-                pWidget->brightness()->set(value);
+                wWidget->brightness()->set(value);
             }
         }
 
         void Widget::destroy()
         {
-            if ((pWrapper != NULL) && (pWidget != NULL))
-                pWrapper->ui()->unmap_widget(pWidget);
+            if ((pWrapper != NULL) && (wWidget != NULL))
+                pWrapper->ui()->unmap_widget(wWidget);
 
             sVisibility.destroy();
             sBright.destroy();
 
             pWrapper    = NULL;
-            pWidget     = NULL;
+            wWidget     = NULL;
         }
 
     }
