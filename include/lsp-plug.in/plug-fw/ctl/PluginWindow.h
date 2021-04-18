@@ -46,12 +46,13 @@ namespace lsp
 //                    LSPWidget          *item;
 //                    size_t              id;
 //                } backend_sel_t;
-//
-//                typedef struct lang_sel_t
-//                {
-//                    CtlPluginWindow    *ctl;
-//                    LSPString           lang;
-//                } lang_sel_t;
+
+                typedef struct lang_sel_t
+                {
+                    ctl::PluginWindow  *ctl;
+                    LSPString           lang;
+                    tk::MenuItem       *item;
+                } lang_sel_t;
 
             protected:
                 bool                        bResizable;
@@ -70,14 +71,12 @@ namespace lsp
                 ui::IPort                  *pLanguage;
                 ui::IPort                  *pRelPaths;
 
-//                LSPMenu            *pMenu;
 //                LSPFileDialog      *pImport;
 //                LSPFileDialog      *pExport;
-//                plugin_ui          *pUI;
 
 //
 //                cstorage<backend_sel_t>     vBackendSel;
-//                cvector<lang_sel_t>         vLangSel;
+                lltl::parray<lang_sel_t>    vLangSel;
 
             protected:
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
@@ -91,7 +90,8 @@ namespace lsp
 //                static status_t slot_import_settings_from_file(LSPWidget *sender, void *ptr, void *data);
 //                static status_t slot_export_settings_to_clipboard(LSPWidget *sender, void *ptr, void *data);
 //                static status_t slot_import_settings_from_clipboard(LSPWidget *sender, void *ptr, void *data);
-//                static status_t slot_toggle_rack_mount(LSPWidget *sender, void *ptr, void *data);
+
+                static status_t slot_toggle_rack_mount(tk::Widget *sender, void *ptr, void *data);
 
 
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
@@ -105,8 +105,8 @@ namespace lsp
 //                static status_t slot_commit_path(LSPWidget *sender, void *ptr, void *data);
 //
 //                static status_t slot_select_backend(LSPWidget *sender, void *ptr, void *data);
-//
-//                static status_t slot_select_language(LSPWidget *sender, void *ptr, void *data);
+
+                static status_t slot_select_language(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static void                inject_style(tk::Widget *widget, const char *style_name);
@@ -121,10 +121,11 @@ namespace lsp
                 tk::Hyperlink      *create_hlink(tk::WidgetContainer *dst, const char *text, const char *style_name);
 
 //                status_t        init_r3d_support(LSPMenu *menu);
-//                status_t        init_i18n_support(LSPMenu *menu);
+                status_t            init_i18n_support(tk::Menu *menu);
                 status_t            init_window_layout();
                 status_t            create_main_menu();
                 bool                has_path_ports();
+                void                sync_language_selection();
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);
