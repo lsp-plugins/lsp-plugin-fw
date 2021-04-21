@@ -22,8 +22,10 @@
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/io/OutFileStream.h>
 #include <lsp-plug.in/io/OutSequence.h>
+#include <lsp-plug.in/fmt/config/Serializer.h>
 
 #include <private/ui/xml/Handler.h>
 #include <private/ui/xml/RootNode.h>
@@ -578,9 +580,95 @@ namespace lsp
             return export_settings(os, &path);
         }
 
+        // TODO
+        #define LSP_MAIN_VERSION "0.0.0"
+        #define LSP_FULL_NAME "Linux Studio Plugins"
+        #define LSP_BASE_URI "http://lsp-plug.in/"
+
+        void IWrapper::build_config_header(LSPString *c)
+        {
+            const meta::plugin_t *meta = pUI->metadata();
+
+            c->append_utf8      ("This file contains configuration of the audio plugin.\n");
+            c->fmt_append_utf8  ("  Plugin name:         %s (%s)\n", meta->name, meta->description);
+            c->fmt_append_utf8  ("  Package version:     %s\n", LSP_MAIN_VERSION);
+            c->fmt_append_utf8  ("  Plugin version:      %d.%d.%d\n",
+                    int(LSP_MODULE_VERSION_MAJOR(meta->version)),
+                    int(LSP_MODULE_VERSION_MINOR(meta->version)),
+                    int(LSP_MODULE_VERSION_MICRO(meta->version))
+                );
+            if (meta->uid != NULL)
+                c->fmt_append_utf8   ("  UID:                 %s\n", meta->uid);
+            if (meta->lv2_urid != NULL)
+                c->fmt_append_utf8   ("  LV2 URID:            %s\n", meta->lv2_urid);
+            if (meta->vst_uid != NULL)
+                c->fmt_append_utf8   ("  VST identifier:      %s\n", meta->vst_uid);
+            if (meta->ladspa_id > 0)
+                c->fmt_append_utf8   ("  LADSPA identifier:   %d\n", meta->ladspa_id);
+            if (meta->ladspa_lbl > 0)
+                c->fmt_append_utf8   ("  LADSPA label:        %s\n", meta->ladspa_lbl);
+            c->append           ('\n');
+            c->append_utf8      ("(C) " LSP_FULL_NAME " \n");
+            c->append_utf8      ("  " LSP_BASE_URI " \n");
+        }
+
         status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *relative)
         {
-            // TODO
+            // Create configuration serializer
+            config::Serializer s;
+            status_t res = s.wrap(os, 0);
+            if (res != STATUS_OK)
+                return res;
+
+            // Write header
+            LSPString name, value, comment;
+            float buf;
+            const void *data;
+
+            build_config_header(&comment);
+            if ((res = s.write_comment(&comment)) != STATUS_OK)
+                return res;
+            if ((res = s.writeln()) != STATUS_OK)
+                return res;
+
+            // Write port data
+            for (size_t i=0, n=vPorts.size(); i<n; ++i)
+            {
+                IPort *p    = vPorts.uget(i);
+                if (p == NULL)
+                    continue;
+
+                const meta::port_t *meta = p->metadata();
+                if (meta == NULL)
+                    continue;
+
+                switch (meta->role)
+                {
+                    case meta::R_CONTROL:
+                    case meta::R_METER:
+                    case meta::R_PORT_SET:
+                    case meta::R_BYPASS:
+                        buf     = p->value();
+                        data    = &buf;
+                        break;
+                    default:
+                        data    = p->buffer();
+                        break;
+                }
+
+                // Format the port value
+                comment.clear();
+                name.clear();
+                value.clear();
+                res     = core::serialize_port_value(&s, meta, data, relative, 0);
+                if ((res != STATUS_OK) && (res != STATUS_BAD_TYPE))
+                    return res;
+                if ((res = s.writeln()) != STATUS_OK)
+                    return res;
+            }
+
+            // All is OK, proceed with KVT //TODO
+
             return STATUS_OK;
         }
     }

@@ -114,7 +114,7 @@ namespace lsp
             LSPString fname;
             if (!fname.fmt_ascii("%04d%02d%02d-%02d%02d%02d-%03d-%s.json",
                     t.year, t.month, t.mday, t.hour, t.min, t.sec, int(t.nanos / 1000000),
-                    meta->lv2_uid
+                    meta->uid
                 ))
             {
                 lsp_warn("Could not format the file name");

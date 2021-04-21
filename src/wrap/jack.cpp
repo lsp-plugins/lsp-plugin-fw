@@ -165,7 +165,7 @@ namespace lsp
 
         static ssize_t jack_metadata_sort_func(const meta::plugin_t *a, const meta::plugin_t *b)
         {
-            return strcmp(a->lv2_uid, b->lv2_uid);
+            return strcmp(a->uid, b->uid);
         }
 
         status_t jack_list_plugins()
@@ -190,7 +190,7 @@ namespace lsp
                     }
 
                     // Estimate maximum length of plugin
-                    maxlen  = lsp_max(maxlen, strlen(meta->lv2_uid));
+                    maxlen  = lsp_max(maxlen, strlen(meta->uid));
                 }
             }
 
@@ -211,7 +211,7 @@ namespace lsp
             for (size_t i=0, n=list.size(); i<n; ++i)
             {
                 const meta::plugin_t *meta = list.uget(i);
-                printf(fmt, meta->lv2_uid, meta->description);
+                printf(fmt, meta->uid, meta->description);
             }
 
             return STATUS_OK;
@@ -230,7 +230,7 @@ namespace lsp
                         break;
 
                     // Check plugin identifier
-                    if (!::strcmp(meta->lv2_uid, id))
+                    if (!::strcmp(meta->uid, id))
                     {
                         // Instantiate the plugin and return
                         if ((w->pPlugin = f->create(meta)) != NULL)
@@ -260,7 +260,7 @@ namespace lsp
                         break;
 
                     // Check plugin identifier
-                    if (!::strcmp(meta->lv2_uid, id))
+                    if (!::strcmp(meta->uid, id))
                     {
                         // Instantiate the plugin UI and return
                         if ((w->pUI = f->create(meta)) != NULL)

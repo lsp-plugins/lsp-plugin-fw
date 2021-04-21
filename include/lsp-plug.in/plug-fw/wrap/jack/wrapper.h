@@ -234,7 +234,7 @@ namespace lsp
             // Ensure that client identifier is not longer than jack_client_name_size()
             size_t max_client_size  = jack_client_name_size();
             char *client_name       = static_cast<char *>(alloca(max_client_size));
-            strncpy(client_name, pPlugin->metadata()->lv2_uid, max_client_size);
+            strncpy(client_name, pPlugin->metadata()->uid, max_client_size);
             client_name[max_client_size-1] = '\0';
 
             // Check connection state

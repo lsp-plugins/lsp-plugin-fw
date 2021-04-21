@@ -91,6 +91,7 @@ namespace lsp
                 void            global_config_changed(IPort *src);
                 status_t        create_alias(const LSPString *id, const LSPString *name);
                 status_t        build_ui(const char *path);
+                void            build_config_header(LSPString *c);
 
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);

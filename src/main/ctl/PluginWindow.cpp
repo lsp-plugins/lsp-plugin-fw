@@ -181,7 +181,7 @@ namespace lsp
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
 
             // Initialize window
-            wnd->set_class(meta->lv2_uid, "lsp-plugins");
+            wnd->set_class(meta->uid, "lsp-plugins");
             wnd->role()->set("audio-plugin");
             wnd->title()->set_raw(meta->name);
             wnd->layout()->set_scale(1.0f);
@@ -856,7 +856,7 @@ namespace lsp
                     {
                         ffi->pattern()->set("*.cfg");
                         ffi->title()->set("files.config.lsp");
-                        ffi->extensions()->set(".cfg");
+                        ffi->extensions()->set_raw(".cfg");
                     }
 
                     ffi = f->add();
@@ -864,7 +864,7 @@ namespace lsp
                     {
                         ffi->pattern()->set("*");
                         ffi->title()->set("files.all");
-                        ffi->extensions()->set("");
+                        ffi->extensions()->set_raw("");
                     }
                 }
 
@@ -1027,7 +1027,7 @@ namespace lsp
             for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
             {
                 path.fmt("%s/doc/%s/html/plugins/%s.html",
-                        *prefix, "lsp-plugins", meta->lv2_uid
+                        *prefix, "lsp-plugins", meta->uid
                     );
 
                 lsp_trace("Checking path: %s", path.as_utf8());
@@ -1043,7 +1043,7 @@ namespace lsp
             }
 
             // Follow the online documentation
-            if (spath.fmt_utf8("%s?page=manuals&section=%s", "https://lsp-plug.in/", meta->lv2_uid))
+            if (spath.fmt_utf8("%s?page=manuals&section=%s", "https://lsp-plug.in/", meta->uid))
             {
                 if ((res = system::follow_url(&spath)) == STATUS_OK)
                     return res;

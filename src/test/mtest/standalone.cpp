@@ -41,7 +41,7 @@ MTEST_BEGIN("", standalone)
         for (size_t i=0, n=list->size(); i<n; ++i)
         {
             const meta::plugin_t *meta = list->uget(i);
-            fprintf(stderr, "  %s\n", meta->lv2_uid);
+            fprintf(stderr, "  %s\n", meta->uid);
         }
 
         MTEST_FAIL_SILENT();
@@ -49,7 +49,7 @@ MTEST_BEGIN("", standalone)
 
     static ssize_t meta_sort_func(const meta::plugin_t *a, const meta::plugin_t *b)
     {
-        return strcmp(a->lv2_uid, b->lv2_uid);
+        return strcmp(a->uid, b->uid);
     }
 
     status_t enumerate_plugins(lltl::parray<meta::plugin_t> *list)
@@ -67,7 +67,7 @@ MTEST_BEGIN("", standalone)
                 // Add metadata to list
                 if (!list->add(const_cast<meta::plugin_t *>(meta)))
                 {
-                    fprintf(stderr, "Error adding plugin to list: '%s'\n", meta->lv2_uid);
+                    fprintf(stderr, "Error adding plugin to list: '%s'\n", meta->uid);
                     return STATUS_NO_MEM;
                 }
             }
@@ -92,7 +92,7 @@ MTEST_BEGIN("", standalone)
         for (size_t i=0, n=list.size(); i<n; ++i)
         {
             const meta::plugin_t *meta = list.uget(i);
-            if (!strcmp(meta->lv2_uid, argv[0]))
+            if (!strcmp(meta->uid, argv[0]))
             {
                 plugin = meta;
                 break;

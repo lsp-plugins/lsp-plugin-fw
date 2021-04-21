@@ -215,12 +215,18 @@ namespace lsp
 
         typedef uint32_t            version_t;
 
+        /**
+         * The item of the port group
+         */
         typedef struct port_group_item_t
         {
             const char         *id;
             port_group_role_t   role;
         } port_group_item_t;
 
+        /**
+         * Port group
+         */
         typedef struct port_group_t
         {
             const char                 *id;         // Group ID
@@ -231,11 +237,18 @@ namespace lsp
             const char                 *parent_id;  // Reference to parent group
         } port_group_t;
 
-        typedef struct port_item_t {
+        /**
+         * For ports present like lists: the item of the list
+         */
+        typedef struct port_item_t
+        {
             const char             *text;           // Text to display, required
             const char             *lc_key;         // Localized key  (optional)
         } port_item_t;
 
+        /**
+         * Plugin input/opuput port descriptor
+         */
         typedef struct port_t
         {
             const char             *id;             // Control ID
@@ -251,6 +264,9 @@ namespace lsp
             const port_t           *members;        // Port members for group
         } port_t;
 
+        /**
+         * Medatata for developer/maintainer information
+         */
         typedef struct person_t
         {
             const char             *uid;            // UID of person
@@ -260,15 +276,33 @@ namespace lsp
             const char             *homepage;       // Homepage
         } person_t;
 
+        /**
+         * Metadata for plugin bundle
+         */
+        typedef struct package_t
+        {
+            const char             *artifact;       // Artifact name (UTF-8)
+            const char             *short_name;     // Sort name/Acronym
+            const char             *full_name;      // Full name
+            const char             *site;           // Site URL
+            version_t               version;        // Package version
+        } package_t;
+
+        /**
+         * Metadata for plugin instance classs
+         */
         typedef struct plugin_t
         {
             const char             *name;           // Plugin name
             const char             *description;    // Plugin description
             const char             *acronym;        // Plugin acronym
             const person_t         *developer;      // Developer
-            const char             *lv2_uid;        // LV2 unique identifier
+            const char             *uid;            // Unique character identifier of plugin
+            const char             *lv2_urid;       // LV2 URID
+            const char             *lv2ui_urid;     // LV2 UI URID
             const char             *vst_uid;        // Steinberg VST ID of the plugin
             const uint32_t          ladspa_id;      // LADSPA ID of the plugin
+            const char             *ladspa_lbl;     // LADSPA unique label of the plugin
             const version_t         version;        // Version of the plugin
             const int              *classes;        // List of plugin classes terminated by negative value
             const int               extensions;     // Additional extensions
@@ -277,7 +311,6 @@ namespace lsp
             const char             *ui_presets;     // Prefix of the preset location
             const port_group_t     *port_groups;    // List of all port groups
         } plugin_t;
-
     }
 }
 

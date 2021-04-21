@@ -42,7 +42,7 @@ namespace lsp
 
         static ssize_t meta_sort_func(const meta::plugin_t *a, const meta::plugin_t *b)
         {
-            return strcmp(a->lv2_uid, b->lv2_uid);
+            return strcmp(a->uid, b->uid);
         }
 
         status_t enumerate_plugins(lltl::parray<meta::plugin_t> *list)
@@ -60,7 +60,7 @@ namespace lsp
                     // Add metadata to list
                     if (!list->add(const_cast<meta::plugin_t *>(meta)))
                     {
-                        fprintf(stderr, "Error adding plugin to list: '%s'\n", meta->lv2_uid);
+                        fprintf(stderr, "Error adding plugin to list: '%s'\n", meta->uid);
                         return STATUS_NO_MEM;
                     }
                 }
@@ -126,7 +126,7 @@ namespace lsp
             fprintf(out,    "//------------------------------------------------------------------------------\n");
             fprintf(out,    "// File:            %s\n", name->get_utf8());
             fprintf(out,    "// JACK Plugin:     %s - %s [JACK]\n", meta->name, meta->description);
-            fprintf(out,    "// JACK UID:        '%s'\n", meta->lv2_uid);
+            fprintf(out,    "// JACK UID:        '%s'\n", meta->uid);
             fprintf(out,    "// Version:         %d.%d.%d\n",
                     LSP_MODULE_VERSION_MAJOR(meta->version),
                     LSP_MODULE_VERSION_MINOR(meta->version),
@@ -136,7 +136,7 @@ namespace lsp
 
             // Write code
             fprintf(out,    "// Pass Plugin UID for factory function\n");
-            fprintf(out,    "#define JACK_PLUGIN_UID     \"%s\"\n", meta->lv2_uid);
+            fprintf(out,    "#define JACK_PLUGIN_UID     \"%s\"\n", meta->uid);
             fprintf(out,    "\n");
 
             fprintf(out,    "#include <lsp-plug.in/common/types.h>\n");
@@ -248,7 +248,7 @@ namespace lsp
             {
                 // Get plugin metadata
                 const meta::plugin_t *meta = list->uget(i);
-                if ((res = make_filename(&fname, meta->lv2_uid)) != STATUS_OK)
+                if ((res = make_filename(&fname, meta->uid)) != STATUS_OK)
                     return res;
 
                 fprintf(out, "  %s.cpp", fname.get_utf8());
@@ -264,7 +264,7 @@ namespace lsp
             {
                 // Get plugin metadata
                 const meta::plugin_t *meta = list->uget(i);
-                if ((res = make_filename(&fname, meta->lv2_uid)) != STATUS_OK)
+                if ((res = make_filename(&fname, meta->uid)) != STATUS_OK)
                     return res;
 
                 fprintf(out, "  %s$(EXECUTABLE_EXT)", fname.get_utf8());
@@ -337,7 +337,7 @@ namespace lsp
                 const meta::plugin_t *meta = list.uget(i);
 
                 // Get file path
-                if ((res = make_filename(&fname, meta->lv2_uid)) != STATUS_OK)
+                if ((res = make_filename(&fname, meta->uid)) != STATUS_OK)
                     return res;
                 if (!fname.append_ascii(".cpp"))
                     return STATUS_NO_MEM;
