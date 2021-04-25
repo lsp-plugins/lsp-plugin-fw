@@ -39,7 +39,7 @@ namespace lsp
             public:
                 static const ctl_class_t metadata;
 
-//            protected:
+            protected:
 //                typedef struct backend_sel_t
 //                {
 //                    CtlPluginWindow    *ctl;
@@ -53,6 +53,21 @@ namespace lsp
                     LSPString           lang;
                     tk::MenuItem       *item;
                 } lang_sel_t;
+
+                class ConfigSink: public tk::TextDataSink
+                {
+                    private:
+                        ui::IWrapper       *pWrapper;
+
+                    public:
+                        explicit ConfigSink(ui::IWrapper *wrapper);
+
+                    public:
+                        void             unbind();
+
+                    public:
+                        virtual status_t receive(const LSPString *text, const char *mime);
+                };
 
             protected:
                 bool                        bResizable;
@@ -73,6 +88,8 @@ namespace lsp
                 ui::IPort                  *pLanguage;
                 ui::IPort                  *pRelPaths;
 
+                ConfigSink                 *pConfigSink;    // Configuration sink
+
 //                cstorage<backend_sel_t>     vBackendSel;
                 lltl::parray<lang_sel_t>    vLangSel;
 
@@ -86,8 +103,8 @@ namespace lsp
                 static status_t slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
-//                static status_t slot_import_settings_from_file(LSPWidget *sender, void *ptr, void *data);
-//                static status_t slot_import_settings_from_clipboard(LSPWidget *sender, void *ptr, void *data);
+                static status_t slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_toggle_rack_mount(tk::Widget *sender, void *ptr, void *data);
 
@@ -95,9 +112,7 @@ namespace lsp
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_call_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
-
-//                static status_t slot_call_import_settings_to_file(LSPWidget *sender, void *ptr, void *data);
-//
+                static status_t slot_call_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_fetch_path(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_commit_path(tk::Widget *sender, void *ptr, void *data);
@@ -109,6 +124,7 @@ namespace lsp
             protected:
                 static void                inject_style(tk::Widget *widget, const char *style_name);
                 static i18n::IDictionary  *get_default_dict(tk::Widget *src);
+                static tk::FileFilters    *create_config_filters(tk::FileDialog *dlg);
 
             protected:
                 void                do_destroy();

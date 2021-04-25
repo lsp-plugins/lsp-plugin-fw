@@ -24,6 +24,7 @@
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/io/OutStringSequence.h>
+#include <lsp-plug.in/io/InStringSequence.h>
 
 namespace lsp
 {
@@ -56,9 +57,28 @@ namespace lsp
         CTL_FACTORY_IMPL_END(PluginWindow)
 
         //-----------------------------------------------------------------
-        // MessageBox style
+        PluginWindow::ConfigSink::ConfigSink(ui::IWrapper *wrapper)
+        {
+            pWrapper = wrapper;
+        }
 
+        void PluginWindow::ConfigSink::unbind()
+        {
+            pWrapper        = NULL;
+        }
 
+        status_t PluginWindow::ConfigSink::receive(const LSPString *text, const char *mime)
+        {
+            ui::IWrapper *wrapper = pWrapper;
+            if (wrapper == NULL)
+                return STATUS_NOT_BOUND;
+
+            io::InStringSequence is(text);
+            return wrapper->import_settings(&is);
+        }
+
+        //-----------------------------------------------------------------
+        // Plugin window
         const ctl_class_t PluginWindow::metadata = { "PluginWindow", &Widget::metadata };
 
         PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget): Widget(src, widget)
@@ -83,6 +103,8 @@ namespace lsp
             pR3DBackend     = NULL;
             pLanguage       = NULL;
             pRelPaths       = NULL;
+
+            pConfigSink     = NULL;
         }
 
         PluginWindow::~PluginWindow()
@@ -98,6 +120,13 @@ namespace lsp
 
         void PluginWindow::do_destroy()
         {
+            // Unbind configuration sink
+            if (pConfigSink != NULL)
+            {
+                pConfigSink->unbind();
+                pConfigSink->release();
+            }
+
             // Unregister all child widgets
             if (pWrapper != NULL)
                 pWrapper->ui()->unmap_widgets(vWidgets.array(), vWidgets.size());
@@ -297,14 +326,14 @@ namespace lsp
                     vWidgets.add(child);
                     child->init();
                     child->text()->set("actions.import_settings_from_file");
-//                    child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_file, this);
+                    child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_file, this);
                     submenu->add(child);
 
                     child = new tk::MenuItem(dpy);
                     vWidgets.add(child);
                     child->init();
                     child->text()->set("actions.import_settings_from_clipboard");
-//                    child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_clipboard, this);
+                    child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_clipboard, this);
                     submenu->add(child);
                 }
 
@@ -830,6 +859,31 @@ namespace lsp
             return wBox->add(child->widget());
         }
 
+        tk::FileFilters *PluginWindow::create_config_filters(tk::FileDialog *dlg)
+        {
+            tk::FileFilters *f = dlg->filter();
+            if (f == NULL)
+                return f;
+
+            tk::FileMask *ffi = f->add();
+            if (ffi != NULL)
+            {
+                ffi->pattern()->set("*.cfg");
+                ffi->title()->set("files.config.lsp");
+                ffi->extensions()->set_raw(".cfg");
+            }
+
+            ffi = f->add();
+            if (ffi != NULL)
+            {
+                ffi->pattern()->set("*");
+                ffi->title()->set("files.all");
+                ffi->extensions()->set_raw("");
+            }
+
+            return f;
+        }
+
         status_t PluginWindow::slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this     = static_cast<PluginWindow *>(ptr);
@@ -849,24 +903,7 @@ namespace lsp
                 dlg->use_confirm()->set(true);
                 dlg->confirm_message()->set("messages.file.confirm_overwrite");
 
-                tk::FileFilters *f = dlg->filter();
-                {
-                    tk::FileMask *ffi = f->add();
-                    if (ffi != NULL)
-                    {
-                        ffi->pattern()->set("*.cfg");
-                        ffi->title()->set("files.config.lsp");
-                        ffi->extensions()->set_raw(".cfg");
-                    }
-
-                    ffi = f->add();
-                    if (ffi != NULL)
-                    {
-                        ffi->pattern()->set("*");
-                        ffi->title()->set("files.all");
-                        ffi->extensions()->set_raw("");
-                    }
-                }
+                create_config_filters(dlg);
 
                 // Add 'Relative paths' option
                 tk::Box *wc = new tk::Box(dpy);
@@ -929,11 +966,11 @@ namespace lsp
         {
             status_t res;
             LSPString buf;
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
 
             // Export settings to text buffer
             io::OutStringSequence sq(&buf);
-            if ((res = __this->pWrapper->export_settings(&sq)) != STATUS_OK)
+            if ((res = _this->pWrapper->export_settings(&sq)) != STATUS_OK)
                 return STATUS_OK;
             sq.close();
 
@@ -944,49 +981,64 @@ namespace lsp
             ds->acquire();
             res = ds->set_text(&buf);
             if (res == STATUS_OK)
-                res = __this->wWidget->display()->set_clipboard(ws::CBUF_CLIPBOARD, ds);
+                res = _this->wWidget->display()->set_clipboard(ws::CBUF_CLIPBOARD, ds);
             ds->release();
 
             return STATUS_OK;
         }
 
+        status_t PluginWindow::slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this     = static_cast<PluginWindow *>(ptr);
+            tk::Display *dpy        = _this->wWidget->display();
+            tk::FileDialog *dlg     = _this->wImport;
+            if (dlg == NULL)
+            {
+                dlg     = new tk::FileDialog(dpy);
+                _this->vWidgets.add(dlg);
+                _this->wImport      = dlg;
 
-//        status_t PluginWindow::slot_import_settings_from_file(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            LSPFileDialog *dlg = __this->pImport;
-//            if (dlg == NULL)
-//            {
-//                dlg = new LSPFileDialog(__this->pWnd->display());
-//                __this->vWidgets.add(dlg);
-//                __this->pImport = dlg;
-//
-//                dlg->init();
-//                dlg->set_mode(FDM_OPEN_FILE);
-//                dlg->title()->set("titles.import_settings");
-//                dlg->action_title()->set("actions.open");
-//
-//                LSPFileFilter *f = dlg->filter();
-//                {
-//                    LSPFileFilterItem ffi;
-//
-//                    ffi.pattern()->set("*.cfg");
-//                    ffi.title()->set("files.config.lsp");
-//                    ffi.set_extension(".cfg");
-//                    f->add(&ffi);
-//
-//                    ffi.pattern()->set("*");
-//                    ffi.title()->set("files.all");
-//                    ffi.set_extension("");
-//                    f->add(&ffi);
-//                }
-//                dlg->bind_action(slot_call_import_settings_to_file, ptr);
-//                dlg->slots()->bind(LSPSLOT_SHOW, slot_fetch_path, __this);
-//                dlg->slots()->bind(LSPSLOT_HIDE, slot_commit_path, __this);
-//            }
-//
-//            return dlg->show(__this->pWnd);
-//        }
+                dlg->init();
+                dlg->mode()->set(tk::FDM_OPEN_FILE);
+                dlg->title()->set("titles.import_settings");
+                dlg->action_text()->set("actions.open");
+
+                create_config_filters(dlg);
+
+                dlg->slots()->bind(tk::SLOT_SUBMIT, slot_call_import_settings_from_file, ptr);
+                dlg->slots()->bind(tk::SLOT_SHOW, slot_fetch_path, _this);
+                dlg->slots()->bind(tk::SLOT_HIDE, slot_commit_path, _this);
+            }
+
+            dlg->show(_this->wWidget);
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            tk::Display *dpy        = _this->wWidget->display();
+
+            // Create new sink
+            ConfigSink *ds = new ConfigSink(_this->pWrapper);
+            if (ds == NULL)
+                return STATUS_NO_MEM;
+            ds->acquire();
+
+            // Release previously used
+            ConfigSink *old = _this->pConfigSink;
+            _this->pConfigSink = ds;
+
+            if (old != NULL)
+            {
+                old->unbind();
+                old->release();
+            }
+
+            // Request clipboard data
+            return dpy->get_clipboard(ws::CBUF_CLIPBOARD, ds);
+        }
+
 
         status_t PluginWindow::slot_toggle_rack_mount(tk::Widget *sender, void *ptr, void *data)
         {
@@ -1124,20 +1176,19 @@ namespace lsp
             return STATUS_OK;
         }
 
-//        status_t PluginWindow::slot_call_import_settings_to_file(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            __this->pUI->import_settings(__this->pImport->selected_file(), false);
-//            return STATUS_OK;
-//        }
-//
-//        status_t PluginWindow::slot_import_settings_from_clipboard(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            __this->pUI->import_settings_from_clipboard();
-//            return STATUS_OK;
-//        }
-//
+        status_t PluginWindow::slot_call_import_settings_from_file(tk::Widget *sender, void *ptr, void *data)
+        {
+            LSPString path;
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            status_t res = _this->wImport->selected_file()->format(&path);
+
+            if (res == STATUS_OK)
+                _this->pWrapper->import_settings(&path);
+
+            return STATUS_OK;
+        }
+
+
         status_t PluginWindow::slot_message_close(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);

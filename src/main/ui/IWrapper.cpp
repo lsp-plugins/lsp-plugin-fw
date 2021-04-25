@@ -23,6 +23,8 @@
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
+#include <lsp-plug.in/io/InFileStream.h>
+#include <lsp-plug.in/io/InSequence.h>
 #include <lsp-plug.in/io/OutFileStream.h>
 #include <lsp-plug.in/io/OutSequence.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
@@ -669,6 +671,55 @@ namespace lsp
 
             // All is OK, proceed with KVT //TODO
 
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::import_settings(const char *file)
+        {
+            io::Path path;
+            status_t res = path.set(file);
+            if (res != STATUS_OK)
+                return res;
+
+            return import_settings(&path);
+        }
+
+        status_t IWrapper::import_settings(const LSPString *file)
+        {
+            io::Path path;
+            status_t res = path.set(file);
+            if (res != STATUS_OK)
+                return res;
+
+            return import_settings(&path);
+        }
+
+        status_t IWrapper::import_settings(const io::Path *file)
+        {
+            io::InFileStream is;
+            io::InSequence i;
+
+            status_t res = is.open(file);
+            if (res != STATUS_OK)
+                return res;
+
+            // Wrap
+            if ((res = i.wrap(&is, WRAP_CLOSE, "UTF-8")) != STATUS_OK)
+            {
+                is.close();
+                return res;
+            }
+
+            // Export settings
+            res = import_settings(&i);
+            status_t res2 = i.close();
+
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t IWrapper::import_settings(io::IInSequence *is)
+        {
+            // TODO: implement import
             return STATUS_OK;
         }
     }

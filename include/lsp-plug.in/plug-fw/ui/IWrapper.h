@@ -217,6 +217,17 @@ namespace lsp
                 virtual status_t            export_settings(io::IOutSequence *os, const char *relative);
                 virtual status_t            export_settings(io::IOutSequence *os, const LSPString *relative);
                 virtual status_t            export_settings(io::IOutSequence *os, const io::Path *relative = NULL);
+
+                /**
+                 * Import settings
+                 * @param the source (file name or input sequence)
+                 * @return status of operation
+                 */
+                virtual status_t            import_settings(const char *file);
+                virtual status_t            import_settings(const io::Path *file);
+                virtual status_t            import_settings(const LSPString *file);
+                virtual status_t            import_settings(io::IInSequence *is);
+
         };
     }
 
