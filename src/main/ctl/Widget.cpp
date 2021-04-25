@@ -157,7 +157,7 @@ namespace lsp
             sBgColor.set(name, value);
         }
 
-        status_t Widget::add(Widget *child)
+        status_t Widget::add(ctl::Widget *child)
         {
             return STATUS_NOT_IMPLEMENTED;
         }

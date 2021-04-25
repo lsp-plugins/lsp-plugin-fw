@@ -34,6 +34,7 @@
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
+    #include <lsp-plug.in/plug-fw/ctl/Box.h>
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_H_ */
