@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_COLOR_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_COLOR_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_UTIL_COLOR_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_UTIL_COLOR_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -28,7 +28,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/ui.h>
-#include <lsp-plug.in/plug-fw/ctl/Expression.h>
+#include <lsp-plug.in/plug-fw/ctl/util/Expression.h>
 #include <lsp-plug.in/tk/tk.h>
 
 namespace lsp
@@ -52,10 +52,10 @@ namespace lsp
                 };
 
             protected:
-                LSPString       sPrefix;            // Prefix name
-                tk::Color      *pColor;             // Color
-                ui::IWrapper   *pWrapper;           // Wrapper
-                Expression     *vExpr[C_TOTAL];     // Expression
+                LSPString           sPrefix;            // Prefix name
+                tk::Color          *pColor;             // Color
+                ui::IWrapper       *pWrapper;           // Wrapper
+                ctl::Expression    *vExpr[C_TOTAL];     // Expression
 
             public:
                 explicit Color();
@@ -74,4 +74,4 @@ namespace lsp
 }
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_COLOR_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_COLOR_H_ */

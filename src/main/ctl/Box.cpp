@@ -37,23 +37,23 @@ namespace lsp
             else if (!name->equals_ascii("box"))
                 return STATUS_NOT_FOUND;
 
-            tk::Box *box = new tk::Box(context->display());
-            if (box == NULL)
+            tk::Box *w = new tk::Box(context->display());
+            if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(box)) != STATUS_OK)
+            if ((res = context->add_widget(w)) != STATUS_OK)
             {
-                delete box;
+                delete w;
                 return res;
             }
 
-            if ((res = box->init()) != STATUS_OK)
+            if ((res = w->init()) != STATUS_OK)
                 return res;
 
-            ctl::Box *cbox  = new ctl::Box(context->wrapper(), box, orientation);
-            if (cbox == NULL)
+            ctl::Box *wc  = new ctl::Box(context->wrapper(), w, orientation);
+            if (wc == NULL)
                 return STATUS_NO_MEM;
 
-            *ctl = cbox;
+            *ctl = wc;
             return STATUS_OK;
         CTL_FACTORY_IMPL_END(Box)
 
@@ -76,32 +76,33 @@ namespace lsp
             if (box != NULL)
             {
                 set_constraints(box->constraints(), name, value);
+                set_param(box->spacing(), "spacing", name, value);
+                set_param(box->homogeneous(), "homogeneous", name, value);
+                set_param(box->homogeneous(), "hgen", name, value);
 
-                if (!strcmp(name, "spacing"))
-                    PARSE_INT(value, box->spacing()->set(__))
-                else if (!strcmp(name, "homogeneous"))
-                    PARSE_BOOL(value, box->homogeneous()->set(__))
-                else if (!strcmp(name, "hgen"))
-                    PARSE_BOOL(value, box->homogeneous()->set(__))
-                else if ((enOrientation < 0) && (!strcmp(name, "hor")))
+                // Update orientation
+                if (enOrientation < 0)
                 {
-                    PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL));
-                    enOrientation = box->orientation()->get();
-                }
-                else if ((enOrientation < 0) && (!strcmp(name, "horizontal")))
-                {
-                    PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL));
-                    enOrientation = box->orientation()->get();
-                }
-                else if ((enOrientation < 0) && (!strcmp(name, "vert")))
-                {
-                    PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL));
-                    enOrientation = box->orientation()->get();
-                }
-                else if ((enOrientation < 0) && (!strcmp(name, "vertical")))
-                {
-                    PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL));
-                    enOrientation = box->orientation()->get();
+                    if (!strcmp(name, "hor"))
+                    {
+                        PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL));
+                        enOrientation = box->orientation()->get();
+                    }
+                    else if (!strcmp(name, "horizontal"))
+                    {
+                        PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL));
+                        enOrientation = box->orientation()->get();
+                    }
+                    else if (!strcmp(name, "vert"))
+                    {
+                        PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL));
+                        enOrientation = box->orientation()->get();
+                    }
+                    else if (!strcmp(name, "vertical"))
+                    {
+                        PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL));
+                        enOrientation = box->orientation()->get();
+                    }
                 }
             }
 

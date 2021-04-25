@@ -36,23 +36,23 @@ namespace lsp
             if (!name->equals_ascii("plugin"))
                 return STATUS_NOT_FOUND;
 
-            tk::Window *twnd    = new tk::Window(context->display());
-            if (twnd == NULL)
+            tk::Window *w       = new tk::Window(context->display());
+            if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(twnd)) != STATUS_OK)
+            if ((res = context->add_widget(w)) != STATUS_OK)
             {
-                delete twnd;
+                delete w;
                 return res;
             }
 
-            if ((res = twnd->init()) != STATUS_OK)
+            if ((res = w->init()) != STATUS_OK)
                 return res;
 
-            PluginWindow *wnd   = new PluginWindow(context->wrapper(), twnd);
-            if (wnd == NULL)
+            PluginWindow *wc    = new PluginWindow(context->wrapper(), w);
+            if (wc == NULL)
                 return STATUS_NO_MEM;
 
-            *ctl = wnd;
+            *ctl = wc;
             return STATUS_OK;
         CTL_FACTORY_IMPL_END(PluginWindow)
 

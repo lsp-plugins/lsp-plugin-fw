@@ -57,26 +57,57 @@ namespace lsp
             return wWidget;
         };
 
-//        void Widget::set_lc_attr(widget_attribute_t att, LSPLocalString *s, const char *name, const char *value)
-//        {
-//            // Get prefix
-//            const char *prefix = widget_attribute(att);
-//            size_t len = ::strlen(prefix);
-//
-//            // Prefix matches?
-//            if (::strncmp(prefix, name, len) != 0)
-//                return;
-//
-//            if (name[len] == ':') // Parameter ("prefix:")?
-//                s->params()->add_cstring(&name[len+1], value);
-//            else if (name[len] == '\0') // Key?
-//            {
-//                if (strchr(value, '.') == NULL) // Raw value with high probability?
-//                    s->set_raw(value);
-//                else
-//                    s->set_key(value);
-//            }
-//        }
+        bool Widget::set_lc_attr(tk::String *s, const char *param, const char *name, const char *value)
+        {
+            if (s == NULL)
+                return false;
+
+            // Does the prefix match?
+            size_t len = ::strlen(param);
+            if (strncmp(name, param, len))
+                return false;
+            name += len;
+
+            // Analyze next character
+            if (name[0] == ':') // Parameter ("prefix:")?
+                s->params()->add_cstring(&name[1], value);
+            else if (name[0] == '\0')  // Key?
+            {
+                if (strchr(value, '.') == NULL) // Raw value with high probability?
+                    s->set_raw(value);
+                else
+                    s->set_key(value);
+            }
+            else
+                return false;
+
+            return true;
+        }
+
+        bool Widget::set_font(tk::Font *f, const char *param, const char *name, const char *value)
+        {
+            // Does the prefix match?
+            size_t len = ::strlen(param);
+            if (strncmp(name, param, len))
+                return false;
+
+            name += len;
+
+            if      (!strcmp(name, ".name"))        f->set_name(value);
+            else if (!strcmp(name, ".size"))        PARSE_FLOAT(value, f->set_size(__))
+            else if (!strcmp(name, ".sz"))          PARSE_FLOAT(value, f->set_size(__))
+            else if (!strcmp(name, ".bold"))        PARSE_BOOL(value, f->set_bold(__))
+            else if (!strcmp(name, ".b"))           PARSE_BOOL(value, f->set_bold(__))
+            else if (!strcmp(name, ".italic"))      PARSE_BOOL(value, f->set_italic(__))
+            else if (!strcmp(name, ".i"))           PARSE_BOOL(value, f->set_italic(__))
+            else if (!strcmp(name, ".underline"))   PARSE_BOOL(value, f->set_underline(__))
+            else if (!strcmp(name, ".u"))           PARSE_BOOL(value, f->set_underline(__))
+            else if (!strcmp(name, ".antialiasing"))PARSE_BOOL(value, f->set_antialiasing(__))
+            else if (!strcmp(name, ".a"))           PARSE_BOOL(value, f->set_antialiasing(__))
+            else return false;
+
+            return true;
+        }
 
         bool Widget::set_padding(tk::Padding *pad, const char *name, const char *value)
         {
@@ -136,22 +167,95 @@ namespace lsp
             return true;
         }
 
+        bool Widget::set_layout(tk::Layout *l, const char *name, const char *value)
+        {
+            if      (!strcmp(name, "align"))        PARSE_FLOAT(value, l->set_align(__))
+            else if (!strcmp(name, "halign"))       PARSE_FLOAT(value, l->set_halign(__))
+            else if (!strcmp(name, "valign"))       PARSE_FLOAT(value, l->set_valign(__))
+            else if (!strcmp(name, "scale"))        PARSE_FLOAT(value, l->set_scale(__))
+            else if (!strcmp(name, "hscale"))       PARSE_FLOAT(value, l->set_hscale(__))
+            else if (!strcmp(name, "vscale"))       PARSE_FLOAT(value, l->set_vscale(__))
+            else return false;
+
+            return true;
+        }
+
+        bool Widget::set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value)
+        {
+            if (expr == NULL)
+                return false;
+            if (!strcmp(name, param))
+                return false;
+
+            expr->parse(value);
+            return true;
+        }
+
+        bool Widget::set_param(tk::Boolean *b, const char *param, const char *name, const char *value)
+        {
+            if (b == NULL)
+                return false;
+            if (strcmp(param, name))
+                return false;
+            PARSE_BOOL(value, b->set(__));
+            return true;
+        }
+
+        bool Widget::set_param(tk::Integer *i, const char *param, const char *name, const char *value)
+        {
+            if (i == NULL)
+                return false;
+            if (strcmp(param, name))
+                return false;
+            PARSE_INT(value, i->set(__));
+            return true;
+        }
+
+        bool Widget::set_param(tk::Float *f, const char *param, const char *name, const char *value)
+        {
+            if (f == NULL)
+                return false;
+            if (strcmp(param, name))
+                return false;
+            PARSE_FLOAT(value, f->set(__));
+            return true;
+        }
+
+        bool Widget::set_embedding(tk::Embedding *e, const char *name, const char *value)
+        {
+            if (e == NULL)
+                return false;
+
+            if      (!strcmp(name, "embed"))        PARSE_BOOL(value, e->set(__))
+            else if (!strcmp(name, "embed.h"))      PARSE_BOOL(value, e->set_horizontal(__))
+            else if (!strcmp(name, "embed.hor"))    PARSE_BOOL(value, e->set_horizontal(__))
+            else if (!strcmp(name, "embed.v"))      PARSE_BOOL(value, e->set_vertical(__))
+            else if (!strcmp(name, "embed.vert"))   PARSE_BOOL(value, e->set_vertical(__))
+            else if (!strcmp(name, "embed.l"))      PARSE_BOOL(value, e->set_left(__))
+            else if (!strcmp(name, "embed.left"))   PARSE_BOOL(value, e->set_left(__))
+            else if (!strcmp(name, "embed.r"))      PARSE_BOOL(value, e->set_right(__))
+            else if (!strcmp(name, "embed.right"))  PARSE_BOOL(value, e->set_right(__))
+            else if (!strcmp(name, "embed.t"))      PARSE_BOOL(value, e->set_top(__))
+            else if (!strcmp(name, "embed.top"))    PARSE_BOOL(value, e->set_top(__))
+            else if (!strcmp(name, "embed.b"))      PARSE_BOOL(value, e->set_bottom(__))
+            else if (!strcmp(name, "embed.bottom")) PARSE_BOOL(value, e->set_bottom(__))
+            else return false;
+
+            return true;
+        }
+
         void Widget::set(const char *name, const char *value)
         {
             if (wWidget == NULL)
                 return;
 
-            if (!strcmp(name, "visibility"))
-                BIND_EXPR(sVisibility, value)
-            else if (!strcmp(name, "visible"))
-                BIND_EXPR(sVisibility, value)
-            else if (!strcmp(name, "brightness"))
-                sBright.parse(value);
-            else if (!strcmp(name, "bright"))
-                sBright.parse(value);
-            else if (!strcmp(name, "ui:id"))
+            if (!strcmp(name, "ui:id"))
                 pWrapper->ui()->map_widget(value, wWidget);
 
+            set_expr(&sVisibility, "visibility", name, value);
+            set_expr(&sVisibility, "visible", name, value);
+            set_expr(&sBright, "brightness", name, value);
+            set_expr(&sBright, "bright", name, value);
             set_padding(wWidget->padding(), name, value);
             set_allocation(wWidget->allocation(), name, value);
             sBgColor.set(name, value);

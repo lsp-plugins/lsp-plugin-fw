@@ -32,7 +32,7 @@
 #include <lsp-plug.in/plug-fw/ui.h>
 
 #include <lsp-plug.in/plug-fw/ctl/types.h>
-#include <lsp-plug.in/plug-fw/ctl/Expression.h>
+#include <lsp-plug.in/plug-fw/ctl/util/Expression.h>
 
 namespace lsp
 {
@@ -52,16 +52,24 @@ namespace lsp
                 tk::Widget         *wWidget;
 
                 ctl::Color          sBgColor;
-                Expression          sVisibility;
-                Expression          sBright;
+                ctl::Expression     sVisibility;
+                ctl::Expression     sBright;
 
             protected:
                 static bool         set_padding(tk::Padding *pad, const char *name, const char *value);
                 static bool         set_allocation(tk::Allocation *alloc, const char *name, const char *value);
                 static bool         set_constraints(tk::SizeConstraints *c, const char *name, const char *value);
+                static bool         set_layout(tk::Layout *l, const char *name, const char *value);
+                static bool         set_lc_attr(tk::String *s, const char *param, const char *name, const char *value);
+                static bool         set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value);
+                static bool         set_font(tk::Font *f, const char *param, const char *name, const char *value);
+                static bool         set_param(tk::Boolean *b, const char *param, const char *name, const char *value);
+                static bool         set_param(tk::Integer *i, const char *param, const char *name, const char *value);
+                static bool         set_param(tk::Float *f, const char *param, const char *name, const char *value);
+                static bool         set_embedding(tk::Embedding *e, const char *name, const char *value);
 //                void            init_color(color_t value, Color *color);
 //                void            init_color(color_t value, LSPColor *color);
-//                void            set_lc_attr(widget_attribute_t att, LSPLocalString *s, const char *name, const char *value);
+
 
             public:
                 explicit Widget(ui::IWrapper *src, tk::Widget *widget);

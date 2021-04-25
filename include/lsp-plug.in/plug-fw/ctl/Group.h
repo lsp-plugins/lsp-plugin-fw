@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_BOX_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_BOX_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_GROUP_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_GROUP_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -36,17 +36,21 @@ namespace lsp
         /**
          * Simple container: vertical or horizontal box
          */
-        class Box: public Widget
+        class Group: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ssize_t             enOrientation;
+                ctl::Color          sTextColor;
+                ctl::Color          sColor;
+                ctl::Embedding      sEmbed;
 
             public:
-                explicit Box(ui::IWrapper *src, tk::Box *widget, ssize_t orientation = -1);
-                virtual ~Box();
+                explicit Group(ui::IWrapper *src, tk::Group *widget);
+                virtual ~Group();
+
+                virtual status_t    init();
 
             public:
                 virtual void        set(const char *name, const char *value);
@@ -57,4 +61,5 @@ namespace lsp
 }
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_BOX_H_ */
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_GROUP_H_ */

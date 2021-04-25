@@ -28,13 +28,17 @@
     #include <lsp-plug.in/plug-fw/ctl/types.h>
     #include <lsp-plug.in/plug-fw/ctl/parse.h>
 
-    #include <lsp-plug.in/plug-fw/ctl/Expression.h>
-    #include <lsp-plug.in/plug-fw/ctl/Color.h>
+    // Utilitary classes
+    #include <lsp-plug.in/plug-fw/ctl/util/Expression.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/Color.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/Embedding.h>
 
+    // Widget controllers
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
     #include <lsp-plug.in/plug-fw/ctl/Box.h>
+    #include <lsp-plug.in/plug-fw/ctl/Group.h>
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_H_ */
