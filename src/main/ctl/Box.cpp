@@ -80,29 +80,11 @@ namespace lsp
                 set_param(box->homogeneous(), "homogeneous", name, value);
                 set_param(box->homogeneous(), "hgen", name, value);
 
-                // Update orientation
+                // Set orientation
                 if (enOrientation < 0)
                 {
-                    if (!strcmp(name, "hor"))
-                    {
-                        PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL));
+                    if (set_orientation(box->orientation(), name, value))
                         enOrientation = box->orientation()->get();
-                    }
-                    else if (!strcmp(name, "horizontal"))
-                    {
-                        PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL));
-                        enOrientation = box->orientation()->get();
-                    }
-                    else if (!strcmp(name, "vert"))
-                    {
-                        PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL));
-                        enOrientation = box->orientation()->get();
-                    }
-                    else if (!strcmp(name, "vertical"))
-                    {
-                        PARSE_BOOL(value, box->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL));
-                        enOrientation = box->orientation()->get();
-                    }
                 }
             }
 

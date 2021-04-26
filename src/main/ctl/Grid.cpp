@@ -88,17 +88,10 @@ namespace lsp
                 set_param(grd->hspacing(), "spacing", name, value);
                 set_param(grd->vspacing(), "spacing", name, value);
                 set_constraints(grd->constraints(), name, value);
+                set_orientation(grd->orientation(), name, value);
 
-                // Parse orientation
-                if (!strcmp(name, "hor"))
-                    PARSE_BOOL(value, grd->orientation()->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL))
-                else if (!strcmp(name, "horizontal"))
-                    PARSE_BOOL(value, grd->orientation()->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL))
-                else if (!strcmp(name, "vert"))
-                    PARSE_BOOL(value, grd->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL))
-                else if (!strcmp(name, "vertical"))
-                    PARSE_BOOL(value, grd->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL))
-                else if (!strcmp(name, "transpose"))
+                // Legacy property
+                if (!strcmp(name, "transpose"))
                     PARSE_BOOL(value, grd->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL))
             }
 

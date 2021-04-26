@@ -261,6 +261,24 @@ namespace lsp
             sBgColor.set(name, value);
         }
 
+        bool Widget::set_orientation(tk::Orientation *o, const char *name, const char *value)
+        {
+            if (!strcmp(name, "hor"))
+                PARSE_BOOL(value, o->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL))
+            else if (!strcmp(name, "horizontal"))
+                PARSE_BOOL(value, o->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL))
+            else if (!strcmp(name, "vert"))
+                PARSE_BOOL(value, o->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL))
+            else if (!strcmp(name, "vertical"))
+                PARSE_BOOL(value, o->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL))
+            else if (!strcmp(name, "orientation"))
+                o->parse(value);
+            else
+                return false;
+
+            return true;
+        }
+
         status_t Widget::add(ctl::Widget *child)
         {
             return STATUS_NOT_IMPLEMENTED;
