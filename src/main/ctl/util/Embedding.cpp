@@ -49,76 +49,73 @@ namespace lsp
             }
 
             pEmbedding      = NULL;
-            pWrapper    = NULL;
+            pWrapper        = NULL;
         }
 
-        status_t Embedding::init(ui::IWrapper *wrapper, tk::Embedding *color, const char *prefix)
+        status_t Embedding::init(ui::IWrapper *wrapper, tk::Embedding *color)
         {
             if (pEmbedding != NULL)
                 return STATUS_BAD_STATE;
             else if (color == NULL)
                 return STATUS_BAD_ARGUMENTS;
 
-            // Save prefix
-            if (prefix != NULL)
-            {
-                if (!sPrefix.set_utf8(prefix))
-                    return STATUS_NO_MEM;
-            }
-
             // Save color
             pEmbedding      = color;
-            pWrapper    = wrapper;
+            pWrapper        = wrapper;
 
             return STATUS_OK;
         }
 
-        status_t Embedding::init(ui::IWrapper *wrapper, tk::Embedding *color, const LSPString *prefix)
+        bool Embedding::set(const char *prop, const char *name, const char *value)
         {
-            return init(wrapper, color, (prefix != NULL) ? prefix->get_utf8() : NULL);
-        }
+            if (prop == NULL)
+                return false;
 
-        void Embedding::set(const char *name, const char *value)
-        {
-            const char *prefix = sPrefix.get_utf8();
             ssize_t idx = -1;
+            size_t len = strlen(prop);
 
-            if (!strcmp(name, prefix))
+            if (strncmp(name, prop, len))
+                return false;
+            name += len;
+
+            if (name[0] == '\0')
                 idx         = E_ALL;
-            else if (strstr(name, prefix) == name)
+            else if (name[0] == '.')
             {
-                name       += strlen(prefix);
+                ++name;
 
-                if      (!strcmp(name, ".h"))       idx = E_H;
-                else if (!strcmp(name, ".hor"))     idx = E_H;
-                else if (!strcmp(name, ".v"))       idx = E_V;
-                else if (!strcmp(name, ".vert"))    idx = E_V;
-                else if (!strcmp(name, ".l"))       idx = E_L;
-                else if (!strcmp(name, ".left"))    idx = E_L;
-                else if (!strcmp(name, ".r"))       idx = E_R;
-                else if (!strcmp(name, ".right"))   idx = E_R;
-                else if (!strcmp(name, ".t"))       idx = E_T;
-                else if (!strcmp(name, ".top"))     idx = E_T;
-                else if (!strcmp(name, ".b"))       idx = E_B;
-                else if (!strcmp(name, ".bottom"))  idx = E_B;
+                if      (!strcmp(name, "h"))        idx = E_H;
+                else if (!strcmp(name, "hor"))      idx = E_H;
+                else if (!strcmp(name, "v"))        idx = E_V;
+                else if (!strcmp(name, "vert"))     idx = E_V;
+                else if (!strcmp(name, "l"))        idx = E_L;
+                else if (!strcmp(name, "left"))     idx = E_L;
+                else if (!strcmp(name, "r"))        idx = E_R;
+                else if (!strcmp(name, "right"))    idx = E_R;
+                else if (!strcmp(name, "t"))        idx = E_T;
+                else if (!strcmp(name, "top"))      idx = E_T;
+                else if (!strcmp(name, "b"))        idx = E_B;
+                else if (!strcmp(name, "bottom"))   idx = E_B;
             }
+            else
+                return false;
 
             if (idx < 0)
-                return;
+                return false;
 
             // Create the corresponding expression
-            Expression *e = vExpr[idx];
+            ctl::Expression *e = vExpr[idx];
             if (e == NULL)
             {
-                e       = new Expression();
+                e       = new ctl::Expression();
                 if (e == NULL)
-                    return;
+                    return false;
                 e->init(pWrapper, this);
                 vExpr[idx]      = e;
             }
 
             // Finally, parse the expression
-            e->parse(value);
+            return e->parse(value) == STATUS_OK;
         }
 
         void Embedding::notify(ui::IPort *port)
@@ -132,7 +129,7 @@ namespace lsp
             for (size_t i=0; i<E_TOTAL; ++i)
             {
                 // Evaluate the expression
-                Expression *e = vExpr[i];
+                ctl::Expression *e = vExpr[i];
                 if ((e == NULL) || (!e->depends(port)))
                     continue;
                 if (e->evaluate(&value) != STATUS_OK)

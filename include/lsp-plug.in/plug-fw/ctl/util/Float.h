@@ -19,56 +19,55 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_UTIL_EMBEDDING_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_UTIL_EMBEDDING_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_UTIL_FLOAT_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_UTIL_FLOAT_H_
+
+#include <lsp-plug.in/plug-fw/version.h>
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
 
-#include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/expr/Expression.h>
+#include <lsp-plug.in/expr/Variables.h>
+#include <lsp-plug.in/runtime/LSPString.h>
+
 #include <lsp-plug.in/plug-fw/ui.h>
-#include <lsp-plug.in/plug-fw/ctl/util/Expression.h>
-#include <lsp-plug.in/tk/tk.h>
+#include <lsp-plug.in/plug-fw/ctl/util/Property.h>
 
 namespace lsp
 {
     namespace ctl
     {
         /**
-         * Color controller
+         * Simple expression-based floating-point property
          */
-        class Embedding: public ui::IPortListener
+        class Float: public ctl::Property
         {
             private:
-                Embedding & operator = (const Embedding &);
+                Float & operator = (const Float &);
 
             protected:
-                enum component_t
-                {
-                    E_ALL, E_H, E_V,
-                    E_L, E_R, E_T, E_B,
-                    E_TOTAL
-                };
+                tk::Float      *pProp;
 
             protected:
-                tk::Embedding      *pEmbedding;         // Embedding
-                ui::IWrapper       *pWrapper;           // Wrapper
-                ctl::Expression    *vExpr[E_TOTAL];     // Expression
+                void            apply_changes();
+
+            protected:
+                virtual void    on_updated(ui::IPort *port);
 
             public:
-                explicit Embedding();
-                virtual ~Embedding();
+                explicit        Float();
 
-                status_t            init(ui::IWrapper *wrapper, tk::Embedding *embed);
-
-            public:
-                bool                set(const char *prop, const char *name, const char *value);
+                void            init(ui::IWrapper *wrapper, tk::Float *prop);
 
             public:
-                virtual void        notify(ui::IPort *port);
+                bool            set(const char *prop, const char *name, const char *value);
         };
     }
 }
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_EMBEDDING_H_ */
+
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_FLOAT_H_ */

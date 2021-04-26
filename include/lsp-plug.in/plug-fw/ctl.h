@@ -30,6 +30,9 @@
 
     // Utilitary classes
     #include <lsp-plug.in/plug-fw/ctl/util/Property.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/Integer.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/Float.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/Boolean.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Expression.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Color.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Embedding.h>

@@ -73,7 +73,7 @@ namespace lsp
             {
                 sTextColor.init(pWrapper, grp->text_color(), "text.color");
                 sColor.init(pWrapper, grp->text_color(), "color");
-                sEmbed.init(pWrapper, grp->embedding(), "embed");
+                sEmbed.init(pWrapper, grp->embedding());
             }
 
             return STATUS_OK;
@@ -98,7 +98,7 @@ namespace lsp
                 set_param(grp->border_radius(), "border.r", name, value);
             }
 
-            sEmbed.set(name, value);
+            sEmbed.set("embed", name, value);
             Widget::set(name, value);
         }
 

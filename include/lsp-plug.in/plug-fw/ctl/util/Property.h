@@ -90,7 +90,7 @@ namespace lsp
                 virtual ~Property();
 
                 void            init(ui::IWrapper *wrapper);
-                void            destroy();
+                virtual void    destroy();
 
             public:
                 virtual void    notify(ui::IPort *port);
