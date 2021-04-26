@@ -127,7 +127,6 @@ namespace lsp
                 return;
 
             expr::value_t value;
-            expr::value_type_t vt;
             expr::init_value(&value);
 
             for (size_t i=0; i<E_TOTAL; ++i)

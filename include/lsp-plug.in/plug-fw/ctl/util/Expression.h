@@ -34,6 +34,7 @@
 #include <lsp-plug.in/runtime/LSPString.h>
 
 #include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/ctl/util/Property.h>
 
 namespace lsp
 {
@@ -45,74 +46,37 @@ namespace lsp
             EXPR_FLAGS_STRING   = expr::Expression::FLAG_STRING
         };
 
-        class Expression: public ui::IPortListener
+        /**
+         * Computed expression
+         */
+        class Expression: public ctl::Property
         {
             private:
                 Expression & operator = (const Expression &);
 
             protected:
-                class ExprResolver: public ui::PortResolver
-                {
-                    protected:
-                        Expression *pExpr;
-
-                    public:
-                        explicit ExprResolver(Expression *expr);
-
-                    public:
-                        virtual status_t on_resolved(const LSPString *name, ui::IPort *p);
-
-                        virtual status_t resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes);
-
-                        virtual status_t resolve(expr::value_t *value, const LSPString *name, size_t num_indexes, const ssize_t *indexes);
-                };
-
-            protected:
-                expr::Expression            sExpr;
-                expr::Variables             sVars;
-                expr::Parameters            sParams;
-                ExprResolver                sResolver;
-                ui::IWrapper               *pWrapper;
                 ui::IPortListener          *pListener;
-                lltl::parray<ui::IPort>     vDependencies;
-            #ifdef LSP_TRACE
-                LSPString                   sText;
-            #endif /* LSP_TRACE */
 
             protected:
-                void            do_destroy();
-                void            drop_dependencies();
-                status_t        on_resolved(const LSPString *name, ui::IPort *p);
+                virtual void    on_updated(ui::IPort *port);
 
             public:
                 explicit Expression();
-                virtual ~Expression();
 
-            public:
-                virtual void    notify(ui::IPort *port);
-
-            public:
                 void            init(ui::IWrapper *wrapper, ui::IPortListener *listener);
-                void            destroy();
 
-                inline expr::Parameters *params()               { return &sParams; };
-
+            public:
                 float           evaluate();
                 float           evaluate(size_t idx);
-                status_t        evaluate(expr::value_t *value);
-                status_t        evaluate(size_t idx, expr::value_t *value);
+                inline status_t evaluate(expr::value_t *value)                                              { return Property::evaluate(value);         }
+                inline status_t evaluate(size_t idx, expr::value_t *value)                                  { return Property::evaluate(idx, value);    }
 
                 inline size_t   results()                       { return sExpr.results(); }
                 float           result(size_t idx);
-                bool            parse(const char *expr, size_t flags = expr::Expression::FLAG_NONE);
-                bool            parse(const LSPString *expr, size_t flags = expr::Expression::FLAG_NONE);
-                bool            parse(io::IInSequence *expr, size_t flags = expr::Expression::FLAG_NONE);
-                inline bool     valid() const                   { return sExpr.valid(); };
-                inline bool     depends(ui::IPort *port) const  { return vDependencies.contains(port); }
 
-            #ifdef LSP_TRACE
-                inline const char *text() const                 { return sText.get_utf8(); }
-            #endif /* LSP_TRACE */
+                inline bool     parse(const char *expr, size_t flags = expr::Expression::FLAG_NONE)         { return Property::parse(expr, flags);      }
+                inline bool     parse(const LSPString *expr, size_t flags = expr::Expression::FLAG_NONE)    { return Property::parse(expr, flags);      }
+                inline bool     parse(io::IInSequence *expr, size_t flags = expr::Expression::FLAG_NONE)    { return Property::parse(expr, flags);      }
         };
     }
 }

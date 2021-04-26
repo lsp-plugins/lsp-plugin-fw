@@ -29,6 +29,7 @@
     #include <lsp-plug.in/plug-fw/ctl/parse.h>
 
     // Utilitary classes
+    #include <lsp-plug.in/plug-fw/ctl/util/Property.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Expression.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Color.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Embedding.h>
