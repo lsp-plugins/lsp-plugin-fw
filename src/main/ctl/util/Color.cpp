@@ -52,19 +52,12 @@ namespace lsp
             pWrapper    = NULL;
         }
 
-        status_t Color::init(ui::IWrapper *wrapper, tk::Color *color, const char *prefix)
+        status_t Color::init(ui::IWrapper *wrapper, tk::Color *color)
         {
             if (pColor != NULL)
                 return STATUS_BAD_STATE;
             else if (color == NULL)
                 return STATUS_BAD_ARGUMENTS;
-
-            // Save prefix
-            if (prefix != NULL)
-            {
-                if (!sPrefix.set_utf8(prefix))
-                    return STATUS_NO_MEM;
-            }
 
             // Save color
             pColor      = color;
@@ -73,35 +66,30 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t Color::init(ui::IWrapper *wrapper, tk::Color *color, const LSPString *prefix)
+        void Color::set(const char *prefix, const char *name, const char *value)
         {
-            return init(wrapper, color, (prefix != NULL) ? prefix->get_utf8() : NULL);
-        }
-
-        void Color::set(const char *name, const char *value)
-        {
-            const char *prefix = sPrefix.get_utf8();
-            ssize_t idx = -1;
+            ssize_t idx     = -1;
+            size_t len      = strlen(prefix);
 
             if (!strcmp(name, prefix))
                 idx         = C_VALUE;
-            else if (strstr(name, prefix) == name)
+            else if (!strncmp(name, prefix, len))
             {
                 name       += strlen(prefix);
 
-                if      (!strcmp(name, "_red"))     idx = C_R;
+                if      (!strcmp(name, ".red"))     idx = C_R;
                 else if (!strcmp(name, ".r"))       idx = C_R;
-                else if (!strcmp(name, "_green"))   idx = C_G;
+                else if (!strcmp(name, ".green"))   idx = C_G;
                 else if (!strcmp(name, ".g"))       idx = C_G;
-                else if (!strcmp(name, "_blue"))    idx = C_B;
+                else if (!strcmp(name, ".blue"))    idx = C_B;
                 else if (!strcmp(name, ".b"))       idx = C_B;
-                else if (!strcmp(name, "_hue"))     idx = C_H;
+                else if (!strcmp(name, ".hue"))     idx = C_H;
                 else if (!strcmp(name, ".h"))       idx = C_H;
-                else if (!strcmp(name, "_sat"))     idx = C_S;
+                else if (!strcmp(name, ".sat"))     idx = C_S;
                 else if (!strcmp(name, ".s"))       idx = C_S;
-                else if (!strcmp(name, "_light"))   idx = C_L;
+                else if (!strcmp(name, ".light"))   idx = C_L;
                 else if (!strcmp(name, ".l"))       idx = C_L;
-                else if (!strcmp(name, "_alpha"))   idx = C_A;
+                else if (!strcmp(name, ".alpha"))   idx = C_A;
                 else if (!strcmp(name, ".a"))       idx = C_A;
             }
 

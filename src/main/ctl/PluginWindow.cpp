@@ -1235,13 +1235,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void PluginWindow::inject_style(tk::Widget *widget, const char *style_name)
-        {
-            tk::Style *style = widget->display()->schema()->get(style_name);
-            if (style != NULL)
-                widget->style()->inject_parent(style);
-        }
-
         tk::Label *PluginWindow::create_label(tk::WidgetContainer *dst, const char *key, const char *style_name)
         {
             tk::Label *lbl = new tk::Label(wWidget->display());

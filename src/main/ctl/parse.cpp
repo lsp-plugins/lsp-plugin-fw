@@ -147,7 +147,7 @@ namespace lsp
             long v = ::strtol(arg, &end, 10);
             if (errno != 0)
                 return false;
-            end     = skip_whitespace(arg);
+            end     = skip_whitespace(end);
             if (*end != '\0')
                 return false;
 
@@ -162,7 +162,7 @@ namespace lsp
             unsigned long v = ::strtoul(arg, &end, 10);
             if (errno != 0)
                 return false;
-            end     = skip_whitespace(arg);
+            end     = skip_whitespace(end);
             if (*end != '\0')
                 return false;
 
@@ -182,7 +182,7 @@ namespace lsp
 
             if (errno != 0)
                 return false;
-            end     = skip_whitespace(arg);
+            end     = skip_whitespace(end);
             if (*end != '\0')
                 return false;
 
@@ -202,7 +202,7 @@ namespace lsp
 
             if (errno != 0)
                 return false;
-            end     = skip_whitespace(arg);
+            end     = skip_whitespace(end);
             if (*end != '\0')
                 return false;
 

@@ -122,7 +122,6 @@ namespace lsp
                 static status_t slot_select_language(tk::Widget *sender, void *ptr, void *data);
 
             protected:
-                static void                inject_style(tk::Widget *widget, const char *style_name);
                 static i18n::IDictionary  *get_default_dict(tk::Widget *src);
                 static tk::FileFilters    *create_config_filters(tk::FileDialog *dlg);
 

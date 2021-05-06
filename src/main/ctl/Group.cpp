@@ -71,8 +71,8 @@ namespace lsp
             tk::Group *grp  = tk::widget_cast<tk::Group>(wWidget);
             if (grp != NULL)
             {
-                sTextColor.init(pWrapper, grp->text_color(), "text.color");
-                sColor.init(pWrapper, grp->text_color(), "color");
+                sTextColor.init(pWrapper, grp->text_color());
+                sColor.init(pWrapper, grp->text_color());
                 sEmbed.init(pWrapper, grp->embedding());
             }
 
@@ -96,6 +96,9 @@ namespace lsp
                 set_param(grp->border_size(), "border.sz", name, value);
                 set_param(grp->border_radius(), "border.radius", name, value);
                 set_param(grp->border_radius(), "border.r", name, value);
+
+                sTextColor.set("text.color", name, value);
+                sColor.set("color", name, value);
             }
 
             sEmbed.set("embed", name, value);

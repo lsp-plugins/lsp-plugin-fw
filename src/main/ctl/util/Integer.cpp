@@ -45,7 +45,7 @@ namespace lsp
 
             if (evaluate(&value) == STATUS_OK)
             {
-                if (expr::cast_int(&value))
+                if (expr::cast_int(&value) == STATUS_OK)
                     pProp->set(value.v_int);
             }
 

@@ -128,7 +128,7 @@ namespace lsp
             if (sExpr.parse(&tmp, flags) != STATUS_OK)
                 return false;
 
-            return sExpr.evaluate();
+            return sExpr.evaluate() == STATUS_OK;
         }
 
         bool Property::parse(const LSPString *expr, size_t flags)

@@ -61,11 +61,10 @@ namespace lsp
                 explicit Color();
                 virtual ~Color();
 
-                status_t            init(ui::IWrapper *wrapper, tk::Color *color, const char *prefix);
-                status_t            init(ui::IWrapper *wrapper, tk::Color *color, const LSPString *prefix);
+                status_t            init(ui::IWrapper *wrapper, tk::Color *color);
 
             public:
-                void                set(const char *name, const char *value);
+                void                set(const char *prefix, const char *name, const char *value);
 
             public:
                 virtual void        notify(ui::IPort *port);

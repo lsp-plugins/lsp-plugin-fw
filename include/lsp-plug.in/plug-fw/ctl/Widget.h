@@ -60,6 +60,7 @@ namespace lsp
                 static bool         set_allocation(tk::Allocation *alloc, const char *name, const char *value);
                 static bool         set_constraints(tk::SizeConstraints *c, const char *name, const char *value);
                 static bool         set_layout(tk::Layout *l, const char *name, const char *value);
+                static bool         set_text_layout(tk::TextLayout *l, const char *name, const char *value);
                 static bool         set_lc_attr(tk::String *s, const char *param, const char *name, const char *value);
                 static bool         set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value);
                 static bool         set_font(tk::Font *f, const char *param, const char *name, const char *value);
@@ -68,6 +69,12 @@ namespace lsp
                 static bool         set_param(tk::Float *f, const char *param, const char *name, const char *value);
                 static bool         set_embedding(tk::Embedding *e, const char *name, const char *value);
                 static bool         set_orientation(tk::Orientation *o, const char *name, const char *value);
+                static bool         set_value(bool *v, const char *param, const char *name, const char *value);
+                static bool         set_value(ssize_t *v, const char *param, const char *name, const char *value);
+                static bool         set_value(float *v, const char *param, const char *name, const char *value);
+
+                static void         inject_style(tk::Widget *widget, const char *style_name);
+                static void         revoke_style(tk::Widget *widget, const char *style_name);
 //                void            init_color(color_t value, Color *color);
 //                void            init_color(color_t value, LSPColor *color);
 

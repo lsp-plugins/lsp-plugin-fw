@@ -180,6 +180,17 @@ namespace lsp
             return true;
         }
 
+        bool Widget::set_text_layout(tk::TextLayout *l, const char *name, const char *value)
+        {
+            if      (!strcmp(name, "htext"))        PARSE_FLOAT(value, l->set_halign(__))
+            else if (!strcmp(name, "vtext"))        PARSE_FLOAT(value, l->set_valign(__))
+            else if (!strcmp(name, "text.halign"))  PARSE_FLOAT(value, l->set_halign(__))
+            else if (!strcmp(name, "text.valign"))  PARSE_FLOAT(value, l->set_valign(__))
+            else return false;
+
+            return true;
+        }
+
         bool Widget::set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value)
         {
             if (expr == NULL)
@@ -221,6 +232,36 @@ namespace lsp
             return true;
         }
 
+        bool Widget::set_value(bool *v, const char *param, const char *name, const char *value)
+        {
+            if (v == NULL)
+                return false;
+            if (strcmp(param, name))
+                return false;
+            PARSE_BOOL(value, *v = __);
+            return true;
+        }
+
+        bool Widget::set_value(ssize_t *v, const char *param, const char *name, const char *value)
+        {
+            if (v == NULL)
+                return false;
+            if (strcmp(param, name))
+                return false;
+            PARSE_INT(value, *v = __);
+            return true;
+        }
+
+        bool Widget::set_value(float *v, const char *param, const char *name, const char *value)
+        {
+            if (v == NULL)
+                return false;
+            if (strcmp(param, name))
+                return false;
+            PARSE_FLOAT(value, *v = __);
+            return true;
+        }
+
         bool Widget::set_embedding(tk::Embedding *e, const char *name, const char *value)
         {
             if (e == NULL)
@@ -258,7 +299,7 @@ namespace lsp
             set_expr(&sBright, "bright", name, value);
             set_padding(wWidget->padding(), name, value);
             set_allocation(wWidget->allocation(), name, value);
-            sBgColor.set(name, value);
+            sBgColor.set("bg", name, value);
         }
 
         bool Widget::set_orientation(tk::Orientation *o, const char *name, const char *value)
@@ -279,6 +320,20 @@ namespace lsp
             return true;
         }
 
+        void Widget::inject_style(tk::Widget *widget, const char *style_name)
+        {
+            tk::Style *style = widget->display()->schema()->get(style_name);
+            if (style != NULL)
+                widget->style()->inject_parent(style);
+        }
+
+        void Widget::revoke_style(tk::Widget *widget, const char *style_name)
+        {
+            tk::Style *style = widget->display()->schema()->get(style_name);
+            if (style != NULL)
+                widget->style()->remove_parent(style);
+        }
+
         status_t Widget::add(ctl::Widget *child)
         {
             return STATUS_NOT_IMPLEMENTED;
@@ -289,7 +344,7 @@ namespace lsp
             sVisibility.init(pWrapper, this);
             sBright.init(pWrapper, this);
             if (wWidget != NULL)
-                sBgColor.init(pWrapper, wWidget->bg_color(), "bg");
+                sBgColor.init(pWrapper, wWidget->bg_color());
 
             return STATUS_OK;
         }

@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
+#include <lsp-plug.in/common/status.h>
 
 namespace lsp
 {
@@ -154,6 +155,127 @@ namespace lsp
          * @return number of elements excluding PORTS_END
          */
         size_t          port_list_size(const port_t *metadata);
+
+        /**
+         * Format floating-point value
+         *
+         * @param buf buffer to store formatted data
+         * @param len length of the buffer
+         * @param meta port metadata
+         * @param value value to format
+         * @param precision precision
+         */
+        void            format_float(char *buf, size_t len, const port_t *meta, float value, ssize_t precision);
+
+        /**
+         * Format integer value
+         *
+         * @param buf buffer to store formatted data
+         * @param len length of the buffer
+         * @param meta port metadata
+         * @param value value to format
+         */
+        void            format_int(char *buf, size_t len, const port_t *meta, float value);
+
+        /**
+         * Format enumerated value
+         *
+         * @param buf buffer to store formatted data
+         * @param len length of the buffer
+         * @param meta port metadata
+         * @param value value to format
+         */
+        void            format_enum(char *buf, size_t len, const port_t *meta, float value);
+
+        /**
+         * Format floating-point value in decibel units
+         *
+         * @param buf buffer to store formatted data
+         * @param len length of the buffer
+         * @param meta port metadata
+         * @param value value to format
+         * @param precision precision
+         */
+        void            format_decibels(char *buf, size_t len, const port_t *meta, float value, ssize_t precision);
+
+        /**
+         * Format boolean value
+         * @param buf buffer to store formatted data
+         * @param len length of the buffer
+         * @param meta port metadata
+         * @param value value to format
+         */
+        void            format_bool(char *buf, size_t len, const port_t *meta, float value);
+
+        /**
+         * Format the value
+         * @param buf buffer to store formatted data
+         * @param len length of the buffer
+         * @param meta port metadata
+         * @param value value to format
+         * @param precision precision
+         */
+        void            format_value(char *buf, size_t len, const port_t *meta, float value, ssize_t precision);
+
+        /**
+         * Parse some text value associated with specified metadata and considered to be boolean
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @return status of operation
+         */
+        status_t        parse_bool(float *dst, const char *text);
+
+        /**
+         * Parse some text value associated with specified metadata and considered to be enumeration
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @return status of operation
+         */
+        status_t        parse_enum(float *dst, const char *text, const port_t *meta);
+
+        /**
+         * Parse some text value associated with specified metadata and considered to be decibel value
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @return status of operation
+         */
+        status_t        parse_decibels(float *dst, const char *text, const port_t *meta);
+
+        /**
+         * Parse some text value associated with specified metadata and considered to be integer value
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @return status of operation
+         */
+        status_t        parse_int(float *dst, const char *text, const port_t *meta);
+
+        /**
+         * Parse some text value associated with specified metadata and considered to be floating-point value
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @return status of operation
+         */
+        status_t        parse_float(float *dst, const char *text, const port_t *meta);
+
+        /**
+         * Parse some text value associated with specified metadata
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @return status of operation
+         */
+        status_t        parse_value(float *dst, const char *text, const port_t *meta);
     }
 }
 

@@ -45,7 +45,7 @@ namespace lsp
 
             if (evaluate(&value) == STATUS_OK)
             {
-                if (expr::cast_bool(&value))
+                if (expr::cast_bool(&value) == STATUS_OK)
                     pProp->set(value.v_bool);
             }
 

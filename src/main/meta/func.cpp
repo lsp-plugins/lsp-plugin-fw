@@ -22,8 +22,12 @@
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/common/alloc.h>
+
+#include <locale.h>
+#include <errno.h>
 
 namespace lsp
 {
@@ -79,6 +83,13 @@ namespace lsp
             { "°R",     "units.degr" },
 
             NULL
+        };
+
+        static const port_item_t default_bool[] =
+        {
+            { "off",    "bool.off" },
+            { "on",     "bool.on" },
+            { NULL, NULL }
         };
 
         const char *get_unit_name(size_t unit)
@@ -270,6 +281,286 @@ namespace lsp
                 metadata    ++;
             }
             return count;
+        }
+
+        void format_float(char *buf, size_t len, const port_t *meta, float value, ssize_t precision)
+        {
+            float v = (value < 0.0f) ? - value : value;
+            size_t tolerance    = 0;
+
+            // Select the tolerance of output value
+            if (precision < 0)
+            {
+                // Determine regular tolerance
+                if (v < 0.1f)
+                    tolerance   = 4;
+                else if (v < 1.0f)
+                    tolerance   = 3;
+                else if (v < 10.0f)
+                    tolerance   = 2;
+                else if (v < 100.0f)
+                    tolerance   = 1;
+                else
+                    tolerance   = 0;
+
+                // Now determine normal tolerance
+                if (meta->flags & F_STEP)
+                {
+                    size_t max_tol = 0;
+                    float step      = (meta->step < 0.0f) ? - meta->step : meta->step;
+                    while ((max_tol < 4) && (truncf(step) <= 0))
+                    {
+                        step   *= 10;
+                        max_tol++;
+                    }
+
+                    if (tolerance > max_tol)
+                        tolerance = max_tol;
+                }
+            }
+            else
+                tolerance   = (precision > 4) ? 4 : precision;
+
+            const char *fmt = "%.0f";
+            switch (tolerance)
+            {
+                case 4:     fmt = "%.4f"; break;
+                case 3:     fmt = "%.3f"; break;
+                case 2:     fmt = "%.2f"; break;
+                case 1:     fmt = "%.1f"; break;
+                default:    fmt = "%.0f"; break;
+            };
+
+            snprintf(buf, len, fmt, value);
+            if (len > 0)
+                buf[len - 1] = '\0';
+        }
+
+        void format_int(char *buf, size_t len, const port_t *meta, float value)
+        {
+            snprintf(buf, len, "%ld", long(value));
+            if (len > 0)
+                buf[len - 1] = '\0';
+        }
+
+        void format_enum(char *buf, size_t len, const port_t *meta, float value)
+        {
+            float min   = (meta->flags & F_LOWER) ? meta->min: 0;
+            float step  = (meta->flags & F_STEP) ? meta->step : 1.0;
+
+            for (const port_item_t *p = meta->items; (p != NULL) && (p->text != NULL); ++p)
+            {
+                if (min >= value)
+                {
+                    ::strncpy(buf, p->text, len);
+                    buf[len - 1] = '\0';
+                    return;
+                }
+                min    += step;
+            }
+            if (len > 0)
+                buf[0] = '\0';
+        }
+
+        void format_decibels(char *buf, size_t len, const port_t *meta, float value, ssize_t precision)
+        {
+            double mul      = (meta->unit == U_GAIN_AMP) ? 20.0 : 10.0;
+            if (value < 0.0f)
+                value           = - value;
+
+            value = mul * log(value) / M_LN10;
+            float thresh    = (meta->flags & F_EXT) ? -140.0f : -80.0f;
+            if (value <= thresh)
+            {
+                strcpy(buf, "-inf");
+                return;
+            }
+
+            const char *fmt;
+            if (precision < 0)
+                fmt = "%.2f";
+            else if (precision == 1)
+                fmt = "%.1f";
+            else if (precision == 2)
+                fmt = "%.2f";
+            else if (precision == 3)
+                fmt = "%.3f";
+            else
+                fmt = "%.4f";
+
+            snprintf(buf, len, fmt, value);
+            buf[len - 1] = '\0';
+        }
+
+        void format_bool(char *buf, size_t len, const port_t *meta, float value)
+        {
+            const port_item_t *list = (meta->items != NULL) ? meta->items : default_bool;
+            if (value >= 0.5f)
+                ++list;
+
+            if (list->text != NULL)
+            {
+                ::strncpy(buf, list->text, len);
+                if (len > 0)
+                    buf[len - 1] = '\0';
+            }
+            else if (len > 0)
+                buf[0] = '\0';
+        }
+
+
+        void format_value(char *buf, size_t len, const port_t *meta, float value, ssize_t precision)
+        {
+            if (meta->unit == U_BOOL)
+                format_bool(buf, len, meta, value);
+            else if (meta->unit == U_ENUM)
+                format_enum(buf, len, meta, value);
+            else if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW))
+                format_decibels(buf, len, meta, value, precision);
+            else if (meta->flags & F_INT)
+                format_int(buf, len, meta, value);
+            else
+                format_float(buf, len, meta, value, precision);
+        }
+
+#define UPDATE_LOCALE(out_var, lc, value) \
+        char *out_var = setlocale(lc, NULL); \
+        if (out_var != NULL) \
+        { \
+            size_t ___len = strlen(out_var) + 1; \
+            char *___copy = static_cast<char *>(alloca(___len)); \
+            memcpy(___copy, out_var, ___len); \
+            out_var = ___copy; \
+        } \
+        setlocale(lc, value);
+
+        status_t parse_bool(float *dst, const char *text)
+        {
+            if ((!::strcasecmp(text, "true")) ||
+                (!::strcasecmp(text, "on")) ||
+                (!::strcasecmp(text, "1")))
+            {
+                if (dst != NULL)
+                    *dst    = 1.0f;
+                return STATUS_OK;
+            }
+
+            if ((!::strcasecmp(text, "false")) ||
+                (!::strcasecmp(text, "off")) ||
+                (!::strcasecmp(text, "0")))
+            {
+                if (dst != NULL)
+                    *dst    = 0.0f;
+                return STATUS_OK;
+            }
+
+            return STATUS_INVALID_VALUE;
+        }
+
+        status_t parse_enum(float *dst, const char *text, const port_t *meta)
+        {
+            float min   = (meta->flags & F_LOWER) ? meta->min: 0;
+            float step  = (meta->flags & F_STEP) ? meta->step : 1.0;
+
+            for (const port_item_t *p = meta->items; (p != NULL) && (p->text != NULL); ++p)
+            {
+                if (!::strcasecmp(text, p->text))
+                {
+                    if (dst != NULL)
+                        *dst    = min;
+                    return STATUS_OK;
+                }
+                min    += step;
+            }
+
+            return STATUS_INVALID_VALUE;
+        }
+
+        status_t parse_decibels(float *dst, const char *text, const port_t *meta)
+        {
+            if (!::strcasecmp(text, "-inf"))
+            {
+                if (dst != NULL)
+                    *dst = 0.0f;
+                return STATUS_OK;
+            }
+
+            float mul   = (meta->unit == U_GAIN_AMP) ? 0.05f : 0.1f;
+
+            // Parse float value
+            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+            errno       = 0;
+            char *end   = NULL;
+            float value = ::strtof(text, &end);
+            status_t res= STATUS_INVALID_VALUE;
+
+            if ((*end == '\0') && (errno == 0))
+            {
+                if (dst != NULL)
+                    *dst    = ::expf(value * M_LN10 * mul);
+                res     = STATUS_OK;
+            }
+
+            if (saved_locale != NULL)
+                ::setlocale(LC_NUMERIC, saved_locale);
+
+            return res;
+        }
+
+        status_t parse_int(float *dst, const char *text, const port_t *meta)
+        {
+            errno       = 0;
+            char *end   = NULL;
+            long value  = ::strtol(text, &end, 10);
+            if ((*end == '\0') && (errno == 0))
+            {
+                if (dst != NULL)
+                    *dst        = value;
+                return STATUS_OK;
+            }
+
+            return STATUS_INVALID_VALUE;
+        }
+
+        status_t parse_float(float *dst, const char *text, const port_t *meta)
+        {
+            // Parse float value
+            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+            errno       = 0;
+            char *end   = NULL;
+            float value = ::strtof(text, &end);
+            status_t res= STATUS_INVALID_VALUE;
+
+            if ((*end == '\0') && (errno == 0))
+            {
+                if (dst != NULL)
+                    *dst    = value;
+                res     = STATUS_OK;
+            }
+
+            if (saved_locale != NULL)
+                ::setlocale(LC_NUMERIC, saved_locale);
+
+            return res;
+        }
+
+        status_t parse_value(float *dst, const char *text, const port_t *meta)
+        {
+            if ((text == NULL) || (meta == NULL) || (*text == '\0'))
+                return STATUS_BAD_ARGUMENTS;
+
+            if (meta->unit == U_BOOL)
+                return parse_bool(dst, text);
+            else if (meta->unit == U_ENUM)
+                return parse_enum(dst, text, meta);
+            else if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW))
+                return parse_decibels(dst, text, meta);
+            else if (meta->flags & F_INT)
+                return parse_int(dst, text, meta);
+            else
+                return parse_float(dst, text, meta);
+
+            return STATUS_BAD_ARGUMENTS;
         }
     }
 }
