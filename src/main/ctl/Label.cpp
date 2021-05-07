@@ -22,7 +22,11 @@
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
-#define TMP_BUF_SIZE        128
+#define TMP_BUF_SIZE            128
+
+#define INPUT_STYLE_VALID       "Value::PopupWindow::ValidInput"
+#define INPUT_STYLE_INVALID     "Value::PopupWindow::InvalidInput"
+#define INPUT_STYLE_MISMATCH    "Value::PopupWindow::MismatchInput"
 
 namespace lsp
 {
@@ -109,11 +113,9 @@ namespace lsp
 
             sValue.slots()->bind(tk::SLOT_KEY_UP, Label::slot_key_up, pLabel);
             sValue.slots()->bind(tk::SLOT_CHANGE, Label::slot_change_value, pLabel);
-            inject_style(&sValue, "Value::PopupWindow::ValidInput");
-//            sValue.set_min_width(64);
+            inject_style(&sValue, INPUT_STYLE_VALID);
 
             inject_style(&sUnits, "Value::PopupWindow::Units");
-//            sUnits.padding()->set_left(4);
 
             sApply.text()->set("actions.apply");
             sApply.slots()->bind(tk::SLOT_SUBMIT, Label::slot_submit_value, pLabel);
@@ -171,6 +173,8 @@ namespace lsp
             if (lbl != NULL)
             {
                 sColor.init(pWrapper, lbl->color());
+
+                lbl->slot(tk::SLOT_MOUSE_DBL_CLICK)->bind(slot_dbl_click, this);
             }
 
             return STATUS_OK;
@@ -284,7 +288,18 @@ namespace lsp
 
         bool Label::apply_value(const LSPString *value)
         {
-            return false;
+            const meta::port_t *meta = (pPort != NULL) ? pPort->metadata() : NULL;
+            if ((meta == NULL) || (!meta::is_in_port(meta)))
+                return false;
+
+            float fv;
+            status_t res = parse_value(&fv, value->get_utf8(), meta);
+            if (res != STATUS_OK)
+                return false;
+
+            pPort->set_value(fv);
+            pPort->notify_all();
+            return true;
         }
 
         void Label::set(const char *name, const char *value)
@@ -381,19 +396,15 @@ namespace lsp
 
             popup->sUnits.visibility()->set(u_key != NULL);
 
-            // Set arrangement relative to the widget
-            tk::arrangement_t arr;
-            arr.enPosition  = tk::A_RIGHT;
-            arr.fAlign      = -1.0f;
-            popup->add_arrangement(&arr);
-            arr.enPosition  = tk::A_BOTTOM;
-            arr.fAlign      = -1.0f;
-            popup->add_arrangement(&arr);
-
             // Show the window and take focus
+            ws::rectangle_t r;
+            _this->wWidget->get_padded_screen_rectangle(&r);
+            r.nWidth    = 0;
+            popup->trigger_area()->set(&r);
+            popup->trigger_widget()->set(_this->wWidget);
+            popup->add_arrangement(tk::A_RIGHT, 0.0f, false);
             popup->show(_this->wWidget);
-            popup->grab_events(ws::GRAB_MENU);
-            popup->take_focus();
+            popup->grab_events(ws::GRAB_DROPDOWN);
             popup->sValue.take_focus();
 
             return STATUS_OK;
@@ -446,17 +457,23 @@ namespace lsp
 
             // Validate input
             LSPString value;
-            const char *style = "Value::PopupWindow::InvalidInput";
+            const char *style = INPUT_STYLE_INVALID;
             if (popup->sValue.text()->format(&value) == STATUS_OK)
             {
-                if (meta::parse_value(NULL, value.get_utf8(), meta) == STATUS_OK)
-                    style = "Value::PopupWindow::ValidInput";
+                float v;
+                if (meta::parse_value(&v, value.get_utf8(), meta) == STATUS_OK)
+                {
+                    style = INPUT_STYLE_VALID;
+                    if (!meta::range_match(meta, v))
+                        style = INPUT_STYLE_MISMATCH;
+                }
             }
 
             // Update color
             tk::Widget *v = &popup->sValue;
-            revoke_style(v, "Value::PopupWindow::InvalidInput");
-            revoke_style(v, "Value::PopupWindow::ValidInput");
+            revoke_style(v, INPUT_STYLE_INVALID);
+            revoke_style(v, INPUT_STYLE_MISMATCH);
+            revoke_style(v, INPUT_STYLE_VALID);
             inject_style(v, style);
 
             return STATUS_OK;

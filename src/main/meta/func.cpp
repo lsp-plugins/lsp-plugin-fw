@@ -459,8 +459,8 @@ namespace lsp
 
         status_t parse_enum(float *dst, const char *text, const port_t *meta)
         {
-            float min   = (meta->flags & F_LOWER) ? meta->min: 0;
-            float step  = (meta->flags & F_STEP) ? meta->step : 1.0;
+            float min   = (meta->flags & F_LOWER) ? meta->min: 0.0f;
+            float step  = (meta->flags & F_STEP) ? meta->step : 1.0f;
 
             for (const port_item_t *p = meta->items; (p != NULL) && (p->text != NULL); ++p)
             {
@@ -561,6 +561,60 @@ namespace lsp
                 return parse_float(dst, text, meta);
 
             return STATUS_BAD_ARGUMENTS;
+        }
+
+        bool match_bool(float value)
+        {
+            return (value == 1.0f) || (value == 0.0f);
+        }
+
+        bool match_enum(const port_t *meta, float value)
+        {
+            float min   = (meta->flags & F_LOWER) ? meta->min: 0.0f;
+            float step  = (meta->flags & F_STEP) ? meta->step : 1.0f;
+
+            for (const port_item_t *p = meta->items; (p != NULL) && (p->text != NULL); ++p)
+            {
+                if (value == min)
+                    return true;
+                min    += step;
+            }
+
+            return false;
+        }
+
+        bool match_int(const port_t *meta, float value)
+        {
+            float start     = (meta->flags & F_LOWER) ? meta->min   : 0;
+            float end       = (meta->flags & F_UPPER) ? meta->max   : 0;
+
+            if (start < end)
+                return (value >= start) && (value <= end);
+
+            return (value >= end) && (value <= start);
+        }
+
+        bool match_float(const port_t *meta, float value)
+        {
+            float start     = (meta->flags & F_LOWER) ? meta->min   : 0;
+            float end       = (meta->flags & F_UPPER) ? meta->max   : 0;
+
+            if (start < end)
+                return (value >= start) && (value <= end);
+
+            return (value >= end) && (value <= start);
+        }
+
+        bool range_match(const port_t *meta, float value)
+        {
+            if (meta->unit == U_BOOL)
+                return match_bool(value);
+            else if (meta->unit == U_ENUM)
+                return match_enum(meta, value);
+            else if (meta->flags & F_INT)
+                return match_int(meta, value);
+
+            return match_float(meta, value);
         }
     }
 }

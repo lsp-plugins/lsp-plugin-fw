@@ -276,6 +276,14 @@ namespace lsp
          * @return status of operation
          */
         status_t        parse_value(float *dst, const char *text, const port_t *meta);
+
+        /**
+         * Check that value matches the range specified by the port metadata
+         * @param meta port metadata
+         * @param value value to match
+         * @return true if the value matches the range
+         */
+        bool            range_match(const port_t *meta, float value);
     }
 }
 
