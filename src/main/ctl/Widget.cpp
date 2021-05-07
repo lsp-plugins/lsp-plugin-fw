@@ -195,7 +195,7 @@ namespace lsp
         {
             if (expr == NULL)
                 return false;
-            if (!strcmp(name, param))
+            if (strcmp(name, param))
                 return false;
 
             expr->parse(value);
@@ -262,6 +262,26 @@ namespace lsp
             return true;
         }
 
+        bool Widget::bind_port(ui::IPort **port, const char *param, const char *name, const char *value)
+        {
+            if (strcmp(param, name))
+                return false;
+            if (port == NULL)
+                return false;
+
+            ui::IPort *oldp = *port;
+            ui::IPort *newp = pWrapper->port(value);
+
+            if (oldp != NULL)
+                oldp->unbind(this);
+            if (newp != NULL)
+                newp->bind(this);
+
+            *port           = newp;
+
+            return true;
+        }
+
         bool Widget::set_embedding(tk::Embedding *e, const char *name, const char *value)
         {
             if (e == NULL)
@@ -293,10 +313,11 @@ namespace lsp
             if (!strcmp(name, "ui:id"))
                 pWrapper->ui()->map_widget(value, wWidget);
 
-            set_expr(&sVisibility, "visibility", name, value);
-            set_expr(&sVisibility, "visible", name, value);
-            set_expr(&sBright, "brightness", name, value);
-            set_expr(&sBright, "bright", name, value);
+            set_param(wWidget->visibility(), "visibility", name, value);
+            set_param(wWidget->visibility(), "visible", name, value);
+            set_param(wWidget->brightness(), "brightness", name, value);
+            set_param(wWidget->brightness(), "bright", name, value);
+            set_param(wWidget->scaling(), "scaling", name, value);
             set_padding(wWidget->padding(), name, value);
             set_allocation(wWidget->allocation(), name, value);
             sBgColor.set("bg", name, value);
@@ -341,8 +362,6 @@ namespace lsp
 
         status_t Widget::init()
         {
-            sVisibility.init(pWrapper, this);
-            sBright.init(pWrapper, this);
             if (wWidget != NULL)
                 sBgColor.init(pWrapper, wWidget->bg_color());
 
@@ -355,49 +374,16 @@ namespace lsp
 
         void Widget::end()
         {
-            // Evaluate expression
-            if (sVisibility.valid())
-            {
-                float value = sVisibility.evaluate();
-                if (wWidget != NULL)
-                    wWidget->visibility()->set(value >= 0.5f);
-            }
-
-            // Evaluate brightness
-            if (sBright.valid())
-            {
-                float value = sBright.evaluate();
-                wWidget->brightness()->set(value);
-            }
         }
 
         void Widget::notify(ui::IPort *port)
         {
-            if (wWidget == NULL)
-                return;
-
-            // Visibility
-            if (sVisibility.depends(port))
-            {
-                float value = sVisibility.evaluate();
-                wWidget->visibility()->set(value >= 0.5f);
-            }
-
-            // Brightness
-            if (sBright.depends(port))
-            {
-                float value = sBright.evaluate();
-                wWidget->brightness()->set(value);
-            }
         }
 
         void Widget::destroy()
         {
             if ((pWrapper != NULL) && (wWidget != NULL))
                 pWrapper->ui()->unmap_widget(wWidget);
-
-            sVisibility.destroy();
-            sBright.destroy();
 
             pWrapper    = NULL;
             wWidget     = NULL;

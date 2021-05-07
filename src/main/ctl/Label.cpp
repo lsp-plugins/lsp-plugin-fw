@@ -235,7 +235,7 @@ namespace lsp
                     expr::Parameters params;
                     LSPString text, funit;
 
-                    //meta::format_value(buf, TMP_BUF_SIZE, mdata, fValue, nPrecision);
+                    meta::format_value(buf, TMP_BUF_SIZE, mdata, fValue, nPrecision);
                     text.set_ascii(buf);
                     sunit.format(&funit);
                     if (mdata->unit == meta::U_BOOL)
@@ -292,6 +292,8 @@ namespace lsp
             tk::Label *lbl = tk::widget_cast<tk::Label>(wWidget);
             if (lbl != NULL)
             {
+                bind_port(&pPort, "id", name, value);
+
                 set_text_layout(lbl->text_layout(), name, value);
                 set_font(lbl->font(), "font", name, value);
                 set_constraints(lbl->constraints(), name, value);

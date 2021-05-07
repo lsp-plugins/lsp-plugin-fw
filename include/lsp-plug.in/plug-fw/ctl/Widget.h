@@ -52,8 +52,6 @@ namespace lsp
                 tk::Widget         *wWidget;
 
                 ctl::Color          sBgColor;
-                ctl::Expression     sVisibility;
-                ctl::Expression     sBright;
 
             protected:
                 static bool         set_padding(tk::Padding *pad, const char *name, const char *value);
@@ -75,9 +73,9 @@ namespace lsp
 
                 static void         inject_style(tk::Widget *widget, const char *style_name);
                 static void         revoke_style(tk::Widget *widget, const char *style_name);
-//                void            init_color(color_t value, Color *color);
-//                void            init_color(color_t value, LSPColor *color);
 
+            protected:
+                bool                bind_port(ui::IPort **port, const char *param, const char *name, const char *value);
 
             public:
                 explicit Widget(ui::IWrapper *src, tk::Widget *widget);

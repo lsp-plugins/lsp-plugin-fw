@@ -70,6 +70,17 @@ namespace lsp
         {
         }
 
+        status_t Box::init()
+        {
+            LSP_STATUS_ASSERT(Widget::init());
+
+            tk::Box *box    = tk::widget_cast<tk::Box>(wWidget);
+            if (enOrientation >= 0)
+                box->orientation()->set(tk::orientation_t(enOrientation));
+
+            return STATUS_OK;
+        }
+
         void Box::set(const char *name, const char *value)
         {
             tk::Box *box    = tk::widget_cast<tk::Box>(wWidget);
