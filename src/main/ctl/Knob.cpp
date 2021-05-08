@@ -180,7 +180,7 @@ namespace lsp
             }
             else if (is_discrete_unit(p->unit)) // Integer type
             {
-                 value          = truncf(value);
+                value          = truncf(value);
             }
             else if (nFlags & KF_LOG)  // Float and other values, logarithmic
             {
@@ -248,7 +248,12 @@ namespace lsp
                 knob->value()->set(base * log(value));
             }
             else if (is_discrete_unit(p->unit)) // Integer type
-                knob->value()->set(truncf(value));
+            {
+                float ov    = truncf(knob->value()->get());
+                float nv    = truncf(value);
+                if (ov != nv)
+                    knob->value()->set(nv);
+            }
             else if (nFlags & KF_LOG)
             {
                 if (value < GAIN_AMP_M_120_DB)
@@ -343,7 +348,7 @@ namespace lsp
                 balance         = lsp_xlimit(dfl, min, max);
                 ssize_t istep   = (p->flags & meta::F_STEP) ? p->step : 1;
 
-                step            = (istep == 0) ? 1.0f : step;
+                step            = (istep == 0) ? 1.0f : istep;
                 fDefaultValue   = p->start;
             }
             else if (meta::is_log_rule(p))  // Float and other values, logarithmic
@@ -369,7 +374,7 @@ namespace lsp
                 float dfl       = (nFlags & KF_BAL_SET) ? fBalance : min;
                 balance         = lsp_xlimit(dfl, min, max);
 
-                step            = (p->flags & meta::F_STEP) ? p->step : (max - min) * 0.01f;
+                step            = (p->flags & meta::F_STEP) ? p->step * 10.0f : (max - min) * 0.1f;
                 fDefaultValue   = p->start;
             }
 
