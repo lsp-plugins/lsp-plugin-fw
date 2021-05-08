@@ -41,6 +41,7 @@
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
+    #include <lsp-plug.in/plug-fw/ctl/Void.h>
     #include <lsp-plug.in/plug-fw/ctl/Box.h>
     #include <lsp-plug.in/plug-fw/ctl/Group.h>
     #include <lsp-plug.in/plug-fw/ctl/Grid.h>
