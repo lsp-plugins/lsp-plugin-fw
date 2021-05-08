@@ -34,7 +34,7 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Simple container: vertical or horizontal box
+         * Container: 2-dimensional grid
          */
         class Grid: public Widget
         {

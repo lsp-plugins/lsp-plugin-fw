@@ -34,7 +34,7 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Simple container: vertical or horizontal box
+         * Simple placeholder widget
          */
         class Void: public Widget
         {

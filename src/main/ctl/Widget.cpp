@@ -109,6 +109,25 @@ namespace lsp
             return true;
         }
 
+        bool Widget::set_size_range(tk::SizeRange *r, const char *param, const char *name, const char *value)
+        {
+            if (r == NULL)
+                return false;
+
+            // Does the prefix match?
+            size_t len = ::strlen(param);
+            if (strncmp(name, param, len))
+                return false;
+
+            name += len;
+            if (name[0] == '\0')                    PARSE_FLOAT(value, r->set(__))
+            else if (!strcmp(name, ".min"))         PARSE_FLOAT(value, r->set_min(__))
+            else if (!strcmp(name, ".max"))         PARSE_FLOAT(value, r->set_max(__))
+            else return false;
+
+            return true;
+        }
+
         bool Widget::set_padding(tk::Padding *pad, const char *name, const char *value)
         {
             if (pad == NULL)

@@ -34,6 +34,9 @@ namespace lsp
 {
     namespace ctl
     {
+        /**
+         * The plugin's window controller
+         */
         class PluginWindow: public ctl::Widget
         {
             public:

@@ -62,6 +62,7 @@ namespace lsp
                 static bool         set_lc_attr(tk::String *s, const char *param, const char *name, const char *value);
                 static bool         set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value);
                 static bool         set_font(tk::Font *f, const char *param, const char *name, const char *value);
+                static bool         set_size_range(tk::SizeRange *r, const char *param, const char *name, const char *value);
                 static bool         set_param(tk::Boolean *b, const char *param, const char *name, const char *value);
                 static bool         set_param(tk::Integer *i, const char *param, const char *name, const char *value);
                 static bool         set_param(tk::Float *f, const char *param, const char *name, const char *value);

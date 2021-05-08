@@ -46,6 +46,7 @@
     #include <lsp-plug.in/plug-fw/ctl/Group.h>
     #include <lsp-plug.in/plug-fw/ctl/Grid.h>
     #include <lsp-plug.in/plug-fw/ctl/Label.h>
+    #include <lsp-plug.in/plug-fw/ctl/Knob.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 

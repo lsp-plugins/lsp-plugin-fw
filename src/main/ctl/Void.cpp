@@ -57,6 +57,7 @@ namespace lsp
 
         Void::Void(ui::IWrapper *src, tk::Void *widget): Widget(src, widget)
         {
+            pClass          = &metadata;
         }
 
         Void::~Void()

@@ -41,7 +41,7 @@ namespace lsp
         };
 
         /**
-         * Simple container: vertical or horizontal box
+         * Text label or some value
          */
         class Label: public Widget
         {
