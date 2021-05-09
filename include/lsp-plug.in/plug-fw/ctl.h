@@ -48,6 +48,7 @@
     #include <lsp-plug.in/plug-fw/ctl/Label.h>
     #include <lsp-plug.in/plug-fw/ctl/Knob.h>
     #include <lsp-plug.in/plug-fw/ctl/Button.h>
+    #include <lsp-plug.in/plug-fw/ctl/Led.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 

@@ -34,7 +34,7 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Simple container: vertical or horizontal box
+         * Button widget controller
          */
         class Button: public Widget
         {

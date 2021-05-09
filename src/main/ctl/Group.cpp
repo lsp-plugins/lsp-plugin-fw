@@ -96,6 +96,8 @@ namespace lsp
                 set_param(grp->border_size(), "border.sz", name, value);
                 set_param(grp->border_radius(), "border.radius", name, value);
                 set_param(grp->border_radius(), "border.r", name, value);
+                set_padding(grp->ipadding(), "ipadding", name, value);
+                set_padding(grp->ipadding(), "ipad", name, value);
 
                 sTextColor.set("text.color", name, value);
                 sColor.set("color", name, value);

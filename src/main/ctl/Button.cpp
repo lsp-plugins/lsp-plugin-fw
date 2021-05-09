@@ -98,6 +98,8 @@ namespace lsp
             tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
             if (btn != NULL)
             {
+                bind_port(&pPort, "id", name, value);
+
                 sColor.set("color", name, value);
                 sHoverColor.set("hover.color", name, value);
                 sHoverColor.set("hcolor", name, value);

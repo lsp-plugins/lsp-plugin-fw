@@ -66,6 +66,28 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void Color::apply_change(size_t index, expr::value_t *value)
+        {
+            // Perform the cast
+            expr::value_type_t vt  = (index == C_VALUE) ? expr::VT_STRING : expr::VT_FLOAT;
+            if (expr::cast_value(value, vt) != STATUS_OK)
+                return;
+
+            // Assign the desired property
+            switch (index)
+            {
+                case C_VALUE:   pColor->set(value->v_str);          break;
+                case C_R:       pColor->red(value->v_float);        break;
+                case C_G:       pColor->green(value->v_float);      break;
+                case C_B:       pColor->blue(value->v_float);       break;
+                case C_H:       pColor->hue(value->v_float);        break;
+                case C_S:       pColor->saturation(value->v_float); break;
+                case C_L:       pColor->lightness(value->v_float);  break;
+                case C_A:       pColor->alpha(value->v_float);      break;
+                default: break;
+            }
+        }
+
         void Color::set(const char *prefix, const char *name, const char *value)
         {
             ssize_t idx     = -1;
@@ -109,7 +131,16 @@ namespace lsp
 
             // Finally, parse the expression
             size_t flags = (idx == C_VALUE) ? EXPR_FLAGS_STRING : 0;
-            e->parse(value, flags);
+            if (!e->parse(value, flags))
+                return;
+
+            expr::value_t cv;
+            expr::init_value(&cv);
+
+            if (e->evaluate(&cv) == STATUS_OK)
+                apply_change(idx, &cv);
+
+            expr::destroy_value(&cv);
         }
 
         void Color::notify(ui::IPort *port)
@@ -118,7 +149,6 @@ namespace lsp
                 return;
 
             expr::value_t value;
-            expr::value_type_t vt;
             expr::init_value(&value);
 
             for (size_t i=0; i<C_TOTAL; ++i)
@@ -127,27 +157,8 @@ namespace lsp
                 Expression *e = vExpr[i];
                 if ((e == NULL) || (!e->depends(port)))
                     continue;
-                if (e->evaluate(&value) != STATUS_OK)
-                    continue;
-
-                // Perform the cast
-                vt  = (i == C_VALUE) ? expr::VT_STRING : expr::VT_FLOAT;
-                if (expr::cast_value(&value, vt) != STATUS_OK)
-                    continue;
-
-                // Assign the desired property
-                switch (i)
-                {
-                    case C_VALUE:   pColor->set(value.v_str);           break;
-                    case C_R:       pColor->red(value.v_float);         break;
-                    case C_G:       pColor->green(value.v_float);       break;
-                    case C_B:       pColor->blue(value.v_float);        break;
-                    case C_H:       pColor->hue(value.v_float);         break;
-                    case C_S:       pColor->saturation(value.v_float);  break;
-                    case C_L:       pColor->lightness(value.v_float);   break;
-                    case C_A:       pColor->alpha(value.v_float);       break;
-                    default: break;
-                }
+                if (e->evaluate(&value) == STATUS_OK)
+                    apply_change(i, &value);
             }
 
             expr::destroy_value(&value);

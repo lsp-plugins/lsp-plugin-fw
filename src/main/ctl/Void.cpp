@@ -83,7 +83,7 @@ namespace lsp
             if (vd != NULL)
             {
                 sColor.set("color", name, value);
-                set_param(vd->fill(), "fill", name, value);
+                set_param(vd->fill(), "cfill", name, value);
                 set_constraints(vd->constraints(), name, value);
             }
 

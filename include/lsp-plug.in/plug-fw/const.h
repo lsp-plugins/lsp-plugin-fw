@@ -46,6 +46,7 @@
 #define OSC_PACKET_MAX                      0x10000             /* Maximum size of the OSC packet (bytes)           */
 #define OPTIMAL_ALIGN                       64                  /* Optimal data structure alignment                 */
 #define MAX_PARAM_ID_BYTES                  64
+#define FLOAT_CMP_PREC                      1e-6f               /* Float comparison precision                       */
 
 // Prefix for built-in resource
 #define LSP_BUILTIN_PREFIX                  "builtin://"

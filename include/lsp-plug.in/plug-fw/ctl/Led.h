@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 12 апр. 2021 г.
+ * Created on: 9 мая 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,16 +19,14 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_UTIL_COLOR_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_UTIL_COLOR_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_LED_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_LED_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/plug-fw/ui.h>
-#include <lsp-plug.in/plug-fw/ctl/util/Expression.h>
 #include <lsp-plug.in/tk/tk.h>
 
 namespace lsp
@@ -36,44 +34,43 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Color controller
+         * Led widget controller
          */
-        class Color: public ui::IPortListener
+        class Led: public Widget
         {
-            private:
-                Color & operator = (const Color &);
+            public:
+                static const ctl_class_t metadata;
 
             protected:
-                enum component_t
-                {
-                    C_VALUE,
-                    C_R, C_G, C_B, C_H, C_S, C_L, C_A,
-                    C_TOTAL
-                };
+                ctl::Color          sColor;
+                ctl::Color          sLightColor;
+                ctl::Color          sHoleColor;
+                ctl::Expression     sActivity;
+                ui::IPort          *pPort;
+
+                float               fValue;
+                float               fKey;
+                bool                bInvert;
 
             protected:
-                LSPString           sPrefix;            // Prefix name
-                tk::Color          *pColor;             // Color
-                ui::IWrapper       *pWrapper;           // Wrapper
-                ctl::Expression    *vExpr[C_TOTAL];     // Expression
-
-            protected:
-                void                apply_change(size_t index, expr::value_t *value);
+                void                update_value();
 
             public:
-                explicit Color();
-                virtual ~Color();
+                explicit Led(ui::IWrapper *src, tk::Led *widget);
+                virtual ~Led();
 
-                status_t            init(ui::IWrapper *wrapper, tk::Color *color);
-
-            public:
-                void                set(const char *prefix, const char *name, const char *value);
+                virtual status_t    init();
 
             public:
+                virtual void        set(const char *name, const char *value);
+
                 virtual void        notify(ui::IPort *port);
+
+                virtual void        end();
         };
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_COLOR_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_LED_H_ */

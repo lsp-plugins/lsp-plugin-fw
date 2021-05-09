@@ -57,6 +57,27 @@ namespace lsp
             return wWidget;
         };
 
+        const char *Widget::match_prefix(const char *prefix, const char *name)
+        {
+            // If there is no prefix, just return the name unmodified
+            if ((prefix == NULL) || (name == NULL))
+                return name;
+
+            // Check that prefix matches
+            size_t len = strlen(prefix);
+            if (strncmp(name, prefix, len))
+                return NULL;
+
+            // Check that there is dot after prefix
+            name += len;
+            if (name[0] == '\0')
+                return name;
+            else if (name[0] == '.')
+                return &name[1];
+
+            return NULL;
+        }
+
         bool Widget::set_lc_attr(tk::String *s, const char *param, const char *name, const char *value)
         {
             if (s == NULL)
@@ -113,34 +134,15 @@ namespace lsp
         {
             if (r == NULL)
                 return false;
-
-            // Does the prefix match?
-            size_t len = ::strlen(param);
-            if (strncmp(name, param, len))
+            if (!(name = match_prefix(param, name)))
                 return false;
 
-            name += len;
             if (name[0] == '\0')                    PARSE_FLOAT(value, r->set(__))
-            else if (!strcmp(name, ".min"))         PARSE_FLOAT(value, r->set_min(__))
-            else if (!strcmp(name, ".max"))         PARSE_FLOAT(value, r->set_max(__))
+            else if (!strcmp(name, "min"))          PARSE_FLOAT(value, r->set_min(__))
+            else if (!strcmp(name, "max"))          PARSE_FLOAT(value, r->set_max(__))
             else return false;
 
             return true;
-        }
-
-        const char *Widget::match_prefix(const char *prefix, const char *name)
-        {
-            // If there is no prefix, just return the name unmodified
-            if ((prefix == NULL) || (name == NULL))
-                return name;
-
-            // Check that prefix matches
-            size_t len = strlen(prefix);
-            if (strncmp(name, prefix, len))
-                return NULL;
-
-            // Check that there is dot after prefix
-            return (name[len] == '.') ? &name[len + 1] : NULL;
         }
 
         bool Widget::set_padding(tk::Padding *pad, const char *param, const char *name, const char *value)
@@ -150,7 +152,8 @@ namespace lsp
             if (!(name = match_prefix(param, name)))
                 return false;
 
-            if      (!strcmp(name, "pad"))          PARSE_UINT(value, pad->set_all(__))
+            if (name[0] == '\0')                    PARSE_UINT(value, pad->set_all(__))
+            else if (!strcmp(name, "pad"))          PARSE_UINT(value, pad->set_all(__))
             else if (!strcmp(name, "padding"))      PARSE_UINT(value, pad->set_all(__))
             else if (!strcmp(name, "hpad"))         PARSE_UINT(value, pad->set_horizontal(__))
             else if (!strcmp(name, "vpad"))         PARSE_UINT(value, pad->set_vertical(__))
@@ -357,6 +360,7 @@ namespace lsp
             set_param(wWidget->scaling(), "scaling", name, value);
             set_padding(wWidget->padding(), NULL, name, value);
             set_allocation(wWidget->allocation(), name, value);
+
             sBgColor.set("bg", name, value);
         }
 
