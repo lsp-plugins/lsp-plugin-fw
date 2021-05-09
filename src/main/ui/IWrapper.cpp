@@ -480,6 +480,11 @@ namespace lsp
                 dpy->quit_main();
         }
 
+        bool IWrapper::add_controller(ctl::Widget *widget)
+        {
+            return vControllers.add(widget);
+        }
+
         IPort *IWrapper::port(const LSPString *id)
         {
             return port(id->get_ascii());

@@ -206,7 +206,7 @@ namespace lsp
                 return NULL;
 
             // Add to controller
-            if (!pWrapper->vControllers.add(w))
+            if (!pWrapper->add_controller(w))
             {
                 delete w;
                 return NULL;

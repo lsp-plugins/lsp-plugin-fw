@@ -194,6 +194,13 @@ namespace lsp
                 void                        quit_main_loop();
 
                 /**
+                 * Add controller
+                 * @param widget
+                 * @return
+                 */
+                bool                        add_controller(ctl::Widget *widget);
+
+                /**
                  * check that main loop is still active
                  * @return true if main loop is still active
                  */

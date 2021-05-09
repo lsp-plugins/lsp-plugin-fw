@@ -449,19 +449,20 @@ namespace lsp
                 inject_style(led, "PluginWindow::Bypass::Led");
                 box->add(led);
 
-//                CtlWidget *ctl = new CtlSwitch(pRegistry, sw);
-//                ctl->init();
-//                ctl->set("id", pPBypass->metadata()->id);
-//                ctl->begin();
-//                ctl->end();
-//                pRegistry->add_widget(ctl);
-//
-//                ctl = new CtlLed(pRegistry, led);
-//                ctl->init();
-//                ctl->set("id", pPBypass->metadata()->id);
-//                ctl->begin();
-//                ctl->end();
-//                pRegistry->add_widget(ctl);
+                // Create controllers
+                ctl::Widget *ctl = new ctl::Switch(pWrapper, sw);
+                ctl->init();
+                ctl->set("id", pPBypass->metadata()->id);
+                ctl->begin();
+                ctl->end();
+                pWrapper->add_controller(ctl);
+
+                ctl = new ctl::Led(pWrapper, led);
+                ctl->init();
+                ctl->set("id", pPBypass->metadata()->id);
+                ctl->begin();
+                ctl->end();
+                pWrapper->add_controller(ctl);
             }
 
             wBox    = new tk::Box(dpy);
@@ -924,16 +925,6 @@ namespace lsp
                     tk::CheckBox *ck_rpath  = new tk::CheckBox(dpy);
                     _this->vWidgets.add(ck_rpath);
                     ck_rpath->init();
-
-//                    CtlWidget *ctl          = new CtlButton(__this->pRegistry, btn_rpath);
-//                    ctl->init();
-//                    ctl->set(A_ID, REL_PATHS_PORT);
-//                    ctl->set(A_COLOR, "yellow");
-//                    ctl->set(A_LED, "true");
-//                    ctl->set(A_SIZE, "16");
-//                    ctl->begin();
-//                    ctl->end();
-//                    __this->pRegistry->add_widget(ctl);
                     op_rpath->add(ck_rpath);
 
                     // Add label
