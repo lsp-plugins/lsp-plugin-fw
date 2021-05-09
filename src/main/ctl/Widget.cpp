@@ -128,9 +128,26 @@ namespace lsp
             return true;
         }
 
-        bool Widget::set_padding(tk::Padding *pad, const char *name, const char *value)
+        const char *Widget::match_prefix(const char *prefix, const char *name)
+        {
+            // If there is no prefix, just return the name unmodified
+            if ((prefix == NULL) || (name == NULL))
+                return name;
+
+            // Check that prefix matches
+            size_t len = strlen(prefix);
+            if (strncmp(name, prefix, len))
+                return NULL;
+
+            // Check that there is dot after prefix
+            return (name[len] == '.') ? &name[len + 1] : NULL;
+        }
+
+        bool Widget::set_padding(tk::Padding *pad, const char *param, const char *name, const char *value)
         {
             if (pad == NULL)
+                return false;
+            if (!(name = match_prefix(param, name)))
                 return false;
 
             if      (!strcmp(name, "pad"))          PARSE_UINT(value, pad->set_all(__))
@@ -138,13 +155,13 @@ namespace lsp
             else if (!strcmp(name, "hpad"))         PARSE_UINT(value, pad->set_horizontal(__))
             else if (!strcmp(name, "vpad"))         PARSE_UINT(value, pad->set_vertical(__))
             else if (!strcmp(name, "lpad"))         PARSE_UINT(value, pad->set_left(__))
-            else if (!strcmp(name, "pad_left"))     PARSE_UINT(value, pad->set_left(__))
+            else if (!strcmp(name, "pad.left"))     PARSE_UINT(value, pad->set_left(__))
             else if (!strcmp(name, "rpad"))         PARSE_UINT(value, pad->set_right(__))
-            else if (!strcmp(name, "pad_right"))    PARSE_UINT(value, pad->set_right(__))
+            else if (!strcmp(name, "pad.right"))    PARSE_UINT(value, pad->set_right(__))
             else if (!strcmp(name, "tpad"))         PARSE_UINT(value, pad->set_top(__))
-            else if (!strcmp(name, "pad_top"))      PARSE_UINT(value, pad->set_top(__))
+            else if (!strcmp(name, "pad.top"))      PARSE_UINT(value, pad->set_top(__))
             else if (!strcmp(name, "bpad"))         PARSE_UINT(value, pad->set_bottom(__))
-            else if (!strcmp(name, "pad_bottom"))   PARSE_UINT(value, pad->set_bottom(__))
+            else if (!strcmp(name, "pad.bottom"))   PARSE_UINT(value, pad->set_bottom(__))
             else return false;
 
             return true;
@@ -181,6 +198,7 @@ namespace lsp
             else if (!strcmp(name, "hmax"))         PARSE_INT(value, c->set_max_height(__))
             else if (!strcmp(name, "min_height"))   PARSE_INT(value, c->set_min_height(__))
             else if (!strcmp(name, "max_height"))   PARSE_INT(value, c->set_max_height(__))
+            else if (!strcmp(name, "size"))         PARSE_INT(value, c->set_all(__))
             else return false;
 
             return true;
@@ -337,7 +355,7 @@ namespace lsp
             set_param(wWidget->brightness(), "brightness", name, value);
             set_param(wWidget->brightness(), "bright", name, value);
             set_param(wWidget->scaling(), "scaling", name, value);
-            set_padding(wWidget->padding(), name, value);
+            set_padding(wWidget->padding(), NULL, name, value);
             set_allocation(wWidget->allocation(), name, value);
             sBgColor.set("bg", name, value);
         }

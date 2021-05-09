@@ -54,7 +54,9 @@ namespace lsp
                 ctl::Color          sBgColor;
 
             protected:
-                static bool         set_padding(tk::Padding *pad, const char *name, const char *value);
+                static const char  *match_prefix(const char *prefix, const char *name);
+
+                static bool         set_padding(tk::Padding *pad, const char *param, const char *name, const char *value);
                 static bool         set_allocation(tk::Allocation *alloc, const char *name, const char *value);
                 static bool         set_constraints(tk::SizeConstraints *c, const char *name, const char *value);
                 static bool         set_layout(tk::Layout *l, const char *name, const char *value);
