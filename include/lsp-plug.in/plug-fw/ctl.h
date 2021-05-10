@@ -45,6 +45,7 @@
     #include <lsp-plug.in/plug-fw/ctl/Box.h>
     #include <lsp-plug.in/plug-fw/ctl/Group.h>
     #include <lsp-plug.in/plug-fw/ctl/Grid.h>
+    #include <lsp-plug.in/plug-fw/ctl/Cell.h>
     #include <lsp-plug.in/plug-fw/ctl/Label.h>
     #include <lsp-plug.in/plug-fw/ctl/Knob.h>
     #include <lsp-plug.in/plug-fw/ctl/Button.h>

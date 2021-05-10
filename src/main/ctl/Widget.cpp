@@ -292,6 +292,16 @@ namespace lsp
             return true;
         }
 
+        bool Widget::set_value(size_t *v, const char *param, const char *name, const char *value)
+        {
+            if (v == NULL)
+                return false;
+            if (strcmp(param, name))
+                return false;
+            PARSE_UINT(value, *v = __);
+            return true;
+        }
+
         bool Widget::set_value(float *v, const char *param, const char *name, const char *value)
         {
             if (v == NULL)

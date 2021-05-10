@@ -104,8 +104,15 @@ namespace lsp
 
         status_t Grid::add(ctl::Widget *child)
         {
-            tk::Grid *grd  = tk::widget_cast<tk::Grid>(wWidget);
-            return (grd != NULL) ? grd->add(child->widget()) : STATUS_BAD_STATE;
+            tk::Grid *grd   = tk::widget_cast<tk::Grid>(wWidget);
+            if (grd == NULL)
+                return STATUS_BAD_STATE;
+
+            ctl::Cell *cell = ctl::ctl_cast<ctl::Cell>(child);
+            if (cell != NULL)
+                return grd->add(cell->widget(), cell->rows(), cell->columns());
+
+            return grd->add(child->widget());
         }
 
     } /* namespace ctl */
