@@ -1,0 +1,8 @@
+{
+	"artifact": "lsp-plugin-fw",
+	"full_name": "LSP Plugin Framework",
+	"short_name": "LSP PF",
+	"site": "https://lsp-plug.in/",
+	"license": "LGPL",
+	"version": "0.5.0"
+}

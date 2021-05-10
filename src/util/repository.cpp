@@ -42,6 +42,7 @@ namespace lsp
             lltl::pphash<LSPString, LSPString>  preset;         // Preset files
             lltl::pphash<LSPString, json::Node> i18n;           // INternationalization data
             lltl::pphash<LSPString, LSPString>  other;          // Other files
+            lltl::pphash<LSPString, LSPString>  local;          // Local files
         } context_t;
 
         /**
@@ -98,6 +99,11 @@ namespace lsp
             // Drop other files
             ctx->other.values(&paths);
             ctx->other.flush();
+            drop_paths(&paths);
+
+            // Drop local files
+            ctx->local.values(&paths);
+            ctx->local.flush();
             drop_paths(&paths);
         }
 
@@ -210,6 +216,11 @@ namespace lsp
         status_t other_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
         {
             return add_unique_file(&ctx->other, relative, full);
+        }
+
+        status_t local_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
+        {
+            return add_unique_file(&ctx->local, relative, full);
         }
 
         status_t i18n_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
@@ -394,6 +405,18 @@ namespace lsp
 
             ssize_t xres = dir.close();
             return (res != STATUS_OK) ? res : xres;
+        }
+
+        status_t scan_local_files(const char *path, context_t *ctx)
+        {
+            status_t res;
+            io::Path base;
+            LSPString child;
+
+            if ((res = base.set(path)) != STATUS_OK)
+                return res;
+
+            return scan_files(&base, &child, "*", ctx, local_handler);
         }
 
         status_t lookup_path(const char *path, context_t *ctx)
@@ -587,13 +610,21 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t build_repository(const char *destdir, const char *const *paths, size_t npaths)
+        status_t build_repository(const char *destdir, const char *localdir, const char *const *paths, size_t npaths)
         {
             context_t ctx;
             status_t res;
             system::time_t ts, te;
 
             system::get_time(&ts);
+
+            // Scan local files
+            if ((res = scan_local_files(localdir, &ctx)) != STATUS_OK)
+            {
+                // Destroy context and return error
+                destroy_context(&ctx);
+                return res;
+            }
 
             // Scan for resource path
             for (size_t i=0; i<npaths; ++i)
@@ -621,6 +652,12 @@ namespace lsp
                 res = export_files(&dst, &ctx.other);
             if (res == STATUS_OK)
                 res = export_i18n(&dst, &ctx.i18n);
+            if (res == STATUS_OK)
+                res = export_files(&dst, &ctx.local);
+
+            // Export local resources
+            io::Path src;
+            res = src.set(localdir);
 
             // Destroy context
             destroy_context(&ctx);
@@ -636,13 +673,13 @@ namespace lsp
 #ifndef LSP_IDE_DEBUG
 int main(int argc, const char **argv)
 {
-    if (argc < 2)
+    if (argc < 3)
     {
-        fprintf(stderr, "required destination path\n");
+        fprintf(stderr, "required destination path and local path\n");
         return lsp::STATUS_BAD_ARGUMENTS;
     }
 
-    lsp::status_t res = lsp::resource::build_repository(argv[1], &argv[2], argc - 2);
+    lsp::status_t res = lsp::resource::build_repository(argv[1], &argv[2], &argv[3], argc - 2);
     if (res != lsp::STATUS_OK)
         fprintf(stderr, "Error while generating build files, code=%d\n", int(res));
 

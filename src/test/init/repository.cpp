@@ -29,7 +29,7 @@ namespace lsp
     namespace resource
     {
         // Resource merge
-        status_t build_repository(const char *dst, const char * const *paths, size_t npaths);
+        status_t build_repository(const char *dst, const char *local_dir, const char * const *paths, size_t npaths);
     }
 }
 #endif /* LSP_IDE_DEBUG */
@@ -79,7 +79,7 @@ INIT_BEGIN(repository)
         resdir.set(tempdir(), "resources");
 
         remove_dir(&resdir);
-        lsp::resource::build_repository(resdir.as_utf8(), paths, sizeof(paths)/sizeof(const char *));
+        lsp::resource::build_repository(resdir.as_utf8(), "res/local", paths, sizeof(paths)/sizeof(const char *));
     #endif /* LSP_IDE_DEBUG */
     }
 INIT_END

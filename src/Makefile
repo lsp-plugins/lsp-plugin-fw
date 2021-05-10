@@ -306,7 +306,7 @@ $(ARTIFACT_LIB_JACK): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(OBJ_WRAP_J
 # All targets
 resources: $(UTL_REPOSITORY)
 	@echo "  $(UTL_REPOSITORY)"
-	@echo $(UTL_REPOSITORY) $(UTL_RES_PATH) "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
+	@echo $(UTL_REPOSITORY) $(UTL_RES_PATH) "$(ROOTDIR)/res/local" "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
 	@$(UTL_REPOSITORY) $(UTL_RES_PATH) "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
 
 jack: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
