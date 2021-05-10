@@ -50,6 +50,7 @@
     #include <lsp-plug.in/plug-fw/ctl/Button.h>
     #include <lsp-plug.in/plug-fw/ctl/Led.h>
     #include <lsp-plug.in/plug-fw/ctl/Switch.h>
+    #include <lsp-plug.in/plug-fw/ctl/Indicator.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 
