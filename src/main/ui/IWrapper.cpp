@@ -727,6 +727,11 @@ namespace lsp
             // TODO: implement import
             return STATUS_OK;
         }
+
+        const meta::package_t *IWrapper::package() const
+        {
+            return NULL;
+        }
     }
 } /* namespace lsp */
 

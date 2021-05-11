@@ -166,6 +166,11 @@ namespace lsp
 
             lsp_info("State has been dumped to file:\n%s", path.as_utf8());
         }
+
+        const meta::package_t *IWrapper::package() const
+        {
+            return NULL;
+        }
     }
 }
 

@@ -77,6 +77,7 @@ namespace lsp
                 virtual ui::IPort          *port(const char *id);
                 virtual ui::IPort          *port(size_t idx);
                 virtual size_t              ports() const;
+                virtual const meta::package_t      *package() const;
 
             public:
                 /**
@@ -230,6 +231,11 @@ namespace lsp
         bool UIWrapper::kvt_release()
         {
             return pWrapper->kvt_release();
+        }
+
+        const meta::package_t *UIWrapper::package() const
+        {
+            return pWrapper->package();
         }
 
         void UIWrapper::dump_state_request()

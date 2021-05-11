@@ -235,6 +235,11 @@ namespace lsp
                 virtual status_t            import_settings(const LSPString *file);
                 virtual status_t            import_settings(io::IInSequence *is);
 
+                /**
+                 * Get package version
+                 * @return package version
+                 */
+                virtual const meta::package_t  *package() const;
         };
     }
 

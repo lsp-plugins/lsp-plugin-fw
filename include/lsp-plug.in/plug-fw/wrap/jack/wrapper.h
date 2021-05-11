@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 
 #include <lsp-plug.in/common/debug.h>
@@ -86,6 +87,8 @@ namespace lsp
                 lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
+                meta::package_t                *pPackage;           // Package descriptor
+
 //                size_t                  nCounter;
 
             protected:
@@ -119,6 +122,7 @@ namespace lsp
                     nDumpReq        = 0;
                     nDumpResp       = 0;
 
+                    pPackage        = NULL;
 //                    nCounter        = 0;
                 }
 
@@ -153,6 +157,8 @@ namespace lsp
                 virtual core::KVTStorage           *kvt_trylock();
 
                 virtual bool                        kvt_release();
+
+                virtual const meta::package_t      *package() const;
 
             public:
                 inline jack_client_t               *client()                { return pClient;                   }
@@ -205,6 +211,24 @@ namespace lsp
 
         status_t Wrapper::init()
         {
+            // Load package information
+            io::IInStream *is = pLoader->read_stream("manifest.json");
+            if (is == NULL)
+            {
+                lsp_error("No manifest.json found in resources");
+                return STATUS_BAD_STATE;
+            }
+
+            status_t res    = meta::load_manifest(&pPackage, is);
+            is->close();
+            delete is;
+
+            if (res != STATUS_OK)
+            {
+                lsp_error("Error while reading manifest file");
+                return res;
+            }
+
             // Obtain plugin metadata
             const meta::plugin_t *meta = pPlugin->metadata();
             if (meta == NULL)
@@ -589,6 +613,11 @@ namespace lsp
                 vPorts.add(jp);
                 pPlugin->add_port(jp);
             }
+        }
+
+        const meta::package_t *Wrapper::package() const
+        {
+            return pPackage;
         }
 
         int Wrapper::latency_callback(jack_latency_callback_mode_t mode)

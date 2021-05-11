@@ -115,6 +115,12 @@ namespace lsp
                  * Dump the state of plugin
                  */
                 virtual void                dump_plugin_state();
+
+                /**
+                 * Get package version
+                 * @return package version
+                 */
+                virtual const meta::package_t  *package() const;
         };
     }
 } /* namespace lsp */
