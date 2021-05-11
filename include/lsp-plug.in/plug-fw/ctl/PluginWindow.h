@@ -134,7 +134,7 @@ namespace lsp
                 status_t            show_menu(tk::Widget *actor, void *data);
                 tk::Label          *create_label(tk::WidgetContainer *dst, const char *key, const char *style_name);
                 tk::Label          *create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, const char *style_name);
-                tk::Hyperlink      *create_hlink(tk::WidgetContainer *dst, const char *text, const char *style_name);
+                tk::Hyperlink      *create_hlink(tk::WidgetContainer *dst, const char *url, const char *text, const expr::Parameters *params, const char *style_name);
 
 //                status_t        init_r3d_support(LSPMenu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);

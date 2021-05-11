@@ -83,6 +83,9 @@ namespace lsp
             if (pPlugin == NULL)
                 return;
 
+            const meta::package_t *pkg = package();
+
+            LSPString tmp;
             io::Path path;
             status_t res;
             if ((res = system::get_temporary_dir(&path)) != STATUS_OK)
@@ -90,8 +93,13 @@ namespace lsp
                 lsp_warn("Could not obtain temporary directory: %d", int(res));
                 return;
             }
-//            if ((res = path.append_child(LSP_ARTIFACT_ID "-dumps")) != STATUS_OK) // TODO
-            if ((res = path.append_child("dumps")) != STATUS_OK)
+
+            if (tmp.fmt_utf8("%s-dumps", pkg->artifact) <= 0)
+            {
+                lsp_warn("Could not form path to directory: %d", int(res));
+                return;
+            }
+            if ((res = path.append_child(&tmp)) != STATUS_OK)
             {
                 lsp_warn("Could not form path to directory: %d", int(res));
                 return;
@@ -138,21 +146,35 @@ namespace lsp
 
             v.begin_raw_object();
             {
-                LSPString tmp;
-
                 v.write("name", meta->name);
                 v.write("description", meta->description);
-//                v.write("package", LSP_MAIN_VERSION); // TODO
+                v.write("artifact", pkg->artifact);
+
+                // Package version
+                tmp.fmt_ascii("%d.%d.%d",
+                        int(pkg->version.major),
+                        int(pkg->version.minor),
+                        int(pkg->version.micro)
+                );
+                if (pkg->version.branch)
+                    tmp.fmt_append_utf8("-%s", pkg->version.branch);
+                v.write("package", tmp.get_utf8());
+
+                // Version
                 tmp.fmt_ascii("%d.%d.%d",
                         int(LSP_MODULE_VERSION_MAJOR(meta->version)),
                         int(LSP_MODULE_VERSION_MINOR(meta->version)),
                         int(LSP_MODULE_VERSION_MICRO(meta->version))
                     );
                 v.write("version", tmp.get_utf8());
-//                tmp.fmt_ascii("%s%s", LSP_URI(lv2), meta->lv2_uid); // TODO
+
+                // Write plugin identifiers
                 v.write("lv2_uri", tmp.get_utf8());
                 v.write("vst_id", meta->vst_uid);
                 v.write("ladspa_id", meta->ladspa_id);
+                v.write("ladspa_label", meta->ladspa_lbl);
+
+                // Dump object contents
                 v.write("this", pPlugin);
                 v.begin_raw_object("data");
                 {

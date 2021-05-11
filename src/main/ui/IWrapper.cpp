@@ -587,18 +587,24 @@ namespace lsp
             return export_settings(os, &path);
         }
 
-        // TODO
-        #define LSP_MAIN_VERSION "0.0.0"
-        #define LSP_FULL_NAME "Linux Studio Plugins"
-        #define LSP_BASE_URI "http://lsp-plug.in/"
-
         void IWrapper::build_config_header(LSPString *c)
         {
+            const meta::package_t *pkg = package();
             const meta::plugin_t *meta = pUI->metadata();
 
+            LSPString pkv;
+            pkv.fmt_ascii("%d.%d.%d",
+                    int(pkg->version.major),
+                    int(pkg->version.minor),
+                    int(pkg->version.micro)
+            );
+            if (pkg->version.branch)
+                pkv.fmt_append_ascii("-%s", pkg->version.branch);
+
             c->append_utf8      ("This file contains configuration of the audio plugin.\n");
+            c->fmt_append_utf8  ("  Package:             %s (%s)\n", pkg->artifact);
+            c->fmt_append_utf8  ("  Package version:     %s\n", pkv.get_utf8());
             c->fmt_append_utf8  ("  Plugin name:         %s (%s)\n", meta->name, meta->description);
-            c->fmt_append_utf8  ("  Package version:     %s\n", LSP_MAIN_VERSION);
             c->fmt_append_utf8  ("  Plugin version:      %d.%d.%d\n",
                     int(LSP_MODULE_VERSION_MAJOR(meta->version)),
                     int(LSP_MODULE_VERSION_MINOR(meta->version)),
@@ -615,8 +621,8 @@ namespace lsp
             if (meta->ladspa_lbl > 0)
                 c->fmt_append_utf8   ("  LADSPA label:        %s\n", meta->ladspa_lbl);
             c->append           ('\n');
-            c->append_utf8      ("(C) " LSP_FULL_NAME " \n");
-            c->append_utf8      ("  " LSP_BASE_URI " \n");
+            c->fmt_append_utf8  ("(C) %s\n", pkg->full_name);
+            c->fmt_append_utf8  ("  %s\n", pkg->site);
         }
 
         status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *relative)

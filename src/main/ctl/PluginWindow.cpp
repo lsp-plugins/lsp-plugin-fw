@@ -1252,23 +1252,21 @@ namespace lsp
             return lbl;
         }
 
-        tk::Hyperlink *PluginWindow::create_hlink(tk::WidgetContainer *dst, const char *text, const char *style_name)
+        tk::Hyperlink *PluginWindow::create_hlink(tk::WidgetContainer *dst, const char *url, const char *text, const expr::Parameters *params, const char *style_name)
         {
             tk::Hyperlink *hlink = new tk::Hyperlink(wWidget->display());
             hlink->init();
             vWidgets.add(hlink);
             dst->add(hlink);
 
-            hlink->url()->set(text);
+            hlink->url()->set(url);
             hlink->text()->set(text);
+            if (params != NULL)
+                hlink->text()->set_params(params);
             inject_style(hlink, style_name);
 
             return hlink;
         }
-
-
-// TODO: take this from metadata
-#define LSP_MAIN_VERSION                                "0.0.0"
 
         status_t PluginWindow::show_notification()
         {
@@ -1278,16 +1276,34 @@ namespace lsp
                 return STATUS_BAD_STATE;
 
             // Get default dictionary
+            const meta::package_t *pkg  = pWrapper->package();
+            const meta::plugin_t *meta  = pWrapper->ui()->metadata();
             i18n::IDictionary *dict     = get_default_dict(wnd);
+
+            LSPString pkgver, plugver;
+            pkgver.fmt_ascii("%d.%d.%d",
+                    int(pkg->version.major),
+                    int(pkg->version.minor),
+                    int(pkg->version.micro)
+            );
+            if (pkg->version.branch)
+                pkgver.fmt_append_utf8("-%s", pkg->version.branch);
+
+            plugver.fmt_ascii("%d.%d.%d",
+                    int(LSP_MODULE_VERSION_MAJOR(meta->version)),
+                    int(LSP_MODULE_VERSION_MINOR(meta->version)),
+                    int(LSP_MODULE_VERSION_MICRO(meta->version))
+            );
 
             // Check that we really need to show notification window
             if (pPVersion != NULL)
             {
                 const char *v = pPVersion->buffer<char>();
-                if ((v != NULL) && (strcmp(LSP_MAIN_VERSION, v) == 0))
+                if ((v != NULL) && (pkgver.equals_utf8(v)))
                     return STATUS_OK;
 
-                pPVersion->write(LSP_MAIN_VERSION, strlen(LSP_MAIN_VERSION));
+                const char *vstring = pkgver.get_utf8();
+                pPVersion->write(vstring, strlen(vstring));
                 pPVersion->notify_all();
             }
 
@@ -1316,18 +1332,16 @@ namespace lsp
                 wMessage->add(vbox);
 
                 expr::Parameters p;
+                p.set_string("package", &pkgver);
+                p.set_string("version", &plugver);
+                p.set_cstring("artifact", pkg->artifact);
+                p.set_cstring("project", pkg->full_name);
+                p.set_cstring("acronym", pkg->short_name);
+                p.set_cstring("site", pkg->site);
 
                 tk::Label *lbl  = create_label(vbox, "headings.greetings", "GreetingDialog::Heading");
-                p.clear();
-                p.set_cstring("version", LSP_MAIN_VERSION);
                 lbl  = create_plabel(vbox, "messages.greetings.0", &p, "GreetingDialog::Text");
                 lbl->font()->set_bold();
-
-                p.clear();
-                if (dict->lookup("project.name", &value) == STATUS_OK)
-                    p.set_string("project", &value);
-                if (dict->lookup("project.acronym", &value) == STATUS_OK)
-                    p.set_string("acronym", &value);
                 lbl  = create_plabel(vbox, "messages.greetings.1", &p, "GreetingDialog::Text");
                 lbl  = create_label(vbox, "messages.greetings.2", "GreetingDialog::Text");
 
@@ -1339,16 +1353,16 @@ namespace lsp
                             break;
                         if (dict->lookup(&key, &value) != STATUS_OK)
                             break;
-                        create_hlink(vbox, key.get_utf8(), "GreetingDialog::Hlink");
+                        create_hlink(vbox, key.get_utf8(), key.get_utf8(), NULL, "GreetingDialog::Hlink");
                     }
                 }
 
-                lbl  = create_label(vbox, "messages.greetings.3", "GreetingDialog::Text");
-                lbl  = create_label(vbox, "messages.greetings.4", "GreetingDialog::Text");
+                lbl  = create_plabel(vbox, "messages.greetings.3", &p, "GreetingDialog::Text");
+                lbl  = create_plabel(vbox, "messages.greetings.4", &p, "GreetingDialog::Text");
 
-                lbl  = create_label(vbox, "messages.greetings.5", "GreetingDialog::Postscript");
-                lbl  = create_label(vbox, "project.name", "GreetingDialog::Postscript");
-                create_hlink(vbox, "project.url", "GreetingDialog::PostscriptHlink");
+                lbl  = create_plabel(vbox, "messages.greetings.5", &p, "GreetingDialog::Postscript");
+                lbl  = create_plabel(vbox, "messages.postscript", &p, "GreetingDialog::Postscript");
+                create_hlink(vbox, pkg->site, "messages.site", &p, "GreetingDialog::PostscriptHlink");
 
                 tk::Align *algn = new tk::Align(wWidget->display());
                 algn->init();

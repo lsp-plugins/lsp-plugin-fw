@@ -229,6 +229,9 @@ namespace lsp
             if (res == STATUS_OK)
                 res = fetch_version(&p->version, "version", &jo);
 
+            if (res == STATUS_OK)
+                *pkg            = p;
+
             return res;
         }
 

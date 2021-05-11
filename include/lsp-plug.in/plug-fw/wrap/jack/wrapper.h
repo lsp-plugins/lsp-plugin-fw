@@ -510,6 +510,10 @@ namespace lsp
                 delete pExecutor;
                 pExecutor   = NULL;
             }
+
+            // Destroy package
+            meta::free_manifest(pPackage);
+            pPackage    = NULL;
         }
 
         void Wrapper::create_port(const meta::port_t *port, const char *postfix)
