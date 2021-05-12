@@ -63,7 +63,7 @@ namespace lsp
             return (buf != NULL) ? buf->resize(lines, items) : create(lines, items);
         }
 
-        void IDBuffer::detroy()
+        void IDBuffer::destroy()
         {
             free(this);
         }

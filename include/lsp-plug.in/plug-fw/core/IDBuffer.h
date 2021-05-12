@@ -49,7 +49,7 @@ namespace lsp
             public:
                 static IDBuffer        *create(size_t lines, size_t items);
                 static IDBuffer        *reuse(IDBuffer *buf, size_t lines, size_t items);
-                void                    detroy();
+                void                    destroy();
                 IDBuffer               *resize(size_t lines, size_t items);
         };
     }
