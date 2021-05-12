@@ -91,6 +91,9 @@
 #define METER(id, label, units, limits) \
     { id, label, units, R_METER, F_OUT | F_LOWER | F_UPPER | F_STEP, \
         limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL }
+#define METERZ(id, label, units, limits) \
+    { id, label, units, R_METER, F_OUT | F_LOWER | F_UPPER | F_STEP, \
+        limits ## _MIN, limits ## _MAX, 0.0f, 0.0f, NULL, NULL }
 #define METER_MINMAX(id, label, units, min, max) \
     { id, label, units, R_METER, F_OUT | F_LOWER | F_UPPER | F_STEP, \
         min, max, min, 0.0f, NULL, NULL }
