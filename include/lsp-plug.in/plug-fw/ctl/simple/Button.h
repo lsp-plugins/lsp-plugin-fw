@@ -55,6 +55,7 @@ namespace lsp
                 ctl::Color          sHoleColor;
                 ctl::Expression     sEditable;
                 ctl::Boolean        sHover;
+                ctl::Padding        sTextPad;
 
             protected:
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);

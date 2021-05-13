@@ -85,6 +85,7 @@ namespace lsp
                 sHoverTextColor.init(pWrapper, btn->hover_text_color());
                 sLedTextColor.init(pWrapper, btn->led_text_color());
                 sEditable.init(pWrapper, this);
+                sTextPad.init(pWrapper, btn->text_padding());
 
                 // Bind slots
                 btn->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
@@ -112,6 +113,11 @@ namespace lsp
                 sLedTextColor.set("led.text.color", name, value);
                 sLedTextColor.set("ltcolor", name, value);
                 sHoleColor.set("hole.color", name, value);
+                sTextPad.set("text.padding", name, value);
+                sTextPad.set("text.pad", name, value);
+                sTextPad.set("tpadding", name, value);
+                sTextPad.set("tpad", name, value);
+                sHover.set("hover", name, value);
 
                 set_font(btn->font(), "font", name, value);
                 set_lc_attr(btn->text(), "text", name, value);
@@ -123,10 +129,6 @@ namespace lsp
                 set_param(btn->text_clip(), "tclip", name, value);
                 set_expr(&sEditable, "editable", name, value);
                 set_text_layout(btn->text_layout(), name, value);
-                set_padding(btn->text_padding(), "text.padding", name, value);
-                set_padding(btn->text_padding(), "tpad", name, value);
-
-                sHover.set("hover", name, value);
             }
 
             Widget::set(name, value);

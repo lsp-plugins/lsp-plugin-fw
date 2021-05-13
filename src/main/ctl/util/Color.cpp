@@ -134,6 +134,7 @@ namespace lsp
             if (!e->parse(value, flags))
                 return;
 
+            // And apply the computed value
             expr::value_t cv;
             expr::init_value(&cv);
 

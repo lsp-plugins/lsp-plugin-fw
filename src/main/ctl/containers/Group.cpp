@@ -74,6 +74,7 @@ namespace lsp
                 sTextColor.init(pWrapper, grp->text_color());
                 sColor.init(pWrapper, grp->text_color());
                 sEmbed.init(pWrapper, grp->embedding());
+                sIPadding.init(pWrapper, grp->ipadding());
             }
 
             return STATUS_OK;
@@ -96,8 +97,9 @@ namespace lsp
                 set_param(grp->border_size(), "border.sz", name, value);
                 set_param(grp->border_radius(), "border.radius", name, value);
                 set_param(grp->border_radius(), "border.r", name, value);
-                set_padding(grp->ipadding(), "ipadding", name, value);
-                set_padding(grp->ipadding(), "ipad", name, value);
+
+                sIPadding.set("ipadding", name, value);
+                sIPadding.set("ipad", name, value);
 
                 sTextColor.set("text.color", name, value);
                 sColor.set("color", name, value);

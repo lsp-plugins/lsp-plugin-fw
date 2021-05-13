@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 25 апр. 2021 г.
+ * Created on: 13 мая 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_GRAPH_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_GRAPH_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,22 +34,21 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Simple container: group box
+         * Graph widget that contains another graphic elements
          */
-        class Group: public Widget
+        class Graph: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::Color          sTextColor;
-                ctl::Color          sColor;
-                ctl::Embedding      sEmbed;
-                ctl::Padding        sIPadding;
+                ctl::Color      sColor;
+                ctl::Padding    sIPadding;
+//                Padding      sPadding;
 
             public:
-                explicit Group(ui::IWrapper *wrapper, tk::Group *widget);
-                virtual ~Group();
+                explicit Graph(ui::IWrapper *wrapper, tk::Graph *widget);
+                virtual ~Graph();
 
                 virtual status_t    init();
 
@@ -63,4 +62,4 @@ namespace lsp
 
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_GRAPH_H_ */

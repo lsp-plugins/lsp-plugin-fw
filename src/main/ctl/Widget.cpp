@@ -145,31 +145,6 @@ namespace lsp
             return true;
         }
 
-        bool Widget::set_padding(tk::Padding *pad, const char *param, const char *name, const char *value)
-        {
-            if (pad == NULL)
-                return false;
-            if (!(name = match_prefix(param, name)))
-                return false;
-
-            if (name[0] == '\0')                    PARSE_UINT(value, pad->set_all(__))
-            else if (!strcmp(name, "pad"))          PARSE_UINT(value, pad->set_all(__))
-            else if (!strcmp(name, "padding"))      PARSE_UINT(value, pad->set_all(__))
-            else if (!strcmp(name, "hpad"))         PARSE_UINT(value, pad->set_horizontal(__))
-            else if (!strcmp(name, "vpad"))         PARSE_UINT(value, pad->set_vertical(__))
-            else if (!strcmp(name, "lpad"))         PARSE_UINT(value, pad->set_left(__))
-            else if (!strcmp(name, "pad.left"))     PARSE_UINT(value, pad->set_left(__))
-            else if (!strcmp(name, "rpad"))         PARSE_UINT(value, pad->set_right(__))
-            else if (!strcmp(name, "pad.right"))    PARSE_UINT(value, pad->set_right(__))
-            else if (!strcmp(name, "tpad"))         PARSE_UINT(value, pad->set_top(__))
-            else if (!strcmp(name, "pad.top"))      PARSE_UINT(value, pad->set_top(__))
-            else if (!strcmp(name, "bpad"))         PARSE_UINT(value, pad->set_bottom(__))
-            else if (!strcmp(name, "pad.bottom"))   PARSE_UINT(value, pad->set_bottom(__))
-            else return false;
-
-            return true;
-        }
-
         bool Widget::set_allocation(tk::Allocation *alloc, const char *name, const char *value)
         {
             if (alloc == NULL)
@@ -368,9 +343,10 @@ namespace lsp
             set_param(wWidget->brightness(), "brightness", name, value);
             set_param(wWidget->brightness(), "bright", name, value);
             set_param(wWidget->scaling(), "scaling", name, value);
-            set_padding(wWidget->padding(), NULL, name, value);
             set_allocation(wWidget->allocation(), name, value);
 
+            sPadding.set("pad", name, value);
+            sPadding.set("padding", name, value);
             sBgColor.set("bg", name, value);
         }
 
@@ -414,7 +390,10 @@ namespace lsp
         status_t Widget::init()
         {
             if (wWidget != NULL)
+            {
                 sBgColor.init(pWrapper, wWidget->bg_color());
+                sPadding.init(pWrapper, wWidget->padding());
+            }
 
             return STATUS_OK;
         }
