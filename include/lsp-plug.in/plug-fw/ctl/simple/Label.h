@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_LABEL_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_LABEL_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_LABEL_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_LABEL_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -116,4 +116,4 @@ namespace lsp
 
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_LABEL_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_LABEL_H_ */

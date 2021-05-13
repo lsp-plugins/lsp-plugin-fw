@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 25 апр. 2021 г.
+ * Created on: 10 мая 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_GROUP_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_GROUP_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_CELL_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_CELL_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,32 +34,36 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Simple container: group box
+         * Cell (meta-widget) implementation
          */
-        class Group: public Widget
+        class Cell: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::Color          sTextColor;
-                ctl::Color          sColor;
-                ctl::Embedding      sEmbed;
+                ctl::Widget            *cChild;
+                lltl::parray<char>      vParams;
+                size_t                  nRows;
+                size_t                  nCols;
 
             public:
-                explicit Group(ui::IWrapper *src, tk::Group *widget);
-                virtual ~Group();
-
-                virtual status_t    init();
+                explicit                Cell(ui::IWrapper *src);
+                virtual                ~Cell();
 
             public:
-                virtual void        set(const char *name, const char *value);
+                inline size_t           rows() const        { return nRows; }
+                inline size_t           columns() const     { return nCols; }
 
-                virtual status_t    add(ctl::Widget *child);
+            public:
+                virtual tk::Widget     *widget();
+
+                virtual void            set(const char *name, const char *value);
+
+                virtual status_t        add(ctl::Widget *child);
         };
+
     }
 }
 
-
-
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_GROUP_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_CELL_H_ */

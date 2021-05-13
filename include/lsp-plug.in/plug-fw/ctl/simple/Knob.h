@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 9 мая 2021 г.
+ * Created on: 8 мая 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_BUTTON_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_BUTTON_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_KNOB_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_KNOB_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,44 +34,62 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Button widget controller
+         * Knob control
          */
-        class Button: public Widget
+        class Knob: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                float               fValue;
-                float               fDflValue;
-                bool                bValueSet;
-                ui::IPort          *pPort;
+                enum knob_flags_t
+                {
+                    KF_MIN          = 1 << 0,
+                    KF_MAX          = 1 << 1,
+                    KF_DFL          = 1 << 2,
+                    KF_STEP         = 1 << 3,
+                    KF_BAL_SET      = 1 << 4,
+                    KF_LOG          = 1 << 5,
+                    KF_LOG_SET      = 1 << 6,
+                    KF_CYCLIC       = 1 << 7,
+                    KF_CYCLIC_SET   = 1 << 8
+                };
+
+            protected:
                 ctl::Color          sColor;
-                ctl::Color          sHoverColor;
-                ctl::Color          sLedColor;
-                ctl::Color          sTextColor;
-                ctl::Color          sHoverTextColor;
-                ctl::Color          sLedTextColor;
+                ctl::Color          sScaleColor;
                 ctl::Color          sHoleColor;
-                ctl::Expression     sEditable;
-                ctl::Boolean        sHover;
+                ctl::Color          sTipColor;
+
+                ui::IPort          *pPort;
+
+                size_t              nFlags;
+                float               fMin;
+                float               fMax;
+                float               fDefault;
+                float               fStep;
+                float               fAStep;
+                float               fDStep;
+                float               fBalance;
+
+                float               fDefaultValue;
 
             protected:
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
 
-                void                commit_value(float value);
+            protected:
                 void                submit_value();
-                float               next_value(bool down);
-                void                trigger_expr();
+                void                set_default_value();
+                void                commit_value(float value);
 
             public:
-                explicit Button(ui::IWrapper *src, tk::Button *widget);
-                virtual ~Button();
+                explicit Knob(ui::IWrapper *src, tk::Knob *widget);
+                virtual ~Knob();
 
                 virtual status_t    init();
 
             public:
-
                 virtual void        set(const char *name, const char *value);
 
                 virtual void        notify(ui::IPort *port);
@@ -81,4 +99,6 @@ namespace lsp
     }
 }
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_BUTTON_H_ */
+
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_KNOB_H_ */

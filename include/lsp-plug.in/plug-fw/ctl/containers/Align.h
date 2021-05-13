@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 26 апр. 2021 г.
+ * Created on: 12 мая 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_GRID_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_GRID_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_ALIGN_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_ALIGN_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -29,34 +29,44 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/tk/tk.h>
 
+
 namespace lsp
 {
     namespace ctl
     {
         /**
-         * Container: 2-dimensional grid
+         * Alignment controller
          */
-        class Grid: public Widget
+        class Align: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::Integer        sRows;
-                ctl::Integer        sCols;
+                ctl::Expression    sHAlign;
+                ctl::Expression    sVAlign;
+                ctl::Expression    sHScale;
+                ctl::Expression    sVScale;
+
+            protected:
+                void                update_alignment();
 
             public:
-                explicit Grid(ui::IWrapper *src, tk::Grid *widget);
-                virtual ~Grid();
+                explicit Align(ui::IWrapper *src, tk::Align *widget);
+                virtual ~Align();
 
                 virtual status_t    init();
 
             public:
                 virtual void        set(const char *name, const char *value);
-
                 virtual status_t    add(ctl::Widget *child);
+                virtual void        notify(ui::IPort *port);
+                virtual void        end();
         };
-    }
-}
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRID_H_ */
+    } /* namespace ctl */
+} /* namespace lsp */
+
+
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_ALIGN_H_ */

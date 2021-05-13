@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_LED_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_LED_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_SWITCH_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_SWITCH_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,30 +34,32 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Led widget controller
+         * Switch button controller
          */
-        class Led: public Widget
+        class Switch: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::Color          sColor;
-                ctl::Color          sLightColor;
-                ctl::Color          sHoleColor;
-                ctl::Expression     sActivity;
-                ui::IPort          *pPort;
+                ctl::Color      sColor;
+                ctl::Color      sTextColor;
+                ctl::Color      sBorderColor;
+                ctl::Color      sHoleColor;
 
-                float               fValue;
-                float               fKey;
-                bool                bInvert;
+                ui::IPort      *pPort;
+                float           fValue;
+                bool            bInvert;
 
             protected:
-                void                update_value();
+                static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
+
+                void                commit_value(float value);
+                void                submit_value();
 
             public:
-                explicit Led(ui::IWrapper *src, tk::Led *widget);
-                virtual ~Led();
+                explicit Switch(ui::IWrapper *src, tk::Switch *widget);
+                virtual ~Switch();
 
                 virtual status_t    init();
 
@@ -73,4 +75,5 @@ namespace lsp
 } /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_LED_H_ */
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_SWITCH_H_ */

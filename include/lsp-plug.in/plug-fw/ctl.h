@@ -41,18 +41,19 @@
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
-    #include <lsp-plug.in/plug-fw/ctl/Void.h>
-    #include <lsp-plug.in/plug-fw/ctl/Box.h>
-    #include <lsp-plug.in/plug-fw/ctl/Align.h>
-    #include <lsp-plug.in/plug-fw/ctl/Group.h>
-    #include <lsp-plug.in/plug-fw/ctl/Grid.h>
-    #include <lsp-plug.in/plug-fw/ctl/Cell.h>
-    #include <lsp-plug.in/plug-fw/ctl/Label.h>
-    #include <lsp-plug.in/plug-fw/ctl/Knob.h>
-    #include <lsp-plug.in/plug-fw/ctl/Button.h>
-    #include <lsp-plug.in/plug-fw/ctl/Led.h>
-    #include <lsp-plug.in/plug-fw/ctl/Switch.h>
-    #include <lsp-plug.in/plug-fw/ctl/Indicator.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/Void.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/Label.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/Knob.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/Button.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/Led.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/Switch.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/Indicator.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/Box.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/Align.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/Group.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/Grid.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/Cell.h>
+
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 

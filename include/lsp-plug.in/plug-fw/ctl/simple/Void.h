@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 10 мая 2021 г.
+ * Created on: 8 мая 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CELL_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_CELL_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_VOID_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_VOID_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,36 +34,28 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Cell (meta-widget) implementation
+         * Simple placeholder widget
          */
-        class Cell: public Widget
+        class Void: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::Widget            *cChild;
-                lltl::parray<char>      vParams;
-                size_t                  nRows;
-                size_t                  nCols;
+                Color       sColor;
 
             public:
-                explicit                Cell(ui::IWrapper *src);
-                virtual                ~Cell();
+                explicit Void(ui::IWrapper *src, tk::Void *widget);
+                virtual ~Void();
+
+                virtual status_t    init();
 
             public:
-                inline size_t           rows() const        { return nRows; }
-                inline size_t           columns() const     { return nCols; }
-
-            public:
-                virtual tk::Widget     *widget();
-
-                virtual void            set(const char *name, const char *value);
-
-                virtual status_t        add(ctl::Widget *child);
+                virtual void set(const char *name, const char *value);
         };
-
     }
 }
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CELL_H_ */
+
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_VOID_H_ */

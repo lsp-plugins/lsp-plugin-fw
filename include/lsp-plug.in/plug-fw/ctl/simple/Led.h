@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 25 апр. 2021 г.
+ * Created on: 9 мая 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_BOX_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_BOX_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_LED_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_LED_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,30 +34,43 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Simple container: vertical or horizontal box
+         * Led widget controller
          */
-        class Box: public Widget
+        class Led: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ssize_t             enOrientation;
+                ctl::Color          sColor;
+                ctl::Color          sLightColor;
+                ctl::Color          sHoleColor;
+                ctl::Expression     sActivity;
+                ui::IPort          *pPort;
+
+                float               fValue;
+                float               fKey;
+                bool                bInvert;
+
+            protected:
+                void                update_value();
 
             public:
-                explicit Box(ui::IWrapper *src, tk::Box *widget, ssize_t orientation = -1);
-                virtual ~Box();
+                explicit Led(ui::IWrapper *src, tk::Led *widget);
+                virtual ~Led();
 
                 virtual status_t    init();
 
             public:
-
                 virtual void        set(const char *name, const char *value);
 
-                virtual status_t    add(ctl::Widget *child);
+                virtual void        notify(ui::IPort *port);
+
+                virtual void        end();
         };
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_BOX_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_LED_H_ */

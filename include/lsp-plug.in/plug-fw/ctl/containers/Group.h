@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 8 мая 2021 г.
+ * Created on: 25 апр. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_VOID_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_VOID_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,28 +34,32 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Simple placeholder widget
+         * Simple container: group box
          */
-        class Void: public Widget
+        class Group: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                Color       sColor;
+                ctl::Color          sTextColor;
+                ctl::Color          sColor;
+                ctl::Embedding      sEmbed;
 
             public:
-                explicit Void(ui::IWrapper *src, tk::Void *widget);
-                virtual ~Void();
+                explicit Group(ui::IWrapper *src, tk::Group *widget);
+                virtual ~Group();
 
                 virtual status_t    init();
 
             public:
-                virtual void set(const char *name, const char *value);
+                virtual void        set(const char *name, const char *value);
+
+                virtual status_t    add(ctl::Widget *child);
         };
     }
 }
 
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_VOID_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_ */
