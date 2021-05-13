@@ -52,7 +52,7 @@ namespace lsp
                 void                update_alignment();
 
             public:
-                explicit Align(ui::IWrapper *src, tk::Align *widget);
+                explicit Align(ui::IWrapper *wrapper, tk::Align *widget);
                 virtual ~Align();
 
                 virtual status_t    init();

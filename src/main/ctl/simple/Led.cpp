@@ -55,7 +55,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Led::metadata         = { "Led", &Widget::metadata };
 
-        Led::Led(ui::IWrapper *src, tk::Led *widget): Widget(src, widget)
+        Led::Led(ui::IWrapper *wrapper, tk::Led *widget): Widget(wrapper, widget)
         {
             pClass          = &metadata;
 

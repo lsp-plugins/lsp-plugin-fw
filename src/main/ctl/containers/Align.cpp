@@ -55,7 +55,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Align::metadata   = { "Align", &Widget::metadata };
 
-        Align::Align(ui::IWrapper *src, tk::Align *widget): Widget(src, widget)
+        Align::Align(ui::IWrapper *wrapper, tk::Align *widget): Widget(wrapper, widget)
         {
         }
 

@@ -56,7 +56,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Knob::metadata = { "Knob", &Widget::metadata };
 
-        Knob::Knob(ui::IWrapper *src, tk::Knob *widget): Widget(src, widget)
+        Knob::Knob(ui::IWrapper *wrapper, tk::Knob *widget): Widget(wrapper, widget)
         {
             pClass          = &metadata;
 

@@ -56,7 +56,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Button::metadata     = { "Button", &Widget::metadata };
 
-        Button::Button(ui::IWrapper *src, tk::Button *widget): Widget(src, widget)
+        Button::Button(ui::IWrapper *wrapper, tk::Button *widget): Widget(wrapper, widget)
         {
             pClass          = &metadata;
 

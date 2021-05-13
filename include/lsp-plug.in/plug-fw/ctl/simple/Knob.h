@@ -84,7 +84,7 @@ namespace lsp
                 void                commit_value(float value);
 
             public:
-                explicit Knob(ui::IWrapper *src, tk::Knob *widget);
+                explicit Knob(ui::IWrapper *wrapper, tk::Knob *widget);
                 virtual ~Knob();
 
                 virtual status_t    init();

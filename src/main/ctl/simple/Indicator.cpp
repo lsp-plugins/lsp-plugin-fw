@@ -58,7 +58,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Indicator::metadata   = { "Indicator", &Widget::metadata };
 
-        Indicator::Indicator(ui::IWrapper *src, tk::Indicator *widget): Widget(src, widget)
+        Indicator::Indicator(ui::IWrapper *wrapper, tk::Indicator *widget): Widget(wrapper, widget)
         {
             pClass          = &metadata;
 

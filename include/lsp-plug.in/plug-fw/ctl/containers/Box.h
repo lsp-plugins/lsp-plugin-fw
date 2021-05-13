@@ -45,7 +45,7 @@ namespace lsp
                 ssize_t             enOrientation;
 
             public:
-                explicit Box(ui::IWrapper *src, tk::Box *widget, ssize_t orientation = -1);
+                explicit Box(ui::IWrapper *wrapper, tk::Box *widget, ssize_t orientation = -1);
                 virtual ~Box();
 
                 virtual status_t    init();

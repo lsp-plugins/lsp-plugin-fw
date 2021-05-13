@@ -55,7 +55,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Void::metadata    = { "Void", &Widget::metadata };
 
-        Void::Void(ui::IWrapper *src, tk::Void *widget): Widget(src, widget)
+        Void::Void(ui::IWrapper *wrapper, tk::Void *widget): Widget(wrapper, widget)
         {
             pClass          = &metadata;
         }

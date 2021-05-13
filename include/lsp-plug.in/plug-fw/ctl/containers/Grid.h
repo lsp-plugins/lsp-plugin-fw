@@ -46,7 +46,7 @@ namespace lsp
                 ctl::Integer        sCols;
 
             public:
-                explicit Grid(ui::IWrapper *src, tk::Grid *widget);
+                explicit Grid(ui::IWrapper *wrapper, tk::Grid *widget);
                 virtual ~Grid();
 
                 virtual status_t    init();

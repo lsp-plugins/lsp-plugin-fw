@@ -91,7 +91,7 @@ namespace lsp
                 void                commit_value(float value);
 
             public:
-                explicit Indicator(ui::IWrapper *src, tk::Indicator *widget);
+                explicit Indicator(ui::IWrapper *wrapper, tk::Indicator *widget);
                 virtual ~Indicator();
 
                 virtual status_t    init();

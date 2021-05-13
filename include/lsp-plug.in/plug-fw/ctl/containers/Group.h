@@ -47,7 +47,7 @@ namespace lsp
                 ctl::Embedding      sEmbed;
 
             public:
-                explicit Group(ui::IWrapper *src, tk::Group *widget);
+                explicit Group(ui::IWrapper *wrapper, tk::Group *widget);
                 virtual ~Group();
 
                 virtual status_t    init();

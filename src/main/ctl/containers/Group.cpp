@@ -55,7 +55,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Group::metadata     = { "Group", &Widget::metadata };
 
-        Group::Group(ui::IWrapper *src, tk::Group *widget): Widget(src, widget)
+        Group::Group(ui::IWrapper *wrapper, tk::Group *widget): Widget(wrapper, widget)
         {
             pClass          = &metadata;
         }

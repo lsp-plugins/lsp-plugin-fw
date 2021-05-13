@@ -55,7 +55,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Switch::metadata          = { "Switch", &Widget::metadata };
 
-        Switch::Switch(ui::IWrapper *src, tk::Switch *widget): Widget(src, widget)
+        Switch::Switch(ui::IWrapper *wrapper, tk::Switch *widget): Widget(wrapper, widget)
         {
             pClass          = &metadata;
 

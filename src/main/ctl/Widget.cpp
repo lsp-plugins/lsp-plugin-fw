@@ -27,10 +27,10 @@ namespace lsp
     {
         const ctl_class_t Widget::metadata = { "Widget", NULL };
 
-        Widget::Widget(ui::IWrapper *src, tk::Widget *widget)
+        Widget::Widget(ui::IWrapper *wrapper, tk::Widget *widget)
         {
             pClass          = &metadata;
-            pWrapper        = src;
+            pWrapper        = wrapper;
             wWidget         = widget;
         }
 

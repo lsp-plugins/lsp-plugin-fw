@@ -48,7 +48,7 @@ namespace lsp
                 size_t                  nCols;
 
             public:
-                explicit                Cell(ui::IWrapper *src);
+                explicit                Cell(ui::IWrapper *wrapper);
                 virtual                ~Cell();
 
             public:

@@ -58,7 +58,7 @@ namespace lsp
                 void                submit_value();
 
             public:
-                explicit Switch(ui::IWrapper *src, tk::Switch *widget);
+                explicit Switch(ui::IWrapper *wrapper, tk::Switch *widget);
                 virtual ~Switch();
 
                 virtual status_t    init();

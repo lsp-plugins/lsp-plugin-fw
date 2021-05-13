@@ -98,7 +98,7 @@ namespace lsp
                 void                do_destroy();
 
             public:
-                explicit Label(ui::IWrapper *src, tk::Label *widget, label_type_t type);
+                explicit Label(ui::IWrapper *wrapper, tk::Label *widget, label_type_t type);
                 virtual ~Label();
 
                 virtual status_t    init();

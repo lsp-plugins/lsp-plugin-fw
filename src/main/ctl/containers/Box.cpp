@@ -60,7 +60,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Box::metadata     = { "Box", &Widget::metadata };
 
-        Box::Box(ui::IWrapper *src, tk::Box *widget, ssize_t orientation): Widget(src, widget)
+        Box::Box(ui::IWrapper *wrapper, tk::Box *widget, ssize_t orientation): Widget(wrapper, widget)
         {
             pClass          = &metadata;
             enOrientation   = orientation;

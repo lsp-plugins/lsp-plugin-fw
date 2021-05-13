@@ -41,7 +41,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Cell::metadata        = { "Cell", &Widget::metadata };
 
-        Cell::Cell(ui::IWrapper *src): Widget(src, NULL)
+        Cell::Cell(ui::IWrapper *wrapper): Widget(wrapper, NULL)
         {
             pClass          = &metadata;
 

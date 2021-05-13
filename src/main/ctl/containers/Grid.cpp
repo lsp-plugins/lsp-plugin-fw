@@ -55,7 +55,7 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Grid::metadata     = { "Grid", &Widget::metadata };
 
-        Grid::Grid(ui::IWrapper *src, tk::Grid *widget): Widget(src, widget)
+        Grid::Grid(ui::IWrapper *wrapper, tk::Grid *widget): Widget(wrapper, widget)
         {
             pClass          = &metadata;
         }

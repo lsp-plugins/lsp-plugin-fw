@@ -82,7 +82,7 @@ namespace lsp
                 bool                bind_port(ui::IPort **port, const char *param, const char *name, const char *value);
 
             public:
-                explicit Widget(ui::IWrapper *src, tk::Widget *widget);
+                explicit Widget(ui::IWrapper *wrapper, tk::Widget *widget);
                 virtual ~Widget();
 
                 /** Initialize widget controller

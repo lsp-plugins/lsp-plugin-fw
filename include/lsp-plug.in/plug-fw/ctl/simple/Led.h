@@ -56,7 +56,7 @@ namespace lsp
                 void                update_value();
 
             public:
-                explicit Led(ui::IWrapper *src, tk::Led *widget);
+                explicit Led(ui::IWrapper *wrapper, tk::Led *widget);
                 virtual ~Led();
 
                 virtual status_t    init();

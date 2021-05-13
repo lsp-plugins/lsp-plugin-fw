@@ -144,8 +144,8 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Label::metadata     = { "Label", &Widget::metadata };
 
-        Label::Label(ui::IWrapper *src, tk::Label *widget, label_type_t type):
-            Widget(src, widget)
+        Label::Label(ui::IWrapper *wrapper, tk::Label *widget, label_type_t type):
+            Widget(wrapper, widget)
         {
             pClass          = &metadata;
 

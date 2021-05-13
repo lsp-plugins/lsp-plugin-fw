@@ -45,7 +45,7 @@ namespace lsp
                 Color       sColor;
 
             public:
-                explicit Void(ui::IWrapper *src, tk::Void *widget);
+                explicit Void(ui::IWrapper *wrapper, tk::Void *widget);
                 virtual ~Void();
 
                 virtual status_t    init();

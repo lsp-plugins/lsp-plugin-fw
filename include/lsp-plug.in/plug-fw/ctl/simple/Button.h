@@ -65,7 +65,7 @@ namespace lsp
                 void                trigger_expr();
 
             public:
-                explicit Button(ui::IWrapper *src, tk::Button *widget);
+                explicit Button(ui::IWrapper *wrapper, tk::Button *widget);
                 virtual ~Button();
 
                 virtual status_t    init();
