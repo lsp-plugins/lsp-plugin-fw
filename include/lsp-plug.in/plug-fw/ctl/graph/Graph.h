@@ -43,6 +43,8 @@ namespace lsp
 
             protected:
                 ctl::Color      sColor;
+                ctl::Color      sBorderColor;
+                ctl::Color      sGlassColor;
                 ctl::Padding    sIPadding;
 //                Padding      sPadding;
 
