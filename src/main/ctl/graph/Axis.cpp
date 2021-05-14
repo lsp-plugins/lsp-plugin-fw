@@ -1,0 +1,177 @@
+/*
+ * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *
+ * This file is part of lsp-plugin-fw
+ * Created on: 14 мая 2021 г.
+ *
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * any later version.
+ *
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/plug-fw/meta/func.h>
+
+namespace lsp
+{
+    namespace ctl
+    {
+        //---------------------------------------------------------------------
+        CTL_FACTORY_IMPL_START(Axis)
+            status_t res;
+
+            if (!name->equals_ascii("axis"))
+                return STATUS_NOT_FOUND;
+
+            tk::GraphAxis *w = new tk::GraphAxis(context->display());
+            if (w == NULL)
+                return STATUS_NO_MEM;
+            if ((res = context->add_widget(w)) != STATUS_OK)
+            {
+                delete w;
+                return res;
+            }
+
+            if ((res = w->init()) != STATUS_OK)
+                return res;
+
+            ctl::Axis *wc  = new ctl::Axis(context->wrapper(), w);
+            if (wc == NULL)
+                return STATUS_NO_MEM;
+
+            *ctl = wc;
+            return STATUS_OK;
+        CTL_FACTORY_IMPL_END(Axis)
+
+        //-----------------------------------------------------------------
+        const ctl_class_t Axis::metadata        = { "Axis", &Widget::metadata };
+
+        Axis::Axis(ui::IWrapper *wrapper, tk::GraphAxis *widget): Widget(wrapper, widget)
+        {
+            pClass      = &metadata;
+
+            pPort       = NULL;
+            bLogSet     = false;
+        }
+
+        Axis::~Axis()
+        {
+        }
+
+        status_t Axis::init()
+        {
+            LSP_STATUS_ASSERT(Widget::init());
+
+            tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
+            if (ga != NULL)
+            {
+                sSmooth.init(pWrapper, ga->smooth());
+                sMin.init(pWrapper, ga->min());
+                sMax.init(pWrapper, ga->max());
+                sDx.init(pWrapper, this);
+                sDy.init(pWrapper, this);
+                sAngle.init(pWrapper, this);
+                sWidth.init(pWrapper, ga->width());
+                sLength.init(pWrapper, ga->length());
+                sColor.init(pWrapper, ga->color());
+            }
+
+            return STATUS_OK;
+        }
+
+        void Axis::set(const char *name, const char *value)
+        {
+            tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
+            if (ga != NULL)
+            {
+                bind_port(&pPort, "id", name, value);
+
+                set_expr(&sDx, "dx", name, value);
+                set_expr(&sDy, "dy", name, value);
+                set_expr(&sAngle, "angle", name, value);
+
+                if (set_param(ga->log_scale(), "log", name, value))
+                    bLogSet     = true;
+                if (set_param(ga->log_scale(), "logarithmic", name, value))
+                    bLogSet     = true;
+
+                sWidth.set("width", name, value);
+                sLength.set("length", name, value);
+                sColor.set("color", name, value);
+                sSmooth.set("smooth", name, value);
+                sMin.set("min", name, value);
+                sMax.set("min", name, value);
+            }
+
+            return Widget::set(name, value);
+        }
+
+        float Axis::eval_expr(ctl::Expression *expr)
+        {
+            tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
+            if (ga == NULL)
+                return 0.0f;
+
+            tk::Graph *g = ga->graph();
+            if (g == NULL)
+                return 0.0f;
+
+            ws::rectangle_t r;
+            g->get_rectangle(&r);
+
+            expr->params()->clear();
+            expr->params()->set_int("_g_width", r.nWidth);
+            expr->params()->set_int("_g_height", r.nHeight);
+            expr->params()->set_int("_a_width", g->canvas_width());
+            expr->params()->set_int("_a_height", g->canvas_height());
+
+            return expr->evaluate();
+        }
+
+        void Axis::notify(ui::IPort *port)
+        {
+            Widget::notify(port);
+
+            tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
+            if (ga != NULL)
+            {
+                if (sDx.depends(port))
+                    ga->direction()->set_dx(eval_expr(&sDx));
+                if (sDy.depends(port))
+                    ga->direction()->set_dy(eval_expr(&sDy));
+                if (sAngle.depends(port))
+                    ga->direction()->set_rangle(eval_expr(&sAngle) * M_PI);
+            }
+        }
+
+        void Axis::end()
+        {
+            tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
+            if (ga == NULL)
+                return;
+
+            const meta::port_t *mdata = (pPort != NULL) ? pPort->metadata() : NULL;
+            if (mdata == NULL)
+                return;
+
+            if (!sMin.valid())
+                ga->min()->set(mdata->min);
+            if (!sMax.valid())
+                ga->max()->set(mdata->max);
+            if (!bLogSet)
+                ga->log_scale()->set(meta::is_log_rule(mdata));
+        }
+    }
+}
+
+

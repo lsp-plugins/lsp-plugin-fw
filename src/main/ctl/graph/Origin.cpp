@@ -57,6 +57,7 @@ namespace lsp
 
         Origin::Origin(ui::IWrapper *wrapper, tk::GraphOrigin *widget): Widget(wrapper, widget)
         {
+            pClass      = &metadata;
         }
 
         Origin::~Origin()

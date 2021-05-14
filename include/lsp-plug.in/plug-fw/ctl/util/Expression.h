@@ -81,6 +81,8 @@ namespace lsp
                 inline bool     parse(const char *expr, size_t flags = expr::Expression::FLAG_NONE)         { return Property::parse(expr, flags);      }
                 inline bool     parse(const LSPString *expr, size_t flags = expr::Expression::FLAG_NONE)    { return Property::parse(expr, flags);      }
                 inline bool     parse(io::IInSequence *expr, size_t flags = expr::Expression::FLAG_NONE)    { return Property::parse(expr, flags);      }
+
+                inline expr::Parameters *params()       { return &sParams; };
         };
     }
 }
