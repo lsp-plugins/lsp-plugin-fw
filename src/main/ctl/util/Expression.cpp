@@ -42,6 +42,63 @@ namespace lsp
                 pListener->notify(port);
         }
         
+        float Expression::evaluate_float(float dfl)
+        {
+            expr::value_t value;
+            expr::init_value(&value);
+
+            status_t res = evaluate(&value);
+            if (res != STATUS_OK)
+            {
+                expr::destroy_value(&value);
+                return 0.0f;
+            }
+
+            float fval;
+            expr::cast_float(&value);
+            fval = (value.type == expr::VT_FLOAT) ? value.v_float : dfl;
+            expr::destroy_value(&value);
+            return fval;
+        }
+
+        ssize_t Expression::evaluate_int(ssize_t dfl)
+        {
+            expr::value_t value;
+            expr::init_value(&value);
+
+            status_t res = evaluate(&value);
+            if (res != STATUS_OK)
+            {
+                expr::destroy_value(&value);
+                return 0.0f;
+            }
+
+            ssize_t ival;
+            expr::cast_int(&value);
+            ival = (value.type == expr::VT_INT) ? value.v_int : dfl;
+            expr::destroy_value(&value);
+            return ival;
+        }
+
+        bool Expression::evaluate_bool(bool dfl)
+        {
+            expr::value_t value;
+            expr::init_value(&value);
+
+            status_t res = evaluate(&value);
+            if (res != STATUS_OK)
+            {
+                expr::destroy_value(&value);
+                return 0.0f;
+            }
+
+            bool bval;
+            expr::cast_bool(&value);
+            bval = (value.type == expr::VT_BOOL) ? value.v_bool : dfl;
+            expr::destroy_value(&value);
+            return bval;
+        }
+
         float Expression::evaluate()
         {
             expr::value_t value;

@@ -66,6 +66,10 @@ namespace lsp
                 void            init(ui::IWrapper *wrapper, ui::IPortListener *listener);
 
             public:
+                float           evaluate_float(float dfl = 0.0f);
+                ssize_t         evaluate_int(ssize_t dfl = 0);
+                bool            evaluate_bool(bool dfl = false);
+
                 float           evaluate();
                 float           evaluate(size_t idx);
                 inline status_t evaluate(expr::value_t *value)                                              { return Property::evaluate(value);         }

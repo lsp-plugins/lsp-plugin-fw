@@ -58,6 +58,7 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/Cell.h>
 
     #include <lsp-plug.in/plug-fw/ctl/graph/Graph.h>
+    #include <lsp-plug.in/plug-fw/ctl/graph/Origin.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 

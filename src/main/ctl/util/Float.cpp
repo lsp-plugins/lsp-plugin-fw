@@ -45,8 +45,8 @@ namespace lsp
 
             if (evaluate(&value) == STATUS_OK)
             {
-                if (expr::cast_int(&value) == STATUS_OK)
-                    pProp->set(value.v_bool);
+                if (expr::cast_float(&value) == STATUS_OK)
+                    pProp->set(value.v_float);
             }
 
             expr::destroy_value(&value);

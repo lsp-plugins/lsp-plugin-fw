@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 13 мая 2021 г.
+ * Created on: 14 мая 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_GRAPH_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_GRAPH_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_ORIGIN_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_ORIGIN_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -36,31 +36,30 @@ namespace lsp
         /**
          * Graph widget that contains another graphic elements
          */
-        class Graph: public Widget
+        class Origin: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::Color      sColor;
-                ctl::Color      sBorderColor;
-                ctl::Color      sGlassColor;
-                ctl::Padding    sIPadding;
+                ctl::Boolean        sSmooth;
+                ctl::Expression     sLeft;
+                ctl::Expression     sTop;
+                ctl::Integer        sRadius;
+                ctl::Color          sColor;
 
             public:
-                explicit Graph(ui::IWrapper *wrapper, tk::Graph *widget);
-                virtual ~Graph();
+                explicit Origin(ui::IWrapper *wrapper, tk::GraphOrigin *widget);
+                virtual ~Origin();
 
                 virtual status_t    init();
 
             public:
                 virtual void        set(const char *name, const char *value);
 
-                virtual status_t    add(ctl::Widget *child);
+                virtual void        notify(ui::IPort *port);
         };
     }
 }
 
-
-
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_GRAPH_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_ORIGIN_H_ */
