@@ -55,7 +55,11 @@ namespace lsp
                 bool                bLogSet;
 
             protected:
+                static status_t     slot_graph_resize(tk::Widget *sender, void *ptr, void *data);
+
+            protected:
                 float               eval_expr(ctl::Expression *expr);
+                void                trigger_expr();
 
             public:
                 explicit Axis(ui::IWrapper *wrapper, tk::GraphAxis *widget);

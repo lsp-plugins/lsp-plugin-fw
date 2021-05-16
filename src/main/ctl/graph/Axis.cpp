@@ -84,6 +84,8 @@ namespace lsp
                 sWidth.init(pWrapper, ga->width());
                 sLength.init(pWrapper, ga->length());
                 sColor.init(pWrapper, ga->color());
+
+                ga->slots()->bind(tk::SLOT_RESIZE_PARENT, slot_graph_resize, this);
             }
 
             return STATUS_OK;
@@ -123,17 +125,24 @@ namespace lsp
                 return 0.0f;
 
             tk::Graph *g = ga->graph();
-            if (g == NULL)
-                return 0.0f;
-
             ws::rectangle_t r;
-            g->get_rectangle(&r);
+            r.nLeft     = 0;
+            r.nTop      = 0;
+            r.nWidth    = 0;
+            r.nHeight   = 0;
+
+            if (g != NULL)
+            {
+                g->get_rectangle(&r);
+                r.nLeft = g->canvas_width();
+                r.nTop  = g->canvas_height();
+            }
 
             expr->params()->clear();
             expr->params()->set_int("_g_width", r.nWidth);
             expr->params()->set_int("_g_height", r.nHeight);
-            expr->params()->set_int("_a_width", g->canvas_width());
-            expr->params()->set_int("_a_height", g->canvas_height());
+            expr->params()->set_int("_a_width", r.nLeft);
+            expr->params()->set_int("_a_height", r.nTop);
 
             return expr->evaluate();
         }
@@ -150,12 +159,28 @@ namespace lsp
                 if (sDy.depends(port))
                     ga->direction()->set_dy(eval_expr(&sDy));
                 if (sAngle.depends(port))
-                    ga->direction()->set_rangle(eval_expr(&sAngle) * M_PI);
+                    ga->direction()->set_angle(eval_expr(&sAngle) * M_PI);
             }
+        }
+
+        void Axis::trigger_expr()
+        {
+            tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
+            if (ga == NULL)
+                return;
+
+            if (sDx.valid())
+                ga->direction()->set_dx(eval_expr(&sDx));
+            if (sDy.valid())
+                ga->direction()->set_dy(eval_expr(&sDy));
+            if (sAngle.valid())
+                ga->direction()->set_angle(eval_expr(&sAngle) * M_PI);
         }
 
         void Axis::end()
         {
+            trigger_expr();
+
             tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
             if (ga == NULL)
                 return;
@@ -170,6 +195,14 @@ namespace lsp
                 ga->max()->set(mdata->max);
             if (!bLogSet)
                 ga->log_scale()->set(meta::is_log_rule(mdata));
+        }
+
+        status_t Axis::slot_graph_resize(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Axis *_this    = static_cast<ctl::Axis *>(ptr);
+            if (_this != NULL)
+                _this->trigger_expr();
+            return STATUS_OK;
         }
     }
 }
