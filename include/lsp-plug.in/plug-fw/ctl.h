@@ -62,6 +62,7 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/Axis.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Marker.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Text.h>
+    #include <lsp-plug.in/plug-fw/ctl/graph/Mesh.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 
