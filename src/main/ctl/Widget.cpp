@@ -334,26 +334,6 @@ namespace lsp
             return true;
         }
 
-        void Widget::set(const char *name, const char *value)
-        {
-            if (wWidget == NULL)
-                return;
-
-            if (!strcmp(name, "ui:id"))
-                pWrapper->ui()->map_widget(value, wWidget);
-
-            set_param(wWidget->visibility(), "visibility", name, value);
-            set_param(wWidget->visibility(), "visible", name, value);
-            set_param(wWidget->brightness(), "brightness", name, value);
-            set_param(wWidget->brightness(), "bright", name, value);
-            set_param(wWidget->scaling(), "scaling", name, value);
-            set_allocation(wWidget->allocation(), name, value);
-
-            sPadding.set("pad", name, value);
-            sPadding.set("padding", name, value);
-            sBgColor.set("bg", name, value);
-        }
-
         bool Widget::set_orientation(tk::Orientation *o, const char *name, const char *value)
         {
             if (!strcmp(name, "hor"))
@@ -396,10 +376,34 @@ namespace lsp
             if (wWidget != NULL)
             {
                 sBgColor.init(pWrapper, wWidget->bg_color());
+                sBgInherit.init(pWrapper, wWidget->bg_inherit());
                 sPadding.init(pWrapper, wWidget->padding());
             }
 
             return STATUS_OK;
+        }
+
+
+        void Widget::set(const char *name, const char *value)
+        {
+            if (wWidget == NULL)
+                return;
+
+            if (!strcmp(name, "ui:id"))
+                pWrapper->ui()->map_widget(value, wWidget);
+
+            set_param(wWidget->visibility(), "visibility", name, value);
+            set_param(wWidget->visibility(), "visible", name, value);
+            set_param(wWidget->brightness(), "brightness", name, value);
+            set_param(wWidget->brightness(), "bright", name, value);
+            set_param(wWidget->scaling(), "scaling", name, value);
+            set_allocation(wWidget->allocation(), name, value);
+
+            sPadding.set("pad", name, value);
+            sPadding.set("padding", name, value);
+            sBgColor.set("bg", name, value);
+            sBgInherit.set("bg.inherit", name, value);
+            sBgInherit.set("ibg", name, value);
         }
 
         void Widget::begin()

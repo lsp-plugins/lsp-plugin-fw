@@ -52,6 +52,7 @@ namespace lsp
                 tk::Widget         *wWidget;
 
                 ctl::Color          sBgColor;
+                ctl::Boolean        sBgInherit;
                 ctl::Padding        sPadding;
 
             protected:
