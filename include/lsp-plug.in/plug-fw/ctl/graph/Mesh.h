@@ -43,6 +43,18 @@ namespace lsp
 
             protected:
                 ui::IPort          *pPort;
+                ctl::Integer        sWidth;
+                ctl::Boolean        sSmooth;
+                ctl::Boolean        sFill;
+                ctl::Color          sColor;
+                ctl::Color          sFillColor;
+
+                ctl::Expression     sXIndex;
+                ctl::Expression     sYIndex;
+                ctl::Expression     sSIndex;
+
+            protected:
+                void                rebuild_mesh();
 
             public:
                 explicit Mesh(ui::IWrapper *wrapper, tk::GraphMesh *widget);
