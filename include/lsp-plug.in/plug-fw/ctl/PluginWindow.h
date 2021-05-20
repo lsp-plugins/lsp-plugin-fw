@@ -57,6 +57,13 @@ namespace lsp
                     tk::MenuItem       *item;
                 } lang_sel_t;
 
+                typedef struct scaling_sel_t
+                {
+                    ctl::PluginWindow  *ctl;
+                    float               scaling;
+                    tk::MenuItem       *item;
+                } scaling_sel_t;
+
                 class ConfigSink: public tk::TextDataSink
                 {
                     private:
@@ -82,6 +89,7 @@ namespace lsp
                 tk::Menu                   *wMenu;      // Menu
                 tk::FileDialog             *wExport;    // Export settings dialog
                 tk::FileDialog             *wImport;    // Import settings dialog
+                tk::MenuItem               *wPreferHost;// Prefer host menu item
 
                 ui::IPort                  *pPMStud;
                 ui::IPort                  *pPVersion;
@@ -90,11 +98,14 @@ namespace lsp
                 ui::IPort                  *pR3DBackend;
                 ui::IPort                  *pLanguage;
                 ui::IPort                  *pRelPaths;
+                ui::IPort                  *pUIScaling;
+                ui::IPort                  *pUIScalingHost;
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
 
 //                cstorage<backend_sel_t>     vBackendSel;
                 lltl::parray<lang_sel_t>    vLangSel;
+                lltl::parray<scaling_sel_t> vScalingSel;
 
             protected:
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
@@ -124,6 +135,13 @@ namespace lsp
 
                 static status_t slot_select_language(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t slot_scaling_toggle_prefer_host(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_scaling_zoom_in(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_scaling_select(tk::Widget *sender, void *ptr, void *data);
+
+                static status_t slot_window_resize(tk::Widget *sender, void *ptr, void *data);
+
             protected:
                 static i18n::IDictionary  *get_default_dict(tk::Widget *src);
                 static tk::FileFilters    *create_config_filters(tk::FileDialog *dlg);
@@ -135,13 +153,16 @@ namespace lsp
                 tk::Label          *create_label(tk::WidgetContainer *dst, const char *key, const char *style_name);
                 tk::Label          *create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, const char *style_name);
                 tk::Hyperlink      *create_hlink(tk::WidgetContainer *dst, const char *url, const char *text, const expr::Parameters *params, const char *style_name);
+                tk::MenuItem       *create_menu_item(tk::Menu *dst);
 
 //                status_t        init_r3d_support(LSPMenu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);
+                status_t            init_scaling_support(tk::Menu *menu);
                 status_t            init_window_layout();
                 status_t            create_main_menu();
                 bool                has_path_ports();
                 void                sync_language_selection();
+                void                sync_ui_scaling();
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);

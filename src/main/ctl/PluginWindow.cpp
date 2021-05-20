@@ -26,6 +26,10 @@
 #include <lsp-plug.in/io/OutStringSequence.h>
 #include <lsp-plug.in/io/InStringSequence.h>
 
+#define SCALING_FACTOR_BEGIN        50
+#define SCALING_FACTOR_STEP         25
+#define SCALING_FACTOR_END          400
+
 namespace lsp
 {
     namespace ctl
@@ -95,6 +99,7 @@ namespace lsp
             wMenu           = NULL;
             wExport         = NULL;
             wImport         = NULL;
+            wPreferHost     = NULL;
 
             pPMStud         = NULL;
             pPVersion       = NULL;
@@ -103,6 +108,8 @@ namespace lsp
             pR3DBackend     = NULL;
             pLanguage       = NULL;
             pRelPaths       = NULL;
+            pUIScaling      = NULL;
+            pUIScalingHost  = NULL;
 
             pConfigSink     = NULL;
         }
@@ -151,6 +158,15 @@ namespace lsp
             }
             vLangSel.flush();
 
+            // Delete UI scaling bindings
+            for (size_t i=0, n=vScalingSel.size(); i<n; ++i)
+            {
+                scaling_sel_t *s = vScalingSel.uget(i);
+                if (s != NULL)
+                    delete s;
+            }
+            vScalingSel.flush();
+
 //            vBackendSel.flush();
 
             wBox            = NULL;
@@ -161,6 +177,7 @@ namespace lsp
             wMenu           = NULL;
             wExport         = NULL;
             wImport         = NULL;
+            wPreferHost     = NULL;
         }
 
         status_t PluginWindow::slot_window_close(tk::Widget *sender, void *ptr, void *data)
@@ -206,6 +223,8 @@ namespace lsp
             BIND_PORT(pWrapper, pR3DBackend, R3D_BACKEND_PORT);
             BIND_PORT(pWrapper, pLanguage, LANGUAGE_PORT);
             BIND_PORT(pWrapper, pRelPaths, REL_PATHS_PORT);
+            BIND_PORT(pWrapper, pUIScaling, UI_SCALING_PORT);
+            BIND_PORT(pWrapper, pUIScalingHost, UI_SCALING_HOST);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
 
@@ -224,6 +243,7 @@ namespace lsp
             // Bind event handlers
             wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
             wnd->slots()->bind(tk::SLOT_SHOW, slot_window_show, this);
+            wnd->slots()->bind(tk::SLOT_RESIZE, slot_window_resize, this);
 
             return STATUS_OK;
         }
@@ -365,7 +385,10 @@ namespace lsp
 
                 // Create language selection menu
                 init_i18n_support(wMenu);
-//
+
+                // Create UI scaling menu
+                init_scaling_support(wMenu);
+
 //                // Add support of 3D rendering backend switch
 //                if (meta->extensions & E_3D_BACKEND)
 //                    init_r3d_support(pMenu);
@@ -484,6 +507,32 @@ namespace lsp
             return STATUS_OK;
         }
 
+        tk::MenuItem *PluginWindow::create_menu_item(tk::Menu *dst)
+        {
+            tk::MenuItem *item = new tk::MenuItem(dst->display());
+            if (item == NULL)
+                return NULL;
+
+            status_t res = item->init();
+            if (res != STATUS_OK)
+            {
+                item->destroy();
+                delete item;
+                return NULL;
+            }
+
+            if (!vWidgets.add(item))
+            {
+                item->destroy();
+                delete item;
+                return NULL;
+            }
+
+            dst->add(item);
+
+            return item;
+        }
+
         status_t PluginWindow::init_i18n_support(tk::Menu *menu)
         {
             if (menu == NULL)
@@ -500,23 +549,10 @@ namespace lsp
                 return res;
 
             // Create submenu item
-            tk::MenuItem *root          = new tk::MenuItem(menu->display());
+            tk::MenuItem *root          = create_menu_item(menu);
             if (root == NULL)
                 return STATUS_NO_MEM;
-            if ((res = root->init()) != STATUS_OK)
-            {
-                delete root;
-                return res;
-            }
-            if (!vWidgets.add(root))
-            {
-                root->destroy();
-                delete root;
-                return STATUS_NO_MEM;
-            }
             root->text()->set("actions.select_language");
-            if ((res = menu->add(root)) != STATUS_OK)
-                return res;
 
             // Create submenu
             menu                = new tk::Menu(menu->display());
@@ -566,22 +602,9 @@ namespace lsp
                 lang->item  = NULL;
 
                 // Create menu item
-                tk::MenuItem *item = new tk::MenuItem(dpy);
+                tk::MenuItem *item = create_menu_item(menu);
                 if (item == NULL)
-                    continue;
-                if ((res = item->init()) != STATUS_OK)
-                {
-                    item->destroy();
-                    delete item;
-                    continue;
-                }
-                if (!vWidgets.add(item))
-                {
-                    item->destroy();
-                    delete item;
-                    continue;
-                }
-
+                    return STATUS_NO_MEM;
                 item->text()->set_raw(&value);
                 item->type()->set_radio();
                 menu->add(item);
@@ -606,6 +629,83 @@ namespace lsp
                         pLanguage->notify_all();
                     }
                 }
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::init_scaling_support(tk::Menu *menu)
+        {
+            status_t res;
+
+            // Create submenu item
+            tk::MenuItem *item          = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set("actions.ui_scaling.select");
+
+            menu                = new tk::Menu(menu->display());
+            if (menu == NULL)
+                return STATUS_NO_MEM;
+            if ((res = menu->init()) != STATUS_OK)
+            {
+                menu->destroy();
+                delete menu;
+                return res;
+            }
+            if (!vWidgets.add(menu))
+            {
+                menu->destroy();
+                delete menu;
+                return STATUS_NO_MEM;
+            }
+            item->menu()->set(menu);
+
+            // Initialize 'Prefer the host' settings
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set_key("actions.ui_scaling.prefer_host");
+            item->type()->set_check();
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_scaling_toggle_prefer_host, this);
+            wPreferHost     = item;
+
+            // Add the 'Zoom in' setting
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set_key("actions.ui_scaling.zoom_in");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_scaling_zoom_in, this);
+
+            // Add the 'Zoom out' setting
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set_key("actions.ui_scaling.zoom_out");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_scaling_zoom_out, this);
+
+            // Add the separator
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->type()->set_separator();
+
+            // Generate the 'Set scaling' menu items
+            scaling_sel_t *sel;
+
+            for (size_t scale = SCALING_FACTOR_BEGIN; scale <= SCALING_FACTOR_END; scale += SCALING_FACTOR_STEP)
+            {
+                if ((item = create_menu_item(menu)) == NULL)
+                    return STATUS_NO_MEM;
+                item->type()->set_check();
+                item->text()->set_key("actions.ui_scaling.value:pc");
+                item->text()->params()->set_int("value", scale);
+
+                // Add scaling record
+                if ((sel = new scaling_sel_t()) == NULL)
+                    return STATUS_NO_MEM;
+
+                sel->ctl        = this;
+                sel->scaling    = scale;
+                sel->item       = item;
+
+                item->slots()->bind(tk::SLOT_SUBMIT, slot_scaling_select, sel);
             }
 
             return STATUS_OK;
@@ -814,6 +914,33 @@ namespace lsp
             }
         }
 
+        void PluginWindow::sync_ui_scaling()
+        {
+            tk::Display *dpy    = wWidget->display();
+            if (dpy == NULL)
+                return;
+
+            bool sync_host      = (pUIScalingHost->value() >= 0);
+            float scaling       = (pUIScaling != NULL) ? pUIScaling->value() : 100.0f;
+            if (sync_host)
+                scaling             = pWrapper->ui_scaling_factor(scaling);
+
+            // Update the UI scaling
+            dpy->schema()->scaling()->set(scaling * 0.01f);
+            scaling             = dpy->schema()->scaling()->get() * 100.0f;
+
+            // Synchronize state of menu check boxes
+            if (wPreferHost != NULL)
+                wPreferHost->checked()->set(sync_host);
+
+            for (size_t i=0, n=vScalingSel.size(); i<n; ++i)
+            {
+                scaling_sel_t *xsel = vScalingSel.uget(i);
+                if (xsel->item != NULL)
+                    xsel->item->checked()->set(xsel->scaling == scaling);
+            }
+        }
+
         void PluginWindow::end()
         {
             // Check widget pointer
@@ -830,6 +957,10 @@ namespace lsp
 
             if (pPMStud != NULL)
                 notify(pPMStud);
+            if (pUIScalingHost != NULL)
+                notify(pUIScalingHost);
+            if (pUIScaling != NULL)
+                notify(pUIScaling);
 
             // Call for parent class method
             Widget::end();
@@ -849,6 +980,9 @@ namespace lsp
 
             if (port == pLanguage)
                 sync_language_selection();
+
+            if ((port == pUIScaling) || (port == pUIScalingHost))
+                sync_ui_scaling();
         }
 
         status_t PluginWindow::add(ctl::Widget *child)
@@ -1383,6 +1517,97 @@ namespace lsp
             }
 
             wMessage->show(wnd);
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_scaling_toggle_prefer_host(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            float value = (_this->pUIScalingHost->value() >= 0.5f) ? 1.0f : 0.0f;
+            _this->pUIScalingHost->set_value(value);
+            _this->pUIScalingHost->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_scaling_zoom_in(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            ssize_t value   = _this->pUIScaling->value();
+            value           = lsp_limit(value + SCALING_FACTOR_STEP, SCALING_FACTOR_BEGIN, SCALING_FACTOR_END);
+
+            _this->pUIScaling->set_value(value);
+            _this->pUIScaling->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            ssize_t value   = _this->pUIScaling->value();
+            value           = lsp_limit(value - SCALING_FACTOR_STEP, SCALING_FACTOR_BEGIN, SCALING_FACTOR_END);
+
+            _this->pUIScaling->set_value(value);
+            _this->pUIScaling->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_scaling_select(tk::Widget *sender, void *ptr, void *data)
+        {
+            scaling_sel_t *sel  = static_cast<scaling_sel_t *>(ptr);
+            if (sel == NULL)
+                return STATUS_OK;
+
+            PluginWindow *_this = sel->ctl;
+
+            _this->pUIScaling->set_value(sel->scaling);
+            _this->pUIScaling->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_window_resize(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            const ws::rectangle_t *r = static_cast<const ws::rectangle_t *>(data);
+            if (r == NULL)
+                return STATUS_OK;
+
+            lsp_trace("Resize: x=%d, y=%d, w=%d, h=%d", int(r->nLeft), int(r->nTop), int(r->nWidth), int(r->nHeight));
+
+            tk::Window *wnd = tk::widget_cast<tk::Window>(_this->wWidget);
+            if (wnd == NULL)
+                return STATUS_OK;
+
+            ws::rectangle_t wp = *r;
+            ssize_t sw = 0, sh = 0;
+            wnd->display()->screen_size(wnd->screen(), &sw, &sh);
+
+            if (wp.nLeft >= sw)
+                wp.nLeft    = sw - r->nWidth;
+            if (wp.nTop >= sh)
+                wp.nTop     = sh - r->nHeight;
+            if ((wp.nLeft + wp.nWidth) < 0)
+                wp.nLeft    = 0;
+            if ((wp.nTop + wp.nHeight) < 0)
+                wp.nTop     = 0;
+
+            wnd->position()->set(wp.nLeft, wp.nTop);
+
             return STATUS_OK;
         }
 

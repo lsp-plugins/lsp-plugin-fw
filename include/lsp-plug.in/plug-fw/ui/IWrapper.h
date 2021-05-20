@@ -154,6 +154,13 @@ namespace lsp
                 status_t                    set_port_alias(const char *alias, const LSPString *id);
                 status_t                    set_port_alias(const LSPString *alias, const LSPString *id);
 
+                /**
+                 * Get UI scaling factor
+                 * @param scaling the default value for scaling factor if scaling factor is not supported
+                 * @return actual scaling factor or default value if scaling factor is not supported
+                 */
+                virtual float               ui_scaling_factor(float scaling);
+
                 /** Callback method, executes when the UI has been shown
                  *
                  */

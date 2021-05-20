@@ -51,6 +51,8 @@ namespace lsp
             PATH(UI_R3D_BACKEND_PORT_ID, "Identifier of selected backend for 3D rendering"),
             PATH(UI_LANGUAGE_PORT_ID, "Selected language identifier for the UI interface"),
             SWITCH(UI_REL_PATHS_PORT_ID, "Use relative paths when exporting configuration file", 0.0f),
+            KNOB(UI_SCALING_PORT_ID, "Manual UI scaling factor", U_PERCENT, 0.25f, 400.0f, 100.0f, 1.0f),
+            SWITCH(UI_SCALING_HOST_ID, "Prefer host-reported UI scale factor", 0.0f),
             PORTS_END
         };
 
@@ -737,6 +739,11 @@ namespace lsp
         const meta::package_t *IWrapper::package() const
         {
             return NULL;
+        }
+
+        float IWrapper::ui_scaling_factor(float scaling)
+        {
+            return scaling;
         }
     }
 } /* namespace lsp */

@@ -42,6 +42,8 @@
 #define UI_R3D_BACKEND_PORT_ID              "r3d_backend"
 #define UI_LANGUAGE_PORT_ID                 "language"
 #define UI_REL_PATHS_PORT_ID                "use_relative_paths"
+#define UI_SCALING_PORT_ID                  "ui_scaling"
+#define UI_SCALING_HOST_ID                  "ui_scaling_host"
 
 #define MSTUD_PORT                          UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                        UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -53,6 +55,8 @@
 #define R3D_BACKEND_PORT                    UI_CONFIG_PORT_PREFIX UI_R3D_BACKEND_PORT_ID
 #define LANGUAGE_PORT                       UI_CONFIG_PORT_PREFIX UI_LANGUAGE_PORT_ID
 #define REL_PATHS_PORT                      UI_CONFIG_PORT_PREFIX UI_REL_PATHS_PORT_ID
+#define UI_SCALING_PORT                     UI_CONFIG_PORT_PREFIX UI_SCALING_PORT_ID
+#define UI_SCALING_HOST                     UI_CONFIG_PORT_PREFIX UI_SCALING_HOST_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                      "main_menu"
