@@ -359,6 +359,13 @@ namespace lsp
                 widget->style()->inject_parent(style);
         }
 
+        void Widget::add_parent_style(tk::Widget *widget, const char *style_name)
+        {
+            tk::Style *style = widget->display()->schema()->get(style_name);
+            if (style != NULL)
+                widget->style()->add_parent(style);
+        }
+
         void Widget::revoke_style(tk::Widget *widget, const char *style_name)
         {
             tk::Style *style = widget->display()->schema()->get(style_name);
@@ -391,6 +398,8 @@ namespace lsp
 
             if (!strcmp(name, "ui:id"))
                 pWrapper->ui()->map_widget(value, wWidget);
+            if (!strcmp(name, "ui:style"))
+                assign_styles(wWidget, value);
 
             set_param(wWidget->visibility(), "visibility", name, value);
             set_param(wWidget->visibility(), "visible", name, value);
@@ -402,8 +411,54 @@ namespace lsp
             sPadding.set("pad", name, value);
             sPadding.set("padding", name, value);
             sBgColor.set("bg", name, value);
+            sBgColor.set("bg.color", name, value);
             sBgInherit.set("bg.inherit", name, value);
             sBgInherit.set("ibg", name, value);
+        }
+
+        bool Widget::assign_styles(tk::Widget *widget, const char *style_list)
+        {
+            if (widget == NULL)
+                return false;
+
+            tk::Style *s = widget->style();
+            if (s == NULL)
+                return false;
+
+            LSPString cname, text;
+            if (!text.set_utf8(style_list))
+                return false;
+
+            s->remove_all_parents();
+
+            // Parse list of
+            ssize_t first = 0, last = -1, len = text.length();
+
+            while (true)
+            {
+                last = text.index_of(first, ',');
+                if (last < 0)
+                {
+                    last = len;
+                    break;
+                }
+
+                if (!cname.set(&text, first, last))
+                    return false;
+
+                add_parent_style(widget, cname.get_utf8());
+                first = last + 1;
+            }
+
+            // Last token pending?
+            if (last > first)
+            {
+                if (!cname.set(&text, first, last))
+                    return false;
+                add_parent_style(widget, cname.get_utf8());
+            }
+
+            return true;
         }
 
         void Widget::begin()

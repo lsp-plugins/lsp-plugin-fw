@@ -43,6 +43,7 @@ namespace lsp
 
             protected:
                 ssize_t             enOrientation;
+                ctl::Color          sBorderColor;
 
             public:
                 explicit Box(ui::IWrapper *wrapper, tk::Box *widget, ssize_t orientation = -1);

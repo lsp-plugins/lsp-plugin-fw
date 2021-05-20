@@ -75,8 +75,13 @@ namespace lsp
             LSP_STATUS_ASSERT(Widget::init());
 
             tk::Box *box    = tk::widget_cast<tk::Box>(wWidget);
-            if (enOrientation >= 0)
-                box->orientation()->set(tk::orientation_t(enOrientation));
+            if (box != NULL)
+            {
+                sBorderColor.init(pWrapper, box->border_color());
+
+                if (enOrientation >= 0)
+                    box->orientation()->set(tk::orientation_t(enOrientation));
+            }
 
             return STATUS_OK;
         }
@@ -88,8 +93,14 @@ namespace lsp
             {
                 set_constraints(box->constraints(), name, value);
                 set_param(box->spacing(), "spacing", name, value);
+                set_param(box->border(), "border", name, value);
+                set_param(box->border(), "border.size", name, value);
+                set_param(box->border(), "bsize", name, value);
                 set_param(box->homogeneous(), "homogeneous", name, value);
                 set_param(box->homogeneous(), "hgen", name, value);
+
+                sBorderColor.set("border.color", name, value);
+                sBorderColor.set("bcolor", name, value);
 
                 // Set orientation
                 if (enOrientation < 0)
