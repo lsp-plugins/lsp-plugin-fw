@@ -88,7 +88,7 @@ namespace lsp
             }
         }
 
-        void Color::set(const char *prefix, const char *name, const char *value)
+        bool Color::set(const char *prefix, const char *name, const char *value)
         {
             ssize_t idx     = -1;
             size_t len      = strlen(prefix);
@@ -116,7 +116,7 @@ namespace lsp
             }
 
             if (idx < 0)
-                return;
+                return false;
 
             // Create the corresponding expression
             Expression *e = vExpr[idx];
@@ -124,7 +124,7 @@ namespace lsp
             {
                 e       = new Expression();
                 if (e == NULL)
-                    return;
+                    return false;
                 e->init(pWrapper, this);
                 vExpr[idx]      = e;
             }
@@ -132,7 +132,7 @@ namespace lsp
             // Finally, parse the expression
             size_t flags = (idx == C_VALUE) ? EXPR_FLAGS_STRING : 0;
             if (!e->parse(value, flags))
-                return;
+                return false;
 
             // And apply the computed value
             expr::value_t cv;
@@ -142,6 +142,8 @@ namespace lsp
                 apply_change(idx, &cv);
 
             expr::destroy_value(&cv);
+
+            return true;
         }
 
         void Color::notify(ui::IPort *port)

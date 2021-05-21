@@ -67,7 +67,7 @@ namespace lsp
                 status_t            init(ui::IWrapper *wrapper, tk::Color *color);
 
             public:
-                void                set(const char *prefix, const char *name, const char *value);
+                bool                set(const char *prefix, const char *name, const char *value);
 
             public:
                 virtual void        notify(ui::IPort *port);

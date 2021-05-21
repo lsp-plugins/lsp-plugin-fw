@@ -410,8 +410,10 @@ namespace lsp
 
             sPadding.set("pad", name, value);
             sPadding.set("padding", name, value);
-            sBgColor.set("bg", name, value);
-            sBgColor.set("bg.color", name, value);
+            if (sBgColor.set("bg", name, value))
+                wWidget->bg_inherit()->set(false);
+            if (sBgColor.set("bg.color", name, value))
+                wWidget->bg_inherit()->set(false);
             sBgInherit.set("bg.inherit", name, value);
             sBgInherit.set("ibg", name, value);
         }
