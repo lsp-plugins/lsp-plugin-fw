@@ -54,6 +54,7 @@ namespace lsp
                 ctl::Color          sBgColor;
                 ctl::Boolean        sBgInherit;
                 ctl::Padding        sPadding;
+                ctl::Expression     sVisibility;
 
             protected:
                 static const char  *match_prefix(const char *prefix, const char *name);
@@ -80,7 +81,7 @@ namespace lsp
                 static void         inject_style(tk::Widget *widget, const char *style_name);
                 static void         revoke_style(tk::Widget *widget, const char *style_name);
                 static void         add_parent_style(tk::Widget *widget, const char *style_name);
-                static bool         assign_styles(tk::Widget *widget, const char *style_list);
+                static bool         assign_styles(tk::Widget *widget, const char *style_list, bool remove_parents);
 
             protected:
                 bool                bind_port(ui::IPort **port, const char *param, const char *name, const char *value);

@@ -385,6 +385,7 @@ namespace lsp
                 sBgColor.init(pWrapper, wWidget->bg_color());
                 sBgInherit.init(pWrapper, wWidget->bg_inherit());
                 sPadding.init(pWrapper, wWidget->padding());
+                sVisibility.init(pWrapper, this);
             }
 
             return STATUS_OK;
@@ -399,10 +400,13 @@ namespace lsp
             if (!strcmp(name, "ui:id"))
                 pWrapper->ui()->map_widget(value, wWidget);
             if (!strcmp(name, "ui:style"))
-                assign_styles(wWidget, value);
+                assign_styles(wWidget, value, true);
+            if (!strcmp(name, "ui:inject"))
+                assign_styles(wWidget, value, false);
 
-            set_param(wWidget->visibility(), "visibility", name, value);
-            set_param(wWidget->visibility(), "visible", name, value);
+            set_expr(&sVisibility, "visibility", name, value);
+            set_expr(&sVisibility, "visible", name, value);
+
             set_param(wWidget->brightness(), "brightness", name, value);
             set_param(wWidget->brightness(), "bright", name, value);
             set_param(wWidget->scaling(), "scaling", name, value);
@@ -418,7 +422,7 @@ namespace lsp
             sBgInherit.set("ibg", name, value);
         }
 
-        bool Widget::assign_styles(tk::Widget *widget, const char *style_list)
+        bool Widget::assign_styles(tk::Widget *widget, const char *style_list, bool remove_parents)
         {
             if (widget == NULL)
                 return false;
@@ -431,7 +435,8 @@ namespace lsp
             if (!text.set_utf8(style_list))
                 return false;
 
-            s->remove_all_parents();
+            if (remove_parents)
+                s->remove_all_parents();
 
             // Parse list of
             ssize_t first = 0, last = -1, len = text.length();
@@ -469,10 +474,23 @@ namespace lsp
 
         void Widget::end()
         {
+            if (wWidget == NULL)
+                return;
+
+            if (sVisibility.valid())
+            {
+                bool visible = sVisibility.evaluate_bool(true);
+                wWidget->visibility()->set(visible);
+            }
         }
 
         void Widget::notify(ui::IPort *port)
         {
+            if (sVisibility.depends(port))
+            {
+                bool visible = sVisibility.evaluate_bool(true);
+                wWidget->visibility()->set(visible);
+            }
         }
 
         void Widget::destroy()

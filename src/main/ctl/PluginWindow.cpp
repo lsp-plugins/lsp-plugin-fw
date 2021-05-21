@@ -70,7 +70,7 @@ namespace lsp
 
             bResizable      = false;
 
-            wBox            = NULL;
+            wContent        = NULL;
             wMessage        = NULL;
             wRack[0]        = NULL;
             wRack[1]        = NULL;
@@ -148,7 +148,7 @@ namespace lsp
 
 //            vBackendSel.flush();
 
-            wBox            = NULL;
+            wContent        = NULL;
             wMessage        = NULL;
             wRack[0]        = NULL;
             wRack[1]        = NULL;
@@ -217,7 +217,7 @@ namespace lsp
                 wnd->actions()->deny(ws::WA_RESIZE);
 
             LSP_STATUS_ASSERT(create_main_menu());
-            LSP_STATUS_ASSERT(init_window_layout());
+//            LSP_STATUS_ASSERT(init_window_layout());
 
             // Bind event handlers
             wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
@@ -467,11 +467,11 @@ namespace lsp
                 pWrapper->add_controller(ctl);
             }
 
-            wBox    = new tk::Box(dpy);
-            vWidgets.add(wBox);
-            wBox->init();
-            inject_style(wBox, "PluginWindow::Content");
-            grd->add(wBox);
+            wContent = new tk::Box(dpy);
+            vWidgets.add(wContent);
+            wContent->init();
+            inject_style(wContent, "PluginWindow::Content");
+            grd->add(wContent);
 
             rk_ear  = new tk::RackEars(dpy);
             wRack[2]= rk_ear;
@@ -924,25 +924,31 @@ namespace lsp
         {
             Widget::begin();
 
-//            // Create context
-//            ui::UIContext ctx(pWrapper);
-//            status_t res = ctx.init();
-//            if (res != STATUS_OK)
-//                return;
-//
-//            LSPString xpath;
-//            if (!xpath.set_ascii("ui/window.xml"))
-//                return;
-//
-//            // Parse the XML document
-//            ctl::PluginWindowTemplate wnd(pWrapper, this);
-//            if (!wnd.init())
-//                return;
-//
-//            ui::xml::RootNode root(&ctx, "window", &wnd);
-//            ui::xml::Handler handler(pWrapper->resources());
-//            handler.parse_resource(&xpath, &root);
-//
+            // Create context
+            ui::UIContext ctx(pWrapper);
+            status_t res = ctx.init();
+            if (res != STATUS_OK)
+                return;
+
+            // Parse the XML document
+            ctl::PluginWindowTemplate wnd(pWrapper, this);
+            if (wnd.init() != STATUS_OK)
+                return;
+
+            ui::xml::RootNode root(&ctx, "window", &wnd);
+            ui::xml::Handler handler(pWrapper->resources());
+            handler.parse_resource("ui/window.xml", &root);
+            wnd.destroy();
+
+            // Get proper widgets and initialize window layout
+            ui::Module *ui  = pWrapper->ui();
+
+            wRack[0]        = tk::widget_cast<tk::RackEars>(ui->find_widget("rack_top"));
+            wRack[1]        = tk::widget_cast<tk::RackEars>(ui->find_widget("rack_left"));
+            wRack[2]        = tk::widget_cast<tk::RackEars>(ui->find_widget("rack_right"));
+
+            wContent        = tk::widget_cast<tk::WidgetContainer>(ui->find_widget("plugin_content"));
+//            init_window_layout();
 //            // TODO: assign proper instances
         }
 
@@ -978,9 +984,12 @@ namespace lsp
             if (port == pPMStud)
             {
                 bool top    = pPMStud->value() < 0.5f;
-                wRack[0]->visibility()->set(top);
-                wRack[1]->visibility()->set(!top);
-                wRack[2]->visibility()->set(!top);
+                if (wRack[0] != NULL)
+                    wRack[0]->visibility()->set(top);
+                if (wRack[1] != NULL)
+                    wRack[1]->visibility()->set(!top);
+                if (wRack[2] != NULL)
+                    wRack[2]->visibility()->set(!top);
             }
 
             if (port == pLanguage)
@@ -992,11 +1001,7 @@ namespace lsp
 
         status_t PluginWindow::add(ctl::Widget *child)
         {
-            // Check widget pointer
-            if (wBox == NULL)
-                return STATUS_BAD_STATE;
-
-            return wBox->add(child->widget());
+            return (wContent != NULL) ? wContent->add(child->widget()) : STATUS_BAD_STATE;
         }
 
         tk::FileFilters *PluginWindow::create_config_filters(tk::FileDialog *dlg)

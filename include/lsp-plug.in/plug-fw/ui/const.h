@@ -29,7 +29,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 // UI configuration ports
-#define UI_CONFIG_PORT_PREFIX               "ui_"
+#define UI_CONFIG_PORT_PREFIX               "_ui_"
 #define UI_MOUNT_STUD_PORT_ID               "mount_stud"
 #define UI_LAST_VERSION_PORT_ID             "last_version"
 #define UI_DLG_DEFAULT_PATH_ID              "dlg_default_path"
@@ -65,7 +65,7 @@
 #define WUID_LANGUAGE_MENU                  "language_menu"
 
 // Special ports for handling current time
-#define TIME_PORT_PREFIX                    "time:"
+#define TIME_PORT_PREFIX                    "_time_"
 #define TIME_SAMPLE_RATE_PORT               "sr"
 #define TIME_SPEED_PORT                     "speed"
 #define TIME_FRAME_PORT                     "frame"

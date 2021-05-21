@@ -110,7 +110,7 @@ namespace lsp
                 }
             }
 
-            Widget::set(name, value);
+            return Widget::set(name, value);
         }
 
         status_t Box::add(ctl::Widget *child)

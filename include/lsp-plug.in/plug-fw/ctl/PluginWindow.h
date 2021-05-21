@@ -39,9 +39,6 @@ namespace lsp
          */
         class PluginWindow: public ctl::Widget
         {
-            private:
-                friend class PluginWindowTemplate;
-
             public:
                 static const ctl_class_t metadata;
 
@@ -86,7 +83,7 @@ namespace lsp
                 bool                        bResizable;
 
                 lltl::parray<tk::Widget>    vWidgets;   // List of created widgets
-                tk::Box                    *wBox;       // The main box containing all widgets
+                tk::WidgetContainer        *wContent;   // The main box containing all widgets
                 tk::Window                 *wMessage;   // Greeting message window
                 tk::Widget                 *wRack[3];   // Rack ears
                 tk::Menu                   *wMenu;      // Menu

@@ -306,7 +306,7 @@ namespace lsp
                 return NULL;
             }
 
-            // Check that port name contains "ui:" prefix
+            // Check that port name contains "ui_" prefix
             if (strstr(id, UI_CONFIG_PORT_PREFIX) == id)
             {
                 const char *ui_id = &id[strlen(UI_CONFIG_PORT_PREFIX)];
@@ -326,7 +326,7 @@ namespace lsp
                 }
             }
 
-            // Check that port name contains "time:" prefix
+            // Check that port name contains "time_" prefix
             if (strstr(id, TIME_PORT_PREFIX) == id)
             {
                 const char *ui_id = &id[strlen(TIME_PORT_PREFIX)];
