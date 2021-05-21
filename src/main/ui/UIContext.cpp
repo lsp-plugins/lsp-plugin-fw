@@ -217,19 +217,30 @@ namespace lsp
                 return NULL;
 
             // Initialize widget attributes
+            if ((res = set_attributes(w, atts)) != STATUS_OK)
+                return NULL;
+
+            return w;
+        }
+
+        status_t UIContext::set_attributes(ctl::Widget *widget, const LSPString * const *atts)
+        {
+            status_t res;
+
+            // Initialize widget attributes
             for ( ; *atts != NULL; atts += 2)
             {
                 LSPString aname, avalue;
                 if ((res = eval_string(&aname, atts[0])) != STATUS_OK)
-                    return NULL;
+                    return res;
                 if ((res = eval_string(&avalue, atts[1])) != STATUS_OK)
-                    return NULL;
+                    return res;
 
                 // Set widget attribute
-                w->set(aname.get_utf8(), avalue.get_utf8());
+                widget->set(aname.get_utf8(), avalue.get_utf8());
             }
 
-            return w;
+            return STATUS_OK;
         }
 
         status_t UIContext::add_widget(tk::Widget *w)

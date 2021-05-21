@@ -39,6 +39,9 @@ namespace lsp
          */
         class PluginWindow: public ctl::Widget
         {
+            private:
+                friend class PluginWindowTemplate;
+
             public:
                 static const ctl_class_t metadata;
 
@@ -179,6 +182,8 @@ namespace lsp
                 virtual void        destroy();
 
             public:
+                virtual void        begin();
+
                 virtual void        set(const char *name, const char *value);
 
                 virtual status_t    add(ctl::Widget *child);

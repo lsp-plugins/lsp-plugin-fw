@@ -28,9 +28,11 @@ namespace lsp
     {
         namespace xml
         {
-            RootNode::RootNode(UIContext *ctx): Node(ctx)
+            RootNode::RootNode(UIContext *ctx, const char *name, ctl::Widget *widget): Node(ctx)
             {
                 pChild      = NULL;
+                pWidget     = widget;
+                sName.set_utf8(name);
             }
 
             RootNode::~RootNode()
@@ -40,21 +42,36 @@ namespace lsp
                     delete pChild;
                     pChild = NULL;
                 }
+
+                pWidget = NULL;
+
+                sName.clear();
             }
 
             status_t RootNode::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
             {
                 // Check that root tag is valid
-                if (!name->equals_ascii("plugin"))
+                if (!name->equals(&sName))
                 {
-                    lsp_error("expected root element <plugin>");
+                    lsp_error("expected root element <%s>", sName.get_native());
                     return STATUS_CORRUPTED;
                 }
 
                 // Create and initialize widget
-                ctl::Widget *widget     = pContext->create_widget(name, atts);
+                status_t res;
+                ctl::Widget *widget     = pWidget;
+                if (widget != NULL)
+                {
+                    // Set widget attributes only
+                    if ((res = pContext->set_attributes(widget, atts)) != STATUS_OK)
+                        return res;
+                }
+                else // Instantiate new widget and set it's attributes
+                    widget                  = pContext->create_widget(name, atts);
+
+                // No handler?
                 if (widget == NULL)
-                    return STATUS_OK;       // No handler
+                    return STATUS_OK;
 
                 // Remember the root widget
                 pContext->ui()->set_root(widget->widget());

@@ -23,6 +23,7 @@
 #define PRIVATE_UI_XML_ROOTNODE_H_
 
 #include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/ctl.h>
 
 #include <private/ui/xml/Node.h>
 
@@ -42,10 +43,12 @@ namespace lsp
                     RootNode & operator = (const RootNode &);
 
                 private:
-                    Node       *pChild;
+                    Node           *pChild;
+                    ctl::Widget    *pWidget;
+                    LSPString       sName;
 
                 public:
-                    explicit RootNode(UIContext *ctx);
+                    explicit RootNode(UIContext *ctx, const char *name, ctl::Widget *widget);
                     virtual ~RootNode();
 
                 public:

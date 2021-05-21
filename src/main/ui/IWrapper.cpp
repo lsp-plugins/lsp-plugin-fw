@@ -514,8 +514,27 @@ namespace lsp
             if (xpath.fmt_utf8("ui/%s", path) <= 0)
                 return STATUS_NO_MEM;
 
+            // Create window and PluginWindow controller
+            tk::Window *wnd     = new tk::Window(ctx.display());
+            if (wnd == NULL)
+                return STATUS_NO_MEM;
+            if ((res = ctx.add_widget(wnd)) != STATUS_OK)
+            {
+                delete wnd;
+                return res;
+            }
+            if ((res = wnd->init()) != STATUS_OK)
+                return res;
+
+            ctl::PluginWindow *wndc     = new ctl::PluginWindow(ctx.wrapper(), wnd);
+            if (wndc == NULL)
+                return STATUS_NO_MEM;
+            ctx.wrapper()->add_controller(wndc);
+            if ((res = wndc->init()) != STATUS_OK)
+                return res;
+
             // Parse the XML document
-            xml::RootNode root(&ctx);
+            xml::RootNode root(&ctx, "plugin", wndc);
             xml::Handler handler(pLoader);
             return handler.parse_resource(&xpath, &root);
         }

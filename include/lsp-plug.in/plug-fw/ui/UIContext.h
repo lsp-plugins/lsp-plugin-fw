@@ -160,6 +160,14 @@ namespace lsp
                 ctl::Widget *create_widget(const LSPString *name, const LSPString * const *atts);
 
                 /**
+                 * Set attributes to widget
+                 * @param widget widget to set attributes
+                 * @param atts attributes to set
+                 * @return status of operation
+                 */
+                status_t    set_attributes(ctl::Widget *widget, const LSPString * const *atts);
+
+                /**
                  * Add instantiated widget to the list of widgets
                  * @param w widget to add
                  * @return status of operation

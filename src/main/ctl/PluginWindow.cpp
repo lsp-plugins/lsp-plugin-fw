@@ -26,6 +26,11 @@
 #include <lsp-plug.in/io/OutStringSequence.h>
 #include <lsp-plug.in/io/InStringSequence.h>
 
+#include <lsp-plug.in/plug-fw/ui.h>
+#include <private/ui/xml/RootNode.h>
+#include <private/ui/xml/Handler.h>
+#include <private/ctl/PluginWindowTemplate.h>
+
 #define SCALING_FACTOR_BEGIN        50
 #define SCALING_FACTOR_STEP         25
 #define SCALING_FACTOR_END          400
@@ -34,32 +39,6 @@ namespace lsp
 {
     namespace ctl
     {
-        //---------------------------------------------------------------------
-        CTL_FACTORY_IMPL_START(PluginWindow)
-            status_t res;
-            if (!name->equals_ascii("plugin"))
-                return STATUS_NOT_FOUND;
-
-            tk::Window *w       = new tk::Window(context->display());
-            if (w == NULL)
-                return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
-            {
-                delete w;
-                return res;
-            }
-
-            if ((res = w->init()) != STATUS_OK)
-                return res;
-
-            PluginWindow *wc    = new PluginWindow(context->wrapper(), w);
-            if (wc == NULL)
-                return STATUS_NO_MEM;
-
-            *ctl = wc;
-            return STATUS_OK;
-        CTL_FACTORY_IMPL_END(PluginWindow)
-
         //-----------------------------------------------------------------
         PluginWindow::ConfigSink::ConfigSink(ui::IWrapper *wrapper)
         {
@@ -939,6 +918,32 @@ namespace lsp
                 if (xsel->item != NULL)
                     xsel->item->checked()->set(xsel->scaling == scaling);
             }
+        }
+
+        void PluginWindow::begin()
+        {
+            Widget::begin();
+
+//            // Create context
+//            ui::UIContext ctx(pWrapper);
+//            status_t res = ctx.init();
+//            if (res != STATUS_OK)
+//                return;
+//
+//            LSPString xpath;
+//            if (!xpath.set_ascii("ui/window.xml"))
+//                return;
+//
+//            // Parse the XML document
+//            ctl::PluginWindowTemplate wnd(pWrapper, this);
+//            if (!wnd.init())
+//                return;
+//
+//            ui::xml::RootNode root(&ctx, "window", &wnd);
+//            ui::xml::Handler handler(pWrapper->resources());
+//            handler.parse_resource(&xpath, &root);
+//
+//            // TODO: assign proper instances
         }
 
         void PluginWindow::end()
