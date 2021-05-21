@@ -45,6 +45,7 @@ namespace lsp
                 ctl::Color      sColor;
                 ctl::Color      sBorderColor;
                 ctl::Color      sGlassColor;
+                ctl::Boolean    sBorderFlat;
                 ctl::Padding    sIPadding;
 
             public:

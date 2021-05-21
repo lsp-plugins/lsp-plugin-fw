@@ -74,6 +74,7 @@ namespace lsp
                 sColor.init(pWrapper, gr->color());
                 sBorderColor.init(pWrapper, gr->border_color());
                 sGlassColor.init(pWrapper, gr->glass_color());
+                sBorderFlat.init(pWrapper, gr->border_flat());
                 sIPadding.init(pWrapper, gr->ipadding());
             }
 
@@ -98,6 +99,8 @@ namespace lsp
                 sBorderColor.set("bcolor", name, value);
                 sGlassColor.set("glass.color", name, value);
                 sGlassColor.set("gcolor", name, value);
+                sBorderFlat.set("border.flat", name, value);
+                sBorderFlat.set("bflat", name, value);
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
             }
