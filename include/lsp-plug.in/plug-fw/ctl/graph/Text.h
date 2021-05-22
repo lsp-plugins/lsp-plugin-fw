@@ -46,6 +46,7 @@ namespace lsp
                 ctl::Color              sColor;
                 ctl::Float              sHValue;
                 ctl::Float              sVValue;
+                ctl::LCString           sText;
 
             protected:
                 void                trigger_expr();

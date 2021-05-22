@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 25 апр. 2021 г.
+ * Created on: 23 мая 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,49 +19,43 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_UTIL_LCSTRING_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_UTIL_LCSTRING_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
 
-#include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/tk/tk.h>
+#include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/ctl/util/Property.h>
+#include <lsp-plug.in/expr/Parameters.h>
 
 namespace lsp
 {
     namespace ctl
     {
-        /**
-         * Simple container: group box
-         */
-        class Group: public Widget
+        class LCString
         {
-            public:
-                static const ctl_class_t metadata;
+            private:
+                LCString & operator = (const LCString &);
 
             protected:
-                ctl::Color          sTextColor;
-                ctl::Color          sColor;
-                ctl::Embedding      sEmbed;
-                ctl::Padding        sIPadding;
-                ctl::LCString       sText;
+                ui::IWrapper   *pWrapper;
+                tk::String     *pProp;
+
+            protected:
+                void            bind_metadata(expr::Parameters *params);
 
             public:
-                explicit Group(ui::IWrapper *wrapper, tk::Group *widget);
-                virtual ~Group();
-
-                virtual status_t    init();
+                explicit        LCString();
+                void            init(ui::IWrapper *wrapper, tk::String *prop);
 
             public:
-                virtual void        set(const char *name, const char *value);
-
-                virtual status_t    add(ctl::Widget *child);
+                bool            set(const char *param, const char *name, const char *value);
         };
     }
 }
 
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_LCSTRING_H_ */

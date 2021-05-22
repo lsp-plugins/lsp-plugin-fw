@@ -75,6 +75,7 @@ namespace lsp
                 sColor.init(pWrapper, grp->text_color());
                 sEmbed.init(pWrapper, grp->embedding());
                 sIPadding.init(pWrapper, grp->ipadding());
+                sText.init(pWrapper, grp->text());
             }
 
             return STATUS_OK;
@@ -87,7 +88,6 @@ namespace lsp
             {
                 set_constraints(grp->constraints(), name, value);
                 set_layout(grp->layout(), name, value);
-                set_lc_attr(grp->text(), "text", name, value);
                 set_font(grp->font(), "font", name, value);
                 set_param(grp->show_text(), "text.show", name, value);
                 set_param(grp->text_border(), "text.border", name, value);
@@ -103,6 +103,7 @@ namespace lsp
 
                 sTextColor.set("text.color", name, value);
                 sColor.set("color", name, value);
+                sText.set("text", name, value);
             }
 
             sEmbed.set("embed", name, value);

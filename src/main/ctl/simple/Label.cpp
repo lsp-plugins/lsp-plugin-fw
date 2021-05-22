@@ -173,6 +173,7 @@ namespace lsp
             if (lbl != NULL)
             {
                 sColor.init(pWrapper, lbl->color());
+                sText.init(pWrapper, lbl->text());
 
                 lbl->slot(tk::SLOT_MOUSE_DBL_CLICK)->bind(slot_dbl_click, this);
             }
@@ -314,7 +315,7 @@ namespace lsp
                 set_constraints(lbl->constraints(), name, value);
 
                 if (enType == CTL_LABEL_TEXT)
-                    set_lc_attr(lbl->text(), "text", name, value);
+                    sText.set("text", name, value);
 
                 set_value(&bDetailed, "detailed", name, value);
                 set_value(&bSameLine, "same_line", name, value);

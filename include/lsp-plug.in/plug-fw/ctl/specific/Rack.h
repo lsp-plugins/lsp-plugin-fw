@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 25 апр. 2021 г.
+ * Created on: 23 мая 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_RACK_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_RACK_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,34 +34,37 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Simple container: group box
+         * Rack widget controller
          */
-        class Group: public Widget
+        class Rack: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::Color          sTextColor;
                 ctl::Color          sColor;
-                ctl::Embedding      sEmbed;
-                ctl::Padding        sIPadding;
+                ctl::Color          sTextColor;
+                ctl::Color          sScrewColor;
+                ctl::Color          sHoleColor;
+                ctl::Padding        sButtonPadding;
+                ctl::Padding        sScrewPadding;
+                ctl::Padding        sTextPadding;
                 ctl::LCString       sText;
 
             public:
-                explicit Group(ui::IWrapper *wrapper, tk::Group *widget);
-                virtual ~Group();
+                explicit Rack(ui::IWrapper *wrapper, tk::RackEars *widget);
+                virtual ~Rack();
 
                 virtual status_t    init();
 
             public:
                 virtual void        set(const char *name, const char *value);
 
-                virtual status_t    add(ctl::Widget *child);
+                virtual void        end();
         };
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
-
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GROUP_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_RACK_H_ */

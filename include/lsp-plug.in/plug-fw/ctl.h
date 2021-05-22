@@ -33,6 +33,7 @@
     #include <lsp-plug.in/plug-fw/ctl/util/Integer.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Float.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Boolean.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/LCString.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Expression.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Color.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Embedding.h>
@@ -64,6 +65,8 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/Marker.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Text.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Mesh.h>
+
+    #include <lsp-plug.in/plug-fw/ctl/specific/Rack.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 

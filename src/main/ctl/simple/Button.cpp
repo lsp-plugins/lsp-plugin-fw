@@ -86,6 +86,7 @@ namespace lsp
                 sLedTextColor.init(pWrapper, btn->led_text_color());
                 sEditable.init(pWrapper, this);
                 sTextPad.init(pWrapper, btn->text_padding());
+                sText.init(pWrapper, btn->text());
 
                 // Bind slots
                 btn->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
@@ -118,9 +119,9 @@ namespace lsp
                 sTextPad.set("tpadding", name, value);
                 sTextPad.set("tpad", name, value);
                 sHover.set("hover", name, value);
+                sText.set("text", name, value);
 
                 set_font(btn->font(), "font", name, value);
-                set_lc_attr(btn->text(), "text", name, value);
                 set_constraints(btn->constraints(), name, value);
                 set_param(btn->led(), "led", name, value);
                 set_param(btn->hole(), "hole", name, value);

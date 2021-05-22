@@ -217,7 +217,6 @@ namespace lsp
                 wnd->actions()->deny(ws::WA_RESIZE);
 
             LSP_STATUS_ASSERT(create_main_menu());
-//            LSP_STATUS_ASSERT(init_window_layout());
 
             // Bind event handlers
             wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
@@ -372,116 +371,6 @@ namespace lsp
 //                if (meta->extensions & E_3D_BACKEND)
 //                    init_r3d_support(pMenu);
             }
-
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::init_window_layout()
-        {
-            tk::Window *wnd             = tk::widget_cast<tk::Window>(wWidget);
-            tk::Display *dpy            = wnd->display();
-            const meta::plugin_t *meta  = pWrapper->ui()->metadata();
-            inject_style(wnd, "PluginWindow");
-
-            // Get default dictionary
-            i18n::IDictionary *dict     = get_default_dict(wnd);
-
-            // Initialize main grid
-            tk::Grid *grd = new tk::Grid(dpy);
-            vWidgets.add(grd);
-            wnd->add(grd);
-
-            grd->init();
-            grd->rows()->set(2);
-            grd->columns()->set((pPBypass != NULL) ? 4 : 3);
-            inject_style(grd, "PluginWindow::Grid");
-
-            // Initialize rack ears
-            LSPString buf, acronym;
-            if (dict != NULL)
-                dict->lookup("project.acronym", &acronym);
-            buf.fmt_utf8("%s %s", acronym.get_utf8(), meta->acronym);
-
-            // Rack ear at the top
-            tk::RackEars *rk_ear = new tk::RackEars(dpy);
-            wRack[0] = rk_ear;
-            vWidgets.add(rk_ear);
-            rk_ear->init();
-            rk_ear->angle()->set(1);
-            rk_ear->text()->set_raw(&buf);
-            rk_ear->slots()->bind(tk::SLOT_SUBMIT, slot_show_menu, this);
-            inject_style(rk_ear, "PluginWindow::RackEarTop");
-            grd->add(rk_ear, 1, (pPBypass != NULL) ? 4 : 3);
-
-            rk_ear   = new tk::RackEars(dpy);
-            wRack[1] = rk_ear;
-            vWidgets.add(rk_ear);
-            rk_ear->init();
-            rk_ear->angle()->set(2);
-            rk_ear->text()->set_raw(&acronym);
-            rk_ear->slots()->bind(tk::SLOT_SUBMIT, slot_show_menu, this);
-            inject_style(rk_ear, "PluginWindow::RackEarSide");
-            grd->add(rk_ear);
-
-            if (pPBypass != NULL)
-            {
-                tk::Box *box = new tk::Box(dpy);
-                vWidgets.add(box);
-                box->init();
-                box->orientation()->set_vertical();
-                inject_style(box, "PluginWindow::Bypass::Box");
-                grd->add(box);
-
-                tk::Label *lbl = new tk::Label(dpy);
-                vWidgets.add(lbl);
-                lbl->init();
-                lbl->text()->set("labels.bypass");
-                inject_style(lbl, "PluginWindow::Bypass::Label");
-                box->add(lbl);
-
-                tk::Switch *sw  = new tk::Switch(dpy);
-                vWidgets.add(sw);
-                sw->init();
-                inject_style(sw, "PluginWindow::Bypass::Switch");
-                box->add(sw);
-
-                tk::Led *led = new tk::Led(dpy);
-                vWidgets.add(led);
-                led->init();
-                inject_style(led, "PluginWindow::Bypass::Led");
-                box->add(led);
-
-                // Create controllers
-                ctl::Widget *ctl = new ctl::Switch(pWrapper, sw);
-                ctl->init();
-                ctl->set("id", pPBypass->metadata()->id);
-                ctl->begin();
-                ctl->end();
-                pWrapper->add_controller(ctl);
-
-                ctl = new ctl::Led(pWrapper, led);
-                ctl->init();
-                ctl->set("id", pPBypass->metadata()->id);
-                ctl->begin();
-                ctl->end();
-                pWrapper->add_controller(ctl);
-            }
-
-            wContent = new tk::Box(dpy);
-            vWidgets.add(wContent);
-            wContent->init();
-            inject_style(wContent, "PluginWindow::Content");
-            grd->add(wContent);
-
-            rk_ear  = new tk::RackEars(dpy);
-            wRack[2]= rk_ear;
-            vWidgets.add(rk_ear);
-            rk_ear->init();
-            rk_ear->angle()->set(0);
-            rk_ear->text()->set_raw(meta->acronym);
-            rk_ear->slots()->bind(tk::SLOT_SUBMIT, slot_show_menu, this);
-            inject_style(rk_ear, "PluginWindow::RackEarSide");
-            grd->add(rk_ear);
 
             return STATUS_OK;
         }
@@ -948,6 +837,15 @@ namespace lsp
             wRack[2]        = tk::widget_cast<tk::RackEars>(ui->find_widget("rack_right"));
 
             wContent        = tk::widget_cast<tk::WidgetContainer>(ui->find_widget("plugin_content"));
+
+            for (size_t i=0; i<(sizeof(wRack)/sizeof(tk::Widget *)); ++i)
+            {
+                if (wRack[i] == NULL)
+                    continue;
+
+                wRack[i]->slots()->bind(tk::SLOT_SUBMIT, slot_show_menu, this);
+            }
+
 //            init_window_layout();
 //            // TODO: assign proper instances
         }
@@ -966,8 +864,6 @@ namespace lsp
                 wnd->actions()->set_maximizable(bResizable);
             }
 
-            if (pPMStud != NULL)
-                notify(pPMStud);
             if (pUIScalingHost != NULL)
                 notify(pUIScalingHost);
             if (pUIScaling != NULL)
@@ -980,17 +876,6 @@ namespace lsp
         void PluginWindow::notify(ui::IPort *port)
         {
             Widget::notify(port);
-
-            if (port == pPMStud)
-            {
-                bool top    = pPMStud->value() < 0.5f;
-                if (wRack[0] != NULL)
-                    wRack[0]->visibility()->set(top);
-                if (wRack[1] != NULL)
-                    wRack[1]->visibility()->set(!top);
-                if (wRack[2] != NULL)
-                    wRack[2]->visibility()->set(!top);
-            }
 
             if (port == pLanguage)
                 sync_language_selection();

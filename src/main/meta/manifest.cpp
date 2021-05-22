@@ -219,6 +219,8 @@ namespace lsp
             if (res == STATUS_OK)
                 res = fetch_string(&p->artifact, "artifact", &jo);
             if (res == STATUS_OK)
+                res = fetch_string(&p->brand, "brand", &jo);
+            if (res == STATUS_OK)
                 res = fetch_string(&p->short_name, "short_name", &jo);
             if (res == STATUS_OK)
                 res = fetch_string(&p->full_name, "full_name", &jo);
@@ -241,6 +243,7 @@ namespace lsp
                 return;
 
             drop_string(&pkg->artifact);
+            drop_string(&pkg->brand);
             drop_string(&pkg->short_name);
             drop_string(&pkg->full_name);
             drop_string(&pkg->site);

@@ -158,7 +158,6 @@ namespace lsp
 //                status_t        init_r3d_support(LSPMenu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);
                 status_t            init_scaling_support(tk::Menu *menu);
-                status_t            init_window_layout();
                 status_t            create_main_menu();
                 bool                has_path_ports();
                 void                sync_language_selection();

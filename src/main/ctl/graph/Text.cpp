@@ -79,6 +79,7 @@ namespace lsp
                 sColor.init(pWrapper, gt->color());
                 sHValue.init(pWrapper, gt->hvalue());
                 sVValue.init(pWrapper, gt->vvalue());
+                sText.init(pWrapper, gt->text());
             }
 
             return STATUS_OK;
@@ -91,8 +92,6 @@ namespace lsp
             {
                 bind_port(&pPort, "id", name, value);
 
-                set_lc_attr(gt->text(), "text", name, value);
-
                 sColor.set("color", name, value);
                 set_layout(gt->layout(), name, value);
                 set_text_layout(gt->text_layout(), name, value);
@@ -104,6 +103,8 @@ namespace lsp
                 sVValue.set("vval", name, value);
                 sVValue.set("yval", name, value);
                 sVValue.set("y", name, value);
+
+                sText.set("text", name, value);
 
                 set_param(gt->haxis(), "basis", name, value);
                 set_param(gt->haxis(), "xaxis", name, value);

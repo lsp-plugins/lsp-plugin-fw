@@ -54,7 +54,7 @@ namespace lsp
                 ctl::Color          sBgColor;
                 ctl::Boolean        sBgInherit;
                 ctl::Padding        sPadding;
-                ctl::Expression     sVisibility;
+                ctl::Boolean        sVisibility;
 
             protected:
                 static const char  *match_prefix(const char *prefix, const char *name);
@@ -64,7 +64,6 @@ namespace lsp
                 static bool         set_constraints(tk::SizeConstraints *c, const char *name, const char *value);
                 static bool         set_layout(tk::Layout *l, const char *name, const char *value);
                 static bool         set_text_layout(tk::TextLayout *l, const char *name, const char *value);
-                static bool         set_lc_attr(tk::String *s, const char *param, const char *name, const char *value);
                 static bool         set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value);
                 static bool         set_font(tk::Font *f, const char *param, const char *name, const char *value);
                 static bool         set_size_range(tk::SizeRange *r, const char *param, const char *name, const char *value);

@@ -282,6 +282,7 @@ namespace lsp
         typedef struct package_t
         {
             const char             *artifact;       // Artifact name (UTF-8)
+            const char             *brand;          // Brand name
             const char             *short_name;     // Sort name/Acronym
             const char             *full_name;      // Full name
             const char             *site;           // Site URL

@@ -28,11 +28,6 @@
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
 
-#include <lsp-plug.in/lltl/parray.h>
-#include <lsp-plug.in/expr/Expression.h>
-#include <lsp-plug.in/expr/Variables.h>
-#include <lsp-plug.in/runtime/LSPString.h>
-
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/ctl/util/Property.h>
 

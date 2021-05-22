@@ -30,7 +30,6 @@
 
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/expr/Expression.h>
-#include <lsp-plug.in/expr/Variables.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 
 #include <lsp-plug.in/plug-fw/ui.h>
