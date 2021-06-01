@@ -46,6 +46,7 @@ namespace lsp
                 ctl::Color          sColor;
                 ctl::Embedding      sEmbed;
                 ctl::Padding        sIPadding;
+                ctl::Padding        sTextPadding;
                 ctl::LCString       sText;
 
             public:

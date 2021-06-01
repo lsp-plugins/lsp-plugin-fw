@@ -75,6 +75,7 @@ namespace lsp
                 sColor.init(pWrapper, grp->text_color());
                 sEmbed.init(pWrapper, grp->embedding());
                 sIPadding.init(pWrapper, grp->ipadding());
+                sTextPadding.init(pWrapper, grp->text_padding());
                 sText.init(pWrapper, grp->text());
             }
 
@@ -89,8 +90,8 @@ namespace lsp
                 set_constraints(grp->constraints(), name, value);
                 set_layout(grp->layout(), name, value);
                 set_font(grp->font(), "font", name, value);
+                set_alignment(grp->heading(), "heading", name, value);
                 set_param(grp->show_text(), "text.show", name, value);
-                set_param(grp->text_border(), "text.border", name, value);
                 set_param(grp->text_radius(), "text.radius", name, value);
                 set_param(grp->text_radius(), "text.r", name, value);
                 set_param(grp->border_size(), "border.size", name, value);
@@ -98,6 +99,9 @@ namespace lsp
                 set_param(grp->border_radius(), "border.radius", name, value);
                 set_param(grp->border_radius(), "border.r", name, value);
 
+                sTextPadding.set("text.padding", name, value);
+                sTextPadding.set("tpadding", name, value);
+                sTextPadding.set("tpad", name, value);
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
 

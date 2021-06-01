@@ -172,6 +172,20 @@ namespace lsp
             return true;
         }
 
+        bool Widget::set_alignment(tk::Alignment *a, const char *param, const char *name, const char *value)
+        {
+            if (a == NULL)
+                return false;
+            if (!(name = match_prefix(param, name)))
+                return false;
+
+            if (!strcmp(name, "align"))             PARSE_FLOAT(value, a->set_align(__))
+            else if (!strcmp(name, "scale"))        PARSE_FLOAT(value, a->set_scale(__))
+            else return false;
+
+            return true;
+        }
+
         bool Widget::set_text_layout(tk::TextLayout *l, const char *name, const char *value)
         {
             if      (!strcmp(name, "htext"))        PARSE_FLOAT(value, l->set_halign(__))
