@@ -88,6 +88,7 @@ namespace lsp
                 // Initialize color controllers
                 sColor.init(pWrapper, knob->color());
                 sScaleColor.init(pWrapper, knob->scale_color());
+                sBalanceColor.init(pWrapper, knob->balance_color());
                 sHoleColor.init(pWrapper, knob->hole_color());
                 sTipColor.init(pWrapper, knob->tip_color());
 
@@ -109,6 +110,8 @@ namespace lsp
                 sColor.set("color", name, value);
                 sScaleColor.set("scolor", name, value);
                 sScaleColor.set("scale.color", name, value);
+                sBalanceColor.set("bcolor", name, value);
+                sBalanceColor.set("balance.color", name, value);
                 sHoleColor.set("hcolor", name, value);
                 sHoleColor.set("hole.color", name, value);
                 sTipColor.set("tcolor", name, value);
@@ -150,6 +153,11 @@ namespace lsp
 
                 set_param(knob->scale(), "scale.size", name, value);
                 set_param(knob->scale(), "ssize", name, value);
+                set_param(knob->balance_color_custom(), "bcolor.custom", name, value);
+                set_param(knob->balance_color_custom(), "balance.color.custom", name, value);
+                set_param(knob->flat(), "flat", name, value);
+                set_param(knob->scale_marks(), "smarks", name, value);
+                set_param(knob->scale_marks(), "scale.marks", name, value);
             }
 
             return Widget::set(name, value);

@@ -58,6 +58,7 @@ namespace lsp
             protected:
                 ctl::Color          sColor;
                 ctl::Color          sScaleColor;
+                ctl::Color          sBalanceColor;
                 ctl::Color          sHoleColor;
                 ctl::Color          sTipColor;
 
