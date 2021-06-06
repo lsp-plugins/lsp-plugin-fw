@@ -100,12 +100,14 @@ namespace lsp
                 ui::IPort                  *pRelPaths;
                 ui::IPort                  *pUIScaling;
                 ui::IPort                  *pUIScalingHost;
+                ui::IPort                  *pUIFontScaling;
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
 
 //                cstorage<backend_sel_t>     vBackendSel;
                 lltl::parray<lang_sel_t>    vLangSel;
                 lltl::parray<scaling_sel_t> vScalingSel;
+                lltl::parray<scaling_sel_t> vFontScalingSel;
 
             protected:
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
@@ -140,6 +142,10 @@ namespace lsp
                 static status_t slot_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_scaling_select(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t slot_font_scaling_zoom_in(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_font_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_font_scaling_select(tk::Widget *sender, void *ptr, void *data);
+
                 static status_t slot_window_resize(tk::Widget *sender, void *ptr, void *data);
 
             protected:
@@ -158,10 +164,12 @@ namespace lsp
 //                status_t        init_r3d_support(LSPMenu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);
                 status_t            init_scaling_support(tk::Menu *menu);
+                status_t            init_font_scaling_support(tk::Menu *menu);
                 status_t            create_main_menu();
                 bool                has_path_ports();
                 void                sync_language_selection();
                 void                sync_ui_scaling();
+                void                sync_font_scaling();
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);

@@ -35,6 +35,10 @@
 #define SCALING_FACTOR_STEP         25
 #define SCALING_FACTOR_END          400
 
+#define FONT_SCALING_FACTOR_BEGIN   40
+#define FONT_SCALING_FACTOR_STEP    20
+#define FONT_SCALING_FACTOR_END     200
+
 namespace lsp
 {
     namespace ctl
@@ -89,6 +93,7 @@ namespace lsp
             pRelPaths       = NULL;
             pUIScaling      = NULL;
             pUIScalingHost  = NULL;
+            pUIFontScaling  = NULL;
 
             pConfigSink     = NULL;
         }
@@ -146,7 +151,14 @@ namespace lsp
             }
             vScalingSel.flush();
 
-//            vBackendSel.flush();
+            // Delete UI font scaling bindings
+            for (size_t i=0, n=vFontScalingSel.size(); i<n; ++i)
+            {
+                scaling_sel_t *s = vFontScalingSel.uget(i);
+                if (s != NULL)
+                    delete s;
+            }
+            vFontScalingSel.flush();
 
             wContent        = NULL;
             wMessage        = NULL;
@@ -204,6 +216,7 @@ namespace lsp
             BIND_PORT(pWrapper, pRelPaths, REL_PATHS_PORT);
             BIND_PORT(pWrapper, pUIScaling, UI_SCALING_PORT);
             BIND_PORT(pWrapper, pUIScalingHost, UI_SCALING_HOST);
+            BIND_PORT(pWrapper, pUIFontScaling, UI_FONT_SCALING_PORT);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
 
@@ -366,6 +379,9 @@ namespace lsp
 
                 // Create UI scaling menu
                 init_scaling_support(wMenu);
+
+                // Create UI scaling menu
+                init_font_scaling_support(wMenu);
 
 //                // Add support of 3D rendering backend switch
 //                if (meta->extensions & E_3D_BACKEND)
@@ -573,7 +589,88 @@ namespace lsp
                 sel->scaling    = scale;
                 sel->item       = item;
 
+                if (!vScalingSel.add(sel))
+                {
+                    delete sel;
+                    return STATUS_NO_MEM;
+                }
+
                 item->slots()->bind(tk::SLOT_SUBMIT, slot_scaling_select, sel);
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::init_font_scaling_support(tk::Menu *menu)
+        {
+            status_t res;
+
+            // Create submenu item
+            tk::MenuItem *item          = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set("actions.font_scaling.select");
+
+            menu                = new tk::Menu(menu->display());
+            if (menu == NULL)
+                return STATUS_NO_MEM;
+            if ((res = menu->init()) != STATUS_OK)
+            {
+                menu->destroy();
+                delete menu;
+                return res;
+            }
+            if (!vWidgets.add(menu))
+            {
+                menu->destroy();
+                delete menu;
+                return STATUS_NO_MEM;
+            }
+            item->menu()->set(menu);
+
+            // Add the 'Zoom in' setting
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set_key("actions.font_scaling.zoom_in");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_font_scaling_zoom_in, this);
+
+            // Add the 'Zoom out' setting
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set_key("actions.font_scaling.zoom_out");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_font_scaling_zoom_out, this);
+
+            // Add the separator
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->type()->set_separator();
+
+            // Generate the 'Set font scaling' menu items
+            scaling_sel_t *sel;
+
+            for (size_t scale = FONT_SCALING_FACTOR_BEGIN; scale <= FONT_SCALING_FACTOR_END; scale += FONT_SCALING_FACTOR_STEP)
+            {
+                if ((item = create_menu_item(menu)) == NULL)
+                    return STATUS_NO_MEM;
+                item->type()->set_check();
+                item->text()->set_key("actions.font_scaling.value:pc");
+                item->text()->params()->set_int("value", scale);
+
+                // Add scaling record
+                if ((sel = new scaling_sel_t()) == NULL)
+                    return STATUS_NO_MEM;
+
+                sel->ctl        = this;
+                sel->scaling    = scale;
+                sel->item       = item;
+
+                if (!vFontScalingSel.add(sel))
+                {
+                    delete sel;
+                    return STATUS_NO_MEM;
+                }
+
+                item->slots()->bind(tk::SLOT_SUBMIT, slot_font_scaling_select, sel);
             }
 
             return STATUS_OK;
@@ -805,7 +902,27 @@ namespace lsp
             {
                 scaling_sel_t *xsel = vScalingSel.uget(i);
                 if (xsel->item != NULL)
-                    xsel->item->checked()->set(xsel->scaling == scaling);
+                    xsel->item->checked()->set(fabs(xsel->scaling - scaling) < 1e-4);
+            }
+        }
+
+        void PluginWindow::sync_font_scaling()
+        {
+            tk::Display *dpy    = wWidget->display();
+            if (dpy == NULL)
+                return;
+
+            float scaling       = (pUIFontScaling != NULL) ? pUIFontScaling->value() : 100.0f;
+
+            // Update the UI scaling
+            dpy->schema()->font()->set_scaling(scaling * 0.01f);
+            scaling             = dpy->schema()->font()->scaling() * 100.0f;
+
+            for (size_t i=0, n=vFontScalingSel.size(); i<n; ++i)
+            {
+                scaling_sel_t *xsel = vFontScalingSel.uget(i);
+                if (xsel->item != NULL)
+                    xsel->item->checked()->set(fabs(xsel->scaling - scaling) < 1e-4);
             }
         }
 
@@ -845,9 +962,6 @@ namespace lsp
 
                 wRack[i]->slots()->bind(tk::SLOT_SUBMIT, slot_show_menu, this);
             }
-
-//            init_window_layout();
-//            // TODO: assign proper instances
         }
 
         void PluginWindow::end()
@@ -882,6 +996,8 @@ namespace lsp
 
             if ((port == pUIScaling) || (port == pUIScalingHost))
                 sync_ui_scaling();
+            if (port == pUIFontScaling)
+                sync_font_scaling();
         }
 
         status_t PluginWindow::add(ctl::Widget *child)
@@ -1431,7 +1547,7 @@ namespace lsp
         status_t PluginWindow::slot_scaling_zoom_in(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
+            if ((_this == NULL) || (_this->pUIScaling == NULL))
                 return STATUS_OK;
 
             ssize_t value   = _this->pUIScaling->value();
@@ -1446,7 +1562,7 @@ namespace lsp
         status_t PluginWindow::slot_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
+            if ((_this == NULL) || (_this->pUIScaling == NULL))
                 return STATUS_OK;
 
             ssize_t value   = _this->pUIScaling->value();
@@ -1465,9 +1581,57 @@ namespace lsp
                 return STATUS_OK;
 
             PluginWindow *_this = sel->ctl;
+            if ((_this != NULL) && (_this->pUIScaling != NULL))
+            {
+                _this->pUIScaling->set_value(sel->scaling);
+                _this->pUIScaling->notify_all();
+            }
 
-            _this->pUIScaling->set_value(sel->scaling);
-            _this->pUIScaling->notify_all();
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_font_scaling_zoom_in(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if ((_this == NULL) || (_this->pUIFontScaling == NULL))
+                return STATUS_OK;
+
+            ssize_t value   = _this->pUIFontScaling->value();
+            value           = lsp_limit(value + FONT_SCALING_FACTOR_STEP, FONT_SCALING_FACTOR_BEGIN, FONT_SCALING_FACTOR_END);
+
+            _this->pUIFontScaling->set_value(value);
+            _this->pUIFontScaling->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_font_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if ((_this == NULL) || (_this->pUIFontScaling == NULL))
+                return STATUS_OK;
+
+            ssize_t value   = _this->pUIFontScaling->value();
+            value           = lsp_limit(value - FONT_SCALING_FACTOR_STEP, FONT_SCALING_FACTOR_BEGIN, FONT_SCALING_FACTOR_END);
+
+            _this->pUIFontScaling->set_value(value);
+            _this->pUIFontScaling->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_font_scaling_select(tk::Widget *sender, void *ptr, void *data)
+        {
+            scaling_sel_t *sel  = static_cast<scaling_sel_t *>(ptr);
+            if (sel == NULL)
+                return STATUS_OK;
+
+            PluginWindow *_this = sel->ctl;
+            if ((_this != NULL) && (_this->pUIFontScaling != NULL))
+            {
+                _this->pUIFontScaling->set_value(sel->scaling);
+                _this->pUIFontScaling->notify_all();
+            }
 
             return STATUS_OK;
         }

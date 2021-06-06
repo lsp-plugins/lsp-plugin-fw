@@ -53,6 +53,7 @@ namespace lsp
             SWITCH(UI_REL_PATHS_PORT_ID, "Use relative paths when exporting configuration file", 0.0f),
             KNOB(UI_SCALING_PORT_ID, "Manual UI scaling factor", U_PERCENT, 0.25f, 400.0f, 100.0f, 1.0f),
             SWITCH(UI_SCALING_HOST_ID, "Prefer host-reported UI scale factor", 0.0f),
+            KNOB(UI_FONT_SCALING_PORT_ID, "Manual UI font scaling factor", U_PERCENT, 0.40f, 200.0f, 100.0f, 1.0f),
             PORTS_END
         };
 
