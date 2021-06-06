@@ -982,6 +982,8 @@ namespace lsp
                 notify(pUIScalingHost);
             if (pUIScaling != NULL)
                 notify(pUIScaling);
+            if (pUIFontScaling != NULL)
+                notify(pUIFontScaling);
 
             // Call for parent class method
             Widget::end();
