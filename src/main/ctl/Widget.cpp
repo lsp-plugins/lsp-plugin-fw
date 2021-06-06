@@ -96,8 +96,9 @@ namespace lsp
             else if (!strcmp(name, ".i"))           PARSE_BOOL(value, f->set_italic(__))
             else if (!strcmp(name, ".underline"))   PARSE_BOOL(value, f->set_underline(__))
             else if (!strcmp(name, ".u"))           PARSE_BOOL(value, f->set_underline(__))
-            else if (!strcmp(name, ".antialiasing"))PARSE_BOOL(value, f->set_antialiasing(__))
-            else if (!strcmp(name, ".a"))           PARSE_BOOL(value, f->set_antialiasing(__))
+            else if (!strcmp(name, ".antialiasing"))f->set_antialiasing(value);
+            else if (!strcmp(name, ".antialias"))   f->set_antialiasing(value);
+            else if (!strcmp(name, ".a"))           f->set_antialiasing(value);
             else return false;
 
             return true;
