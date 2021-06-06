@@ -915,8 +915,8 @@ namespace lsp
             float scaling       = (pUIFontScaling != NULL) ? pUIFontScaling->value() : 100.0f;
 
             // Update the UI scaling
-            dpy->schema()->font()->set_scaling(scaling * 0.01f);
-            scaling             = dpy->schema()->font()->scaling() * 100.0f;
+            dpy->schema()->font_scaling()->set(scaling * 0.01f);
+            scaling             = dpy->schema()->font_scaling()->get() * 100.0f;
 
             for (size_t i=0, n=vFontScalingSel.size(); i<n; ++i)
             {
