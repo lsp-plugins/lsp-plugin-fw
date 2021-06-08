@@ -57,7 +57,7 @@ namespace lsp
                 pWrapper->global_config_changed(this);
         }
 
-        void *PathPort::get_buffer()
+        void *PathPort::buffer()
         {
             return sPath;
         }

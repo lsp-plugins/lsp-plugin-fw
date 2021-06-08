@@ -27,7 +27,7 @@
 #endif /* LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/resource/ILoader.h>
+#include <lsp-plug.in/resource/PrefixLoader.h>
 #include <lsp-plug.in/resource/Environment.h>
 #include <lsp-plug.in/tk/tk.h>
 #include <lsp-plug.in/lltl/parray.h>
@@ -72,8 +72,9 @@ namespace lsp
                 };
 
             protected:
+                tk::Display                *pDisplay;           // Display object
                 ui::Module                 *pUI;
-                resource::ILoader          *pLoader;
+                resource::PrefixLoader      sLoader;            // Prefix-based resource loader
                 size_t                      nFlags;             // Flags
 
                 lltl::parray<IPort>         vPorts;             // All possible ports
@@ -92,12 +93,13 @@ namespace lsp
                 status_t        create_alias(const LSPString *id, const LSPString *name);
                 status_t        build_ui(const char *path);
                 void            build_config_header(LSPString *c);
+                status_t        init_visual_schema();
 
             public:
-                explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
+                explicit IWrapper(ui::Module *ui);
                 virtual ~IWrapper();
 
-                virtual status_t    init();
+                virtual status_t    init(resource::ILoader *loader);
                 virtual void        destroy();
 
             public:
@@ -105,7 +107,7 @@ namespace lsp
                  * Get builtin resource loader
                  * @return builtin resource loader
                  */
-                inline resource::ILoader   *resources()         { return pLoader;       }
+                inline resource::ILoader   *resources()         { return &sLoader;      }
 
                 /**
                  * Get the wrapped UI
@@ -241,6 +243,19 @@ namespace lsp
                 virtual status_t            import_settings(const io::Path *file);
                 virtual status_t            import_settings(const LSPString *file);
                 virtual status_t            import_settings(io::IInSequence *is);
+
+                /**
+                 * Load visual schema for the wrapper
+                 * @param the source (file name or input sequence)
+                 * @return status of operation
+                 */
+                virtual status_t            load_visual_schema(const char *file);
+                virtual status_t            load_visual_schema(const io::Path *file);
+                virtual status_t            load_visual_schema(const LSPString *file);
+
+                virtual status_t            load_stylesheet(tk::StyleSheet *sheet, const char *file);
+                virtual status_t            load_stylesheet(tk::StyleSheet *sheet, const io::Path *file);
+                virtual status_t            load_stylesheet(tk::StyleSheet *sheet, const LSPString *file);
 
                 /**
                  * Get package version

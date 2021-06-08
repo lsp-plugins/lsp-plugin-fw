@@ -52,13 +52,11 @@ namespace lsp
                 lltl::parray<jack::UIPort>      vSyncPorts;         // Ports for synchronization
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
-                tk::Display                    *pDisplay;           // Display object
-
             public:
-                explicit UIWrapper(jack::Wrapper *wrapper, ui::Module *ui, resource::ILoader *loader);
+                explicit UIWrapper(jack::Wrapper *wrapper, ui::Module *ui);
                 virtual ~UIWrapper();
 
-                virtual status_t init();
+                virtual status_t init(resource::ILoader *loader);
                 virtual void destroy();
 
             protected:
@@ -93,12 +91,11 @@ namespace lsp
         };
 
         // Implementation
-        UIWrapper::UIWrapper(jack::Wrapper *wrapper, ui::Module *ui, resource::ILoader *loader) : ui::IWrapper(ui, loader)
+        UIWrapper::UIWrapper(jack::Wrapper *wrapper, ui::Module *ui) : ui::IWrapper(ui)
         {
             pPlugin     = wrapper->pPlugin;
             pWrapper    = wrapper;
             nPosition   = 0;
-            pDisplay    = NULL;
 
             plug::position_t::init(&sPosition);
         }
@@ -107,10 +104,9 @@ namespace lsp
         {
             pPlugin     = NULL;
             pWrapper    = NULL;
-            pDisplay    = NULL;
         }
 
-        status_t UIWrapper::init()
+        status_t UIWrapper::init(resource::ILoader *loader)
         {
             status_t res = STATUS_OK;
 
@@ -127,19 +123,19 @@ namespace lsp
             }
 
             // Initialize parent
-            if ((res = IWrapper::init()) != STATUS_OK)
+            if ((res = IWrapper::init(loader)) != STATUS_OK)
                 return res;
 
             // Initialize display settings
             tk::display_settings_t settings;
             resource::Environment env;
 
-            settings.resources      = pLoader;
+            settings.resources      = &sLoader;
             settings.environment    = &env;
 
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, "i18n"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, "builtin://i18n"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_SCHEMA_PATH, "schema/lsp-modern.xml"));
+//            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_SCHEMA_PATH, "schema/lsp-modern.xml"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
 
             // Create the display
@@ -147,6 +143,10 @@ namespace lsp
             if (pDisplay == NULL)
                 return STATUS_NO_MEM;
             if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
+                return res;
+
+            // Load visual schema
+            if ((res = init_visual_schema()) != STATUS_OK)
                 return res;
 
             // Initialize the UI

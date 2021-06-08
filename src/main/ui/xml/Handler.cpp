@@ -157,15 +157,6 @@ namespace lsp
                 if (pLoader == NULL)
                     return STATUS_NOT_FOUND;
 
-                // Check for built-in prefix and remove it
-                LSPString tmp;
-                if (path->starts_with_ascii(LSP_BUILTIN_PREFIX))
-                {
-                    if (!tmp.set(path, strlen(LSP_BUILTIN_PREFIX)))
-                        return STATUS_NO_MEM;
-                    path    = &tmp;
-                }
-
                 // Find the resource
                 lsp_trace("Reading resource: %s", path->get_native());
                 io::IInStream  *is = pLoader->read_stream(path);

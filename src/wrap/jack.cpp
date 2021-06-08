@@ -458,7 +458,7 @@ namespace lsp
             if (w->pUI != NULL)
             {
                 // Create wrapper
-                w->pUIWrapper   = new jack::UIWrapper(w->pWrapper, w->pUI, w->pLoader);
+                w->pUIWrapper   = new jack::UIWrapper(w->pWrapper, w->pUI);
                 if (w->pUIWrapper == NULL)
                 {
                     jack_destroy_wrapper(w);
@@ -466,7 +466,7 @@ namespace lsp
                 }
 
                 // Initialize wrapper
-                if ((res = w->pUIWrapper->init()) != STATUS_OK)
+                if ((res = w->pUIWrapper->init(w->pLoader)) != STATUS_OK)
                 {
                     jack_destroy_wrapper(w);
                     return res;

@@ -44,9 +44,9 @@ namespace lsp
                 virtual ~PathPort();
 
             public:
-                virtual void write(const void* buffer, size_t size);
+                virtual void    write(const void* buffer, size_t size);
 
-                virtual void *get_buffer();
+                virtual void   *buffer();
         };
 
     } /* namespace ctl */

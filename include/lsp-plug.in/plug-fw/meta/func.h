@@ -55,6 +55,41 @@ namespace lsp
             return (p->flags & (F_LOWERING | F_UPPER | F_LOWER)) == (F_LOWERING | F_UPPER | F_LOWER);
         }
 
+        static inline bool is_audio_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_AUDIO);
+        }
+
+        static inline bool is_control_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_CONTROL);
+        }
+
+        static inline bool is_meter_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_METER);
+        }
+
+        static inline bool is_path_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_PATH);
+        }
+
+        static inline bool is_mesh_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_MESH);
+        }
+
+        static inline bool is_framebuffer_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_FBUFFER);
+        }
+
+        static inline bool is_stream_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_STREAM);
+        }
+
         /**
          * Get name of the unit
          * @param unit unit_t unit

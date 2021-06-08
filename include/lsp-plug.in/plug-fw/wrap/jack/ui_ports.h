@@ -401,7 +401,7 @@ namespace lsp
                 explicit UIPathPort(jack::Port *port): UIPort(port)
                 {
                     plug::path_t *path      = pPort->buffer<plug::path_t>();
-                    pPath = (path != NULL) ? static_cast<jack::path_t *>(path) : NULL;
+                    pPath                   = (path != NULL) ? static_cast<jack::path_t *>(path) : NULL;
                     sPath[0]                = '\0';
                 }
 

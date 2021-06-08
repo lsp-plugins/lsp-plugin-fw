@@ -470,6 +470,8 @@ namespace lsp
                         continue;
                     return res;
                 }
+                lsp_trace("i18n: key=%s, value=%s", key.get_utf8(), value.get_utf8());
+
                 if ((lang = new lang_sel_t()) == NULL)
                     return STATUS_NO_MEM;
                 if (!lang->lang.set(&key))
@@ -491,7 +493,6 @@ namespace lsp
                     return STATUS_NO_MEM;
                 item->text()->set_raw(&value);
                 item->type()->set_radio();
-                menu->add(item);
                 lang->item      = item;
 
                 // Create closure and bind
@@ -943,7 +944,7 @@ namespace lsp
 
             ui::xml::RootNode root(&ctx, "window", &wnd);
             ui::xml::Handler handler(pWrapper->resources());
-            handler.parse_resource("ui/window.xml", &root);
+            handler.parse_resource(LSP_BUILTIN_PREFIX "ui/window.xml", &root);
             wnd.destroy();
 
             // Get proper widgets and initialize window layout

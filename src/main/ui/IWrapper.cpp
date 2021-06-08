@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
+#include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/io/InFileStream.h>
@@ -54,6 +55,7 @@ namespace lsp
             KNOB(UI_SCALING_PORT_ID, "Manual UI scaling factor", U_PERCENT, 25.0f, 400.0f, 100.0f, 1.0f),
             SWITCH(UI_SCALING_HOST_ID, "Prefer host-reported UI scale factor", 0.0f),
             KNOB(UI_FONT_SCALING_PORT_ID, "Manual UI font scaling factor", U_PERCENT, 50.0f, 200.0f, 100.0f, 1.0f),
+            PATH(UI_VISUAL_SCHEMA_FILE_ID, "Current visual schema file used by the UI"),
             PORTS_END
         };
 
@@ -74,17 +76,17 @@ namespace lsp
 
     namespace ui
     {
-        IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
+        IWrapper::IWrapper(Module *ui)
         {
+            pDisplay    = NULL;
             pUI         = ui;
-            pLoader     = loader;
             nFlags      = 0;
         }
 
         IWrapper::~IWrapper()
         {
+            pDisplay    = NULL;
             pUI         = NULL;
-            pLoader     = NULL;
             nFlags      = 0;
         }
 
@@ -176,8 +178,17 @@ namespace lsp
             vPorts.flush();
         }
 
-        status_t IWrapper::init()
+        status_t IWrapper::init(resource::ILoader *loader)
         {
+            status_t res;
+
+            // Bind the loader
+            if (loader != NULL)
+            {
+                if ((res = sLoader.add_prefix(LSP_BUILTIN_PREFIX, loader)) != STATUS_OK)
+                    return res;
+            }
+
             // Create additional ports (ui)
             for (const meta::port_t *p = meta::config_metadata; p->id != NULL; ++p)
             {
@@ -307,7 +318,7 @@ namespace lsp
                 return NULL;
             }
 
-            // Check that port name contains "ui_" prefix
+            // Check that port name contains "_ui_" prefix
             if (strstr(id, UI_CONFIG_PORT_PREFIX) == id)
             {
                 const char *ui_id = &id[strlen(UI_CONFIG_PORT_PREFIX)];
@@ -327,7 +338,7 @@ namespace lsp
                 }
             }
 
-            // Check that port name contains "time_" prefix
+            // Check that port name contains "_time_" prefix
             if (strstr(id, TIME_PORT_PREFIX) == id)
             {
                 const char *ui_id = &id[strlen(TIME_PORT_PREFIX)];
@@ -512,7 +523,7 @@ namespace lsp
                 return res;
 
             LSPString xpath;
-            if (xpath.fmt_utf8("ui/%s", path) <= 0)
+            if (xpath.fmt_utf8(LSP_BUILTIN_PREFIX "ui/%s", path) <= 0)
                 return STATUS_NO_MEM;
 
             // Create window and PluginWindow controller
@@ -536,7 +547,7 @@ namespace lsp
 
             // Parse the XML document
             xml::RootNode root(&ctx, "plugin", wndc);
-            xml::Handler handler(pLoader);
+            xml::Handler handler(&sLoader);
             return handler.parse_resource(&xpath, &root);
         }
 
@@ -765,6 +776,104 @@ namespace lsp
         {
             return scaling;
         }
+
+        status_t IWrapper::init_visual_schema()
+        {
+            status_t res;
+            ui::IPort *s_port   = port(UI_VISUAL_SCHEMA_PORT);
+            const char *schema  = ((s_port != NULL) && (meta::is_path_port(s_port->metadata()))) ?
+                                    s_port->buffer<const char>() :
+                                    NULL;
+
+            // Try to load selected schema
+            if ((schema != NULL) && (strlen(schema) > 0))
+            {
+                if ((res = load_visual_schema(schema)) == STATUS_OK)
+                    return res;
+            }
+
+            // Load fallback schema
+            return load_visual_schema(LSP_BUILTIN_PREFIX "schema/lsp-modern.xml");
+        }
+
+        status_t IWrapper::load_visual_schema(const char *file)
+        {
+            if (pDisplay == NULL)
+                return STATUS_BAD_STATE;
+
+            tk::StyleSheet ss;
+            status_t res = load_stylesheet(&ss, file);
+            if (res != STATUS_OK)
+                return res;
+
+            return pDisplay->schema()->apply(&ss, &sLoader);
+        }
+
+        status_t IWrapper::load_visual_schema(const io::Path *file)
+        {
+            if (pDisplay == NULL)
+                return STATUS_BAD_STATE;
+
+            tk::StyleSheet ss;
+            status_t res = load_stylesheet(&ss, file);
+            if (res != STATUS_OK)
+                return res;
+
+            return pDisplay->schema()->apply(&ss, &sLoader);
+        }
+
+        status_t IWrapper::load_visual_schema(const LSPString *file)
+        {
+            if (pDisplay == NULL)
+                return STATUS_BAD_STATE;
+
+            tk::StyleSheet ss;
+            status_t res = load_stylesheet(&ss, file);
+            if (res != STATUS_OK)
+                return res;
+
+            return pDisplay->schema()->apply(&ss, &sLoader);
+        }
+
+        status_t IWrapper::load_stylesheet(tk::StyleSheet *sheet, const char *file)
+        {
+            if ((sheet == NULL) || (file == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            LSPString path;
+            if (!path.set_utf8(file))
+                return STATUS_NO_MEM;
+
+            return load_stylesheet(sheet, &path);
+        }
+
+        status_t IWrapper::load_stylesheet(tk::StyleSheet *sheet, const io::Path *file)
+        {
+            if ((sheet == NULL) || (file == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            return load_stylesheet(sheet, file->as_string());
+        }
+
+        status_t IWrapper::load_stylesheet(tk::StyleSheet *sheet, const LSPString *file)
+        {
+            if ((sheet == NULL) || (file == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            // Read the resource as sequence
+            io::IInSequence *is = sLoader.read_sequence(file, "UTF-8");
+            if (is == NULL)
+                return sLoader.last_error();
+
+            // Parse the sheet data and close the input sequence
+            status_t res    = sheet->parse_data(is);
+            status_t res2   = is->close();
+            if (res == STATUS_OK)
+                res         = res2;
+
+            return res;
+        }
+
     }
 } /* namespace lsp */
 
