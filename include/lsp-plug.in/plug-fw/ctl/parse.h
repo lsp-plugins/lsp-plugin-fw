@@ -39,62 +39,62 @@
 
 // Data parsing
 #define PARSE_INT(var, code) \
-    { \
+    do { \
         long __; \
         if (::lsp::ctl::parse_int(var, &__)) \
             { code; } \
-    }
+    } while (false)
 
 #define PARSE_UINT(var, code) \
-    { \
+    do { \
         unsigned long __; \
         if (::lsp::ctl::parse_uint(var, &__)) \
             { code; } \
-    }
+    } while (false)
 
 #define PARSE_LONG(var, code) \
-    { \
+    do { \
         long long __; \
         if (::lsp::ctl::parse_long(var, &__)) \
             { code; } \
-    }
+    } while (false)
 
 #define PARSE_ULONG(var, code) \
-    { \
+    do { \
         unsigned long long __; \
         if (::lsp::ctl::parse_ulong(var, &__)) \
             { code; } \
-    }
+    } while (false)
 
 #define PARSE_BOOL(var, code) \
-    { \
+    do { \
         bool __; \
         if (::lsp::ctl::parse_bool(var, &__)) \
             { code; } \
-    }
+    } while (false)
 
 #define PARSE_FLOAT(var, code) \
-    { \
+    do { \
         float __; \
         if (::lsp::ctl::parse_float(var, &__)) \
             { code; } \
-    }
+    } while (false)
 
 #define PARSE_DOUBLE(var, code) \
-    { \
+    do { \
         double __; \
         if (::lsp::ctl::parse_double(var, &__)) \
             { code; } \
-    }
+    } while (false)
 
 #define PARSE_FLAG(var, dst, flag) PARSE_BOOL(var, if (__) dst |= (flag); else dst &= ~(flag))
 
 #define BIND_PORT(ctl, field, id) \
-    { \
+    do { \
         field   = ctl->port(id); \
         if (field != NULL) \
             field->bind(this); \
-    }
+    } while (false)
 
 #define BIND_EXPR(field, expr) \
     (field).parse(expr);

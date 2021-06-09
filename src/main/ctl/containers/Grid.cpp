@@ -92,7 +92,7 @@ namespace lsp
 
                 // Legacy property
                 if (!strcmp(name, "transpose"))
-                    PARSE_BOOL(value, grd->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL))
+                    PARSE_BOOL(value, grd->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL));
             }
 
             sRows.set("rows", name, value);

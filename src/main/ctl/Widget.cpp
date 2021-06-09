@@ -88,14 +88,14 @@ namespace lsp
             name += len;
 
             if      (!strcmp(name, ".name"))        f->set_name(value);
-            else if (!strcmp(name, ".size"))        PARSE_FLOAT(value, f->set_size(__))
-            else if (!strcmp(name, ".sz"))          PARSE_FLOAT(value, f->set_size(__))
-            else if (!strcmp(name, ".bold"))        PARSE_BOOL(value, f->set_bold(__))
-            else if (!strcmp(name, ".b"))           PARSE_BOOL(value, f->set_bold(__))
-            else if (!strcmp(name, ".italic"))      PARSE_BOOL(value, f->set_italic(__))
-            else if (!strcmp(name, ".i"))           PARSE_BOOL(value, f->set_italic(__))
-            else if (!strcmp(name, ".underline"))   PARSE_BOOL(value, f->set_underline(__))
-            else if (!strcmp(name, ".u"))           PARSE_BOOL(value, f->set_underline(__))
+            else if (!strcmp(name, ".size"))        PARSE_FLOAT(value, f->set_size(__));
+            else if (!strcmp(name, ".sz"))          PARSE_FLOAT(value, f->set_size(__));
+            else if (!strcmp(name, ".bold"))        PARSE_BOOL(value, f->set_bold(__));
+            else if (!strcmp(name, ".b"))           PARSE_BOOL(value, f->set_bold(__));
+            else if (!strcmp(name, ".italic"))      PARSE_BOOL(value, f->set_italic(__));
+            else if (!strcmp(name, ".i"))           PARSE_BOOL(value, f->set_italic(__));
+            else if (!strcmp(name, ".underline"))   PARSE_BOOL(value, f->set_underline(__));
+            else if (!strcmp(name, ".u"))           PARSE_BOOL(value, f->set_underline(__));
             else if (!strcmp(name, ".antialiasing"))f->set_antialiasing(value);
             else if (!strcmp(name, ".antialias"))   f->set_antialiasing(value);
             else if (!strcmp(name, ".a"))           f->set_antialiasing(value);
@@ -111,9 +111,9 @@ namespace lsp
             if (!(name = match_prefix(param, name)))
                 return false;
 
-            if (name[0] == '\0')                    PARSE_FLOAT(value, r->set(__))
-            else if (!strcmp(name, "min"))          PARSE_FLOAT(value, r->set_min(__))
-            else if (!strcmp(name, "max"))          PARSE_FLOAT(value, r->set_max(__))
+            if (name[0] == '\0')                    PARSE_FLOAT(value, r->set(__));
+            else if (!strcmp(name, "min"))          PARSE_FLOAT(value, r->set_min(__));
+            else if (!strcmp(name, "max"))          PARSE_FLOAT(value, r->set_max(__));
             else return false;
 
             return true;
@@ -124,12 +124,12 @@ namespace lsp
             if (alloc == NULL)
                 return false;
 
-            if      (!strcmp(name, "fill"))         PARSE_BOOL(value, alloc->set_fill(__))
-            else if (!strcmp(name, "hfill"))        PARSE_BOOL(value, alloc->set_hfill(__))
-            else if (!strcmp(name, "vfill"))        PARSE_BOOL(value, alloc->set_vfill(__))
-            else if (!strcmp(name, "expand"))       PARSE_BOOL(value, alloc->set_expand(__))
-            else if (!strcmp(name, "hexpand"))      PARSE_BOOL(value, alloc->set_hexpand(__))
-            else if (!strcmp(name, "vexpand"))      PARSE_BOOL(value, alloc->set_vexpand(__))
+            if      (!strcmp(name, "fill"))         PARSE_BOOL(value, alloc->set_fill(__));
+            else if (!strcmp(name, "hfill"))        PARSE_BOOL(value, alloc->set_hfill(__));
+            else if (!strcmp(name, "vfill"))        PARSE_BOOL(value, alloc->set_vfill(__));
+            else if (!strcmp(name, "expand"))       PARSE_BOOL(value, alloc->set_expand(__));
+            else if (!strcmp(name, "hexpand"))      PARSE_BOOL(value, alloc->set_hexpand(__));
+            else if (!strcmp(name, "vexpand"))      PARSE_BOOL(value, alloc->set_vexpand(__));
             else return false;
 
             return true;
@@ -140,21 +140,21 @@ namespace lsp
             if (c == NULL)
                 return false;
 
-            if      (!strcmp(name, "width"))        PARSE_INT(value, c->set_width(__))
-            else if (!strcmp(name, "wmin"))         PARSE_INT(value, c->set_min_width(__))
-            else if (!strcmp(name, "width.min"))    PARSE_INT(value, c->set_min_width(__))
-            else if (!strcmp(name, "wmax"))         PARSE_INT(value, c->set_max_width(__))
-            else if (!strcmp(name, "width.max"))    PARSE_INT(value, c->set_max_width(__))
-            else if (!strcmp(name, "min_width"))    PARSE_INT(value, c->set_min_width(__))
-            else if (!strcmp(name, "max_width"))    PARSE_INT(value, c->set_max_width(__))
-            else if (!strcmp(name, "height"))       PARSE_INT(value, c->set_height(__))
-            else if (!strcmp(name, "hmin"))         PARSE_INT(value, c->set_min_height(__))
-            else if (!strcmp(name, "height.min"))   PARSE_INT(value, c->set_min_height(__))
-            else if (!strcmp(name, "hmax"))         PARSE_INT(value, c->set_max_height(__))
-            else if (!strcmp(name, "height.max"))   PARSE_INT(value, c->set_max_height(__))
-            else if (!strcmp(name, "min_height"))   PARSE_INT(value, c->set_min_height(__))
-            else if (!strcmp(name, "max_height"))   PARSE_INT(value, c->set_max_height(__))
-            else if (!strcmp(name, "size"))         PARSE_INT(value, c->set_all(__))
+            if      (!strcmp(name, "width"))        PARSE_INT(value, c->set_width(__));
+            else if (!strcmp(name, "wmin"))         PARSE_INT(value, c->set_min_width(__));
+            else if (!strcmp(name, "width.min"))    PARSE_INT(value, c->set_min_width(__));
+            else if (!strcmp(name, "wmax"))         PARSE_INT(value, c->set_max_width(__));
+            else if (!strcmp(name, "width.max"))    PARSE_INT(value, c->set_max_width(__));
+            else if (!strcmp(name, "min_width"))    PARSE_INT(value, c->set_min_width(__));
+            else if (!strcmp(name, "max_width"))    PARSE_INT(value, c->set_max_width(__));
+            else if (!strcmp(name, "height"))       PARSE_INT(value, c->set_height(__));
+            else if (!strcmp(name, "hmin"))         PARSE_INT(value, c->set_min_height(__));
+            else if (!strcmp(name, "height.min"))   PARSE_INT(value, c->set_min_height(__));
+            else if (!strcmp(name, "hmax"))         PARSE_INT(value, c->set_max_height(__));
+            else if (!strcmp(name, "height.max"))   PARSE_INT(value, c->set_max_height(__));
+            else if (!strcmp(name, "min_height"))   PARSE_INT(value, c->set_min_height(__));
+            else if (!strcmp(name, "max_height"))   PARSE_INT(value, c->set_max_height(__));
+            else if (!strcmp(name, "size"))         PARSE_INT(value, c->set_all(__));
             else return false;
 
             return true;
@@ -162,12 +162,12 @@ namespace lsp
 
         bool Widget::set_layout(tk::Layout *l, const char *name, const char *value)
         {
-            if      (!strcmp(name, "align"))        PARSE_FLOAT(value, l->set_align(__))
-            else if (!strcmp(name, "halign"))       PARSE_FLOAT(value, l->set_halign(__))
-            else if (!strcmp(name, "valign"))       PARSE_FLOAT(value, l->set_valign(__))
-            else if (!strcmp(name, "scale"))        PARSE_FLOAT(value, l->set_scale(__))
-            else if (!strcmp(name, "hscale"))       PARSE_FLOAT(value, l->set_hscale(__))
-            else if (!strcmp(name, "vscale"))       PARSE_FLOAT(value, l->set_vscale(__))
+            if      (!strcmp(name, "align"))        PARSE_FLOAT(value, l->set_align(__));
+            else if (!strcmp(name, "halign"))       PARSE_FLOAT(value, l->set_halign(__));
+            else if (!strcmp(name, "valign"))       PARSE_FLOAT(value, l->set_valign(__));
+            else if (!strcmp(name, "scale"))        PARSE_FLOAT(value, l->set_scale(__));
+            else if (!strcmp(name, "hscale"))       PARSE_FLOAT(value, l->set_hscale(__));
+            else if (!strcmp(name, "vscale"))       PARSE_FLOAT(value, l->set_vscale(__));
             else return false;
 
             return true;
@@ -180,8 +180,8 @@ namespace lsp
             if (!(name = match_prefix(param, name)))
                 return false;
 
-            if (!strcmp(name, "align"))             PARSE_FLOAT(value, a->set_align(__))
-            else if (!strcmp(name, "scale"))        PARSE_FLOAT(value, a->set_scale(__))
+            if (!strcmp(name, "align"))             PARSE_FLOAT(value, a->set_align(__));
+            else if (!strcmp(name, "scale"))        PARSE_FLOAT(value, a->set_scale(__));
             else return false;
 
             return true;
@@ -189,10 +189,10 @@ namespace lsp
 
         bool Widget::set_text_layout(tk::TextLayout *l, const char *name, const char *value)
         {
-            if      (!strcmp(name, "htext"))        PARSE_FLOAT(value, l->set_halign(__))
-            else if (!strcmp(name, "vtext"))        PARSE_FLOAT(value, l->set_valign(__))
-            else if (!strcmp(name, "text.halign"))  PARSE_FLOAT(value, l->set_halign(__))
-            else if (!strcmp(name, "text.valign"))  PARSE_FLOAT(value, l->set_valign(__))
+            if      (!strcmp(name, "htext"))        PARSE_FLOAT(value, l->set_halign(__));
+            else if (!strcmp(name, "vtext"))        PARSE_FLOAT(value, l->set_valign(__));
+            else if (!strcmp(name, "text.halign"))  PARSE_FLOAT(value, l->set_halign(__));
+            else if (!strcmp(name, "text.valign"))  PARSE_FLOAT(value, l->set_valign(__));
             else return false;
 
             return true;
@@ -304,19 +304,19 @@ namespace lsp
             if (e == NULL)
                 return false;
 
-            if      (!strcmp(name, "embed"))        PARSE_BOOL(value, e->set(__))
-            else if (!strcmp(name, "embed.h"))      PARSE_BOOL(value, e->set_horizontal(__))
-            else if (!strcmp(name, "embed.hor"))    PARSE_BOOL(value, e->set_horizontal(__))
-            else if (!strcmp(name, "embed.v"))      PARSE_BOOL(value, e->set_vertical(__))
-            else if (!strcmp(name, "embed.vert"))   PARSE_BOOL(value, e->set_vertical(__))
-            else if (!strcmp(name, "embed.l"))      PARSE_BOOL(value, e->set_left(__))
-            else if (!strcmp(name, "embed.left"))   PARSE_BOOL(value, e->set_left(__))
-            else if (!strcmp(name, "embed.r"))      PARSE_BOOL(value, e->set_right(__))
-            else if (!strcmp(name, "embed.right"))  PARSE_BOOL(value, e->set_right(__))
-            else if (!strcmp(name, "embed.t"))      PARSE_BOOL(value, e->set_top(__))
-            else if (!strcmp(name, "embed.top"))    PARSE_BOOL(value, e->set_top(__))
-            else if (!strcmp(name, "embed.b"))      PARSE_BOOL(value, e->set_bottom(__))
-            else if (!strcmp(name, "embed.bottom")) PARSE_BOOL(value, e->set_bottom(__))
+            if      (!strcmp(name, "embed"))        PARSE_BOOL(value, e->set(__));
+            else if (!strcmp(name, "embed.h"))      PARSE_BOOL(value, e->set_horizontal(__));
+            else if (!strcmp(name, "embed.hor"))    PARSE_BOOL(value, e->set_horizontal(__));
+            else if (!strcmp(name, "embed.v"))      PARSE_BOOL(value, e->set_vertical(__));
+            else if (!strcmp(name, "embed.vert"))   PARSE_BOOL(value, e->set_vertical(__));
+            else if (!strcmp(name, "embed.l"))      PARSE_BOOL(value, e->set_left(__));
+            else if (!strcmp(name, "embed.left"))   PARSE_BOOL(value, e->set_left(__));
+            else if (!strcmp(name, "embed.r"))      PARSE_BOOL(value, e->set_right(__));
+            else if (!strcmp(name, "embed.right"))  PARSE_BOOL(value, e->set_right(__));
+            else if (!strcmp(name, "embed.t"))      PARSE_BOOL(value, e->set_top(__));
+            else if (!strcmp(name, "embed.top"))    PARSE_BOOL(value, e->set_top(__));
+            else if (!strcmp(name, "embed.b"))      PARSE_BOOL(value, e->set_bottom(__));
+            else if (!strcmp(name, "embed.bottom")) PARSE_BOOL(value, e->set_bottom(__));
             else return false;
 
             return true;
@@ -325,13 +325,13 @@ namespace lsp
         bool Widget::set_orientation(tk::Orientation *o, const char *name, const char *value)
         {
             if (!strcmp(name, "hor"))
-                PARSE_BOOL(value, o->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL))
+                PARSE_BOOL(value, o->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL));
             else if (!strcmp(name, "horizontal"))
-                PARSE_BOOL(value, o->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL))
+                PARSE_BOOL(value, o->set((__) ? tk::O_HORIZONTAL : tk::O_VERTICAL));
             else if (!strcmp(name, "vert"))
-                PARSE_BOOL(value, o->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL))
+                PARSE_BOOL(value, o->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL));
             else if (!strcmp(name, "vertical"))
-                PARSE_BOOL(value, o->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL))
+                PARSE_BOOL(value, o->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL));
             else if (!strcmp(name, "orientation"))
                 o->parse(value);
             else

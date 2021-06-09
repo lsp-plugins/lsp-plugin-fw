@@ -188,8 +188,7 @@ namespace lsp
 
         void PluginWindow::set(const char *name, const char *value)
         {
-            if (!strcmp(name, "resizable"))
-                PARSE_BOOL(value, bResizable = __)
+            set_value(&bResizable, "resizable", name, value);
 
             tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
             if (wnd != NULL)
