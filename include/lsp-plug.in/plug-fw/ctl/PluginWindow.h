@@ -64,6 +64,13 @@ namespace lsp
                     tk::MenuItem       *item;
                 } scaling_sel_t;
 
+                typedef struct schema_sel_t
+                {
+                    ctl::PluginWindow  *ctl;
+                    tk::MenuItem       *item;
+                    LSPString           location;
+                } schema_sel_t;
+
                 class ConfigSink: public tk::TextDataSink
                 {
                     private:
@@ -101,6 +108,7 @@ namespace lsp
                 ui::IPort                  *pUIScaling;
                 ui::IPort                  *pUIScalingHost;
                 ui::IPort                  *pUIFontScaling;
+                ui::IPort                  *pVisualSchema;
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
 
@@ -108,6 +116,7 @@ namespace lsp
                 lltl::parray<lang_sel_t>    vLangSel;
                 lltl::parray<scaling_sel_t> vScalingSel;
                 lltl::parray<scaling_sel_t> vFontScalingSel;
+                lltl::parray<schema_sel_t>  vSchemaSel;
 
             protected:
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
@@ -146,6 +155,8 @@ namespace lsp
                 static status_t slot_font_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_font_scaling_select(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t slot_visual_schema_select(tk::Widget *sender, void *ptr, void *data);
+
                 static status_t slot_window_resize(tk::Widget *sender, void *ptr, void *data);
 
             protected:
@@ -165,11 +176,13 @@ namespace lsp
                 status_t            init_i18n_support(tk::Menu *menu);
                 status_t            init_scaling_support(tk::Menu *menu);
                 status_t            init_font_scaling_support(tk::Menu *menu);
+                status_t            init_visual_schema_support(tk::Menu *menu);
                 status_t            create_main_menu();
                 bool                has_path_ports();
                 void                sync_language_selection();
                 void                sync_ui_scaling();
                 void                sync_font_scaling();
+                void                sync_visual_schemas();
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);

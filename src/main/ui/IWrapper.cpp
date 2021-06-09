@@ -793,7 +793,14 @@ namespace lsp
             }
 
             // Load fallback schema
-            return load_visual_schema(LSP_BUILTIN_PREFIX "schema/lsp-modern.xml");
+            schema          = LSP_BUILTIN_PREFIX "schema/modern.xml";
+            if (s_port != NULL)
+            {
+                s_port->write(schema, strlen(schema));
+                s_port->notify_all();
+            }
+
+            return load_visual_schema(schema);
         }
 
         status_t IWrapper::load_visual_schema(const char *file)

@@ -94,6 +94,7 @@ namespace lsp
             pUIScaling      = NULL;
             pUIScalingHost  = NULL;
             pUIFontScaling  = NULL;
+            pVisualSchema   = NULL;
 
             pConfigSink     = NULL;
         }
@@ -160,6 +161,15 @@ namespace lsp
             }
             vFontScalingSel.flush();
 
+            // Delete UI schema selection bindings
+            for (size_t i=0, n=vSchemaSel.size(); i<n; ++i)
+            {
+                schema_sel_t *s = vSchemaSel.uget(i);
+                if (s != NULL)
+                    delete s;
+            }
+            vSchemaSel.flush();
+
             wContent        = NULL;
             wMessage        = NULL;
             wRack[0]        = NULL;
@@ -216,6 +226,7 @@ namespace lsp
             BIND_PORT(pWrapper, pUIScaling, UI_SCALING_PORT);
             BIND_PORT(pWrapper, pUIScalingHost, UI_SCALING_HOST);
             BIND_PORT(pWrapper, pUIFontScaling, UI_FONT_SCALING_PORT);
+            BIND_PORT(pWrapper, pVisualSchema, UI_VISUAL_SCHEMA_PORT);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
 
@@ -381,6 +392,9 @@ namespace lsp
 
                 // Create UI scaling menu
                 init_font_scaling_support(wMenu);
+
+                // Create schema selection support menu
+                init_visual_schema_support(wMenu);
 
 //                // Add support of 3D rendering backend switch
 //                if (meta->extensions & E_3D_BACKEND)
@@ -577,7 +591,7 @@ namespace lsp
             {
                 if ((item = create_menu_item(menu)) == NULL)
                     return STATUS_NO_MEM;
-                item->type()->set_check();
+                item->type()->set_radio();
                 item->text()->set_key("actions.ui_scaling.value:pc");
                 item->text()->params()->set_int("value", scale);
 
@@ -652,7 +666,7 @@ namespace lsp
             {
                 if ((item = create_menu_item(menu)) == NULL)
                     return STATUS_NO_MEM;
-                item->type()->set_check();
+                item->type()->set_radio();
                 item->text()->set_key("actions.font_scaling.value:pc");
                 item->text()->params()->set_int("value", scale);
 
@@ -672,6 +686,109 @@ namespace lsp
 
                 item->slots()->bind(tk::SLOT_SUBMIT, slot_font_scaling_select, sel);
             }
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::init_visual_schema_support(tk::Menu *menu)
+        {
+            status_t res;
+            resource::ILoader *loader = pWrapper->resources();
+            if ((loader == NULL) || (pVisualSchema == NULL))
+                return STATUS_OK;
+
+            // Create submenu item
+            tk::MenuItem *item          = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set("actions.visual_schema.select");
+
+            menu                = new tk::Menu(menu->display());
+            if (menu == NULL)
+                return STATUS_NO_MEM;
+            if ((res = menu->init()) != STATUS_OK)
+            {
+                menu->destroy();
+                delete menu;
+                return res;
+            }
+            if (!vWidgets.add(menu))
+            {
+                menu->destroy();
+                delete menu;
+                return STATUS_NO_MEM;
+            }
+            item->menu()->set(menu);
+            tk::MenuItem *root  = item;
+
+            // For that we need to scan all available schemas in the resource directory
+            resource::resource_t *list = NULL;
+            ssize_t count = loader->enumerate(LSP_BUILTIN_PREFIX "schema", &list);
+            if ((count <= 0) || (list == NULL))
+            {
+                if (list != NULL)
+                    free(list);
+                return STATUS_OK;
+            }
+
+            // Generate the 'Visual Schema' menu items
+            schema_sel_t *sel;
+
+            for (ssize_t i=0; i<count; ++i)
+            {
+                tk::StyleSheet sheet;
+                LSPString path;
+
+                if (list[i].type != resource::RES_FILE)
+                    continue;
+
+                if (!path.fmt_ascii(LSP_BUILTIN_PREFIX "schema/%s", list[i].name))
+                {
+                    free(list);
+                    return STATUS_NO_MEM;
+                }
+
+                // Try to load schema
+                if ((res = pWrapper->load_stylesheet(&sheet, &path)) != STATUS_OK)
+                {
+                    if (res == STATUS_NO_MEM)
+                    {
+                        free(list);
+                        return res;
+                    }
+                    continue;
+                }
+
+                // Append menu item
+                if ((item = create_menu_item(menu)) == NULL)
+                    return STATUS_NO_MEM;
+                item->type()->set_radio();
+                item->text()->set_key(sheet.title());
+                item->text()->params()->set_string("file", &path);
+
+                // Append the shema to the menu
+                if ((sel = new schema_sel_t()) == NULL)
+                {
+                    free(list);
+                    return STATUS_NO_MEM;
+                }
+
+                sel->ctl        = this;
+                sel->item       = item;
+                sel->location.swap(&path);
+
+                if (!vSchemaSel.add(sel))
+                {
+                    delete sel;
+                    free(list);
+                    return STATUS_NO_MEM;
+                }
+
+                item->slots()->bind(tk::SLOT_SUBMIT, slot_visual_schema_select, sel);
+            }
+
+            free(list);
+            root->visibility()->set(vSchemaSel.size() > 0);
 
             return STATUS_OK;
         }
@@ -926,6 +1043,22 @@ namespace lsp
             }
         }
 
+        void PluginWindow::sync_visual_schemas()
+        {
+            const char *path = (pVisualSchema != NULL) ? pVisualSchema->buffer<const char>() : NULL;
+
+            // Update the UI scaling
+            for (size_t i=0, n=vSchemaSel.size(); i<n; ++i)
+            {
+                schema_sel_t *xsel = vSchemaSel.uget(i);
+                if (xsel->item != NULL)
+                {
+                    bool checked = (path != NULL) && xsel->location.equals_utf8(path);
+                    xsel->item->checked()->set(checked);
+                }
+            }
+        }
+
         void PluginWindow::begin()
         {
             Widget::begin();
@@ -978,6 +1111,8 @@ namespace lsp
                 wnd->actions()->set_maximizable(bResizable);
             }
 
+            if (pVisualSchema != NULL)
+                notify(pVisualSchema);
             if (pUIScalingHost != NULL)
                 notify(pUIScalingHost);
             if (pUIScaling != NULL)
@@ -995,11 +1130,12 @@ namespace lsp
 
             if (port == pLanguage)
                 sync_language_selection();
-
             if ((port == pUIScaling) || (port == pUIScalingHost))
                 sync_ui_scaling();
             if (port == pUIFontScaling)
                 sync_font_scaling();
+            if (port == pVisualSchema)
+                sync_visual_schemas();
         }
 
         status_t PluginWindow::add(ctl::Widget *child)
@@ -1633,6 +1769,39 @@ namespace lsp
             {
                 _this->pUIFontScaling->set_value(sel->scaling);
                 _this->pUIFontScaling->notify_all();
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_visual_schema_select(tk::Widget *sender, void *ptr, void *data)
+        {
+            schema_sel_t *sel  = static_cast<schema_sel_t *>(ptr);
+            if (sel == NULL)
+                return STATUS_OK;
+
+            PluginWindow *_this = sel->ctl;
+            if (_this == NULL)
+                return STATUS_OK;
+
+            // Try to load schema first
+            if (_this->pWrapper->load_visual_schema(&sel->location) == STATUS_OK)
+            {
+                const char *value = sel->location.get_utf8();
+
+                if (_this->pVisualSchema != NULL)
+                {
+                    _this->pVisualSchema->write(value, strlen(value));
+                    _this->pVisualSchema->notify_all();
+                }
+
+                // Notify other parameters
+                if (_this->pUIFontScaling != NULL)
+                    _this->pUIFontScaling->notify_all();
+                if (_this->pUIScaling != NULL)
+                    _this->pUIScaling->notify_all();
+                if (_this->pLanguage != NULL)
+                    _this->pLanguage->notify_all();
             }
 
             return STATUS_OK;
