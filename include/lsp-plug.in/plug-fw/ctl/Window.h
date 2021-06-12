@@ -33,23 +33,33 @@ namespace lsp
 {
     namespace ctl
     {
-        class Window: public Widget, public IRegistry
+        class Window: public Widget
         {
             public:
                 static const ctl_class_t metadata;
+
+            protected:
+                ctl::Registry           sControllers;
+                tk::Registry            sWidgets;
 
             public:
                 explicit Window(ui::IWrapper *src, tk::Window *window);
                 virtual ~Window();
 
+                virtual void            destroy();
+
             public:
-                virtual void        begin();
+                inline ctl::Registry   *controllers()   { return &sControllers; }
+                inline tk::Registry    *widgets()       { return &sWidgets;     }
 
-                virtual void        set(const char *name, const char *value);
+            public:
+                virtual void            begin(ui::UIContext *ctx);
 
-                virtual status_t    add(ctl::Widget *child);
+                virtual void            set(ui::UIContext *ctx, const char *name, const char *value);
 
-                virtual void        end();
+                virtual status_t        add(ui::UIContext *ctx, ctl::Widget *child);
+
+                virtual void            end(ui::UIContext *ctx);
         };
     }
 }

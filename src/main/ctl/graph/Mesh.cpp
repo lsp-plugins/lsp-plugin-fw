@@ -35,7 +35,7 @@ namespace lsp
             tk::GraphMesh *w = new tk::GraphMesh(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -87,7 +87,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Mesh::set(const char *name, const char *value)
+        void Mesh::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::GraphMesh *gm   = tk::widget_cast<tk::GraphMesh>(wWidget);
             if (gm != NULL)
@@ -124,7 +124,7 @@ namespace lsp
                 set_expr(&sSIndex, "s", name, value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
         void Mesh::notify(ui::IPort *port)
@@ -141,9 +141,9 @@ namespace lsp
                 rebuild_mesh();
         }
 
-        void Mesh::end()
+        void Mesh::end(ui::UIContext *ctx)
         {
-            Widget::end();
+            Widget::end(ctx);
             rebuild_mesh();
         }
 

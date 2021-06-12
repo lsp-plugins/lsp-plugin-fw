@@ -41,7 +41,7 @@
 
     // Widget controllers
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
-    #include <lsp-plug.in/plug-fw/ctl/IRegistry.h>
+    #include <lsp-plug.in/plug-fw/ctl/Registry.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
     #include <lsp-plug.in/plug-fw/ctl/Window.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>

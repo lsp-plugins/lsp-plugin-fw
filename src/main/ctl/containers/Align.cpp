@@ -35,7 +35,7 @@ namespace lsp
             tk::Align *w = new tk::Align(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -78,7 +78,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Align::set(const char *name, const char *value)
+        void Align::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Align *alg = tk::widget_cast<tk::Align>(wWidget);
             if (alg != NULL)
@@ -96,7 +96,7 @@ namespace lsp
                 set_constraints(alg->constraints(), name, value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
         void Align::update_alignment()
@@ -115,7 +115,7 @@ namespace lsp
                 alg->layout()->set_vscale(sVScale.evaluate());
         }
 
-        status_t Align::add(ctl::Widget *child)
+        status_t Align::add(ui::UIContext *ctx, ctl::Widget *child)
         {
             tk::Align *alg = tk::widget_cast<tk::Align>(wWidget);
             return (alg != NULL) ? alg->add(child->widget()) : STATUS_BAD_STATE;
@@ -132,9 +132,10 @@ namespace lsp
                 update_alignment();
         }
 
-        void Align::end()
+        void Align::end(ui::UIContext *ctx)
         {
             update_alignment();
+            Widget::end(ctx);
         }
     }
 }

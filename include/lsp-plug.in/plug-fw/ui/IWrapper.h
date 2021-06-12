@@ -44,7 +44,7 @@ namespace lsp
 {
     namespace ctl
     {
-        class Widget;
+        class Window;
     }
 
     namespace ui
@@ -73,6 +73,8 @@ namespace lsp
 
             protected:
                 tk::Display                *pDisplay;           // Display object
+                tk::Window                 *wWindow;            // The main window
+                ctl::Window                *pWindow;            // The controller for window
                 ui::Module                 *pUI;
                 resource::PrefixLoader      sLoader;            // Prefix-based resource loader
                 size_t                      nFlags;             // Flags
@@ -84,7 +86,6 @@ namespace lsp
                 lltl::parray<IPort>         vTimePorts;         // Time-related ports
                 lltl::parray<IPort>         vCustomPorts;       // Custom-defined ports
                 lltl::pphash<LSPString, LSPString> vAliases;    // Port aliases
-                lltl::parray<ctl::Widget>   vControllers;       // Controllers
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
@@ -201,13 +202,6 @@ namespace lsp
                  * Signal to quit main loop
                  */
                 void                        quit_main_loop();
-
-                /**
-                 * Add controller
-                 * @param widget
-                 * @return
-                 */
-                bool                        add_controller(ctl::Widget *widget);
 
                 /**
                  * check that main loop is still active

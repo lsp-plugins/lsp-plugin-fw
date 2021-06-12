@@ -36,6 +36,11 @@
 
 namespace lsp
 {
+    namespace ui
+    {
+        class UIContext;
+    }
+
     namespace ctl
     {
         /**
@@ -109,26 +114,27 @@ namespace lsp
 
                 /** Set attribute to widget controller
                  *
+                 * @param ctx context
                  * @param name attribute name
                  * @param value attribute value
                  */
-                virtual void        set(const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
 
                 /** Begin internal part of controller
                  *
                  */
-                virtual void        begin();
+                virtual void        begin(ui::UIContext *ctx);
 
                 /** Add child widget
                  *
                  * @param child child widget to add
                  */
-                virtual status_t    add(ctl::Widget *child);
+                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
 
                 /** End internal part of controller
                  *
                  */
-                virtual void        end();
+                virtual void        end(ui::UIContext *ctx);
 
                 /** Notify controller about one of port bindings has changed
                  *

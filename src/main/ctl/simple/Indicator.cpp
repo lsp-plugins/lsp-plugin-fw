@@ -37,7 +37,7 @@ namespace lsp
             tk::Indicator *w = new tk::Indicator(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -89,7 +89,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Indicator::set(const char *name, const char *value)
+        void Indicator::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Indicator *ind = tk::widget_cast<tk::Indicator>(wWidget);
             if (ind != NULL)
@@ -104,7 +104,7 @@ namespace lsp
                     parse_format(value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
         void Indicator::commit_value(float value)
@@ -140,8 +140,9 @@ namespace lsp
                 commit_value(pPort->value());
         }
 
-        void Indicator::end()
+        void Indicator::end(ui::UIContext *ctx)
         {
+            Widget::end(ctx);
             if (pPort != NULL)
                 commit_value(pPort->value());
         }

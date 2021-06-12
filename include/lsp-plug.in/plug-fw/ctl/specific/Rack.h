@@ -58,9 +58,7 @@ namespace lsp
                 virtual status_t    init();
 
             public:
-                virtual void        set(const char *name, const char *value);
-
-                virtual void        end();
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
         };
 
     } /* namespace ctl */

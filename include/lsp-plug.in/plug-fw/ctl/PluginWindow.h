@@ -37,10 +37,14 @@ namespace lsp
         /**
          * The plugin's window controller
          */
-        class PluginWindow: public ctl::Widget
+        class PluginWindow: public ctl::Window
         {
             public:
                 static const ctl_class_t metadata;
+
+            private:
+                PluginWindow & operator = (const PluginWindow &);
+                PluginWindow(const PluginWindow &);
 
             protected:
 //                typedef struct backend_sel_t
@@ -89,7 +93,6 @@ namespace lsp
             protected:
                 bool                        bResizable;
 
-                lltl::parray<tk::Widget>    vWidgets;   // List of created widgets
                 tk::WidgetContainer        *wContent;   // The main box containing all widgets
                 tk::Window                 *wMessage;   // Greeting message window
                 tk::Widget                 *wRack[3];   // Rack ears
@@ -199,13 +202,13 @@ namespace lsp
                 virtual void        destroy();
 
             public:
-                virtual void        begin();
+                virtual void        begin(ui::UIContext *ctx);
 
-                virtual void        set(const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
 
-                virtual status_t    add(ctl::Widget *child);
+                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
 
-                virtual void        end();
+                virtual void        end(ui::UIContext *ctx);
 
                 virtual void        notify(ui::IPort *port);
         };

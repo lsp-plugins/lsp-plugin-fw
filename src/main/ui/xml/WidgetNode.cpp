@@ -42,7 +42,7 @@ namespace lsp
 
             status_t WidgetNode::enter()
             {
-                pWidget->begin();
+                pWidget->begin(pContext);
                 return STATUS_OK;
             }
 
@@ -70,7 +70,7 @@ namespace lsp
                 }
 
                 // Create and initialize widget
-                ctl::Widget *widget         = pContext->create_widget(name, atts);
+                ctl::Widget *widget         = pContext->create_controller(name, atts);
                 if (widget == NULL)
                     return STATUS_OK;       // No handler
 
@@ -85,7 +85,7 @@ namespace lsp
 
             status_t WidgetNode::quit()
             {
-                pWidget->end();
+                pWidget->end(pContext);
                 return STATUS_OK;
             }
 
@@ -98,7 +98,7 @@ namespace lsp
                     {
                         ctl::Widget *w = pChild->pWidget;
                         if (w != NULL)
-                            res = pWidget->add(w);
+                            res = pWidget->add(pContext, w);
                     }
 
                     // Remove child

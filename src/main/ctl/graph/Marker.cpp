@@ -36,7 +36,7 @@ namespace lsp
             tk::GraphMarker *w = new tk::GraphMarker(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -104,7 +104,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Marker::set(const char *name, const char *value)
+        void Marker::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::GraphMarker *gm = tk::widget_cast<tk::GraphMarker>(wWidget);
             if (gm != NULL)
@@ -151,7 +151,7 @@ namespace lsp
                 sHoverRightColor.set("hover_right_color", name, value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
         float Marker::eval_expr(ctl::Expression *expr)
@@ -232,8 +232,10 @@ namespace lsp
                 gm->direction()->set_angle(eval_expr(&sAngle) * M_PI);
         }
 
-        void Marker::end()
+        void Marker::end(ui::UIContext *ctx)
         {
+            Widget::end(ctx);
+
             trigger_expr();
 
             tk::GraphMarker *gm = tk::widget_cast<tk::GraphMarker>(wWidget);

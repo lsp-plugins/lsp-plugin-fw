@@ -35,7 +35,7 @@ namespace lsp
             tk::Void *w = new tk::Void(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -77,7 +77,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Void::set(const char *name, const char *value)
+        void Void::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Void *vd = tk::widget_cast<tk::Void>(wWidget);
             if (vd != NULL)
@@ -87,7 +87,7 @@ namespace lsp
                 set_constraints(vd->constraints(), name, value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
     }
 }

@@ -35,11 +35,11 @@ namespace lsp
         /**
          * Registry for controllers
          */
-        class IRegistry
+        class Registry
         {
             private:
-                IRegistry & operator = (const IRegistry &);
-                IRegistry(const IRegistry &);
+                Registry & operator = (const Registry &);
+                Registry(const Registry &);
 
             protected:
                 lltl::parray<Widget>    vControllers; // List of registered controllers
@@ -48,15 +48,15 @@ namespace lsp
                 void                    do_destroy();
 
             public:
-                explicit IRegistry();
-                virtual ~IRegistry();
+                explicit Registry();
+                virtual ~Registry();
 
                 virtual void            destroy();
 
             public:
-                virtual status_t        register_controller(Widget *w);
+                virtual status_t        add(ctl::Widget *w);
         };
     }
 }
 
-#endif /* INCLUDE_LSP_PLUG_IN_PLUG_FW_CTL_IREGISTRY_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_IREGISTRY_H_ */

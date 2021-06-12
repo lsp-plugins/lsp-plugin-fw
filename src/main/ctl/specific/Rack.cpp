@@ -35,7 +35,7 @@ namespace lsp
             tk::RackEars *w = new tk::RackEars(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -86,7 +86,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Rack::set(const char *name, const char *value)
+        void Rack::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::RackEars *re = tk::widget_cast<tk::RackEars>(wWidget);
             if (re != NULL)
@@ -116,12 +116,7 @@ namespace lsp
                 sText.set("text", name, value);
             }
 
-            return Widget::set(name, value);
-        }
-
-        void Rack::end()
-        {
-            Widget::end();
+            return Widget::set(ctx, name, value);
         }
     }
 }

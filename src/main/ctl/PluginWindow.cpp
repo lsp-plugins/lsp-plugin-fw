@@ -66,9 +66,9 @@ namespace lsp
 
         //-----------------------------------------------------------------
         // Plugin window
-        const ctl_class_t PluginWindow::metadata = { "PluginWindow", &Widget::metadata };
+        const ctl_class_t PluginWindow::metadata = { "PluginWindow", &Window::metadata };
 
-        PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget): Widget(src, widget)
+        PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget): Window(src, widget)
         {
             pClass          = &metadata;
 
@@ -107,7 +107,7 @@ namespace lsp
         void PluginWindow::destroy()
         {
             do_destroy();
-            Widget::destroy();
+            Window::destroy();
         }
 
         void PluginWindow::do_destroy()
@@ -118,21 +118,6 @@ namespace lsp
                 pConfigSink->unbind();
                 pConfigSink->release();
             }
-
-            // Unregister all child widgets
-            if (pWrapper != NULL)
-                pWrapper->ui()->unmap_widgets(vWidgets.array(), vWidgets.size());
-
-            // Destroy all nested widgets
-            for (size_t i=0, n=vWidgets.size(); i<n; ++i)
-            {
-                tk::Widget *w = vWidgets.uget(i);
-                if (w == NULL)
-                    continue;
-                w->destroy();
-                delete w;
-            }
-            vWidgets.flush();
 
             // Delete language selection bindings
             for (size_t i=0, n=vLangSel.size(); i<n; ++i)
@@ -196,19 +181,19 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void PluginWindow::set(const char *name, const char *value)
+        void PluginWindow::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             set_value(&bResizable, "resizable", name, value);
 
             tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
             if (wnd != NULL)
                 set_constraints(wnd->constraints(), name, value);
-            Widget::set(name, value);
+            Window::set(ctx, name, value);
         }
 
         status_t PluginWindow::init()
         {
-            Widget::init();
+            Window::init();
 
             // Get window handle
             tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
@@ -269,15 +254,14 @@ namespace lsp
 
             // Initialize menu
             wMenu = new tk::Menu(dpy);
-            pWrapper->ui()->map_widget(WUID_MAIN_MENU, wMenu);
-            vWidgets.add(wMenu);
+            widgets()->add(WUID_MAIN_MENU, wMenu);
             wMenu->init();
 
             // Initialize menu items
             {
                 // Add 'Plugin manual' menu item
                 tk::MenuItem *itm       = new tk::MenuItem(dpy);
-                vWidgets.add(itm);
+                widgets()->add(itm);
                 itm->init();
                 itm->text()->set("actions.plugin_manual");
                 itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_plugin_manual, this);
@@ -285,7 +269,7 @@ namespace lsp
 
                 // Add 'UI manual' menu item
                 itm                     = new tk::MenuItem(dpy);
-                vWidgets.add(itm);
+                widgets()->add(itm);
                 itm->init();
                 itm->text()->set("actions.ui_manual");
                 itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_ui_manual, this);
@@ -293,19 +277,18 @@ namespace lsp
 
                 // Add separator
                 itm     = new tk::MenuItem(dpy);
-                vWidgets.add(itm);
+                widgets()->add(itm);
                 itm->init();
                 itm->type()->set_separator();
                 wMenu->add(itm);
 
                 // Create 'Export' submenu and bind to parent
                 tk::Menu *submenu = new tk::Menu(dpy);
-                vWidgets.add(submenu);
+                widgets()->add(WUID_EXPORT_MENU, submenu);
                 submenu->init();
-                pWrapper->ui()->map_widget(WUID_EXPORT_MENU, submenu);
 
                 itm = new tk::MenuItem(dpy);
-                vWidgets.add(itm);
+                widgets()->add(itm);
                 itm->init();
                 itm->text()->set("actions.export");
                 itm->menu()->set(submenu);
@@ -314,14 +297,14 @@ namespace lsp
                 // Create 'Export' menu items
                 {
                     tk::MenuItem *child = new tk::MenuItem(dpy);
-                    vWidgets.add(child);
+                    widgets()->add(child);
                     child->init();
                     child->text()->set("actions.export_settings_to_file");
                     child->slots()->bind(tk::SLOT_SUBMIT, slot_export_settings_to_file, this);
                     submenu->add(child);
 
                     child = new tk::MenuItem(dpy);
-                    vWidgets.add(child);
+                    widgets()->add(child);
                     child->init();
                     child->text()->set("actions.export_settings_to_clipboard");
                     child->slots()->bind(tk::SLOT_SUBMIT, slot_export_settings_to_clipboard, this);
@@ -330,12 +313,11 @@ namespace lsp
 
                 // Create 'Import' menu and bind to parent
                 submenu = new tk::Menu(dpy);
-                vWidgets.add(submenu);
+                widgets()->add(WUID_IMPORT_MENU, submenu);
                 submenu->init();
-                pWrapper->ui()->map_widget(WUID_IMPORT_MENU, submenu);
 
                 itm = new tk::MenuItem(dpy);
-                vWidgets.add(itm);
+                widgets()->add(itm);
                 itm->init();
                 itm->text()->set("actions.import");
                 itm->menu()->set(submenu);
@@ -344,14 +326,14 @@ namespace lsp
                 // Create import menu items
                 {
                     tk::MenuItem *child = new tk::MenuItem(dpy);
-                    vWidgets.add(child);
+                    widgets()->add(child);
                     child->init();
                     child->text()->set("actions.import_settings_from_file");
                     child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_file, this);
                     submenu->add(child);
 
                     child = new tk::MenuItem(dpy);
-                    vWidgets.add(child);
+                    widgets()->add(child);
                     child->init();
                     child->text()->set("actions.import_settings_from_clipboard");
                     child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_clipboard, this);
@@ -360,14 +342,14 @@ namespace lsp
 
                 // Add separator
                 itm     = new tk::MenuItem(dpy);
-                vWidgets.add(itm);
+                widgets()->add(itm);
                 itm->init();
                 itm->type()->set_separator();
                 wMenu->add(itm);
 
                 // Create 'Toggle rack mount' menu item
                 itm     = new tk::MenuItem(dpy);
-                vWidgets.add(itm);
+                widgets()->add(itm);
                 itm->init();
                 itm->text()->set("actions.toggle_rack_mount");
                 itm->slots()->bind(tk::SLOT_SUBMIT, slot_toggle_rack_mount, this);
@@ -377,7 +359,7 @@ namespace lsp
                 if (meta->extensions & meta::E_DUMP_STATE)
                 {
                     itm     = new tk::MenuItem(dpy);
-                    vWidgets.add(itm);
+                    widgets()->add(itm);
                     itm->init();
                     itm->text()->set("actions.debug_dump");
                     itm->slots()->bind(tk::SLOT_SUBMIT, slot_debug_dump, this);
@@ -418,7 +400,7 @@ namespace lsp
                 return NULL;
             }
 
-            if (!vWidgets.add(item))
+            if (widgets()->add(item) != STATUS_OK)
             {
                 item->destroy();
                 delete item;
@@ -461,7 +443,7 @@ namespace lsp
                 delete menu;
                 return res;
             }
-            if (!vWidgets.add(menu))
+            if (widgets()->add(menu) != STATUS_OK)
             {
                 menu->destroy();
                 delete menu;
@@ -551,7 +533,7 @@ namespace lsp
                 delete menu;
                 return res;
             }
-            if (!vWidgets.add(menu))
+            if (widgets()->add(menu) != STATUS_OK)
             {
                 menu->destroy();
                 delete menu;
@@ -634,7 +616,7 @@ namespace lsp
                 delete menu;
                 return res;
             }
-            if (!vWidgets.add(menu))
+            if (widgets()->add(menu) != STATUS_OK)
             {
                 menu->destroy();
                 delete menu;
@@ -712,7 +694,7 @@ namespace lsp
                 delete menu;
                 return res;
             }
-            if (!vWidgets.add(menu))
+            if (widgets()->add(menu) != STATUS_OK)
             {
                 menu->destroy();
                 delete menu;
@@ -1059,13 +1041,13 @@ namespace lsp
             }
         }
 
-        void PluginWindow::begin()
+        void PluginWindow::begin(ui::UIContext *ctx)
         {
-            Widget::begin();
+            Window::begin(ctx);
 
             // Create context
-            ui::UIContext ctx(pWrapper);
-            status_t res = ctx.init();
+            ui::UIContext xctx(pWrapper, controllers(), widgets());
+            status_t res = xctx.init();
             if (res != STATUS_OK)
                 return;
 
@@ -1074,19 +1056,17 @@ namespace lsp
             if (wnd.init() != STATUS_OK)
                 return;
 
-            ui::xml::RootNode root(&ctx, "window", &wnd);
+            ui::xml::RootNode root(&xctx, "window", &wnd);
             ui::xml::Handler handler(pWrapper->resources());
             handler.parse_resource(LSP_BUILTIN_PREFIX "ui/window.xml", &root);
             wnd.destroy();
 
             // Get proper widgets and initialize window layout
-            ui::Module *ui  = pWrapper->ui();
+            wRack[0]        = tk::widget_cast<tk::RackEars>(widgets()->find("rack_top"));
+            wRack[1]        = tk::widget_cast<tk::RackEars>(widgets()->find("rack_left"));
+            wRack[2]        = tk::widget_cast<tk::RackEars>(widgets()->find("rack_right"));
 
-            wRack[0]        = tk::widget_cast<tk::RackEars>(ui->find_widget("rack_top"));
-            wRack[1]        = tk::widget_cast<tk::RackEars>(ui->find_widget("rack_left"));
-            wRack[2]        = tk::widget_cast<tk::RackEars>(ui->find_widget("rack_right"));
-
-            wContent        = tk::widget_cast<tk::WidgetContainer>(ui->find_widget("plugin_content"));
+            wContent        = tk::widget_cast<tk::WidgetContainer>(widgets()->find("plugin_content"));
 
             for (size_t i=0; i<(sizeof(wRack)/sizeof(tk::Widget *)); ++i)
             {
@@ -1097,7 +1077,7 @@ namespace lsp
             }
         }
 
-        void PluginWindow::end()
+        void PluginWindow::end(ui::UIContext *ctx)
         {
             // Check widget pointer
             tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
@@ -1121,12 +1101,12 @@ namespace lsp
                 notify(pUIFontScaling);
 
             // Call for parent class method
-            Widget::end();
+            Window::end(ctx);
         }
 
         void PluginWindow::notify(ui::IPort *port)
         {
-            Widget::notify(port);
+            Window::notify(port);
 
             if (port == pLanguage)
                 sync_language_selection();
@@ -1138,7 +1118,7 @@ namespace lsp
                 sync_visual_schemas();
         }
 
-        status_t PluginWindow::add(ctl::Widget *child)
+        status_t PluginWindow::add(ui::UIContext *ctx, ctl::Widget *child)
         {
             return (wContent != NULL) ? wContent->add(child->widget()) : STATUS_BAD_STATE;
         }
@@ -1177,7 +1157,7 @@ namespace lsp
             if (dlg == NULL)
             {
                 dlg = new tk::FileDialog(dpy);
-                _this->vWidgets.add(dlg);
+                _this->widgets()->add(dlg);
                 _this->wExport = dlg;
 
                 dlg->init();
@@ -1191,7 +1171,7 @@ namespace lsp
 
                 // Add 'Relative paths' option
                 tk::Box *wc = new tk::Box(dpy);
-                _this->vWidgets.add(wc);
+                _this->widgets()->add(wc);
                 wc->init();
                 wc->orientation()->set_vertical();
                 wc->allocation()->set_hfill(true);
@@ -1199,20 +1179,20 @@ namespace lsp
                 if (_this->has_path_ports())
                 {
                     tk::Box *op_rpath       = new tk::Box(dpy);
-                    _this->vWidgets.add(op_rpath);
+                    _this->widgets()->add(op_rpath);
                     op_rpath->init();
                     op_rpath->orientation()->set_horizontal();
                     op_rpath->spacing()->set(4);
 
                     // Add switch button
                     tk::CheckBox *ck_rpath  = new tk::CheckBox(dpy);
-                    _this->vWidgets.add(ck_rpath);
+                    _this->widgets()->add(ck_rpath);
                     ck_rpath->init();
                     op_rpath->add(ck_rpath);
 
                     // Add label
                     tk::Label *lbl_rpath     = new tk::Label(dpy);
-                    _this->vWidgets.add(lbl_rpath);
+                    _this->widgets()->add(lbl_rpath);
                     lbl_rpath->init();
 
                     lbl_rpath->allocation()->set_expand(true);
@@ -1269,7 +1249,7 @@ namespace lsp
             if (dlg == NULL)
             {
                 dlg     = new tk::FileDialog(dpy);
-                _this->vWidgets.add(dlg);
+                _this->widgets()->add(dlg);
                 _this->wImport      = dlg;
 
                 dlg->init();
@@ -1513,7 +1493,7 @@ namespace lsp
         {
             tk::Label *lbl = new tk::Label(wWidget->display());
             lbl->init();
-            vWidgets.add(lbl);
+            widgets()->add(lbl);
             dst->add(lbl);
 
             lbl->text()->set(key);
@@ -1526,7 +1506,7 @@ namespace lsp
         {
             tk::Label *lbl = new tk::Label(wWidget->display());
             lbl->init();
-            vWidgets.add(lbl);
+            widgets()->add(lbl);
             dst->add(lbl);
 
             lbl->text()->set(key, params);
@@ -1539,7 +1519,7 @@ namespace lsp
         {
             tk::Hyperlink *hlink = new tk::Hyperlink(wWidget->display());
             hlink->init();
-            vWidgets.add(hlink);
+            widgets()->add(hlink);
             dst->add(hlink);
 
             hlink->url()->set(url);
@@ -1598,7 +1578,7 @@ namespace lsp
                 if (wMessage == NULL)
                     return STATUS_NO_MEM;
 
-                vWidgets.add(wMessage);
+                widgets()->add(wMessage);
 
                 wMessage->init();
                 wMessage->border_style()->set(ws::BS_DIALOG);
@@ -1611,7 +1591,7 @@ namespace lsp
                 vbox->init();
                 vbox->orientation()->set_vertical();
                 vbox->spacing()->set(8);
-                vWidgets.add(vbox);
+                widgets()->add(vbox);
                 wMessage->add(vbox);
 
                 expr::Parameters p;
@@ -1650,12 +1630,12 @@ namespace lsp
                 tk::Align *algn = new tk::Align(wWidget->display());
                 algn->init();
                 algn->allocation()->set_fill(true);
-                vWidgets.add(algn);
+                widgets()->add(algn);
                 vbox->add(algn);
 
                 tk::Button *btn = new tk::Button(wWidget->display());
                 btn->init();
-                vWidgets.add(btn);
+                widgets()->add(btn);
                 algn->add(btn);
                 btn->constraints()->set_min_width(96);
                 btn->text()->set("actions.close");

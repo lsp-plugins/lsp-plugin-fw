@@ -39,24 +39,25 @@ namespace lsp
         {
         }
 
-        void PluginWindowTemplate::begin()
+        void PluginWindowTemplate::begin(ui::UIContext *ctx)
         {
-            Widget::begin();
+            Widget::begin(ctx);
         }
 
-        void PluginWindowTemplate::set(const char *name, const char *value)
+        void PluginWindowTemplate::set(ui::UIContext *ctx, const char *name, const char *value)
         {
+            Widget::set(ctx, name, value);
         }
 
-        status_t PluginWindowTemplate::add(ctl::Widget *child)
+        status_t PluginWindowTemplate::add(ui::UIContext *ctx, ctl::Widget *child)
         {
             tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
             return (wnd != NULL) ? wnd->add(child->widget()) : STATUS_BAD_STATE;
         }
 
-        void PluginWindowTemplate::end()
+        void PluginWindowTemplate::end(ui::UIContext *ctx)
         {
-            Widget::end();
+            Widget::end(ctx);
         }
     }
 }

@@ -35,7 +35,7 @@ namespace lsp
             tk::Grid *w = new tk::Grid(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -78,7 +78,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Grid::set(const char *name, const char *value)
+        void Grid::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Grid *grd  = tk::widget_cast<tk::Grid>(wWidget);
             if (grd != NULL)
@@ -99,10 +99,10 @@ namespace lsp
             sCols.set("cols", name, value);
             sCols.set("columns", name, value);
 
-            Widget::set(name, value);
+            Widget::set(ctx, name, value);
         }
 
-        status_t Grid::add(ctl::Widget *child)
+        status_t Grid::add(ui::UIContext *ctx, ctl::Widget *child)
         {
             tk::Grid *grd   = tk::widget_cast<tk::Grid>(wWidget);
             if (grd == NULL)

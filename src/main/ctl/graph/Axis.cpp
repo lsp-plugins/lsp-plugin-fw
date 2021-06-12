@@ -36,7 +36,7 @@ namespace lsp
             tk::GraphAxis *w = new tk::GraphAxis(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -91,7 +91,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Axis::set(const char *name, const char *value)
+        void Axis::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
             if (ga != NULL)
@@ -115,7 +115,7 @@ namespace lsp
                 sMax.set("min", name, value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
         float Axis::eval_expr(ctl::Expression *expr)
@@ -177,7 +177,7 @@ namespace lsp
                 ga->direction()->set_angle(eval_expr(&sAngle) * M_PI);
         }
 
-        void Axis::end()
+        void Axis::end(ui::UIContext *ctx)
         {
             trigger_expr();
 

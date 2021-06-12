@@ -29,6 +29,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/ui/IWrapper.h>
 #include <lsp-plug.in/plug-fw/ui/Module.h>
+#include <lsp-plug.in/plug-fw/ctl.h>
 
 #include <lsp-plug.in/expr/Expression.h>
 #include <lsp-plug.in/expr/Variables.h>
@@ -39,6 +40,7 @@ namespace lsp
     namespace ctl
     {
         class Widget;
+        class Registry;
     }
 
     namespace ui
@@ -49,14 +51,20 @@ namespace lsp
          */
         class UIContext
         {
+            private:
+                UIContext & operator = (const UIContext &);
+                UIContext(const UIContext &);
+
             protected:
                 ui::IWrapper                   *pWrapper;
+                ctl::Registry                  *pControllers;
+                tk::Registry                   *pWidgets;
                 expr::Resolver                 *pResolver;
                 lltl::parray<expr::Variables>   vStack;
                 expr::Variables                 vRoot;
 
             public:
-                explicit UIContext(ui::IWrapper *wrapper);
+                explicit UIContext(ui::IWrapper *wrapper, ctl::Registry *controllers, tk::Registry *widgets);
                 ~UIContext();
 
                 status_t                init();
@@ -73,6 +81,18 @@ namespace lsp
                  * @return pointer to the UI wrapper
                  */
                 inline ui::IWrapper    *wrapper()           { return pWrapper;          }
+
+                /**
+                 * Get the registry for controllers
+                 * @return the registry for controllers
+                 */
+                inline ctl::Registry   *controllers()       { return pControllers;      }
+
+                /**
+                 * Get the registry for widget
+                 * @return the registry for widgets
+                 */
+                inline tk::Registry    *widgets()           { return pWidgets;          }
 
                 /**
                  * Get the display
@@ -125,7 +145,7 @@ namespace lsp
                  * @param expr expression to evaluate
                  * @return status of operation
                  */
-                status_t evaluate(expr::value_t *value, const LSPString *expr);
+                status_t    evaluate(expr::value_t *value, const LSPString *expr);
 
                 /**
                  * Evaluate value and return as string
@@ -133,7 +153,7 @@ namespace lsp
                  * @param expr expression
                  * @return status of operation
                  */
-                status_t eval_string(LSPString *value, const LSPString *expr);
+                status_t    eval_string(LSPString *value, const LSPString *expr);
 
                 /**
                  * Evaluate value and return as boolean
@@ -141,7 +161,7 @@ namespace lsp
                  * @param expr expression
                  * @return status of operation
                  */
-                status_t eval_bool(bool *value, const LSPString *expr);
+                status_t    eval_bool(bool *value, const LSPString *expr);
 
                 /**
                  * Evaluate value and return as integer
@@ -149,7 +169,7 @@ namespace lsp
                  * @param expr expression
                  * @return status of operation
                  */
-                status_t eval_int(ssize_t *value, const LSPString *expr);
+                status_t    eval_int(ssize_t *value, const LSPString *expr);
 
                 /**
                  * Create widget controller by the tag name
@@ -157,7 +177,7 @@ namespace lsp
                  * @param name the tag name of the widget
                  * @return pointer to widget controller
                  */
-                ctl::Widget *create_widget(const LSPString *name, const LSPString * const *atts);
+                ctl::Widget *create_controller(const LSPString *name, const LSPString * const *atts);
 
                 /**
                  * Set attributes to widget
@@ -166,13 +186,6 @@ namespace lsp
                  * @return status of operation
                  */
                 status_t    set_attributes(ctl::Widget *widget, const LSPString * const *atts);
-
-                /**
-                 * Add instantiated widget to the list of widgets
-                 * @param w widget to add
-                 * @return status of operation
-                 */
-                status_t add_widget(tk::Widget *w);
         };
     }
 }

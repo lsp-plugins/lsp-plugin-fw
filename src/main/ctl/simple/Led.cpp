@@ -35,7 +35,7 @@ namespace lsp
             tk::Led *w = new tk::Led(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -86,7 +86,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Led::set(const char *name, const char *value)
+        void Led::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Led *led = tk::widget_cast<tk::Led>(wWidget);
             if (led != NULL)
@@ -109,7 +109,7 @@ namespace lsp
                 set_value(&fValue, "value", name, value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
         void Led::update_value()
@@ -149,9 +149,9 @@ namespace lsp
                 update_value();
         }
 
-        void Led::end()
+        void Led::end(ui::UIContext *ctx)
         {
-            Widget::end();
+            Widget::end(ctx);
             update_value();
         }
     } /* namespace ctl */

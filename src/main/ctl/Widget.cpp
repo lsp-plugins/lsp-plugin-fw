@@ -361,7 +361,7 @@ namespace lsp
                 widget->style()->remove_parent(style);
         }
 
-        status_t Widget::add(ctl::Widget *child)
+        status_t Widget::add(ui::UIContext *ctx, ctl::Widget *child)
         {
             return STATUS_NOT_IMPLEMENTED;
         }
@@ -380,13 +380,13 @@ namespace lsp
         }
 
 
-        void Widget::set(const char *name, const char *value)
+        void Widget::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             if (wWidget == NULL)
                 return;
 
             if (!strcmp(name, "ui:id"))
-                pWrapper->ui()->map_widget(value, wWidget);
+                ctx->widgets()->map(value, wWidget);
             if (!strcmp(name, "ui:style"))
                 assign_styles(wWidget, value, true);
             if (!strcmp(name, "ui:inject"))
@@ -456,11 +456,11 @@ namespace lsp
             return true;
         }
 
-        void Widget::begin()
+        void Widget::begin(ui::UIContext *ctx)
         {
         }
 
-        void Widget::end()
+        void Widget::end(ui::UIContext *ctx)
         {
         }
 
@@ -470,9 +470,6 @@ namespace lsp
 
         void Widget::destroy()
         {
-            if ((pWrapper != NULL) && (wWidget != NULL))
-                pWrapper->ui()->unmap_widget(wWidget);
-
             pWrapper    = NULL;
             wWidget     = NULL;
         }

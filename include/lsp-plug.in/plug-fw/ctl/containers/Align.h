@@ -58,10 +58,10 @@ namespace lsp
                 virtual status_t    init();
 
             public:
-                virtual void        set(const char *name, const char *value);
-                virtual status_t    add(ctl::Widget *child);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
                 virtual void        notify(ui::IPort *port);
-                virtual void        end();
+                virtual void        end(ui::UIContext *ctx);
         };
 
     } /* namespace ctl */

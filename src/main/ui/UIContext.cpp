@@ -28,10 +28,12 @@ namespace lsp
 {
     namespace ui
     {
-        UIContext::UIContext(ui::IWrapper *wrapper)
+        UIContext::UIContext(ui::IWrapper *wrapper, ctl::Registry *controllers, tk::Registry *widgets)
         {
-            pWrapper    = wrapper;
-            pResolver   = NULL;
+            pWrapper        = wrapper;
+            pControllers    = controllers;
+            pWidgets        = widgets;
+            pResolver       = NULL;
         }
 
         UIContext::~UIContext()
@@ -184,43 +186,43 @@ namespace lsp
             return STATUS_OK;
         }
 
-        ctl::Widget *UIContext::create_widget(const LSPString *name, const LSPString * const *atts)
+        ctl::Widget *UIContext::create_controller(const LSPString *name, const LSPString * const *atts)
         {
             status_t res;
             if (name == NULL)
                 return NULL;
 
             // Instantiate the widget
-            ctl::Widget *w = NULL;
+            ctl::Widget *c = NULL;
 
             for (ctl::Factory *f = ctl::Factory::root(); f != NULL; f = f->next())
             {
-                status_t res = f->create(&w, this, name);
+                status_t res = f->create(&c, this, name);
                 if (res == STATUS_OK)
                     break;
                 if (res != STATUS_NOT_FOUND)
                     return NULL;
             }
 
-            if (w == NULL)
+            if (c == NULL)
                 return NULL;
 
             // Add to controller
-            if (!pWrapper->add_controller(w))
+            if (pControllers->add(c) != STATUS_OK)
             {
-                delete w;
+                delete c;
                 return NULL;
             }
 
             // Initialize wiget
-            if ((w->init()) != STATUS_OK)
+            if ((c->init()) != STATUS_OK)
                 return NULL;
 
             // Initialize widget attributes
-            if ((res = set_attributes(w, atts)) != STATUS_OK)
+            if ((res = set_attributes(c, atts)) != STATUS_OK)
                 return NULL;
 
-            return w;
+            return c;
         }
 
         status_t UIContext::set_attributes(ctl::Widget *widget, const LSPString * const *atts)
@@ -237,20 +239,10 @@ namespace lsp
                     return res;
 
                 // Set widget attribute
-                widget->set(aname.get_utf8(), avalue.get_utf8());
+                widget->set(this, aname.get_utf8(), avalue.get_utf8());
             }
 
             return STATUS_OK;
-        }
-
-        status_t UIContext::add_widget(tk::Widget *w)
-        {
-            if (pWrapper == NULL)
-                return STATUS_BAD_STATE;
-            ui::Module *ui = pWrapper->ui();
-            if (ui == NULL)
-                return STATUS_BAD_STATE;
-            return ui->add_widget(w);
         }
     }
 }

@@ -38,7 +38,7 @@ namespace lsp
             tk::GraphText *w = new tk::GraphText(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -85,7 +85,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Text::set(const char *name, const char *value)
+        void Text::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::GraphText *gt   = tk::widget_cast<tk::GraphText>(wWidget);
             if (gt != NULL)
@@ -116,7 +116,7 @@ namespace lsp
                 set_param(gt->origin(), "center", name, value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
         void Text::trigger_expr()
@@ -144,9 +144,9 @@ namespace lsp
                 trigger_expr();
         }
 
-        void Text::end()
+        void Text::end(ui::UIContext *ctx)
         {
-            Widget::end();
+            Widget::end(ctx);
             trigger_expr();
         }
     }

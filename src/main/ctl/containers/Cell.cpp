@@ -61,7 +61,7 @@ namespace lsp
             vParams.flush();
         }
 
-        void Cell::set(const char *name, const char *value)
+        void Cell::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             if (set_value(&nRows, "rows", name, value))
                 return;
@@ -92,7 +92,7 @@ namespace lsp
             dst[1]      = kvalue;
         }
 
-        status_t Cell::add(ctl::Widget *child)
+        status_t Cell::add(ui::UIContext *ctx, ctl::Widget *child)
         {
             if (cChild != NULL)
                 return STATUS_ALREADY_EXISTS;
@@ -108,7 +108,7 @@ namespace lsp
                     const char *value   = vParams.uget(i+1);
 
                     if ((name != NULL) && (value != NULL))
-                        child->set(name, value);
+                        child->set(ctx, name, value);
                 }
             }
 

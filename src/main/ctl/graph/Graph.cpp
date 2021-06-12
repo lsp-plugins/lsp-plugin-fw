@@ -35,7 +35,7 @@ namespace lsp
             tk::Graph *w = new tk::Graph(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -81,7 +81,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Graph::set(const char *name, const char *value)
+        void Graph::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Graph *gr   = tk::widget_cast<tk::Graph>(wWidget);
             if (gr != NULL)
@@ -105,10 +105,10 @@ namespace lsp
                 sIPadding.set("ipad", name, value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
-        status_t Graph::add(ctl::Widget *child)
+        status_t Graph::add(ui::UIContext *ctx, ctl::Widget *child)
         {
             tk::Graph *gr   = tk::widget_cast<tk::Graph>(wWidget);
             return (gr != NULL) ? gr->add(child->widget()) : STATUS_BAD_STATE;

@@ -32,8 +32,6 @@
 #include <lsp-plug.in/plug-fw/ui/IWrapper.h>
 
 #include <lsp-plug.in/tk/tk.h>
-#include <lsp-plug.in/lltl/parray.h>
-#include <lsp-plug.in/lltl/pphash.h>
 
 namespace lsp
 {
@@ -54,12 +52,9 @@ namespace lsp
                 IWrapper                           *pWrapper;
                 tk::Display                        *pDisplay;           // Display object
                 tk::Widget                         *wRoot;              // Root widget (window)
-                lltl::pphash<char, tk::Widget>      sMapping;
-                lltl::parray<tk::Widget>            vWidgets;
 
             protected:
-                void                        do_destroy();
-                bool                        remove_item(lltl::parray<tk::Widget> *slist, tk::Widget *w);
+                void                            do_destroy();
 
             public:
                 explicit Module(const meta::plugin_t *meta);
@@ -71,12 +66,12 @@ namespace lsp
                  * @param dpy display object
                  * @return status of operation
                  */
-                virtual status_t            init(IWrapper *wrapper, tk::Display *dpy);
+                virtual status_t                init(IWrapper *wrapper, tk::Display *dpy);
 
                 /**
                  * Destroy the UI
                  */
-                virtual void                destroy();
+                virtual void                    destroy();
 
             public:
                 inline const meta::plugin_t    *metadata() const        { return pMetadata;         }
@@ -90,12 +85,12 @@ namespace lsp
                 /** Method executed when the time position of plugin was updated
                  *
                  */
-                void                        position_updated(const plug::position_t *pos);
+                void                            position_updated(const plug::position_t *pos);
 
                 /**
                  * Synchronize state of meta ports
                  */
-                void                        sync_meta_ports();
+                void                            sync_meta_ports();
 
                 /**
                  * Notify the write of the KVT parameter
@@ -103,54 +98,8 @@ namespace lsp
                  * @param id kvt parameter identifier
                  * @param value KVT parameter value
                  */
-                virtual void                kvt_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value);
+                virtual void                    kvt_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value);
 
-                /**
-                 * Add widget
-                 * @param w widget to add
-                 * @return status of operation
-                 */
-                status_t                    add_widget(tk::Widget *w);
-
-                /**
-                 * Map widget (assign unique identifier)
-                 * @param uid unique identifier of widget
-                 * @param w widget to map
-                 * @return status of operation
-                 */
-                status_t                    map_widget(const char *uid, tk::Widget *w);
-                status_t                    map_widget(const LSPString *uid, tk::Widget *w);
-
-                /**
-                 * Unmap widget by it's identifier
-                 * @param uid unique widget identifier
-                 * @return status of operation
-                 */
-                status_t                    unmap_widget(const char *uid);
-                status_t                    unmap_widget(const LSPString *uid);
-
-                /**
-                 * Unmap widget by it's pointer to the instance
-                 * @param w pointer to widget instance
-                 * @return status of operation
-                 */
-                status_t                    unmap_widget(const tk::Widget *w);
-
-                /**
-                 * Unmap all widgets passed as arguments
-                 * @param w pointer to array of widgets
-                 * @param n size of array
-                 * @return number of unmapped widgets or negative error code
-                 */
-                ssize_t                     unmap_widgets(const tk::Widget * const *w, size_t n);
-
-                /**
-                 * Map widget (assign unique identifier)
-                 * @param uid unique identifier of widget
-                 * @return the resolved widget or NULL
-                 */
-                tk::Widget                 *find_widget(const char *uid);
-                tk::Widget                 *find_widget(const LSPString *uid);
         };
     }
 }

@@ -36,7 +36,7 @@ namespace lsp
             tk::Button *w = new tk::Button(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -95,7 +95,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Button::set(const char *name, const char *value)
+        void Button::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
             if (btn != NULL)
@@ -132,7 +132,7 @@ namespace lsp
                 set_text_layout(btn->text_layout(), name, value);
             }
 
-            Widget::set(name, value);
+            Widget::set(ctx, name, value);
         }
 
         void Button::commit_value(float value)
@@ -247,7 +247,7 @@ namespace lsp
             trigger_expr();
         }
 
-        void Button::end()
+        void Button::end(ui::UIContext *ctx)
         {
             tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
             if (btn == NULL)
@@ -275,7 +275,7 @@ namespace lsp
             }
 
             trigger_expr();
-            Widget::end();
+            Widget::end(ctx);
         }
 
         status_t Button::slot_change(tk::Widget *sender, void *ptr, void *data)

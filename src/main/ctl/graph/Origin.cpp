@@ -35,7 +35,7 @@ namespace lsp
             tk::GraphOrigin *w = new tk::GraphOrigin(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -81,7 +81,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Origin::set(const char *name, const char *value)
+        void Origin::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::GraphOrigin *go = tk::widget_cast<tk::GraphOrigin>(wWidget);
             if (go != NULL)
@@ -96,7 +96,7 @@ namespace lsp
                 sColor.set("color", name, value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
         void Origin::notify(ui::IPort *port)

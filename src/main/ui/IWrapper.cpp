@@ -79,6 +79,8 @@ namespace lsp
         IWrapper::IWrapper(Module *ui)
         {
             pDisplay    = NULL;
+            wWindow     = NULL;
+            pWindow     = NULL;
             pUI         = ui;
             nFlags      = 0;
         }
@@ -92,17 +94,21 @@ namespace lsp
 
         void IWrapper::destroy()
         {
-            // Destroy controllers in reverse order
-            for (size_t i=vControllers.size(); (i--) > 0; )
+            // Destroy window controller if present
+            if (pWindow != NULL)
             {
-                ctl::Widget *w = vControllers.uget(i);
-                if (w != NULL)
-                {
-                    w->destroy();
-                    delete w;
-                }
+                pWindow->destroy();
+                delete pWindow;
+                pWindow = NULL;
             }
-            vControllers.flush();
+
+            // Destroy the window widget if present
+            if (wWindow != NULL)
+            {
+                wWindow->destroy();
+                delete wWindow;
+                wWindow = NULL;
+            }
 
             // Clear all aliases
             lltl::parray<LSPString> aliases;
@@ -494,11 +500,6 @@ namespace lsp
                 dpy->quit_main();
         }
 
-        bool IWrapper::add_controller(ctl::Widget *widget)
-        {
-            return vControllers.add(widget);
-        }
-
         IPort *IWrapper::port(const LSPString *id)
         {
             return port(id->get_ascii());
@@ -516,37 +517,34 @@ namespace lsp
 
         status_t IWrapper::build_ui(const char *path)
         {
-            // Create context
-            UIContext ctx(this);
-            status_t res = ctx.init();
-            if (res != STATUS_OK)
+            status_t res;
+
+            // Create window widget
+            wWindow     = new tk::Window(pDisplay);
+            if (wWindow == NULL)
+                return STATUS_NO_MEM;
+            if ((res = wWindow->init()) != STATUS_OK)
                 return res;
 
+            // Create window controller
+            pWindow     = new ctl::PluginWindow(this, wWindow);
+            if (pWindow == NULL)
+                return STATUS_NO_MEM;
+            if ((res = pWindow->init()) != STATUS_OK)
+                return res;
+
+            // Form the location of the resource
             LSPString xpath;
             if (xpath.fmt_utf8(LSP_BUILTIN_PREFIX "ui/%s", path) <= 0)
                 return STATUS_NO_MEM;
 
-            // Create window and PluginWindow controller
-            tk::Window *wnd     = new tk::Window(ctx.display());
-            if (wnd == NULL)
-                return STATUS_NO_MEM;
-            if ((res = ctx.add_widget(wnd)) != STATUS_OK)
-            {
-                delete wnd;
-                return res;
-            }
-            if ((res = wnd->init()) != STATUS_OK)
-                return res;
-
-            ctl::PluginWindow *wndc     = new ctl::PluginWindow(ctx.wrapper(), wnd);
-            if (wndc == NULL)
-                return STATUS_NO_MEM;
-            ctx.wrapper()->add_controller(wndc);
-            if ((res = wndc->init()) != STATUS_OK)
+            // Create context
+            UIContext ctx(this, pWindow->controllers(), pWindow->widgets());
+            if ((res = ctx.init()) != STATUS_OK)
                 return res;
 
             // Parse the XML document
-            xml::RootNode root(&ctx, "plugin", wndc);
+            xml::RootNode root(&ctx, "plugin", pWindow);
             xml::Handler handler(&sLoader);
             return handler.parse_resource(&xpath, &root);
         }

@@ -67,7 +67,7 @@ namespace lsp
                         return res;
                 }
                 else // Instantiate new widget and set it's attributes
-                    widget                  = pContext->create_widget(name, atts);
+                    widget                  = pContext->create_controller(name, atts);
 
                 // No handler?
                 if (widget == NULL)

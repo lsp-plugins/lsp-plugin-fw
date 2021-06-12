@@ -40,7 +40,7 @@ namespace lsp
             tk::Box *w = new tk::Box(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -86,7 +86,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Box::set(const char *name, const char *value)
+        void Box::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Box *box    = tk::widget_cast<tk::Box>(wWidget);
             if (box != NULL)
@@ -110,10 +110,10 @@ namespace lsp
                 }
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
-        status_t Box::add(ctl::Widget *child)
+        status_t Box::add(ui::UIContext *ctx, ctl::Widget *child)
         {
             tk::Box *box    = tk::widget_cast<tk::Box>(wWidget);
             return (box != NULL) ? box->add(child->widget()) : STATUS_BAD_STATE;

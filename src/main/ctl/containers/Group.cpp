@@ -35,7 +35,7 @@ namespace lsp
             tk::Group *w = new tk::Group(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -82,7 +82,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Group::set(const char *name, const char *value)
+        void Group::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Group *grp  = tk::widget_cast<tk::Group>(wWidget);
             if (grp != NULL)
@@ -111,10 +111,10 @@ namespace lsp
             }
 
             sEmbed.set("embed", name, value);
-            Widget::set(name, value);
+            Widget::set(ctx, name, value);
         }
 
-        status_t Group::add(ctl::Widget *child)
+        status_t Group::add(ui::UIContext *ctx, ctl::Widget *child)
         {
             tk::Group *grp  = tk::widget_cast<tk::Group>(wWidget);
             return (grp != NULL) ? grp->add(child->widget()) : STATUS_BAD_STATE;

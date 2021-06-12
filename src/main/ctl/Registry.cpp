@@ -25,26 +25,28 @@ namespace lsp
 {
     namespace ctl
     {
-        IRegistry::IRegistry()
+        Registry::Registry()
         {
         }
 
-        IRegistry::~IRegistry()
-        {
-            do_destroy();
-        }
-
-        void IRegistry::destroy()
+        Registry::~Registry()
         {
             do_destroy();
         }
 
-        void IRegistry::do_destroy()
+        void Registry::destroy()
+        {
+            do_destroy();
+        }
+
+        void Registry::do_destroy()
         {
             // Destroy all widgets in reverse order
             for (size_t i=vControllers.size(); (i--) > 0;)
             {
                 ctl::Widget *w = vControllers.uget(i);
+//                lsp_trace("c = %p", w);
+
                 if (w != NULL)
                 {
                     w->destroy();
@@ -54,8 +56,10 @@ namespace lsp
             vControllers.flush();
         }
 
-        status_t IRegistry::register_controller(Widget *w)
+        status_t Registry::add(ctl::Widget *w)
         {
+//            lsp_trace("c = %p", w);
+
             if (w == NULL)
                 return STATUS_BAD_ARGUMENTS;
 

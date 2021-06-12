@@ -35,7 +35,7 @@ namespace lsp
             tk::Knob *w = new tk::Knob(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -100,7 +100,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Knob::set(const char *name, const char *value)
+        void Knob::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Knob *knob = tk::widget_cast<tk::Knob>(wWidget);
             if (knob != NULL)
@@ -160,7 +160,7 @@ namespace lsp
                 set_param(knob->scale_marks(), "scale.marks", name, value);
             }
 
-            return Widget::set(name, value);
+            return Widget::set(ctx, name, value);
         }
 
         void Knob::submit_value()
@@ -280,10 +280,10 @@ namespace lsp
                 commit_value(pPort->value());
         }
 
-        void Knob::end()
+        void Knob::end(ui::UIContext *ctx)
         {
             // Call parent controller
-            Widget::end();
+            Widget::end(ctx);
 
             // Ensure that widget is set
             tk::Knob *knob = tk::widget_cast<tk::Knob>(wWidget);

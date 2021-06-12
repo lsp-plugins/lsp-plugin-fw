@@ -49,7 +49,7 @@ namespace lsp
             tk::Label *w = new tk::Label(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
-            if ((res = context->add_widget(w)) != STATUS_OK)
+            if ((res = context->widgets()->add(w)) != STATUS_OK)
             {
                 delete w;
                 return res;
@@ -303,7 +303,7 @@ namespace lsp
             return true;
         }
 
-        void Label::set(const char *name, const char *value)
+        void Label::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Label *lbl = tk::widget_cast<tk::Label>(wWidget);
             if (lbl != NULL)
@@ -326,7 +326,7 @@ namespace lsp
                 sColor.set("color", name, value);
             }
 
-            Widget::set(name, value);
+            Widget::set(ctx, name, value);
         }
 
         void Label::notify(ui::IPort *port)
@@ -336,10 +336,10 @@ namespace lsp
                 commit_value();
         }
 
-        void Label::end()
+        void Label::end(ui::UIContext *ctx)
         {
             commit_value();
-            Widget::end();
+            Widget::end(ctx);
         }
 
         status_t Label::slot_dbl_click(tk::Widget *sender, void *ptr, void *data)
