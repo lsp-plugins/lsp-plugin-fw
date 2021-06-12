@@ -184,10 +184,6 @@ namespace lsp
         void PluginWindow::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             set_value(&bResizable, "resizable", name, value);
-
-            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
-            if (wnd != NULL)
-                set_constraints(wnd->constraints(), name, value);
             Window::set(ctx, name, value);
         }
 
@@ -1533,6 +1529,7 @@ namespace lsp
 
         status_t PluginWindow::show_notification()
         {
+            status_t res;
             LSPString key, value;
             tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
             if (wnd == NULL)
@@ -1541,7 +1538,6 @@ namespace lsp
             // Get default dictionary
             const meta::package_t *pkg  = pWrapper->package();
             const meta::plugin_t *meta  = pWrapper->ui()->metadata();
-            i18n::IDictionary *dict     = get_default_dict(wnd);
 
             LSPString pkgver, plugver;
             pkgver.fmt_ascii("%d.%d.%d",
@@ -1574,74 +1570,34 @@ namespace lsp
 
             if (wMessage == NULL)
             {
+                // Create window
                 wMessage = new tk::Window(wWidget->display());
                 if (wMessage == NULL)
                     return STATUS_NO_MEM;
-
                 widgets()->add(wMessage);
-
                 wMessage->init();
-                wMessage->border_style()->set(ws::BS_DIALOG);
-                wMessage->title()->set("titles.update_notification");
-                wMessage->actions()->deny_all();
-                wMessage->actions()->set_closeable(true);
-                inject_style(wMessage, "GreetingDialog");
 
-                tk::Box *vbox = new tk::Box(wWidget->display());
-                vbox->init();
-                vbox->orientation()->set_vertical();
-                vbox->spacing()->set(8);
-                widgets()->add(vbox);
-                wMessage->add(vbox);
+                // Create controller
+                ctl::Window *ctl = new ctl::Window(pWrapper, wMessage);
+                if (ctl == NULL)
+                    return STATUS_NO_MEM;
+                controllers()->add(ctl);
+                ctl->init();
 
-                expr::Parameters p;
-                p.set_string("package", &pkgver);
-                p.set_string("version", &plugver);
-                p.set_cstring("artifact", pkg->artifact);
-                p.set_cstring("project", pkg->full_name);
-                p.set_cstring("acronym", pkg->short_name);
-                p.set_cstring("site", pkg->site);
+                ui::UIContext uctx(pWrapper, ctl->controllers(), ctl->widgets());
+                if ((res = uctx.init()) != STATUS_OK)
+                    return res;
 
-                tk::Label *lbl  = create_label(vbox, "headings.greetings", "GreetingDialog::Heading");
-                lbl  = create_plabel(vbox, "messages.greetings.0", &p, "GreetingDialog::Text");
-                lbl->font()->set_bold();
-                lbl  = create_plabel(vbox, "messages.greetings.1", &p, "GreetingDialog::Text");
-                lbl  = create_label(vbox, "messages.greetings.2", "GreetingDialog::Text");
-
-                // Create list of donation URLs
-                if (dict)
-                {
-                    for (int i=0; ; ++i) {
-                        if (!key.fmt_utf8("project.donations.%d", i))
-                            break;
-                        if (dict->lookup(&key, &value) != STATUS_OK)
-                            break;
-                        create_hlink(vbox, key.get_utf8(), key.get_utf8(), NULL, "GreetingDialog::Hlink");
-                    }
-                }
-
-                lbl  = create_plabel(vbox, "messages.greetings.3", &p, "GreetingDialog::Text");
-                lbl  = create_plabel(vbox, "messages.greetings.4", &p, "GreetingDialog::Text");
-
-                lbl  = create_plabel(vbox, "messages.greetings.5", &p, "GreetingDialog::Postscript");
-                lbl  = create_plabel(vbox, "messages.postscript", &p, "GreetingDialog::Postscript");
-                create_hlink(vbox, pkg->site, "messages.site", &p, "GreetingDialog::PostscriptHlink");
-
-                tk::Align *algn = new tk::Align(wWidget->display());
-                algn->init();
-                algn->allocation()->set_fill(true);
-                widgets()->add(algn);
-                vbox->add(algn);
-
-                tk::Button *btn = new tk::Button(wWidget->display());
-                btn->init();
-                widgets()->add(btn);
-                algn->add(btn);
-                btn->constraints()->set_min_width(96);
-                btn->text()->set("actions.close");
+                // Parse the XML document
+                ui::xml::RootNode root(&uctx, "window", ctl);
+                ui::xml::Handler handler(pWrapper->resources());
+                if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/greeting.xml", &root)) != STATUS_OK)
+                    return res;
 
                 // Bind slots
-                btn->slots()->bind(tk::SLOT_SUBMIT, slot_message_close, this);
+                tk::Widget *btn = ctl->widgets()->find("submit");
+                if (btn != NULL)
+                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_message_close, this);
                 wMessage->slots()->bind(tk::SLOT_CLOSE, slot_message_close, this);
             }
 

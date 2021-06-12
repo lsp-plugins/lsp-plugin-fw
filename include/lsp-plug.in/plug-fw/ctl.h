@@ -54,6 +54,7 @@
     #include <lsp-plug.in/plug-fw/ctl/simple/Switch.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Indicator.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Separator.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/Hyperlink.h>
 
     #include <lsp-plug.in/plug-fw/ctl/containers/Box.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/Align.h>

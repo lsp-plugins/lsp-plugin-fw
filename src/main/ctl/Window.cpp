@@ -38,6 +38,19 @@ namespace lsp
             sWidgets.destroy();
         }
 
+        status_t Window::init()
+        {
+            LSP_STATUS_ASSERT(Widget::init());
+
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
+            if (wnd != NULL)
+            {
+                sTitle.init(pWrapper, wnd->title());
+            }
+
+            return STATUS_OK;
+        }
+
         void Window::destroy()
         {
             sControllers.destroy();
@@ -53,6 +66,16 @@ namespace lsp
 
         void Window::set(ui::UIContext *ctx, const char *name, const char *value)
         {
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
+            if (wnd != NULL)
+            {
+                sTitle.set("title", name, value);
+
+                set_constraints(wnd->constraints(), name, value);
+                set_layout(wnd->layout(), name, value);
+                set_param(wnd->border_size(), "border", name, value);
+            }
+
             Widget::set(ctx, name, value);
         }
 
