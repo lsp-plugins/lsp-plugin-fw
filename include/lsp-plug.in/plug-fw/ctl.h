@@ -38,6 +38,7 @@
     #include <lsp-plug.in/plug-fw/ctl/util/Color.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Embedding.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Padding.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/Direction.h>
 
     // Widget controllers
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
@@ -47,6 +48,7 @@
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
 
     #include <lsp-plug.in/plug-fw/ctl/simple/Void.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/Bevel.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Label.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Knob.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Button.h>

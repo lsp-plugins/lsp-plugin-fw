@@ -173,6 +173,23 @@ namespace lsp
             return true;
         }
 
+        bool Widget::set_arrangement(tk::Arrangement *a, const char *param, const char *name, const char *value)
+        {
+            if (a == NULL)
+                return false;
+            if (!(name = match_prefix(param, name)))
+                return false;
+
+            if      (!strcmp(name, "align"))        PARSE_FLOAT(value, a->set(__));
+            else if (!strcmp(name, "halign"))       PARSE_FLOAT(value, a->set_halign(__));
+            else if (!strcmp(name, "hpos"))         PARSE_FLOAT(value, a->set_halign(__));
+            else if (!strcmp(name, "valign"))       PARSE_FLOAT(value, a->set_valign(__));
+            else if (!strcmp(name, "vpos"))         PARSE_FLOAT(value, a->set_valign(__));
+            else return false;
+
+            return true;
+        }
+
         bool Widget::set_alignment(tk::Alignment *a, const char *param, const char *name, const char *value)
         {
             if (a == NULL)

@@ -68,6 +68,7 @@ namespace lsp
                 static bool         set_allocation(tk::Allocation *alloc, const char *name, const char *value);
                 static bool         set_constraints(tk::SizeConstraints *c, const char *name, const char *value);
                 static bool         set_layout(tk::Layout *l, const char *name, const char *value);
+                static bool         set_arrangement(tk::Arrangement *a, const char *param, const char *name, const char *value);
                 static bool         set_alignment(tk::Alignment *a, const char *param, const char *name, const char *value);
                 static bool         set_text_layout(tk::TextLayout *l, const char *name, const char *value);
                 static bool         set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value);
