@@ -55,10 +55,29 @@ namespace lsp
         CTL_FACTORY_IMPL_END(Indicator)
 
 
+        void Indicator::PropListener::notify(tk::atom_t property)
+        {
+            if (pIndicator == NULL)
+                return;
+            tk::Widget *w = pIndicator->wWidget;
+            if (w == NULL)
+                return;
+
+            tk::atom_t atom = w->display()->atom_id("modern");
+            if (property == atom)
+            {
+                pIndicator->parse_format();
+                if (pIndicator->pPort != NULL)
+                    pIndicator->notify(pIndicator->pPort);
+            }
+        }
+
         //-----------------------------------------------------------------
         const ctl_class_t Indicator::metadata   = { "Indicator", &Widget::metadata };
 
-        Indicator::Indicator(ui::IWrapper *wrapper, tk::Indicator *widget): Widget(wrapper, widget)
+        Indicator::Indicator(ui::IWrapper *wrapper, tk::Indicator *widget):
+            Widget(wrapper, widget),
+            sListener(this)
         {
             pClass          = &metadata;
 
@@ -77,13 +96,17 @@ namespace lsp
         {
             LSP_STATUS_ASSERT(Widget::init());
 
+            sFormat.set_ascii("f5.1!");
+
             tk::Indicator *ind = tk::widget_cast<tk::Indicator>(wWidget);
             if (ind != NULL)
             {
                 sColor.init(pWrapper, ind->color());
                 sTextColor.init(pWrapper, ind->text_color());
 
-                parse_format("f5.1!");
+                parse_format();
+
+                ind->style()->bind_bool("modern", &sListener);
             }
 
             return STATUS_OK;
@@ -99,9 +122,16 @@ namespace lsp
                 sColor.set("color", name, value);
                 sTextColor.set("text.color", name, value);
                 sTextColor.set("tcolor", name, value);
+                sIPadding.set("ipadding", name, value);
+                sIPadding.set("ipad", name, value);
 
-                if (!strcmp(name, "format"))
-                    parse_format(value);
+                if (set_value(&sFormat, "format", name, value))
+                    parse_format();
+                if (set_param(ind->modern(), "modern", name, value))
+                    parse_format();
+
+                set_param(ind->spacing(), "spacing", name, value);
+                set_font(ind->font(), "font", name, value);
             }
 
             return Widget::set(ctx, name, value);
@@ -162,12 +192,17 @@ namespace lsp
             return true;
         }
 
-        bool Indicator::parse_format(const char *format)
+        bool Indicator::parse_format()
         {
             enFormat        = FT_UNKNOWN;
             nDigits         = 0;
             nFlags          = 0;
             vFormat.clear();
+
+            const char *format = sFormat.get_ascii();
+
+            tk::Indicator *ind = tk::widget_cast<tk::Indicator>(wWidget);
+            bool modern     = (ind != NULL) ? ind->modern()->get() : false;
 
             // Get predicates
             char *p         = const_cast<char *>(format);
@@ -222,7 +257,11 @@ namespace lsp
                 enFormat        = FT_FLOAT;
 
                 if (*p == '.')
+                {
                     nFlags     |= IF_DOT;
+                    if (modern)
+                        nDigits     ++;
+                }
                 else if (*p != ',')
                     return (*p == '\0');
 
@@ -261,6 +300,8 @@ namespace lsp
                         item->type      = c;
                         item->digits    = 0;
                         item->precision = 0;
+                        if (modern)
+                            nDigits        += 1;
                         break;
                     }
                     case 'u': // Microseconds 000000-999999
@@ -465,7 +506,11 @@ namespace lsp
                 return true;
             }
 
-            ssize_t digits   = nDigits;
+            tk::Indicator *ind  = tk::widget_cast<tk::Indicator>(wWidget);
+            bool modern         = (ind != NULL) ? ind->modern()->get() : false;
+            ssize_t digits      = nDigits;
+            if ((nFlags & IF_DOT) && (modern))
+                --digits;
 
             // FLOAT FORMAT: {s1}{pad}{s2}{zero}{int_p}{dot}{frac_p}
             ssize_t s1 = 0, pad = 0, s2 = 0, z_p = 0, int_p = 0, frac_p = 0;

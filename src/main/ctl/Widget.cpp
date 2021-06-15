@@ -296,6 +296,17 @@ namespace lsp
             return true;
         }
 
+        bool Widget::set_value(LSPString *v, const char *param, const char *name, const char *value)
+        {
+            if (v == NULL)
+                return false;
+            if (strcmp(param, name))
+                return false;
+
+            v->set_utf8(value);
+            return true;
+        }
+
         bool Widget::bind_port(ui::IPort **port, const char *param, const char *name, const char *value)
         {
             if (strcmp(param, name))

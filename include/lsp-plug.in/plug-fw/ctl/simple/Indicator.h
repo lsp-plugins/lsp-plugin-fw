@@ -69,8 +69,22 @@ namespace lsp
                 } fmt_t;
 
             protected:
+                class PropListener: public tk::IStyleListener
+                {
+                    protected:
+                        Indicator     *pIndicator;
+
+                    public:
+                        inline PropListener(Indicator *ind)     { pIndicator = ind; }
+                        virtual void notify(tk::atom_t property);
+                };
+
+            protected:
                 ctl::Color              sColor;
                 ctl::Color              sTextColor;
+                ctl::Padding            sIPadding;
+                LSPString               sFormat;
+                PropListener            sListener;
 
                 format_type_t           enFormat;
                 lltl::darray<fmt_t>     vFormat;
@@ -83,7 +97,7 @@ namespace lsp
                 static bool         parse_long(char *p, char **ret, long *value);
 
             protected:
-                bool                parse_format(const char *format);
+                bool                parse_format();
                 bool                fmt_time(LSPString *buf, double value);
                 bool                fmt_float(LSPString *buf, double value);
                 bool                fmt_int(LSPString *buf, ssize_t value);

@@ -83,6 +83,7 @@ namespace lsp
                 static bool         set_value(ssize_t *v, const char *param, const char *name, const char *value);
                 static bool         set_value(size_t *v, const char *param, const char *name, const char *value);
                 static bool         set_value(float *v, const char *param, const char *name, const char *value);
+                static bool         set_value(LSPString *v, const char *param, const char *name, const char *value);
 
                 static void         inject_style(tk::Widget *widget, const char *style_name);
                 static void         revoke_style(tk::Widget *widget, const char *style_name);
