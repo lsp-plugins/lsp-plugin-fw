@@ -131,6 +131,8 @@ namespace lsp
                     parse_format();
 
                 set_param(ind->spacing(), "spacing", name, value);
+                set_param(ind->dark_text(), "text.dark", name, value);
+                set_param(ind->dark_text(), "tdark", name, value);
                 set_font(ind->font(), "font", name, value);
             }
 
