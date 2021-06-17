@@ -43,6 +43,7 @@ namespace lsp
             lltl::pphash<LSPString, json::Node> i18n;           // INternationalization data
             lltl::pphash<LSPString, LSPString>  other;          // Other files
             lltl::pphash<LSPString, LSPString>  local;          // Local files
+            lltl::pphash<LSPString, LSPString>  fonts;          // Fonts
         } context_t;
 
         /**
@@ -216,6 +217,11 @@ namespace lsp
         status_t other_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
         {
             return add_unique_file(&ctx->other, relative, full);
+        }
+
+        status_t font_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
+        {
+            return add_unique_file(&ctx->fonts, relative, full);
         }
 
         status_t local_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
@@ -394,6 +400,8 @@ namespace lsp
                     res = scan_files(&base, &child, "*.preset", ctx, preset_handler);
                 else if (child.equals_ascii("i18n"))
                     res = scan_files(&base, &child, "*.json", ctx, i18n_handler);
+                else if (child.equals_ascii("fonts"))
+                    res = scan_files(&base, &child, "*", ctx, font_handler);
                 else
                     res = scan_files(&base, &child, "*", ctx, other_handler);
 
@@ -654,6 +662,8 @@ namespace lsp
                 res = export_i18n(&dst, &ctx.i18n);
             if (res == STATUS_OK)
                 res = export_files(&dst, &ctx.local);
+            if (res == STATUS_OK)
+                res = export_files(&dst, &ctx.fonts);
 
             // Export local resources
             io::Path src;

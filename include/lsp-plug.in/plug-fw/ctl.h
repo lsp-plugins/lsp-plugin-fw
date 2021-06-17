@@ -63,6 +63,7 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/Group.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/Grid.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/Cell.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/MultiLabel.h>
 
     #include <lsp-plug.in/plug-fw/ctl/graph/Graph.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Origin.h>
