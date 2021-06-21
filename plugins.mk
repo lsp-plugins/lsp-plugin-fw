@@ -25,13 +25,13 @@ PLUGIN_PACKAGE_VERSION                  := 0.0.1
 LSP_PLUGINS_COMP_DELAY_VERSION          := 1.0.3
 LSP_PLUGINS_COMP_DELAY_NAME             := lsp-plugins-comp-delay
 LSP_PLUGINS_COMP_DELAY_TYPE             := plug
-LSP_PLUGINS_COMP_DELAY_URL              := https://github.com/sadko4u/$(LSP_PLUGINS_COMP_DELAY_NAME).git
+LSP_PLUGINS_COMP_DELAY_URL              := git@github.com:sadko4u/$(LSP_PLUGINS_COMP_DELAY_NAME).git
 
 # Specify description of plugin dependency
 LSP_PLUGINS_PHASE_DETECTOR_VERSION      := 1.0.0
 LSP_PLUGINS_PHASE_DETECTOR_NAME         := lsp-plugins-phase-detector
 LSP_PLUGINS_PHASE_DETECTOR_TYPE         := plug
-LSP_PLUGINS_PHASE_DETECTOR_URL          := https://github.com/sadko4u/$(LSP_PLUGINS_PHASE_DETECTOR_NAME).git
+LSP_PLUGINS_PHASE_DETECTOR_URL          := git@github.com:sadko4u/$(LSP_PLUGINS_PHASE_DETECTOR_NAME).git
 
 # List of all plugin dependencies
 PLUGIN_DEPENDENCIES = \
