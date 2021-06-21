@@ -114,6 +114,8 @@ namespace lsp
 
                 set_param(gt->origin(), "origin", name, value);
                 set_param(gt->origin(), "center", name, value);
+
+                set_param(gt->text_adjust(), "text.adjust", name, value);
             }
 
             return Widget::set(ctx, name, value);
