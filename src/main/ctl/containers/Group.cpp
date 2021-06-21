@@ -98,6 +98,7 @@ namespace lsp
                 set_param(grp->border_size(), "border.sz", name, value);
                 set_param(grp->border_radius(), "border.radius", name, value);
                 set_param(grp->border_radius(), "border.r", name, value);
+                set_param(grp->text_adjust(), "text.adjust", name, value);
 
                 sTextPadding.set("text.padding", name, value);
                 sTextPadding.set("tpadding", name, value);

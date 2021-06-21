@@ -77,6 +77,7 @@ namespace lsp
                 static bool         set_param(tk::Boolean *b, const char *param, const char *name, const char *value);
                 static bool         set_param(tk::Integer *i, const char *param, const char *name, const char *value);
                 static bool         set_param(tk::Float *f, const char *param, const char *name, const char *value);
+                static bool         set_param(tk::Enum *en, const char *param, const char *name, const char *value);
                 static bool         set_embedding(tk::Embedding *e, const char *name, const char *value);
                 static bool         set_orientation(tk::Orientation *o, const char *name, const char *value);
                 static bool         set_value(bool *v, const char *param, const char *name, const char *value);

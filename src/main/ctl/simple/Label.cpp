@@ -313,6 +313,7 @@ namespace lsp
                 set_text_layout(lbl->text_layout(), name, value);
                 set_font(lbl->font(), "font", name, value);
                 set_constraints(lbl->constraints(), name, value);
+                set_param(lbl->text_adjust(), "text.adjust", name, value);
 
                 if (enType == CTL_LABEL_TEXT)
                     sText.set("text", name, value);

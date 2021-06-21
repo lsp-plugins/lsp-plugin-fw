@@ -94,6 +94,7 @@ namespace lsp
                 set_font(lnk->font(), "font", name, value);
                 set_text_layout(lnk->text_layout(), name, value);
 
+                set_param(lnk->text_adjust(), "text.adjust", name, value);
                 set_param(lnk->follow(), "follow", name, value);
             }
 

@@ -256,6 +256,13 @@ namespace lsp
             return true;
         }
 
+        bool Widget::set_param(tk::Enum *e, const char *param, const char *name, const char *value)
+        {
+            if (e == NULL)
+                return false;
+            return e->parse(value) == STATUS_OK;
+        }
+
         bool Widget::set_value(bool *v, const char *param, const char *name, const char *value)
         {
             if (v == NULL)

@@ -127,6 +127,7 @@ namespace lsp
                 set_param(btn->hole(), "hole", name, value);
                 set_param(btn->flat(), "flat", name, value);
                 set_param(btn->text_clip(), "text.clip", name, value);
+                set_param(btn->text_adjust(), "text.adjust", name, value);
                 set_param(btn->text_clip(), "tclip", name, value);
                 set_expr(&sEditable, "editable", name, value);
                 set_text_layout(btn->text_layout(), name, value);
