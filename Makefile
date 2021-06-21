@@ -72,7 +72,6 @@ prune: clean
 	@$(MAKE) -s -f "$(BASEDIR)/make/modules.mk" prune BASEDIR="$(BASEDIR)" CONFIG="$(CONFIG)"
 	@$(MAKE) -s -f "$(BASEDIR)/make/modules.mk" prune BASEDIR="$(BASEDIR)" TREE="1"
 	@-rm -rf "$(CONFIG)"
-	@-rm -rf "$(MODULES)"
 	@echo "Prune OK"
 
 # Configuration-related targets
