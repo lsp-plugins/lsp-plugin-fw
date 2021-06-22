@@ -78,6 +78,7 @@ namespace lsp
             {
                 set_constraints(lbl->constraints(), name, value);
                 set_param(lbl->bearing(), "bearing", name, value);
+                set_param(lbl->hover(), "hover", name, value);
             }
 
             Widget::set(ctx, name, value);

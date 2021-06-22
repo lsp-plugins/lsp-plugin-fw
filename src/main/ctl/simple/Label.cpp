@@ -173,6 +173,7 @@ namespace lsp
             if (lbl != NULL)
             {
                 sColor.init(pWrapper, lbl->color());
+                sHoverColor.init(pWrapper, lbl->hover_color());
                 sText.init(pWrapper, lbl->text());
 
                 lbl->slot(tk::SLOT_MOUSE_DBL_CLICK)->bind(slot_dbl_click, this);
@@ -314,6 +315,7 @@ namespace lsp
                 set_font(lbl->font(), "font", name, value);
                 set_constraints(lbl->constraints(), name, value);
                 set_param(lbl->text_adjust(), "text.adjust", name, value);
+                set_param(lbl->hover(), "hover", name, value);
 
                 if (enType == CTL_LABEL_TEXT)
                     sText.set("text", name, value);
@@ -325,6 +327,8 @@ namespace lsp
                 set_value(&nPrecision, "precision", name, value);
 
                 sColor.set("color", name, value);
+                sHoverColor.set("hover.color", name, value);
+                sHoverColor.set("hcolor", name, value);
             }
 
             Widget::set(ctx, name, value);

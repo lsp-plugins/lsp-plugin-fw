@@ -73,6 +73,7 @@ namespace lsp
             protected:
                 label_type_t        enType;
                 ctl::Color          sColor;
+                ctl::Color          sHoverColor;
                 ctl::LCString       sText;
                 ui::IPort          *pPort;
                 float               fValue;
