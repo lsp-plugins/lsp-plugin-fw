@@ -316,6 +316,8 @@ namespace lsp
                 set_constraints(lbl->constraints(), name, value);
                 set_param(lbl->text_adjust(), "text.adjust", name, value);
                 set_param(lbl->hover(), "hover", name, value);
+                set_param(lbl->font_scaling(), "font.scaling", name, value);
+                set_param(lbl->font_scaling(), "font.scale", name, value);
 
                 if (enType == CTL_LABEL_TEXT)
                     sText.set("text", name, value);

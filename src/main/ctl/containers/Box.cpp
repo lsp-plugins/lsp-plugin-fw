@@ -98,6 +98,7 @@ namespace lsp
                 set_param(box->border(), "bsize", name, value);
                 set_param(box->homogeneous(), "homogeneous", name, value);
                 set_param(box->homogeneous(), "hgen", name, value);
+                set_param(box->solid(), "solid", name, value);
 
                 sBorderColor.set("border.color", name, value);
                 sBorderColor.set("bcolor", name, value);
