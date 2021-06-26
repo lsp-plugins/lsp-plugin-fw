@@ -68,6 +68,18 @@ namespace lsp
         // Plugin window
         const ctl_class_t PluginWindow::metadata = { "PluginWindow", &Window::metadata };
 
+        const tk::arrangement_t PluginWindow::top_arrangements[] =
+        {
+            { tk::A_BOTTOM, 0.0f, false },
+            { tk::A_TOP, 0.0f, false }
+        };
+
+        const tk::arrangement_t PluginWindow::bottom_arrangements[] =
+        {
+            { tk::A_TOP, 0.0f, false },
+            { tk::A_BOTTOM, 0.0f, false }
+        };
+
         PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget): Window(src, widget)
         {
             pClass          = &metadata;
@@ -76,10 +88,9 @@ namespace lsp
 
             wContent        = NULL;
             wMessage        = NULL;
-            wRack[0]        = NULL;
-            wRack[1]        = NULL;
-            wRack[2]        = NULL;
             wMenu           = NULL;
+            wUIScaling      = NULL;
+            wFontScaling    = NULL;
             wExport         = NULL;
             wImport         = NULL;
             wPreferHost     = NULL;
@@ -157,13 +168,18 @@ namespace lsp
 
             wContent        = NULL;
             wMessage        = NULL;
-            wRack[0]        = NULL;
-            wRack[1]        = NULL;
-            wRack[2]        = NULL;
             wMenu           = NULL;
             wExport         = NULL;
             wImport         = NULL;
             wPreferHost     = NULL;
+        }
+
+        void PluginWindow::bind_trigger(const char *uid, tk::event_handler_t handler)
+        {
+            tk::Widget *w = widgets()->find(uid);
+            if (w == NULL)
+                return;
+            w->slots()->bind(tk::SLOT_SUBMIT, handler, this);
         }
 
         status_t PluginWindow::slot_window_close(tk::Widget *sender, void *ptr, void *data)
@@ -536,6 +552,7 @@ namespace lsp
                 return STATUS_NO_MEM;
             }
             item->menu()->set(menu);
+            wUIScaling      = menu;
 
             // Initialize 'Prefer the host' settings
             if ((item = create_menu_item(menu)) == NULL)
@@ -619,6 +636,7 @@ namespace lsp
                 return STATUS_NO_MEM;
             }
             item->menu()->set(menu);
+            wFontScaling    = menu;
 
             // Add the 'Zoom in' setting
             if ((item = create_menu_item(menu)) == NULL)
@@ -1058,19 +1076,23 @@ namespace lsp
             wnd.destroy();
 
             // Get proper widgets and initialize window layout
-            wRack[0]        = tk::widget_cast<tk::RackEars>(widgets()->find("rack_top"));
-            wRack[1]        = tk::widget_cast<tk::RackEars>(widgets()->find("rack_left"));
-            wRack[2]        = tk::widget_cast<tk::RackEars>(widgets()->find("rack_right"));
-
             wContent        = tk::widget_cast<tk::WidgetContainer>(widgets()->find("plugin_content"));
 
-            for (size_t i=0; i<(sizeof(wRack)/sizeof(tk::Widget *)); ++i)
-            {
-                if (wRack[i] == NULL)
-                    continue;
+            // Header menu
+            bind_trigger("trg_main_menu", slot_show_main_menu);
+            bind_trigger("trg_export_settings", slot_export_settings_to_file);
+            bind_trigger("trg_import_settings", slot_import_settings_from_file);
+            bind_trigger("trg_reset_settings", slot_reset_settings);
+            bind_trigger("trg_about", slot_show_about);
 
-                wRack[i]->slots()->bind(tk::SLOT_SUBMIT, slot_show_menu, this);
-            }
+            // Footer
+            bind_trigger("trg_ui_scaling", slot_show_ui_scaling_menu);
+            bind_trigger("trg_font_scaling", slot_show_font_scaling_menu);
+            bind_trigger("trg_ui_zoom_in", slot_scaling_zoom_in);
+            bind_trigger("trg_ui_zoom_out", slot_scaling_zoom_out);
+            bind_trigger("trg_font_zoom_in", slot_font_scaling_zoom_in);
+            bind_trigger("trg_font_zoom_out", slot_font_scaling_zoom_out);
+            bind_trigger("trg_plugin_manual", slot_show_plugin_manual);
         }
 
         void PluginWindow::end(ui::UIContext *ctx)
@@ -1289,6 +1311,10 @@ namespace lsp
             return dpy->get_clipboard(ws::CBUF_CLIPBOARD, ds);
         }
 
+        status_t PluginWindow::slot_reset_settings(tk::Widget *sender, void *ptr, void *data)
+        {
+            return STATUS_OK;
+        }
 
         status_t PluginWindow::slot_toggle_rack_mount(tk::Widget *sender, void *ptr, void *data)
         {
@@ -1386,6 +1412,11 @@ namespace lsp
             return STATUS_NOT_FOUND;
         }
 
+        status_t PluginWindow::slot_show_about(tk::Widget *sender, void *ptr, void *data)
+        {
+            return STATUS_OK;
+        }
+
         status_t PluginWindow::slot_debug_dump(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
@@ -1395,19 +1426,45 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::slot_show_menu(tk::Widget *sender, void *ptr, void *data)
+        status_t PluginWindow::slot_show_main_menu(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            return __this->show_menu(sender, data);
+            return __this->show_menu(__this->wMenu, sender, data);
         }
 
-        status_t PluginWindow::show_menu(tk::Widget *actor, void *data)
+        status_t PluginWindow::slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data)
         {
-            tk::Menu *menu = tk::widget_ptrcast<tk::Menu>(wMenu);
-            if (menu == NULL)
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            return __this->show_menu(__this->wUIScaling, sender, data);
+        }
+
+        status_t PluginWindow::slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            return __this->show_menu(__this->wFontScaling, sender, data);
+        }
+
+        status_t PluginWindow::show_menu(tk::Widget *menu, tk::Widget *actor, void *data)
+        {
+            tk::Menu *xmenu = tk::widget_ptrcast<tk::Menu>(menu);
+            if (xmenu == NULL)
                 return STATUS_OK;
 
-            menu->show();
+            if (actor != NULL)
+            {
+                ws::rectangle_t xr, wr;
+
+                wWidget->get_rectangle(&wr);
+                actor->get_rectangle(&xr);
+
+                if (xr.nTop > (wr.nHeight >> 1))
+                    xmenu->set_arrangements(bottom_arrangements, 2);
+                else
+                    xmenu->set_arrangements(top_arrangements, 2);
+                xmenu->show(actor);
+            }
+            else
+                xmenu->show();
             return STATUS_OK;
         }
 

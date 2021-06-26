@@ -46,6 +46,10 @@ namespace lsp
                 PluginWindow & operator = (const PluginWindow &);
                 PluginWindow(const PluginWindow &);
 
+            private:
+                static const tk::arrangement_t top_arrangements[];
+                static const tk::arrangement_t bottom_arrangements[];
+
             protected:
 //                typedef struct backend_sel_t
 //                {
@@ -93,13 +97,14 @@ namespace lsp
             protected:
                 bool                        bResizable;
 
-                tk::WidgetContainer        *wContent;   // The main box containing all widgets
-                tk::Window                 *wMessage;   // Greeting message window
-                tk::Widget                 *wRack[3];   // Rack ears
-                tk::Menu                   *wMenu;      // Menu
-                tk::FileDialog             *wExport;    // Export settings dialog
-                tk::FileDialog             *wImport;    // Import settings dialog
-                tk::MenuItem               *wPreferHost;// Prefer host menu item
+                tk::WidgetContainer        *wContent;       // The main box containing all widgets
+                tk::Window                 *wMessage;       // Greeting message window
+                tk::Menu                   *wMenu;          // Menu
+                tk::Menu                   *wUIScaling;     // UI Scaling menu
+                tk::Menu                   *wFontScaling;   // UI Scaling menu
+                tk::FileDialog             *wExport;        // Export settings dialog
+                tk::FileDialog             *wImport;        // Import settings dialog
+                tk::MenuItem               *wPreferHost;    // Prefer host menu item
 
                 ui::IPort                  *pPMStud;
                 ui::IPort                  *pPVersion;
@@ -125,14 +130,18 @@ namespace lsp
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_window_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_message_close(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_show_menu(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_about(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_reset_settings(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_toggle_rack_mount(tk::Widget *sender, void *ptr, void *data);
 
@@ -169,7 +178,7 @@ namespace lsp
             protected:
                 void                do_destroy();
                 status_t            show_notification();
-                status_t            show_menu(tk::Widget *actor, void *data);
+                status_t            show_menu(tk::Widget *menu, tk::Widget *actor, void *data);
                 tk::Label          *create_label(tk::WidgetContainer *dst, const char *key, const char *style_name);
                 tk::Label          *create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, const char *style_name);
                 tk::Hyperlink      *create_hlink(tk::WidgetContainer *dst, const char *url, const char *text, const expr::Parameters *params, const char *style_name);
@@ -186,6 +195,7 @@ namespace lsp
                 void                sync_ui_scaling();
                 void                sync_font_scaling();
                 void                sync_visual_schemas();
+                void                bind_trigger(const char *uid, tk::event_handler_t handler);
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);
