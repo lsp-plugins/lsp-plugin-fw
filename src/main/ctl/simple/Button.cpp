@@ -79,11 +79,19 @@ namespace lsp
             if (btn != NULL)
             {
                 sColor.init(pWrapper, btn->color());
-                sHoverColor.init(pWrapper, btn->hover_color());
-                sLedColor.init(pWrapper, btn->led_color());
                 sTextColor.init(pWrapper, btn->text_color());
-                sHoverTextColor.init(pWrapper, btn->hover_text_color());
-                sLedTextColor.init(pWrapper, btn->led_text_color());
+                sBorderColor.init(pWrapper, btn->border_color());
+                sHoverColor.init(pWrapper, btn->hover_color());
+                sTextHoverColor.init(pWrapper, btn->text_hover_color());
+                sBorderHoverColor.init(pWrapper, btn->border_hover_color());
+                sDownColor.init(pWrapper, btn->down_color());
+                sTextDownColor.init(pWrapper, btn->text_down_color());
+                sBorderDownColor.init(pWrapper, btn->border_down_color());
+                sDownHoverColor.init(pWrapper, btn->down_hover_color());
+                sTextDownHoverColor.init(pWrapper, btn->text_down_hover_color());
+                sBorderDownHoverColor.init(pWrapper, btn->border_down_hover_color());
+                sHoleColor.init(pWrapper, btn->hole_color());
+
                 sEditable.init(pWrapper, this);
                 sTextPad.init(pWrapper, btn->text_padding());
                 sText.init(pWrapper, btn->text());
@@ -103,17 +111,31 @@ namespace lsp
                 bind_port(&pPort, "id", name, value);
 
                 sColor.set("color", name, value);
-                sHoverColor.set("hover.color", name, value);
-                sHoverColor.set("hcolor", name, value);
-                sLedColor.set("led.color", name, value);
-                sLedColor.set("lcolor", name, value);
                 sTextColor.set("text.color", name, value);
                 sTextColor.set("tcolor", name, value);
-                sHoverTextColor.set("hover.text.color", name, value);
-                sHoverTextColor.set("htcolor", name, value);
-                sLedTextColor.set("led.text.color", name, value);
-                sLedTextColor.set("ltcolor", name, value);
+                sBorderColor.set("border.color", name, value);
+                sBorderColor.set("bcolor", name, value);
+                sHoverColor.set("hover.color", name, value);
+                sHoverColor.set("hcolor", name, value);
+                sTextHoverColor.set("text.hover.color", name, value);
+                sTextHoverColor.set("thcolor", name, value);
+                sBorderHoverColor.set("border.hover.color", name, value);
+                sBorderHoverColor.set("bhcolor", name, value);
+                sDownColor.set("down.color", name, value);
+                sDownColor.set("dcolor", name, value);
+                sTextDownColor.set("text.down.color", name, value);
+                sTextDownColor.set("tdcolor", name, value);
+                sBorderDownColor.set("border.down.color", name, value);
+                sBorderDownColor.set("bdcolor", name, value);
+                sDownHoverColor.set("down.hover.color", name, value);
+                sDownHoverColor.set("dhcolor", name, value);
+                sTextDownHoverColor.set("text.down.hover.color", name, value);
+                sTextDownHoverColor.set("tdhcolor", name, value);
+                sBorderDownHoverColor.set("border.down.hover.color", name, value);
+                sBorderDownHoverColor.set("bdhcolor", name, value);
+
                 sHoleColor.set("hole.color", name, value);
+
                 sTextPad.set("text.padding", name, value);
                 sTextPad.set("text.pad", name, value);
                 sTextPad.set("tpadding", name, value);

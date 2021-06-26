@@ -46,13 +46,21 @@ namespace lsp
                 float               fDflValue;
                 bool                bValueSet;
                 ui::IPort          *pPort;
+
                 ctl::Color          sColor;
-                ctl::Color          sHoverColor;
-                ctl::Color          sLedColor;
                 ctl::Color          sTextColor;
-                ctl::Color          sHoverTextColor;
-                ctl::Color          sLedTextColor;
+                ctl::Color          sBorderColor;
+                ctl::Color          sHoverColor;
+                ctl::Color          sTextHoverColor;
+                ctl::Color          sBorderHoverColor;
+                ctl::Color          sDownColor;
+                ctl::Color          sTextDownColor;
+                ctl::Color          sBorderDownColor;
+                ctl::Color          sDownHoverColor;
+                ctl::Color          sTextDownHoverColor;
+                ctl::Color          sBorderDownHoverColor;
                 ctl::Color          sHoleColor;
+
                 ctl::Expression     sEditable;
                 ctl::Boolean        sHover;
                 ctl::Padding        sTextPad;
