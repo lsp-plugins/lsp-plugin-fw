@@ -65,6 +65,8 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/Cell.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/MultiLabel.h>
 
+    #include <lsp-plug.in/plug-fw/ctl/compound/ComboBox.h>
+
     #include <lsp-plug.in/plug-fw/ctl/graph/Graph.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Origin.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Axis.h>

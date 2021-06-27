@@ -71,6 +71,7 @@ namespace lsp
                 static bool         set_arrangement(tk::Arrangement *a, const char *param, const char *name, const char *value);
                 static bool         set_alignment(tk::Alignment *a, const char *param, const char *name, const char *value);
                 static bool         set_text_layout(tk::TextLayout *l, const char *name, const char *value);
+                static bool         set_text_fitness(tk::TextFitness *l, const char *param, const char *name, const char *value);
                 static bool         set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value);
                 static bool         set_font(tk::Font *f, const char *param, const char *name, const char *value);
                 static bool         set_size_range(tk::SizeRange *r, const char *param, const char *name, const char *value);

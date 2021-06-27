@@ -119,6 +119,23 @@ namespace lsp
             return true;
         }
 
+        bool Widget::set_text_fitness(tk::TextFitness *f, const char *param, const char *name, const char *value)
+        {
+            if (f == NULL)
+                return false;
+            if (!(name = match_prefix(param, name)))
+                return false;
+
+            if (name[0] == '\0')                    PARSE_FLOAT(value, f->set(__));
+            else if (!strcmp(name, "hfit"))         PARSE_FLOAT(value, f->set_hfit(__));
+            else if (!strcmp(name, "h"))            PARSE_FLOAT(value, f->set_hfit(__));
+            else if (!strcmp(name, "vfit"))         PARSE_FLOAT(value, f->set_vfit(__));
+            else if (!strcmp(name, "v"))            PARSE_FLOAT(value, f->set_vfit(__));
+            else return false;
+
+            return true;
+        }
+
         bool Widget::set_allocation(tk::Allocation *alloc, const char *name, const char *value)
         {
             if (alloc == NULL)

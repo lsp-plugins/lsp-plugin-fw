@@ -616,6 +616,47 @@ namespace lsp
 
             return match_float(meta, value);
         }
+
+        void get_port_parameters(const port_t *p, float *min, float *max, float *step)
+        {
+            float f_min = 0.0f, f_max = 1.0f, f_step = 0.001f;
+
+            if (p->unit == U_BOOL)
+            {
+                f_min       = 0.0f;
+                f_max       = 1.0f;
+                f_step      = 1.0f;
+            }
+            else if (p->unit == U_ENUM)
+            {
+                f_min       = (p->flags & F_LOWER) ? p->min : 0.0f;
+                f_max       = f_min + list_size(p->items) - 1;
+                f_step      = 1.0f;
+            }
+            else if (p->unit == U_SAMPLES)
+            {
+                f_min       = p->min;
+                f_max       = p->max;
+                f_step      = 1.0f;
+            }
+            else
+            {
+                f_min       = (p->flags & F_LOWER) ? p->min : 0.0f;
+                f_max       = (p->flags & F_UPPER) ? p->max : 1.0f;
+
+                if (p->flags & F_INT)
+                    f_step      = (p->flags & F_STEP) ? p->step : 1.0f;
+                else
+                    f_step      = (p->flags & F_STEP) ? p->step : (f_max - f_min) * 0.001;
+            }
+
+            if (min != NULL)
+                *min        = f_min;
+            if (max != NULL)
+                *max        = f_max;
+            if (step != NULL)
+                *step       = f_step;
+        }
     }
 }
 
