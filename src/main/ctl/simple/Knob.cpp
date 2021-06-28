@@ -158,6 +158,8 @@ namespace lsp
                 set_param(knob->flat(), "flat", name, value);
                 set_param(knob->scale_marks(), "smarks", name, value);
                 set_param(knob->scale_marks(), "scale.marks", name, value);
+                set_param(knob->hole_size(), "hole.size", name, value);
+                set_param(knob->gap_size(), "gap.size", name, value);
             }
 
             return Widget::set(ctx, name, value);
