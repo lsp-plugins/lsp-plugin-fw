@@ -89,6 +89,17 @@ namespace lsp
         {
             Widget::end(ctx);
         }
+
+        void Window::schema_reloaded()
+        {
+            // Notify all nested controllers
+            for (size_t i=0, n=sControllers.size(); i<n; ++i)
+            {
+                ctl::Widget *wc = sControllers.get(i);
+                if (wc != NULL)
+                    wc->schema_reloaded();
+            }
+        }
     }
 }
 

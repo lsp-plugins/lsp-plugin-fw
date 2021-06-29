@@ -120,6 +120,13 @@ namespace lsp
             return (box != NULL) ? box->add(child->widget()) : STATUS_BAD_STATE;
         }
 
+        void Box::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sBorderColor.reload();
+        }
+
     } /* namespace ctl */
 } /* namespace lsp */
 

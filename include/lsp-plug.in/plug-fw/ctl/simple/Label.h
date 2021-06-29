@@ -72,8 +72,10 @@ namespace lsp
 
             protected:
                 label_type_t        enType;
+
                 ctl::Color          sColor;
                 ctl::Color          sHoverColor;
+
                 ctl::LCString       sText;
                 ui::IPort          *pPort;
                 float               fValue;
@@ -108,10 +110,9 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-
                 virtual void        notify(ui::IPort *port);
-
                 virtual void        end(ui::UIContext *ctx);
+                virtual void        schema_reloaded();
         };
     }
 }

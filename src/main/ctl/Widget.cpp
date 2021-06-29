@@ -520,6 +520,11 @@ namespace lsp
         {
         }
 
+        void Widget::schema_reloaded()
+        {
+            sBgColor.reload();
+        }
+
         void Widget::destroy()
         {
             pWrapper    = NULL;

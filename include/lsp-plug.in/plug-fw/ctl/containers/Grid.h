@@ -53,7 +53,6 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-
                 virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
         };
     }

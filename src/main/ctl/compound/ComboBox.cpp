@@ -155,6 +155,18 @@ namespace lsp
             Widget::end(ctx);
         }
 
+        void ComboBox::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+            sSpinColor.reload();
+            sTextColor.reload();
+            sSpinTextColor.reload();
+            sBorderColor.reload();
+            sBorderGapColor.reload();
+        }
+
         void ComboBox::sync_metadata(ui::IPort *port)
         {
             tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);

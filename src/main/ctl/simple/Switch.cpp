@@ -167,6 +167,16 @@ namespace lsp
                 _this->submit_value();
             return STATUS_OK;
         }
+
+        void Switch::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+            sTextColor.reload();
+            sBorderColor.reload();
+            sHoleColor.reload();
+        }
     }
 }
 

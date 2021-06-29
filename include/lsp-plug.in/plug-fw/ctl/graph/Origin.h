@@ -46,6 +46,7 @@ namespace lsp
                 ctl::Expression     sLeft;
                 ctl::Expression     sTop;
                 ctl::Integer        sRadius;
+
                 ctl::Color          sColor;
 
             public:
@@ -56,8 +57,8 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-
                 virtual void        notify(ui::IPort *port);
+                virtual void        schema_reloaded();
         };
     }
 }

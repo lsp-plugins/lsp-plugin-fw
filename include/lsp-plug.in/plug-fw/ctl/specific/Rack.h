@@ -46,6 +46,7 @@ namespace lsp
                 ctl::Color          sTextColor;
                 ctl::Color          sScrewColor;
                 ctl::Color          sHoleColor;
+
                 ctl::Padding        sButtonPadding;
                 ctl::Padding        sScrewPadding;
                 ctl::Padding        sTextPadding;
@@ -59,6 +60,7 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        schema_reloaded();
         };
 
     } /* namespace ctl */

@@ -154,6 +154,15 @@ namespace lsp
             Widget::end(ctx);
             update_value();
         }
+
+        void Led::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+            sLightColor.reload();
+            sHoleColor.reload();
+        }
     } /* namespace ctl */
 } /* namespace lsp */
 

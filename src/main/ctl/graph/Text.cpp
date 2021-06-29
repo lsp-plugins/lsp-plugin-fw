@@ -151,5 +151,12 @@ namespace lsp
             Widget::end(ctx);
             trigger_expr();
         }
+
+        void Text::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+        }
     }
 }

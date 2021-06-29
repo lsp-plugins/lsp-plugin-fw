@@ -166,6 +166,27 @@ namespace lsp
 
             expr::destroy_value(&value);
         }
+
+        void Color::reload()
+        {
+            if (pColor == NULL)
+                return;
+
+            expr::value_t value;
+            expr::init_value(&value);
+
+            for (size_t i=0; i<C_TOTAL; ++i)
+            {
+                // Evaluate the expression
+                Expression *e = vExpr[i];
+                if ((e == NULL) || (!e->valid()))
+                    continue;
+                if (e->evaluate(&value) == STATUS_OK)
+                    apply_change(i, &value);
+            }
+
+            expr::destroy_value(&value);
+        }
     }
 }
 

@@ -44,8 +44,9 @@ namespace lsp
             protected:
                 LCString        sText;
                 LCString        sUrl;
-                Color           sColor;
-                Color           sHoverColor;
+
+                ctl::Color      sColor;
+                ctl::Color      sHoverColor;
 
             public:
                 explicit Hyperlink(ui::IWrapper *wrapper, tk::Hyperlink *widget);
@@ -55,6 +56,7 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        schema_reloaded();
         };
     }
 }

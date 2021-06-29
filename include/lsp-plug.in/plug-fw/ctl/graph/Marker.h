@@ -58,6 +58,7 @@ namespace lsp
                 ctl::Integer        sRightBorder;
                 ctl::Integer        sHoverLeftBorder;
                 ctl::Integer        sHoverRightBorder;
+
                 ctl::Color          sColor;
                 ctl::Color          sHoverColor;
                 ctl::Color          sLeftColor;
@@ -80,10 +81,9 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-
                 virtual void        notify(ui::IPort *port);
-
                 virtual void        end(ui::UIContext *ctx);
+                virtual void        schema_reloaded();
         };
     }
 }

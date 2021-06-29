@@ -89,5 +89,12 @@ namespace lsp
 
             return Widget::set(ctx, name, value);
         }
+
+        void Void::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+        }
     }
 }

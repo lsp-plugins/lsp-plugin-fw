@@ -204,6 +204,13 @@ namespace lsp
                 _this->trigger_expr();
             return STATUS_OK;
         }
+
+        void Axis::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+        }
     }
 }
 

@@ -82,6 +82,7 @@ namespace lsp
             protected:
                 ctl::Color              sColor;
                 ctl::Color              sTextColor;
+
                 ctl::Padding            sIPadding;
                 LSPString               sFormat;
                 PropListener            sListener;
@@ -112,10 +113,9 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-
                 virtual void        notify(ui::IPort *port);
-
                 virtual void        end(ui::UIContext *ctx);
+                virtual void        schema_reloaded();
         };
     }
 }

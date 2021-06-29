@@ -55,6 +55,10 @@ namespace lsp
 
             public:
                 virtual status_t        add(ctl::Widget *w);
+
+            public:
+                inline size_t           size() const                { return vControllers.size();       }
+                inline Widget          *get(size_t index)           { return vControllers.get(index);   }
         };
     }
 }

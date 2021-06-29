@@ -113,5 +113,11 @@ namespace lsp
             }
         }
 
+        void Origin::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+        }
     }
 }

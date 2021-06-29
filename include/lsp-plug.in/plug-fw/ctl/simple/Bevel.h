@@ -42,10 +42,11 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
-                Color       sColor;
-                Color       sBorderColor;
-                Direction   sDirection;
-                Integer     sBorder;
+                ctl::Color      sColor;
+                ctl::Color      sBorderColor;
+
+                Direction       sDirection;
+                Integer         sBorder;
 
             public:
                 explicit Bevel(ui::IWrapper *wrapper, tk::Bevel *widget);
@@ -54,7 +55,8 @@ namespace lsp
                 virtual status_t    init();
 
             public:
-                virtual void set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        schema_reloaded();
         };
     }
 }

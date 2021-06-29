@@ -411,5 +411,15 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void Knob::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+            sScaleColor.reload();
+            sBalanceColor.reload();
+            sHoleColor.reload();
+            sTipColor.reload();
+        }
     }
 }

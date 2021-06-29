@@ -43,7 +43,9 @@ namespace lsp
 
             protected:
                 ui::IPort              *pPort;
+
                 ctl::Color              sColor;
+
                 ctl::Float              sHValue;
                 ctl::Float              sVValue;
                 ctl::LCString           sText;
@@ -59,10 +61,9 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-
                 virtual void        notify(ui::IPort *port);
-
                 virtual void        end(ui::UIContext *ctx);
+                virtual void        schema_reloaded();
         };
     }
 }

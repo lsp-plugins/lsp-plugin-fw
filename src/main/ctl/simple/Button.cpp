@@ -310,6 +310,11 @@ namespace lsp
                 _this->submit_value();
             return STATUS_OK;
         }
+
+        void Button::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+        }
     } /* namespace ctl */
 } /* namespace lsp */
 

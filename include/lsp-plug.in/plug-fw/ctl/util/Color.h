@@ -69,6 +69,11 @@ namespace lsp
             public:
                 bool                set(const char *prefix, const char *name, const char *value);
 
+                /**
+                 * Re-evaluate all expressions assigned to the controller
+                 */
+                void                reload();
+
             public:
                 virtual void        notify(ui::IPort *port);
         };

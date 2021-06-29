@@ -955,7 +955,12 @@ namespace lsp
             if (res != STATUS_OK)
                 return res;
 
-            return pDisplay->schema()->apply(&ss, &sLoader);
+            if ((res = pDisplay->schema()->apply(&ss, &sLoader)) == STATUS_OK)
+            {
+                if (pWindow != NULL)
+                    pWindow->schema_reloaded();
+            }
+            return res;
         }
 
         status_t IWrapper::load_stylesheet(tk::StyleSheet *sheet, const char *file)

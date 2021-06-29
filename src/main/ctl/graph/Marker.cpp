@@ -261,6 +261,18 @@ namespace lsp
                 _this->trigger_expr();
             return STATUS_OK;
         }
+
+        void Marker::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+            sHoverColor.reload();
+            sLeftColor.reload();
+            sRightColor.reload();
+            sHoverLeftColor.reload();
+            sHoverRightColor.reload();
+        }
     }
 }
 

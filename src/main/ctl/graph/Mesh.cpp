@@ -202,6 +202,14 @@ namespace lsp
 //                data->set_s(mesh->pvData[si], mesh->nItems);
 
         }
+
+        void Mesh::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+            sFillColor.reload();
+        }
     }
 }
 

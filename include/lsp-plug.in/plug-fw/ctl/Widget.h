@@ -146,6 +146,11 @@ namespace lsp
                  */
                 virtual void        notify(ui::IPort *port);
 
+                /**
+                 * This method is called when the visual schema has been reloaded
+                 */
+                virtual void        schema_reloaded();
+
             //---------------------------------------------------------------------------------
             // Metadata, casting and type information
             public:

@@ -118,6 +118,16 @@ namespace lsp
 
             return Widget::set(ctx, name, value);
         }
+
+        void Rack::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+            sTextColor.reload();
+            sScrewColor.reload();
+            sHoleColor.reload();
+        }
     }
 }
 

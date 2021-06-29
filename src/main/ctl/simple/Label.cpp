@@ -565,6 +565,14 @@ namespace lsp
 
             return STATUS_OK;
         }
+
+        void Label::schema_reloaded()
+        {
+            Widget::schema_reloaded();
+
+            sColor.reload();
+            sHoverColor.reload();
+        }
     } /* namespace ctl */
 } /* namespace lsp */
 
