@@ -98,7 +98,8 @@ namespace lsp
                 bool                        bResizable;
 
                 tk::WidgetContainer        *wContent;       // The main box containing all widgets
-                tk::Window                 *wMessage;       // Greeting message window
+                tk::Window                 *wGreeting;      // Greeting message window
+                tk::Window                 *wAbout;         // About message window
                 tk::Menu                   *wMenu;          // Menu
                 tk::Menu                   *wUIScaling;     // UI Scaling menu
                 tk::Menu                   *wFontScaling;   // UI Scaling menu
@@ -129,7 +130,8 @@ namespace lsp
             protected:
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_window_show(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_message_close(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_greeting_close(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_about_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data);
@@ -177,12 +179,14 @@ namespace lsp
 
             protected:
                 void                do_destroy();
-                status_t            show_notification();
+                status_t            show_greeting_window();
+                status_t            show_about_window();
                 status_t            show_menu(tk::Widget *menu, tk::Widget *actor, void *data);
                 tk::Label          *create_label(tk::WidgetContainer *dst, const char *key, const char *style_name);
                 tk::Label          *create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, const char *style_name);
                 tk::Hyperlink      *create_hlink(tk::WidgetContainer *dst, const char *url, const char *text, const expr::Parameters *params, const char *style_name);
                 tk::MenuItem       *create_menu_item(tk::Menu *dst);
+                status_t            create_dialog_window(ctl::Window **ctl, tk::Window **dst, const char *path);
 
 //                status_t        init_r3d_support(LSPMenu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);

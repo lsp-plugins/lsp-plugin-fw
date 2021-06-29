@@ -87,7 +87,8 @@ namespace lsp
             bResizable      = false;
 
             wContent        = NULL;
-            wMessage        = NULL;
+            wGreeting       = NULL;
+            wAbout          = NULL;
             wMenu           = NULL;
             wUIScaling      = NULL;
             wFontScaling    = NULL;
@@ -167,7 +168,8 @@ namespace lsp
             vSchemaSel.flush();
 
             wContent        = NULL;
-            wMessage        = NULL;
+            wGreeting       = NULL;
+            wAbout          = NULL;
             wMenu           = NULL;
             wExport         = NULL;
             wImport         = NULL;
@@ -193,7 +195,7 @@ namespace lsp
         status_t PluginWindow::slot_window_show(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            __this->show_notification();
+            __this->show_greeting_window();
             return STATUS_OK;
         }
 
@@ -1414,6 +1416,10 @@ namespace lsp
 
         status_t PluginWindow::slot_show_about(tk::Widget *sender, void *ptr, void *data)
         {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            if (__this != NULL)
+                __this->show_about_window();
+
             return STATUS_OK;
         }
 
@@ -1496,11 +1502,19 @@ namespace lsp
         }
 
 
-        status_t PluginWindow::slot_message_close(tk::Widget *sender, void *ptr, void *data)
+        status_t PluginWindow::slot_greeting_close(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            if (__this->wMessage != NULL)
-                __this->wMessage->visibility()->set(false);
+            if (__this->wGreeting != NULL)
+                __this->wGreeting->visibility()->set(false);
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_about_close(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            if (__this->wAbout != NULL)
+                __this->wAbout->visibility()->set(false);
             return STATUS_OK;
         }
 
@@ -1584,7 +1598,7 @@ namespace lsp
             return hlink;
         }
 
-        status_t PluginWindow::show_notification()
+        status_t PluginWindow::show_greeting_window()
         {
             status_t res;
             LSPString key, value;
@@ -1623,42 +1637,86 @@ namespace lsp
                 pPVersion->notify_all();
             }
 
-            lsp_trace("Showing notification dialog");
+            lsp_trace("Showing greeting dialog");
 
-            if (wMessage == NULL)
+            if (wGreeting == NULL)
             {
-                // Create window
-                wMessage = new tk::Window(wWidget->display());
-                if (wMessage == NULL)
-                    return STATUS_NO_MEM;
-                widgets()->add(wMessage);
-                wMessage->init();
-
-                // Create controller
-                ctl::Window *ctl = new ctl::Window(pWrapper, wMessage);
-                if (ctl == NULL)
-                    return STATUS_NO_MEM;
-                controllers()->add(ctl);
-                ctl->init();
-
-                ui::UIContext uctx(pWrapper, ctl->controllers(), ctl->widgets());
-                if ((res = uctx.init()) != STATUS_OK)
-                    return res;
-
-                // Parse the XML document
-                ui::xml::RootNode root(&uctx, "window", ctl);
-                ui::xml::Handler handler(pWrapper->resources());
-                if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/greeting.xml", &root)) != STATUS_OK)
+                ctl::Window *ctl = NULL;
+                res = create_dialog_window(&ctl, &wGreeting, LSP_BUILTIN_PREFIX "ui/greeting.xml");
+                if (res != STATUS_OK)
                     return res;
 
                 // Bind slots
                 tk::Widget *btn = ctl->widgets()->find("submit");
                 if (btn != NULL)
-                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_message_close, this);
-                wMessage->slots()->bind(tk::SLOT_CLOSE, slot_message_close, this);
+                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_greeting_close, this);
+                wGreeting->slots()->bind(tk::SLOT_CLOSE, slot_greeting_close, this);
             }
 
-            wMessage->show(wnd);
+            wGreeting->show(wnd);
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::show_about_window()
+        {
+            lsp_trace("Showing about dialog");
+            status_t res;
+
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
+            if (wnd == NULL)
+                return STATUS_BAD_STATE;
+
+            if (wAbout == NULL)
+            {
+                ctl::Window *ctl = NULL;
+                res = create_dialog_window(&ctl, &wAbout, LSP_BUILTIN_PREFIX "ui/about.xml");
+                if (res != STATUS_OK)
+                    return res;
+
+                // Bind slots
+                tk::Widget *btn = ctl->widgets()->find("submit");
+                if (btn != NULL)
+                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_about_close, this);
+                wAbout->slots()->bind(tk::SLOT_CLOSE, slot_about_close, this);
+            }
+
+            wAbout->show(wnd);
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::create_dialog_window(ctl::Window **ctl, tk::Window **dst, const char *path)
+        {
+            status_t res;
+
+            // Create window
+            tk::Window *w = new tk::Window(wWidget->display());
+            if (w == NULL)
+                return STATUS_NO_MEM;
+            widgets()->add(w);
+            w->init();
+
+            // Create controller
+            ctl::Window *wc = new ctl::Window(pWrapper, w);
+            if (ctl == NULL)
+                return STATUS_NO_MEM;
+            controllers()->add(wc);
+            wc->init();
+
+            ui::UIContext uctx(pWrapper, wc->controllers(), wc->widgets());
+            if ((res = uctx.init()) != STATUS_OK)
+                return res;
+
+            // Parse the XML document
+            ui::xml::RootNode root(&uctx, "window", wc);
+            ui::xml::Handler handler(pWrapper->resources());
+            if ((res = handler.parse_resource(path, &root)) != STATUS_OK)
+                return res;
+
+            if (ctl != NULL)
+                *ctl    = wc;
+            if (dst != NULL)
+                *dst    = w;
+
             return STATUS_OK;
         }
 
