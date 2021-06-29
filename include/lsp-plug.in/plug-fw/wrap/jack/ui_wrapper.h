@@ -126,6 +126,14 @@ namespace lsp
             if ((res = IWrapper::init(loader)) != STATUS_OK)
                 return res;
 
+            // Load the global configuration file
+            io::Path gconfig;
+            if ((res = system::get_home_directory(&gconfig)) == STATUS_OK)
+            {
+                if (gconfig.append_child(".config/lsp-plugins/lsp-plugins.cfg") == STATUS_OK)
+                    load_global_config(&gconfig);
+            }
+
             // Initialize display settings
             tk::display_settings_t settings;
             resource::Environment env;
@@ -133,7 +141,7 @@ namespace lsp
             settings.resources      = &sLoader;
             settings.environment    = &env;
 
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, "builtin://i18n"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US"));
 //            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_SCHEMA_PATH, "schema/lsp-modern.xml"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));

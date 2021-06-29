@@ -765,6 +765,124 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t IWrapper::load_global_config(const char *file)
+        {
+            config::PullParser parser;
+            status_t res = parser.open(file);
+            if (res == STATUS_OK)
+                res = load_global_config(&parser);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t IWrapper::load_global_config(const LSPString *file)
+        {
+            config::PullParser parser;
+            status_t res = parser.open(file);
+            if (res == STATUS_OK)
+                res = load_global_config(&parser);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t IWrapper::load_global_config(const io::Path *file)
+        {
+            config::PullParser parser;
+            status_t res = parser.open(file);
+            if (res == STATUS_OK)
+                res = load_global_config(&parser);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t IWrapper::load_global_config(io::IInSequence *is)
+        {
+            config::PullParser parser;
+            status_t res = parser.wrap(is);
+            if (res == STATUS_OK)
+                res = load_global_config(&parser);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t IWrapper::load_global_config(config::PullParser *parser)
+        {
+            status_t res;
+            config::param_t param;
+
+            while ((res = parser->next(&param)) == STATUS_OK)
+            {
+                for (size_t i=0, n=vConfigPorts.size(); i<n; ++i)
+                {
+                    ui::IPort *p = vConfigPorts.uget(i);
+                    if (p == NULL)
+                        continue;
+                    const meta::port_t *meta = p->metadata();
+                    if ((meta != NULL) && (param.name.equals_ascii(meta->id)))
+                    {
+                        set_port_value(p, &param, plug::PF_STATE_IMPORT, NULL);
+                        break;
+                    }
+                }
+            }
+
+            return (res == STATUS_EOF) ? STATUS_OK : res;
+        }
+
+        bool IWrapper::set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base)
+        {
+            // Get metadata
+            const meta::port_t *p = (port != NULL) ? port->metadata() : NULL;
+            if (p == NULL)
+                return false;
+
+            // Check that it's a control port
+            if (!meta::is_in_port(p))
+                return false;
+
+            // Apply changes
+            switch (p->role)
+            {
+                case meta::R_PORT_SET:
+                case meta::R_CONTROL:
+                {
+                    if (meta::is_discrete_unit(p->unit))
+                    {
+                        if (meta::is_bool_unit(p->unit))
+                            port->set_value((param->to_bool()) ? 1.0f : 0.0f, flags);
+                        else
+                            port->set_value(param->to_int(), flags);
+                    }
+                    else
+                        port->set_value(param->to_float(), flags);
+                    break;
+                }
+                case meta::R_PATH:
+                {
+                    // Check type of argument
+                    if (!param->is_string())
+                        return false;
+
+                    const char *value = param->v.str;
+                    size_t len      = ::strlen(value);
+                    io::Path path;
+
+                    if (core::parse_relative_path(&path, base, value, len))
+                    {
+                        // Update value and it's length
+                        value   = path.as_utf8();
+                        len     = strlen(value);
+                    }
+
+                    port->write(value, len, flags);
+                    break;
+                }
+                default:
+                    return false;
+            }
+            return true;
+        }
+
         const meta::package_t *IWrapper::package() const
         {
             return NULL;

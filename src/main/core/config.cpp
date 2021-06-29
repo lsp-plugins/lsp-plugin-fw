@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/fmt/config/types.h>
@@ -39,6 +40,26 @@ namespace lsp
                 return false;
 
             return value->append(xpath.as_string());
+        }
+
+        bool parse_relative_path(io::Path *path, const io::Path *base, const char *value, size_t len)
+        {
+            if ((base == NULL) || (len <= 0))
+                return false;
+
+            LSPString svalue;
+            if (!svalue.set_utf8(value, len))
+                return false;
+
+            // Do nothing with built-in path
+            if (svalue.starts_with_ascii(LSP_BUILTIN_PREFIX))
+                return path->set(&svalue) == STATUS_OK;
+
+            // This method won't accept absolute path stored in svalue
+            if (path->set(base, &svalue) != STATUS_OK)
+                return false;
+
+            return (path->canonicalize() == STATUS_OK);
         }
 
         status_t serialize_port_value(config::Serializer *s,

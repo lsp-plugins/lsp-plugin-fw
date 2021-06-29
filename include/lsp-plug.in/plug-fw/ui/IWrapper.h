@@ -39,6 +39,7 @@
 #include <lsp-plug.in/plug-fw/ui/IPort.h>
 #include <lsp-plug.in/plug-fw/ui/Module.h>
 #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
+#include <lsp-plug.in/fmt/config/PullParser.h>
 
 namespace lsp
 {
@@ -95,6 +96,10 @@ namespace lsp
                 status_t        build_ui(const char *path);
                 void            build_config_header(LSPString *c);
                 status_t        init_visual_schema();
+                status_t        load_global_config(config::PullParser *parser);
+
+            protected:
+                static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
                 explicit IWrapper(ui::Module *ui);
@@ -250,6 +255,16 @@ namespace lsp
                 virtual status_t            load_stylesheet(tk::StyleSheet *sheet, const char *file);
                 virtual status_t            load_stylesheet(tk::StyleSheet *sheet, const io::Path *file);
                 virtual status_t            load_stylesheet(tk::StyleSheet *sheet, const LSPString *file);
+
+                /**
+                 * Load global configuration file
+                 * @param file the path to file to load
+                 * @return status of operation
+                 */
+                virtual status_t            load_global_config(const char *file);
+                virtual status_t            load_global_config(const io::Path *file);
+                virtual status_t            load_global_config(const LSPString *file);
+                virtual status_t            load_global_config(io::IInSequence *is);
 
                 /**
                  * Get package version

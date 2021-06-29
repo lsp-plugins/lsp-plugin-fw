@@ -129,6 +129,18 @@ namespace lsp
             return false;
         }
 
+        bool is_bool_unit(size_t unit)
+        {
+            switch (unit)
+            {
+                case U_BOOL:
+                    return true;
+                default:
+                    break;
+            }
+            return false;
+        }
+
         bool is_decibel_unit(size_t unit)
         {
             switch (unit)

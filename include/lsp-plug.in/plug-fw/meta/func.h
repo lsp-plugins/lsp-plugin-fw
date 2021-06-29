@@ -119,6 +119,13 @@ namespace lsp
         bool            is_discrete_unit(size_t unit);
 
         /**
+         * Check that unit is of descrete type
+         * @param unit unit_t unit
+         * @return true if unit is of descrete type
+         */
+        bool            is_bool_unit(size_t unit);
+
+        /**
          * Check that unit is decibels
          * @param unit unit_t unit
          * @return true if unit is decibels

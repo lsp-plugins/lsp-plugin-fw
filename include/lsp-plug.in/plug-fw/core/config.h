@@ -45,6 +45,25 @@ namespace lsp
         status_t serialize_port_value(config::Serializer *s,
                 const meta::port_t *meta, const void *data, const io::Path *base, size_t flags
         );
+
+        /**
+         * Format relative path to the output string
+         * @param value destination string to store value
+         * @param path path to format
+         * @param base base path to use
+         * @return true if value has been formatted
+         */
+        bool format_relative_path(LSPString *value, const char *path, const io::Path *base);
+
+        /**
+         * Extract relative path to the output path
+         * @param path destination path to store relative value
+         * @param base base path to use
+         * @param value the original value to parse
+         * @param len the length in octetx of the original value
+         * @return true if the relative path has been extracted
+         */
+        bool parse_relative_path(io::Path *path, const io::Path *base, const char *value, size_t len);
     }
 }
 
