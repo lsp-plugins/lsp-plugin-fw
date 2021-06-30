@@ -83,7 +83,7 @@ MTEST_BEGIN("", standalone)
     {
         // Obtain list of plugins
         lltl::parray<meta::plugin_t> list;
-        const meta::plugin_t *plugin;
+        const meta::plugin_t *plugin = NULL;
         MTEST_ASSERT(enumerate_plugins(&list) == STATUS_OK);
         if (argc <= 0)
             plugin_not_found(NULL, &list);
