@@ -172,6 +172,8 @@ namespace lsp
             else if (!strcmp(name, "min_height"))   PARSE_INT(value, c->set_min_height(__));
             else if (!strcmp(name, "max_height"))   PARSE_INT(value, c->set_max_height(__));
             else if (!strcmp(name, "size"))         PARSE_INT(value, c->set_all(__));
+            else if (!strcmp(name, "size.min"))     PARSE_INT(value, c->set_min(__));
+            else if (!strcmp(name, "size.max"))     PARSE_INT(value, c->set_max(__));
             else return false;
 
             return true;

@@ -79,6 +79,8 @@ namespace lsp
                 sColor.init(pWrapper, led->color());
                 sLightColor.init(pWrapper, led->led_color());
                 sHoleColor.init(pWrapper, led->hole_color());
+                sBorderColor.init(pWrapper, led->border_color());
+                sLightBorderColor.init(pWrapper, led->led_border_color());
 
                 sActivity.init(pWrapper, this);
             }
@@ -95,15 +97,26 @@ namespace lsp
 
                 sColor.set("color", name, value);
                 sLightColor.set("light.color", name, value);
+                sLightColor.set("led.color", name, value);
                 sLightColor.set("lcolor", name, value);
                 sHoleColor.set("hole.color", name, value);
                 sHoleColor.set("hcolor", name, value);
+                sBorderColor.set("border.color", name, value);
+                sBorderColor.set("bcolor", name, value);
+                sLightBorderColor.set("light.bcolor", name, value);
+                sLightBorderColor.set("led.bcolor", name, value);
+                sLightBorderColor.set("lbcolor", name, value);
 
                 set_expr(&sActivity, "activity", name, value);
 
-                set_size_range(led->size(), "size", name, value);
+                set_constraints(led->constraints(), name, value);
                 set_param(led->hole(), "hole", name, value);
                 set_param(led->led(), "led", name, value);
+                set_param(led->gradient(), "gradient", name, value);
+                set_param(led->border_size(), "border.size", name, value);
+                set_param(led->border_size(), "bsize", name, value);
+                set_param(led->round(), "round", name, value);
+                set_param(led->gradient(), "gradient", name, value);
 
                 set_value(&fKey, "key", name, value);
                 set_value(&fValue, "value", name, value);

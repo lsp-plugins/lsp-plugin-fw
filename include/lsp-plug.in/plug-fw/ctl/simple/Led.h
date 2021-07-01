@@ -45,6 +45,8 @@ namespace lsp
                 ctl::Color          sColor;
                 ctl::Color          sLightColor;
                 ctl::Color          sHoleColor;
+                ctl::Color          sBorderColor;
+                ctl::Color          sLightBorderColor;
 
                 ctl::Expression     sActivity;
                 ui::IPort          *pPort;
