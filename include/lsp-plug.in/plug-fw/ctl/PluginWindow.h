@@ -107,7 +107,6 @@ namespace lsp
                 tk::FileDialog             *wImport;        // Import settings dialog
                 tk::MenuItem               *wPreferHost;    // Prefer host menu item
 
-                ui::IPort                  *pPMStud;
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
                 ui::IPort                  *pPath;
@@ -144,9 +143,6 @@ namespace lsp
                 static status_t slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_reset_settings(tk::Widget *sender, void *ptr, void *data);
-
-                static status_t slot_toggle_rack_mount(tk::Widget *sender, void *ptr, void *data);
-
 
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
 

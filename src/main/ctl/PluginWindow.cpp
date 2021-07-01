@@ -96,7 +96,6 @@ namespace lsp
             wImport         = NULL;
             wPreferHost     = NULL;
 
-            pPMStud         = NULL;
             pPVersion       = NULL;
             pPBypass        = NULL;
             pPath           = NULL;
@@ -215,7 +214,6 @@ namespace lsp
                 return STATUS_BAD_STATE;
 
             // Bind ports
-            BIND_PORT(pWrapper, pPMStud, MSTUD_PORT);
             BIND_PORT(pWrapper, pPVersion, VERSION_PORT);
             BIND_PORT(pWrapper, pPath, CONFIG_PATH_PORT);
             BIND_PORT(pWrapper, pPBypass, meta::PORT_NAME_BYPASS);
@@ -359,14 +357,6 @@ namespace lsp
                 widgets()->add(itm);
                 itm->init();
                 itm->type()->set_separator();
-                wMenu->add(itm);
-
-                // Create 'Toggle rack mount' menu item
-                itm     = new tk::MenuItem(dpy);
-                widgets()->add(itm);
-                itm->init();
-                itm->text()->set("actions.toggle_rack_mount");
-                itm->slots()->bind(tk::SLOT_SUBMIT, slot_toggle_rack_mount, this);
                 wMenu->add(itm);
 
                 // Create 'Dump state' menu item if supported
@@ -1315,20 +1305,6 @@ namespace lsp
 
         status_t PluginWindow::slot_reset_settings(tk::Widget *sender, void *ptr, void *data)
         {
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_toggle_rack_mount(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            ui::IPort *mstud = __this->pPMStud;
-            if (mstud != NULL)
-            {
-                bool x = mstud->value() >= 0.5f;
-                mstud->set_value((x) ? 0.0f : 1.0f);
-                mstud->notify_all();
-            }
-
             return STATUS_OK;
         }
 
