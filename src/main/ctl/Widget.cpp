@@ -450,6 +450,7 @@ namespace lsp
             set_param(wWidget->brightness(), "brightness", name, value);
             set_param(wWidget->brightness(), "bright", name, value);
             set_param(wWidget->scaling(), "scaling", name, value);
+            set_param(wWidget->pointer(), "pointer", name, value);
             set_allocation(wWidget->allocation(), name, value);
 
             sPadding.set("pad", name, value);
