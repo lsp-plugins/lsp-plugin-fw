@@ -161,11 +161,9 @@ namespace lsp
                 set_param(knob->hole_size(), "hole.size", name, value);
                 set_param(knob->gap_size(), "gap.size", name, value);
 
-                if (!strcmp(name, "sbright"))
-                    lsp_trace("debug");
-
                 set_param(knob->scale_brightness(), "scale.brightness", name, value);
                 set_param(knob->scale_brightness(), "scale.bright", name, value);
+                set_param(knob->scale_brightness(), "sbrightness", name, value);
                 set_param(knob->scale_brightness(), "sbright", name, value);
             }
 

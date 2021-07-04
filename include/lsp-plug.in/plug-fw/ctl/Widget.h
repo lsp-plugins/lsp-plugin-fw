@@ -60,6 +60,7 @@ namespace lsp
                 ctl::Boolean        sBgInherit;
                 ctl::Padding        sPadding;
                 ctl::Boolean        sVisibility;
+                ctl::Float          sBrightness;
 
             protected:
                 static const char  *match_prefix(const char *prefix, const char *name);

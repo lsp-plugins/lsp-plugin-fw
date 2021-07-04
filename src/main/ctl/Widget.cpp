@@ -428,6 +428,7 @@ namespace lsp
                 sBgInherit.init(pWrapper, wWidget->bg_inherit());
                 sPadding.init(pWrapper, wWidget->padding());
                 sVisibility.init(pWrapper, wWidget->visibility());
+                sBrightness.init(pWrapper, wWidget->brightness());
             }
 
             return STATUS_OK;
@@ -448,9 +449,9 @@ namespace lsp
 
             sVisibility.set("visibility", name, value);
             sVisibility.set("visible", name, value);
+            sBrightness.set("brightness", name, value);
+            sBrightness.set("bright", name, value);
 
-            set_param(wWidget->brightness(), "brightness", name, value);
-            set_param(wWidget->brightness(), "bright", name, value);
             set_param(wWidget->scaling(), "scaling", name, value);
             set_param(wWidget->pointer(), "pointer", name, value);
             set_allocation(wWidget->allocation(), name, value);
