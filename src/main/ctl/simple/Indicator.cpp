@@ -249,14 +249,7 @@ namespace lsp
                 item->precision = 0;
 
                 nDigits        += digits;
-
-                if (c == 'i')
-                {
-                    enFormat        = FT_INT;
-                    return (*p == '\0');
-                }
-
-                enFormat        = FT_FLOAT;
+                enFormat        = (c == 'i') ? FT_INT : FT_FLOAT;
 
                 if (*p == '.')
                 {
@@ -265,6 +258,9 @@ namespace lsp
                         nDigits     ++;
                 }
                 else if (*p != ',')
+                    return (*p == '\0');
+
+                if (enFormat == FT_INT)
                     return (*p == '\0');
 
                 p++;
@@ -371,8 +367,8 @@ namespace lsp
             if (value == NAN)
                 return false;
 
-            char c_sign = (value < 0.0) ? '-' : (value > 0.0) ? '+' : ' ';
-            char c_pad  = (nFlags & IF_PAD_ZERO) ? '0' : ' ';
+            char c_sign         = (value < 0.0) ? '-' : (value > 0.0) ? '+' : ' ';
+            char c_pad          = (nFlags & IF_PAD_ZERO) ? '0' : ' ';
             if (value < 0.0)
                 value       = -value;
 
