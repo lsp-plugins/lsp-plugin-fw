@@ -323,9 +323,13 @@ namespace lsp
                     sText.set("text", name, value);
 
                 set_value(&bDetailed, "detailed", name, value);
+                set_value(&bSameLine, "value.same_line", name, value);
                 set_value(&bSameLine, "same_line", name, value);
+                set_value(&bSameLine, "same.line", name, value);
+                set_value(&bSameLine, "sline", name, value);
                 set_value(&bReadOnly, "read_only", name, value);
                 set_value(&bReadOnly, "readonly", name, value);
+                set_value(&bReadOnly, "rdonly", name, value);
                 set_value(&nPrecision, "precision", name, value);
 
                 sColor.set("color", name, value);
