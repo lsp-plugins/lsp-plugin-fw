@@ -78,7 +78,10 @@ namespace lsp
                     if (name->equals_ascii("test"))
                     {
                         if ((res = pContext->eval_bool(&bPass, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
+                        }
                         valid = true;
                     }
                     else

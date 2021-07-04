@@ -82,7 +82,10 @@ namespace lsp
                     if ((*atts)->equals_ascii("ui:recursion"))
                     {
                         if ((res = pContext->eval_int(&nRecursion, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
+                        }
                     }
 
                     // Process name
@@ -107,7 +110,10 @@ namespace lsp
 
                     // Evaluate string
                     if ((res = pContext->eval_string(xattr, value)) != STATUS_OK)
+                    {
+                        lsp_error("Could not evaluate expression attribute '%s': %s", xname->get_native(), value->get_native());
                         return res;
+                    }
                 }
 
                 return STATUS_OK;

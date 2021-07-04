@@ -94,24 +94,36 @@ namespace lsp
                             return STATUS_CORRUPTED;
                         LSPString tmp;
                         if ((res = pContext->eval_string(&tmp, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
+                        }
                         if ((pID = tmp.release()) == NULL)
                             return STATUS_NO_MEM;
                     }
                     else if (name->equals_ascii("first"))
                     {
                         if ((res = pContext->eval_int(&nFirst, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
+                        }
                     }
                     else if (name->equals_ascii("last"))
                     {
                         if ((res = pContext->eval_int(&nLast, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
+                        }
                     }
                     else if (name->equals_ascii("step"))
                     {
                         if ((res = pContext->eval_int(&nStep, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
+                        }
                         increment_set = true;
                     }
                     else

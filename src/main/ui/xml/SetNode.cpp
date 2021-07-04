@@ -72,13 +72,19 @@ namespace lsp
                     if (name->equals_ascii("id"))
                     {
                         if ((res = pContext->eval_string(&v_name, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression for attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
+                        }
                         flags      |= 1;
                     }
                     else if (name->equals_ascii("value"))
                     {
                         if ((res = pContext->evaluate(&v_value, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
+                        }
                         flags      |= 2;
                     }
                     else
