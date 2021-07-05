@@ -184,6 +184,18 @@ namespace lsp
             return false;
         }
 
+        bool is_enum_unit(size_t unit)
+        {
+            switch (unit)
+            {
+                case U_ENUM:
+                    return true;
+                default:
+                    break;
+            }
+            return false;
+        }
+
         bool is_log_rule(const port_t *port)
         {
             if (port->flags & F_LOG)

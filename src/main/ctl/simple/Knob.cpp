@@ -64,9 +64,9 @@ namespace lsp
 
             nFlags          = 0;
             fMin            = 0.0f;
-            fMax            = 0.0f;
+            fMax            = 1.0f;
             fDefault        = 0.0f;
-            fStep           = 0.0f;
+            fStep           = 1.0f;
             fAStep          = 10.0f;
             fDStep          = 0.1f;
             fBalance        = 0.0f;
@@ -312,10 +312,8 @@ namespace lsp
 
             const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
             if (p != NULL)
-            {
                 xp          = *p;
-                p           = &xp;
-            }
+            p           = &xp;
 
             // Override default values
             if (nFlags & KF_MIN)

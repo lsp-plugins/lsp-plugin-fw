@@ -147,6 +147,13 @@ namespace lsp
         bool            is_degree_unit(size_t unit);
 
         /**
+         * Check that unit is enumerated unit
+         * @param unit unit_t unit
+         * @return true if unit is enumerated unit
+         */
+        bool            is_enum_unit(size_t unit);
+
+        /**
          * Check that unit uses logarithmic rule
          * @param unit unit_t unit
          * @return true if unit uses logarithmic rule
