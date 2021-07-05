@@ -86,10 +86,12 @@ namespace lsp
             tk::GraphOrigin *go = tk::widget_cast<tk::GraphOrigin>(wWidget);
             if (go != NULL)
             {
-                set_expr(&sLeft, "left", name, value);
-                set_expr(&sLeft, "hpos", name, value);
-                set_expr(&sTop, "top", name, value);
-                set_expr(&sTop, "vpos", name, value);
+                if ((set_expr(&sLeft, "left", name, value)) ||
+                    (set_expr(&sLeft, "hpos", name, value)))
+                    go->left()->set(sLeft.evaluate_float());
+                if ((set_expr(&sTop, "top", name, value)) ||
+                    (set_expr(&sTop, "vpos", name, value)))
+                    go->top()->set(sTop.evaluate_float());
 
                 sSmooth.set("smooth", name, value);
                 sRadius.set("radius", name, value);
@@ -109,7 +111,7 @@ namespace lsp
                 if (sLeft.depends(port))
                     go->left()->set(sLeft.evaluate_float());
                 if (sTop.depends(port))
-                    go->top()->set(sLeft.evaluate_float());
+                    go->top()->set(sTop.evaluate_float());
             }
         }
 

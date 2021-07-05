@@ -96,14 +96,17 @@ namespace lsp
 
                 set_param(gm->origin(), "origin", name, value);
                 set_param(gm->origin(), "center", name, value);
+                set_param(gm->origin(), "o", name, value);
 
                 set_param(gm->haxis(), "haxis", name, value);
                 set_param(gm->haxis(), "xaxis", name, value);
                 set_param(gm->haxis(), "basis", name, value);
+                set_param(gm->haxis(), "ox", name, value);
 
                 set_param(gm->vaxis(), "vaxis", name, value);
                 set_param(gm->vaxis(), "yaxis", name, value);
                 set_param(gm->vaxis(), "parallel", name, value);
+                set_param(gm->vaxis(), "oy", name, value);
 
                 sWidth.set("width", name, value);
                 sSmooth.set("smooth", name, value);

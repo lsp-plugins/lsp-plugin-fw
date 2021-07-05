@@ -108,12 +108,15 @@ namespace lsp
 
                 set_param(gt->haxis(), "basis", name, value);
                 set_param(gt->haxis(), "xaxis", name, value);
+                set_param(gt->haxis(), "ox", name, value);
 
                 set_param(gt->vaxis(), "parallel", name, value);
                 set_param(gt->vaxis(), "yaxis", name, value);
+                set_param(gt->vaxis(), "oy", name, value);
 
                 set_param(gt->origin(), "origin", name, value);
                 set_param(gt->origin(), "center", name, value);
+                set_param(gt->origin(), "o", name, value);
 
                 set_param(gt->text_adjust(), "text.adjust", name, value);
             }

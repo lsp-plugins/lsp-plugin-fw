@@ -112,9 +112,16 @@ namespace lsp
                 bind_port(&pPort, "id", name, value);
 
                 set_param(gm->basis(), "basis", name, value);
+                set_param(gm->basis(), "xaxis", name, value);
+                set_param(gm->basis(), "ox", name, value);
+
                 set_param(gm->parallel(), "parallel", name, value);
+                set_param(gm->parallel(), "yaxis", name, value);
+                set_param(gm->parallel(), "oy", name, value);
+
                 set_param(gm->origin(), "origin", name, value);
                 set_param(gm->origin(), "center", name, value);
+                set_param(gm->origin(), "o", name, value);
 
                 set_expr(&sMin, "min", name, value);
                 set_expr(&sMax, "max", name, value);
@@ -221,7 +228,14 @@ namespace lsp
             if (sMax.valid())
                 gm->value()->set_min(eval_expr(&sMax));
             if (sValue.valid())
-                gm->value()->set(eval_expr(&sValue));
+            {
+                float v = eval_expr(&sValue);
+                gm->value()->set(v);
+                if (!sMin.valid())
+                    gm->value()->set_min(v);
+                if (!sMax.valid())
+                    gm->value()->set_max(v);
+            }
             if (sOffset.valid())
                 gm->offset()->set(eval_expr(&sOffset));
             if (sDx.valid())

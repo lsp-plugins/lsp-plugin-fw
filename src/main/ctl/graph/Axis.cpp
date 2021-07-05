@@ -102,6 +102,8 @@ namespace lsp
                 set_expr(&sDy, "dy", name, value);
                 set_expr(&sAngle, "angle", name, value);
 
+                set_param(ga->origin(), "origin", name, value);
+
                 if (set_param(ga->log_scale(), "log", name, value))
                     bLogSet     = true;
                 if (set_param(ga->log_scale(), "logarithmic", name, value))
@@ -112,7 +114,7 @@ namespace lsp
                 sColor.set("color", name, value);
                 sSmooth.set("smooth", name, value);
                 sMin.set("min", name, value);
-                sMax.set("min", name, value);
+                sMax.set("max", name, value);
             }
 
             return Widget::set(ctx, name, value);
