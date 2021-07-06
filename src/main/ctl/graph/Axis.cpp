@@ -81,8 +81,8 @@ namespace lsp
                 sDx.init(pWrapper, this);
                 sDy.init(pWrapper, this);
                 sAngle.init(pWrapper, this);
+                sLength.init(pWrapper, this);
                 sWidth.init(pWrapper, ga->width());
-                sLength.init(pWrapper, ga->length());
                 sColor.init(pWrapper, ga->color());
 
                 ga->slots()->bind(tk::SLOT_RESIZE_PARENT, slot_graph_resize, this);
@@ -101,8 +101,11 @@ namespace lsp
                 set_expr(&sDx, "dx", name, value);
                 set_expr(&sDy, "dy", name, value);
                 set_expr(&sAngle, "angle", name, value);
+                set_expr(&sLength, "length", name, value);
 
                 set_param(ga->origin(), "origin", name, value);
+                set_param(ga->origin(), "center", name, value);
+                set_param(ga->origin(), "o", name, value);
 
                 if (set_param(ga->log_scale(), "log", name, value))
                     bLogSet     = true;
@@ -110,7 +113,6 @@ namespace lsp
                     bLogSet     = true;
 
                 sWidth.set("width", name, value);
-                sLength.set("length", name, value);
                 sColor.set("color", name, value);
                 sSmooth.set("smooth", name, value);
                 sMin.set("min", name, value);
@@ -162,6 +164,8 @@ namespace lsp
                     ga->direction()->set_dy(eval_expr(&sDy));
                 if (sAngle.depends(port))
                     ga->direction()->set_angle(eval_expr(&sAngle) * M_PI);
+                if (sLength.depends(port))
+                    ga->length()->set(eval_expr(&sLength));
             }
         }
 
@@ -177,6 +181,8 @@ namespace lsp
                 ga->direction()->set_dy(eval_expr(&sDy));
             if (sAngle.valid())
                 ga->direction()->set_angle(eval_expr(&sAngle) * M_PI);
+            if (sLength.valid())
+                ga->length()->set(eval_expr(&sLength));
         }
 
         void Axis::end(ui::UIContext *ctx)

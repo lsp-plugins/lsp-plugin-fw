@@ -49,8 +49,8 @@ namespace lsp
                 ctl::Expression     sDx;
                 ctl::Expression     sDy;
                 ctl::Expression     sAngle;
+                ctl::Expression     sLength;
                 ctl::Integer        sWidth;
-                ctl::Float          sLength;
                 ctl::Color          sColor;
                 bool                bLogSet;
 
