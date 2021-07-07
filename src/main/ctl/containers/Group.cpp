@@ -72,11 +72,13 @@ namespace lsp
             if (grp != NULL)
             {
                 sTextColor.init(pWrapper, grp->text_color());
-                sColor.init(pWrapper, grp->text_color());
+                sColor.init(pWrapper, grp->color());
+                sIBGColor.init(pWrapper, grp->ibg_color());
                 sEmbed.init(pWrapper, grp->embedding());
                 sIPadding.init(pWrapper, grp->ipadding());
                 sTextPadding.init(pWrapper, grp->text_padding());
                 sText.init(pWrapper, grp->text());
+                sIBGBrightness.init(pWrapper, grp->ibg_brightness());
             }
 
             return STATUS_OK;
@@ -99,15 +101,19 @@ namespace lsp
                 set_param(grp->border_radius(), "border.radius", name, value);
                 set_param(grp->border_radius(), "border.r", name, value);
                 set_param(grp->text_adjust(), "text.adjust", name, value);
+                set_param(grp->ibg_inherit(), "ibg.inherit", name, value);
 
                 sTextPadding.set("text.padding", name, value);
                 sTextPadding.set("tpadding", name, value);
                 sTextPadding.set("tpad", name, value);
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
+                sIBGBrightness.set("ibg.brightness", name, value);
+                sIBGBrightness.set("ibg.bright", name, value);
 
                 sTextColor.set("text.color", name, value);
                 sColor.set("color", name, value);
+                sIBGColor.set("ibg.color", name, value);
                 sText.set("text", name, value);
             }
 
@@ -127,6 +133,7 @@ namespace lsp
 
             sTextColor.reload();
             sColor.reload();
+            sIBGColor.reload();
         }
 
     } /* namespace ctl */

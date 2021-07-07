@@ -44,10 +44,12 @@ namespace lsp
             protected:
                 ctl::Color          sTextColor;
                 ctl::Color          sColor;
+                ctl::Color          sIBGColor;
                 ctl::Embedding      sEmbed;
                 ctl::Padding        sIPadding;
                 ctl::Padding        sTextPadding;
                 ctl::LCString       sText;
+                ctl::Float          sIBGBrightness;
 
             public:
                 explicit Group(ui::IWrapper *wrapper, tk::Group *widget);
