@@ -91,6 +91,7 @@ namespace lsp
                 sBalanceColor.init(pWrapper, knob->balance_color());
                 sHoleColor.init(pWrapper, knob->hole_color());
                 sTipColor.init(pWrapper, knob->tip_color());
+                sBalanceTipColor.init(pWrapper, knob->balance_tip_color());
 
                 // Bind slots
                 knob->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
@@ -116,6 +117,8 @@ namespace lsp
                 sHoleColor.set("hole.color", name, value);
                 sTipColor.set("tcolor", name, value);
                 sTipColor.set("tip.color", name, value);
+                sBalanceTipColor.set("btcolor", name, value);
+                sBalanceTipColor.set("balance.tip.color", name, value);
 
                 if (set_value(&fMin, "min", name, value))
                     nFlags     |= KF_MIN;
@@ -160,6 +163,8 @@ namespace lsp
                 set_param(knob->scale_marks(), "scale.marks", name, value);
                 set_param(knob->hole_size(), "hole.size", name, value);
                 set_param(knob->gap_size(), "gap.size", name, value);
+                set_param(knob->balance_tip_size(), "balance.tip.size", name, value);
+                set_param(knob->balance_tip_size(), "btsize", name, value);
 
                 set_param(knob->scale_brightness(), "scale.brightness", name, value);
                 set_param(knob->scale_brightness(), "scale.bright", name, value);

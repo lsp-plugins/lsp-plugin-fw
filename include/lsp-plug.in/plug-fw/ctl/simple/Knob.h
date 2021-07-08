@@ -61,6 +61,7 @@ namespace lsp
                 ctl::Color          sBalanceColor;
                 ctl::Color          sHoleColor;
                 ctl::Color          sTipColor;
+                ctl::Color          sBalanceTipColor;
 
                 ui::IPort          *pPort;
 
