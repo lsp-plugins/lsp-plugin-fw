@@ -31,6 +31,10 @@ namespace lsp
 
         const char PORT_NAME_INPUT[]            = "in";
         const char PORT_NAME_OUTPUT[]           = "out";
+        const char PORT_NAME_MIDI_INPUT[]       = "in_midi";
+        const char PORT_NAME_MIDI_OUTPUT[]      = "out_midi";
+        const char PORT_NAME_OSC_INPUT[]        = "in_osc";
+        const char PORT_NAME_OSC_OUTPUT[]       = "out_osc";
         const char PORT_NAME_SIDECHAIN[]        = "sc";
 
         const char PORT_NAME_INPUT_L[]          = "in_l";

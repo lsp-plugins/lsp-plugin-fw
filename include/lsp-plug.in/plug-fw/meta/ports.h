@@ -142,11 +142,11 @@
 #define AUDIO_OUTPUT_B      AUDIO_OUTPUT("out_b", "Output B")
 #define AUDIO_OUTPUT_N(n)   AUDIO_OUTPUT("out" #n, "Output " #n)
 
-#define MIDI_INPUT          MIDI_CHANNEL(LSP_LV2_MIDI_PORT_IN, F_IN, "Midi input")
-#define MIDI_OUTPUT         MIDI_CHANNEL(LSP_LV2_MIDI_PORT_OUT, F_OUT, "Midi output")
+#define MIDI_INPUT          MIDI_CHANNEL(PORT_NAME_MIDI_INPUT, F_IN, "Midi input")
+#define MIDI_OUTPUT         MIDI_CHANNEL(PORT_NAME_MIDI_OUTPUT, F_OUT, "Midi output")
 
-#define OSC_INPUT           OSC_CHANNEL(LSP_LV2_OSC_PORT_IN, F_IN, "OSC input")
-#define OSC_OUTPUT          OSC_CHANNEL(LSP_LV2_OSC_PORT_OUT, F_OUT, "OSC output")
+#define OSC_INPUT           OSC_CHANNEL(PORT_NAME_OSC_INPUT, F_IN, "OSC input")
+#define OSC_OUTPUT          OSC_CHANNEL(PORT_NAME_OSC_OUTPUT, F_OUT, "OSC output")
 
 #define IN_GAIN             AMP_GAIN("g_in", "Input gain", GAIN_AMP_0_DB, GAIN_AMP_P_60_DB)
 #define OUT_GAIN            AMP_GAIN("g_out", "Output gain", GAIN_AMP_0_DB, GAIN_AMP_P_60_DB)
@@ -240,6 +240,8 @@ namespace lsp
         extern const char PORT_NAME_BYPASS[];
         extern const char PORT_NAME_INPUT[];
         extern const char PORT_NAME_OUTPUT[];
+        extern const char PORT_NAME_MIDI_INPUT[];
+        extern const char PORT_NAME_MIDI_OUTPUT[];
         extern const char PORT_NAME_SIDECHAIN[];
         extern const char PORT_NAME_INPUT_L[];
         extern const char PORT_NAME_INPUT_R[];
