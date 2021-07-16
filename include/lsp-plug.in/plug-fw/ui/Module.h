@@ -73,6 +73,19 @@ namespace lsp
                  */
                 virtual void                    destroy();
 
+                /**
+                 * Method is called after all UI initialization has been completed
+                 * @param window the actual main window of the plugin
+                 * @return status of operation
+                 */
+                virtual status_t                post_init();
+
+                /**
+                 * Method is called before the UI destruction is performed
+                 * @return status of operation
+                 */
+                virtual status_t                pre_destroy();
+
             public:
                 inline const meta::plugin_t    *metadata() const        { return pMetadata;         }
                 inline IWrapper                *wrapper()               { return pWrapper;          }

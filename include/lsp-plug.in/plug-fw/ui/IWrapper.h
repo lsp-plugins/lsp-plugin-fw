@@ -122,6 +122,18 @@ namespace lsp
                 inline ui::Module          *ui()                { return pUI;           }
 
                 /**
+                 * Get window controller
+                 * @return window controller
+                 */
+                inline ctl::Window         *controller()        { return pWindow;       }
+
+                /**
+                 * Get window widget
+                 * @return window widget
+                 */
+                inline tk::Window          *window()            { return wWindow;       }
+
+                /**
                  * Return port by it's identifier
                  *
                  * @param id port identifier

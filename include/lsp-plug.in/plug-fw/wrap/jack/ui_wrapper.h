@@ -168,6 +168,10 @@ namespace lsp
                     return res;
             }
 
+            // Call the post-initialization routine
+            if (res == STATUS_OK)
+                res = pUI->post_init();
+
             return res;
         }
 

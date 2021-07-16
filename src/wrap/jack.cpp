@@ -304,6 +304,7 @@ namespace lsp
             // Destroy plugin UI
             if (w->pUI != NULL)
             {
+                w->pUI->pre_destroy();
                 w->pUI->destroy();
                 delete w->pUI;
                 w->pUI          = NULL;

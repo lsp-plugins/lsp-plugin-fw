@@ -43,6 +43,16 @@ namespace lsp
             do_destroy();
         }
 
+        status_t Module::post_init()
+        {
+            return STATUS_OK;
+        }
+
+        status_t Module::pre_destroy()
+        {
+            return STATUS_OK;
+        }
+
         void Module::do_destroy()
         {
             // Forget the root widget
