@@ -996,6 +996,7 @@ namespace lsp
             // Parse the sheet data and close the input sequence
             status_t res    = sheet->parse_data(is);
             status_t res2   = is->close();
+            delete is;
             if (res == STATUS_OK)
                 res         = res2;
 

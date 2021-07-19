@@ -106,6 +106,11 @@ namespace lsp
             ctx->local.values(&paths);
             ctx->local.flush();
             drop_paths(&paths);
+
+            // Drop fonts
+            ctx->fonts.values(&paths);
+            ctx->fonts.flush();
+            drop_paths(&paths);
         }
 
         status_t add_unique_file(lltl::pphash<LSPString, LSPString> *dst, const LSPString *relative, const LSPString *full)
@@ -254,9 +259,18 @@ namespace lsp
             // Check that node previously existed
             json::Node *dst = ctx->i18n.get(relative);
             if (dst == NULL)
+            {
+                // Create new entry
                 res = (ctx->i18n.create(relative, node)) ? STATUS_OK : STATUS_NO_MEM;
+                if (res != STATUS_OK)
+                    delete node;
+            }
             else
+            {
+                // Merge node and delete just loaded data
                 res = merge_i18n(&path, dst, node, full);
+                delete node;
+            }
 
             return res;
         }
