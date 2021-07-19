@@ -320,10 +320,10 @@ namespace lsp
                     {
                         // Generate postfix
                         postfix_str.fmt_ascii("%s_%d", (postfix != NULL) ? postfix : "", int(row));
-                        postfix = postfix_str.get_ascii();
+                        const char *port_post = postfix_str.get_ascii();
 
                         // Clone port metadata
-                        meta::port_t *cm        = clone_port_metadata(port->members, postfix);
+                        meta::port_t *cm        = clone_port_metadata(port->members, port_post);
                         if (cm != NULL)
                         {
                             vGenMetadata.add(cm);
@@ -335,7 +335,7 @@ namespace lsp
                                 else if (meta::is_lowering_port(cm))
                                     cm->start    = cm->max - ((cm->max - cm->min) * row) / float(pg->rows());
 
-                                create_port(cm, postfix);
+                                create_port(cm, port_post);
                             }
                         }
                     }
