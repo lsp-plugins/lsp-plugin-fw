@@ -83,6 +83,7 @@ namespace lsp
                 sSpinTextColor.init(pWrapper, cbox->spin_text_color());
                 sBorderColor.init(pWrapper, cbox->border_color());
                 sBorderGapColor.init(pWrapper, cbox->border_gap_color());
+                sEmptyText.init(pWrapper, cbox->empty_text());
 
                 // Bind slots
                 cbox->slots()->bind(tk::SLOT_SUBMIT, slot_combo_submit, this);
@@ -118,6 +119,7 @@ namespace lsp
                 sBorderColor.set("bcolor", name, value);
                 sBorderGapColor.set("border.gap.color", name, value);
                 sBorderGapColor.set("bgap.color", name, value);
+                sEmptyText.set("text.empty", name, value);
 
                 set_text_fitness(cbox->text_fit(), "text.fitness", name, value);
                 set_text_fitness(cbox->text_fit(), "tfitness", name, value);

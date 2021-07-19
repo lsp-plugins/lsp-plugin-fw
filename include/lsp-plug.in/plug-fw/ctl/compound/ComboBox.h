@@ -49,6 +49,7 @@ namespace lsp
                 ctl::Color          sSpinTextColor;
                 ctl::Color          sBorderColor;
                 ctl::Color          sBorderGapColor;
+                ctl::LCString       sEmptyText;
 
                 float               fMin;
                 float               fMax;
