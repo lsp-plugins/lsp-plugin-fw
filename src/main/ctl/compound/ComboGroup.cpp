@@ -111,7 +111,7 @@ namespace lsp
                 sEmbed.set("embed", name, value);
 
                 set_font(cgrp->font(), "font", name, value);
-                set_layout(cgrp->layout(), name, value);
+                set_layout(cgrp->layout(), NULL, name, value);
                 set_constraints(cgrp->constraints(), name, value);
                 set_alignment(cgrp->heading(), "heading.alignment", name, value);
                 set_alignment(cgrp->heading(), "heading.align", name, value);

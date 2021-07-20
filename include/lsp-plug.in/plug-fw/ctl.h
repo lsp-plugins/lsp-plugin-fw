@@ -78,6 +78,7 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/FBuffer.h>
 
     #include <lsp-plug.in/plug-fw/ctl/specific/Rack.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 

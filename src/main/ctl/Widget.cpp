@@ -179,8 +179,13 @@ namespace lsp
             return true;
         }
 
-        bool Widget::set_layout(tk::Layout *l, const char *name, const char *value)
+        bool Widget::set_layout(tk::Layout *l, const char *param, const char *name, const char *value)
         {
+            if (l == NULL)
+                return false;
+            if (!(name = match_prefix(param, name)))
+                return false;
+
             if      (!strcmp(name, "align"))        PARSE_FLOAT(value, l->set_align(__));
             else if (!strcmp(name, "halign"))       PARSE_FLOAT(value, l->set_halign(__));
             else if (!strcmp(name, "valign"))       PARSE_FLOAT(value, l->set_valign(__));
@@ -225,10 +230,33 @@ namespace lsp
 
         bool Widget::set_text_layout(tk::TextLayout *l, const char *name, const char *value)
         {
+            if (l == NULL)
+                return false;
+
             if      (!strcmp(name, "htext"))        PARSE_FLOAT(value, l->set_halign(__));
-            else if (!strcmp(name, "vtext"))        PARSE_FLOAT(value, l->set_valign(__));
             else if (!strcmp(name, "text.halign"))  PARSE_FLOAT(value, l->set_halign(__));
+            else if (!strcmp(name, "text.h"))       PARSE_FLOAT(value, l->set_halign(__));
+            else if (!strcmp(name, "vtext"))        PARSE_FLOAT(value, l->set_valign(__));
             else if (!strcmp(name, "text.valign"))  PARSE_FLOAT(value, l->set_valign(__));
+            else if (!strcmp(name, "text.v"))       PARSE_FLOAT(value, l->set_valign(__));
+            else return false;
+
+            return true;
+        }
+
+        bool Widget::set_text_layout(tk::TextLayout *l, const char *param, const char *name, const char *value)
+        {
+            if (l == NULL)
+                return false;
+            if (!(name = match_prefix(param, name)))
+                return false;
+
+            if      (!strcmp(name, "htext"))        PARSE_FLOAT(value, l->set_halign(__));
+            else if (!strcmp(name, "halign"))       PARSE_FLOAT(value, l->set_halign(__));
+            else if (!strcmp(name, "h"))            PARSE_FLOAT(value, l->set_halign(__));
+            else if (!strcmp(name, "vtext"))        PARSE_FLOAT(value, l->set_valign(__));
+            else if (!strcmp(name, "valign"))       PARSE_FLOAT(value, l->set_valign(__));
+            else if (!strcmp(name, "v"))            PARSE_FLOAT(value, l->set_valign(__));
             else return false;
 
             return true;

@@ -93,7 +93,7 @@ namespace lsp
                 bind_port(&pPort, "id", name, value);
 
                 sColor.set("color", name, value);
-                set_layout(gt->layout(), name, value);
+                set_layout(gt->layout(), NULL, name, value);
                 set_text_layout(gt->text_layout(), name, value);
 
                 sHValue.set("hval", name, value);

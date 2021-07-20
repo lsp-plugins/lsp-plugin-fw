@@ -72,7 +72,7 @@ namespace lsp
                 sTitle.set("title", name, value);
 
                 set_constraints(wnd->constraints(), name, value);
-                set_layout(wnd->layout(), name, value);
+                set_layout(wnd->layout(), NULL, name, value);
                 set_param(wnd->border_size(), "border", name, value);
             }
 

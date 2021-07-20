@@ -90,7 +90,7 @@ namespace lsp
             if (grp != NULL)
             {
                 set_constraints(grp->constraints(), name, value);
-                set_layout(grp->layout(), name, value);
+                set_layout(grp->layout(), NULL, name, value);
                 set_font(grp->font(), "font", name, value);
                 set_alignment(grp->heading(), "heading", name, value);
                 set_param(grp->show_text(), "text.show", name, value);
