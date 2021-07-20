@@ -46,13 +46,15 @@ namespace lsp
                 float                   fMin;
                 float                   fMax;
                 float                   fStep;
+                ssize_t                 nActive;
 
                 ctl::Color              sColor;
                 ctl::Color              sTextColor;
                 ctl::Color              sSpinColor;
                 ctl::LCString           sEmptyText;
                 ctl::Padding            sTextPadding;
-                ctl::Embedding      sEmbed;
+                ctl::Expression         sActive;
+                ctl::Embedding          sEmbed;
 
             protected:
                 static status_t         slot_combo_submit(tk::Widget *sender, void *ptr, void *data);
@@ -60,6 +62,7 @@ namespace lsp
             protected:
                 void                    sync_metadata(ui::IPort *port);
                 void                    submit_value();
+                void                    select_active_widget();
 
             public:
                 explicit                ComboGroup(ui::IWrapper *wrapper, tk::ComboGroup *cgroup);

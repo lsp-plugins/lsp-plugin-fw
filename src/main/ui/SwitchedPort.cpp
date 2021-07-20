@@ -58,11 +58,11 @@ namespace lsp
                     if (end == NULL)
                         return NULL;
 
-                    if ((os.writeb(TT_INDEX)) != STATUS_OK)
+                    if ((os.writeb(TT_INDEX)) < 0)
                         break;
-                    if ((os.write(path, end - path)) != STATUS_OK)
+                    if ((os.write(path, end - path)) < 0)
                         break;
-                    if ((os.writeb('\0')) != STATUS_OK)
+                    if ((os.writeb('\0')) < 0)
                         break;
                     path    = end + 1;
                 }
@@ -72,11 +72,11 @@ namespace lsp
                     if (end == NULL)
                         end         = path + strlen(path);
 
-                    if ((os.writeb(TT_STRING)) != STATUS_OK)
+                    if ((os.writeb(TT_STRING)) < 0)
                         break;
-                    if ((os.write(path, end - path)) != STATUS_OK)
+                    if ((os.write(path, end - path)) < 0)
                         break;
-                    if ((os.writeb('\0')) != STATUS_OK)
+                    if ((os.writeb('\0')) < 0)
                         break;
                     path    = end;
                 }

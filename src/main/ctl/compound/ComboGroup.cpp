@@ -64,6 +64,7 @@ namespace lsp
             fMin            = 0.0f;
             fMax            = 0.0f;
             fStep           = 0.0f;
+            nActive         = -1;
         }
 
         ComboGroup::~ComboGroup()
@@ -86,6 +87,7 @@ namespace lsp
                 sEmptyText.init(pWrapper, cgrp->empty_text());
                 sTextPadding.init(pWrapper, cgrp->text_padding());
                 sEmbed.init(pWrapper, cgrp->embedding());
+                sActive.init(pWrapper, this);
             }
 
             return STATUS_OK;
@@ -97,6 +99,7 @@ namespace lsp
             if (cgrp != NULL)
             {
                 bind_port(&pPort, "id", name, value);
+                set_expr(&sActive, "active", name, value);
 
                 sColor.set("color", name, value);
                 sTextColor.set("text.color", name, value);
@@ -137,24 +140,44 @@ namespace lsp
             if (pPort != NULL)
                 sync_metadata(pPort);
 
+            if (sActive.valid())
+                select_active_widget();
+
             Widget::end(ctx);
         }
 
         void ComboGroup::notify(ui::IPort *port)
         {
-            Widget::notify(port);
-
-            if ((port == NULL) || (pPort != port))
+            if (port == NULL)
                 return;
 
-            tk::ComboGroup *cgrp = tk::widget_cast<tk::ComboGroup>(wWidget);
-            if (cgrp != NULL)
-            {
-                ssize_t index = (pPort->value() - fMin) / fStep;
+            Widget::notify(port);
 
-                tk::ListBoxItem *li = cgrp->items()->get(index);
-                cgrp->selected()->set(li);
+            if (sActive.depends(port))
+                select_active_widget();
+
+            if (pPort == port)
+            {
+                tk::ComboGroup *cgrp = tk::widget_cast<tk::ComboGroup>(wWidget);
+                if (cgrp != NULL)
+                {
+                    ssize_t index = (pPort->value() - fMin) / fStep;
+
+                    tk::ListBoxItem *li = cgrp->items()->get(index);
+                    cgrp->selected()->set(li);
+                }
             }
+        }
+
+        void ComboGroup::select_active_widget()
+        {
+            tk::ComboGroup *cgrp = tk::widget_cast<tk::ComboGroup>(wWidget);
+            if (cgrp == NULL)
+                return;
+
+            ssize_t index = (sActive.valid()) ? sActive.evaluate_int() : -1;
+            tk::Widget *w = (index >= 0) ? cgrp->widgets()->get(index) : NULL;
+            cgrp->active()->set(w);
         }
 
         void ComboGroup::schema_reloaded()
@@ -229,11 +252,11 @@ namespace lsp
             if (pPort == NULL)
                 return;
 
-            tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
-            if (cbox == NULL)
+            tk::ComboGroup *cgrp = tk::widget_cast<tk::ComboGroup>(wWidget);
+            if (cgrp == NULL)
                 return;
 
-            ssize_t index = cbox->items()->index_of(cbox->selected()->get());
+            ssize_t index = cgrp->items()->index_of(cgrp->selected()->get());
 
             float value = fMin + fStep * index;
             lsp_trace("index = %d, value=%f", int(index), value);
