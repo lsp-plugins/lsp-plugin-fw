@@ -144,7 +144,7 @@ namespace lsp
                 void                                destroy();
 
             public:
-                virtual ipc::IExecutor             *get_executor();
+                virtual ipc::IExecutor             *executor();
 
                 virtual void                        query_display_draw()    { atomic_add(&nQueryDrawReq, 1);    }
 
@@ -674,7 +674,7 @@ namespace lsp
             return 0;
         }
 
-        ipc::IExecutor *Wrapper::get_executor()
+        ipc::IExecutor *Wrapper::executor()
         {
             lsp_trace("executor = %p", reinterpret_cast<void *>(pExecutor));
             if (pExecutor != NULL)

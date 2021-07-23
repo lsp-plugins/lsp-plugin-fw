@@ -50,10 +50,10 @@ namespace lsp
         // Mesh port structure
         typedef struct mesh_t
         {
-            volatile mesh_state_t   nState;
-            size_t                  nBuffers;
-            size_t                  nItems;
-            float                  *pvData[];
+            volatile mesh_state_t   nState;     // Actual state of the mesh
+            size_t                  nBuffers;   // Overall number of buffers
+            size_t                  nItems;     // Number of items per each buffer
+            float                  *pvData[];   // Array of pointers to buffer data
 
             inline bool isEmpty() const         { return nState == M_EMPTY; };
             inline bool containsData() const    { return nState == M_DATA; };

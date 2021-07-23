@@ -51,7 +51,7 @@ namespace lsp
             if (res != STATUS_OK)
             {
                 expr::destroy_value(&value);
-                return 0.0f;
+                return dfl;
             }
 
             float fval;
@@ -70,7 +70,7 @@ namespace lsp
             if (res != STATUS_OK)
             {
                 expr::destroy_value(&value);
-                return 0.0f;
+                return dfl;
             }
 
             ssize_t ival;
@@ -89,7 +89,7 @@ namespace lsp
             if (res != STATUS_OK)
             {
                 expr::destroy_value(&value);
-                return 0.0f;
+                return dfl;
             }
 
             bool bval;

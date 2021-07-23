@@ -1844,7 +1844,7 @@ namespace lsp
             if (r == NULL)
                 return STATUS_OK;
 
-            lsp_trace("Resize: x=%d, y=%d, w=%d, h=%d", int(r->nLeft), int(r->nTop), int(r->nWidth), int(r->nHeight));
+//            lsp_trace("Resize: x=%d, y=%d, w=%d, h=%d", int(r->nLeft), int(r->nTop), int(r->nWidth), int(r->nHeight));
 
             tk::Window *wnd = tk::widget_cast<tk::Window>(_this->wWidget);
             if (wnd == NULL)

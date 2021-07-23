@@ -55,6 +55,9 @@ namespace lsp
 
             protected:
                 ui::IPort          *pPort;
+                ui::IPort          *pMeshPort;
+                ui::IPort          *pPathPort;
+                tk::FileDialog     *pDialog;
 
                 ctl::Integer        sWaveBorder;
                 ctl::Integer        sFadeInBorder;
@@ -70,6 +73,13 @@ namespace lsp
                 ctl::Boolean        sBorderFlat;
                 ctl::Boolean        sGlass;
 
+                ctl::Expression     sStatus;
+                ctl::Expression     sHeadCut;
+                ctl::Expression     sTailCut;
+                ctl::Expression     sFadeIn;
+                ctl::Expression     sFadeOut;
+                ctl::Expression     sLength;
+
                 ctl::Padding        sIPadding;
 
                 ctl::Color          sColor;
@@ -80,6 +90,18 @@ namespace lsp
                 ctl::Color          sLabelTextColor[tk::AudioSample::LABELS];
                 ctl::Color          sLabelBgColor;
 
+            protected:
+                static status_t     slot_audio_sample_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_dialog_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_dialog_hide(tk::Widget *sender, void *ptr, void *data);
+
+            protected:
+                void                show_file_dialog();
+                void                update_path();
+                void                commit_file();
+                void                sync_status();
+                void                sync_labels();
+                void                sync_mesh();
 
             public:
                 explicit AudioSample(ui::IWrapper *wrapper, tk::AudioSample *widget);
@@ -89,6 +111,8 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        end(ui::UIContext *ctx);
+                virtual void        notify(ui::IPort *port);
                 virtual void        schema_reloaded();
         };
 
