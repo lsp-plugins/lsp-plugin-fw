@@ -250,15 +250,14 @@ namespace lsp
 
             if ((port == pMeshPort) ||
                 (sFadeIn.depends(port)) ||
-                (sFadeOut.depends(port)))
-                sync_mesh();
-
-            if ((sFadeIn.depends(port)) ||
                 (sFadeOut.depends(port)) ||
                 (sHeadCut.depends(port)) ||
                 (sTailCut.depends(port)) ||
                 (sLength.depends(port)))
+            {
+                sync_mesh();
                 sync_labels();
+            }
 
 //            LSPAudioFile *af    = widget_cast<LSPAudioFile>(pWidget);
 //            if (af == NULL)
@@ -361,9 +360,12 @@ namespace lsp
             }
 
             // Synchronize mesh state
-            float length   = sLength.evaluate_float();
-            float fade_in  = sFadeIn.evaluate_float() / length;
-            float fade_out = sFadeOut.evaluate_float() / length;
+            size_t samples = mesh->nItems;
+            float length   = sLength.evaluate_float() - sHeadCut.evaluate_float() - sTailCut.evaluate_float();
+            float fade_in  = (length > 0) ? samples * (sFadeIn.evaluate_float() / length) : 0.0f;
+            float fade_out = (length > 0) ? samples * (sFadeOut.evaluate_float() / length) : 0.0f;
+
+            lsp_trace("length=%f, fade_in=%f, fade_out=%f", length, fade_in, fade_out);
 
             for (size_t i=0; i<mesh->nBuffers; ++i)
             {
@@ -372,7 +374,7 @@ namespace lsp
                     continue;
 
                 // Update mesh
-                ac->samples()->set(mesh->pvData[i], mesh->nItems);
+                ac->samples()->set(mesh->pvData[i], samples);
 
                 // Update fades
                 ac->fade_in()->set(fade_in);
