@@ -54,10 +54,45 @@ namespace lsp
                 };
 
             protected:
+                class DataSink: public tk::TextDataSink
+                {
+                    private:
+                        AudioSample    *pSample;
+
+                    public:
+                        explicit DataSink(AudioSample *sample);
+                        virtual ~DataSink();
+
+                    public:
+                        virtual status_t    receive(const LSPString *text, const char *mime);
+                        virtual status_t    error(status_t code);
+
+                        void        unbind();
+                };
+
+                class DragInSink: public tk::URLSink
+                {
+                    protected:
+                        AudioSample    *pSample;
+
+                    public:
+                        explicit DragInSink(AudioSample *sample);
+                        virtual ~DragInSink();
+
+                        void unbind();
+                        virtual status_t    commit_url(const LSPString *url);
+                };
+
+            protected:
                 ui::IPort          *pPort;
                 ui::IPort          *pMeshPort;
                 ui::IPort          *pPathPort;
                 tk::FileDialog     *pDialog;
+                tk::Menu           *pMenu;
+                DataSink           *pDataSink;
+                DragInSink         *pDragInSink;
+                lltl::parray<tk::MenuItem>      vMenuItems;
+                lltl::pphash<char, ui::IPort>   vClipboardBind;
 
                 ctl::Integer        sWaveBorder;
                 ctl::Integer        sFadeInBorder;
@@ -94,6 +129,11 @@ namespace lsp
                 static status_t     slot_audio_sample_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dialog_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dialog_hide(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_popup_cut_action(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_popup_copy_action(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_popup_paste_action(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_popup_clear_action(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_drag_request(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                show_file_dialog();
@@ -102,6 +142,8 @@ namespace lsp
                 void                sync_status();
                 void                sync_labels();
                 void                sync_mesh();
+                tk::Menu           *create_menu();
+                tk::MenuItem       *create_menu_item(tk::Menu *menu);
 
             public:
                 explicit AudioSample(ui::IWrapper *wrapper, tk::AudioSample *widget);

@@ -106,8 +106,6 @@ namespace lsp
             tk::Knob *knob = tk::widget_cast<tk::Knob>(wWidget);
             if (knob != NULL)
             {
-                if (!strcmp(name, "id") && (strchr(value, '[') > 0))
-                    lsp_trace("debug");
                 bind_port(&pPort, "id", name, value);
 
                 sColor.set("color", name, value);

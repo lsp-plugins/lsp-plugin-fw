@@ -20,6 +20,9 @@
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/fmt/config/Serializer.h>
+#include <lsp-plug.in/fmt/config/PullParser.h>
+#include <lsp-plug.in/fmt/url.h>
 
 namespace lsp
 {
@@ -53,12 +56,115 @@ namespace lsp
         CTL_FACTORY_IMPL_END(AudioSample)
 
         //-----------------------------------------------------------------
+        AudioSample::DataSink::DataSink(AudioSample *sample)
+        {
+            pSample     = sample;
+        }
+
+        AudioSample::DataSink::~DataSink()
+        {
+            unbind();
+        }
+
+        status_t AudioSample::DataSink::receive(const LSPString *text, const char *mime)
+        {
+            if (pSample == NULL)
+                return STATUS_OK;
+
+            // Apply configuration
+            config::PullParser p;
+            if (p.wrap(text) != STATUS_OK)
+                return STATUS_OK;
+
+            config::param_t param;
+            while (p.next(&param) == STATUS_OK)
+            {
+                if ((param.name.equals_ascii("file")) && (param.is_string()) && (pSample->pPort != NULL))
+                {
+                    pSample->pPort->write(param.v.str, strlen(param.v.str));
+                    pSample->pPort->notify_all();
+                }
+                else if (param.is_numeric())
+                {
+                    const char *pname = param.name.get_utf8();
+                    ui::IPort *port = pSample->vClipboardBind.get(pname);
+                    if (port != NULL)
+                    {
+                        port->set_value(param.to_f32());
+                        port->notify_all();
+                    }
+                }
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t AudioSample::DataSink::error(status_t code)
+        {
+            unbind();
+            return STATUS_OK;
+        }
+
+        void AudioSample::DataSink::unbind()
+        {
+            if (pSample != NULL)
+            {
+                if (pSample->pDataSink == this)
+                    pSample->pDataSink  = NULL;
+                pSample = NULL;
+            }
+        }
+
+        //-----------------------------------------------------------------
+        AudioSample::DragInSink::DragInSink(AudioSample *sample)
+        {
+            pSample     = sample;
+        }
+
+        AudioSample::DragInSink::~DragInSink()
+        {
+            unbind();
+        }
+
+        void AudioSample::DragInSink::unbind()
+        {
+            if (pSample != NULL)
+            {
+                if (pSample->pDragInSink == this)
+                    pSample->pDragInSink    = NULL;
+                pSample = NULL;
+            }
+        }
+
+        status_t AudioSample::DragInSink::commit_url(const LSPString *url)
+        {
+            if ((url == NULL) || (pSample->pPort == NULL))
+                return STATUS_OK;
+
+            LSPString decoded;
+            status_t res = (url->starts_with_ascii("file://")) ?
+                    url::decode(&decoded, url, 7) :
+                    url::decode(&decoded, url);
+
+            if (res != STATUS_OK)
+                return res;
+
+            lsp_trace("Set file path to %s", decoded.get_native());
+            const char *path = decoded.get_utf8();
+
+            pSample->pPort->write(path, strlen(path));
+            pSample->pPort->notify_all();
+
+            return STATUS_OK;
+        }
+
+        //-----------------------------------------------------------------
         static const char *label_names[] =
         {
             "fname",
             "duration",
-            "fadein",
-            "fadeout",
+            "head",
+            "tail",
             "misc"
         };
 
@@ -72,20 +178,65 @@ namespace lsp
             pMeshPort       = NULL;
             pPathPort       = NULL;
             pDialog         = NULL;
+            pMenu           = NULL;
+            pDataSink       = NULL;
+            pDragInSink     = NULL;
         }
 
         AudioSample::~AudioSample()
         {
+            tk::AudioSample *as     = tk::widget_cast<tk::AudioSample>(wWidget);
+            if (as != NULL)
+                as->channels()->flush();
+
+            // Destroy sink
+            DragInSink *sink = pDragInSink;
+            if (sink != NULL)
+            {
+                sink->unbind();
+                sink->release();
+                sink   = NULL;
+            }
+
+            // Destroy dialog
             if (pDialog != NULL)
             {
                 pDialog->destroy();
                 delete pDialog;
+                pDialog     = NULL;
             }
+
+            // Destroy menu items
+            for (size_t i=0, n=vMenuItems.size(); i<n; ++i)
+            {
+                tk::MenuItem *mi = vMenuItems.uget(i);
+                if (mi != NULL)
+                {
+                    mi->destroy();
+                    delete mi;
+                }
+            }
+            vMenuItems.flush();
+
+            // Destroy menu
+            if (pMenu != NULL)
+            {
+                pMenu->destroy();
+                delete pMenu;
+                pMenu       = NULL;
+            }
+
+            vClipboardBind.flush();
         }
 
         status_t AudioSample::init()
         {
             LSP_STATUS_ASSERT(Widget::init());
+
+            pDragInSink = new DragInSink(this);
+            if (pDragInSink == NULL)
+                return STATUS_NO_MEM;
+            pDragInSink->acquire();
 
             tk::AudioSample *as = tk::widget_cast<tk::AudioSample>(wWidget);
             if (as != NULL)
@@ -128,10 +279,81 @@ namespace lsp
 
                 // Bind slot
                 as->slots()->bind(tk::SLOT_SUBMIT, slot_audio_sample_submit, this);
+                as->slots()->bind(tk::SLOT_DRAG_REQUEST, slot_drag_request, this);
                 as->active()->set(true);
+
+                // Create menu item
+                as->popup()->set(create_menu());
+
+                // Init labels
+                for (size_t i=0, n=lsp_min(size_t(LBL_COUNT), tk::AudioSample::LABELS); i<n; ++i)
+                {
+                    LSPString key;
+                    key.fmt_ascii("labels.asample.%s", label_names[i]);
+                    as->label(i)->set(&key);
+                }
             }
 
             return STATUS_OK;
+        }
+
+        tk::MenuItem *AudioSample::create_menu_item(tk::Menu *menu)
+        {
+            tk::MenuItem *mi = new tk::MenuItem(wWidget->display());
+            if (mi == NULL)
+                return NULL;
+            if (mi->init() != STATUS_OK)
+            {
+                mi->destroy();
+                delete mi;
+                return NULL;
+            }
+            if (!vMenuItems.add(mi))
+            {
+                mi->destroy();
+                delete mi;
+                return NULL;
+            }
+
+            return (menu->add(mi) == STATUS_OK) ? mi : NULL;
+        }
+
+        tk::Menu *AudioSample::create_menu()
+        {
+            // Initialize menu
+            pMenu = new tk::Menu(wWidget->display());
+            if (pMenu == NULL)
+                return NULL;
+            if (pMenu->init() != STATUS_OK)
+            {
+                pMenu->destroy();
+                delete pMenu;
+                return pMenu = NULL;
+            }
+
+            // Fill items
+            tk::MenuItem *mi;
+            if ((mi = create_menu_item(pMenu)) == NULL)
+                return pMenu;
+            mi->text()->set("actions.edit.cut");
+            mi->slots()->bind(tk::SLOT_SUBMIT, slot_popup_cut_action, this);
+
+            if ((mi = create_menu_item(pMenu)) == NULL)
+                return pMenu;
+            mi->text()->set("actions.edit.copy");
+            mi->slots()->bind(tk::SLOT_SUBMIT, slot_popup_copy_action, this);
+
+            if ((mi = create_menu_item(pMenu)) == NULL)
+                return pMenu;
+            mi->text()->set("actions.edit.paste");
+            mi->slots()->bind(tk::SLOT_SUBMIT, slot_popup_paste_action, this);
+
+            if ((mi = create_menu_item(pMenu)) == NULL)
+                return pMenu;
+            mi->text()->set("actions.edit.clear");
+            mi->slots()->bind(tk::SLOT_SUBMIT, slot_popup_clear_action, this);
+
+            return pMenu;
         }
 
         void AudioSample::set(ui::UIContext *ctx, const char *name, const char *value)
@@ -225,6 +447,15 @@ namespace lsp
                 sLineColor.set("line.color", name, value);
                 sMainColor.set("main.color", name, value);
                 sLabelBgColor.set("label.bg.color", name, value);
+
+                // Process clipboard bindings
+                const char *bind = match_prefix("clipboard", name);
+                if ((bind != NULL) && (strlen(bind) > 0))
+                {
+                    ui::IPort *port = pWrapper->port(value);
+                    if (port != NULL)
+                        vClipboardBind.create(bind, port);
+                }
             }
 
             return Widget::set(ctx, name, value);
@@ -249,6 +480,7 @@ namespace lsp
                 sync_status();
 
             if ((port == pMeshPort) ||
+                (port == pPort) ||
                 (sFadeIn.depends(port)) ||
                 (sFadeOut.depends(port)) ||
                 (sHeadCut.depends(port)) ||
@@ -318,6 +550,49 @@ namespace lsp
 
         void AudioSample::sync_labels()
         {
+            tk::AudioSample *as     = tk::widget_cast<tk::AudioSample>(wWidget);
+            if (as == NULL)
+                return;
+
+            io::Path fpath;
+            if (pPort != NULL)
+            {
+                const char *path = pPort->buffer<char>();
+                if (path == NULL)
+                    path    = "";
+                fpath.set(path);
+            }
+
+            // Set different parameters for string
+            for (size_t i=0, n=lsp_min(size_t(LBL_COUNT), tk::AudioSample::LABELS); i<n; ++i)
+            {
+                tk::String *dst = as->label(i);
+                expr::Parameters *p = dst->params();
+
+                float length   = sLength.evaluate_float();
+                float head_cut = sHeadCut.evaluate_float();
+                float tail_cut = sTailCut.evaluate_float();
+                float fade_in  = sFadeIn.evaluate_float();
+                float fade_out = sFadeOut.evaluate_float();
+
+                p->set_float("length", length);
+                p->set_float("head_cut", head_cut);
+                p->set_float("tail_cut", tail_cut);
+                p->set_float("length_cut", lsp_max(0.0f, length - head_cut - tail_cut));
+                p->set_float("fade_in", fade_in);
+                p->set_float("fade_out", fade_out);
+
+                LSPString tmp;
+                p->set_string("file", fpath.as_string());
+                fpath.get_last(&tmp);
+                p->set_string("file_name", &tmp);
+                fpath.get_parent(&tmp);
+                p->set_string("file_dir", &tmp);
+                fpath.get_ext(&tmp);
+                p->set_string("file_ext", &tmp);
+                fpath.get_noext(&tmp);
+                p->set_string("file_noext", &tmp);
+            }
         }
 
         void AudioSample::sync_mesh()
@@ -463,27 +738,149 @@ namespace lsp
 
         status_t AudioSample::slot_audio_sample_submit(tk::Widget *sender, void *ptr, void *data)
         {
-            AudioSample *as = static_cast<AudioSample *>(ptr);
-            if (as != NULL)
-                as->show_file_dialog();
+            AudioSample *_this = static_cast<AudioSample *>(ptr);
+            if (_this != NULL)
+                _this->show_file_dialog();
 
             return STATUS_OK;
         }
 
         status_t AudioSample::slot_dialog_submit(tk::Widget *sender, void *ptr, void *data)
         {
-            AudioSample *as = static_cast<AudioSample *>(ptr);
-            if (as != NULL)
-                as->commit_file();
+            AudioSample *_this = static_cast<AudioSample *>(ptr);
+            if (_this != NULL)
+                _this->commit_file();
 
             return STATUS_OK;
         }
 
         status_t AudioSample::slot_dialog_hide(tk::Widget *sender, void *ptr, void *data)
         {
-            AudioSample *as = static_cast<AudioSample *>(ptr);
-            if (as != NULL)
-                as->update_path();
+            AudioSample *_this = static_cast<AudioSample *>(ptr);
+            if (_this != NULL)
+                _this->update_path();
+
+            return STATUS_OK;
+        }
+
+        status_t AudioSample::slot_popup_cut_action(tk::Widget *sender, void *ptr, void *data)
+        {
+            LSP_STATUS_ASSERT(slot_popup_copy_action(sender, ptr, data));
+            return slot_popup_clear_action(sender, ptr, data);
+        }
+
+        status_t AudioSample::slot_popup_copy_action(tk::Widget *sender, void *ptr, void *data)
+        {
+            AudioSample *_this      = static_cast<AudioSample *>(ptr);
+            if (_this == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            tk::AudioSample *as     = tk::widget_cast<tk::AudioSample>(_this->wWidget);
+            if (as == NULL)
+                return STATUS_BAD_STATE;
+
+            status_t res;
+            LSPString str;
+            config::Serializer s;
+            if ((res = s.wrap(&str)) == STATUS_OK)
+            {
+                if (_this->pPort != NULL)
+                {
+                    const char *value = _this->pPort->buffer<char>();
+                    s.write_string("file", value, config::SF_QUOTED);
+                }
+
+                lltl::parray<char> keys;
+                lltl::parray<ui::IPort> values;
+                _this->vClipboardBind.items(&keys, &values);
+                for (size_t i=0, n=keys.size(); i<n; ++i)
+                {
+                    const char *key = keys.uget(i);
+                    ui::IPort *value = values.uget(i);
+                    if ((key == NULL) || (value == NULL))
+                        continue;
+
+                    s.write_f32(key, value->value(), config::SF_NONE);
+                }
+
+                lsp_trace("Serialized config: \n%s", str.get_native());
+
+                // Copy data to clipboard
+                tk::TextDataSource *ds = new tk::TextDataSource();
+                if (ds == NULL)
+                    return STATUS_NO_MEM;
+                ds->acquire();
+
+                if ((res = ds->set_text(&str)) == STATUS_OK)
+                    as->display()->set_clipboard(ws::CBUF_CLIPBOARD, ds);
+                ds->release();
+            }
+
+            return res;
+        }
+
+        status_t AudioSample::slot_popup_paste_action(tk::Widget *sender, void *ptr, void *data)
+        {
+            AudioSample *_this  = static_cast<AudioSample *>(ptr);
+            if (_this == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            tk::AudioSample *as = tk::widget_cast<tk::AudioSample>(_this->wWidget);
+            if (as == NULL)
+                return STATUS_BAD_STATE;
+
+            // Fetch data from clipboard
+            DataSink *ds = new DataSink(_this);
+            if (ds == NULL)
+                return STATUS_NO_MEM;
+            if (_this->pDataSink != NULL)
+                _this->pDataSink->unbind();
+            _this->pDataSink = ds;
+
+            ds->acquire();
+            status_t res = as->display()->get_clipboard(ws::CBUF_CLIPBOARD, ds);
+            ds->release();
+            return res;
+        }
+
+        status_t AudioSample::slot_popup_clear_action(tk::Widget *sender, void *ptr, void *data)
+        {
+            AudioSample *_this  = static_cast<AudioSample *>(ptr);
+            if (_this == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            if (_this->pPort != NULL)
+            {
+                // Write new path as UTF-8 string
+                _this->pPort->write("", 0);
+                _this->pPort->notify_all();
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t AudioSample::slot_drag_request(tk::Widget *sender, void *ptr, void *data)
+        {
+            AudioSample *_this  = static_cast<AudioSample *>(ptr);
+            if (_this == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            tk::Display *dpy    = (_this->wWidget != NULL) ? _this->wWidget->display() : NULL;
+            if (dpy == NULL)
+                return STATUS_BAD_STATE;
+
+            ws::rectangle_t r;
+            _this->wWidget->get_rectangle(&r);
+
+            const char * const *ctype = dpy->get_drag_mime_types();
+            ssize_t idx = _this->pDragInSink->select_mime_type(ctype);
+            if (idx >= 0)
+            {
+                dpy->accept_drag(_this->pDragInSink, ws::DRAG_COPY, true, &r);
+                lsp_trace("Accepted drag");
+            }
+            else
+            {
+                dpy->reject_drag();
+                lsp_trace("Rejected drag");
+            }
 
             return STATUS_OK;
         }
