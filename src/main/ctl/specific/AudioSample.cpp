@@ -533,16 +533,27 @@ namespace lsp
 
             as->main_visibility()->set(true);
 
+            revoke_style(as, "AudioSample::ok");
+            revoke_style(as, "AudioSample::info");
+            revoke_style(as, "AudioSample::error");
+
             if (status == STATUS_UNSPECIFIED)
+            {
+                inject_style(as, "AudioSample::ok");
                 as->main_text()->set("labels.click_or_drag_to_load");
+            }
             else if (status == STATUS_LOADING)
+            {
+                inject_style(as, "AudioSample::info");
                 as->main_text()->set("statuses.loading");
+            }
             else
             {
                 LSPString code;
                 code.set_utf8("statuses.std.");
                 code.append_utf8(get_status_lc_key(status_t(status)));
 
+                inject_style(as, "AudioSample::error");
                 as->main_visibility()->set(true);
                 as->main_text()->set(&code);
             }
