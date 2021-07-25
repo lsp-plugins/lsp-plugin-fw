@@ -68,6 +68,7 @@ namespace lsp
             fStep           = 1.0f;
             fAStep          = 10.0f;
             fDStep          = 0.1f;
+            fBalance        = 0.0f;
 
             fDefaultValue   = 0.0f;
         }
@@ -84,8 +85,11 @@ namespace lsp
             if (fdr != NULL)
             {
                 // Initialize color controllers
-                sColor.init(pWrapper, fdr->color());
-                sHoleColor.init(pWrapper, fdr->hole_color());
+                sBtnColor.init(pWrapper, fdr->button_color());
+                sBtnBorderColor.init(pWrapper, fdr->button_border_color());
+                sScaleColor.init(pWrapper, fdr->scale_color());
+                sScaleBorderColor.init(pWrapper, fdr->scale_border_color());
+                sBalanceColor.init(pWrapper, fdr->balance_color());
 
                 // Bind slots
                 fdr->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
@@ -102,9 +106,19 @@ namespace lsp
             {
                 bind_port(&pPort, "id", name, value);
 
-                sColor.set("color", name, value);
-                sHoleColor.set("hole.color", name, value);
-                sHoleColor.set("hcolor", name, value);
+                sBtnColor.set("color", name, value);
+                sBtnColor.set("button.color", name, value);
+                sBtnColor.set("btncolor", name, value);
+                sBtnBorderColor.set("button.border.color", name, value);
+                sBtnBorderColor.set("btnborder.color", name, value);
+
+                sScaleColor.set("scale.color", name, value);
+                sScaleColor.set("scolor", name, value);
+                sScaleBorderColor.set("scale.border.color", name, value);
+                sScaleBorderColor.set("sborder.color", name, value);
+
+                sBalanceColor.set("balance.color", name, value);
+                sBalanceColor.set("bcolor", name, value);
 
                 if (set_value(&fMin, "min", name, value))
                     nFlags     |= FF_MIN;
@@ -117,6 +131,11 @@ namespace lsp
                     nFlags     |= FF_DFL;
                 if (set_value(&fStep, "default", name, value))
                     nFlags     |= FF_DFL;
+
+                if (set_value(&fBalance, "bal", name, value))
+                    nFlags     |= FF_BAL_SET;
+                else if (set_value(&fBalance, "balance", name, value))
+                    nFlags     |= FF_BAL_SET;
 
                 set_value(&fAStep, "astep", name, value);
                 set_value(&fAStep, "step.accel", name, value);
@@ -141,6 +160,29 @@ namespace lsp
                 set_param(fdr->button_pointer(), "bpointer", name, value);
 
                 set_param(fdr->angle(), "angle", name, value);
+                set_param(fdr->scale_width(), "scale.width", name, value);
+                set_param(fdr->scale_width(), "swidth", name, value);
+                set_param(fdr->scale_border(), "scale.border", name, value);
+                set_param(fdr->scale_border(), "sborder", name, value);
+                set_param(fdr->scale_radius(), "scale.radius", name, value);
+                set_param(fdr->scale_radius(), "sradius", name, value);
+                set_param(fdr->scale_gradient(), "scale.gradient", name, value);
+                set_param(fdr->scale_gradient(), "sgradient", name, value);
+
+                set_param(fdr->button_border(), "button.border", name, value);
+                set_param(fdr->button_border(), "btnborder", name, value);
+                set_param(fdr->button_radius(), "button.radius", name, value);
+                set_param(fdr->button_radius(), "btnradius", name, value);
+                set_param(fdr->button_gradient(), "button.gradient", name, value);
+                set_param(fdr->button_gradient(), "btngradient", name, value);
+
+                set_param(fdr->scale_brightness(), "scale.brightness", name, value);
+                set_param(fdr->scale_brightness(), "scale.bright", name, value);
+                set_param(fdr->scale_brightness(), "sbrightness", name, value);
+                set_param(fdr->scale_brightness(), "sbright", name, value);
+
+                set_param(fdr->balance_color_custom(), "bcolor.custom", name, value);
+                set_param(fdr->balance_color_custom(), "balance.color.custom", name, value);
             }
 
             return Widget::set(ctx, name, value);
@@ -198,7 +240,7 @@ namespace lsp
             else
                 nFlags          = lsp_setflag(nFlags, FF_LOG, xp.flags & meta::F_LOG);
 
-            float min = 0.0f, max = 1.0f, step = 0.01f;
+            float min = 0.0f, max = 1.0f, step = 0.01f, balance = 0.0f;
 
             if (meta::is_gain_unit(p->unit)) // Decibels
             {
@@ -206,12 +248,15 @@ namespace lsp
 
                 min             = (p->flags & meta::F_LOWER) ? p->min : 0.0f;
                 max             = (p->flags & meta::F_UPPER) ? p->max : GAIN_AMP_P_12_DB;
+                float dfl       = (nFlags & FF_BAL_SET) ? fBalance : min;
 
                 step            = base * log((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f) * 0.1f;
                 double thresh   = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
 
                 min             = (fabs(min) < thresh) ? (base * log(thresh) - step) : (base * log(min));
                 max             = (fabs(max) < thresh) ? (base * log(thresh) - step) : (base * log(max));
+                double db_dfl   = (fabs(max) < thresh) ? (base * log(thresh) - step) : (base * log(dfl));
+                balance         = lsp_xlimit(db_dfl, min, max);
 
                 step           *= 10.0f;
                 fDefaultValue   = base * log(p->start);
@@ -221,6 +266,8 @@ namespace lsp
                 min             = (p->flags & meta::F_LOWER) ? p->min : 0.0f;
                 max             = (p->unit == meta::U_ENUM) ? min + meta::list_size(p->items) - 1.0f :
                                   (p->flags & meta::F_UPPER) ? p->max : 1.0f;
+                float dfl       = (nFlags & FF_BAL_SET) ? fBalance : p->min;
+                balance         = lsp_xlimit(dfl, min, max);
                 ssize_t istep   = (p->flags & meta::F_STEP) ? p->step : 1;
 
                 step            = (istep == 0) ? 1.0f : istep;
@@ -230,11 +277,14 @@ namespace lsp
             {
                 float xmin      = (p->flags & meta::F_LOWER) ? p->min : 0.0f;
                 float xmax      = (p->flags & meta::F_UPPER) ? p->max : GAIN_AMP_P_12_DB;
+                float xdfl      = (nFlags & FF_BAL_SET) ? fBalance : min;
                 float thresh    = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
 
                 step            = log((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f);
                 min             = (fabs(xmin) < thresh) ? log(thresh) - step : log(xmin);
                 max             = (fabs(xmax) < thresh) ? log(thresh) - step : log(xmax);
+                float dfl       = (fabs(xdfl) < thresh) ? log(thresh) - step : log(xdfl);
+                balance         = lsp_xlimit(dfl, min, max);
 
                 step           *= 10.0f;
                 fDefaultValue = log(p->start);
@@ -243,6 +293,8 @@ namespace lsp
             {
                 min             = (p->flags & meta::F_LOWER) ? p->min : 0.0f;
                 max             = (p->flags & meta::F_UPPER) ? p->max : 1.0f;
+                float dfl       = (nFlags & FF_BAL_SET) ? fBalance : min;
+                balance         = lsp_xlimit(dfl, min, max);
 
                 step            = (p->flags & meta::F_STEP) ? p->step * 10.0f : (max - min) * 0.1f;
                 fDefaultValue   = p->start;
@@ -251,14 +303,18 @@ namespace lsp
             // Initialize fader
             fdr->value()->set_all(fDefaultValue, min, max);
             fdr->step()->set(step);
+            fdr->balance()->set(balance);
         }
 
         void Fader::schema_reloaded()
         {
             Widget::schema_reloaded();
 
-            sColor.reload();
-            sHoleColor.reload();
+            sBtnColor.reload();
+            sBtnBorderColor.reload();
+            sScaleColor.reload();
+            sScaleBorderColor.reload();
+            sBalanceColor.reload();
         }
 
         void Fader::submit_value()

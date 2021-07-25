@@ -49,12 +49,16 @@ namespace lsp
                     FF_DFL          = 1 << 2,
                     FF_STEP         = 1 << 3,
                     FF_LOG          = 1 << 4,
-                    FF_LOG_SET      = 1 << 5
+                    FF_LOG_SET      = 1 << 5,
+                    FF_BAL_SET      = 1 << 6
                 };
 
             protected:
-                ctl::Color          sColor;
-                ctl::Color          sHoleColor;
+                ctl::Color          sBtnColor;
+                ctl::Color          sBtnBorderColor;
+                ctl::Color          sScaleColor;
+                ctl::Color          sScaleBorderColor;
+                ctl::Color          sBalanceColor;
 
                 ui::IPort          *pPort;
 
@@ -65,6 +69,7 @@ namespace lsp
                 float               fStep;
                 float               fAStep;
                 float               fDStep;
+                float               fBalance;
 
                 float               fDefaultValue;
 
