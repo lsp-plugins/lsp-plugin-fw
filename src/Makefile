@@ -18,6 +18,11 @@
 # along with lsp-tk-lib.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+# Command-line flag to silence nested $(MAKE).
+ifneq ($(VERBOSE),1)
+.SILENT:
+endif
+
 BASEDIR                 = $(CURDIR)
 CONFIG                 := $(CURDIR)/.config.mk
 PROJECT                := $(CURDIR)/../project.mk
@@ -135,6 +140,8 @@ OBJ_PLUG_UI                 = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_UI))
 OBJ_PLUG_TEST               = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_TEST))
 OBJ_PLUG                    = $(OBJ_PLUG_META) $(OBJ_PLUG_DSP) $(OBJ_PLUG_UI)
 
+$(info OBJ_PLUG_META = $(OBJ_PLUG_META))
+
 #------------------------------------------------------------------------------
 # Binaries
 ARTIFACT_BIN                = $($(ARTIFACT_ID)_BIN)
@@ -205,8 +212,8 @@ DEP_CFLAGS              = $(call query,CFLAGS,$(ALL_DEPENDENCIES))
 dep_clean:
 
 $(DEP_CXX): dep_clean
-	@echo "  dep  [$(ARTIFACT_NAME)] $(DEP_CXX_FILE)"
-	@mkdir -p $(dir $(@))
+	echo "  dep  [$(ARTIFACT_NAME)] $(DEP_CXX_FILE)"
+	mkdir -p $(dir $(@))
 	$(CXX) -MM -MT "\$$($(ARTIFACT_ID)_BIN)/$(DEP_DEP_FILE)" -MF $(@) $(DEP_CXX_FILE) $(CXXFLAGS) $(INCLUDE) $(DEP_CFLAGS)
 
 depend: $(DEP_CXX)
@@ -218,26 +225,25 @@ depend: $(DEP_CXX)
 	    $(eval SED_RULES += s/$(shell echo "$($(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\($(dep)_BIN\\)/g;)\
 	  )\
 	)
-	@cat $(DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.d
+	cat $(DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.d
 
 #------------------------------------------------------------------------------
 # Derived source code libraries
 $(SRC_DEPS) $(PLUG_DEPS):
-	@echo "make [$($(@)_NAME)]"
-	@echo $(MAKE) -s -C "$($(@)_PATH)" compile PROJECT="$(PROJECT)" CONFIG="$(CONFIG)" ARTIFACT_ID="$(@)" NO_DEPENDENCIES="1" DEMO_TEST="0"
-	@$(MAKE) -s -C "$($(@)_PATH)" compile PROJECT="$(PROJECT)" CONFIG="$(CONFIG)" ARTIFACT_ID="$(@)" NO_DEPENDENCIES="1" DEMO_TEST="0"
+	echo "make [$($(@)_NAME)]"
+	mkdir -p "$($(@)_BIN)"
+	$(MAKE) -C "$($(@)_PATH)" compile VERBOSE="$(VERBOSE)" PROJECT="$(PROJECT)" CONFIG="$(CONFIG)" ARTIFACT_ID="$(@)" NO_DEPENDENCIES="1" DEMO_TEST="0"
 
 $(BIN_DEPENDENCIES):
-	@echo "make [$($(@)_NAME)]"
-	@$(MAKE) -s -C "$($(@)_PATH)" all CONFIG="$(CONFIG)" DEMO_TEST="0"
+	echo "make [$($(@)_NAME)]"
+	$(MAKE) -C "$($(@)_PATH)" all VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" DEMO_TEST="0"
 
 #------------------------------------------------------------------------------
 # Compilation
 $(OBJ):
-	@echo "  $(CXX)  [$(LSP_PLUGIN_FW_NAME)] $(CXX_FILE)"
-	@mkdir -p $(dir $@)
-	@echo $(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
-	@$(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
+	echo "  $(CXX)  [$(LSP_PLUGIN_FW_NAME)] $(CXX_FILE)"
+	mkdir -p $(dir $@)
+	$(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
 
 $(OBJ_WRAP_JACK): EXT_FLAGS=$(WRAP_JACK_CFLAGS)
 
@@ -246,75 +252,75 @@ $(OBJ_WRAP_JACK): EXT_FLAGS=$(WRAP_JACK_CFLAGS)
 #------------------------------------------------------------------------------
 # Linking targets
 $(LSP_PLUGIN_FW_OBJ_CORE): $(OBJ_CORE)
-	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_CORE))"
-	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_CORE) -r $(OBJ_CORE)
+	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_CORE))"
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_CORE) -r $(OBJ_CORE)
 	
 $(LSP_PLUGIN_FW_OBJ_META): $(OBJ_META)
-	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_META))"
-	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_META) -r $(OBJ_META)
+	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_META))"
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_META) -r $(OBJ_META)
 	
 $(LSP_PLUGIN_FW_OBJ_DSP): $(OBJ_DSP)
-	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_DSP))"
-	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_DSP) -r $(OBJ_DSP)
+	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_DSP))"
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_DSP) -r $(OBJ_DSP)
 	
 $(LSP_PLUGIN_FW_OBJ_UI): $(OBJ_UI)
-	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_UI))"
-	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_UI) -r $(OBJ_UI)
+	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_UI))"
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_UI) -r $(OBJ_UI)
 	
 $(LSP_PLUGIN_FW_OBJ_CTL): $(OBJ_CTL)
-	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_CTL))"
-	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_CTL) -r $(OBJ_CTL)
+	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_CTL))"
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_CTL) -r $(OBJ_CTL)
 	
 $(LSP_PLUGIN_FW_OBJ_TEST): $(OBJ_TEST)
-	@echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_TEST))"
-	@$(LD) -o $(LSP_PLUGIN_FW_OBJ_TEST) -r $(OBJ_TEST)
+	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_TEST))"
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_TEST) -r $(OBJ_TEST)
 	
 $(LSP_PLUGIN_FW_OBJ_RES): $(UTL_RESPACK) resources
-	@echo "$(notdir $(UTL_RESPACK)) $(notdir $(LSP_PLUGIN_FW_SRC_RES))"
-	@echo $(UTL_RESPACK) $(LSP_PLUGIN_FW_SRC_RES) $(UTL_RES_PATH)
-	@$(UTL_RESPACK) $(LSP_PLUGIN_FW_SRC_RES) $(UTL_RES_PATH)
-	@echo $(CXX) -o $(@) -c $(LSP_PLUGIN_FW_SRC_RES) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
-	@$(CXX) -o $(@) -c $(LSP_PLUGIN_FW_SRC_RES) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
+	echo "$(notdir $(UTL_RESPACK)) $(notdir $(LSP_PLUGIN_FW_SRC_RES))"
+	echo $(UTL_RESPACK) $(LSP_PLUGIN_FW_SRC_RES) $(UTL_RES_PATH)
+	$(UTL_RESPACK) $(LSP_PLUGIN_FW_SRC_RES) $(UTL_RES_PATH)
+	echo $(CXX) -o $(@) -c $(LSP_PLUGIN_FW_SRC_RES) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
+	$(CXX) -o $(@) -c $(LSP_PLUGIN_FW_SRC_RES) -fPIC $(CXXFLAGS) $(LSP_PLUGIN_FW_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_CFLAGS)
 
 #------------------------------------------------------------------------------
 # Utilities
 $(UTL_JACK_MAKE): $(UTL_JACK_MAKE_OBJ) $(LSP_PLUGIN_FW_OBJ) $(UTL_JACK_MAKE_DEPS) $(PLUG_DEPS)
-	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
-	@mkdir -p $(UTL_BIN_PATH)
-	@echo $(CXX) -o $(@) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
-	@$(CXX) -o $(@) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+	mkdir -p $(UTL_BIN_PATH)
+	echo $(CXX) -o $(@) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
+	$(CXX) -o $(@) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
 
 $(UTL_REPOSITORY): $(UTL_REPOSITORY_OBJ) $(LSP_PLUGIN_FW_OBJ) $(UTL_REPOSITORY_DEPS) $(PLUG_DEPS)
-	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
-	@mkdir -p $(UTL_BIN_PATH)
-	@echo $(CXX) -o $(@) $(UTL_REPOSITORY_OBJ) $(UTL_REPOSITORY_OBJS) $(UTL_REPOSITORY_LIBS) $(EXE_FLAGS) $(UTL_REPOSITORY_LDFLAGS)
-	@$(CXX) -o $(@) $(UTL_REPOSITORY_OBJ) $(UTL_REPOSITORY_OBJS) $(UTL_REPOSITORY_LIBS) $(EXE_FLAGS) $(UTL_REPOSITORY_LDFLAGS)
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+	mkdir -p $(UTL_BIN_PATH)
+	echo $(CXX) -o $(@) $(UTL_REPOSITORY_OBJ) $(UTL_REPOSITORY_OBJS) $(UTL_REPOSITORY_LIBS) $(EXE_FLAGS) $(UTL_REPOSITORY_LDFLAGS)
+	$(CXX) -o $(@) $(UTL_REPOSITORY_OBJ) $(UTL_REPOSITORY_OBJS) $(UTL_REPOSITORY_LIBS) $(EXE_FLAGS) $(UTL_REPOSITORY_LDFLAGS)
 
 $(UTL_RESPACK): $(UTL_RESPACK_OBJ) $(LSP_PLUGIN_FW_OBJ) $(UTL_RESPACK_DEPS) $(PLUG_DEPS)
-	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
-	@mkdir -p $(UTL_BIN_PATH)
-	@echo $(CXX) -o $(@) $(UTL_RESPACK_OBJ) $(UTL_RESPACK_OBJS) $(UTL_RESPACK_LIBS) $(EXE_FLAGS) $(UTL_RESPACK_LDFLAGS)
-	@$(CXX) -o $(@) $(UTL_RESPACK_OBJ) $(UTL_RESPACK_OBJS) $(UTL_RESPACK_LIBS) $(EXE_FLAGS) $(UTL_RESPACK_LDFLAGS)
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+	mkdir -p $(UTL_BIN_PATH)
+	echo $(CXX) -o $(@) $(UTL_RESPACK_OBJ) $(UTL_RESPACK_OBJS) $(UTL_RESPACK_LIBS) $(EXE_FLAGS) $(UTL_RESPACK_LDFLAGS)
+	$(CXX) -o $(@) $(UTL_RESPACK_OBJ) $(UTL_RESPACK_OBJS) $(UTL_RESPACK_LIBS) $(EXE_FLAGS) $(UTL_RESPACK_LDFLAGS)
 
 #------------------------------------------------------------------------------
 # Binaries
 $(ARTIFACT_LIB_JACK): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(OBJ_WRAP_JACK) $(ARTIFACT_LIB_JACK_DEPS) $(PLUG_DEPS)
-	@echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
-	@echo $(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
-	@$(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
+	echo $(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
+	$(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
 
 # All targets
 resources: $(UTL_REPOSITORY)
-	@echo "  $(UTL_REPOSITORY)"
-	@echo $(UTL_REPOSITORY) $(UTL_RES_PATH) "$(ROOTDIR)/res/local" "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
-	@$(UTL_REPOSITORY) $(UTL_RES_PATH) "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
+	echo "  $(UTL_REPOSITORY)"
+	echo $(UTL_REPOSITORY) $(UTL_RES_PATH) "$(ROOTDIR)/res/local" "$(ROOTDIR)/modules/*"
+	$(UTL_REPOSITORY) $(UTL_RES_PATH) "$(ROOTDIR)/res/local" "$(ROOTDIR)/modules/*"
 
 jack: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
-	@echo "  $(notdir $(UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(ARTIFACT_BIN)/%,%, $(ARTIFACT_LIB_JACK_PATH))"
-	@mkdir -p "$(ARTIFACT_LIB_JACK_PATH)"
-	@$(UTL_JACK_MAKE) "$(ARTIFACT_LIB_JACK_PATH)"
-	@echo "  make JACK"
-	@echo -e \
+	echo "  $(notdir $(UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(ARTIFACT_BIN)/%,%, $(ARTIFACT_LIB_JACK_PATH))"
+	mkdir -p "$(ARTIFACT_LIB_JACK_PATH)"
+	$(UTL_JACK_MAKE) "$(ARTIFACT_LIB_JACK_PATH)"
+	echo "  make JACK"
+	echo -e \
 	  "# Auto-generated script, do not edit\n\n" \
 	  "EXT_OBJS=$(WRAP_JACK_OBJS)\n" \
 	  "EXT_CFLAGS=$(WRAP_JACK_CFLAGS)\n" \
@@ -322,26 +328,26 @@ jack: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
 	  "EXT_LDFLAGS=$(WRAP_JACK_LDFLAGS)\n" \
 	  "EXT_INCLUDE=$(WRAP_JACK_INC)\n" | \
 	  sed -E 's/\"/\\\"/g' > $(ARTIFACT_LIB_JACK_SETTINGS)
-	@make -C "$(ARTIFACT_LIB_JACK_PATH)" depend CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
-	@make -C "$(ARTIFACT_LIB_JACK_PATH)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
+	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
+	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 all: jack
 
 #------------------------------------------------------------------------------
 # Installation
 $(BIN_INSTALL):
-	@echo "INSTALL $(notdir $($(BIN_ARTIFACT_ID)_PATH))"
-	@echo make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
-	@make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
+	echo "INSTALL $(notdir $($(BIN_ARTIFACT_ID)_PATH))"
+	echo make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
+	make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 
 install_jack:
-	@echo "INSTALL jack"
-	@mkdir -p "$(DESTDIR)/$(BINDIR)"
-	@make -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
+	echo "INSTALL jack"
+	mkdir -p "$(DESTDIR)/$(BINDIR)"
+	make -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 install: $(BIN_INSTALL) install_jack
-	@echo "INSTALL $(notdir $(ARTIFACT_LIB_JACK))"
-	@$(INSTALL) $(ARTIFACT_LIB_JACK) "$(DESTDIR)/$(LIBDIR)"
+	echo "INSTALL $(notdir $(ARTIFACT_LIB_JACK))"
+	$(INSTALL) $(ARTIFACT_LIB_JACK) "$(DESTDIR)/$(LIBDIR)"
 
 # Dependencies
 -include $(CURDIR)/Makefile.d

@@ -236,7 +236,15 @@ namespace lsp
                 return STATUS_IO_ERROR;
             }
 
-            fprintf(out, "# Auto generated makefile, do not edit\n\n");
+            fprintf(out, "# Automatically generated makefile, do not edit\n");
+            fprintf(out, "\n");
+
+            fprintf(out, "# Command-line flag to silence nested $(MAKE).\n");
+            fprintf(out, "ifneq ($(VERBOSE),1)\n");
+            fprintf(out, ".SILENT:\n");
+            fprintf(out, "endif\n");
+            fprintf(out, "\n");
+
             fprintf(out, "CONFIG := $(CURDIR)/.config.mk\n");
             fprintf(out, "SETTINGS := $(CURDIR)/.settings.mk\n\n");
             fprintf(out, "include $(CONFIG)\n");
@@ -289,19 +297,19 @@ namespace lsp
 
             fprintf(out, "\n");
             fprintf(out, "depend: $(DEP_CXX)\n");
-            fprintf(out, "\t@cat $(DEP_CXX) >Makefile.d\n");
+            fprintf(out, "\tcat $(DEP_CXX) >Makefile.d\n");
 
             fprintf(out, "\n");
             fprintf(out, "all: $(OBJ_FILES)\n");
 
             fprintf(out, "\n");
             fprintf(out, "$(OBJ_FILES):\n");
-            fprintf(out, "\t@echo \"  $(CXX) $(FILE)\"\n");
-            fprintf(out, "\t@$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
+            fprintf(out, "\techo \"  $(CXX) $(FILE)\"\n");
+            fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");
             fprintf(out, "install: $(OBJ_FILES)\n");
-            fprintf(out, "\t@$(INSTALL) $(OBJ_FILES) $(DESTDIR)/\n");
+            fprintf(out, "\t$(INSTALL) $(OBJ_FILES) $(DESTDIR)/\n");
 
             fprintf(out, "\n");
             fprintf(out, "# Dependencies\n");

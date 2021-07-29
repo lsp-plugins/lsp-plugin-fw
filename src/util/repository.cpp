@@ -699,11 +699,11 @@ int main(int argc, const char **argv)
 {
     if (argc < 3)
     {
-        fprintf(stderr, "required destination path and local path\n");
+        fprintf(stderr, "required destination path, local dir and source paths\n");
         return lsp::STATUS_BAD_ARGUMENTS;
     }
 
-    lsp::status_t res = lsp::resource::build_repository(argv[1], &argv[2], &argv[3], argc - 2);
+    lsp::status_t res = lsp::resource::build_repository(argv[1], argv[2], &argv[3], argc - 3);
     if (res != lsp::STATUS_OK)
         fprintf(stderr, "Error while generating build files, code=%d\n", int(res));
 
