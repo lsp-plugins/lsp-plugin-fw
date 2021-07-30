@@ -39,6 +39,7 @@ namespace lsp
             {
                 private:
                     SetNode & operator = (const SetNode &src);
+                    SetNode(const SetNode &);
 
                 public:
                     explicit SetNode(UIContext *ctx);

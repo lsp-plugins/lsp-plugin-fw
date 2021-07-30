@@ -41,6 +41,7 @@ namespace lsp
             {
                 private:
                     WidgetNode & operator = (const WidgetNode *);
+                    WidgetNode(const WidgetNode &);
 
                 private:
                     ctl::Widget            *pWidget;

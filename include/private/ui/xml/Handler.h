@@ -41,6 +41,7 @@ namespace lsp
             {
                 private:
                     Handler & operator = (const Handler &);
+                    Handler(const Handler &);
 
                 protected:
                     resource::ILoader          *pLoader;

@@ -39,6 +39,7 @@ namespace lsp
             {
                 private:
                     Node & operator = (const Node &);
+                    Node(const Node &);
 
                 protected:
                     UIContext      *pContext;

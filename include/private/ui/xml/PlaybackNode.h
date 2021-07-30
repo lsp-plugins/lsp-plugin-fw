@@ -41,7 +41,8 @@ namespace lsp
             class PlaybackNode: public Node
             {
                 private:
-                    PlaybackNode & operator = (const PlaybackNode &src);
+                    PlaybackNode & operator = (const PlaybackNode &);
+                    PlaybackNode(const PlaybackNode &);
 
                 protected:
                     enum event_t

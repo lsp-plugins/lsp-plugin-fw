@@ -40,6 +40,10 @@ namespace lsp
             class AttributeNode: public PlaybackNode
             {
                 private:
+                    AttributeNode &operator = (const AttributeNode &);
+                    AttributeNode(const AttributeNode &);
+
+                private:
                     lltl::parray<LSPString> vAtts;
                     size_t                  nLevel;
                     ssize_t                 nRecursion;

@@ -143,9 +143,10 @@ namespace lsp
                  * Evaluate expression
                  * @param value value to return
                  * @param expr expression to evaluate
+                 * @param flags expression compilation flags
                  * @return status of operation
                  */
-                status_t    evaluate(expr::value_t *value, const LSPString *expr);
+                status_t    evaluate(expr::value_t *value, const LSPString *expr, size_t flags);
 
                 /**
                  * Evaluate value and return as string

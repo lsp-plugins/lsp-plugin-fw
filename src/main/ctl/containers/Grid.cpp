@@ -91,7 +91,7 @@ namespace lsp
                 set_orientation(grd->orientation(), name, value);
 
                 // Legacy property
-                if (!strcmp(name, "transpose"))
+                if ((!strcmp(name, "transpose")) || (!strcmp(name, "transp")))
                     PARSE_BOOL(value, grd->orientation()->set((__) ? tk::O_VERTICAL : tk::O_HORIZONTAL));
             }
 

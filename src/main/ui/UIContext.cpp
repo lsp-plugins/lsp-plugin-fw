@@ -68,13 +68,13 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t UIContext::evaluate(expr::value_t *value, const LSPString *expr)
+        status_t UIContext::evaluate(expr::value_t *value, const LSPString *expr, size_t flags)
         {
             status_t res;
             expr::Expression e;
 
             // Parse expression
-            if ((res = e.parse(expr, expr::Expression::FLAG_STRING)) != STATUS_OK)
+            if ((res = e.parse(expr, flags)) != STATUS_OK)
             {
                 lsp_error("Could not parse expression: %s", expr->get_utf8());
                 return res;
@@ -122,7 +122,7 @@ namespace lsp
             expr::value_t v;
 
             expr::init_value(&v);
-            status_t res = evaluate(&v, expr);
+            status_t res = evaluate(&v, expr, expr::Expression::FLAG_STRING);
             if (res != STATUS_OK)
                 return res;
 
@@ -145,7 +145,7 @@ namespace lsp
             expr::value_t v;
             expr::init_value(&v);
 
-            status_t res = evaluate(&v, expr);
+            status_t res = evaluate(&v, expr, expr::Expression::FLAG_NONE);
             if (res != STATUS_OK)
                 return res;
 
@@ -165,25 +165,25 @@ namespace lsp
 
         status_t UIContext::eval_int(ssize_t *value, const LSPString *expr)
         {
-            LSPString tmp;
-            status_t res = eval_string(&tmp, expr);
+            expr::value_t v;
+            expr::init_value(&v);
+
+            status_t res = evaluate(&v, expr, expr::Expression::FLAG_NONE);
             if (res != STATUS_OK)
                 return res;
 
-            // Parse string as integer value
-            errno = 0;
-            char *eptr = NULL;
-            const char *p = tmp.get_utf8();
-            long v = ::strtol(p, &eptr, 10);
-            if ((errno != 0) || (eptr == NULL) || (*eptr != '\0'))
+            if ((res = expr::cast_int(&v)) == STATUS_OK)
             {
-                lsp_error("Evaluation error: bad return type of expression %s", expr->get_utf8());
-                return STATUS_INVALID_VALUE;
+                if (v.type == expr::VT_INT)
+                    *value  = v.v_int;
+                else
+                {
+                    lsp_error("Evaluation error: bad return type of expression %s", expr->get_utf8());
+                    res = STATUS_BAD_TYPE;
+                }
             }
-
-            // Store value
-            *value = v;
-            return STATUS_OK;
+            expr::destroy_value(&v);
+            return res;
         }
 
         ctl::Widget *UIContext::create_controller(const LSPString *name, const LSPString * const *atts)

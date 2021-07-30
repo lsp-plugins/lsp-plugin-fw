@@ -38,6 +38,7 @@ namespace lsp
             {
                 private:
                     IfNode & operator = (const IfNode &src);
+                    IfNode(const IfNode &);
 
                 protected:
                     UIContext              *pContext;

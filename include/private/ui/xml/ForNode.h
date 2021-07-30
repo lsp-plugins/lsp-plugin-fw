@@ -37,6 +37,10 @@ namespace lsp
             class ForNode: public PlaybackNode
             {
                 private:
+                    ForNode & operator = (const ForNode &src);
+                    ForNode(const ForNode &);
+
+                private:
                     LSPString      *pID;
                     ssize_t         nFirst;
                     ssize_t         nLast;

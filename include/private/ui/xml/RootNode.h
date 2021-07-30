@@ -41,6 +41,7 @@ namespace lsp
             {
                 private:
                     RootNode & operator = (const RootNode &);
+                    RootNode(const RootNode &);
 
                 private:
                     Node           *pChild;

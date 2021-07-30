@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 10 апр. 2021 г.
+ * Created on: 30 июл. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <private/ui/xml/SetNode.h>
+#include <private/ui/xml/AliasNode.h>
 #include <private/ui/xml/NodeFactory.h>
 
 namespace lsp
@@ -29,11 +29,11 @@ namespace lsp
         namespace xml
         {
             //-----------------------------------------------------------------
-            NODE_FACTORY_IMPL_START(SetNode)
-                if (!name->equals_ascii("ui:set"))
+            NODE_FACTORY_IMPL_START(AliasNode)
+                if (!name->equals_ascii("ui:alias"))
                     return STATUS_NOT_FOUND;
 
-                Node *node = new SetNode(context);
+                Node *node = new AliasNode(context);
                 if (node == NULL)
                     return STATUS_NO_MEM;
 
@@ -46,26 +46,24 @@ namespace lsp
 
                 *child  = node;
                 return STATUS_OK;
-            NODE_FACTORY_IMPL_END(SetNode)
+            NODE_FACTORY_IMPL_END(AliasNode)
 
             //-----------------------------------------------------------------
-            SetNode::SetNode(UIContext *ctx): Node(ctx)
+            AliasNode::AliasNode(UIContext *ctx): Node(ctx)
             {
             }
 
-            status_t SetNode::init(const LSPString * const *atts)
+            status_t AliasNode::init(const LSPString * const *atts)
             {
-                enum node_flags_t
+                enum parse_flags_t
                 {
-                    F_ID_SET = 1 << 0,
-                    F_VALUE_SET = 1 << 1
+                    PF_ID_SET = 1 << 0,
+                    PF_VALUE_SET = 1 << 1
                 };
 
                 status_t res;
                 size_t flags = 0;
-                LSPString v_name;
-                expr::value_t v_value;
-                expr::init_value(&v_value);
+                LSPString v_id, v_value;
 
                 for ( ; *atts != NULL; atts += 2)
                 {
@@ -77,41 +75,44 @@ namespace lsp
 
                     if (name->equals_ascii("id"))
                     {
-                        if ((res = pContext->eval_string(&v_name, value)) != STATUS_OK)
+                        if ((res = pContext->eval_string(&v_id, value)) != STATUS_OK)
                         {
                             lsp_error("Could not evaluate expression for attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
                         }
-                        flags      |= F_ID_SET;
+                        flags      |= PF_ID_SET;
                     }
                     else if (name->equals_ascii("value"))
                     {
-                        if ((res = pContext->evaluate(&v_value, value, expr::Expression::FLAG_STRING)) != STATUS_OK)
+                        if ((res = pContext->eval_string(&v_value, value)) != STATUS_OK)
                         {
                             lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
                         }
-                        flags      |= F_VALUE_SET;
+                        flags      |= PF_VALUE_SET;
                     }
                     else
                     {
-                        lsp_error("Unknown attribute: %s", name->get_utf8());
+                        lsp_error("Unknown attribute: '%s' for ui:alias tag", name->get_utf8());
                         return STATUS_CORRUPTED;
                     }
                 }
 
-                if (flags != (F_ID_SET | F_VALUE_SET))
+                if (flags != (PF_ID_SET | PF_VALUE_SET))
                 {
-                    lsp_error("Not all attributes are set");
+                    lsp_error("Not all attributes are set for ui:alias tag");
                     return STATUS_CORRUPTED;
                 }
 
-                // Set variable and destroy value
-                res = pContext->vars()->set(&v_name, &v_value);
-                expr::destroy_value(&v_value);
+                // Set port alias
+                if ((res = pContext->wrapper()->set_port_alias(&v_id, &v_value)) != STATUS_OK)
+                    lsp_error("Error creating alias id='%s' to value='%s', error=%d", v_id.get_native(), v_value.get_native(), int(res));
+
                 return res;
             }
 
         }
     }
 }
+
+

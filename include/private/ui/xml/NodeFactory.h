@@ -38,6 +38,10 @@ namespace lsp
             class NodeFactory
             {
                 private:
+                    NodeFactory &operator = (const NodeFactory &);
+                    NodeFactory(const NodeFactory &);
+
+                private:
                     static NodeFactory *pRoot;
                     NodeFactory        *pNext;
 
