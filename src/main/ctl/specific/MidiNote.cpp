@@ -22,6 +22,12 @@
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
+#define TMP_BUF_SIZE            128
+
+#define INPUT_STYLE_VALID       "MidiNote::PopupWindow::ValidInput"
+#define INPUT_STYLE_INVALID     "MidiNote::PopupWindow::InvalidInput"
+#define INPUT_STYLE_MISMATCH    "MidiNote::PopupWindow::MismatchInput"
+
 namespace lsp
 {
     namespace ctl
@@ -51,7 +57,84 @@ namespace lsp
 
             *ctl = wc;
             return STATUS_OK;
-        CTL_FACTORY_IMPL_END(MidiNote)
+        CTL_FACTORY_IMPL_END(MidiNote);
+
+        //-----------------------------------------------------------------
+        MidiNote::PopupWindow::PopupWindow(MidiNote *label, tk::Display *dpy):
+            tk::PopupWindow(dpy),
+            sBox(dpy),
+            sValue(dpy),
+            sUnits(dpy),
+            sApply(dpy),
+            sCancel(dpy)
+        {
+            pLabel      = label;
+        }
+
+        MidiNote::PopupWindow::~PopupWindow()
+        {
+            pLabel      = NULL;
+        }
+
+        status_t MidiNote::PopupWindow::init()
+        {
+            // Initialize components
+            status_t res = tk::PopupWindow::init();
+            if (res == STATUS_OK)
+                res = sBox.init();
+            if (res == STATUS_OK)
+                res = sValue.init();
+            if (res == STATUS_OK)
+                res = sUnits.init();
+            if (res == STATUS_OK)
+                res = sApply.init();
+            if (res == STATUS_OK)
+                res = sCancel.init();
+
+            if (res != STATUS_OK)
+                return res;
+
+            inject_style(&sBox, "MidiNote::PopupWindow::Box");
+            sBox.add(&sValue);
+            sBox.add(&sUnits);
+            sBox.add(&sApply);
+            sBox.add(&sCancel);
+
+            this->slots()->bind(tk::SLOT_MOUSE_DOWN, MidiNote::slot_mouse_button, pLabel);
+            this->slots()->bind(tk::SLOT_MOUSE_UP, MidiNote::slot_mouse_button, pLabel);
+
+            sValue.slots()->bind(tk::SLOT_KEY_UP, MidiNote::slot_key_up, pLabel);
+            sValue.slots()->bind(tk::SLOT_CHANGE, MidiNote::slot_change_value, pLabel);
+            inject_style(&sValue, INPUT_STYLE_VALID);
+
+            inject_style(&sUnits, "MidiNote::PopupWindow::Units");
+
+            sApply.text()->set("actions.apply");
+            sApply.slots()->bind(tk::SLOT_SUBMIT, MidiNote::slot_submit_value, pLabel);
+            inject_style(&sApply, "MidiNote::PopupWindow::Apply");
+
+            sCancel.text()->set("actions.cancel");
+            sCancel.slots()->bind(tk::SLOT_SUBMIT, MidiNote::slot_cancel_value, pLabel);
+            inject_style(&sCancel, "MidiNote::PopupWindow::Cancel");
+
+            this->add(&sBox);
+            inject_style(this, "MidiNote::PopupWindow");
+
+            return STATUS_OK;
+        }
+
+        void MidiNote::PopupWindow::destroy()
+        {
+            sValue.destroy();
+            sUnits.destroy();
+            sApply.destroy();
+            sBox.destroy();
+
+            tk::PopupWindow::destroy();
+        }
+
+        //-----------------------------------------------------------------
+        const ctl_class_t MidiNote::metadata     = { "MidiNote", &Widget::metadata };
 
         MidiNote::MidiNote(ui::IWrapper *wrapper, tk::Indicator *widget): Widget(wrapper, widget)
         {
@@ -60,6 +143,7 @@ namespace lsp
             pNote           = NULL;
             pOctave         = NULL;
             pValue          = NULL;
+            wPopup          = NULL;
         }
 
         MidiNote::~MidiNote()
@@ -69,6 +153,13 @@ namespace lsp
 
         void MidiNote::do_destroy()
         {
+            // Destroy popup window
+            if (wPopup != NULL)
+            {
+                wPopup->destroy();
+                delete wPopup;
+                wPopup = NULL;
+            }
         }
 
         status_t MidiNote::init()
@@ -80,6 +171,9 @@ namespace lsp
             {
                 sColor.init(pWrapper, ind->color());
                 sTextColor.init(pWrapper, ind->text_color());
+
+                ind->slot(tk::SLOT_MOUSE_DBL_CLICK)->bind(slot_dbl_click, this);
+                ind->slot(tk::SLOT_MOUSE_SCROLL)->bind(slot_mouse_scroll, this);
             }
 
             return STATUS_OK;
@@ -208,6 +302,239 @@ namespace lsp
                 pNote->notify_all();
             if (pOctave != NULL)
                 pOctave->notify_all();
+        }
+
+        status_t MidiNote::slot_submit_value(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get control pointer
+            ctl::MidiNote *_this = static_cast<ctl::MidiNote *>(ptr);
+            if ((_this == NULL) || (_this->wPopup == NULL))
+                return STATUS_OK;
+
+            // Apply value
+            PopupWindow *popup  = _this->wPopup;
+            LSPString value;
+            if (popup->sValue.text()->format(&value) == STATUS_OK)
+            {
+                // The deploy should be always successful
+                if (!_this->apply_value(&value))
+                    return STATUS_OK;
+            }
+
+            // Hide the popup window
+            if (popup != NULL)
+            {
+                popup->hide();
+                if (popup->queue_destroy() == STATUS_OK)
+                    _this->wPopup  = NULL;
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t MidiNote::slot_change_value(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get control pointer
+            ctl::MidiNote *_this = static_cast<ctl::MidiNote *>(ptr);
+            if ((_this == NULL) || (_this->wPopup == NULL))
+                return STATUS_OK;
+
+            // Get port metadata
+            const meta::port_t *meta = (_this->pValue != NULL) ? _this->pValue->metadata() : NULL;
+            if ((meta == NULL) || (!meta::is_in_port(meta)))
+                return false;
+
+            // Get popup window
+            PopupWindow *popup  = _this->wPopup;
+            if (popup == NULL)
+                return STATUS_OK;
+
+            // Validate input
+            LSPString value;
+            const char *style = INPUT_STYLE_INVALID;
+            if (popup->sValue.text()->format(&value) == STATUS_OK)
+            {
+                float v;
+                if (meta::parse_value(&v, value.get_utf8(), meta) == STATUS_OK)
+                {
+                    style = INPUT_STYLE_VALID;
+                    if (!meta::range_match(meta, v))
+                        style = INPUT_STYLE_MISMATCH;
+                }
+            }
+
+            // Update color
+            tk::Widget *v = &popup->sValue;
+            revoke_style(v, INPUT_STYLE_INVALID);
+            revoke_style(v, INPUT_STYLE_MISMATCH);
+            revoke_style(v, INPUT_STYLE_VALID);
+            inject_style(v, style);
+
+            return STATUS_OK;
+        }
+
+        status_t MidiNote::slot_cancel_value(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get control pointer
+            ctl::MidiNote *_this = static_cast<ctl::MidiNote *>(ptr);
+            if ((_this == NULL) || (_this->wPopup == NULL))
+                return STATUS_OK;
+
+            // Hide the widget and queue for destroy
+            PopupWindow *popup  = _this->wPopup;
+            if (popup != NULL)
+            {
+                popup->hide();
+                if (popup->queue_destroy() == STATUS_OK)
+                    _this->wPopup  = NULL;
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t MidiNote::slot_key_up(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get control pointer
+            ctl::MidiNote *_this = static_cast<ctl::MidiNote *>(ptr);
+            if ((_this == NULL) || (_this->wPopup == NULL))
+                return STATUS_OK;
+
+            // Should be keyboard event
+            ws::event_t *ev = reinterpret_cast<ws::event_t *>(data);
+            if ((ev == NULL) || (ev->nType != ws::UIE_KEY_UP))
+                return STATUS_BAD_ARGUMENTS;
+
+            // Hide popup window
+            ws::code_t key = tk::KeyboardHandler::translate_keypad(ev->nCode);
+
+            PopupWindow *popup  = _this->wPopup;
+            if (key == ws::WSK_RETURN)
+            {
+                // Deploy new value
+                LSPString value;
+                if (popup->sValue.text()->format(&value) == STATUS_OK)
+                {
+                    if (!_this->apply_value(&value))
+                        return STATUS_OK;
+                }
+            }
+
+            if ((key == ws::WSK_RETURN) || (key == ws::WSK_ESCAPE))
+            {
+                popup->hide();
+                if (popup->queue_destroy() == STATUS_OK)
+                    _this->wPopup  = NULL;
+            }
+            return STATUS_OK;
+        }
+
+        status_t MidiNote::slot_mouse_button(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get control pointer
+            ctl::MidiNote *_this = static_cast<ctl::MidiNote *>(ptr);
+            if ((_this == NULL) || (_this->wPopup == NULL))
+                return STATUS_OK;
+
+            // Get event
+            ws::event_t *ev = reinterpret_cast<ws::event_t *>(data);
+            if (ev == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            // Hide popup window without any action
+            PopupWindow *popup  = _this->wPopup;
+            if (!popup->inside(ev->nLeft, ev->nTop))
+            {
+                popup->hide();
+                if (popup->queue_destroy() == STATUS_OK)
+                    _this->wPopup  = NULL;
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t MidiNote::slot_dbl_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get control pointer
+            MidiNote *_this = static_cast<MidiNote *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            // Get port metadata
+            const meta::port_t *mdata = (_this->pValue != NULL) ? _this->pValue->metadata() : NULL;
+            if (mdata == NULL)
+                return STATUS_OK;
+
+            // Set-up units
+            const char *u_key = meta::get_unit_lc_key((is_decibel_unit(mdata->unit)) ? meta::U_DB : mdata->unit);
+            if ((mdata->unit == meta::U_BOOL) || (mdata->unit == meta::U_ENUM))
+                u_key  = NULL;
+
+            // Get label widget
+            tk::Indicator *ind = tk::widget_cast<tk::Indicator>(_this->wWidget);
+            if (ind == NULL)
+                return STATUS_OK;
+
+            // Create popup window if required
+            PopupWindow *popup  = _this->wPopup;
+            if (popup == NULL)
+            {
+                popup           = new PopupWindow(_this, ind->display());
+                status_t res    = popup->init();
+                if (res != STATUS_OK)
+                {
+                    delete popup;
+                    return res;
+                }
+
+                _this->wPopup   = popup;
+            }
+
+            // Set-up value
+            char buf[TMP_BUF_SIZE];
+            format_value(buf, TMP_BUF_SIZE, mdata, _this->nNote, _this->nDigits);
+            popup->sValue.text()->set_raw(buf);
+            popup->sValue.selection()->set_all();
+
+            if (u_key != NULL)
+            {
+                if (popup->sUnits.text()->set(u_key) != STATUS_OK)
+                    u_key = NULL;
+            }
+
+            popup->sUnits.visibility()->set(u_key != NULL);
+
+            // Show the window and take focus
+            ws::rectangle_t r;
+            _this->wWidget->get_padded_screen_rectangle(&r);
+            r.nWidth    = 0;
+            popup->trigger_area()->set(&r);
+            popup->trigger_widget()->set(_this->wWidget);
+            popup->add_arrangement(tk::A_RIGHT, 0.0f, false);
+            popup->show(_this->wWidget);
+            popup->grab_events(ws::GRAB_DROPDOWN);
+            popup->sValue.take_focus();
+
+            return STATUS_OK;
+        }
+
+        status_t MidiNote::slot_mouse_scroll(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get control pointer
+            MidiNote *_this = static_cast<MidiNote *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            // Should be keyboard event
+            ws::event_t *ev = static_cast<ws::event_t *>(data);
+            if ((ev == NULL) || (ev->nType != ws::UIE_MOUSE_SCROLL))
+                return STATUS_BAD_ARGUMENTS;
+
+            ssize_t delta = (ev->nCode == ws::MCD_UP) ? -1 : 1; // 1 semitone
+            if (ev->nState & ws::MCF_CONTROL)
+                delta      *= 12; // 1 octave
+
+            _this->apply_value(_this->nNote + delta);
+            return STATUS_OK;
         }
 
     } // namespace ctl

@@ -42,24 +42,54 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                class PopupWindow: public tk::PopupWindow
+                {
+                    private:
+                        friend class ctl::MidiNote;
+
+                    protected:
+                        MidiNote   *pLabel;
+                        tk::Box     sBox;
+                        tk::Edit    sValue;
+                        tk::Label   sUnits;
+                        tk::Button  sApply;
+                        tk::Button  sCancel;
+
+                    public:
+                        explicit PopupWindow(MidiNote *label, tk::Display *dpy);
+                        virtual ~PopupWindow();
+
+                        virtual status_t    init();
+                        virtual void        destroy();
+                };
+
+            protected:
                 size_t                  nNote;
                 size_t                  nDigits;
                 ui::IPort              *pNote;
                 ui::IPort              *pOctave;
                 ui::IPort              *pValue;
+                PopupWindow            *wPopup;
 
                 ctl::Color              sColor;
                 ctl::Color              sTextColor;
 
                 ctl::Padding            sIPadding;
 
-//                PopupWindow    *pPopup;
+            protected:
+                static status_t     slot_submit_value(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_change_value(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_cancel_value(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_key_up(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_mouse_button(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_mouse_scroll(tk::Widget *sender, void *ptr, void *data);
 
             protected:
-                void            do_destroy();
-                void            commit_value(float value);
-                bool            apply_value(const LSPString *value);
-                void            apply_value(ssize_t value);
+                void                do_destroy();
+                void                commit_value(float value);
+                bool                apply_value(const LSPString *value);
+                void                apply_value(ssize_t value);
 
             public:
                 explicit MidiNote(ui::IWrapper *wrapper, tk::Indicator *widget);
