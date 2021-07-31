@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/dsp-units/iface/IStateDumper.h>
 
 namespace lsp
 {
@@ -51,6 +52,8 @@ namespace lsp
                 static IDBuffer        *reuse(IDBuffer *buf, size_t lines, size_t items);
                 void                    destroy();
                 IDBuffer               *resize(size_t lines, size_t items);
+
+                void                    dump(dspu::IStateDumper *v) const;
         };
     }
 }

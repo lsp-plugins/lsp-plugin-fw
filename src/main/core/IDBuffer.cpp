@@ -67,6 +67,13 @@ namespace lsp
         {
             free(this);
         }
+
+        void IDBuffer::dump(dspu::IStateDumper *v) const
+        {
+            v->write("lines", lines);
+            v->write("items", items);
+            v->write("v", v);
+        }
     }
 }
 
