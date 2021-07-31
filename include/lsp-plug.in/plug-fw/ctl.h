@@ -79,6 +79,7 @@
 
     #include <lsp-plug.in/plug-fw/ctl/specific/Rack.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/LedMeter.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/MidiNote.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
