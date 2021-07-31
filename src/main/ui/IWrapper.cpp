@@ -251,6 +251,16 @@ namespace lsp
         {
         }
 
+        void IWrapper::notify_all()
+        {
+            for (size_t i=0, n=vPorts.size(); i<n; ++i)
+            {
+                ui::IPort *port = vPorts.uget(i);
+                if (port != NULL)
+                    port->notify_all();
+            }
+        }
+
         core::KVTStorage *IWrapper::kvt_lock()
         {
             return NULL;

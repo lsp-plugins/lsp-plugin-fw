@@ -126,6 +126,7 @@ namespace lsp
                 set_expr(&sMin, "min", name, value);
                 set_expr(&sMax, "max", name, value);
                 set_expr(&sValue, "value", name, value);
+                set_expr(&sValue, "v", name, value);
                 set_expr(&sDx, "dx", name, value);
                 set_expr(&sDy, "dy", name, value);
                 set_expr(&sAngle, "angle", name, value);

@@ -192,6 +192,11 @@ namespace lsp
                 virtual void                ui_deactivated();
 
                 /**
+                 * Notify all ports for estimated connection
+                 */
+                virtual void                notify_all();
+
+                /**
                  * Lock KVT storage and return pointer to the storage,
                  * this is non-RT-safe operation
                  * @return pointer to KVT storage or NULL if KVT is not supported

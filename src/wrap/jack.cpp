@@ -63,6 +63,7 @@ namespace lsp
         typedef struct jack_wrapper_t
         {
             size_t              nSync;              // Synchronization request
+            bool                bNotify;            // Notify all ports
             resource::ILoader  *pLoader;            // Resource loader
             plug::Module       *pPlugin;            // Plugin
             ui::Module         *pUI;                // Plugin UI
@@ -517,6 +518,7 @@ namespace lsp
                     {
                         printf("Successfully connected to JACK\n");
                         w->nSync        = 0;
+                        w->bNotify      = true;
                     }
                     w->nLastReconnect   = ctime;
                 }
@@ -530,6 +532,11 @@ namespace lsp
                 {
                     // Transfer changes from DSP to UI
                     w->pUIWrapper->sync(sched);
+                    if (w->bNotify)
+                    {
+                        w->pUIWrapper->notify_all();
+                        w->bNotify      = false;
+                    }
                 }
 
                 // TODO
@@ -600,6 +607,7 @@ extern "C"
         // Initialize wrapper with empty data
         wrap::jack_wrapper_t *w = &wrap::jack_wrapper;
         w->nSync                = 0;
+        w->bNotify              = true;
         w->pLoader              = NULL;
         w->pPlugin              = NULL;
         w->pUI                  = NULL;
