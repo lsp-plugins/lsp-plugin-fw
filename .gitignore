@@ -12,3 +12,5 @@
 *.core
 /.config.mk
 /INSTALL/
+/.cfg
+/git
