@@ -46,11 +46,8 @@ namespace lsp
                 {
                     MF_MIN      = 1 << 0,
                     MF_MAX      = 1 << 1,
-                    MF_LOG      = 1 << 2,
-                    MF_LOG_SET  = 1 << 3,
-                    MF_BALANCE  = 1 << 4,
-                    MF_REV      = 1 << 5,
-                    MF_ACTIVITY = 1 << 6
+                    MF_LOG      = 1 << 3,
+                    MF_BALANCE  = 1 << 4
                 };
 
                 enum type_t
@@ -70,6 +67,13 @@ namespace lsp
                 float               fValue;
                 float               fRms;
                 float               fReport;
+                float               fAttack;
+                float               fRelease;
+                bool                bLog;
+
+                tk::prop::Color     sPropColor;
+                tk::prop::Color     sPropYellowZoneColor;
+                tk::prop::Color     sPropRedZoneColor;
 
                 ctl::Boolean        sActivity;
                 ctl::Boolean        sReversive;
@@ -77,16 +81,28 @@ namespace lsp
                 ctl::Boolean        sBalanceVisible;
                 ctl::Boolean        sTextVisible;
 
+                ctl::Color          sColor;
+                ctl::Color          sValueColor;
+                ctl::Color          sRedZoneColor;
+                ctl::Color          sYellowZoneColor;
+                ctl::Color          sBalanceColor;
+
                 tk::Timer           sTimer;
 
             protected:
                 static status_t     update_meter(ws::timestamp_t sched, ws::timestamp_t time, void *arg);
+                static status_t     slot_show(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_hide(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                update_peaks(ws::timestamp_t ts);
                 float               calc_value(float value);
                 void                set_meter_text(tk::LedMeterChannel *lmc, float value);
                 void                sync_channel();
+                void                sync_colors();
+
+            protected:
+                virtual void        property_changed(tk::Property *prop);
 
             public:
                 explicit LedChannel(ui::IWrapper *wrapper, tk::LedMeterChannel *widget);

@@ -25,13 +25,37 @@ namespace lsp
 {
     namespace ctl
     {
+        //---------------------------------------------------------------------
+        void Widget::PropListener::notify(Property *prop)
+        {
+            if (pWidget != NULL)
+                pWidget->property_changed(prop);
+        }
+
+        //---------------------------------------------------------------------
         const ctl_class_t Widget::metadata = { "Widget", NULL };
 
-        Widget::Widget(ui::IWrapper *wrapper, tk::Widget *widget)
+        Widget::Widget(ui::IWrapper *wrapper, tk::Widget *widget):
+            ui::IPortListener(),
+            sProperties(this)
         {
             pClass          = &metadata;
             pWrapper        = wrapper;
             wWidget         = widget;
+        }
+
+        Widget::~Widget()
+        {
+            destroy();
+            sProperties.unbind();
+        }
+
+        void Widget::destroy()
+        {
+            sProperties.unbind();
+
+            pWrapper    = NULL;
+            wWidget     = NULL;
         }
 
         bool Widget::instance_of(const ctl_class_t *wclass) const
@@ -45,11 +69,6 @@ namespace lsp
             }
 
             return false;
-        }
-
-        Widget::~Widget()
-        {
-            destroy();
         }
 
         tk::Widget *Widget::widget()
@@ -560,10 +579,8 @@ namespace lsp
             sBgColor.reload();
         }
 
-        void Widget::destroy()
+        void Widget::property_changed(Property *prop)
         {
-            pWrapper    = NULL;
-            wWidget     = NULL;
         }
 
     }

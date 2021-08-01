@@ -24,9 +24,6 @@
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
-#define METER_ATT       0.1f
-#define METER_REL       0.25f
-
 namespace lsp
 {
     namespace ctl
@@ -61,7 +58,11 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t LedChannel::metadata          = { "LedChannel", &Widget::metadata };
 
-        LedChannel::LedChannel(ui::IWrapper *wrapper, tk::LedMeterChannel *widget): Widget(wrapper, widget)
+        LedChannel::LedChannel(ui::IWrapper *wrapper, tk::LedMeterChannel *widget):
+            Widget(wrapper, widget),
+            sPropColor(&sProperties),
+            sPropYellowZoneColor(&sProperties),
+            sPropRedZoneColor(&sProperties)
         {
             pClass          = &metadata;
             pPort           = NULL;
@@ -73,6 +74,9 @@ namespace lsp
             fValue          = 0.0f;
             fRms            = 0.0f;
             fReport         = 0.0f;
+            fAttack         = 0.1f;
+            fRelease        = 0.25f;
+            bLog            = false;
         }
 
         LedChannel::~LedChannel()
@@ -91,25 +95,26 @@ namespace lsp
                 sPeakVisible.init(pWrapper, lmc->peak_visible());
                 sBalanceVisible.init(pWrapper, lmc->balance_visible());
                 sTextVisible.init(pWrapper, lmc->text_visible());
-//                LSP_TK_PROPERTY(RangeFloat,         value,              &sValue)
-//                LSP_TK_PROPERTY(Float,              peak,               &sPeak)
-//                LSP_TK_PROPERTY(Float,              balance,            &sBalance)
-//
-//                LSP_TK_PROPERTY(Color,              color,              &sColor)
-//                LSP_TK_PROPERTY(Color,              value_color,        &sValueColor)
-//                LSP_TK_PROPERTY(Color,              peak_color,         &sPeakColor)
-//                LSP_TK_PROPERTY(Color,              text_color,         &sTextColor)
-//                LSP_TK_PROPERTY(Color,              balance_color,      &sBalanceColor)
-//
-//                LSP_TK_PROPERTY(ColorRanges,        text_ranges,        &sTextRanges)
-//                LSP_TK_PROPERTY(ColorRanges,        value_ranges,       &sValueRanges)
-//                LSP_TK_PROPERTY(ColorRanges,        peak_ranges,        &sPeakRanges)
-//
-//                LSP_TK_PROPERTY(String,             text,               &sText)
-//                LSP_TK_PROPERTY(String,             estimation_text,    &sEstText)
+
+                sPropColor.bind("color", lmc->style());
+                sPropYellowZoneColor.bind("yellow.color", lmc->style());
+                sPropRedZoneColor.bind("red.color", lmc->style());
+
+                sPropColor.set("meter_normal");
+                sPropYellowZoneColor.set("meter_yellow");
+                sPropRedZoneColor.set("meter_red");
+
+                sColor.init(pWrapper, lmc->color());
+                sValueColor.init(pWrapper, &sPropColor);
+                sYellowZoneColor.init(pWrapper, &sPropYellowZoneColor);
+                sRedZoneColor.init(pWrapper, &sPropRedZoneColor);
+                sBalanceColor.init(pWrapper, lmc->balance_color());
 
                 sTimer.bind(lmc->display());
                 sTimer.set_handler(update_meter, this);
+
+                lmc->slots()->bind(tk::SLOT_SHOW, slot_show, this);
+                lmc->slots()->bind(tk::SLOT_HIDE, slot_hide, this);
             }
 
             return STATUS_OK;
@@ -126,12 +131,21 @@ namespace lsp
             tk::LedMeterChannel *lmc = tk::widget_cast<tk::LedMeterChannel>(wWidget);
             if (lmc != NULL)
             {
+                bind_port(&pPort, "id", name, value);
+
                 sActivity.set("activity", name, value);
                 sActivity.set("active", name, value);
                 sReversive.set("reversive", name, value);
                 sPeakVisible.set("peak.visibility", name, value);
                 sBalanceVisible.set("balance.visibility", name, value);
                 sTextVisible.set("text.visibility", name, value);
+
+                sColor.set("color", name, value);
+                sValueColor.set("value.color", name, value);
+                sYellowZoneColor.set("yellow.color", name, value);
+                sRedZoneColor.set("red.color", name, value);
+                sBalanceColor.set("balance.color", name, value);
+                sBalanceColor.set("bal.color", name, value);
 
                 set_constraints(lmc->constraints(), name, value);
                 set_font(lmc->font(), "font", name, value);
@@ -140,6 +154,37 @@ namespace lsp
                 set_param(lmc->min_segments(), "segmin", name, value);
                 set_param(lmc->border(), "border", name, value);
                 set_param(lmc->angle(), "angle", name, value);
+                set_param(lmc->reversive(), "reversive", name, value);
+                set_param(lmc->reversive(), "rev", name, value);
+
+                set_value(&fAttack, "attack", name, value);
+                set_value(&fAttack, "att", name, value);
+                set_value(&fRelease, "release", name, value);
+                set_value(&fRelease, "rel", name, value);
+
+                if (set_value(&fMin, "min", name, value))
+                    nFlags     |= MF_MIN;
+                if (set_value(&fMax, "max", name, value))
+                    nFlags     |= MF_MAX;
+                if (set_value(&fBalance, "balance", name, value))
+                    nFlags     |= MF_BALANCE;
+                if (set_value(&bLog, "logarithmic", name, value))
+                    nFlags     |= MF_LOG;
+                if (set_value(&bLog, "log", name, value))
+                    nFlags     |= MF_LOG;
+
+                // Set type of led channel
+                if (!strcmp(name, "type"))
+                {
+                    if (!strcasecmp(value, "peak"))
+                        nType       = MT_PEAK;
+                    else if (!strcasecmp(value, "rms_peak"))
+                        nType       = MT_RMS_PEAK;
+                    else if (!strcasecmp(value, "vu"))
+                        nType       = MT_VU;
+                    else if (!strcasecmp(value, "vumeter"))
+                        nType       = MT_VU;
+                }
             }
 
             return Widget::set(ctx, name, value);
@@ -148,6 +193,7 @@ namespace lsp
         void LedChannel::end(ui::UIContext *ctx)
         {
             sync_channel();
+            sync_colors();
         }
 
         void LedChannel::notify(ui::IPort *port)
@@ -166,7 +212,9 @@ namespace lsp
         {
             Widget::schema_reloaded();
 
-            // TODO: reload colors
+            sValueColor.reload();
+            sYellowZoneColor.reload();
+            sRedZoneColor.reload();
 
             sync_channel();
         }
@@ -184,14 +232,14 @@ namespace lsp
             if (nFlags & MF_BALANCE)
             {
                 if (v > fBalance)
-                    fValue      = (fValue <= v) ? v : fValue + METER_REL * (v - fValue);
+                    fValue      = (fValue <= v) ? v : fValue + fRelease * (v - fValue);
                 else
-                    fValue      = (fValue > v) ? v : fValue + METER_REL * (v - fValue);
+                    fValue      = (fValue > v) ? v : fValue + fRelease * (v - fValue);
             }
             else
-                fValue      = (fValue < v) ? v : fValue + METER_REL * (v - fValue);
+                fValue      = (fValue < v) ? v : fValue + fRelease * (v - fValue);
 
-            fRms        += (av > fRms) ? METER_ATT * (av - fRms) :  METER_REL * (av - fRms);
+            fRms        += (av > fRms) ? fAttack * (av - fRms) :  fRelease * (av - fRms);
 
             // Limit RMS value
             if (fRms < 0.0f)
@@ -206,7 +254,7 @@ namespace lsp
             }
             else
             {
-                lmc->value()->set(calc_value(fRms));
+                lmc->value()->set(calc_value(fValue));
                 set_meter_text(lmc, fValue);
             }
         }
@@ -257,10 +305,9 @@ namespace lsp
             if (p == NULL)
                 return 0.0f;
 
-            bool xlog = (nFlags & MF_LOG_SET) && (nFlags & MF_LOG);
-
+            bool xlog = (nFlags & MF_LOG) && (bLog);
             if (!xlog)
-                xlog = meta::is_decibel_unit(p->unit) || (p->flags & meta::F_LOG);
+                xlog = meta::is_log_rule(p);
 
             if ((xlog) && (value < GAIN_AMP_M_120_DB))
                 value   = GAIN_AMP_M_120_DB;
@@ -274,7 +321,104 @@ namespace lsp
 
         void LedChannel::sync_channel()
         {
-            // TODO
+            tk::LedMeterChannel *lmc = tk::widget_cast<tk::LedMeterChannel>(wWidget);
+            if (lmc == NULL)
+                return;
+
+            const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
+
+            float min, max, balance, value;
+
+            // Calculate minimum
+            if ((p != NULL) && (nFlags & MF_MIN))
+                min = calc_value(fMin);
+            else if ((p != NULL) && (p->flags & meta::F_LOWER))
+                min = calc_value(p->min);
+            else
+                min = 0.0f;
+
+            // Calculate maximum
+            if ((p != NULL) && (nFlags & MF_MAX))
+                max = calc_value(fMax);
+            else if ((p != NULL) && (p->flags & meta::F_UPPER))
+                max = calc_value(p->max);
+            else
+                max = 1.0f;
+
+            // Calculate balance
+            fValue      = pPort->value();
+            fReport     = fValue;
+
+            if (nFlags & MF_BALANCE)
+            {
+                balance = calc_value(fBalance);
+                fValue      = fBalance;
+                fReport     = fBalance;
+
+                lmc->balance()->set(balance);
+            }
+
+            value   = calc_value(fValue);
+
+            lmc->value()->set_all(value, min, max);
+
+            // Launch the timer
+            if (lmc->visibility()->get())
+                sTimer.launch(-1, 50); // Schedule at 20 hz rate
+        }
+
+        void LedChannel::sync_colors()
+        {
+            tk::LedMeterChannel *lmc = tk::widget_cast<tk::LedMeterChannel>(wWidget);
+            if (lmc == NULL)
+                return;
+
+            // Clear value ranges
+            tk::ColorRanges *crv[3];
+
+            crv[0]      = lmc->value_ranges();
+            crv[1]      = lmc->peak_ranges();
+            crv[2]      = lmc->text_ranges();
+
+            lsp::Color c(sPropColor.color());
+            lmc->value_color()->set(&c);
+            lmc->peak_color()->set(&c);
+            lmc->text_color()->set(&c);
+
+            // For each component: update color ranges
+            for (size_t i=0; i<3; ++i)
+            {
+                tk::ColorRange *cr;
+                tk::ColorRanges *crs = crv[i];
+                float light          = c.lightness();
+                crs->clear();
+
+                if ((nType == MT_VU) || ((nType == MT_RMS_PEAK)))
+                {
+                    cr = crs->append();
+                    cr->set_range(0.0f, 120.0f);
+                    cr->set(sPropRedZoneColor);
+
+                    cr = crs->append();
+                    cr->set_range(-6.0f, 0.0f);
+                    cr->set_color(sPropYellowZoneColor);
+
+                    c.lightness(0.8f * light);
+                    cr = crs->append();
+                    cr->set_range(-48.0f, -24.0f);
+                    cr->set_color(c);
+
+                    c.lightness(0.6f * light);
+                    cr = crs->append();
+                    cr->set_range(-96.0f, -48.0f);
+                    cr->set_color(c);
+
+                    c.lightness(0.4f * light);
+                    cr = crs->append();
+                    cr->set_range(-120.0f, -96.0f);
+                    cr->set_color(c);
+                }
+            }
         }
 
         status_t LedChannel::update_meter(ws::timestamp_t sched, ws::timestamp_t time, void *arg)
@@ -285,6 +429,32 @@ namespace lsp
             _this->update_peaks(time);
 
             return STATUS_OK;
+        }
+
+        status_t LedChannel::slot_show(tk::Widget *sender, void *ptr, void *data)
+        {
+            LedChannel *_this = static_cast<LedChannel *>(ptr);
+            if (_this != NULL)
+                _this->sTimer.launch(-1, 50); // Schedule at 20 hz rate
+            return STATUS_OK;
+        }
+
+        status_t LedChannel::slot_hide(tk::Widget *sender, void *ptr, void *data)
+        {
+            LedChannel *_this = static_cast<LedChannel *>(ptr);
+            if (_this != NULL)
+                _this->sTimer.cancel();
+            return STATUS_OK;
+        }
+
+        void LedChannel::property_changed(tk::Property *prop)
+        {
+            if (sPropColor.is(prop))
+                sync_colors();
+            if (sPropYellowZoneColor.is(prop))
+                sync_colors();
+            if (sPropRedZoneColor.is(prop))
+                sync_colors();
         }
     }
 }

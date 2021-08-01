@@ -52,6 +52,18 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                class PropListener: public tk::prop::Listener
+                {
+                    protected:
+                        Widget     *pWidget;
+
+                    public:
+                        inline PropListener(Widget *w)          { pWidget = w; }
+                        virtual void notify(Property *prop);
+                        inline void unbind()                    { pWidget = NULL; }
+                };
+
+            protected:
                 const ctl_class_t  *pClass;
                 ui::IWrapper       *pWrapper;
                 tk::Widget         *wWidget;
@@ -62,6 +74,8 @@ namespace lsp
                 ctl::Boolean        sVisibility;
                 ctl::Float          sBrightness;
                 ctl::Float          sBgBrightness;
+
+                PropListener        sProperties;        // Properties listener
 
             protected:
                 static const char  *match_prefix(const char *prefix, const char *name);
@@ -97,6 +111,8 @@ namespace lsp
 
             protected:
                 bool                bind_port(ui::IPort **port, const char *param, const char *name, const char *value);
+
+                virtual void        property_changed(Property *prop);
 
             public:
                 explicit Widget(ui::IWrapper *wrapper, tk::Widget *widget);

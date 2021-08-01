@@ -82,7 +82,10 @@ namespace lsp
 
                 if (((end[0] == 'd') || (end[0] == 'D')) &&
                     ((end[1] == 'b') || (end[1] == 'B')))
+                {
                     value   = expf(value * M_LN10 * 0.05);
+                    end    += 2;
+                }
 
                 end     = skip_whitespace(end);
                 success = (*end == '\0');
@@ -112,7 +115,10 @@ namespace lsp
 
                 if (((end[0] == 'd') || (end[0] == 'D')) &&
                     ((end[1] == 'b') || (end[1] == 'B')))
+                {
                     value   = expf(value * M_LN10 * 0.05);
+                    end    += 2;
+                }
 
                 end     = skip_whitespace(end);
                 success = (*end == '\0');
