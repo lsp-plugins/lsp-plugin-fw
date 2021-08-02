@@ -130,9 +130,13 @@ namespace lsp
             }
 
             // Finally, parse the expression
-            size_t flags = (idx == C_VALUE) ? EXPR_FLAGS_STRING : 0;
-            if (!e->parse(value, flags))
-                return false;
+            if (!e->parse(value, EXPR_FLAGS_NONE))
+            {
+                if (idx != C_VALUE)
+                    return false;
+                if (!e->parse(value, EXPR_FLAGS_STRING))
+                    return false;
+            }
 
             // And apply the computed value
             expr::value_t cv;

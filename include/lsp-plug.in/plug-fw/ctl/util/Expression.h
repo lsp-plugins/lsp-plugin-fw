@@ -43,7 +43,8 @@ namespace lsp
         enum
         {
             EXPR_FLAGS_MULTIPLE = expr::Expression::FLAG_MULTIPLE,
-            EXPR_FLAGS_STRING   = expr::Expression::FLAG_STRING
+            EXPR_FLAGS_STRING   = expr::Expression::FLAG_STRING,
+            EXPR_FLAGS_NONE     = expr::Expression::FLAG_NONE
         };
 
         /**
