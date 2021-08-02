@@ -37,15 +37,20 @@ LSP_PLUGINS_SPECTRUM_ANALYZER_NAME      := lsp-plugins-spectrum-analyzer
 LSP_PLUGINS_SPECTRUM_ANALYZER_TYPE      := plug
 LSP_PLUGINS_SPECTRUM_ANALYZER_URL       := git@github.com:sadko4u/$(LSP_PLUGINS_SPECTRUM_ANALYZER_NAME).git
 
-LSP_PLUGINS_SAMPLER_VERSION   			:= 1.0.3
-LSP_PLUGINS_SAMPLER_NAME      			:= lsp-plugins-sampler
-LSP_PLUGINS_SAMPLER_TYPE      			:= plug
-LSP_PLUGINS_SAMPLER_URL       			:= git@github.com:sadko4u/$(LSP_PLUGINS_SAMPLER_NAME).git
+LSP_PLUGINS_SAMPLER_VERSION             := 1.0.3
+LSP_PLUGINS_SAMPLER_NAME                := lsp-plugins-sampler
+LSP_PLUGINS_SAMPLER_TYPE                := plug
+LSP_PLUGINS_SAMPLER_URL                 := git@github.com:sadko4u/$(LSP_PLUGINS_SAMPLER_NAME).git
 
-LSP_PLUGINS_TRIGGER_VERSION   			:= 1.0.3
-LSP_PLUGINS_TRIGGER_NAME      			:= lsp-plugins-trigger
-LSP_PLUGINS_TRIGGER_TYPE      			:= plug
-LSP_PLUGINS_TRIGGER_URL       			:= git@github.com:sadko4u/$(LSP_PLUGINS_TRIGGER_NAME).git
+LSP_PLUGINS_TRIGGER_VERSION             := 1.0.3
+LSP_PLUGINS_TRIGGER_NAME                := lsp-plugins-trigger
+LSP_PLUGINS_TRIGGER_TYPE                := plug
+LSP_PLUGINS_TRIGGER_URL                 := git@github.com:sadko4u/$(LSP_PLUGINS_TRIGGER_NAME).git
+
+LSP_PLUGINS_PARA_EQUALIZER_VERSION      := 1.0.5
+LSP_PLUGINS_PARA_EQUALIZER_NAME         := lsp-plugins-para-equalizer
+LSP_PLUGINS_PARA_EQUALIZER_TYPE         := plug
+LSP_PLUGINS_PARA_EQUALIZER_URL          := git@github.com:sadko4u/$(LSP_PLUGINS_PARA_EQUALIZER_NAME).git
 
 # List of all plugin dependencies
 PLUGIN_DEPENDENCIES = \
@@ -53,7 +58,8 @@ PLUGIN_DEPENDENCIES = \
   LSP_PLUGINS_PHASE_DETECTOR \
   LSP_PLUGINS_SPECTRUM_ANALYZER \
   LSP_PLUGINS_SAMPLER \
-  LSP_PLUGINS_TRIGGER
+  LSP_PLUGINS_TRIGGER \
+  LSP_PLUGINS_PARA_EQUALIZER
 
 
 
