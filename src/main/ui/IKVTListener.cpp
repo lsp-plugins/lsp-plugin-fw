@@ -25,56 +25,28 @@ namespace lsp
 {
     namespace ui
     {
-        Module::Module(const meta::plugin_t *meta)
-        {
-            pMetadata       = meta;
-            pWrapper        = NULL;
-            pDisplay        = NULL;
-            wRoot           = NULL;
-        }
-
-        Module::~Module()
-        {
-            do_destroy();
-        }
-
-        void Module::destroy()
-        {
-            do_destroy();
-        }
-
-        status_t Module::post_init()
-        {
-            return STATUS_OK;
-        }
-
-        status_t Module::pre_destroy()
-        {
-            return STATUS_OK;
-        }
-
-        void Module::do_destroy()
-        {
-            // Forget the root widget
-            wRoot       = NULL;
-        }
-
-        status_t Module::init(IWrapper *wrapper, tk::Display *dpy)
-        {
-            pWrapper        = wrapper;
-            pDisplay        = dpy;
-
-            return STATUS_OK;
-        }
-
-        void Module::position_updated(const plug::position_t *pos)
+        IKVTListener::IKVTListener()
         {
         }
 
-        void Module::sync_meta_ports()
+        IKVTListener::~IKVTListener()
         {
+        }
+
+        const char *IKVTListener::name()
+        {
+            return NULL;
+        }
+
+        bool IKVTListener::changed(core::KVTStorage *kvt, const char *id, const core::kvt_param_t *value)
+        {
+            return false;
+        }
+
+        bool IKVTListener::match(const char *id)
+        {
+            return false;
         }
     }
 }
-
 

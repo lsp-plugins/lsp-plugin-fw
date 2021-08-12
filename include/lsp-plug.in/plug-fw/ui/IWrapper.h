@@ -39,6 +39,7 @@
 #include <lsp-plug.in/plug-fw/ui/IPort.h>
 #include <lsp-plug.in/plug-fw/ui/Module.h>
 #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
+#include <lsp-plug.in/plug-fw/ui/IKVTListener.h>
 #include <lsp-plug.in/fmt/config/PullParser.h>
 
 namespace lsp
@@ -87,6 +88,7 @@ namespace lsp
                 lltl::parray<IPort>         vTimePorts;         // Time-related ports
                 lltl::parray<IPort>         vCustomPorts;       // Custom-defined ports
                 lltl::pphash<LSPString, LSPString> vAliases;    // Port aliases
+                lltl::parray<IKVTListener>  vKvtListeners;      // KVT listeners
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
@@ -157,6 +159,13 @@ namespace lsp
                 IPort                      *port(size_t idx);
 
                 /**
+                 * Bind custom port
+                 * @param port custom port to bind
+                 * @return status of operation
+                 */
+                status_t                    bind_custom_port(ui::IPort *port);
+
+                /**
                  * Get overall ports count
                  * @return overall ports count
                  */
@@ -208,6 +217,16 @@ namespace lsp
                  * @return pointer to KVT storage or NULL
                  */
                 virtual core::KVTStorage   *kvt_trylock();
+
+                /**
+                 * Notify the write of the KVT parameter
+                 * @param storage KVT storage
+                 * @param id kvt parameter identifier
+                 * @param value KVT parameter value
+                 */
+                virtual void                kvt_notify_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value);
+                virtual status_t            kvt_subscribe(ui::IKVTListener *listener);
+                virtual status_t            kvt_unsubscribe(ui::IKVTListener *listener);
 
                 /**
                  * Release the KVT storage

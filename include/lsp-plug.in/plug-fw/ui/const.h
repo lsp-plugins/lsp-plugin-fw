@@ -30,6 +30,7 @@
 
 // UI configuration ports
 #define UI_CONFIG_PORT_PREFIX               "_ui_"
+#define UI_KVT_PORT_PREFIX                  "_kvt_"
 #define UI_MOUNT_STUD_PORT_ID               "mount_stud"
 #define UI_LAST_VERSION_PORT_ID             "last_version"
 #define UI_DLG_DEFAULT_PATH_ID              "dlg_default_path"

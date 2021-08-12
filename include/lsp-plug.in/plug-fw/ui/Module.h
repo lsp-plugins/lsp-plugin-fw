@@ -104,15 +104,6 @@ namespace lsp
                  * Synchronize state of meta ports
                  */
                 void                            sync_meta_ports();
-
-                /**
-                 * Notify the write of the KVT parameter
-                 * @param storage KVT storage
-                 * @param id kvt parameter identifier
-                 * @param value KVT parameter value
-                 */
-                virtual void                    kvt_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value);
-
         };
     }
 }

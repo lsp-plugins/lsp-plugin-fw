@@ -168,7 +168,7 @@ namespace lsp
                 IPort *p = vCustomPorts.uget(i);
                 if (p != NULL)
                 {
-                    lsp_trace("Destroy timing port id=%s", p->metadata()->id);
+                    lsp_trace("Destroy custom port id=%s", p->metadata()->id);
                     delete p;
                 }
             }
@@ -269,6 +269,33 @@ namespace lsp
         core::KVTStorage *IWrapper::kvt_trylock()
         {
             return NULL;
+        }
+
+        void IWrapper::kvt_notify_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value)
+        {
+            for (size_t i=0, n=vKvtListeners.size(); i<n; ++i)
+            {
+                IKVTListener *l = vKvtListeners.uget(i);
+                if (l != NULL)
+                    l->changed(storage, id, value);
+            }
+        }
+
+        status_t IWrapper::kvt_subscribe(ui::IKVTListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            if (vKvtListeners.index_of(listener) < 0)
+                return STATUS_ALREADY_BOUND;
+
+            return (vKvtListeners.add(listener)) ? STATUS_OK : STATUS_NO_MEM;
+        }
+
+        status_t IWrapper::kvt_unsubscribe(ui::IKVTListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            return (vKvtListeners.premove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
         }
 
         bool IWrapper::kvt_release()
@@ -523,6 +550,15 @@ namespace lsp
         size_t IWrapper::ports() const
         {
             return vPorts.size();
+        }
+
+        status_t IWrapper::bind_custom_port(ui::IPort *port)
+        {
+            if (!vCustomPorts.add(port))
+                return STATUS_NO_MEM;
+
+            lsp_trace("added custom port id=%s", port->metadata()->id);
+            return STATUS_OK;
         }
 
         status_t IWrapper::build_ui(const char *path)

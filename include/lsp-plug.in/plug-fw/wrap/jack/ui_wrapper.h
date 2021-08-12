@@ -384,7 +384,7 @@ namespace lsp
                         break;
 
                     kvt_dump_parameter("TX kvt param (DSP->UI): %s = ", kvt_value, kvt_name);
-                    pUI->kvt_write(kvt, kvt_name, kvt_value);
+                    kvt_notify_write(kvt, kvt_name, kvt_value);
                     ++sync;
                 }
             } while (sync > 0);
