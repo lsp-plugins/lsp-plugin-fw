@@ -145,6 +145,11 @@ namespace lsp
             nFrameId                = current;
         }
 
+        void stream_t::clear()
+        {
+            clear(nFrameId + 1);
+        }
+
         void stream_t::destroy(stream_t *buf)
         {
             if (buf == NULL)

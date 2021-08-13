@@ -214,6 +214,11 @@ namespace lsp
                  * @param current current frame
                  */
                 void                    clear(uint32_t current);
+
+                /**
+                 * Clear stream and increment current frame
+                 */
+                void                    clear();
         } stream_t;
 
         /**
