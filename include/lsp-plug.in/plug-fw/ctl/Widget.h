@@ -59,7 +59,7 @@ namespace lsp
 
                     public:
                         inline PropListener(Widget *w)          { pWidget = w; }
-                        virtual void notify(Property *prop);
+                        virtual void notify(tk::Property *prop);
                         inline void unbind()                    { pWidget = NULL; }
                 };
 
@@ -112,7 +112,7 @@ namespace lsp
             protected:
                 bool                bind_port(ui::IPort **port, const char *param, const char *name, const char *value);
 
-                virtual void        property_changed(Property *prop);
+                virtual void        property_changed(tk::Property *prop);
 
             public:
                 explicit Widget(ui::IWrapper *wrapper, tk::Widget *widget);

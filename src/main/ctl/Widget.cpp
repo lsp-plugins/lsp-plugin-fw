@@ -26,7 +26,7 @@ namespace lsp
     namespace ctl
     {
         //---------------------------------------------------------------------
-        void Widget::PropListener::notify(Property *prop)
+        void Widget::PropListener::notify(tk::Property *prop)
         {
             if (pWidget != NULL)
                 pWidget->property_changed(prop);
@@ -579,7 +579,7 @@ namespace lsp
             sBgColor.reload();
         }
 
-        void Widget::property_changed(Property *prop)
+        void Widget::property_changed(tk::Property *prop)
         {
         }
 

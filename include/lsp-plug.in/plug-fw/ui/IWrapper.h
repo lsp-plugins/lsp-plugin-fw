@@ -272,12 +272,13 @@ namespace lsp
                 /**
                  * Import settings
                  * @param the source (file name or input sequence)
+                 * @param preset the configuration is loaded as a preset
                  * @return status of operation
                  */
-                virtual status_t            import_settings(const char *file);
-                virtual status_t            import_settings(const io::Path *file);
-                virtual status_t            import_settings(const LSPString *file);
-                virtual status_t            import_settings(io::IInSequence *is);
+                virtual status_t            import_settings(const char *file, bool preset);
+                virtual status_t            import_settings(const io::Path *file, bool preset);
+                virtual status_t            import_settings(const LSPString *file, bool preset);
+                virtual status_t            import_settings(io::IInSequence *is, bool preset);
 
                 /**
                  * Load visual schema for the wrapper

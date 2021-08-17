@@ -61,7 +61,7 @@ namespace lsp
                 return STATUS_NOT_BOUND;
 
             io::InStringSequence is(text);
-            return wrapper->import_settings(&is);
+            return wrapper->import_settings(&is, false);
         }
 
         //-----------------------------------------------------------------
@@ -1472,7 +1472,7 @@ namespace lsp
             status_t res = _this->wImport->selected_file()->format(&path);
 
             if (res == STATUS_OK)
-                _this->pWrapper->import_settings(&path);
+                _this->pWrapper->import_settings(&path, false);
 
             return STATUS_OK;
         }

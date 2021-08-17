@@ -30,10 +30,15 @@ namespace lsp
         {
             //-----------------------------------------------------------------
             NODE_FACTORY_IMPL_START(SetNode)
-                if (!name->equals_ascii("ui:set"))
+                size_t flags;
+                if (name->equals_ascii("ui:set"))
+                    flags = expr::Expression::FLAG_STRING;
+                else if (name->equals_ascii("ui:eval"))
+                    flags = expr::Expression::FLAG_NONE;
+                else
                     return STATUS_NOT_FOUND;
 
-                Node *node = new SetNode(context);
+                Node *node = new SetNode(context, flags);
                 if (node == NULL)
                     return STATUS_NO_MEM;
 
@@ -49,8 +54,9 @@ namespace lsp
             NODE_FACTORY_IMPL_END(SetNode)
 
             //-----------------------------------------------------------------
-            SetNode::SetNode(UIContext *ctx): Node(ctx)
+            SetNode::SetNode(UIContext *ctx, size_t flags): Node(ctx)
             {
+                nFlags = flags;
             }
 
             status_t SetNode::init(const LSPString * const *atts)
@@ -86,7 +92,7 @@ namespace lsp
                     }
                     else if (name->equals_ascii("value"))
                     {
-                        if ((res = pContext->evaluate(&v_value, value, expr::Expression::FLAG_STRING)) != STATUS_OK)
+                        if ((res = pContext->evaluate(&v_value, value, nFlags)) != STATUS_OK)
                         {
                             lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;

@@ -60,7 +60,7 @@ namespace lsp
 
         LedChannel::LedChannel(ui::IWrapper *wrapper, tk::LedMeterChannel *widget):
             Widget(wrapper, widget),
-            sPropColor(&sProperties),
+            sPropValueColor(&sProperties),
             sPropYellowZoneColor(&sProperties),
             sPropRedZoneColor(&sProperties)
         {
@@ -96,16 +96,16 @@ namespace lsp
                 sBalanceVisible.init(pWrapper, lmc->balance_visible());
                 sTextVisible.init(pWrapper, lmc->text_visible());
 
-                sPropColor.bind("color", lmc->style());
+                sPropValueColor.bind("normal.color", lmc->style());
                 sPropYellowZoneColor.bind("yellow.color", lmc->style());
                 sPropRedZoneColor.bind("red.color", lmc->style());
 
-                sPropColor.set("meter_normal");
+                sPropValueColor.set("meter_normal");
                 sPropYellowZoneColor.set("meter_yellow");
                 sPropRedZoneColor.set("meter_red");
 
                 sColor.init(pWrapper, lmc->color());
-                sValueColor.init(pWrapper, &sPropColor);
+                sValueColor.init(pWrapper, &sPropValueColor);
                 sYellowZoneColor.init(pWrapper, &sPropYellowZoneColor);
                 sRedZoneColor.init(pWrapper, &sPropRedZoneColor);
                 sBalanceColor.init(pWrapper, lmc->balance_color());
@@ -141,6 +141,8 @@ namespace lsp
                 sTextVisible.set("text.visibility", name, value);
 
                 sColor.set("color", name, value);
+                if (!strcmp(name, "value.color"))
+                    lsp_trace("debug");
                 sValueColor.set("value.color", name, value);
                 sYellowZoneColor.set("yellow.color", name, value);
                 sRedZoneColor.set("red.color", name, value);
@@ -380,7 +382,7 @@ namespace lsp
             crv[1]      = lmc->peak_ranges();
             crv[2]      = lmc->text_ranges();
 
-            lsp::Color c(sPropColor.color());
+            lsp::Color c(sPropValueColor.color());
             lmc->value_color()->set(&c);
             lmc->peak_color()->set(&c);
             lmc->text_color()->set(&c);
@@ -449,7 +451,7 @@ namespace lsp
 
         void LedChannel::property_changed(tk::Property *prop)
         {
-            if (sPropColor.is(prop))
+            if (sPropValueColor.is(prop))
                 sync_colors();
             if (sPropYellowZoneColor.is(prop))
                 sync_colors();

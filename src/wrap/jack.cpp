@@ -479,13 +479,12 @@ namespace lsp
                 wnd->show();
             }
 
-            // TODO: Load configuration (if specified in parameters)
-//            if ((status == STATUS_OK) && (cfg.cfg_file != NULL))
-//            {
-//                status = pui->import_settings(cfg.cfg_file, false);
-//                if (status != STATUS_OK)
-//                    fprintf(stderr, "Error loading configuration file: %s\n", get_status(status));
-//            }
+            // Load configuration (if specified in parameters)
+            if (cmdline.cfg_file != NULL)
+            {
+                if ((res = w->pUIWrapper->import_settings(cmdline.cfg_file, false)) != STATUS_OK)
+                    fprintf(stderr, "Error loading configuration file: '%s': %s\n", cmdline.cfg_file, get_status(res));
+            }
 
             return STATUS_OK;
         }

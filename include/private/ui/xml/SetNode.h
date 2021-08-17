@@ -37,12 +37,15 @@ namespace lsp
              */
             class SetNode: public Node
             {
+                protected:
+                    size_t      nFlags;
+
                 private:
                     SetNode & operator = (const SetNode &src);
                     SetNode(const SetNode &);
 
                 public:
-                    explicit SetNode(UIContext *ctx);
+                    explicit SetNode(UIContext *ctx, size_t flags);
 
                 public:
                     virtual status_t init(const LSPString * const *atts);

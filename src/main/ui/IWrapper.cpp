@@ -762,27 +762,27 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::import_settings(const char *file)
+        status_t IWrapper::import_settings(const char *file, bool preset)
         {
             io::Path path;
             status_t res = path.set(file);
             if (res != STATUS_OK)
                 return res;
 
-            return import_settings(&path);
+            return import_settings(&path, preset);
         }
 
-        status_t IWrapper::import_settings(const LSPString *file)
+        status_t IWrapper::import_settings(const LSPString *file, bool preset)
         {
             io::Path path;
             status_t res = path.set(file);
             if (res != STATUS_OK)
                 return res;
 
-            return import_settings(&path);
+            return import_settings(&path, preset);
         }
 
-        status_t IWrapper::import_settings(const io::Path *file)
+        status_t IWrapper::import_settings(const io::Path *file, bool preset)
         {
             io::InFileStream is;
             io::InSequence i;
@@ -799,13 +799,13 @@ namespace lsp
             }
 
             // Export settings
-            res = import_settings(&i);
+            res = import_settings(&i, preset);
             status_t res2 = i.close();
 
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::import_settings(io::IInSequence *is)
+        status_t IWrapper::import_settings(io::IInSequence *is, bool preset)
         {
             // TODO: implement import
             return STATUS_OK;

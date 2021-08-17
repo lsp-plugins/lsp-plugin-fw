@@ -71,7 +71,7 @@ namespace lsp
                 float               fRelease;
                 bool                bLog;
 
-                tk::prop::Color     sPropColor;
+                tk::prop::Color     sPropValueColor;
                 tk::prop::Color     sPropYellowZoneColor;
                 tk::prop::Color     sPropRedZoneColor;
 
