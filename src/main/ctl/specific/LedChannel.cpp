@@ -386,13 +386,13 @@ namespace lsp
             lmc->value_color()->set(&c);
             lmc->peak_color()->set(&c);
             lmc->text_color()->set(&c);
+            float light = c.lightness();
 
             // For each component: update color ranges
             for (size_t i=0; i<3; ++i)
             {
                 tk::ColorRange *cr;
                 tk::ColorRanges *crs = crv[i];
-                float light          = c.lightness();
                 crs->clear();
 
                 if ((nType == MT_VU) || ((nType == MT_RMS_PEAK)))
