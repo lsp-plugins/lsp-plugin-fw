@@ -132,10 +132,14 @@ namespace lsp
                 if (set_value(&fStep, "default", name, value))
                     nFlags     |= KF_DFL;
 
-                set_value(&fAStep, "astep", name, value);
-                set_value(&fAStep, "step.accel", name, value);
-                set_value(&fDStep, "dstep", name, value);
-                set_value(&fDStep, "step.decel", name, value);
+                if (set_value(&fAStep, "astep", name, value))
+                    nFlags     |= KF_ASTEP;
+                if (set_value(&fAStep, "step.accel", name, value))
+                    nFlags     |= KF_ASTEP;
+                if (set_value(&fDStep, "dstep", name, value))
+                    nFlags     |= KF_DSTEP;
+                if (set_value(&fDStep, "step.decel", name, value))
+                    nFlags     |= KF_DSTEP;
 
                 if (set_value(&fBalance, "bal", name, value))
                     nFlags     |= KF_BAL_SET;
@@ -404,6 +408,11 @@ namespace lsp
             knob->value()->set_all(fDefaultValue, min, max);
             knob->step()->set(step);
             knob->balance()->set(balance);
+
+            if (nFlags & KF_ASTEP)
+                knob->step()->set_accel(fAStep);
+            if (nFlags & KF_DSTEP)
+                knob->step()->set_decel(fDStep);
         }
 
         status_t Knob::slot_change(tk::Widget *sender, void *ptr, void *data)

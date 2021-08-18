@@ -74,6 +74,7 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/Axis.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Marker.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Text.h>
+    #include <lsp-plug.in/plug-fw/ctl/graph/Dot.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Mesh.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/FBuffer.h>
 

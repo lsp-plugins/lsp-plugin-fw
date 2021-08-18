@@ -48,11 +48,13 @@ namespace lsp
                     KF_MAX          = 1 << 1,
                     KF_DFL          = 1 << 2,
                     KF_STEP         = 1 << 3,
-                    KF_BAL_SET      = 1 << 4,
-                    KF_LOG          = 1 << 5,
-                    KF_LOG_SET      = 1 << 6,
-                    KF_CYCLIC       = 1 << 7,
-                    KF_CYCLIC_SET   = 1 << 8
+                    KF_ASTEP        = 1 << 4,
+                    KF_DSTEP        = 1 << 5,
+                    KF_BAL_SET      = 1 << 6,
+                    KF_LOG          = 1 << 7,
+                    KF_LOG_SET      = 1 << 8,
+                    KF_CYCLIC       = 1 << 9,
+                    KF_CYCLIC_SET   = 1 << 10
                 };
 
             protected:

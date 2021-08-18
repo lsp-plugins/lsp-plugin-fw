@@ -64,6 +64,7 @@ namespace lsp
 
             public:
                 bool            set(const char *prop, const char *name, const char *value);
+                inline bool     value() const   { return pProp->get();  }
         };
     }
 }

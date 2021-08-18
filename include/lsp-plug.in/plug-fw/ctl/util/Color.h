@@ -68,6 +68,7 @@ namespace lsp
 
             public:
                 bool                set(const char *prefix, const char *name, const char *value);
+                inline const lsp::Color  *value() const   { return pColor->color();   }
 
                 /**
                  * Re-evaluate all expressions assigned to the controller
