@@ -46,13 +46,12 @@ namespace lsp
                 {
                     DF_MIN          = 1 << 0,
                     DF_MAX          = 1 << 1,
-                    DF_DFL          = 1 << 2,
-                    DF_STEP         = 1 << 3,
-                    DF_ASTEP        = 1 << 4,
-                    DF_DSTEP        = 1 << 5,
-                    DF_LOG          = 1 << 6,
-                    DF_LOG_SET      = 1 << 7,
-                    DF_LOG_ALLOWED  = 1 << 8
+                    DF_STEP         = 1 << 2,
+                    DF_ASTEP        = 1 << 3,
+                    DF_DSTEP        = 1 << 4,
+                    DF_LOG          = 1 << 5,
+                    DF_LOG_SET      = 1 << 6,
+                    DF_LOG_ALLOWED  = 1 << 7
                 };
 
                 typedef struct param_t
@@ -68,6 +67,8 @@ namespace lsp
                     ui::IPort          *pPort;
                     ctl::Expression     sExpr;
                     ctl::Boolean        sEditable;
+                    tk::RangeFloat     *pValue;
+                    tk::StepFloat      *pStep;
                 } param_t;
 
             protected:
@@ -90,10 +91,12 @@ namespace lsp
                 ctl::Color          sHoverGapColor;
 
             protected:
-                static void         init_param(param_t *p);
+                static void         init_param(param_t *p, tk::RangeFloat *value, tk::StepFloat *step);
                 void                set_param(param_t *p, const char *prefix, const char *name, const char *value);
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
                 void                submit_values();
+                void                submit_default_values();
                 void                configure_param(param_t *p, bool allow_log);
                 void                submit_value(param_t *p, float value);
                 void                commit_value(param_t *p, ui::IPort *port);

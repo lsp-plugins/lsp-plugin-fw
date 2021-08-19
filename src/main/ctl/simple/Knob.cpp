@@ -233,7 +233,7 @@ namespace lsp
 
             if (p != NULL)
             {
-                if (is_gain_unit(p->unit)) // Decibels
+                if (meta::is_gain_unit(p->unit)) // Decibels
                 {
                     double base = (p->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
 
@@ -265,7 +265,7 @@ namespace lsp
             if (p == NULL)
                 return;
 
-            if (is_gain_unit(p->unit)) // Decibels
+            if (meta::is_gain_unit(p->unit)) // Decibels
             {
                 double base = (p->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
 
@@ -274,7 +274,7 @@ namespace lsp
 
                 knob->value()->set(base * log(value));
             }
-            else if (is_discrete_unit(p->unit)) // Integer type
+            else if (meta::is_discrete_unit(p->unit)) // Integer type
             {
                 float ov    = truncf(knob->value()->get());
                 float nv    = truncf(value);
@@ -329,11 +329,20 @@ namespace lsp
 
             // Override default values
             if (nFlags & KF_MIN)
+            {
                 xp.min          = fMin;
+                xp.flags       |= meta::F_LOWER;
+            }
             if (nFlags & KF_MAX)
+            {
                 xp.max          = fMax;
+                xp.flags       |= meta::F_UPPER;
+            }
             if (nFlags & KF_STEP)
+            {
                 xp.step         = fStep;
+                xp.flags       |= meta::F_STEP;
+            }
             if (nFlags & KF_DFL)
                 xp.start        = fDefault;
             if (nFlags & KF_CYCLIC_SET)
