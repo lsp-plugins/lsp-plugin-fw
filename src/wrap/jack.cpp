@@ -558,7 +558,7 @@ namespace lsp
             while (!w->bInterrupt)
             {
                 system::get_time(&ctime);
-                ts1     = ctime.seconds * 1000 + ctime.nanos / 1000000;
+                ts1     = ws::timestamp_t(ctime.seconds) * 1000 + ctime.nanos / 1000000;
 
                 // Synchronize with JACK
                 if ((res = jack_sync(ts1, ts1, w)) != STATUS_OK)
@@ -577,11 +577,11 @@ namespace lsp
 
                 // Perform a small sleep before new iteration
                 system::get_time(&ctime);
-                ts2     = ctime.seconds * 1000 + ctime.nanos / 1000000;
+                ts2     = ws::timestamp_t(ctime.seconds) * 1000 + ctime.nanos / 1000000;
 
                 wssize_t delay   = ts1 + period - ts2;
                 if (delay > 0)
-                    ipc::Thread::sleep(lsp_max(delay, period));
+                    w->pUIWrapper->display()->wait_events(lsp_max(delay, period));
             }
 
             fprintf(stderr, "\nPlugin execution interrupted\n");

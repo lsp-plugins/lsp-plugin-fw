@@ -130,6 +130,12 @@ namespace lsp
                 inline ctl::Window         *controller()        { return pWindow;       }
 
                 /**
+                 * Get the display
+                 * @return display
+                 */
+                inline tk::Display         *display()           { return pDisplay;      }
+
+                /**
                  * Get window widget
                  * @return window widget
                  */
