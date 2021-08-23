@@ -74,6 +74,7 @@ namespace lsp
                 ctl::Boolean        sVisibility;
                 ctl::Float          sBrightness;
                 ctl::Float          sBgBrightness;
+                ctl::Enum           sPointer;
 
                 PropListener        sProperties;        // Properties listener
 

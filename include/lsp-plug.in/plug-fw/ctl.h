@@ -38,6 +38,7 @@
     #include <lsp-plug.in/plug-fw/ctl/util/Color.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Embedding.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Padding.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/Enum.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Direction.h>
 
     // Widget controllers

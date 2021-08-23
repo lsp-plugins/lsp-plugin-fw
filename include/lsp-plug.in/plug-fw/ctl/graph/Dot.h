@@ -51,7 +51,7 @@ namespace lsp
                     DF_DSTEP        = 1 << 4,
                     DF_LOG          = 1 << 5,
                     DF_LOG_SET      = 1 << 6,
-                    DF_LOG_ALLOWED  = 1 << 7
+                    DF_AXIS         = 1 << 7
                 };
 
                 typedef struct param_t
@@ -97,7 +97,7 @@ namespace lsp
                 static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
                 void                submit_values();
                 void                submit_default_values();
-                void                configure_param(param_t *p, bool allow_log);
+                void                configure_param(param_t *p, bool axis);
                 void                submit_value(param_t *p, float value);
                 void                commit_value(param_t *p, ui::IPort *port);
 
