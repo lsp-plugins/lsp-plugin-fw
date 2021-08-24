@@ -99,7 +99,7 @@ namespace lsp
                 void                submit_default_values();
                 void                configure_param(param_t *p, bool axis);
                 void                submit_value(param_t *p, float value);
-                void                commit_value(param_t *p, ui::IPort *port);
+                void                commit_value(param_t *p, ui::IPort *port, bool force);
 
             public:
                 explicit Dot(ui::IWrapper *wrapper, tk::GraphDot *widget);

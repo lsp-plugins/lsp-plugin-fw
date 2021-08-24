@@ -126,6 +126,8 @@ namespace lsp
 
             snprintf(s, sizeof(s), "%s.value", prefix);
             set_expr(&p->sExpr, s, name, value);
+            snprintf(s, sizeof(s), "%s", prefix);
+            set_expr(&p->sExpr, s, name, value);
 
             snprintf(s, sizeof(s), "%s.editable", prefix);
             p->sEditable.set(s, name, value);
@@ -203,9 +205,9 @@ namespace lsp
         {
             Widget::notify(port);
 
-            commit_value(&sX, port);
-            commit_value(&sY, port);
-            commit_value(&sZ, port);
+            commit_value(&sX, port, false);
+            commit_value(&sY, port, false);
+            commit_value(&sZ, port, false);
         }
 
         void Dot::end(ui::UIContext *ctx)
@@ -216,9 +218,9 @@ namespace lsp
             configure_param(&sY, true);
             configure_param(&sZ, false);
 
-            commit_value(&sX, sX.pPort);
-            commit_value(&sY, sY.pPort);
-            commit_value(&sZ, sZ.pPort);
+            commit_value(&sX, sX.pPort, true);
+            commit_value(&sY, sY.pPort, true);
+            commit_value(&sZ, sZ.pPort, true);
         }
 
         void Dot::schema_reloaded()
@@ -255,47 +257,55 @@ namespace lsp
             submit_value(&sZ, sZ.fDefault);
         }
 
-        void Dot::commit_value(param_t *p, ui::IPort *port)
+        void Dot::commit_value(param_t *p, ui::IPort *port, bool force)
         {
             float value;
 
             if ((p->pPort != NULL) && (p->pPort == port))
                 value       = p->pPort->value();
-            else if (p->sExpr.depends(port))
+            else if ((p->sExpr.depends(port)) || (force))
                 value       = p->sExpr.evaluate();
             else
                 return;
 
             const meta::port_t *x = (p->pPort != NULL) ? p->pPort->metadata() : NULL;
-            if (p == NULL)
-                return;
-
-            if (!(p->nFlags & DF_AXIS))
+            if (x == NULL)
             {
-                if (meta::is_gain_unit(x->unit)) // Decibels
-                {
-                    double base = (x->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
+                if (!(p->nFlags & DF_MIN))
+                    p->pValue->set_min(value);
+                if (!(p->nFlags & DF_MAX))
+                    p->pValue->set_max(value);
+                p->pValue->set(value);
+                return;
+            }
+            else if (p->nFlags & DF_AXIS)
+            {
+                p->pValue->set(value);
+                return;
+            }
 
-                    if (value < GAIN_AMP_M_120_DB)
-                        value           = GAIN_AMP_M_120_DB;
+            // Advanced setup
+            if (meta::is_gain_unit(x->unit)) // Decibels
+            {
+                double base = (x->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
 
-                    p->pValue->set(base * log(value));
-                }
-                else if (meta::is_discrete_unit(x->unit)) // Integer type
-                {
-                    float ov    = truncf(p->pValue->get());
-                    float nv    = truncf(value);
-                    if (ov != nv)
-                        p->pValue->set(nv);
-                }
-                else if (p->nFlags & DF_LOG)
-                {
-                    if (value < GAIN_AMP_M_120_DB)
-                        value           = GAIN_AMP_M_120_DB;
-                    p->pValue->set(log(value));
-                }
-                else
-                    p->pValue->set(value);
+                if (value < GAIN_AMP_M_120_DB)
+                    value           = GAIN_AMP_M_120_DB;
+
+                p->pValue->set(base * log(value));
+            }
+            else if (meta::is_discrete_unit(x->unit)) // Integer type
+            {
+                float ov    = truncf(p->pValue->get());
+                float nv    = truncf(value);
+                if (ov != nv)
+                    p->pValue->set(nv);
+            }
+            else if (p->nFlags & DF_LOG)
+            {
+                if (value < GAIN_AMP_M_120_DB)
+                    value           = GAIN_AMP_M_120_DB;
+                p->pValue->set(log(value));
             }
             else
                 p->pValue->set(value);

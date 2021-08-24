@@ -134,11 +134,10 @@ namespace lsp
             char buf[TMP_BUF_SIZE];
             const meta::port_t *mdata   = (pPort != NULL) ? pPort->metadata() : NULL;
             if (mdata != NULL)
+            {
                 meta::format_value(buf, TMP_BUF_SIZE, mdata, pPort->value(), -1);
-            else
-                buf[0] ='\0';
-
-            gt->text()->params()->set_cstring("value", buf);
+                gt->text()->params()->set_cstring("value", buf);
+            }
         }
 
         void Text::notify(ui::IPort *port)
