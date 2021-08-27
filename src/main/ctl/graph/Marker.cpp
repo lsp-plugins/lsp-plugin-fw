@@ -131,6 +131,7 @@ namespace lsp
                 set_expr(&sDy, "dy", name, value);
                 set_expr(&sAngle, "angle", name, value);
                 set_expr(&sOffset, "offset", name, value);
+                set_expr(&sOffset, "dv", name, value);
 
                 sSmooth.set("smooth", name, value);
                 sWidth.set("width", name, value);
