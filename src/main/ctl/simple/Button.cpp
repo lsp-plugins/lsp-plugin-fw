@@ -185,6 +185,11 @@ namespace lsp
                 }
                 else if (!meta::is_trigger_port(mdata))
                     btn->down()->set(fabs(value - max) < fabs(value - min));
+                else
+                {
+                    fValue      = (value >= 0.5f) ? 1.0f : 0.0f;
+                    btn->down()->set(fValue >= 0.5f);
+                }
             }
             else
             {
