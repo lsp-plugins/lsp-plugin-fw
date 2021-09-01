@@ -91,6 +91,7 @@ namespace lsp
                 tk::Menu           *pMenu;
                 DataSink           *pDataSink;
                 DragInSink         *pDragInSink;
+                lltl::parray<file_format_t>     vFormats;
                 lltl::parray<tk::MenuItem>      vMenuItems;
                 lltl::pphash<char, ui::IPort>   vClipboardBind;
 

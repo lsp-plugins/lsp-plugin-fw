@@ -29,8 +29,10 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/stdlib/stdlib.h>
+#include <lsp-plug.in/lltl/parray.h>
 
 #include <locale.h>
 #include <ctype.h>
@@ -103,6 +105,15 @@ namespace lsp
 {
     namespace ctl
     {
+        typedef struct file_format_t
+        {
+            const char *id;
+            const char *filter;
+            const char *title;
+            const char *extension;
+            size_t flags;
+        } file_format_t;
+
         bool parse_float(const char *arg, float *res);
 
         bool parse_double(const char *arg, double *res);
@@ -116,6 +127,8 @@ namespace lsp
         bool parse_long(const char *arg, long long *res);
 
         bool parse_ulong(const char *arg, unsigned long long *res);
+
+        status_t parse_file_formats(lltl::parray<file_format_t> *fmt, const char *variable);
     }
 }
 

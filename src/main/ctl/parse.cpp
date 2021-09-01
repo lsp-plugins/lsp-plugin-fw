@@ -44,25 +44,41 @@ namespace lsp
 {
     namespace ctl
     {
+        static const file_format_t file_formats[] =
+        {
+            { "wav",        "*.wav",        "files.audio.wave",         ".wav",     io::PathPattern::NONE },
+            { "lspc",       "*.lspc",       "files.config.lspc",        ".lspc",    io::PathPattern::NONE },
+            { "cfg",        "*.cfg",        "files.config.lsp",         ".cfg",     io::PathPattern::NONE },
+            { "audio",      "*.wav",        "files.audio.supported",    ".wav",     io::PathPattern::NONE },
+            { "audio_lspc", "*.wav|*.lspc", "files.audio.audio_lspc",   ".wav",     io::PathPattern::NONE },
+            { "obj3d",      "*.obj",        "files.3d.wavefont",        ".obj",     io::PathPattern::NONE },
+            { "all",        "*",            "files.all",                "",         io::PathPattern::NONE },
+            { NULL, NULL, NULL, 0 }
+        };
+
+        inline bool is_blank(char c)
+        {
+            switch (c)
+            {
+                case ' ':
+                case '\n':
+                case '\r':
+                case '\f':
+                case '\t':
+                    return true;
+                default:
+                    break;
+            }
+            return false;
+        }
+
         char *skip_whitespace(const char *v)
         {
             if (v == NULL)
                 return NULL;
-            while (true)
-            {
-                switch (*v)
-                {
-                    case ' ':
-                    case '\n':
-                    case '\r':
-                    case '\f':
-                    case '\t':
-                        ++v;
-                        break;
-                    default:
-                        return const_cast<char *>(v);
-                }
-            }
+            while (is_blank(*v))
+                ++v;
+            return const_cast<char *>(v);
         }
 
         bool parse_float(const char *arg, float *res)
@@ -216,6 +232,53 @@ namespace lsp
             return true;
         }
 
+        status_t parse_file_formats(lltl::parray<file_format_t> *fmt, const char *variable)
+        {
+            lltl::parray<file_format_t> tmp;
+
+            while (true)
+            {
+                // Seek for first non-blank character
+                while (is_blank(*variable))
+                    ++variable;
+                if (*variable == '\0')
+                    break;
+
+                // Search for ',' separator
+                const char *s = strchr(variable, ',');
+                const char *end = (s == NULL) ? strchr(variable, '\0') : s;
+
+                // Trim blank characters at the end
+                while ((end > variable) && (is_blank(end[-1])))
+                    --end;
+
+                // Add new item if substring is not empty
+                size_t n = end - variable;
+                if (n > 0)
+                {
+                    // Lookup for matching format enumeration constant and add to list
+                    for (const file_format_t *f = file_formats; f->id != NULL; ++f)
+                    {
+                        if (!strncasecmp(f->id, variable, n))
+                        {
+                            if (!tmp.add(const_cast<file_format_t *>(f)))
+                                return STATUS_NO_MEM;
+
+                            break;
+                        }
+                    }
+                }
+
+                if (s == NULL)
+                    break;
+                variable = s + 1;
+            }
+
+            // Apply new data
+            fmt->swap(&tmp);
+
+            return STATUS_OK;
+        }
     }
 }
 

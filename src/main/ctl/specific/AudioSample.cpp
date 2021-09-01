@@ -23,6 +23,8 @@
 #include <lsp-plug.in/fmt/config/Serializer.h>
 #include <lsp-plug.in/fmt/config/PullParser.h>
 #include <lsp-plug.in/fmt/url.h>
+#include <lsp-plug.in/io/InStringSequence.h>
+#include <lsp-plug.in/expr/Tokenizer.h>
 
 namespace lsp
 {
@@ -277,6 +279,9 @@ namespace lsp
                     sLabelTextColor[i].init(pWrapper, as->label_color(i));
                 }
 
+                // By default use 'wav' and 'all' file formats
+                parse_file_formats(&vFormats, "wav,all");
+
                 // Bind slot
                 as->slots()->bind(tk::SLOT_SUBMIT, slot_audio_sample_submit, this);
                 as->slots()->bind(tk::SLOT_DRAG_REQUEST, slot_drag_request, this);
@@ -448,6 +453,10 @@ namespace lsp
                 sMainColor.set("main.color", name, value);
                 sLabelBgColor.set("label.bg.color", name, value);
 
+                // Parse file formats
+                if ((!strcmp(name, "format")) || (!strcmp(name, "formats")) || (!strcmp(name, "fmt")))
+                    parse_file_formats(&vFormats, value);
+
                 // Process clipboard bindings
                 const char *bind = match_prefix("clipboard", name);
                 if ((bind != NULL) && (strlen(bind) > 0))
@@ -490,13 +499,6 @@ namespace lsp
                 sync_mesh();
                 sync_labels();
             }
-
-//            LSPAudioFile *af    = widget_cast<LSPAudioFile>(pWidget);
-//            if (af == NULL)
-//                return;
-//
-//            if (sFormat.valid())
-//                af->filter()->set_default(sFormat.evaluate());
         }
 
         void AudioSample::schema_reloaded()
@@ -616,14 +618,15 @@ namespace lsp
             if (as == NULL)
                 return;
 
-            // Remove extra managed channels
-            size_t count = as->channels()->size();
-            while (count > mesh->nBuffers)
-                as->channels()->remove(--count);
+            // Recreate channels
+            as->channels()->clear();
+            size_t allocate = (mesh->nBuffers & 1) ? mesh->nBuffers + 1 : mesh->nBuffers;
 
             // Add new managed channels
-            while (count < mesh->nBuffers)
+            for (size_t i=0; i < allocate; ++i)
             {
+                size_t src_idx = lsp_min(i, mesh->nBuffers-1);
+
                 // Create audio channel
                 tk::AudioChannel *ac = new tk::AudioChannel(wWidget->display());
                 if (ac == NULL)
@@ -637,12 +640,11 @@ namespace lsp
 
                 // Inject style
                 LSPString style;
-                style.fmt_ascii("AudioSample::Channel%d", int(count % 8) + 1);
+                style.fmt_ascii("AudioSample::Channel%d", int(src_idx % 8) + 1);
                 inject_style(ac, style.get_ascii());
 
                 // Add audio channel as managed and increment counter
                 as->channels()->madd(ac);
-                ++count;
             }
 
             // Synchronize mesh state
@@ -653,14 +655,15 @@ namespace lsp
 
             lsp_trace("length=%f, fade_in=%f, fade_out=%f", length, fade_in, fade_out);
 
-            for (size_t i=0; i<mesh->nBuffers; ++i)
+            for (size_t i=0; i<allocate; ++i)
             {
+                size_t src_idx = lsp_min(i, mesh->nBuffers-1);
                 tk::AudioChannel *ac = as->channels()->get(i);
                 if (ac == NULL)
                     continue;
 
                 // Update mesh
-                ac->samples()->set(mesh->pvData[i], samples);
+                ac->samples()->set(mesh->pvData[src_idx], samples);
 
                 // Update fades
                 ac->fade_in()->set(fade_in);
@@ -687,17 +690,16 @@ namespace lsp
                 pDialog->title()->set("titles.load_audio_file");
                 tk::FileMask *ffi;
 
-                if ((ffi = pDialog->filter()->add()) != NULL)
+                // Add all listed formats
+                for (size_t i=0, n=vFormats.size(); i<n; ++i)
                 {
-                    ffi->pattern()->set("*.wav");
-                    ffi->title()->set("files.audio.wave");
-                    ffi->extensions()->set_raw(".wav");
-                }
-                if ((ffi = pDialog->filter()->add()) != NULL)
-                {
-                    ffi->pattern()->set("*");
-                    ffi->title()->set("files.all");
-                    ffi->extensions()->set_raw("");
+                    file_format_t *f = vFormats.uget(i);
+                    if ((ffi = pDialog->filter()->add()) != NULL)
+                    {
+                        ffi->pattern()->set(f->filter, f->flags);
+                        ffi->title()->set(f->title);
+                        ffi->extensions()->set_raw(f->extension);
+                    }
                 }
 
                 pDialog->selected_filter()->set(0);
