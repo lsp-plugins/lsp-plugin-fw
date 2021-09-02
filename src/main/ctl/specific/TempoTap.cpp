@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 9 мая 2021 г.
+ * Created on: 3 сент. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -20,17 +20,17 @@
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
-#include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/runtime/system.h>
 
 namespace lsp
 {
     namespace ctl
     {
         //---------------------------------------------------------------------
-        CTL_FACTORY_IMPL_START(Button)
+        CTL_FACTORY_IMPL_START(TempoTap)
             status_t res;
 
-            if (!name->equals_ascii("button"))
+            if (!name->equals_ascii("ttap"))
                 return STATUS_NOT_FOUND;
 
             tk::Button *w = new tk::Button(context->display());
@@ -45,33 +45,32 @@ namespace lsp
             if ((res = w->init()) != STATUS_OK)
                 return res;
 
-            ctl::Button *wc  = new ctl::Button(context->wrapper(), w);
+            ctl::TempoTap *wc   = new ctl::TempoTap(context->wrapper(), w);
             if (wc == NULL)
                 return STATUS_NO_MEM;
 
             *ctl = wc;
             return STATUS_OK;
-        CTL_FACTORY_IMPL_END(Button)
+        CTL_FACTORY_IMPL_END(TempoTap)
 
         //-----------------------------------------------------------------
-        const ctl_class_t Button::metadata     = { "Button", &Widget::metadata };
+        const ctl_class_t TempoTap::metadata     = { "TempoTap", &Widget::metadata };
 
-        Button::Button(ui::IWrapper *wrapper, tk::Button *widget): Widget(wrapper, widget)
+        TempoTap::TempoTap(ui::IWrapper *wrapper, tk::Button *widget): Widget(wrapper, widget)
         {
             pClass          = &metadata;
 
-            fValue          = 0.0f;
-            fDflValue       = 0.0f;
-            bValueSet       = false;
             pPort           = NULL;
+            nThresh         = 1000;
+            nLastTap        = 0;
+            fTempo          = 0.0f;
         }
 
-        Button::~Button()
+        TempoTap::~TempoTap()
         {
-            sEditable.destroy();
         }
 
-        status_t Button::init()
+        status_t TempoTap::init()
         {
             LSP_STATUS_ASSERT(Widget::init());
 
@@ -98,12 +97,16 @@ namespace lsp
 
                 // Bind slots
                 btn->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
+
+                // Set trigger mode
+                inject_style(btn, "TempoTap");
+                btn->mode()->set_trigger();
             }
 
             return STATUS_OK;
         }
 
-        void Button::set(ui::UIContext *ctx, const char *name, const char *value)
+        void TempoTap::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
             if (btn != NULL)
@@ -160,163 +163,19 @@ namespace lsp
             Widget::set(ctx, name, value);
         }
 
-        void Button::commit_value(float value)
+        void TempoTap::end(ui::UIContext *ctx)
         {
-            lsp_trace("commit value=%f", value);
-            tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
-            if (btn == NULL)
-                return;
-
-            const meta::port_t *mdata = (pPort != NULL) ? pPort->metadata() : NULL;
-
-            if (mdata != NULL)
-            {
-                fValue      = value;
-
-                float min   = (mdata->flags & meta::F_LOWER) ? mdata->min : 0.0;
-                float max   = (mdata->flags & meta::F_UPPER) ? mdata->max : min + 1.0f;
-
-                if (mdata->unit == meta::U_ENUM)
-                {
-                    if (bValueSet)
-                        btn->down()->set(fValue == fDflValue);
-                    else
-                        btn->down()->set(false);
-                }
-                else if (!meta::is_trigger_port(mdata))
-                    btn->down()->set(fabs(value - max) < fabs(value - min));
-                else
-                {
-                    fValue      = (value >= 0.5f) ? 1.0f : 0.0f;
-                    btn->down()->set(fValue >= 0.5f);
-                }
-            }
-            else
-            {
-                fValue      = (value >= 0.5f) ? 1.0f : 0.0f;
-                btn->down()->set(fValue >= 0.5f);
-            }
-        }
-
-        void Button::submit_value()
-        {
-            tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
-            if (btn == NULL)
-                return;
-
-            lsp_trace("button is down=%s", (btn->down()->get()) ? "true" : "false");
-
-            float value     = next_value(btn->down()->get());
-            if (value == fValue)
-            {
-                if (bValueSet)
-                    btn->down()->set(value == fDflValue);
-                return;
-            }
-
             if (pPort != NULL)
             {
-                lsp_trace("Setting %s = %f", pPort->id(), value);
-                pPort->set_value(value);
-                pPort->notify_all();
-            }
-        }
-
-        float Button::next_value(bool down)
-        {
-            const meta::port_t *mdata = (pPort != NULL) ? pPort->metadata() : NULL;
-            if (mdata == NULL)
-                return (fValue >= 0.5f) ? 0.0f : 1.0f;
-
-            // Analyze event
-            if (down)
-            {
-                if (mdata->unit == meta::U_ENUM)
-                    return (bValueSet) ? fDflValue : fValue;
+                const meta::port_t *meta = pPort->metadata();
+                if ((meta != NULL) && (meta->flags & meta::F_LOWER))
+                    nThresh     = (121 * 1000) / (meta->min);
             }
 
-            // Get minimum and maximum
-            float min   = (mdata->flags & meta::F_LOWER) ? mdata->min : 0.0;
-            float max   = (mdata->flags & meta::F_UPPER) ? mdata->max : min + 1.0f;
-            float step  = (mdata->flags & meta::F_STEP) ? mdata->step : 1.0;
-            if ((mdata->unit == meta::U_ENUM) && (mdata->items != NULL))
-            {
-                if (bValueSet)
-                    return fDflValue;
-
-                max     = mdata->min + meta::list_size(mdata->items) - 1.0f;
-            }
-
-            float value = fValue + step;
-            if (value > max)
-                value = min;
-            else if (value < min)
-                value = max;
-
-            return value;
-        }
-
-        void Button::trigger_expr()
-        {
-            tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
-            if (btn == NULL)
-                return;
-
-            if (sEditable.valid())
-                btn->editable()->set(sEditable.evaluate() >= 0.5f);
-        }
-
-        void Button::notify(ui::IPort *port)
-        {
-            Widget::notify(port);
-
-            if ((port == pPort) && (pPort != NULL))
-                commit_value(pPort->value());
-
-            // Trigger expressions
-            trigger_expr();
-        }
-
-        void Button::end(ui::UIContext *ctx)
-        {
-            tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
-            if (btn == NULL)
-                return;
-
-            if (btn != NULL)
-            {
-                if (pPort != NULL)
-                {
-                    const meta::port_t *mdata = pPort->metadata();
-                    if (mdata != NULL)
-                    {
-                        if (meta::is_trigger_port(mdata))
-                            btn->mode()->set_trigger();
-                        else if (mdata->unit != meta::U_ENUM)
-                            btn->mode()->set_toggle();
-                        else if (bValueSet)
-                            btn->mode()->set_toggle();
-                    }
-
-                    commit_value(pPort->value());
-                }
-                else
-                    commit_value(fValue);
-            }
-
-            trigger_expr();
             Widget::end(ctx);
         }
 
-        status_t Button::slot_change(tk::Widget *sender, void *ptr, void *data)
-        {
-            ctl::Button *_this      = static_cast<ctl::Button *>(ptr);
-            if (_this != NULL)
-                _this->submit_value();
-            return STATUS_OK;
-        }
-
-        void Button::schema_reloaded()
+        void TempoTap::schema_reloaded()
         {
             sColor.reload();
             sTextColor.reload();
@@ -334,9 +193,56 @@ namespace lsp
 
             Widget::schema_reloaded();
         }
-    } /* namespace ctl */
-} /* namespace lsp */
 
+        uint64_t TempoTap::time()
+        {
+            system::time_t time;
+            system::get_time(&time);
 
+            return (time.seconds * 1000) + (time.nanos / 1000000);
+        }
+
+        void TempoTap::submit_value()
+        {
+            tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
+            if ((btn == NULL) || (btn->down()->get()))
+                return;
+
+            // Estimate delay between two sequential taps
+            uint64_t t  = time();
+            int64_t d   = t - nLastTap;
+            nLastTap    = t;
+
+            lsp_trace("button tap time=%lld, delta=%lld", (long long)t, (long long)d);
+
+            if ((d >= nThresh) || (d <= 0))
+            {
+                fTempo   = 0.0f;
+                return;
+            }
+
+            // Now calculate tempo
+            float tempo = 60000.0f / d;
+            fTempo = (fTempo <= 0) ? tempo : fTempo * 0.5f + tempo * 0.5f;
+            lsp_trace("tempo = %.3f", fTempo);
+
+            // Update port value
+            if (pPort != NULL)
+            {
+                pPort->set_value(fTempo);
+                pPort->notify_all();
+            }
+        }
+
+        status_t TempoTap::slot_change(tk::Widget *sender, void *ptr, void *data)
+        {
+            TempoTap *_this    = static_cast<TempoTap *>(ptr);
+            if (_this != NULL)
+                _this->submit_value();
+            return STATUS_OK;
+        }
+
+    } // namespace ctl
+} // namespace lsp
 
 

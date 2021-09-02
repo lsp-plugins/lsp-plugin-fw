@@ -79,11 +79,12 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/Mesh.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/FBuffer.h>
 
-    #include <lsp-plug.in/plug-fw/ctl/specific/Rack.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedChannel.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedMeter.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/MidiNote.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/TempoTap.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/Rack.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 
