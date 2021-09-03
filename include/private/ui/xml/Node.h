@@ -54,6 +54,8 @@ namespace lsp
                     static const LSPString *find_attribute(const LSPString * const *atts, const LSPString *name);
                     static const LSPString *find_attribute(const LSPString * const *atts, const char *name);
 
+                    status_t                find_meta_node(Node **child, const LSPString *name, const LSPString * const *atts);
+
                 public:
                     /** Called when XML handler is set
                      *

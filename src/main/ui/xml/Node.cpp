@@ -20,6 +20,7 @@
  */
 
 #include <private/ui/xml/Node.h>
+#include <private/ui/xml/NodeFactory.h>
 
 namespace lsp
 {
@@ -58,6 +59,25 @@ namespace lsp
                 if (!tmp.set_utf8(name))
                     return NULL;
                 return find_attribute(atts, &tmp);
+            }
+
+            status_t Node::find_meta_node(Node **child, const LSPString *name, const LSPString * const *atts)
+            {
+                status_t res;
+                if (!name->starts_with_ascii("ui:"))
+                    return STATUS_NOT_FOUND;
+
+                // Try to instantiate proper node handler
+                for (NodeFactory *f  = NodeFactory::root(); f != NULL; f   = f->next())
+                {
+                    if ((res = f->create(child, pContext, this, name, atts)) == STATUS_OK)
+                        return res;
+                    if (res != STATUS_NOT_FOUND)
+                        return res;
+                }
+
+                lsp_error("Unknown meta-tag: <%s>", name->get_native());
+                return STATUS_CORRUPTED;
             }
 
             status_t Node::enter()

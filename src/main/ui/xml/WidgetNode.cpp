@@ -48,26 +48,15 @@ namespace lsp
 
             status_t WidgetNode::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
             {
-                status_t res;
-
-                // Check that
-                if (name->starts_with_ascii("ui:"))
+                // Check that we found XML meta-node
+                status_t res = find_meta_node(child, name, atts);
+                if (res == STATUS_OK)
                 {
-                    // Try to instantiate proper node handler
-                    for (NodeFactory *f  = NodeFactory::root(); f != NULL; f   = f->next())
-                    {
-                        if ((res = f->create(&pSpecial, pContext, this, name, atts)) == STATUS_OK)
-                        {
-                            *child  = pSpecial;
-                            return res;
-                        }
-                        if (res != STATUS_NOT_FOUND)
-                            return res;
-                    }
-
-                    lsp_error("Unknown meta-tag: <%s>", name->get_native());
-                    return STATUS_CORRUPTED;
+                    pSpecial = *child;
+                    return res;
                 }
+                else if (res != STATUS_NOT_FOUND)
+                    return res;
 
                 // Create and initialize widget
                 ctl::Widget *widget         = pContext->create_controller(name, atts);
