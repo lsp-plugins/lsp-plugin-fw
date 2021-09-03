@@ -42,6 +42,7 @@
     #include <lsp-plug.in/plug-fw/ui/Module.h>
     #include <lsp-plug.in/plug-fw/ui/Factory.h>
 
+    #include <lsp-plug.in/plug-fw/ui/UIOverrides.h>
     #include <lsp-plug.in/plug-fw/ui/UIContext.h>
 #undef LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
 
