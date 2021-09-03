@@ -126,7 +126,7 @@ namespace lsp
                     fb->function()->set_index(sMode.evaluate_int());
 
                 // Deploy new value for framebuffer
-                const meta::port_t *mdata = pPort->metadata();
+                const meta::port_t *mdata = (pPort != NULL) ? pPort->metadata() : NULL;
                 if (meta::is_framebuffer_port(mdata))
                 {
                     plug::frame_buffer_t *data  = pPort->buffer<plug::frame_buffer_t>();
