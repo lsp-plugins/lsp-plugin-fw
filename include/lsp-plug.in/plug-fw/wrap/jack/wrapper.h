@@ -474,7 +474,7 @@ namespace lsp
             for (size_t i=0, n=vPorts.size(); i<n; ++i)
             {
                 Port *p = vPorts.uget(i);
-                lsp_trace("destroy port id=%s", p->metadata()->id);
+//                lsp_trace("destroy port id=%s", p->metadata()->id);
                 p->destroy();
                 delete p;
             }
@@ -485,7 +485,7 @@ namespace lsp
             for (size_t i=0, n=vGenMetadata.size(); i<n; ++i)
             {
                 meta::port_t *port = vGenMetadata.uget(i);
-                lsp_trace("destroy generated port metadata %p", port);
+//                lsp_trace("destroy generated port metadata %p", port);
                 meta::drop_port_metadata(port);
             }
 

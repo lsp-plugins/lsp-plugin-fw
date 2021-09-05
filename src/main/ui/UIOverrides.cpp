@@ -40,47 +40,58 @@ namespace lsp
             vStack.flush();
         }
 
-        void UIOverrides::drop_attlist(attlist_t *list)
+        void UIOverrides::release_attribute(attribute_t *attr, size_t depth)
         {
-            for (size_t i=0, n=list->size(); i<n; ++i)
-            {
-                attribute_t *att = list->uget(i);
-                if ((-- att->refs) <= 0)
-                    delete att;
-            }
-            list->flush();
+            if (attr == NULL)
+                return;
+
+            attr->depth -= depth;
+            if ((-- attr->refs) <= 0)
+                delete attr;
         }
 
-        status_t UIOverrides::push()
+        void UIOverrides::drop_attlist(attlist_t *list)
         {
-            attlist_t *list = new attlist_t;
+            lltl::parray<attribute_t> *items = &list->items;
+            for (size_t i=0, n=items->size(); i<n; ++i)
+                release_attribute(items->uget(i), list->depth);
+            items->flush();
+            delete list;
+        }
+
+        status_t UIOverrides::push(size_t depth)
+        {
+            attlist_t *list = new attlist_t();
             if (list == NULL)
                 return STATUS_NO_MEM;
-
-            // Check that we need to copy the attribute list
-            attlist_t *src = vStack.last();
-            if (src == NULL)
-                return STATUS_OK;
+            list->depth     = depth;
 
             // We need to make a copy of current list
-            list->reserve(src->size());
-            for (size_t i=0, n=src->size(); i<n; ++i)
+            attlist_t *src = vStack.last();
+            if (src != NULL)
             {
-                attribute_t *att = list->uget(i);
+                size_t num_items = src->items.size();
+                list->items.reserve(num_items);
 
-                // Skip attributes with limited visibility depth
-                if ((att->depth >= 0) && (att->refs >= att->depth))
-                    continue;
-
-                // Try to add item to the list
-                if (!list->add(att))
+                for (size_t i=0; i<num_items; ++i)
                 {
-                    drop_attlist(list);
-                    return STATUS_NO_MEM;
-                }
+                    attribute_t *satt = list->items.uget(i);
 
-                // Increate the reference counter
-                ++att->refs;
+                    // Skip attributes with limited visibility depth
+                    if ((satt->vdepth >= 0) && (ssize_t(satt->depth + depth) < satt->vdepth))
+                        continue;
+
+                    // Try to add item to the list
+                    if (!list->items.add(satt))
+                    {
+                        drop_attlist(list);
+                        return STATUS_NO_MEM;
+                    }
+
+                    // Increate the reference counter
+                    satt->depth    += depth;
+                    ++satt->refs;
+                }
             }
 
             // Now push new list to stack
@@ -120,12 +131,13 @@ namespace lsp
                 return STATUS_NO_MEM;
             }
             att->refs   = 1;
-            att->depth  = depth;
+            att->depth  = 0;
+            att->vdepth = depth;
 
             // Replace existing attribute if it is present
-            for (size_t i=0, n=list->size(); i<n; ++i)
+            for (size_t i=0, n=list->items.size(); i<n; ++i)
             {
-                attribute_t *curr = list->uget(i);
+                attribute_t *curr = list->items.uget(i);
                 if (curr == NULL)
                 {
                     delete att;
@@ -136,22 +148,21 @@ namespace lsp
                     continue;
 
                 // Try to replace the attribute
-                if (!list->set(i, att))
+                if (!list->items.set(i, att))
                 {
                     delete att;
                     return STATUS_NO_MEM;
                 }
 
-                // Dereference replaced attribute
-                if ((--curr->refs) <= 0)
-                    delete curr;
+                // Release overridden attribute
+                release_attribute(curr, list->depth);
 
                 // Attribute has been added
                 return STATUS_OK;
             }
 
             // There is no attribute with such name present, add new
-            if (!list->add(att))
+            if (!list->items.add(att))
             {
                 delete att;
                 return STATUS_NO_MEM;
@@ -168,9 +179,9 @@ namespace lsp
                 return NULL;
 
             // Simple linear search through attributes
-            for (size_t i=0, n=list->size(); i<n; ++i)
+            for (size_t i=0, n=list->items.size(); i<n; ++i)
             {
-                const attribute_t *att = list->uget(i);
+                const attribute_t *att = list->items.uget(i);
                 if (att->name.equals(name))
                     return &att->value;
             }
@@ -185,7 +196,7 @@ namespace lsp
             if (list == NULL)
                 return NULL;
 
-            const attribute_t *att = list->get(index);
+            const attribute_t *att = list->items.get(index);
             return (att != NULL) ? &att->name : NULL;
         }
 
@@ -196,7 +207,7 @@ namespace lsp
             if (list == NULL)
                 return NULL;
 
-            const attribute_t *att = list->get(index);
+            const attribute_t *att = list->items.get(index);
             return (att != NULL) ? &att->value : NULL;
         }
 
@@ -204,7 +215,7 @@ namespace lsp
         {
             // Get attribute list to read
             const attlist_t *list = vStack.last();
-            return (list != NULL) ? list->size() : 0;
+            return (list != NULL) ? list->items.size() : 0;
         }
 
         bool UIOverrides::attribute_present(const LSPString * const *atts, const LSPString *name)
@@ -226,9 +237,9 @@ namespace lsp
             const attlist_t *list = vStack.last();
             if (list != NULL)
             {
-                for (size_t i=0, n=list->size(); i<n; ++i)
+                for (size_t i=0, n=list->items.size(); i<n; ++i)
                 {
-                    attribute_t *att = const_cast<attribute_t *>(list->uget(i));
+                    attribute_t *att = const_cast<attribute_t *>(list->items.uget(i));
                     if (att == NULL)
                         return STATUS_CORRUPTED;
                     if (attribute_present(atts, &att->name))
@@ -241,7 +252,7 @@ namespace lsp
             }
 
             // Now emit other attributes
-            for ( ; *atts != NULL; atts += 2)
+            for ( ; *atts != NULL; ++atts)
             {
                 if (!tmp.add(const_cast<LSPString *>(*atts)))
                     return STATUS_NO_MEM;

@@ -45,11 +45,16 @@ namespace lsp
                     LSPString   name;       // Name of attribute
                     LSPString   value;      // Associated value
                     ssize_t     refs;       // Number of references
-                    ssize_t     depth;      // The allowed attribute depth
+                    ssize_t     depth;      // The actual attribute depth
+                    ssize_t     vdepth;     // Visibilty depth
                 } attribute_t;
 
                 // Attribute list to override
-                typedef lltl::parray<attribute_t> attlist_t;
+                typedef struct attlist_t
+                {
+                    lltl::parray<attribute_t> items;
+                    size_t depth;
+                } attlist_t;
 
             protected:
                 lltl::parray<attlist_t>     vStack;
@@ -57,6 +62,7 @@ namespace lsp
             protected:
                 static void                 drop_attlist(attlist_t *list);
                 static bool                 attribute_present(const LSPString * const *atts, const LSPString *name);
+                static void                 release_attribute(attribute_t *attr, size_t depth);
 
             public:
                 explicit UIOverrides();
@@ -65,9 +71,10 @@ namespace lsp
             public:
                 /**
                  * Create new state of overrides increasing depth
+                 * @param depth depth increment
                  * @return status of operation
                  */
-                status_t            push();
+                status_t            push(size_t depth);
 
                 /**
                  * Destroy the top state of overrides decreasing depth

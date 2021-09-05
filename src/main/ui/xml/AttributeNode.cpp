@@ -30,7 +30,8 @@ namespace lsp
         {
             //-----------------------------------------------------------------
             NODE_FACTORY_IMPL_START(AttributeNode)
-                if (!name->equals_ascii("ui:attributes"))
+                if ((!name->equals_ascii("ui:attributes"))
+                    && (!name->equals_ascii("ui:with")))
                     return STATUS_NOT_FOUND;
 
                 Node *node = new AttributeNode(context, parent);

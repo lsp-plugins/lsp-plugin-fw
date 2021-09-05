@@ -232,14 +232,13 @@ namespace lsp
             // Initialize widget attributes
             for ( ; *atts != NULL; atts += 2)
             {
-                LSPString aname, avalue;
-                if ((res = eval_string(&aname, atts[0])) != STATUS_OK)
-                    return res;
+                // Evaluate attribute value
+                LSPString avalue;
                 if ((res = eval_string(&avalue, atts[1])) != STATUS_OK)
                     return res;
 
                 // Set widget attribute
-                widget->set(this, aname.get_utf8(), avalue.get_utf8());
+                widget->set(this, atts[0]->get_utf8(), avalue.get_utf8());
             }
 
             return STATUS_OK;
