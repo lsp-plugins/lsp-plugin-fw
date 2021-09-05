@@ -49,7 +49,11 @@ namespace lsp
             {
                 char c = *path;
                 if (c == '\0')
+                {
+                    if (!os.writeb(TT_END))
+                        return NULL;
                     return reinterpret_cast<token_t *>(os.release());
+                }
 
                 if (c == '[')
                 {
@@ -90,7 +94,7 @@ namespace lsp
             if (token == NULL)
                 return NULL;
             size_t len  = strlen(token->data);
-            return reinterpret_cast<token_t *>(reinterpret_cast<char *>(token) + len + 2);
+            return reinterpret_cast<token_t *>(reinterpret_cast<uint8_t *>(token) + len + 2);
         }
 
         void SwitchedPort::rebind()
@@ -112,7 +116,7 @@ namespace lsp
             {
                 if (tok->type == TT_INDEX)
                 {
-                    int index   = vControls[ctl_id]->value();
+                    int index   = (vControls[ctl_id]) ? vControls[ctl_id]->value() : 0;
                     if (!id.fmt_append_ascii("_%d", index))
                         return;
 
@@ -146,6 +150,13 @@ namespace lsp
             }
             if (vControls != NULL)
             {
+                // Unbind
+                for (size_t i=0; i<nDimensions; ++i)
+                {
+                    if (vControls[i] != NULL)
+                        vControls[i]->unbind(this);
+                }
+
                 delete [] vControls;
                 vControls = NULL;
             }
@@ -165,6 +176,9 @@ namespace lsp
         bool SwitchedPort::compile(const char *id)
         {
             destroy();
+
+            if (!strcmp(id, "rs[inst][ssel]"))
+                lsp_trace("debug");
 
             sTokens = tokenize(id);
             if (sTokens != NULL)
@@ -194,10 +208,8 @@ namespace lsp
                             {
                                 IPort *sw         = pWrapper->port(tok->data);
                                 if (sw != NULL)
-                                {
                                     sw->bind(this);
-                                    vControls[index++]  = sw;
-                                }
+                                vControls[index++]  = sw;
                             }
                             tok     = next_token(tok);
                         }
