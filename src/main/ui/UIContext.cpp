@@ -186,9 +186,8 @@ namespace lsp
             return res;
         }
 
-        ctl::Widget *UIContext::create_controller(const LSPString *name, const LSPString * const *atts)
+        ctl::Widget *UIContext::create_controller(const LSPString *name)
         {
-            status_t res;
             if (name == NULL)
                 return NULL;
 
@@ -216,10 +215,6 @@ namespace lsp
 
             // Initialize wiget
             if ((c->init()) != STATUS_OK)
-                return NULL;
-
-            // Initialize widget attributes
-            if ((res = set_attributes(c, atts)) != STATUS_OK)
                 return NULL;
 
             return c;

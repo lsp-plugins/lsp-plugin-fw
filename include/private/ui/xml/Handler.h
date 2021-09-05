@@ -47,12 +47,10 @@ namespace lsp
                     resource::ILoader          *pLoader;
                     lltl::parray<Node>          vNodes;
                     lltl::parray<LSPString>     vElement;
-                    LSPString                   sPath;
 
                 protected:
                     void            drop_element();
                     LSPString      *fetch_element_string(const void **data);
-                    status_t        parse(io::IInStream *is, Node *root, size_t flags);
 
                 public:
                     explicit Handler(resource::ILoader *loader);
@@ -92,6 +90,8 @@ namespace lsp
                      */
                     status_t parse(const LSPString *uri, Node *root);
                     status_t parse(const char *uri, Node *root);
+                    status_t parse(io::IInStream *is, Node *root, size_t flags);
+                    status_t parse(io::IInSequence *is, Node *root, size_t flags);
             };
         }
     }

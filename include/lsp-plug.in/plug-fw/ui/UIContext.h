@@ -178,7 +178,7 @@ namespace lsp
                  * @param name the tag name of the widget
                  * @return pointer to widget controller
                  */
-                ctl::Widget *create_controller(const LSPString *name, const LSPString * const *atts);
+                ctl::Widget *create_controller(const LSPString *name);
 
                 /**
                  * Set attributes to widget

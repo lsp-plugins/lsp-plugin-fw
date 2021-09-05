@@ -60,14 +60,15 @@ namespace lsp
                 // Create and initialize widget
                 status_t res;
                 ctl::Widget *widget     = pWidget;
+                if (widget == NULL) // If there is no widget, instantiate it
+                    widget  =  pContext->create_controller(name);
+
                 if (widget != NULL)
                 {
                     // Set widget attributes only
                     if ((res = pContext->set_attributes(widget, atts)) != STATUS_OK)
                         return res;
                 }
-                else // Instantiate new widget and set it's attributes
-                    widget                  = pContext->create_controller(name, atts);
 
                 // No handler?
                 if (widget == NULL)

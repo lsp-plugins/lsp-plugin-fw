@@ -40,6 +40,28 @@ namespace lsp
                     pChild = NULL;
             }
 
+            status_t WidgetNode::lookup(Node **child, const LSPString *name)
+            {
+                status_t res = Node::lookup(child, name);
+                if (res != STATUS_OK)
+                    return res;
+                if (*child == NULL)
+                    return STATUS_OK;
+
+                // Create and initialize widget
+                ctl::Widget *widget         = pContext->create_controller(name);
+                if (widget == NULL)
+                    return STATUS_OK;       // No handler
+
+                // Create handler
+                pChild = new WidgetNode(pContext, widget);
+                if (pChild == NULL)
+                    return STATUS_NO_MEM;
+
+                *child = pChild;
+                return STATUS_OK;
+            }
+
             status_t WidgetNode::enter()
             {
                 pWidget->begin(pContext);
@@ -65,9 +87,13 @@ namespace lsp
                 }
 
                 // Create and initialize widget
-                ctl::Widget *widget         = pContext->create_controller(name, atts);
+                ctl::Widget *widget         = pContext->create_controller(name);
                 if (widget == NULL)
                     return STATUS_OK;       // No handler
+
+                // Initialize widget attributes
+                if ((res = pContext->set_attributes(widget, atts)) != STATUS_OK)
+                    return res;
 
                 // Create handler
                 pChild = new WidgetNode(pContext, widget);

@@ -50,10 +50,6 @@ namespace lsp
 
                     virtual status_t    init(const LSPString * const *atts);
 
-                protected:
-                    static const LSPString *find_attribute(const LSPString * const *atts, const LSPString *name);
-                    static const LSPString *find_attribute(const LSPString * const *atts, const char *name);
-
                 public:
                     /**
                      * Lookup for child node

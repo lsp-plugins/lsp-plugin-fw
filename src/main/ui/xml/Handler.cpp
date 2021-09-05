@@ -48,7 +48,6 @@ namespace lsp
             Handler::~Handler()
             {
                 vNodes.flush();
-                drop_element();
             }
 
             status_t Handler::start_element(const LSPString *name, const LSPString * const *atts)
@@ -100,20 +99,8 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            void Handler::drop_element()
-            {
-                for (size_t i=0, n=vElement.size(); i<n; ++i)
-                {
-                    LSPString *s = vElement.uget(i);
-                    if (s != NULL)
-                        delete s;
-                }
-                vElement.flush();
-            }
-
             status_t Handler::parse(io::IInStream *is, Node *root, size_t flags)
             {
-                lsp::xml::PushParser parser;
                 io::InSequence sq;
 
                 // Wrap with sequence
@@ -121,14 +108,20 @@ namespace lsp
                 if (res != STATUS_OK)
                     return res;
 
+                // Parse
+                return parse(&sq, root, WRAP_CLOSE);
+            }
+
+            status_t Handler::parse(io::IInSequence *is, Node *root, size_t flags)
+            {
+                lsp::xml::PushParser parser;
+
                 // Initialize
-                sPath.clear();
-                drop_element();
                 if (!vNodes.push(root))
                     return STATUS_NO_MEM;
 
                 // Parse
-                return parser.parse_data(this, &sq, WRAP_CLOSE);
+                return parser.parse_data(this, is, flags);
             }
 
             status_t Handler::parse_file(const LSPString *path, Node *root)

@@ -42,25 +42,6 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            const LSPString *Node::find_attribute(const LSPString * const *atts, const LSPString *name)
-            {
-                for ( ; *atts != NULL; atts += 2)
-                {
-                    if (atts[0]->equals(name))
-                        return atts[1];
-                }
-
-                return NULL;
-            }
-
-            const LSPString *Node::find_attribute(const LSPString * const *atts, const char *name)
-            {
-                LSPString tmp;
-                if (!tmp.set_utf8(name))
-                    return NULL;
-                return find_attribute(atts, &tmp);
-            }
-
             status_t Node::lookup(Node **child, const LSPString *name)
             {
                 *child  = NULL;

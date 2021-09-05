@@ -53,13 +53,15 @@ namespace lsp
                     virtual ~WidgetNode();
 
                 public:
-                    virtual status_t enter();
+                    virtual status_t        lookup(Node **child, const LSPString *name);
 
-                    virtual status_t start_element(Node **child, const LSPString *name, const LSPString * const *atts);
+                    virtual status_t        enter();
 
-                    virtual status_t completed(Node *child);
+                    virtual status_t        start_element(Node **child, const LSPString *name, const LSPString * const *atts);
 
-                    virtual status_t leave();
+                    virtual status_t        completed(Node *child);
+
+                    virtual status_t        leave();
             };
 
         }
