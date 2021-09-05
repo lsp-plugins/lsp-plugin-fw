@@ -33,19 +33,8 @@ namespace lsp
                 if (!name->equals_ascii("ui:alias"))
                     return STATUS_NOT_FOUND;
 
-                Node *node = new AliasNode(context);
-                if (node == NULL)
-                    return STATUS_NO_MEM;
-
-                status_t res = node->init(atts);
-                if (res != STATUS_OK)
-                {
-                    delete node;
-                    return res;
-                }
-
-                *child  = node;
-                return STATUS_OK;
+                *child = new AliasNode(context);
+                return (*child != NULL) ? STATUS_OK : STATUS_NO_MEM;
             NODE_FACTORY_IMPL_END(AliasNode)
 
             //-----------------------------------------------------------------

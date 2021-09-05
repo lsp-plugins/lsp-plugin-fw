@@ -61,23 +61,24 @@ namespace lsp
                 return find_attribute(atts, &tmp);
             }
 
-            status_t Node::find_meta_node(Node **child, const LSPString *name, const LSPString * const *atts)
+            status_t Node::lookup(Node **child, const LSPString *name)
             {
+                *child  = NULL;
                 status_t res;
                 if (!name->starts_with_ascii("ui:"))
-                    return STATUS_NOT_FOUND;
+                    return STATUS_OK;
 
                 // Try to instantiate proper node handler
                 for (NodeFactory *f  = NodeFactory::root(); f != NULL; f   = f->next())
                 {
-                    if ((res = f->create(child, pContext, this, name, atts)) == STATUS_OK)
+                    if ((res = f->create(child, pContext, this, name)) == STATUS_OK)
                         return res;
                     if (res != STATUS_NOT_FOUND)
                         return res;
                 }
 
                 lsp_error("Unknown meta-tag: <%s>", name->get_native());
-                return STATUS_CORRUPTED;
+                return STATUS_BAD_FORMAT;
             }
 
             status_t Node::enter()
@@ -95,11 +96,6 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Node::quit()
-            {
-                return STATUS_OK;
-            }
-
             status_t Node::completed(Node *child)
             {
                 return STATUS_OK;
@@ -109,6 +105,12 @@ namespace lsp
             {
                 return STATUS_OK;
             }
+
+            status_t Node::leave()
+            {
+                return STATUS_OK;
+            }
+
         }
     }
 }

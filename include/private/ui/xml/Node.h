@@ -54,9 +54,15 @@ namespace lsp
                     static const LSPString *find_attribute(const LSPString * const *atts, const LSPString *name);
                     static const LSPString *find_attribute(const LSPString * const *atts, const char *name);
 
-                    status_t                find_meta_node(Node **child, const LSPString *name, const LSPString * const *atts);
-
                 public:
+                    /**
+                     * Lookup for child node
+                     * @param child pointer to store child node, should be NULL if handler not created
+                     * @param name node name
+                     * @return error if node was not found
+                     */
+                    virtual status_t        lookup(Node **child, const LSPString *name);
+
                     /** Called when XML handler is set
                      *
                      */
@@ -86,7 +92,7 @@ namespace lsp
                     /** Called when there will be no more data
                      *
                      */
-                    virtual status_t        quit();
+                    virtual status_t        leave();
 
                     /** Called when child has been fully parsed
                      *

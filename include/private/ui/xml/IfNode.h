@@ -53,15 +53,15 @@ namespace lsp
                 public:
                     virtual status_t init(const LSPString * const *atts);
 
+                    virtual status_t enter();
+
                     virtual status_t start_element(Node **child, const LSPString *name, const LSPString * const *atts);
 
                     virtual status_t end_element(const LSPString *name);
 
                     virtual status_t completed(Node *child);
 
-                    virtual status_t quit();
-
-                    virtual status_t enter();
+                    virtual status_t leave();
             };
 
         }

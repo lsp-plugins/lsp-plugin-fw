@@ -74,6 +74,8 @@ namespace lsp
                     virtual ~PlaybackNode();
 
                 public:
+                    virtual status_t        lookup(Node **child, const LSPString *name);
+
                     /**
                      * Playback start element
                      * @param handler XML handler

@@ -33,19 +33,8 @@ namespace lsp
                 if (!name->equals_ascii("ui:for"))
                     return STATUS_NOT_FOUND;
 
-                Node *node = new ForNode(context, parent);
-                if (node == NULL)
-                    return STATUS_NO_MEM;
-
-                status_t res = node->init(atts);
-                if (res != STATUS_OK)
-                {
-                    delete node;
-                    return res;
-                }
-
-                *child  = node;
-                return STATUS_OK;
+                *child = new ForNode(context, parent);
+                return (*child != NULL) ? STATUS_OK : STATUS_NO_MEM;
             NODE_FACTORY_IMPL_END(ForNode)
 
             //-----------------------------------------------------------------

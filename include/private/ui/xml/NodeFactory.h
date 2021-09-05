@@ -70,10 +70,9 @@ namespace lsp
                      * @param parent the pointer to parent node
                      * @param child the pointer to store the pointer to created node
                      * @param name name of the node
-                     * @param atts list of key=value attributes of the node (the last key element should be NULL)
                      * @return status of operation, STATUS_NOT_FOUND if there is no supported node for this factory
                      */
-                    virtual status_t    create(Node **child, UIContext *context, Node *parent, const LSPString *name, const LSPString * const *atts);
+                    virtual status_t    create(Node **child, UIContext *context, Node *parent, const LSPString *name);
             };
 
             #define NODE_FACTORY_IMPL_START(fname) \
@@ -84,7 +83,7 @@ namespace lsp
                         virtual ~fname ## Factory() {} \
                     \
                     public: \
-                        virtual status_t create(Node **child, UIContext *context, Node *parent, const LSPString *name, const LSPString * const *atts) \
+                        virtual status_t create(Node **child, UIContext *context, Node *parent, const LSPString *name) \
                         {
 
             #define NODE_FACTORY_IMPL_END(fname) \

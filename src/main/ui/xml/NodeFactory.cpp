@@ -40,7 +40,7 @@ namespace lsp
                 pRoot   = NULL;
             }
 
-            status_t NodeFactory::create(Node **child, UIContext *context, Node *parent, const LSPString *name, const LSPString * const *atts)
+            status_t NodeFactory::create(Node **child, UIContext *context, Node *parent, const LSPString *name)
             {
                 return STATUS_NOT_FOUND;
             }

@@ -86,7 +86,7 @@ namespace lsp
                 // Call callbacks
                 if (node != NULL)
                 {
-                    if ((res = node->quit()) != STATUS_OK)
+                    if ((res = node->leave()) != STATUS_OK)
                         return res;
                 }
                 if (top != NULL)

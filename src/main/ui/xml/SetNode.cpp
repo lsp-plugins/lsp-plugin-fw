@@ -38,19 +38,8 @@ namespace lsp
                 else
                     return STATUS_NOT_FOUND;
 
-                Node *node = new SetNode(context, flags);
-                if (node == NULL)
-                    return STATUS_NO_MEM;
-
-                status_t res = node->init(atts);
-                if (res != STATUS_OK)
-                {
-                    delete node;
-                    return res;
-                }
-
-                *child  = node;
-                return STATUS_OK;
+                *child = new SetNode(context, flags);
+                return (*child != NULL) ? STATUS_OK : STATUS_NO_MEM;
             NODE_FACTORY_IMPL_END(SetNode)
 
             //-----------------------------------------------------------------

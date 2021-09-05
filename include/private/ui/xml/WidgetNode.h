@@ -57,9 +57,9 @@ namespace lsp
 
                     virtual status_t start_element(Node **child, const LSPString *name, const LSPString * const *atts);
 
-                    virtual status_t quit();
-
                     virtual status_t completed(Node *child);
+
+                    virtual status_t leave();
             };
 
         }

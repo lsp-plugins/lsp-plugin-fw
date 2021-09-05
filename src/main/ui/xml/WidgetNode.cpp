@@ -49,14 +49,20 @@ namespace lsp
             status_t WidgetNode::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
             {
                 // Check that we found XML meta-node
-                status_t res = find_meta_node(child, name, atts);
-                if (res == STATUS_OK)
+                status_t res = lookup(child, name);
+                if (res != STATUS_OK)
+                    return res;
+                else if (*child != NULL)
                 {
                     pSpecial = *child;
+                    if ((res = pSpecial->init(atts)) != STATUS_OK)
+                    {
+                        lsp_error("Error instantiating factory for <%s>", name->get_native());
+                        return STATUS_NO_MEM;
+                    }
+
                     return res;
                 }
-                else if (res != STATUS_NOT_FOUND)
-                    return res;
 
                 // Create and initialize widget
                 ctl::Widget *widget         = pContext->create_controller(name, atts);
@@ -72,7 +78,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t WidgetNode::quit()
+            status_t WidgetNode::leave()
             {
                 pWidget->end(pContext);
                 return STATUS_OK;
