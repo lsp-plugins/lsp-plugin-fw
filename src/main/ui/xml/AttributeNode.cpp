@@ -41,8 +41,7 @@ namespace lsp
             //-----------------------------------------------------------------
             AttributeNode::AttributeNode(UIContext *ctx, Node *parent) : PlaybackNode(ctx, parent)
             {
-                nLevel     = 0;
-                nRecursion = 0;
+                nDepth  = 0;
             }
 
             AttributeNode::~AttributeNode()
@@ -56,117 +55,60 @@ namespace lsp
                 vAtts.flush();
             }
 
-            status_t AttributeNode::init(const LSPString * const *atts)
+            status_t AttributeNode::enter(const LSPString * const *atts)
             {
-                status_t res;
-
-                // Generate list of appended properties
-                for ( ; *atts != NULL; atts += 2)
-                {
-                    const LSPString *name   = atts[0];
-                    const LSPString *value  = atts[1];
-
-                    if ((name == NULL) || (value == NULL))
-                        continue;
-
-                    if ((*atts)->equals_ascii("ui:recursion"))
-                    {
-                        if ((res = pContext->eval_int(&nRecursion, value)) != STATUS_OK)
-                        {
-                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
-                            return res;
-                        }
-                    }
-
-                    // Process name
-                    LSPString *xname        = name->clone();
-                    if (xname == NULL)
-                        return STATUS_NO_MEM;
-                    else if (!vAtts.add(xname))
-                    {
-                        delete xname;
-                        return STATUS_NO_MEM;
-                    }
-
-                    // Process value
-                    LSPString *xattr        = new LSPString();
-                    if (xattr == NULL)
-                        return STATUS_NO_MEM;
-                    else if (!vAtts.add(xattr))
-                    {
-                        delete xattr;
-                        return STATUS_NO_MEM;
-                    }
-
-                    // Evaluate string
-                    if ((res = pContext->eval_string(xattr, value)) != STATUS_OK)
-                    {
-                        lsp_error("Could not evaluate expression attribute '%s': %s", xname->get_native(), value->get_native());
-                        return res;
-                    }
-                }
+// TODO
+//                status_t res;
+//
+//                // Generate list of appended properties
+//                for ( ; *atts != NULL; atts += 2)
+//                {
+//                    const LSPString *name   = atts[0];
+//                    const LSPString *value  = atts[1];
+//
+//                    if ((name == NULL) || (value == NULL))
+//                        continue;
+//
+//                    if ((*atts)->equals_ascii("ui:depth"))
+//                    {
+//                        if ((res = pContext->eval_int(&nDepth, value)) != STATUS_OK)
+//                        {
+//                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
+//                            return res;
+//                        }
+//                    }
+//
+//                    // Process name
+//                    LSPString *xname        = name->clone();
+//                    if (xname == NULL)
+//                        return STATUS_NO_MEM;
+//                    else if (!vAtts.add(xname))
+//                    {
+//                        delete xname;
+//                        return STATUS_NO_MEM;
+//                    }
+//
+//                    // Process value
+//                    LSPString *xattr        = new LSPString();
+//                    if (xattr == NULL)
+//                        return STATUS_NO_MEM;
+//                    else if (!vAtts.add(xattr))
+//                    {
+//                        delete xattr;
+//                        return STATUS_NO_MEM;
+//                    }
+//
+//                    // Evaluate string
+//                    if ((res = pContext->eval_string(xattr, value)) != STATUS_OK)
+//                    {
+//                        lsp_error("Could not evaluate expression attribute '%s': %s", xname->get_native(), value->get_native());
+//                        return res;
+//                    }
+//                }
 
                 return STATUS_OK;
             }
 
-            status_t AttributeNode::playback_start_element(lsp::xml::IXMLHandler *handler, const LSPString *name, const LSPString * const *atts)
-            {
-                size_t level = nLevel++;
-
-                // Skip parameter substitution for control tags
-                if (name->starts_with_ascii("ui:"))
-                    return PlaybackNode::playback_start_element(handler, name, atts);
-
-                lltl::parray<LSPString> tmp;
-
-                // Need to override attributes?
-                if ((nRecursion < 0) || (level <= size_t(nRecursion)))
-                {
-                    // Copy attributes
-                    for (size_t i=0; atts[i] != NULL; ++i)
-                        if (!tmp.add(const_cast<LSPString *>(atts[i])))
-                            return STATUS_NO_MEM;
-
-                    // Append unexisting attributes
-                    LSPString **vatts = vAtts.array();
-                    for (size_t i=0, n=vAtts.size(); i<n; i += 2)
-                    {
-                        LSPString *name   = vatts[i];
-                        LSPString *value  = vatts[i+1];
-
-                        // Check for duplicate
-                        for (size_t j=0; atts[j] != NULL; j+=2)
-                            if (atts[j]->equals(name))
-                            {
-                                name = NULL;
-                                break;
-                            }
-
-                        // Append property if it does not exist
-                        if (name == NULL)
-                            continue;
-
-                        if (!tmp.add(name))
-                            return STATUS_NO_MEM;
-                        if (!tmp.add(value))
-                            return STATUS_NO_MEM;
-                    }
-
-                    // Append argument terminator
-                    if (!tmp.add(static_cast<LSPString *>(NULL)))
-                        return STATUS_NO_MEM;
-
-                    // Override properties with our own list
-                    atts = tmp.array();
-                }
-                return PlaybackNode::playback_start_element(handler, name, atts);
-            }
-
-            status_t AttributeNode::playback_end_element(lsp::xml::IXMLHandler *handler, const LSPString *name)
-            {
-                --nLevel;
-                return PlaybackNode::playback_end_element(handler, name);
-            }
         }
     }
 }

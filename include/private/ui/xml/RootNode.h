@@ -44,7 +44,6 @@ namespace lsp
                     RootNode(const RootNode &);
 
                 private:
-                    Node           *pChild;
                     ctl::Widget    *pWidget;
                     LSPString       sName;
 
@@ -53,7 +52,7 @@ namespace lsp
                     virtual ~RootNode();
 
                 public:
-                    status_t start_element(Node **child, const LSPString *name, const LSPString * const *atts);
+                    virtual status_t        lookup(Node **child, const LSPString *name);
             };
 
         }

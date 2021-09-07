@@ -48,7 +48,7 @@ namespace lsp
                 nFlags = flags;
             }
 
-            status_t SetNode::init(const LSPString * const *atts)
+            status_t SetNode::enter(const LSPString * const *atts)
             {
                 enum node_flags_t
                 {
@@ -72,11 +72,7 @@ namespace lsp
 
                     if (name->equals_ascii("id"))
                     {
-                        if ((res = pContext->eval_string(&v_name, value)) != STATUS_OK)
-                        {
-                            lsp_error("Could not evaluate expression for attribute '%s': %s", name->get_native(), value->get_native());
-                            return res;
-                        }
+                        v_name.set(name);
                         flags      |= F_ID_SET;
                     }
                     else if (name->equals_ascii("value"))

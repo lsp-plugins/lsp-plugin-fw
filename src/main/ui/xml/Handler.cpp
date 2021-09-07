@@ -37,64 +37,133 @@ namespace lsp
             Handler::Handler(resource::ILoader *loader)
             {
                 pLoader         = loader;
+                sRoot.node      = NULL;
+                sRoot.refs      = 0;
             }
 
             Handler::Handler(resource::ILoader *loader, Node *root)
             {
                 pLoader         = loader;
-                vNodes.add(root);
+                sRoot.node      = root;
+                sRoot.refs      = 1;
             }
 
             Handler::~Handler()
             {
-                vNodes.flush();
+                // Cleanup stack
+                for (ssize_t i=vStack.size(); i >= 0; --i)
+                {
+                    node_t *node = vStack.uget(i);
+                    if (node->node != NULL)
+                    {
+                        delete node->node;
+                        node->node = NULL;
+                    }
+                    node->refs  = 0;
+                }
+
+                vStack.flush();
+                sRoot.node      = NULL;
+                sRoot.refs      = 0;
+            }
+
+            void Handler::release_node(node_t *node)
+            {
+                // Do not release root node
+                if (node == &sRoot)
+                    return;
+
+                // Release node element
+                if (node->node != NULL)
+                {
+                    delete node->node;
+                    node->node = NULL;
+                }
+
+                // Check if node is last in stack
+                if (vStack.last() == node)
+                    vStack.pop();
+
+                return;
             }
 
             status_t Handler::start_element(const LSPString *name, const LSPString * const *atts)
             {
-                Node *top        = vNodes.last();
-                Node *child      = NULL;
-        //        lsp_trace("start: %s", name->get_utf8());
+//                lsp_trace("start: %s", name->get_utf8());
 
-                // Analyze
-                if (top != NULL)
+                node_t *top      = (vStack.size() > 0) ? vStack.last() : &sRoot;
+
+                // Is there a handler for tag?
+                if (top->node == NULL)
                 {
-                    status_t res = top->start_element(&child, name, atts);
-                    if ((res == STATUS_OK) && (child != NULL))
-                        res = child->enter();
-
-                    if (res != STATUS_OK)
-                        return res;
+                    ++top->refs;        // Just increment the number of references
+                    return STATUS_OK;
                 }
 
-                return (vNodes.push(child)) ? STATUS_OK : STATUS_NO_MEM;
+                // Call current node to lookup for nested node
+                status_t res;
+                Node *child      = NULL;
+                if ((res = top->node->lookup(&child, name)) != STATUS_OK)
+                {
+                    lsp_error("Error node lookup for <%s>", name->get_utf8());
+                    return res;
+                }
+
+                // No child node found?
+                if (child == NULL)
+                {
+                    // Pass the 'start element' event to the node
+                    if ((res = top->node->start_element(name, atts)) != STATUS_OK)
+                        return res;
+
+                    ++top->refs;    // Just increment the number of references
+                    return STATUS_OK;
+                }
+
+                // Child node has been found - enter the node
+                if ((res = child->enter(atts)) != STATUS_OK)
+                {
+                    delete child;
+                    return res;
+                }
+
+                // Add node to stack
+                if ((top = vStack.push()) == NULL)
+                {
+                    delete child;
+                    return STATUS_NO_MEM;
+                }
+
+                top->node   = child;
+                top->refs   = 1;
+
+                return STATUS_OK;
             }
 
             status_t Handler::end_element(const LSPString *name)
             {
+//                lsp_trace("end: %s", name->get_utf8());
+
                 status_t res;
-                Node *node = NULL, *top = NULL;
+                node_t *top      = (vStack.size() > 0) ? vStack.last() : &sRoot;
 
-                //lsp_trace("end: %s", name->get_utf8());
-
-                // Obtain handlers
-                if (!vNodes.pop(&node))
-                    return STATUS_CORRUPTED;
-                top     = vNodes.last();
-
-                // Call callbacks
-                if (node != NULL)
+                // If node is still alive, send 'end_element' event and return
+                if ((--top->refs) >= 0)
                 {
-                    if ((res = node->leave()) != STATUS_OK)
+                    if (top->node != NULL)
+                        return top->node->end_element(name);
+                    return STATUS_OK;
+                }
+
+                // Call 'leave' callback for the node
+                if (top->node != NULL)
+                {
+                    if ((res = top->node->leave()) != STATUS_OK)
                         return res;
                 }
-                if (top != NULL)
-                {
-                    if ((res = top->completed(node)) != STATUS_OK)
-                        return res;
-                    if ((res = top->end_element(name)) != STATUS_OK)
-                        return res;
-                }
+
+                // Release the node
+                release_node(top);
 
                 return STATUS_OK;
             }
@@ -117,8 +186,8 @@ namespace lsp
                 lsp::xml::PushParser parser;
 
                 // Initialize
-                if (!vNodes.push(root))
-                    return STATUS_NO_MEM;
+                sRoot.node  = root;
+                sRoot.refs  = 1;
 
                 // Parse
                 return parser.parse_data(this, is, flags);

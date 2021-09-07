@@ -30,25 +30,18 @@ namespace lsp
         {
             RootNode::RootNode(UIContext *ctx, const char *name, ctl::Widget *widget): Node(ctx, NULL)
             {
-                pChild      = NULL;
                 pWidget     = widget;
                 sName.set_utf8(name);
             }
 
             RootNode::~RootNode()
             {
-                if (pChild != NULL)
-                {
-                    delete pChild;
-                    pChild = NULL;
-                }
-
                 pWidget = NULL;
 
                 sName.clear();
             }
 
-            status_t RootNode::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
+            status_t RootNode::lookup(Node **child, const LSPString *name)
             {
                 // Check that root tag is valid
                 if (!name->equals(&sName))
@@ -58,32 +51,23 @@ namespace lsp
                 }
 
                 // Create and initialize widget
-                status_t res;
                 ctl::Widget *widget     = pWidget;
                 if (widget == NULL) // If there is no widget, instantiate it
                     widget  =  pContext->create_controller(name);
 
-                if (widget != NULL)
-                {
-                    // Set widget attributes only
-                    if ((res = pContext->set_attributes(widget, atts)) != STATUS_OK)
-                        return res;
-                }
-
                 // No handler?
                 if (widget == NULL)
+                {
+                    *child = NULL;
                     return STATUS_OK;
+                }
 
                 // Remember the root widget
                 pContext->ui()->set_root(widget->widget());
 
-                // Create handler
-                pChild = new WidgetNode(pContext, this, widget);
-                if (pChild == NULL)
-                    return STATUS_NO_MEM;
-                *child  = pChild;
-
-                return STATUS_OK;
+                // Create child handler
+                *child = new WidgetNode(pContext, this, widget);
+                return (*child != NULL) ? STATUS_OK : STATUS_NO_MEM;
             }
 
         }

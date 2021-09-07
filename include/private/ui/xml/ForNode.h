@@ -53,10 +53,9 @@ namespace lsp
                     explicit ForNode(UIContext *ctx, Node *parent);
                     virtual ~ForNode();
 
-                    virtual status_t    init(const LSPString * const *atts);
-
                 public:
-                    virtual status_t    execute();
+                    virtual status_t    enter(const LSPString * const *atts);
+                    virtual status_t    leave();
             };
         }
     }

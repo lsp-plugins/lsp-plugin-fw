@@ -48,7 +48,7 @@ namespace lsp
                     explicit SetNode(UIContext *ctx, Node *parent, size_t flags);
 
                 public:
-                    virtual status_t init(const LSPString * const *atts);
+                    virtual status_t enter(const LSPString * const *atts);
             };
         }
     }

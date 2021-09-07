@@ -64,7 +64,7 @@ namespace lsp
                 return playback();
             }
 
-            status_t ForNode::init(const LSPString * const *atts)
+            status_t ForNode::enter(const LSPString * const *atts)
             {
                 bool increment_set = false;
                 status_t res;
@@ -129,7 +129,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t ForNode::execute()
+            status_t ForNode::leave()
             {
                 status_t res;
                 if (pID == NULL)

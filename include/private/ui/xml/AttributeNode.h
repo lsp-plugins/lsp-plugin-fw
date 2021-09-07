@@ -45,8 +45,7 @@ namespace lsp
 
                 private:
                     lltl::parray<LSPString> vAtts;
-                    size_t                  nLevel;
-                    ssize_t                 nRecursion;
+                    ssize_t                 nDepth;
 
                 public:
                     explicit AttributeNode(UIContext *ctx, Node *parent);
@@ -54,11 +53,7 @@ namespace lsp
                     virtual ~AttributeNode();
 
                 public:
-                    virtual status_t init(const LSPString * const *atts);
-
-                    virtual status_t playback_start_element(lsp::xml::IXMLHandler *handler, const LSPString *name, const LSPString * const *atts);
-
-                    virtual status_t playback_end_element(lsp::xml::IXMLHandler *handler, const LSPString *name);
+                    virtual status_t enter(const LSPString * const *atts);
             };
         }
     }

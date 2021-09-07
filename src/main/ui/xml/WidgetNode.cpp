@@ -62,57 +62,23 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t WidgetNode::enter()
+            status_t WidgetNode::enter(const LSPString * const *atts)
             {
                 pWidget->begin(pContext);
-                return STATUS_OK;
-            }
-
-            status_t WidgetNode::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
-            {
-                // Check that we found XML meta-node
-                status_t res = lookup(child, name);
-                if (res != STATUS_OK)
-                    return res;
-                else if (*child != NULL)
-                {
-                    pSpecial = *child;
-                    if ((res = pSpecial->init(atts)) != STATUS_OK)
-                    {
-                        lsp_error("Error instantiating factory for <%s>", name->get_native());
-                        return STATUS_NO_MEM;
-                    }
-
-                    return res;
-                }
-
-                // Create and initialize widget
-                ctl::Widget *widget         = pContext->create_controller(name);
-                if (widget == NULL)
-                    return STATUS_OK;       // No handler
-
-                // Initialize widget attributes
-                if ((res = pContext->set_attributes(widget, atts)) != STATUS_OK)
-                    return res;
-
-                // Create handler
-                pChild = new WidgetNode(pContext, this, widget);
-                if (pChild == NULL)
-                    return STATUS_NO_MEM;
-
-                *child = pChild;
-                return STATUS_OK;
+                return pContext->set_attributes(pWidget, atts);
             }
 
             status_t WidgetNode::leave()
             {
                 pWidget->end(pContext);
-                return STATUS_OK;
+                return Node::leave();
             }
 
             status_t WidgetNode::completed(Node *child)
             {
                 status_t res = STATUS_OK;
+
+                // Link the child widget togetgher with parent widget
                 if ((child == pChild) && (pChild != NULL))
                 {
                     if ((pWidget != NULL) && (pChild->pWidget != NULL))
@@ -121,19 +87,10 @@ namespace lsp
                         if (w != NULL)
                             res = pWidget->add(pContext, w);
                     }
-
-                    // Remove child
-                    delete pChild;
-                    pChild  = NULL;
                 }
-                else if ((child == pSpecial) && (pSpecial != NULL))
-                {
-                    Node *special = pSpecial;
-                    pSpecial = NULL;
 
-                    res = special->execute();
-                    delete special;
-                }
+                // Forget the child
+                pChild  = NULL;
 
                 return res;
             }

@@ -42,7 +42,7 @@ namespace lsp
             {
             }
 
-            status_t AliasNode::init(const LSPString * const *atts)
+            status_t AliasNode::enter(const LSPString * const *atts)
             {
                 enum parse_flags_t
                 {

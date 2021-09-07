@@ -23,7 +23,7 @@
 #define PRIVATE_UI_XML_HANDLER_H_
 
 #include <lsp-plug.in/fmt/xml/IXMLHandler.h>
-#include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/resource/ILoader.h>
 
 #include <private/ui/xml/Node.h>
@@ -44,12 +44,19 @@ namespace lsp
                     Handler(const Handler &);
 
                 protected:
-                    resource::ILoader          *pLoader;
-                    lltl::parray<Node>          vNodes;
-                    lltl::parray<LSPString>     vElement;
+                    typedef struct node_t
+                    {
+                        Node       *node;   // The current node
+                        ssize_t     refs;   // Number of references
+                    } node_t;
 
                 protected:
-                    void            drop_element();
+                    resource::ILoader          *pLoader;
+                    lltl::darray<node_t>        vStack;
+                    node_t                      sRoot;
+
+                protected:
+                    void            release_node(node_t *node);
                     LSPString      *fetch_element_string(const void **data);
 
                 public:

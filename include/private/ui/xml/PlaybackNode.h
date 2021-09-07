@@ -75,6 +75,13 @@ namespace lsp
                 public:
                     virtual status_t        lookup(Node **child, const LSPString *name);
 
+                    virtual status_t        start_element(const LSPString *name, const LSPString * const *atts);
+
+                    virtual status_t        end_element(const LSPString *name);
+
+                    virtual status_t        leave();
+
+                public:
                     /**
                      * Playback start element
                      * @param handler XML handler
@@ -92,13 +99,6 @@ namespace lsp
                      * @return status of operation
                      */
                     virtual status_t        playback_end_element(lsp::xml::IXMLHandler *handler, const LSPString *name);
-
-                    virtual status_t        execute();
-
-                    virtual status_t        start_element(Node **child, const LSPString *name, const LSPString * const *atts);
-
-                    virtual status_t        end_element(const LSPString *name);
-
             };
         }
     }

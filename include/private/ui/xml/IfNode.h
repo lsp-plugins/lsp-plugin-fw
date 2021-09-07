@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <private/ui/xml/Node.h>
+#include <private/ui/xml/Handler.h>
 
 namespace lsp
 {
@@ -42,6 +43,7 @@ namespace lsp
 
                 protected:
                     UIContext              *pContext;
+                    Handler                 sHandler;
                     bool                    bPass;
 
                 public:
@@ -50,15 +52,11 @@ namespace lsp
                     virtual ~IfNode();
 
                 public:
-                    virtual status_t init(const LSPString * const *atts);
+                    virtual status_t enter(const LSPString * const *atts);
 
-                    virtual status_t enter();
-
-                    virtual status_t start_element(Node **child, const LSPString *name, const LSPString * const *atts);
+                    virtual status_t start_element(const LSPString *name, const LSPString * const *atts);
 
                     virtual status_t end_element(const LSPString *name);
-
-                    virtual status_t completed(Node *child);
 
                     virtual status_t leave();
             };
