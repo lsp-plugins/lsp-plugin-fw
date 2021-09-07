@@ -27,7 +27,7 @@ namespace lsp
     {
         namespace xml
         {
-            WidgetNode::WidgetNode(UIContext *ctx, ctl::Widget *widget): Node(ctx)
+            WidgetNode::WidgetNode(UIContext *ctx, Node *parent, ctl::Widget *widget): Node(ctx, parent)
             {
                 pWidget     = widget;
                 pChild      = NULL;
@@ -54,7 +54,7 @@ namespace lsp
                     return STATUS_OK;       // No handler
 
                 // Create handler
-                pChild = new WidgetNode(pContext, widget);
+                pChild = new WidgetNode(pContext, this, widget);
                 if (pChild == NULL)
                     return STATUS_NO_MEM;
 
@@ -96,7 +96,7 @@ namespace lsp
                     return res;
 
                 // Create handler
-                pChild = new WidgetNode(pContext, widget);
+                pChild = new WidgetNode(pContext, this, widget);
                 if (pChild == NULL)
                     return STATUS_NO_MEM;
 

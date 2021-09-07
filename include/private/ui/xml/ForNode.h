@@ -50,7 +50,7 @@ namespace lsp
                     status_t            iterate(ssize_t value);
 
                 public:
-                    explicit ForNode(UIContext *ctx, Node *handler);
+                    explicit ForNode(UIContext *ctx, Node *parent);
                     virtual ~ForNode();
 
                     virtual status_t    init(const LSPString * const *atts);

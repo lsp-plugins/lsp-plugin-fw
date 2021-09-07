@@ -43,12 +43,26 @@ namespace lsp
 
                 protected:
                     UIContext      *pContext;
+                    Node           *pParent;
 
                 public:
-                    explicit Node(UIContext *ctx);
+                    explicit Node(UIContext *ctx, Node *parent);
                     virtual ~Node();
 
                     virtual status_t    init(const LSPString * const *atts);
+
+                public:
+                    /**
+                     * Get pointer to the UI context
+                     * @return pointer to the UI context
+                     */
+                    inline UIContext       *context()       { return pContext; }
+
+                    /**
+                     * Get pointer to the parent node
+                     * @return pointer to the parent node
+                     */
+                    inline Node            *parent()        { return pParent; }
 
                 public:
                     /**

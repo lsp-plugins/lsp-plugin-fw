@@ -38,12 +38,12 @@ namespace lsp
                 else
                     return STATUS_NOT_FOUND;
 
-                *child = new SetNode(context, flags);
+                *child = new SetNode(context, parent, flags);
                 return (*child != NULL) ? STATUS_OK : STATUS_NO_MEM;
             NODE_FACTORY_IMPL_END(SetNode)
 
             //-----------------------------------------------------------------
-            SetNode::SetNode(UIContext *ctx, size_t flags): Node(ctx)
+            SetNode::SetNode(UIContext *ctx, Node *parent, size_t flags): Node(ctx, parent)
             {
                 nFlags = flags;
             }

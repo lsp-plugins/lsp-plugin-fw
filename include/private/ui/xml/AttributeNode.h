@@ -49,7 +49,7 @@ namespace lsp
                     ssize_t                 nRecursion;
 
                 public:
-                    explicit AttributeNode(UIContext *ctx, Node *handler);
+                    explicit AttributeNode(UIContext *ctx, Node *parent);
 
                     virtual ~AttributeNode();
 

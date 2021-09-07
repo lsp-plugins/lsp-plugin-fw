@@ -28,9 +28,10 @@ namespace lsp
     {
         namespace xml
         {
-            Node::Node(UIContext *ctx)
+            Node::Node(UIContext *ctx, Node *parent)
             {
                 pContext        = ctx;
+                pParent         = parent;
             }
 
             Node::~Node()

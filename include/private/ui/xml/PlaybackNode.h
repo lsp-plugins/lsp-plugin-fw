@@ -62,7 +62,6 @@ namespace lsp
                     } xml_event_t;
 
                 private:
-                    Node                           *pHandler;
                     lltl::parray<xml_event_t>       vEvents;
 
                 protected:
@@ -70,7 +69,7 @@ namespace lsp
                     xml_event_t            *add_event(event_t ev);
 
                 public:
-                    explicit PlaybackNode(UIContext *ctx, Node *handler);
+                    explicit PlaybackNode(UIContext *ctx, Node *parent);
                     virtual ~PlaybackNode();
 
                 public:

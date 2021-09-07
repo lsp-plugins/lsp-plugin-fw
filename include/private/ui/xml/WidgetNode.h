@@ -49,7 +49,7 @@ namespace lsp
                     Node                   *pSpecial;
 
                 public:
-                    explicit WidgetNode(UIContext *ctx, ctl::Widget *widget);
+                    explicit WidgetNode(UIContext *ctx, Node *parent, ctl::Widget *widget);
                     virtual ~WidgetNode();
 
                 public:

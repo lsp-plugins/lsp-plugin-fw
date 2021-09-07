@@ -45,7 +45,7 @@ namespace lsp
                     SetNode(const SetNode &);
 
                 public:
-                    explicit SetNode(UIContext *ctx, size_t flags);
+                    explicit SetNode(UIContext *ctx, Node *parent, size_t flags);
 
                 public:
                     virtual status_t init(const LSPString * const *atts);

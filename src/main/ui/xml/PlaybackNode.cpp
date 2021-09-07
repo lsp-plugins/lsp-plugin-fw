@@ -72,9 +72,8 @@ namespace lsp
             }
 
             //-----------------------------------------------------------------
-            PlaybackNode::PlaybackNode(UIContext *ctx, Node *handler): Node(ctx)
+            PlaybackNode::PlaybackNode(UIContext *ctx, Node *parent): Node(ctx, parent)
             {
-                pHandler    = handler;
             }
 
             PlaybackNode::~PlaybackNode()
@@ -108,7 +107,7 @@ namespace lsp
             status_t PlaybackNode::playback()
             {
                 status_t res = STATUS_OK;
-                Handler h(pContext->wrapper()->resources(), pHandler);
+                Handler h(pContext->wrapper()->resources(), pParent);
 
                 for (size_t i=0, n=vEvents.size(); i<n; ++i)
                 {

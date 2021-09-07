@@ -38,17 +38,15 @@ namespace lsp
             NODE_FACTORY_IMPL_END(IfNode)
 
             //-----------------------------------------------------------------
-            IfNode::IfNode(UIContext *ctx, Node *child): Node(ctx)
+            IfNode::IfNode(UIContext *ctx, Node *parent): Node(ctx, parent)
             {
                 pContext    = ctx;
-                pChild      = child;
                 bPass       = true;
             }
 
             IfNode::~IfNode()
             {
                 pContext    = NULL;
-                pChild      = NULL;
             }
 
             status_t IfNode::init(const LSPString * const *atts)
@@ -91,27 +89,27 @@ namespace lsp
 
             status_t IfNode::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
             {
-                return (bPass) ? pChild->start_element(child, name, atts) : STATUS_OK;
+                return (bPass) ? pParent->start_element(child, name, atts) : STATUS_OK;
             }
 
             status_t IfNode::end_element(const LSPString *name)
             {
-                return (bPass) ? pChild->end_element(name) : STATUS_OK;
+                return (bPass) ? pParent->end_element(name) : STATUS_OK;
             }
 
             status_t IfNode::completed(Node *child)
             {
-                return (bPass) ? pChild->completed(child) : STATUS_OK;
+                return (bPass) ? pParent->completed(child) : STATUS_OK;
             }
 
             status_t IfNode::leave()
             {
-                return (bPass) ? pChild->leave() : STATUS_OK;
+                return (bPass) ? pParent->leave() : STATUS_OK;
             }
 
             status_t IfNode::enter()
             {
-                return (bPass) ? pChild->enter() : STATUS_OK;
+                return (bPass) ? pParent->enter() : STATUS_OK;
             }
 
         }

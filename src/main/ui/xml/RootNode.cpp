@@ -28,7 +28,7 @@ namespace lsp
     {
         namespace xml
         {
-            RootNode::RootNode(UIContext *ctx, const char *name, ctl::Widget *widget): Node(ctx)
+            RootNode::RootNode(UIContext *ctx, const char *name, ctl::Widget *widget): Node(ctx, NULL)
             {
                 pChild      = NULL;
                 pWidget     = widget;
@@ -78,7 +78,7 @@ namespace lsp
                 pContext->ui()->set_root(widget->widget());
 
                 // Create handler
-                pChild = new WidgetNode(pContext, widget);
+                pChild = new WidgetNode(pContext, this, widget);
                 if (pChild == NULL)
                     return STATUS_NO_MEM;
                 *child  = pChild;

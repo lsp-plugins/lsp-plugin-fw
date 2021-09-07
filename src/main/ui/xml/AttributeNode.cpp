@@ -39,7 +39,7 @@ namespace lsp
             NODE_FACTORY_IMPL_END(AttributeNode)
 
             //-----------------------------------------------------------------
-            AttributeNode::AttributeNode(UIContext *ctx, Node *handler) : PlaybackNode(ctx, handler)
+            AttributeNode::AttributeNode(UIContext *ctx, Node *parent) : PlaybackNode(ctx, parent)
             {
                 nLevel     = 0;
                 nRecursion = 0;

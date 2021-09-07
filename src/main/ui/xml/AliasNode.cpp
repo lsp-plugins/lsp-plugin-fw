@@ -33,12 +33,12 @@ namespace lsp
                 if (!name->equals_ascii("ui:alias"))
                     return STATUS_NOT_FOUND;
 
-                *child = new AliasNode(context);
+                *child = new AliasNode(context, parent);
                 return (*child != NULL) ? STATUS_OK : STATUS_NO_MEM;
             NODE_FACTORY_IMPL_END(AliasNode)
 
             //-----------------------------------------------------------------
-            AliasNode::AliasNode(UIContext *ctx): Node(ctx)
+            AliasNode::AliasNode(UIContext *ctx, Node *parent): Node(ctx, parent)
             {
             }
 

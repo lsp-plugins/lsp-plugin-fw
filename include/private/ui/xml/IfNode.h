@@ -42,11 +42,10 @@ namespace lsp
 
                 protected:
                     UIContext              *pContext;
-                    Node                   *pChild;
                     bool                    bPass;
 
                 public:
-                    explicit IfNode(UIContext *ctx, Node *child);
+                    explicit IfNode(UIContext *ctx, Node *parent);
 
                     virtual ~IfNode();
 

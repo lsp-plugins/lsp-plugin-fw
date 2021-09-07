@@ -41,7 +41,7 @@ namespace lsp
                     AliasNode(const AliasNode &);
 
                 public:
-                    explicit AliasNode(UIContext *ctx);
+                    explicit AliasNode(UIContext *ctx, Node *parent);
 
                 public:
                     virtual status_t init(const LSPString * const *atts);

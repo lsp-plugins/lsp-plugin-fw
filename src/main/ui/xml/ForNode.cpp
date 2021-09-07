@@ -38,7 +38,7 @@ namespace lsp
             NODE_FACTORY_IMPL_END(ForNode)
 
             //-----------------------------------------------------------------
-            ForNode::ForNode(UIContext *ctx, Node *handler) : PlaybackNode(ctx, handler)
+            ForNode::ForNode(UIContext *ctx, Node *parent) : PlaybackNode(ctx, parent)
             {
                 pID         = NULL;
                 nFirst      = 0;
