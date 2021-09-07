@@ -89,7 +89,7 @@ namespace lsp
 
             status_t Handler::start_element(const LSPString *name, const LSPString * const *atts)
             {
-//                lsp_trace("start: %s", name->get_utf8());
+                lsp_trace("start: %s", name->get_utf8());
 
                 node_t *top      = (vStack.size() > 0) ? vStack.last() : &sRoot;
 
@@ -105,7 +105,7 @@ namespace lsp
                 Node *child      = NULL;
                 if ((res = top->node->lookup(&child, name)) != STATUS_OK)
                 {
-                    lsp_error("Error node lookup for <%s>", name->get_utf8());
+                    lsp_error("Unknown XML node <%s>", name->get_utf8());
                     return res;
                 }
 
@@ -142,13 +142,13 @@ namespace lsp
 
             status_t Handler::end_element(const LSPString *name)
             {
-//                lsp_trace("end: %s", name->get_utf8());
+                lsp_trace("end: %s", name->get_utf8());
 
                 status_t res;
                 node_t *top      = (vStack.size() > 0) ? vStack.last() : &sRoot;
 
                 // If node is still alive, send 'end_element' event and return
-                if ((--top->refs) >= 0)
+                if ((--top->refs) > 0)
                 {
                     if (top->node != NULL)
                         return top->node->end_element(name);

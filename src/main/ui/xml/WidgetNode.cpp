@@ -45,7 +45,7 @@ namespace lsp
                 status_t res = Node::lookup(child, name);
                 if (res != STATUS_OK)
                     return res;
-                if (*child == NULL)
+                if (*child != NULL)
                     return STATUS_OK;
 
                 // Create and initialize widget
@@ -81,11 +81,17 @@ namespace lsp
                 // Link the child widget togetgher with parent widget
                 if ((child == pChild) && (pChild != NULL))
                 {
-                    if ((pWidget != NULL) && (pChild->pWidget != NULL))
+                    ctl::Widget *w = pChild->pWidget;
+
+                    if ((pWidget != NULL) && (w != NULL))
                     {
-                        ctl::Widget *w = pChild->pWidget;
-                        if (w != NULL)
-                            res = pWidget->add(pContext, w);
+                        res = pWidget->add(pContext, w);
+                        if (res != STATUS_OK)
+                            lsp_error(
+                                "Error while trying to add widget of type '%s' as child for '%s'",
+                                w->get_class()->name,
+                                pWidget->get_class()->name
+                            );
                     }
                 }
 
