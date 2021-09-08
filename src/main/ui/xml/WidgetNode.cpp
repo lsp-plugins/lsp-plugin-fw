@@ -64,13 +64,60 @@ namespace lsp
 
             status_t WidgetNode::enter(const LSPString * const *atts)
             {
+                status_t res;
+                lltl::parray<LSPString> tmp;
+
+                // Build list of overridden attributes
+                if ((res = pContext->overrides()->build(&tmp, atts)) != STATUS_OK)
+                {
+                    lsp_error("Error building overridden attributes: %d", int(res));
+                    return res;
+                }
+                atts = tmp.array();
+
+                // Apply overridden widget attributes
+                LSPString xvalue;
+
                 pWidget->begin(pContext);
-                return pContext->set_attributes(pWidget, atts);
+                for ( ; *atts != NULL; atts += 2)
+                {
+                    // Evaluate attribute value
+                    if ((res = pContext->eval_string(&xvalue, atts[1])) != STATUS_OK)
+                    {
+                        lsp_error(
+                            "Error evaluating expression for attribute '%s': %s",
+                            atts[0]->get_native(), atts[1]->get_native()
+                        );
+                        return res;
+                    }
+
+                    // Set widget attribute
+                    pWidget->set(pContext, atts[0]->get_utf8(), xvalue.get_utf8());
+                }
+
+                // Push the state of overrides
+                if ((res = pContext->overrides()->push(1)) != STATUS_OK)
+                {
+                    lsp_error("Error entering new attribute override state: %d", int(res));
+                    return res;
+                }
+
+                return STATUS_OK;
             }
 
             status_t WidgetNode::leave()
             {
+                status_t res;
+
                 pWidget->end(pContext);
+
+                // Pop state of overrides
+                if ((res = pContext->overrides()->pop()) != STATUS_OK)
+                {
+                    lsp_error("Error restoring override state: %d", int(res));
+                    return res;
+                }
+
                 return Node::leave();
             }
 

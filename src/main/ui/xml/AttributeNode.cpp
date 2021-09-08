@@ -39,72 +39,118 @@ namespace lsp
             NODE_FACTORY_IMPL_END(AttributeNode)
 
             //-----------------------------------------------------------------
-            AttributeNode::AttributeNode(UIContext *ctx, Node *parent) : PlaybackNode(ctx, parent)
+            AttributeNode::AttributeNode(UIContext *ctx, Node *parent) :
+                Node(ctx, parent),
+                sHandler(ctx->wrapper()->resources(), parent)
             {
-                nDepth  = 0;
             }
 
             AttributeNode::~AttributeNode()
             {
-                for (size_t i=0, n=vAtts.size(); i<n; ++i)
-                {
-                    LSPString *s = vAtts.uget(i);
-                    if (s != NULL)
-                        delete s;
-                }
-                vAtts.flush();
             }
 
             status_t AttributeNode::enter(const LSPString * const *atts)
             {
-// TODO
-//                status_t res;
-//
-//                // Generate list of appended properties
-//                for ( ; *atts != NULL; atts += 2)
-//                {
-//                    const LSPString *name   = atts[0];
-//                    const LSPString *value  = atts[1];
-//
-//                    if ((name == NULL) || (value == NULL))
-//                        continue;
-//
-//                    if ((*atts)->equals_ascii("ui:depth"))
-//                    {
-//                        if ((res = pContext->eval_int(&nDepth, value)) != STATUS_OK)
-//                        {
-//                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
-//                            return res;
-//                        }
-//                    }
-//
-//                    // Process name
-//                    LSPString *xname        = name->clone();
-//                    if (xname == NULL)
-//                        return STATUS_NO_MEM;
-//                    else if (!vAtts.add(xname))
-//                    {
-//                        delete xname;
-//                        return STATUS_NO_MEM;
-//                    }
-//
-//                    // Process value
-//                    LSPString *xattr        = new LSPString();
-//                    if (xattr == NULL)
-//                        return STATUS_NO_MEM;
-//                    else if (!vAtts.add(xattr))
-//                    {
-//                        delete xattr;
-//                        return STATUS_NO_MEM;
-//                    }
-//
-//                    // Evaluate string
-//                    if ((res = pContext->eval_string(xattr, value)) != STATUS_OK)
-//                    {
-//                        lsp_error("Could not evaluate expression attribute '%s': %s", xname->get_native(), value->get_native());
-//                        return res;
-//                    }
-//                }
+                status_t res;
+                bool depth_set = false;
+                ssize_t depth = -1;
+
+                // Scan for 'Recursion' property
+                for (const LSPString * const *p = atts ; *p != NULL; p += 2)
+                {
+                    const LSPString *name   = p[0];
+                    if (name == NULL)
+                    {
+                        lsp_error("Got NULL attribute name");
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+
+                    // Check for 'ui:recursion" attribute
+                    if (name->equals_ascii("ui:depth"))
+                    {
+                        // Check if attribute has already been set
+                        if (depth_set)
+                        {
+                            lsp_error("Duplicate attribute '%s'", name->get_native());
+                            return STATUS_BAD_FORMAT;
+                        }
+                        depth_set = true;
+
+                        // Parse value
+                        const LSPString *value  = p[1];
+                        if (value == NULL)
+                        {
+                            lsp_error("Got NULL value for attribute '%s'", name->get_native());
+                            return STATUS_BAD_ARGUMENTS;
+                        }
+
+                        // Evaluate value
+                        if ((res = pContext->eval_int(&depth, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
+                            return res;
+                        }
+                    }
+                }
+
+                // Push the state of overrides
+                if ((res = pContext->overrides()->push(0)) != STATUS_OK)
+                {
+                    lsp_error("Error entering new attribute override state: %d", int(res));
+                    return res;
+                }
+
+                // Apply overrides
+                LSPString xvalue;
+
+                for (const LSPString * const *p = atts ; *p != NULL; p += 2)
+                {
+                    // Get name and value
+                    const LSPString *name   = p[0];
+                    const LSPString *value  = p[1];
+
+                    // Skip 'ui:recursion" attribute
+                    if (name->equals_ascii("ui:depth"))
+                        continue;
+
+                    // Compute value
+                    if ((res = pContext->eval_string(&xvalue, value)) != STATUS_OK)
+                    {
+                        lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
+                        return res;
+                    }
+
+                    // Apply override settings
+                    if ((res = pContext->overrides()->set(name, &xvalue, depth)) != STATUS_OK)
+                    {
+                        lsp_error("Error overriding attribute '%s' by value '%s'", name->get_native(), xvalue.get_native());
+                        return res;
+                    }
+                }
+
+                return STATUS_OK;
+            }
+
+            status_t AttributeNode::start_element(const LSPString *name, const LSPString * const *atts)
+            {
+                return sHandler.start_element(name, atts);
+            }
+
+            status_t AttributeNode::end_element(const LSPString *name)
+            {
+                return sHandler.end_element(name);
+            }
+
+            status_t AttributeNode::leave()
+            {
+                status_t res;
+
+                // Restore the state of overrides
+                if ((res = pContext->overrides()->pop()) != STATUS_OK)
+                {
+                    lsp_error("Error restoring override state: %d", int(res));
+                    return res;
+                }
 
                 return STATUS_OK;
             }

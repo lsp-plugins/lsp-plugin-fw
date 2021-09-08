@@ -26,6 +26,7 @@
 #include <lsp-plug.in/plug-fw/ui.h>
 
 #include <private/ui/xml/Node.h>
+#include <private/ui/xml/Handler.h>
 #include <private/ui/xml/PlaybackNode.h>
 
 namespace lsp
@@ -37,15 +38,14 @@ namespace lsp
             /**
              * The ui:attribute node that allows to assign additional attributes to nested tags
              */
-            class AttributeNode: public PlaybackNode
+            class AttributeNode: public Node
             {
                 private:
                     AttributeNode &operator = (const AttributeNode &);
                     AttributeNode(const AttributeNode &);
 
                 private:
-                    lltl::parray<LSPString> vAtts;
-                    ssize_t                 nDepth;
+                    Handler         sHandler;
 
                 public:
                     explicit AttributeNode(UIContext *ctx, Node *parent);
@@ -53,7 +53,13 @@ namespace lsp
                     virtual ~AttributeNode();
 
                 public:
-                    virtual status_t enter(const LSPString * const *atts);
+                    virtual status_t        enter(const LSPString * const *atts);
+
+                    virtual status_t        start_element(const LSPString *name, const LSPString * const *atts);
+
+                    virtual status_t        end_element(const LSPString *name);
+
+                    virtual status_t        leave();
             };
         }
     }

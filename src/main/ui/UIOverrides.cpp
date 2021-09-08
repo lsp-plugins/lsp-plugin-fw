@@ -75,7 +75,7 @@ namespace lsp
 
                 for (size_t i=0; i<num_items; ++i)
                 {
-                    attribute_t *satt = list->items.uget(i);
+                    attribute_t *satt = src->items.uget(i);
 
                     // Skip attributes with limited visibility depth
                     if ((satt->vdepth >= 0) && (ssize_t(satt->depth + depth) < satt->vdepth))
