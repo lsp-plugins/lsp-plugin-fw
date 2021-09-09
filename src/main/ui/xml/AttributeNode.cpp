@@ -39,69 +39,91 @@ namespace lsp
             NODE_FACTORY_IMPL_END(AttributeNode)
 
             //-----------------------------------------------------------------
-            AttributeNode::AttributeNode(UIContext *ctx, Node *parent) : PlaybackNode(ctx, parent)
+            AttributeNode::AttributeNode(UIContext *ctx, Node *parent) :
+                Node(ctx, parent),
+                sHandler(ctx->wrapper()->resources(), parent)
             {
-                nLevel     = 0;
-                nRecursion = 0;
             }
 
             AttributeNode::~AttributeNode()
             {
-                for (size_t i=0, n=vAtts.size(); i<n; ++i)
-                {
-                    LSPString *s = vAtts.uget(i);
-                    if (s != NULL)
-                        delete s;
-                }
-                vAtts.flush();
             }
 
-            status_t AttributeNode::init(const LSPString * const *atts)
+            status_t AttributeNode::enter(const LSPString * const *atts)
             {
                 status_t res;
+                bool depth_set = false;
+                ssize_t depth = -1;
 
-                // Generate list of appended properties
-                for ( ; *atts != NULL; atts += 2)
+                // Scan for 'Recursion' property
+                for (const LSPString * const *p = atts ; *p != NULL; p += 2)
                 {
-                    const LSPString *name   = atts[0];
-                    const LSPString *value  = atts[1];
-
-                    if ((name == NULL) || (value == NULL))
-                        continue;
-
-                    if ((*atts)->equals_ascii("ui:recursion"))
+                    const LSPString *name   = p[0];
+                    if (name == NULL)
                     {
-                        if ((res = pContext->eval_int(&nRecursion, value)) != STATUS_OK)
+                        lsp_error("Got NULL attribute name");
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+
+                    // Check for 'ui:recursion" attribute
+                    if (name->equals_ascii("ui:depth"))
+                    {
+                        // Check if attribute has already been set
+                        if (depth_set)
+                        {
+                            lsp_error("Duplicate attribute '%s'", name->get_native());
+                            return STATUS_BAD_FORMAT;
+                        }
+                        depth_set = true;
+
+                        // Parse value
+                        const LSPString *value  = p[1];
+                        if (value == NULL)
+                        {
+                            lsp_error("Got NULL value for attribute '%s'", name->get_native());
+                            return STATUS_BAD_ARGUMENTS;
+                        }
+
+                        // Evaluate value
+                        if ((res = pContext->eval_int(&depth, value)) != STATUS_OK)
                         {
                             lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
                         }
                     }
+                }
 
-                    // Process name
-                    LSPString *xname        = name->clone();
-                    if (xname == NULL)
-                        return STATUS_NO_MEM;
-                    else if (!vAtts.add(xname))
+                // Push the state of overrides
+                if ((res = pContext->overrides()->push(0)) != STATUS_OK)
+                {
+                    lsp_error("Error entering new attribute override state: %d", int(res));
+                    return res;
+                }
+
+                // Apply overrides
+                LSPString xvalue;
+
+                for (const LSPString * const *p = atts ; *p != NULL; p += 2)
+                {
+                    // Get name and value
+                    const LSPString *name   = p[0];
+                    const LSPString *value  = p[1];
+
+                    // Skip 'ui:recursion" attribute
+                    if (name->equals_ascii("ui:depth"))
+                        continue;
+
+                    // Compute value
+                    if ((res = pContext->eval_string(&xvalue, value)) != STATUS_OK)
                     {
-                        delete xname;
-                        return STATUS_NO_MEM;
+                        lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
+                        return res;
                     }
 
-                    // Process value
-                    LSPString *xattr        = new LSPString();
-                    if (xattr == NULL)
-                        return STATUS_NO_MEM;
-                    else if (!vAtts.add(xattr))
+                    // Apply override settings
+                    if ((res = pContext->overrides()->set(name, &xvalue, depth)) != STATUS_OK)
                     {
-                        delete xattr;
-                        return STATUS_NO_MEM;
-                    }
-
-                    // Evaluate string
-                    if ((res = pContext->eval_string(xattr, value)) != STATUS_OK)
-                    {
-                        lsp_error("Could not evaluate expression attribute '%s': %s", xname->get_native(), value->get_native());
+                        lsp_error("Error overriding attribute '%s' by value '%s'", name->get_native(), xvalue.get_native());
                         return res;
                     }
                 }
@@ -109,64 +131,31 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t AttributeNode::playback_start_element(lsp::xml::IXMLHandler *handler, const LSPString *name, const LSPString * const *atts)
+            status_t AttributeNode::start_element(const LSPString *name, const LSPString * const *atts)
             {
-                size_t level = nLevel++;
+                return sHandler.start_element(name, atts);
+            }
 
-                // Skip parameter substitution for control tags
-                if (name->starts_with_ascii("ui:"))
-                    return PlaybackNode::playback_start_element(handler, name, atts);
+            status_t AttributeNode::end_element(const LSPString *name)
+            {
+                return sHandler.end_element(name);
+            }
 
-                lltl::parray<LSPString> tmp;
+            status_t AttributeNode::leave()
+            {
+                status_t res;
 
-                // Need to override attributes?
-                if ((nRecursion < 0) || (level <= size_t(nRecursion)))
+                // Restore the state of overrides
+                if ((res = pContext->overrides()->pop()) != STATUS_OK)
                 {
-                    // Copy attributes
-                    for (size_t i=0; atts[i] != NULL; ++i)
-                        if (!tmp.add(const_cast<LSPString *>(atts[i])))
-                            return STATUS_NO_MEM;
-
-                    // Append unexisting attributes
-                    LSPString **vatts = vAtts.array();
-                    for (size_t i=0, n=vAtts.size(); i<n; i += 2)
-                    {
-                        LSPString *name   = vatts[i];
-                        LSPString *value  = vatts[i+1];
-
-                        // Check for duplicate
-                        for (size_t j=0; atts[j] != NULL; j+=2)
-                            if (atts[j]->equals(name))
-                            {
-                                name = NULL;
-                                break;
-                            }
-
-                        // Append property if it does not exist
-                        if (name == NULL)
-                            continue;
-
-                        if (!tmp.add(name))
-                            return STATUS_NO_MEM;
-                        if (!tmp.add(value))
-                            return STATUS_NO_MEM;
-                    }
-
-                    // Append argument terminator
-                    if (!tmp.add(static_cast<LSPString *>(NULL)))
-                        return STATUS_NO_MEM;
-
-                    // Override properties with our own list
-                    atts = tmp.array();
+                    lsp_error("Error restoring override state: %d", int(res));
+                    return res;
                 }
-                return PlaybackNode::playback_start_element(handler, name, atts);
+
+                // Do not call parent for leave()
+                return STATUS_OK;
             }
 
-            status_t AttributeNode::playback_end_element(lsp::xml::IXMLHandler *handler, const LSPString *name)
-            {
-                --nLevel;
-                return PlaybackNode::playback_end_element(handler, name);
-            }
         }
     }
 }

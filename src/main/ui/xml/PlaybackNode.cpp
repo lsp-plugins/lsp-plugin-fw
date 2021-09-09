@@ -89,7 +89,7 @@ namespace lsp
 
             status_t PlaybackNode::lookup(Node **child, const LSPString *name)
             {
-                // Playback nodes should not handle nested nodes
+                // Playback nodes should not handle nested nodes until playback() is executed
                 *child      = NULL;
                 return STATUS_OK;
             }
@@ -142,12 +142,12 @@ namespace lsp
                 return res;
             }
 
-            status_t PlaybackNode::execute()
+            status_t PlaybackNode::leave()
             {
                 return playback();
             }
 
-            status_t PlaybackNode::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
+            status_t PlaybackNode::start_element(const LSPString *name, const LSPString * const *atts)
             {
                 // Allocate event
                 status_t res;
@@ -170,9 +170,6 @@ namespace lsp
                 // Add terminator
                 if (!evt->vData.add(static_cast<LSPString *>(NULL)))
                     return STATUS_NO_MEM;
-
-                // Increment level, set child to this
-                *child = this;
 
                 return STATUS_OK;
             }

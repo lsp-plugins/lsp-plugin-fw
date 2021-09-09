@@ -62,6 +62,7 @@ namespace lsp
                 expr::Resolver                 *pResolver;
                 lltl::parray<expr::Variables>   vStack;
                 expr::Variables                 vRoot;
+                UIOverrides                     sOverrides;
 
             public:
                 explicit UIContext(ui::IWrapper *wrapper, ctl::Registry *controllers, tk::Registry *widgets);
@@ -99,6 +100,12 @@ namespace lsp
                  * @return display
                  */
                 inline tk::Display     *display()           { return (pWrapper != NULL) ? pWrapper->ui()->display() : NULL; }
+
+                /**
+                 * Get the attribute overrides settings
+                 * @return attribute overrides settings
+                 */
+                inline UIOverrides     *overrides()         { return &sOverrides;       }
 
             public:
                 /**

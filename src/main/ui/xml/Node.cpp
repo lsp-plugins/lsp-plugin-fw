@@ -38,11 +38,6 @@ namespace lsp
             {
             }
 
-            status_t Node::init(const LSPString * const *atts)
-            {
-                return STATUS_OK;
-            }
-
             status_t Node::lookup(Node **child, const LSPString *name)
             {
                 *child  = NULL;
@@ -51,7 +46,7 @@ namespace lsp
                     return STATUS_OK;
 
                 // Try to instantiate proper node handler
-                for (NodeFactory *f  = NodeFactory::root(); f != NULL; f   = f->next())
+                for (NodeFactory *f = NodeFactory::root(); f != NULL; f   = f->next())
                 {
                     if ((res = f->create(child, pContext, this, name)) == STATUS_OK)
                         return res;
@@ -63,12 +58,12 @@ namespace lsp
                 return STATUS_BAD_FORMAT;
             }
 
-            status_t Node::enter()
+            status_t Node::enter(const LSPString * const *atts)
             {
                 return STATUS_OK;
             }
 
-            status_t Node::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
+            status_t Node::start_element(const LSPString *name, const LSPString * const *atts)
             {
                 return STATUS_OK;
             }
@@ -83,14 +78,11 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Node::execute()
-            {
-                return STATUS_OK;
-            }
-
             status_t Node::leave()
             {
-                return STATUS_OK;
+                if (pParent == NULL)
+                    return STATUS_OK;
+                return pParent->completed(this);
             }
 
         }

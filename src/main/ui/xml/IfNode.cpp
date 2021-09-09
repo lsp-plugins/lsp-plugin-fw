@@ -38,7 +38,9 @@ namespace lsp
             NODE_FACTORY_IMPL_END(IfNode)
 
             //-----------------------------------------------------------------
-            IfNode::IfNode(UIContext *ctx, Node *parent): Node(ctx, parent)
+            IfNode::IfNode(UIContext *ctx, Node *parent):
+                Node(ctx, parent),
+                sHandler(ctx->wrapper()->resources(), parent)
             {
                 pContext    = ctx;
                 bPass       = true;
@@ -49,7 +51,7 @@ namespace lsp
                 pContext    = NULL;
             }
 
-            status_t IfNode::init(const LSPString * const *atts)
+            status_t IfNode::enter(const LSPString * const *atts)
             {
                 status_t res;
                 bool valid = false;
@@ -87,29 +89,20 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t IfNode::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
+            status_t IfNode::start_element(const LSPString *name, const LSPString * const *atts)
             {
-                return (bPass) ? pParent->start_element(child, name, atts) : STATUS_OK;
+                return (bPass) ? sHandler.start_element(name, atts) : STATUS_OK;
             }
 
             status_t IfNode::end_element(const LSPString *name)
             {
-                return (bPass) ? pParent->end_element(name) : STATUS_OK;
-            }
-
-            status_t IfNode::completed(Node *child)
-            {
-                return (bPass) ? pParent->completed(child) : STATUS_OK;
+                return (bPass) ? sHandler.end_element(name) : STATUS_OK;
             }
 
             status_t IfNode::leave()
             {
-                return (bPass) ? pParent->leave() : STATUS_OK;
-            }
-
-            status_t IfNode::enter()
-            {
-                return (bPass) ? pParent->enter() : STATUS_OK;
+                // Do not call parent's leave()
+                return STATUS_OK;
             }
 
         }

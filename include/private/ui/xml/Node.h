@@ -49,8 +49,6 @@ namespace lsp
                     explicit Node(UIContext *ctx, Node *parent);
                     virtual ~Node();
 
-                    virtual status_t    init(const LSPString * const *atts);
-
                 public:
                     /**
                      * Get pointer to the UI context
@@ -76,7 +74,7 @@ namespace lsp
                     /** Called when XML handler is set
                      *
                      */
-                    virtual status_t        enter();
+                    virtual status_t        enter(const LSPString * const *atts);
 
                     /** Call on tag open
                      *
@@ -85,7 +83,7 @@ namespace lsp
                      * @param atts NULL-terminated list of attributes
                      * @return handler of tag sub-structure or NULL
                      */
-                    virtual status_t        start_element(Node **child, const LSPString *name, const LSPString * const *atts);
+                    virtual status_t        start_element(const LSPString *name, const LSPString * const *atts);
 
                     /** Call on tag close
                      *
@@ -93,22 +91,16 @@ namespace lsp
                      */
                     virtual status_t        end_element(const LSPString *name);
 
-                    /**
-                     * Execute the body of node (if required)
-                     * @return status of operation
+                    /** Called by child on leave() event
+                     *
+                     * @param child child that has been fully parsed
                      */
-                    virtual status_t        execute();
+                    virtual status_t        completed(Node *child);
 
                     /** Called when there will be no more data
                      *
                      */
                     virtual status_t        leave();
-
-                    /** Called when child has been fully parsed
-                     *
-                     * @param child child that has been fully parsed
-                     */
-                    virtual status_t        completed(Node *child);
             };
         }
     }

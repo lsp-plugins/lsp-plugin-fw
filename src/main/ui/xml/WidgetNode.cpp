@@ -45,7 +45,7 @@ namespace lsp
                 status_t res = Node::lookup(child, name);
                 if (res != STATUS_OK)
                     return res;
-                if (*child == NULL)
+                if (*child != NULL)
                     return STATUS_OK;
 
                 // Create and initialize widget
@@ -62,78 +62,88 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t WidgetNode::enter()
+            status_t WidgetNode::enter(const LSPString * const *atts)
             {
-                pWidget->begin(pContext);
-                return STATUS_OK;
-            }
+                status_t res;
+                lltl::parray<LSPString> tmp;
 
-            status_t WidgetNode::start_element(Node **child, const LSPString *name, const LSPString * const *atts)
-            {
-                // Check that we found XML meta-node
-                status_t res = lookup(child, name);
-                if (res != STATUS_OK)
-                    return res;
-                else if (*child != NULL)
+                // Build list of overridden attributes
+                if ((res = pContext->overrides()->build(&tmp, atts)) != STATUS_OK)
                 {
-                    pSpecial = *child;
-                    if ((res = pSpecial->init(atts)) != STATUS_OK)
+                    lsp_error("Error building overridden attributes: %d", int(res));
+                    return res;
+                }
+                atts = tmp.array();
+
+                // Apply overridden widget attributes
+                LSPString xvalue;
+
+                pWidget->begin(pContext);
+                for ( ; *atts != NULL; atts += 2)
+                {
+                    // Evaluate attribute value
+                    if ((res = pContext->eval_string(&xvalue, atts[1])) != STATUS_OK)
                     {
-                        lsp_error("Error instantiating factory for <%s>", name->get_native());
-                        return STATUS_NO_MEM;
+                        lsp_error(
+                            "Error evaluating expression for attribute '%s': %s",
+                            atts[0]->get_native(), atts[1]->get_native()
+                        );
+                        return res;
                     }
 
+                    // Set widget attribute
+                    pWidget->set(pContext, atts[0]->get_utf8(), xvalue.get_utf8());
+                }
+
+                // Push the state of overrides
+                if ((res = pContext->overrides()->push(1)) != STATUS_OK)
+                {
+                    lsp_error("Error entering new attribute override state: %d", int(res));
                     return res;
                 }
 
-                // Create and initialize widget
-                ctl::Widget *widget         = pContext->create_controller(name);
-                if (widget == NULL)
-                    return STATUS_OK;       // No handler
-
-                // Initialize widget attributes
-                if ((res = pContext->set_attributes(widget, atts)) != STATUS_OK)
-                    return res;
-
-                // Create handler
-                pChild = new WidgetNode(pContext, this, widget);
-                if (pChild == NULL)
-                    return STATUS_NO_MEM;
-
-                *child = pChild;
                 return STATUS_OK;
             }
 
             status_t WidgetNode::leave()
             {
+                status_t res;
+
                 pWidget->end(pContext);
-                return STATUS_OK;
+
+                // Pop state of overrides
+                if ((res = pContext->overrides()->pop()) != STATUS_OK)
+                {
+                    lsp_error("Error restoring override state: %d", int(res));
+                    return res;
+                }
+
+                return Node::leave();
             }
 
             status_t WidgetNode::completed(Node *child)
             {
                 status_t res = STATUS_OK;
+
+                // Link the child widget togetgher with parent widget
                 if ((child == pChild) && (pChild != NULL))
                 {
-                    if ((pWidget != NULL) && (pChild->pWidget != NULL))
+                    ctl::Widget *w = pChild->pWidget;
+
+                    if ((pWidget != NULL) && (w != NULL))
                     {
-                        ctl::Widget *w = pChild->pWidget;
-                        if (w != NULL)
-                            res = pWidget->add(pContext, w);
+                        res = pWidget->add(pContext, w);
+                        if (res != STATUS_OK)
+                            lsp_error(
+                                "Error while trying to add widget of type '%s' as child for '%s'",
+                                w->get_class()->name,
+                                pWidget->get_class()->name
+                            );
                     }
-
-                    // Remove child
-                    delete pChild;
-                    pChild  = NULL;
                 }
-                else if ((child == pSpecial) && (pSpecial != NULL))
-                {
-                    Node *special = pSpecial;
-                    pSpecial = NULL;
 
-                    res = special->execute();
-                    delete special;
-                }
+                // Forget the child
+                pChild  = NULL;
 
                 return res;
             }
