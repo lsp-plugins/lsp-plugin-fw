@@ -51,7 +51,7 @@ namespace lsp
             Handler::~Handler()
             {
                 // Cleanup stack
-                for (ssize_t i=vStack.size(); i >= 0; --i)
+                for (ssize_t i=ssize_t(vStack.size()) - 1; i >= 0; --i)
                 {
                     node_t *node = vStack.uget(i);
                     if (node->node != NULL)

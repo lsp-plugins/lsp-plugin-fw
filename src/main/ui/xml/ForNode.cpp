@@ -66,8 +66,18 @@ namespace lsp
 
             status_t ForNode::enter(const LSPString * const *atts)
             {
-                bool increment_set = false;
                 status_t res;
+                size_t flags = 0;
+                ssize_t count = 0;
+
+                enum flags_t
+                {
+                    F_ID_SET        = 1 << 0,
+                    F_FIRST_SET     = 1 << 1,
+                    F_LAST_SET      = 1 << 2,
+                    F_STEP_SET      = 1 << 3,
+                    F_COUNT_SET     = 1 << 4
+                };
 
                 for ( ; *atts != NULL; atts += 2)
                 {
@@ -77,10 +87,16 @@ namespace lsp
                     if ((name == NULL) || (value == NULL))
                         continue;
 
+                    // Parse different parameter for 'for' loop
                     if (name->equals_ascii("id"))
                     {
-                        if (pID != NULL)
-                            return STATUS_CORRUPTED;
+                        if (flags & F_ID_SET)
+                        {
+                            lsp_error("Duplicate attribute '%s': %s", name->get_native(), value->get_native());
+                            return STATUS_BAD_FORMAT;
+                        }
+                        flags |= F_ID_SET;
+
                         LSPString tmp;
                         if ((res = pContext->eval_string(&tmp, value)) != STATUS_OK)
                         {
@@ -92,6 +108,13 @@ namespace lsp
                     }
                     else if (name->equals_ascii("first"))
                     {
+                        if (flags & F_FIRST_SET)
+                        {
+                            lsp_error("Duplicate attribute '%s': %s", name->get_native(), value->get_native());
+                            return STATUS_BAD_FORMAT;
+                        }
+                        flags |= F_FIRST_SET;
+
                         if ((res = pContext->eval_int(&nFirst, value)) != STATUS_OK)
                         {
                             lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
@@ -100,6 +123,13 @@ namespace lsp
                     }
                     else if (name->equals_ascii("last"))
                     {
+                        if (flags & F_LAST_SET)
+                        {
+                            lsp_error("Duplicate attribute '%s': %s", name->get_native(), value->get_native());
+                            return STATUS_BAD_FORMAT;
+                        }
+                        flags |= F_LAST_SET;
+
                         if ((res = pContext->eval_int(&nLast, value)) != STATUS_OK)
                         {
                             lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
@@ -108,12 +138,43 @@ namespace lsp
                     }
                     else if (name->equals_ascii("step"))
                     {
+                        if (flags & F_STEP_SET)
+                        {
+                            lsp_error("Duplicate attribute '%s': %s", name->get_native(), value->get_native());
+                            return STATUS_BAD_FORMAT;
+                        }
+                        flags |= F_STEP_SET;
+
                         if ((res = pContext->eval_int(&nStep, value)) != STATUS_OK)
                         {
                             lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
                             return res;
                         }
-                        increment_set = true;
+                        if (nStep == 0)
+                        {
+                            lsp_error("Zero 'step' value: %lld", (long long)(nStep));
+                            return res;
+                        }
+                    }
+                    else if (name->equals_ascii("count"))
+                    {
+                        if (flags & F_COUNT_SET)
+                        {
+                            lsp_error("Duplicate attribute '%s': %s", name->get_native(), value->get_native());
+                            return STATUS_BAD_FORMAT;
+                        }
+                        flags |= F_COUNT_SET;
+
+                        if ((res = pContext->eval_int(&count, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
+                            return res;
+                        }
+                        if (count < 0)
+                        {
+                            lsp_error("Negative 'count' value: %lld", (long long)(count));
+                            return res;
+                        }
                     }
                     else
                     {
@@ -122,9 +183,25 @@ namespace lsp
                     }
                 }
 
+                // Check that there are no conflicting values
+                if ((flags & (F_FIRST_SET | F_LAST_SET | F_COUNT_SET)) == (F_FIRST_SET | F_LAST_SET | F_COUNT_SET))
+                {
+                    lsp_error("Conflicting attributes 'first', 'last' and 'count', one should be omitted");
+                    return STATUS_BAD_FORMAT;
+                }
+
                 // Compute increment
-                if (!increment_set)
+                if (!(flags & F_STEP_SET))
                     nStep       = (nFirst <= nLast) ? 1 : -1;
+
+                // Now check that 'count' is set and compute first or last
+                if (flags & F_COUNT_SET)
+                {
+                    if (flags & F_LAST_SET)
+                        nFirst  = nLast  - (count - 1) * nStep;
+                    else
+                        nLast   = nFirst + (count - 1) * nStep;
+                }
 
                 return STATUS_OK;
             }
@@ -139,18 +216,22 @@ namespace lsp
                 if ((res = pContext->push_scope()) != STATUS_OK)
                     return res;
 
-                // Perform a loop
-                if (nFirst <= nLast)
+                // Perform a loop from 'first' to 'last' depending on the sign of 'step' value
+                if (nStep > 0)
                 {
                     for (ssize_t value = nFirst; value <= nLast; value += nStep)
+                    {
                         if ((res = iterate(value)) != STATUS_OK)
                             break;
+                    }
                 }
                 else
                 {
                     for (ssize_t value = nFirst; value >= nLast; value += nStep)
+                    {
                         if ((res = iterate(value)) != STATUS_OK)
                             break;
+                    }
                 }
 
                 // Pop scope and return
