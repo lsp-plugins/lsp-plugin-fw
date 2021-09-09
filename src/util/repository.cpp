@@ -600,9 +600,9 @@ namespace lsp
             json::init_serial_flags(&settings);
             settings.version    = json::JSON_LEGACY;
             settings.ident      = '\t';
-            settings.padding    = 1;
-            settings.separator  = true;
-            settings.multiline  = true;
+            settings.padding    = 0;
+            settings.separator  = false;
+            settings.multiline  = false;
 
             for (size_t i=0, n=flist.size(); i<n; ++i)
             {
