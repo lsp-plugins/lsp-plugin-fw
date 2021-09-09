@@ -152,6 +152,7 @@ namespace lsp
                     return res;
                 }
 
+                // Do not call parent for leave()
                 return STATUS_OK;
             }
 

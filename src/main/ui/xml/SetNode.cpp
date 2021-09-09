@@ -52,7 +52,7 @@ namespace lsp
             {
                 enum node_flags_t
                 {
-                    F_ID_SET = 1 << 0,
+                    F_ID_SET    = 1 << 0,
                     F_VALUE_SET = 1 << 1
                 };
 
@@ -72,21 +72,40 @@ namespace lsp
 
                     if (name->equals_ascii("id"))
                     {
-                        v_name.set(name);
+                        if (flags & F_ID_SET)
+                        {
+                            lsp_error("Duplicate attributes '%s': %s", name->get_native(), value->get_native());
+                            expr::destroy_value(&v_value);
+                            return res;
+                        }
                         flags      |= F_ID_SET;
+                        if ((res = pContext->eval_string(&v_name, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
+                            expr::destroy_value(&v_value);
+                            return res;
+                        }
                     }
                     else if (name->equals_ascii("value"))
                     {
-                        if ((res = pContext->evaluate(&v_value, value, nFlags)) != STATUS_OK)
+                        if (flags & F_VALUE_SET)
                         {
-                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
+                            lsp_error("Duplicate attributes '%s': %s", name->get_native(), value->get_native());
+                            expr::destroy_value(&v_value);
                             return res;
                         }
                         flags      |= F_VALUE_SET;
+                        if ((res = pContext->evaluate(&v_value, value, nFlags)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
+                            expr::destroy_value(&v_value);
+                            return res;
+                        }
                     }
                     else
                     {
-                        lsp_error("Unknown attribute: %s", name->get_utf8());
+                        lsp_error("Unknown attribute: '%s'", name->get_utf8());
+                        expr::destroy_value(&v_value);
                         return STATUS_CORRUPTED;
                     }
                 }
@@ -94,6 +113,7 @@ namespace lsp
                 if (flags != (F_ID_SET | F_VALUE_SET))
                 {
                     lsp_error("Not all attributes are set");
+                    expr::destroy_value(&v_value);
                     return STATUS_CORRUPTED;
                 }
 
