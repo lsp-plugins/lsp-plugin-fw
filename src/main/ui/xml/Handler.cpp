@@ -89,7 +89,15 @@ namespace lsp
 
             status_t Handler::start_element(const LSPString *name, const LSPString * const *atts)
             {
-                lsp_trace("start: %s", name->get_utf8());
+//                LSPString prop;
+//                for (const LSPString * const *a = atts; *a != NULL; a += 2)
+//                {
+//                    prop.append(' ');
+//                    prop.append(a[0]);
+//                    prop.append('=');
+//                    prop.append(a[1]);
+//                }
+//                lsp_trace("start: %s ->%s", name->get_utf8(), prop.get_utf8());
 
                 node_t *top      = (vStack.size() > 0) ? vStack.last() : &sRoot;
 
@@ -142,7 +150,7 @@ namespace lsp
 
             status_t Handler::end_element(const LSPString *name)
             {
-                lsp_trace("end: %s", name->get_utf8());
+//                lsp_trace("end: %s", name->get_utf8());
 
                 status_t res;
                 node_t *top      = (vStack.size() > 0) ? vStack.last() : &sRoot;
