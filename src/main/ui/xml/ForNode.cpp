@@ -192,7 +192,12 @@ namespace lsp
 
                 // Compute increment
                 if (!(flags & F_STEP_SET))
-                    nStep       = (nFirst <= nLast) ? 1 : -1;
+                {
+                    if ((flags & (F_FIRST_SET | F_LAST_SET)) == (F_FIRST_SET | F_LAST_SET))
+                        nStep       = (nFirst <= nLast) ? 1 : -1;
+                    else
+                        nStep       = 1;
+                }
 
                 // Now check that 'count' is set and compute first or last
                 if (flags & F_COUNT_SET)
