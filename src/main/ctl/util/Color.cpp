@@ -76,14 +76,23 @@ namespace lsp
             // Assign the desired property
             switch (index)
             {
-                case C_VALUE:   pColor->set(value->v_str);          break;
-                case C_R:       pColor->red(value->v_float);        break;
-                case C_G:       pColor->green(value->v_float);      break;
-                case C_B:       pColor->blue(value->v_float);       break;
-                case C_H:       pColor->hue(value->v_float);        break;
-                case C_S:       pColor->saturation(value->v_float); break;
-                case C_L:       pColor->lightness(value->v_float);  break;
-                case C_A:       pColor->alpha(value->v_float);      break;
+                case C_VALUE:       pColor->set(value->v_str);              break;
+                case C_RGB_R:       pColor->red(value->v_float);            break;
+                case C_RGB_G:       pColor->green(value->v_float);          break;
+                case C_RGB_B:       pColor->blue(value->v_float);           break;
+                case C_HSL_H:       pColor->hsl_hue(value->v_float);        break;
+                case C_HSL_S:       pColor->hsl_saturation(value->v_float); break;
+                case C_HSL_L:       pColor->hsl_lightness(value->v_float);  break;
+                case C_XYZ_X:       pColor->xyz_x(value->v_float);          break;
+                case C_XYZ_Y:       pColor->xyz_y(value->v_float);          break;
+                case C_XYZ_Z:       pColor->xyz_z(value->v_float);          break;
+                case C_LAB_L:       pColor->lab_l(value->v_float);          break;
+                case C_LAB_A:       pColor->lab_a(value->v_float);          break;
+                case C_LAB_B:       pColor->lab_b(value->v_float);          break;
+                case C_LCH_L:       pColor->lch_l(value->v_float);          break;
+                case C_LCH_C:       pColor->lch_c(value->v_float);          break;
+                case C_LCH_H:       pColor->lch_h(value->v_float / 360.0f); break;
+                case C_ALPHA:       pColor->alpha(value->v_float);          break;
                 default: break;
             }
         }
@@ -99,20 +108,91 @@ namespace lsp
             {
                 name       += strlen(prefix);
 
-                if      (!strcmp(name, ".red"))     idx = C_R;
-                else if (!strcmp(name, ".r"))       idx = C_R;
-                else if (!strcmp(name, ".green"))   idx = C_G;
-                else if (!strcmp(name, ".g"))       idx = C_G;
-                else if (!strcmp(name, ".blue"))    idx = C_B;
-                else if (!strcmp(name, ".b"))       idx = C_B;
-                else if (!strcmp(name, ".hue"))     idx = C_H;
-                else if (!strcmp(name, ".h"))       idx = C_H;
-                else if (!strcmp(name, ".sat"))     idx = C_S;
-                else if (!strcmp(name, ".s"))       idx = C_S;
-                else if (!strcmp(name, ".light"))   idx = C_L;
-                else if (!strcmp(name, ".l"))       idx = C_L;
-                else if (!strcmp(name, ".alpha"))   idx = C_A;
-                else if (!strcmp(name, ".a"))       idx = C_A;
+                if (!strncmp(name, ".rgb", 4))
+                {
+                    // '.rgb' sub-prefix
+                    name       += 4;
+                    if      (!strcmp(name, ".red"))         idx = C_RGB_R;
+                    else if (!strcmp(name, ".r"))           idx = C_RGB_R;
+                    else if (!strcmp(name, ".green"))       idx = C_RGB_G;
+                    else if (!strcmp(name, ".g"))           idx = C_RGB_G;
+                    else if (!strcmp(name, ".blue"))        idx = C_RGB_B;
+                    else if (!strcmp(name, ".b"))           idx = C_RGB_B;
+                }
+                else if (!strncmp(name, ".hsl", 4))
+                {
+                    // '.hsl' sub-prefix
+                    name       += 4;
+                    if      (!strcmp(name, ".hue"))         idx = C_HSL_H;
+                    else if (!strcmp(name, ".h"))           idx = C_HSL_H;
+                    else if (!strcmp(name, ".saturation"))  idx = C_HSL_S;
+                    else if (!strcmp(name, ".sat"))         idx = C_HSL_S;
+                    else if (!strcmp(name, ".s"))           idx = C_HSL_S;
+                    else if (!strcmp(name, ".lightness"))   idx = C_HSL_L;
+                    else if (!strcmp(name, ".light"))       idx = C_HSL_L;
+                    else if (!strcmp(name, ".l"))           idx = C_HSL_L;
+                }
+                else if (!strncmp(name, ".xyz", 4))
+                {
+                    // '.xyz' sub-prefix
+                    name       += 4;
+                    if      (!strcmp(name, ".x"))           idx = C_XYZ_X;
+                    else if (!strcmp(name, ".luminance"))   idx = C_XYZ_Y;
+                    else if (!strcmp(name, ".lum"))         idx = C_XYZ_Y;
+                    else if (!strcmp(name, ".y"))           idx = C_XYZ_Y;
+                    else if (!strcmp(name, ".z"))           idx = C_XYZ_Z;
+                }
+                else if (!strncmp(name, ".lab", 4))
+                {
+                    // '.lab' sub-prefix
+                    name       += 4;
+                    if      (!strcmp(name, ".luminance"))   idx = C_LAB_L;
+                    else if (!strcmp(name, ".lum"))         idx = C_LAB_L;
+                    else if (!strcmp(name, ".l"))           idx = C_LAB_L;
+                    else if (!strcmp(name, ".a"))           idx = C_LAB_A;
+                    else if (!strcmp(name, ".b"))           idx = C_LAB_B;
+                }
+                else if ((!strncmp(name, ".lch", 4)) || (!strncmp(name, ".hcl", 4)))
+                {
+                    // '.lch' sub-prefix
+                    name       += 4;
+                    if      (!strcmp(name, ".luminance"))   idx = C_LCH_L;
+                    else if (!strcmp(name, ".lum"))         idx = C_LCH_L;
+                    else if (!strcmp(name, ".lightness"))   idx = C_LCH_L;
+                    else if (!strcmp(name, ".light"))       idx = C_LCH_L;
+                    else if (!strcmp(name, ".l"))           idx = C_LCH_L;
+                    else if (!strcmp(name, ".chroma"))      idx = C_LCH_C;
+                    else if (!strcmp(name, ".c"))           idx = C_LCH_C;
+                    else if (!strcmp(name, ".hue"))         idx = C_LCH_H;
+                    else if (!strcmp(name, ".h"))           idx = C_LCH_H;
+                }
+                else
+                {
+                    // No sub-prefix
+                    if      (!strcmp(name, ".red"))         idx = C_RGB_R;
+                    else if (!strcmp(name, ".r"))           idx = C_RGB_R;
+                    else if (!strcmp(name, ".green"))       idx = C_RGB_G;
+                    else if (!strcmp(name, ".g"))           idx = C_RGB_G;
+                    else if (!strcmp(name, ".blue"))        idx = C_RGB_B;
+                    else if (!strcmp(name, ".b"))           idx = C_RGB_B;
+                    else if (!strcmp(name, ".hue"))         idx = C_HSL_H;
+
+                    else if (!strcmp(name, ".h"))           idx = C_HSL_H;
+                    else if (!strcmp(name, ".sat"))         idx = C_HSL_S;
+                    else if (!strcmp(name, ".saturation"))  idx = C_HSL_S;
+                    else if (!strcmp(name, ".s"))           idx = C_HSL_S;
+                    else if (!strcmp(name, ".lightness"))   idx = C_HSL_L;
+                    else if (!strcmp(name, ".light"))       idx = C_HSL_L;
+                    else if (!strcmp(name, ".l"))           idx = C_HSL_L;
+
+                    else if (!strcmp(name, ".luminance"))   idx = C_LCH_L;
+                    else if (!strcmp(name, ".lum"))         idx = C_LCH_L;
+                    else if (!strcmp(name, ".chroma"))      idx = C_LCH_C;
+                    else if (!strcmp(name, ".c"))           idx = C_LCH_C;
+
+                    else if (!strcmp(name, ".alpha"))       idx = C_ALPHA;
+                    else if (!strcmp(name, ".a"))           idx = C_ALPHA;
+                }
             }
 
             if (idx < 0)

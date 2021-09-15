@@ -47,7 +47,12 @@ namespace lsp
                 enum component_t
                 {
                     C_VALUE,
-                    C_R, C_G, C_B, C_H, C_S, C_L, C_A,
+                    C_RGB_R, C_RGB_G, C_RGB_B,
+                    C_HSL_H, C_HSL_S, C_HSL_L,
+                    C_XYZ_X, C_XYZ_Y, C_XYZ_Z,
+                    C_LAB_L, C_LAB_A, C_LAB_B,
+                    C_LCH_L, C_LCH_C, C_LCH_H,
+                    C_ALPHA,
                     C_TOTAL
                 };
 
