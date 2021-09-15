@@ -91,7 +91,7 @@ namespace lsp
                 case C_LAB_B:       pColor->lab_b(value->v_float);          break;
                 case C_LCH_L:       pColor->lch_l(value->v_float);          break;
                 case C_LCH_C:       pColor->lch_c(value->v_float);          break;
-                case C_LCH_H:       pColor->lch_h(value->v_float / 360.0f); break;
+                case C_LCH_H:       pColor->lch_h(value->v_float * 360.0f); break;
                 case C_ALPHA:       pColor->alpha(value->v_float);          break;
                 default: break;
             }
