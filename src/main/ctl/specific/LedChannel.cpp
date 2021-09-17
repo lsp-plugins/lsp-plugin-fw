@@ -348,7 +348,8 @@ namespace lsp
                 max = 1.0f;
 
             // Calculate balance
-            fValue      = pPort->value();
+            if (pPort != NULL)
+                fValue      = pPort->value();
             fReport     = fValue;
 
             if (nFlags & MF_BALANCE)
