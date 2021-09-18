@@ -59,11 +59,39 @@ namespace lsp
             else if (color == NULL)
                 return STATUS_BAD_ARGUMENTS;
 
-            // Save color
+            // Save color and wrapper
             pColor      = color;
             pWrapper    = wrapper;
 
             return STATUS_OK;
+        }
+
+        Color::control_t Color::get_control(const char *property, control_t dfl) const
+        {
+            if (pWrapper == NULL)
+                return dfl;
+            tk::Display *dpy = pWrapper->display();
+            if (dpy == NULL)
+                return dfl;
+            tk::Schema *schema = dpy->schema();
+            if (schema == NULL)
+                return dfl;
+            tk::Style *style = schema->root();
+            if (style == NULL)
+                return dfl;
+
+            LSPString value;
+            if (style->get_string(property, &value) != STATUS_OK)
+                return dfl;
+
+            if (value.equals_ascii_nocase("hsl"))
+                return CTL_HSL;
+            if (value.equals_ascii_nocase("hcl"))
+                return CTL_LCH;
+            if (value.equals_ascii_nocase("lch"))
+                return CTL_LCH;
+
+            return dfl;
         }
 
         void Color::apply_change(size_t index, expr::value_t *value)
@@ -72,6 +100,20 @@ namespace lsp
             expr::value_type_t vt  = (index == C_VALUE) ? expr::VT_STRING : expr::VT_FLOAT;
             if (expr::cast_value(value, vt) != STATUS_OK)
                 return;
+
+            // Pre-process index
+            switch (index)
+            {
+                case C_CTL_HUE:
+                    index = (get_control("color.hue.control", CTL_LCH) == CTL_LCH) ? C_LCH_H: C_HSL_H;
+                    break;
+                case C_CTL_LIGHT:
+                    index = (get_control("color.lightness.control", CTL_LCH) == CTL_LCH) ? C_LCH_L: C_HSL_L;
+                    break;
+                case C_CTL_SAT:
+                    index = (get_control("color.saturation.control", CTL_LCH) == CTL_LCH) ? C_LCH_C: C_HSL_S;
+                    break;
+            }
 
             // Assign the desired property
             switch (index)
@@ -175,20 +217,21 @@ namespace lsp
                     else if (!strcmp(name, ".g"))           idx = C_RGB_G;
                     else if (!strcmp(name, ".blue"))        idx = C_RGB_B;
                     else if (!strcmp(name, ".b"))           idx = C_RGB_B;
-                    else if (!strcmp(name, ".hue"))         idx = C_HSL_H;
 
-                    else if (!strcmp(name, ".h"))           idx = C_HSL_H;
-                    else if (!strcmp(name, ".sat"))         idx = C_HSL_S;
-                    else if (!strcmp(name, ".saturation"))  idx = C_HSL_S;
-                    else if (!strcmp(name, ".s"))           idx = C_HSL_S;
-                    else if (!strcmp(name, ".lightness"))   idx = C_HSL_L;
-                    else if (!strcmp(name, ".light"))       idx = C_HSL_L;
-                    else if (!strcmp(name, ".l"))           idx = C_HSL_L;
+                    else if (!strcmp(name, ".hue"))         idx = C_CTL_HUE;
+                    else if (!strcmp(name, ".h"))           idx = C_CTL_HUE;
 
-                    else if (!strcmp(name, ".luminance"))   idx = C_LCH_L;
-                    else if (!strcmp(name, ".lum"))         idx = C_LCH_L;
-                    else if (!strcmp(name, ".chroma"))      idx = C_LCH_C;
-                    else if (!strcmp(name, ".c"))           idx = C_LCH_C;
+                    else if (!strcmp(name, ".sat"))         idx = C_CTL_SAT;
+                    else if (!strcmp(name, ".saturation"))  idx = C_CTL_SAT;
+                    else if (!strcmp(name, ".s"))           idx = C_CTL_SAT;
+                    else if (!strcmp(name, ".lightness"))   idx = C_CTL_LIGHT;
+                    else if (!strcmp(name, ".light"))       idx = C_CTL_LIGHT;
+                    else if (!strcmp(name, ".l"))           idx = C_CTL_LIGHT;
+
+                    else if (!strcmp(name, ".luminance"))   idx = C_CTL_LIGHT;
+                    else if (!strcmp(name, ".lum"))         idx = C_CTL_LIGHT;
+                    else if (!strcmp(name, ".chroma"))      idx = C_CTL_SAT;
+                    else if (!strcmp(name, ".c"))           idx = C_CTL_SAT;
 
                     else if (!strcmp(name, ".alpha"))       idx = C_ALPHA;
                     else if (!strcmp(name, ".a"))           idx = C_ALPHA;
@@ -255,6 +298,8 @@ namespace lsp
         {
             if (pColor == NULL)
                 return;
+
+            pColor->set_default();
 
             expr::value_t value;
             expr::init_value(&value);

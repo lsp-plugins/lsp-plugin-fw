@@ -449,6 +449,7 @@ namespace lsp
             sBalanceColor.reload();
             sHoleColor.reload();
             sTipColor.reload();
+            sBalanceTipColor.reload();
         }
     }
 }

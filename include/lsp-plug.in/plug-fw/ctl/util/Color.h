@@ -53,7 +53,17 @@ namespace lsp
                     C_LAB_L, C_LAB_A, C_LAB_B,
                     C_LCH_L, C_LCH_C, C_LCH_H,
                     C_ALPHA,
+
+                    // Custom controls
+                    C_CTL_HUE, C_CTL_LIGHT, C_CTL_SAT,
+
                     C_TOTAL
+                };
+
+                enum control_t
+                {
+                    CTL_HSL,
+                    CTL_LCH
                 };
 
             protected:
@@ -64,6 +74,7 @@ namespace lsp
 
             protected:
                 void                apply_change(size_t index, expr::value_t *value);
+                control_t           get_control(const char *property, control_t dfl) const;
 
             public:
                 explicit Color();

@@ -505,6 +505,7 @@ namespace lsp
             sPointer.set("pointer", name, value);
 
             set_param(wWidget->scaling(), "scaling", name, value);
+            set_param(wWidget->tag(), "ui:tag", name, value);
             set_allocation(wWidget->allocation(), name, value);
 
             sPadding.set("pad", name, value);
