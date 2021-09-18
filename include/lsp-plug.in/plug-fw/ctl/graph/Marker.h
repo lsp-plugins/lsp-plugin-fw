@@ -68,10 +68,12 @@ namespace lsp
 
             protected:
                 static status_t     slot_graph_resize(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 float               eval_expr(ctl::Expression *expr);
                 void                trigger_expr();
+                void                submit_values();
 
             public:
                 explicit Marker(ui::IWrapper *wrapper, tk::GraphMarker *widget);

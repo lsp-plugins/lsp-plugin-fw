@@ -99,6 +99,7 @@ namespace lsp
                 sHoverRightColor.init(pWrapper, gm->hover_border_right_color());
 
                 gm->slots()->bind(tk::SLOT_RESIZE_PARENT, slot_graph_resize, this);
+                gm->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
             }
 
             return STATUS_OK;
@@ -192,6 +193,25 @@ namespace lsp
             return expr->evaluate();
         }
 
+        void Marker::submit_values()
+        {
+            if (pPort == NULL)
+                return;
+            tk::GraphMarker *gm = tk::widget_cast<tk::GraphMarker>(wWidget);
+            if (gm == NULL)
+                return;
+
+            if (gm->editable())
+            {
+                float v = gm->value()->get();
+                if (v == pPort->value())
+                    return;
+
+                pPort->set_value(v);
+                pPort->notify_all();
+            }
+        }
+
         void Marker::notify(ui::IPort *port)
         {
             Widget::notify(port);
@@ -266,16 +286,6 @@ namespace lsp
                 gm->value()->set_min(mdata->min);
             if (!sMax.valid())
                 gm->value()->set_max(mdata->max);
-            if (!sValue.valid())
-                gm->value()->set_max(mdata->start);
-        }
-
-        status_t Marker::slot_graph_resize(tk::Widget *sender, void *ptr, void *data)
-        {
-            ctl::Marker *_this    = static_cast<ctl::Marker *>(ptr);
-            if (_this != NULL)
-                _this->trigger_expr();
-            return STATUS_OK;
         }
 
         void Marker::schema_reloaded()
@@ -289,6 +299,23 @@ namespace lsp
             sHoverLeftColor.reload();
             sHoverRightColor.reload();
         }
+
+        status_t Marker::slot_graph_resize(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Marker *_this    = static_cast<ctl::Marker *>(ptr);
+            if (_this != NULL)
+                _this->trigger_expr();
+            return STATUS_OK;
+        }
+
+        status_t Marker::slot_change(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Marker *_this    = static_cast<ctl::Marker *>(ptr);
+            if (_this != NULL)
+                _this->submit_values();
+            return STATUS_OK;
+        }
+
     }
 }
 
