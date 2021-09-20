@@ -266,7 +266,22 @@ namespace lsp
             expr::init_value(&cv);
 
             if (e->evaluate(&cv) == STATUS_OK)
+            {
                 apply_change(idx, &cv);
+
+                // Evaluate other particular expressions
+                if (idx == C_VALUE)
+                {
+                    while (++idx < C_TOTAL)
+                    {
+                        e   = vExpr[idx];
+                        if (e == NULL)
+                            continue;
+                        if (e->evaluate(&cv) == STATUS_OK)
+                            apply_change(idx, &cv);
+                    }
+                }
+            }
 
             expr::destroy_value(&cv);
 
@@ -281,14 +296,33 @@ namespace lsp
             expr::value_t value;
             expr::init_value(&value);
 
-            for (size_t i=0; i<C_TOTAL; ++i)
+            bool all = (vExpr[C_VALUE] != NULL) && (vExpr[C_VALUE]->depends(port));
+
+            if (all)
             {
-                // Evaluate the expression
-                Expression *e = vExpr[i];
-                if ((e == NULL) || (!e->depends(port)))
-                    continue;
-                if (e->evaluate(&value) == STATUS_OK)
-                    apply_change(i, &value);
+                // The main value has changed, need to re-evaluate all components
+                for (size_t i=0; i<C_TOTAL; ++i)
+                {
+                    // Evaluate the expression
+                    Expression *e = vExpr[i];
+                    if ((e == NULL) || (!e->valid()))
+                        continue;
+                    if (e->evaluate(&value) == STATUS_OK)
+                        apply_change(i, &value);
+                }
+            }
+            else
+            {
+                // Re-evaluate the dependent components
+                for (size_t i=0; i<C_TOTAL; ++i)
+                {
+                    // Evaluate the expression
+                    Expression *e = vExpr[i];
+                    if ((e == NULL) || (!e->depends(port)))
+                        continue;
+                    if (e->evaluate(&value) == STATUS_OK)
+                        apply_change(i, &value);
+                }
             }
 
             expr::destroy_value(&value);
