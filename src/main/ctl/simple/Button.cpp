@@ -68,7 +68,6 @@ namespace lsp
 
         Button::~Button()
         {
-            sEditable.destroy();
         }
 
         status_t Button::init()
@@ -92,7 +91,7 @@ namespace lsp
                 sBorderDownHoverColor.init(pWrapper, btn->border_down_hover_color());
                 sHoleColor.init(pWrapper, btn->hole_color());
 
-                sEditable.init(pWrapper, this);
+                sEditable.init(pWrapper, btn->editable());
                 sTextPad.init(pWrapper, btn->text_padding());
                 sText.init(pWrapper, btn->text());
 
@@ -136,6 +135,7 @@ namespace lsp
 
                 sHoleColor.set("hole.color", name, value);
 
+                sEditable.set("editable", name, value);
                 sTextPad.set("text.padding", name, value);
                 sTextPad.set("text.pad", name, value);
                 sTextPad.set("tpadding", name, value);
@@ -153,7 +153,6 @@ namespace lsp
                 set_param(btn->text_clip(), "tclip", name, value);
                 set_param(btn->font_scaling(), "font.scaling", name, value);
                 set_param(btn->font_scaling(), "font.scale", name, value);
-                set_expr(&sEditable, "editable", name, value);
                 set_text_layout(btn->text_layout(), name, value);
             }
 
@@ -256,25 +255,12 @@ namespace lsp
             return value;
         }
 
-        void Button::trigger_expr()
-        {
-            tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
-            if (btn == NULL)
-                return;
-
-            if (sEditable.valid())
-                btn->editable()->set(sEditable.evaluate() >= 0.5f);
-        }
-
         void Button::notify(ui::IPort *port)
         {
             Widget::notify(port);
 
             if ((port == pPort) && (pPort != NULL))
                 commit_value(pPort->value());
-
-            // Trigger expressions
-            trigger_expr();
         }
 
         void Button::end(ui::UIContext *ctx)
@@ -304,7 +290,6 @@ namespace lsp
                     commit_value(fValue);
             }
 
-            trigger_expr();
             Widget::end(ctx);
         }
 

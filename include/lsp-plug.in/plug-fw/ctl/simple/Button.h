@@ -61,7 +61,7 @@ namespace lsp
                 ctl::Color          sBorderDownHoverColor;
                 ctl::Color          sHoleColor;
 
-                ctl::Expression     sEditable;
+                ctl::Boolean        sEditable;
                 ctl::Boolean        sHover;
                 ctl::Padding        sTextPad;
                 ctl::LCString       sText;
@@ -72,7 +72,6 @@ namespace lsp
                 void                commit_value(float value);
                 void                submit_value();
                 float               next_value(bool down);
-                void                trigger_expr();
 
             public:
                 explicit Button(ui::IWrapper *wrapper, tk::Button *widget);
