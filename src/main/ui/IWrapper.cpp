@@ -975,10 +975,7 @@ namespace lsp
 
             tk::StyleSheet ss;
             status_t res = load_stylesheet(&ss, file);
-            if (res != STATUS_OK)
-                return res;
-
-            return pDisplay->schema()->apply(&ss, &sLoader);
+            return (res == STATUS_OK) ? apply_visual_schema(&ss) : res;
         }
 
         status_t IWrapper::load_visual_schema(const io::Path *file)
@@ -988,10 +985,7 @@ namespace lsp
 
             tk::StyleSheet ss;
             status_t res = load_stylesheet(&ss, file);
-            if (res != STATUS_OK)
-                return res;
-
-            return pDisplay->schema()->apply(&ss, &sLoader);
+            return (res == STATUS_OK) ? apply_visual_schema(&ss) : res;
         }
 
         status_t IWrapper::load_visual_schema(const LSPString *file)
@@ -999,23 +993,100 @@ namespace lsp
             if (pDisplay == NULL)
                 return STATUS_BAD_STATE;
 
+            // Load style sheet
             tk::StyleSheet ss;
             status_t res = load_stylesheet(&ss, file);
-            if (res != STATUS_OK)
+            return (res == STATUS_OK) ? apply_visual_schema(&ss) : res;
+        }
+
+        status_t IWrapper::apply_visual_schema(const tk::StyleSheet *sheet)
+        {
+            status_t res;
+
+            // Apply schema
+            if ((res = pDisplay->schema()->apply(sheet, &sLoader)) != STATUS_OK)
                 return res;
 
-            if ((res = pDisplay->schema()->apply(&ss, &sLoader)) == STATUS_OK)
-            {
-                // TODO: update variables
+            // Initialize global constants
+            if ((res = init_global_constants(sheet)) != STATUS_OK)
+                return res;
 
-                // Notify all listeners in reverse order
-                for (size_t i=vSchemaListeners.size(); i > 0; )
-                {
-                    ISchemaListener *listener = vSchemaListeners.uget(--i);
-                    if (listener != NULL)
-                        listener->reloaded(&ss);
-                }
+            // Notify all listeners in reverse order
+            for (size_t i=vSchemaListeners.size(); i > 0; )
+            {
+                ISchemaListener *listener = vSchemaListeners.uget(--i);
+                if (listener != NULL)
+                    listener->reloaded(sheet);
             }
+
+            return res;
+        }
+
+        status_t IWrapper::init_global_constants(const tk::StyleSheet *sheet)
+        {
+            status_t res;
+
+            // Cleanup variables
+            sGlobalVars.clear();
+
+            // Evaluate global constants
+            lltl::parray<LSPString> constants;
+            if ((res = sheet->enum_constants(&constants)) != STATUS_OK)
+            {
+                lsp_warn("Error enumerating global constants");
+                return res;
+            }
+
+            LSPString name, value;
+            expr::value_t xvalue;
+            expr::init_value(&xvalue);
+            expr::Expression ex;
+
+            // Evaluate all constants
+            for (size_t i=0, n=constants.size(); i<n; ++i)
+            {
+                // Get constant name and value
+                const LSPString *cname = constants.uget(i);
+                if (cname == NULL)
+                    continue;
+
+                if ((res = sheet->get_constant(cname, &value)) != STATUS_OK)
+                {
+                    lsp_warn("Error reading constant value for '%s'", cname->get_native());
+                    return res;
+                }
+
+                // Evaluate expression
+                if ((res = ex.parse(&value, expr::Expression::FLAG_NONE)) != STATUS_OK)
+                {
+                    lsp_warn("Error parsing expression for '%s': %s", cname->get_native(), value.get_native());
+                    return res;
+                }
+                if ((res = ex.evaluate(&xvalue)) != STATUS_OK)
+                {
+                    lsp_warn("Error evaluating expression for '%s': %s", cname->get_native(), value.get_native());
+                    return res;
+                }
+
+                // Form variable name
+                if (!name.set_ascii("const_"))
+                    return STATUS_NO_MEM;
+                if (!name.append(cname))
+                    return STATUS_NO_MEM;
+
+                // Set the variable value
+                if ((res = sGlobalVars.set(&name, &xvalue)) != STATUS_OK)
+                {
+                    lsp_warn("Error setting global constant '%s'", name.get_native());
+                    return res;
+                }
+
+                // Undefine the value
+                expr::set_value_undef(&xvalue);
+            }
+
+            expr::destroy_value(&xvalue);
+
             return res;
         }
 

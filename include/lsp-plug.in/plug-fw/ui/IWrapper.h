@@ -103,6 +103,8 @@ namespace lsp
                 void            build_config_header(LSPString *c);
                 status_t        init_visual_schema();
                 status_t        load_global_config(config::PullParser *parser);
+                status_t        init_global_constants(const tk::StyleSheet *sheet);
+                status_t        apply_visual_schema(const tk::StyleSheet *sheet);
 
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
