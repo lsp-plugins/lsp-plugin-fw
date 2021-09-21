@@ -38,6 +38,9 @@ namespace lsp
 
         Padding::~Padding()
         {
+            if (pWrapper != NULL)
+                pWrapper->remove_schema_listener(this);
+
             pWrapper    = NULL;
             pPadding    = NULL;
 
@@ -64,7 +67,7 @@ namespace lsp
             pWrapper    = wrapper;
             pPadding    = padding;
 
-            return STATUS_OK;
+            return pWrapper->add_schema_listener(this);
         }
 
         void Padding::apply_change(size_t index, expr::value_t *value)
@@ -156,6 +159,29 @@ namespace lsp
                 // Evaluate the expression
                 Expression *e = vExpr[i];
                 if ((e == NULL) || (!e->depends(port)))
+                    continue;
+                if (e->evaluate(&value) == STATUS_OK)
+                    apply_change(i, &value);
+            }
+
+            expr::destroy_value(&value);
+        }
+
+        void Padding::reloaded(const tk::StyleSheet *sheet)
+        {
+            ISchemaListener::reloaded(sheet);
+
+            if (pPadding == NULL)
+                return;
+
+            expr::value_t value;
+            expr::init_value(&value);
+
+            for (size_t i=0; i<PAD_COUNT; ++i)
+            {
+                // Evaluate the expression
+                Expression *e = vExpr[i];
+                if ((e == NULL) || (!e->valid()))
                     continue;
                 if (e->evaluate(&value) == STATUS_OK)
                     apply_change(i, &value);

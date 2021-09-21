@@ -43,7 +43,7 @@ namespace lsp
         /**
          * Simple expression-based boolean property
          */
-        class Boolean: public ctl::Property
+        class Boolean: public ctl::Property, public ui::ISchemaListener
         {
             private:
                 Boolean & operator = (const Boolean &);
@@ -59,12 +59,14 @@ namespace lsp
 
             public:
                 explicit        Boolean();
+                virtual        ~Boolean();
 
                 void            init(ui::IWrapper *wrapper, tk::Boolean *prop);
 
             public:
                 bool            set(const char *prop, const char *name, const char *value);
                 inline bool     value() const   { return pProp->get();  }
+                virtual void    reloaded(const tk::StyleSheet *sheet);
         };
     }
 }

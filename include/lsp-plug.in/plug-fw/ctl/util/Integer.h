@@ -38,7 +38,7 @@ namespace lsp
         /**
          * Simple expression-based integer property
          */
-        class Integer: public ctl::Property
+        class Integer: public ctl::Property, public ui::ISchemaListener
         {
             private:
                 Integer & operator = (const Integer &);
@@ -54,12 +54,15 @@ namespace lsp
 
             public:
                 explicit        Integer();
+                virtual         ~Integer();
 
                 void            init(ui::IWrapper *wrapper, tk::Integer *prop);
 
             public:
                 bool            set(const char *prop, const char *name, const char *value);
                 inline ssize_t  value() const   { return pProp->get();  }
+
+                virtual void    reloaded(const tk::StyleSheet *sheet);
         };
     }
 }

@@ -38,7 +38,7 @@ namespace lsp
         /**
          * Color controller
          */
-        class Embedding: public ui::IPortListener
+        class Embedding: public ui::IPortListener, public ui::ISchemaListener
         {
             private:
                 Embedding & operator = (const Embedding &);
@@ -56,6 +56,9 @@ namespace lsp
                 ui::IWrapper       *pWrapper;           // Wrapper
                 ctl::Expression    *vExpr[E_TOTAL];     // Expression
 
+            protected:
+                void                apply_change(size_t index, expr::value_t *value);
+
             public:
                 explicit Embedding();
                 virtual ~Embedding();
@@ -67,6 +70,7 @@ namespace lsp
 
             public:
                 virtual void        notify(ui::IPort *port);
+                virtual void        reloaded(const tk::StyleSheet *sheet);
         };
     }
 }

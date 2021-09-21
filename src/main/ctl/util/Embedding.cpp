@@ -37,6 +37,9 @@ namespace lsp
 
         Embedding::~Embedding()
         {
+            if (pWrapper != NULL)
+                pWrapper->remove_schema_listener(this);
+
             for (size_t i=0; i<E_TOTAL; ++i)
             {
                 Expression *e = vExpr[i];
@@ -63,7 +66,7 @@ namespace lsp
             pEmbedding      = color;
             pWrapper        = wrapper;
 
-            return STATUS_OK;
+            return pWrapper->add_schema_listener(this);
         }
 
         bool Embedding::set(const char *prop, const char *name, const char *value)
@@ -118,6 +121,26 @@ namespace lsp
             return e->parse(value) == STATUS_OK;
         }
 
+        void Embedding::apply_change(size_t index, expr::value_t *value)
+        {
+            // Perform the cast
+            if (expr::cast_value(value, expr::VT_BOOL) != STATUS_OK)
+                return;
+
+            // Assign the desired property
+            switch (index)
+            {
+                case E_ALL:     pEmbedding->set(value->v_bool);             break;
+                case E_H:       pEmbedding->set_horizontal(value->v_bool);  break;
+                case E_V:       pEmbedding->set_vertical(value->v_bool);    break;
+                case E_L:       pEmbedding->set_left(value->v_bool);        break;
+                case E_R:       pEmbedding->set_right(value->v_bool);       break;
+                case E_T:       pEmbedding->set_top(value->v_bool);         break;
+                case E_B:       pEmbedding->set_bottom(value->v_bool);      break;
+                default: break;
+            }
+        }
+
         void Embedding::notify(ui::IPort *port)
         {
             if (pEmbedding == NULL)
@@ -132,25 +155,26 @@ namespace lsp
                 ctl::Expression *e = vExpr[i];
                 if ((e == NULL) || (!e->depends(port)))
                     continue;
-                if (e->evaluate(&value) != STATUS_OK)
-                    continue;
+                if (e->evaluate(&value) == STATUS_OK)
+                    apply_change(i, &value);
+            }
 
-                // Perform the cast
-                if (expr::cast_value(&value, expr::VT_BOOL) != STATUS_OK)
-                    continue;
+            expr::destroy_value(&value);
+        }
 
-                // Assign the desired property
-                switch (i)
-                {
-                    case E_ALL:     pEmbedding->set(value.v_bool);              break;
-                    case E_H:       pEmbedding->set_horizontal(value.v_bool);   break;
-                    case E_V:       pEmbedding->set_vertical(value.v_bool);     break;
-                    case E_L:       pEmbedding->set_left(value.v_bool);         break;
-                    case E_R:       pEmbedding->set_right(value.v_bool);        break;
-                    case E_T:       pEmbedding->set_top(value.v_bool);          break;
-                    case E_B:       pEmbedding->set_bottom(value.v_bool);       break;
-                    default: break;
-                }
+        void Embedding::reloaded(const tk::StyleSheet *sheet)
+        {
+            expr::value_t value;
+            expr::init_value(&value);
+
+            for (size_t i=0; i<E_TOTAL; ++i)
+            {
+                // Evaluate the expression
+                Expression *e = vExpr[i];
+                if ((e == NULL) || (!e->valid()))
+                    continue;
+                if (e->evaluate(&value) == STATUS_OK)
+                    apply_change(i, &value);
             }
 
             expr::destroy_value(&value);

@@ -42,7 +42,7 @@ namespace lsp
         /**
          * Padding controller
          */
-        class Padding: public ui::IPortListener
+        class Padding: public ui::IPortListener, public ui::ISchemaListener
         {
             protected:
                 enum pad_t
@@ -76,6 +76,8 @@ namespace lsp
                 bool                set(const char *param, const char *name, const char *value);
 
                 virtual void        notify(ui::IPort *port);
+
+                virtual void        reloaded(const tk::StyleSheet *sheet);
         };
     }
 }

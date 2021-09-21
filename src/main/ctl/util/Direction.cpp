@@ -38,6 +38,9 @@ namespace lsp
 
         Direction::~Direction()
         {
+            if (pWrapper != NULL)
+                pWrapper->remove_schema_listener(this);
+
             pWrapper    = NULL;
             pDirection    = NULL;
 
@@ -64,7 +67,7 @@ namespace lsp
             pWrapper    = wrapper;
             pDirection  = direction;
 
-            return STATUS_OK;
+            return pWrapper->add_schema_listener(this);
         }
 
         void Direction::apply_change(size_t index, expr::value_t *value)
@@ -156,6 +159,24 @@ namespace lsp
                 // Evaluate the expression
                 Expression *e = vExpr[i];
                 if ((e == NULL) || (!e->depends(port)))
+                    continue;
+                if (e->evaluate(&value) == STATUS_OK)
+                    apply_change(i, &value);
+            }
+
+            expr::destroy_value(&value);
+        }
+
+        void Direction::reloaded(const tk::StyleSheet *sheet)
+        {
+            expr::value_t value;
+            expr::init_value(&value);
+
+            for (size_t i=0; i<DIR_COUNT; ++i)
+            {
+                // Evaluate the expression
+                Expression *e = vExpr[i];
+                if ((e == NULL) || (!e->valid()))
                     continue;
                 if (e->evaluate(&value) == STATUS_OK)
                     apply_change(i, &value);

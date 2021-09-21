@@ -40,6 +40,12 @@ namespace lsp
             status_t res = pProp->sParams.resolve(value, name, num_indexes, indexes);
             if (res != STATUS_OK)
                 res     = PortResolver::resolve(value, name, num_indexes, indexes);
+            if (res != STATUS_OK)
+            {
+                expr::Resolver *vars = (pProp->pWrapper != NULL) ? pProp->pWrapper->global_variables() : NULL;
+                if (vars != NULL)
+                    res     = vars->resolve(value, name, num_indexes, indexes);
+            }
             return res;
         }
 
@@ -48,6 +54,12 @@ namespace lsp
             status_t res = pProp->sParams.resolve(value, name, num_indexes, indexes);
             if (res != STATUS_OK)
                 res     = PortResolver::resolve(value, name, num_indexes, indexes);
+            if (res != STATUS_OK)
+            {
+                expr::Resolver *vars = (pProp->pWrapper != NULL) ? pProp->pWrapper->global_variables() : NULL;
+                if (vars != NULL)
+                    res     = vars->resolve(value, name, num_indexes, indexes);
+            }
             return res;
         }
 

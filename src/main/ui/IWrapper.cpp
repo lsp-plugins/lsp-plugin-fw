@@ -1072,6 +1072,10 @@ namespace lsp
             return (vSchemaListeners.premove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
         }
 
+        expr::Variables *IWrapper::global_variables()
+        {
+            return &sGlobalVars;
+        }
     }
 } /* namespace lsp */
 

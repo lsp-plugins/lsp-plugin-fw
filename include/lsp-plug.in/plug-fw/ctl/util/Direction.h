@@ -40,7 +40,7 @@ namespace lsp
         /**
          * Direction controller
          */
-        class Direction: public ui::IPortListener
+        class Direction: public ui::IPortListener, public ui::ISchemaListener
         {
             protected:
                 enum dir_t
@@ -72,6 +72,7 @@ namespace lsp
                 bool                set(const char *param, const char *name, const char *value);
 
                 virtual void        notify(ui::IPort *port);
+                virtual void        reloaded(const tk::StyleSheet *sheet);
         };
     }
 }

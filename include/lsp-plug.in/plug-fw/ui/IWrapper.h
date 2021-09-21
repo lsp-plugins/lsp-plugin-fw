@@ -35,6 +35,7 @@
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/io/IOutSequence.h>
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/expr/Variables.h>
 
 #include <lsp-plug.in/plug-fw/ui/IPort.h>
 #include <lsp-plug.in/plug-fw/ui/Module.h>
@@ -81,6 +82,7 @@ namespace lsp
                 ui::Module                     *pUI;
                 resource::PrefixLoader          sLoader;            // Prefix-based resource loader
                 size_t                          nFlags;             // Flags
+                expr::Variables                 sGlobalVars;        // Global variables
 
                 lltl::parray<IPort>             vPorts;             // All possible ports
                 lltl::parray<IPort>             vSortedPorts;       // Alphabetically-sorted ports
@@ -330,6 +332,12 @@ namespace lsp
                  * @return package version
                  */
                 virtual const meta::package_t  *package() const;
+
+                /**
+                 * Get global variables
+                 * @return global variables
+                 */
+                virtual expr::Variables    *global_variables();
         };
     }
 

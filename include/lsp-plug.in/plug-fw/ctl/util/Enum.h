@@ -38,7 +38,7 @@ namespace lsp
         /**
          * Simple expression-based integer property
          */
-        class Enum: public ctl::Property
+        class Enum: public ctl::Property, public ui::ISchemaListener
         {
             private:
                 Enum & operator = (const Enum &);
@@ -54,12 +54,14 @@ namespace lsp
 
             public:
                 explicit        Enum();
+                virtual         ~Enum();
 
                 void            init(ui::IWrapper *wrapper, tk::Enum *prop);
 
             public:
                 bool            set(const char *prop, const char *name, const char *value);
                 inline ssize_t  value() const   { return pProp->index();  }
+                virtual void    reloaded(const tk::StyleSheet *sheet);
         };
     }
 }

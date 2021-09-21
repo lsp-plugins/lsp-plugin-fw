@@ -30,7 +30,18 @@ namespace lsp
             pProp       = NULL;
         }
 
+        Enum::~Enum()
+        {
+            if (pWrapper != NULL)
+                pWrapper->remove_schema_listener(this);
+        }
+
         void Enum::on_updated(ui::IPort *port)
+        {
+            apply_changes();
+        }
+
+        void Enum::reloaded(const tk::StyleSheet *sheet)
         {
             apply_changes();
         }
@@ -58,6 +69,9 @@ namespace lsp
         {
             Property::init(wrapper);
             pProp       = prop;
+
+            if (pWrapper != NULL)
+                pWrapper->add_schema_listener(this);
         }
 
         bool Enum::set(const char *prop, const char *name, const char *value)
