@@ -92,13 +92,6 @@ namespace lsp
             return (grp != NULL) ? grp->add(child->widget()) : STATUS_BAD_STATE;
         }
 
-        void MultiLabel::schema_reloaded()
-        {
-            Widget::schema_reloaded();
-
-            sTextColor.reload();
-            sColor.reload();
-        }
     } /* namespace ctl */
 } /* namespace lsp */
 

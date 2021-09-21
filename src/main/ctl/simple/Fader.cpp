@@ -306,17 +306,6 @@ namespace lsp
             fdr->balance()->set(balance);
         }
 
-        void Fader::schema_reloaded()
-        {
-            Widget::schema_reloaded();
-
-            sBtnColor.reload();
-            sBtnBorderColor.reload();
-            sScaleColor.reload();
-            sScaleBorderColor.reload();
-            sBalanceColor.reload();
-        }
-
         void Fader::submit_value()
         {
             tk::Fader *fdr = tk::widget_cast<tk::Fader>(wWidget);

@@ -37,6 +37,9 @@ namespace lsp
 
         Color::~Color()
         {
+            if (pWrapper != NULL)
+                pWrapper->remove_schema_listener(this);
+
             for (size_t i=0; i<C_TOTAL; ++i)
             {
                 Expression *e = vExpr[i];
@@ -63,7 +66,7 @@ namespace lsp
             pColor      = color;
             pWrapper    = wrapper;
 
-            return STATUS_OK;
+            return pWrapper->add_schema_listener(this);
         }
 
         Color::control_t Color::get_control(const char *property, control_t dfl) const
@@ -349,6 +352,11 @@ namespace lsp
             }
 
             expr::destroy_value(&value);
+        }
+
+        void Color::reloaded(const tk::StyleSheet *sheet)
+        {
+            reload();
         }
     }
 }

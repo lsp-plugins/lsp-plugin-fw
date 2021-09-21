@@ -223,16 +223,13 @@ namespace lsp
             commit_value(&sZ, sZ.pPort, true);
         }
 
-        void Dot::schema_reloaded()
+        void Dot::reloaded(const tk::StyleSheet *sheet)
         {
-            Widget::schema_reloaded();
+            Widget::reloaded(sheet);
 
-            sColor.reload();
-            sHoverColor.reload();
-            sBorderColor.reload();
-            sHoverBorderColor.reload();
-            sGapColor.reload();
-            sHoverGapColor.reload();
+            commit_value(&sX, sX.pPort, true);
+            commit_value(&sY, sY.pPort, true);
+            commit_value(&sZ, sZ.pPort, true);
         }
 
         void Dot::submit_values()

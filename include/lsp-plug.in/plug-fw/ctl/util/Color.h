@@ -38,7 +38,7 @@ namespace lsp
         /**
          * Color controller
          */
-        class Color: public ui::IPortListener
+        class Color: public ui::IPortListener, public ui::ISchemaListener
         {
             private:
                 Color & operator = (const Color &);
@@ -91,6 +91,8 @@ namespace lsp
                  * Re-evaluate all expressions assigned to the controller
                  */
                 void                reload();
+
+                virtual void        reloaded(const tk::StyleSheet *sheet);
 
             public:
                 virtual void        notify(ui::IPort *port);

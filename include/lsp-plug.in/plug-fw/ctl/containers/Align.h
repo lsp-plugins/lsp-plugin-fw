@@ -62,6 +62,7 @@ namespace lsp
                 virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
                 virtual void        notify(ui::IPort *port);
                 virtual void        end(ui::UIContext *ctx);
+                virtual void        reloaded(const tk::StyleSheet *sheet);
         };
 
     } /* namespace ctl */

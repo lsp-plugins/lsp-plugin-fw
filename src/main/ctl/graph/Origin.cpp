@@ -101,6 +101,18 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
+        void Origin::trigger_expr()
+        {
+            tk::GraphOrigin *go = tk::widget_cast<tk::GraphOrigin>(wWidget);
+            if (go == NULL)
+                return;
+
+            if (sLeft.valid())
+                go->left()->set(sLeft.evaluate_float());
+            if (sTop.valid())
+                go->top()->set(sTop.evaluate_float());
+        }
+
         void Origin::notify(ui::IPort *port)
         {
             Widget::notify(port);
@@ -115,11 +127,11 @@ namespace lsp
             }
         }
 
-        void Origin::schema_reloaded()
+        void Origin::reloaded(const tk::StyleSheet *sheet)
         {
-            Widget::schema_reloaded();
+            Widget::reloaded(sheet);
 
-            sColor.reload();
+
         }
     }
 }

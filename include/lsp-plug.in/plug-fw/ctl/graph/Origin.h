@@ -49,6 +49,9 @@ namespace lsp
 
                 ctl::Color          sColor;
 
+            protected:
+                void                trigger_expr();
+
             public:
                 explicit Origin(ui::IWrapper *wrapper, tk::GraphOrigin *widget);
                 virtual ~Origin();
@@ -58,7 +61,7 @@ namespace lsp
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
                 virtual void        notify(ui::IPort *port);
-                virtual void        schema_reloaded();
+                virtual void        reloaded(const tk::StyleSheet *sheet);
         };
     }
 }

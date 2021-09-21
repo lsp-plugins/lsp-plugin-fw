@@ -137,6 +137,12 @@ namespace lsp
             update_alignment();
             Widget::end(ctx);
         }
+
+        void Align::reloaded(const tk::StyleSheet *sheet)
+        {
+            Widget::reloaded(sheet);
+            update_alignment();
+        }
     }
 }
 

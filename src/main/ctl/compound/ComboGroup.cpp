@@ -180,15 +180,6 @@ namespace lsp
             cgrp->active()->set(w);
         }
 
-        void ComboGroup::schema_reloaded()
-        {
-            Widget::schema_reloaded();
-
-            sColor.reload();
-            sTextColor.reload();
-            sSpinColor.reload();
-        }
-
         status_t ComboGroup::slot_combo_submit(tk::Widget *sender, void *ptr, void *data)
         {
             ComboGroup *_this   = static_cast<ComboGroup *>(ptr);

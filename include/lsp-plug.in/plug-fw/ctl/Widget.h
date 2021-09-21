@@ -46,7 +46,7 @@ namespace lsp
         /**
          * Basic widget controller
          */
-        class Widget: public ui::IPortListener
+        class Widget: public ui::IPortListener, public ui::ISchemaListener
         {
             public:
                 static const ctl_class_t metadata;
@@ -169,7 +169,7 @@ namespace lsp
                 /**
                  * This method is called when the visual schema has been reloaded
                  */
-                virtual void        schema_reloaded();
+                virtual void        reloaded(const tk::StyleSheet *sheet);
 
             //---------------------------------------------------------------------------------
             // Metadata, casting and type information

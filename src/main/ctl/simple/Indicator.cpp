@@ -838,14 +838,6 @@ namespace lsp
 
             return true;
         }
-
-        void Indicator::schema_reloaded()
-        {
-            Widget::schema_reloaded();
-
-            sColor.reload();
-            sTextColor.reload();
-        }
     }
 }
 

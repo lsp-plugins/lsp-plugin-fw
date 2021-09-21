@@ -213,11 +213,10 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Axis::schema_reloaded()
+        void Axis::reloaded(const tk::StyleSheet *sheet)
         {
-            Widget::schema_reloaded();
-
-            sColor.reload();
+            Widget::reloaded(sheet);
+            trigger_expr();
         }
     }
 }

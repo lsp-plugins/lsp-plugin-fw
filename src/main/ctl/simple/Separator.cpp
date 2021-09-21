@@ -102,11 +102,5 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        void Separator::schema_reloaded()
-        {
-            Widget::schema_reloaded();
-
-            sColor.reload();
-        }
     } // namespace ctl
 } // namespace lsp

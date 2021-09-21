@@ -116,12 +116,6 @@ namespace lsp
             return lm->items()->add(lmc);
         }
 
-        void LedMeter::schema_reloaded()
-        {
-            Widget::schema_reloaded();
-            sColor.reload();
-        }
-
     } // namespace ctl
 } // namespace lsp
 

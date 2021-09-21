@@ -152,21 +152,25 @@ namespace lsp
             }
         }
 
-        void FBuffer::end(ui::UIContext *ctx)
+        void FBuffer::trigger_expr()
         {
             tk::GraphFrameBuffer *fb   = tk::widget_cast<tk::GraphFrameBuffer>(wWidget);
-            if (fb != NULL)
-            {
-                if (sMode.valid())
-                    fb->function()->set_index(sMode.evaluate_int());
-            }
+            if (fb == NULL)
+                return;
+
+            if (sMode.valid())
+                fb->function()->set_index(sMode.evaluate_int());
         }
 
-        void FBuffer::schema_reloaded()
+        void FBuffer::end(ui::UIContext *ctx)
         {
-            Widget::schema_reloaded();
+            trigger_expr();
+        }
 
-            sColor.reload();
+        void FBuffer::reloaded(const tk::StyleSheet *sheet)
+        {
+            Widget::reloaded(sheet);
+            trigger_expr();
         }
 
     }

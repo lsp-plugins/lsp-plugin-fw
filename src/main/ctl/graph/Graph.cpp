@@ -113,15 +113,6 @@ namespace lsp
             tk::Graph *gr   = tk::widget_cast<tk::Graph>(wWidget);
             return (gr != NULL) ? gr->add(child->widget()) : STATUS_BAD_STATE;
         }
-
-        void Graph::schema_reloaded()
-        {
-            Widget::schema_reloaded();
-
-            sColor.reload();
-            sBorderColor.reload();
-            sGlassColor.reload();
-        }
     }
 }
 

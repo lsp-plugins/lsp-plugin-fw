@@ -75,7 +75,6 @@ namespace lsp
                 virtual status_t        add(ui::UIContext *ctx, ctl::Widget *child);
                 virtual void            end(ui::UIContext *ctx);
                 virtual void            notify(ui::IPort *port);
-                virtual void            schema_reloaded();
         };
 
     }

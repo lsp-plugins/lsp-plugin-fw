@@ -67,7 +67,6 @@ namespace lsp
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
                 virtual void        notify(ui::IPort *port);
                 virtual void        end(ui::UIContext *ctx);
-                virtual void        schema_reloaded();
         };
 
     } /* namespace ctl */

@@ -53,6 +53,9 @@ namespace lsp
 
                 size_t              nRowID;
 
+            protected:
+                void                trigger_expr();
+
             public:
                 explicit FBuffer(ui::IWrapper *wrapper, tk::GraphFrameBuffer *widget);
                 virtual ~FBuffer();
@@ -63,7 +66,7 @@ namespace lsp
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
                 virtual void        notify(ui::IPort *port);
                 virtual void        end(ui::UIContext *ctx);
-                virtual void        schema_reloaded();
+                virtual void        reloaded(const tk::StyleSheet *sheet);
         };
     }
 }

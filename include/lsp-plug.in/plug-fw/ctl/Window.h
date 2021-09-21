@@ -63,7 +63,7 @@ namespace lsp
 
                 virtual void            end(ui::UIContext *ctx);
 
-                virtual void            schema_reloaded();
+                virtual void            reloaded(const tk::StyleSheet *sheet);
         };
     }
 }

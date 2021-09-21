@@ -168,13 +168,10 @@ namespace lsp
             update_value();
         }
 
-        void Led::schema_reloaded()
+        void Led::reloaded(const tk::StyleSheet *sheet)
         {
-            Widget::schema_reloaded();
-
-            sColor.reload();
-            sLightColor.reload();
-            sHoleColor.reload();
+            Widget::reloaded(sheet);
+            update_value();
         }
     } /* namespace ctl */
 } /* namespace lsp */

@@ -501,21 +501,13 @@ namespace lsp
             }
         }
 
-        void AudioSample::schema_reloaded()
+        void AudioSample::reloaded(const tk::StyleSheet *sheet)
         {
-            Widget::schema_reloaded();
+            Widget::reloaded(sheet);
 
-            sColor.reload();
-            sBorderColor.reload();
-            sGlassColor.reload();
-            sLineColor.reload();
-            sMainColor.reload();
-            sLabelBgColor.reload();
-
-            for (size_t i=0, n=lsp_min(size_t(LBL_COUNT), tk::AudioSample::LABELS); i<n; ++i)
-            {
-                sLabelTextColor[i].reload();
-            }
+            sync_status();
+            sync_mesh();
+            sync_labels();
         }
 
         void AudioSample::sync_status()

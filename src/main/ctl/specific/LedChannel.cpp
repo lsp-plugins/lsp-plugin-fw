@@ -210,14 +210,9 @@ namespace lsp
             }
         }
 
-        void LedChannel::schema_reloaded()
+        void LedChannel::reloaded(const tk::StyleSheet *sheet)
         {
-            Widget::schema_reloaded();
-
-            sValueColor.reload();
-            sYellowZoneColor.reload();
-            sRedZoneColor.reload();
-
+            Widget::reloaded(sheet);
             sync_channel();
         }
 

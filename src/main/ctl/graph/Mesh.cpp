@@ -206,12 +206,10 @@ namespace lsp
 
         }
 
-        void Mesh::schema_reloaded()
+        void Mesh::reloaded(const tk::StyleSheet *sheet)
         {
-            Widget::schema_reloaded();
-
-            sColor.reload();
-            sFillColor.reload();
+            Widget::reloaded(sheet);
+            rebuild_mesh();
         }
     }
 }

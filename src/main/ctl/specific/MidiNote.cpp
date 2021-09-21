@@ -228,14 +228,6 @@ namespace lsp
             }
         }
 
-        void MidiNote::schema_reloaded()
-        {
-            Widget::schema_reloaded();
-
-            sColor.reload();
-            sTextColor.reload();
-        }
-
         void MidiNote::commit_value(float value)
         {
             tk::Indicator *ind = tk::widget_cast<tk::Indicator>(wWidget);

@@ -54,7 +54,6 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        schema_reloaded();
         };
     }
 }

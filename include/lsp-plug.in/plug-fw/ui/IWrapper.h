@@ -52,6 +52,7 @@ namespace lsp
     namespace ui
     {
         class Module;
+        class ISchemaListener;
 
         /**
          * UI wrapper
@@ -74,21 +75,22 @@ namespace lsp
                 };
 
             protected:
-                tk::Display                *pDisplay;           // Display object
-                tk::Window                 *wWindow;            // The main window
-                ctl::Window                *pWindow;            // The controller for window
-                ui::Module                 *pUI;
-                resource::PrefixLoader      sLoader;            // Prefix-based resource loader
-                size_t                      nFlags;             // Flags
+                tk::Display                    *pDisplay;           // Display object
+                tk::Window                     *wWindow;            // The main window
+                ctl::Window                    *pWindow;            // The controller for window
+                ui::Module                     *pUI;
+                resource::PrefixLoader          sLoader;            // Prefix-based resource loader
+                size_t                          nFlags;             // Flags
 
-                lltl::parray<IPort>         vPorts;             // All possible ports
-                lltl::parray<IPort>         vSortedPorts;       // Alphabetically-sorted ports
-                lltl::parray<SwitchedPort>  vSwitchedPorts;     // Switched ports
-                lltl::parray<IPort>         vConfigPorts;       // Configuration ports
-                lltl::parray<IPort>         vTimePorts;         // Time-related ports
-                lltl::parray<IPort>         vCustomPorts;       // Custom-defined ports
-                lltl::pphash<LSPString, LSPString> vAliases;    // Port aliases
-                lltl::parray<IKVTListener>  vKvtListeners;      // KVT listeners
+                lltl::parray<IPort>             vPorts;             // All possible ports
+                lltl::parray<IPort>             vSortedPorts;       // Alphabetically-sorted ports
+                lltl::parray<SwitchedPort>      vSwitchedPorts;     // Switched ports
+                lltl::parray<IPort>             vConfigPorts;       // Configuration ports
+                lltl::parray<IPort>             vTimePorts;         // Time-related ports
+                lltl::parray<IPort>             vCustomPorts;       // Custom-defined ports
+                lltl::pphash<LSPString, LSPString> vAliases;        // Port aliases
+                lltl::parray<IKVTListener>      vKvtListeners;      // KVT listeners
+                lltl::parray<ISchemaListener>   vSchemaListeners;   // Schema change listeners
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
@@ -308,6 +310,20 @@ namespace lsp
                 virtual status_t            load_global_config(const io::Path *file);
                 virtual status_t            load_global_config(const LSPString *file);
                 virtual status_t            load_global_config(io::IInSequence *is);
+
+                /**
+                 * Add schema listener
+                 * @param listener schema listener
+                 * @return status of operation
+                 */
+                virtual status_t            add_schema_listener(ui::ISchemaListener *listener);
+
+                /**
+                 * remove schema listener
+                 * @param listener schema listener to remove
+                 * @return status of operation
+                 */
+                virtual status_t            remove_schema_listener(ui::ISchemaListener *listener);
 
                 /**
                  * Get package version

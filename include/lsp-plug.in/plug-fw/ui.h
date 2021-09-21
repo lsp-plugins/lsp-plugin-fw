@@ -31,6 +31,7 @@
     #include <lsp-plug.in/plug-fw/ui/IPort.h>
     #include <lsp-plug.in/plug-fw/ui/IPortListener.h>
     #include <lsp-plug.in/plug-fw/ui/IWrapper.h>
+    #include <lsp-plug.in/plug-fw/ui/ISchemaListener.h>
     #include <lsp-plug.in/plug-fw/ui/PortResolver.h>
     #include <lsp-plug.in/plug-fw/ui/IKVTListener.h>
 

@@ -300,25 +300,6 @@ namespace lsp
                 _this->submit_value();
             return STATUS_OK;
         }
-
-        void Button::schema_reloaded()
-        {
-            sColor.reload();
-            sTextColor.reload();
-            sBorderColor.reload();
-            sHoverColor.reload();
-            sTextHoverColor.reload();
-            sBorderHoverColor.reload();
-            sDownColor.reload();
-            sTextDownColor.reload();
-            sBorderDownColor.reload();
-            sDownHoverColor.reload();
-            sTextDownHoverColor.reload();
-            sBorderDownHoverColor.reload();
-            sHoleColor.reload();
-
-            Widget::schema_reloaded();
-        }
     } /* namespace ctl */
 } /* namespace lsp */
 

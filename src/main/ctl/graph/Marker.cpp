@@ -288,16 +288,10 @@ namespace lsp
                 gm->value()->set_max(mdata->max);
         }
 
-        void Marker::schema_reloaded()
+        void Marker::reloaded(const tk::StyleSheet *sheet)
         {
-            Widget::schema_reloaded();
-
-            sColor.reload();
-            sHoverColor.reload();
-            sLeftColor.reload();
-            sRightColor.reload();
-            sHoverLeftColor.reload();
-            sHoverRightColor.reload();
+            Widget::reloaded(sheet);
+            trigger_expr();
         }
 
         status_t Marker::slot_graph_resize(tk::Widget *sender, void *ptr, void *data)

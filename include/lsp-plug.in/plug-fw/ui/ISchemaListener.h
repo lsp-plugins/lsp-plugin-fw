@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 8 мая 2021 г.
+ * Created on: 21 сент. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,43 +19,41 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_VOID_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_VOID_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_UI_ISCHEMALISTENER_H_
+#define LSP_PLUG_IN_PLUG_FW_UI_ISCHEMALISTENER_H_
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
-    #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
+#ifndef LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
+    #error "Use #include <lsp-plug.in/plug-fw/ui/ui.h>"
+#endif /* LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/tk/tk.h>
 
 namespace lsp
 {
-    namespace ctl
+    namespace ui
     {
+        class IPort;
+
         /**
-         * Simple placeholder widget
+         * Port listener
          */
-        class Void: public Widget
+        class ISchemaListener
         {
             public:
-                static const ctl_class_t metadata;
-
-            protected:
-                Color       sColor;
+                explicit ISchemaListener();
+                virtual ~ISchemaListener();
 
             public:
-                explicit Void(ui::IWrapper *wrapper, tk::Void *widget);
-                virtual ~Void();
-
-                virtual status_t    init();
-
-            public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                /**
+                 * Is called when the schema becomes reloaded
+                 * @param port port that caused the change
+                 */
+                virtual void    reloaded(const tk::StyleSheet *sheet);
         };
-    }
-}
+
+    } /* namespace tk */
+} /* namespace lsp */
 
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_VOID_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_UI_ISCHEMALISTENER_H_ */

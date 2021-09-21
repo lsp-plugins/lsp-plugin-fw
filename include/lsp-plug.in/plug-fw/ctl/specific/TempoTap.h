@@ -61,7 +61,7 @@ namespace lsp
                 ctl::Color          sBorderDownHoverColor;
                 ctl::Color          sHoleColor;
 
-                ctl::Expression     sEditable;
+                ctl::Boolean        sEditable;
                 ctl::Boolean        sHover;
                 ctl::Padding        sTextPad;
                 ctl::LCString       sText;
@@ -82,7 +82,6 @@ namespace lsp
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
                 virtual void        end(ui::UIContext *ctx);
-                virtual void        schema_reloaded();
 
         };
     } // namespace ctl

@@ -94,6 +94,9 @@ namespace lsp
 
         void IWrapper::destroy()
         {
+            // Flush list of 'Schema reloaded' handlers
+            vSchemaListeners.flush();
+
             // Destroy window controller if present
             if (pWindow != NULL)
             {
@@ -1003,8 +1006,15 @@ namespace lsp
 
             if ((res = pDisplay->schema()->apply(&ss, &sLoader)) == STATUS_OK)
             {
-                if (pWindow != NULL)
-                    pWindow->schema_reloaded();
+                // TODO: update variables
+
+                // Notify all listeners in reverse order
+                for (size_t i=vSchemaListeners.size(); i > 0; )
+                {
+                    ISchemaListener *listener = vSchemaListeners.uget(--i);
+                    if (listener != NULL)
+                        listener->reloaded(&ss);
+                }
             }
             return res;
         }
@@ -1047,6 +1057,19 @@ namespace lsp
                 res         = res2;
 
             return res;
+        }
+
+        status_t IWrapper::add_schema_listener(ui::ISchemaListener *listener)
+        {
+            if (vSchemaListeners.contains(listener))
+                return STATUS_ALREADY_EXISTS;
+
+            return (vSchemaListeners.add(listener)) ? STATUS_OK : STATUS_NO_MEM;
+        }
+
+        status_t IWrapper::remove_schema_listener(ui::ISchemaListener *listener)
+        {
+            return (vSchemaListeners.premove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
         }
 
     }

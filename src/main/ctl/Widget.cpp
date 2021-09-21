@@ -52,6 +52,8 @@ namespace lsp
 
         void Widget::destroy()
         {
+            if (pWrapper != NULL)
+                pWrapper->remove_schema_listener(this);
             sProperties.unbind();
 
             pWrapper    = NULL;
@@ -469,6 +471,8 @@ namespace lsp
 
         status_t Widget::init()
         {
+            pWrapper->add_schema_listener(this);
+
             if (wWidget != NULL)
             {
                 sBgColor.init(pWrapper, wWidget->bg_color());
@@ -576,9 +580,8 @@ namespace lsp
         {
         }
 
-        void Widget::schema_reloaded()
+        void Widget::reloaded(const tk::StyleSheet *sheet)
         {
-            sBgColor.reload();
         }
 
         void Widget::property_changed(tk::Property *prop)

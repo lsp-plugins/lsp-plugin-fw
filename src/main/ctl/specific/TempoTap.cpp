@@ -91,7 +91,7 @@ namespace lsp
                 sBorderDownHoverColor.init(pWrapper, btn->border_down_hover_color());
                 sHoleColor.init(pWrapper, btn->hole_color());
 
-                sEditable.init(pWrapper, this);
+                sEditable.init(pWrapper, btn->editable());
                 sTextPad.init(pWrapper, btn->text_padding());
                 sText.init(pWrapper, btn->text());
 
@@ -139,6 +139,7 @@ namespace lsp
 
                 sHoleColor.set("hole.color", name, value);
 
+                sEditable.set("editable", name, value);
                 sTextPad.set("text.padding", name, value);
                 sTextPad.set("text.pad", name, value);
                 sTextPad.set("tpadding", name, value);
@@ -156,7 +157,6 @@ namespace lsp
                 set_param(btn->text_clip(), "tclip", name, value);
                 set_param(btn->font_scaling(), "font.scaling", name, value);
                 set_param(btn->font_scaling(), "font.scale", name, value);
-                set_expr(&sEditable, "editable", name, value);
                 set_text_layout(btn->text_layout(), name, value);
             }
 
@@ -173,25 +173,6 @@ namespace lsp
             }
 
             Widget::end(ctx);
-        }
-
-        void TempoTap::schema_reloaded()
-        {
-            sColor.reload();
-            sTextColor.reload();
-            sBorderColor.reload();
-            sHoverColor.reload();
-            sTextHoverColor.reload();
-            sBorderHoverColor.reload();
-            sDownColor.reload();
-            sTextDownColor.reload();
-            sBorderDownColor.reload();
-            sDownHoverColor.reload();
-            sTextDownHoverColor.reload();
-            sBorderDownHoverColor.reload();
-            sHoleColor.reload();
-
-            Widget::schema_reloaded();
         }
 
         uint64_t TempoTap::time()
