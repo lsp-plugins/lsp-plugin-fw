@@ -23,6 +23,8 @@
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/stdlib/string.h>
 
+#define LCH_HUE_SHIFT       0.08333f /* 1/12 */
+
 namespace lsp
 {
     namespace ctl
@@ -97,6 +99,17 @@ namespace lsp
             return dfl;
         }
 
+        float Color::lch_hue(float hue)
+        {
+            hue += LCH_HUE_SHIFT;
+            if (hue < 0.0f)
+                hue    += 1.0f;
+            else if (hue > 1.0f)
+                hue    -= 1.0f;
+
+            return hue * 360.0f;
+        }
+
         void Color::apply_change(size_t index, expr::value_t *value)
         {
             // Perform the cast
@@ -136,7 +149,7 @@ namespace lsp
                 case C_LAB_B:       pColor->lab_b(value->v_float);          break;
                 case C_LCH_L:       pColor->lch_l(value->v_float);          break;
                 case C_LCH_C:       pColor->lch_c(value->v_float);          break;
-                case C_LCH_H:       pColor->lch_h(value->v_float * 360.0f); break;
+                case C_LCH_H:       pColor->lch_h(lch_hue(value->v_float)); break;
                 case C_ALPHA:       pColor->alpha(value->v_float);          break;
                 default: break;
             }

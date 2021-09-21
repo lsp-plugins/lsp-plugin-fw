@@ -76,6 +76,7 @@ namespace lsp
             protected:
                 void                apply_change(size_t index, expr::value_t *value);
                 control_t           get_control(const char *property, control_t dfl) const;
+                static float        lch_hue(float hue);
 
             public:
                 explicit Color();
