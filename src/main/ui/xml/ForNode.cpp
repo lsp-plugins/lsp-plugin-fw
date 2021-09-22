@@ -51,12 +51,17 @@ namespace lsp
             {
             }
 
-            status_t ForNode::iterate(const expr::value_t *value)
+            status_t ForNode::iterate(const expr::value_t *value, ssize_t counter)
             {
                 status_t res;
                 if (nFlags & F_ID_SET)
                 {
                     if ((res = pContext->vars()->set(&sID, value)) != STATUS_OK)
+                        return res;
+                }
+                if (nFlags & F_COUNTER_SET)
+                {
+                    if ((res = pContext->vars()->set_int(&sCounter, counter)) != STATUS_OK)
                         return res;
                 }
                 return playback();
@@ -170,6 +175,20 @@ namespace lsp
                         }
                         nFlags |= F_LIST_SET;
                     }
+                    else if (name->equals_ascii("counter"))
+                    {
+                        if (nFlags & F_COUNTER_SET)
+                        {
+                            lsp_error("Duplicate attribute '%s': %s", name->get_native(), value->get_native());
+                            return STATUS_BAD_FORMAT;
+                        }
+                        if ((res = pContext->eval_string(&sCounter, value)) != STATUS_OK)
+                        {
+                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
+                            return res;
+                        }
+                        nFlags |= F_COUNTER_SET;
+                    }
                     else
                     {
                         lsp_error("Unknown attribute: %s", name->get_utf8());
@@ -240,6 +259,7 @@ namespace lsp
                     return res;
 
                 expr::init_value(&value);
+                ssize_t counter = 0;
 
                 if (nFlags & F_LIST_SET)
                 {
@@ -259,7 +279,7 @@ namespace lsp
                             }
 
                             // Iterate
-                            if ((res = iterate(&value)) != STATUS_OK)
+                            if ((res = iterate(&value, counter++)) != STATUS_OK)
                                 break;
                         }
                     }
@@ -276,7 +296,7 @@ namespace lsp
                         for (ssize_t x = nFirst; x <= nLast; x += nStep)
                         {
                             expr::set_value_int(&value, x);
-                            if ((res = iterate(&value)) != STATUS_OK)
+                            if ((res = iterate(&value, counter++)) != STATUS_OK)
                                 break;
                         }
                     }
@@ -285,7 +305,7 @@ namespace lsp
                         for (ssize_t x = nFirst; x >= nLast; x += nStep)
                         {
                             expr::set_value_int(&value, x);
-                            if ((res = iterate(&value)) != STATUS_OK)
+                            if ((res = iterate(&value, counter++)) != STATUS_OK)
                                 break;
                         }
                     }

@@ -50,19 +50,21 @@ namespace lsp
                         F_LAST_SET      = 1 << 2,
                         F_STEP_SET      = 1 << 3,
                         F_COUNT_SET     = 1 << 4,
-                        F_LIST_SET      = 1 << 5
+                        F_LIST_SET      = 1 << 5,
+                        F_COUNTER_SET   = 1 << 6
                     };
 
                 private:
                     LSPString       sID;
                     LSPString       sList;
+                    LSPString       sCounter;
                     ssize_t         nFirst;
                     ssize_t         nLast;
                     ssize_t         nStep;
                     size_t          nFlags;
 
                 protected:
-                    status_t            iterate(const expr::value_t *value);
+                    status_t            iterate(const expr::value_t *value, ssize_t counter);
 
                 public:
                     explicit ForNode(UIContext *ctx, Node *parent);
