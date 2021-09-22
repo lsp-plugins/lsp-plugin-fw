@@ -22,6 +22,8 @@
 #ifndef PRIVATE_UI_XML_FORNODE_H_
 #define PRIVATE_UI_XML_FORNODE_H_
 
+#include <lsp-plug.in/expr/types.h>
+
 #include <private/ui/xml/Node.h>
 #include <private/ui/xml/PlaybackNode.h>
 
@@ -40,14 +42,27 @@ namespace lsp
                     ForNode & operator = (const ForNode &src);
                     ForNode(const ForNode &);
 
+                protected:
+                    enum flags_t
+                    {
+                        F_ID_SET        = 1 << 0,
+                        F_FIRST_SET     = 1 << 1,
+                        F_LAST_SET      = 1 << 2,
+                        F_STEP_SET      = 1 << 3,
+                        F_COUNT_SET     = 1 << 4,
+                        F_LIST_SET      = 1 << 5
+                    };
+
                 private:
-                    LSPString      *pID;
+                    LSPString       sID;
+                    LSPString       sList;
                     ssize_t         nFirst;
                     ssize_t         nLast;
                     ssize_t         nStep;
+                    size_t          nFlags;
 
                 protected:
-                    status_t            iterate(ssize_t value);
+                    status_t            iterate(const expr::value_t *value);
 
                 public:
                     explicit ForNode(UIContext *ctx, Node *parent);

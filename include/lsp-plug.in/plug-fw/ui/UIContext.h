@@ -148,6 +148,15 @@ namespace lsp
 
                 /**
                  * Evaluate expression
+                 * @param eval expression to evaluate
+                 * @param expr expression to evaluate
+                 * @param flags expression compilation flags
+                 * @return status of operation
+                 */
+                status_t    evaluate(expr::Expression *eval, const LSPString *expr, size_t flags);
+
+                /**
+                 * Evaluate expression
                  * @param value value to return
                  * @param expr expression to evaluate
                  * @param flags expression compilation flags

@@ -68,6 +68,32 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t UIContext::evaluate(expr::Expression *eval, const LSPString *expr, size_t flags)
+        {
+            status_t res;
+
+            // Parse expression
+            if ((res = eval->parse(expr, flags)) != STATUS_OK)
+            {
+                lsp_error("Could not parse expression: %s", expr->get_utf8());
+                return res;
+            }
+
+            // Update resolver
+            expr::Resolver *resolver = eval->resolver();
+            eval->set_resolver(vars());
+
+            // Evaluate expression
+            res = eval->evaluate();
+            if (res != STATUS_OK)
+                lsp_error("Could not evaluate expression: %s", expr->get_utf8());
+
+            // Restore resolver
+            eval->set_resolver(resolver);
+
+            return res;
+        }
+
         status_t UIContext::evaluate(expr::value_t *value, const LSPString *expr, size_t flags)
         {
             status_t res;
