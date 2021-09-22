@@ -80,6 +80,7 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/FBuffer.h>
 
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/FileButton.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedChannel.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedMeter.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/MidiNote.h>
