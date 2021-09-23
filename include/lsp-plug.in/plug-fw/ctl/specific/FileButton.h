@@ -42,11 +42,29 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                class DragInSink: public tk::URLSink
+                {
+                    protected:
+                        FileButton     *pButton;
+
+                    public:
+                        explicit DragInSink(FileButton *button);
+                        virtual ~DragInSink();
+
+                        void unbind();
+                        virtual status_t    commit_url(const LSPString *url);
+                };
+
+            protected:
                 bool                bSave;
                 ui::IPort          *pFile;
                 ui::IPort          *pCommand;
                 ui::IPort          *pProgress;
                 ui::IPort          *pPath;
+
+                DragInSink         *pDragInSink;
+                tk::FileDialog     *pDialog;
+                lltl::parray<file_format_t>     vFormats;
 
                 ctl::Expression     sStatus;
                 ctl::Expression     sProgress;
@@ -64,6 +82,7 @@ namespace lsp
 
             protected:
                 static status_t     slot_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_drag_request(tk::Widget *sender, void *ptr, void *data);
 
             public:
                 explicit FileButton(ui::IWrapper *wrapper, tk::FileButton *widget, bool save);

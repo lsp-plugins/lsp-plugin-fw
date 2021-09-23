@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/fmt/url.h>
 
 namespace lsp
 {
@@ -77,20 +78,74 @@ namespace lsp
         };
 
         //-----------------------------------------------------------------
+        FileButton::DragInSink::DragInSink(FileButton *button)
+        {
+            pButton         = button;
+        }
+
+        FileButton::DragInSink::~DragInSink()
+        {
+            unbind();
+        }
+
+        void FileButton::DragInSink::unbind()
+        {
+            if (pButton != NULL)
+            {
+                if (pButton->pDragInSink == this)
+                    pButton->pDragInSink    = NULL;
+                pButton = NULL;
+            }
+        }
+
+        status_t FileButton::DragInSink::commit_url(const LSPString *url)
+        {
+            if ((url == NULL) || (pButton->pFile == NULL))
+                return STATUS_OK;
+
+            LSPString decoded;
+            status_t res = (url->starts_with_ascii("file://")) ?
+                    url::decode(&decoded, url, 7) :
+                    url::decode(&decoded, url);
+
+            if (res != STATUS_OK)
+                return res;
+
+            lsp_trace("Set file path to %s", decoded.get_native());
+            const char *path = decoded.get_utf8();
+
+            pButton->pFile->write(path, strlen(path));
+            pButton->pFile->notify_all();
+
+            return STATUS_OK;
+        }
+
+        //-----------------------------------------------------------------
         const ctl_class_t FileButton::metadata          = { "FileButton", &Widget::metadata };
 
         FileButton::FileButton(ui::IWrapper *wrapper, tk::FileButton *widget, bool save):
             Widget(wrapper, widget)
         {
-            bSave       = save;
-            pFile       = NULL;
-            pCommand    = NULL;
-            pProgress   = NULL;
-            pPath       = NULL;
+            bSave           = save;
+            pFile           = NULL;
+            pCommand        = NULL;
+            pProgress       = NULL;
+            pPath           = NULL;
+
+            pDragInSink     = NULL;
+            pDialog         = NULL;
         }
 
         FileButton::~FileButton()
         {
+            // Destroy sink
+            DragInSink *sink = pDragInSink;
+            if (sink != NULL)
+            {
+                sink->unbind();
+                sink->release();
+                sink   = NULL;
+            }
         }
 
         status_t FileButton::init()
@@ -98,6 +153,12 @@ namespace lsp
             status_t res = Widget::init();
             if (res != STATUS_OK)
                 return res;
+
+            // Initialize sink
+            pDragInSink = new DragInSink(this);
+            if (pDragInSink == NULL)
+                return STATUS_NO_MEM;
+            pDragInSink->acquire();
 
             tk::FileButton *fb = tk::widget_cast<tk::FileButton>(wWidget);
             if (fb != NULL)
@@ -121,6 +182,7 @@ namespace lsp
 
                 // Bind slots
                 fb->slots()->bind(tk::SLOT_SUBMIT, slot_submit, this);
+                fb->slots()->bind(tk::SLOT_DRAG_REQUEST, slot_drag_request, this);
             }
 
             return STATUS_OK;
@@ -198,6 +260,45 @@ namespace lsp
             FileButton *_this = static_cast<FileButton *>(ptr);
             if (_this != NULL)
                 _this->on_submit();
+            return STATUS_OK;
+        }
+
+        status_t FileButton::slot_drag_request(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get controller and display
+            FileButton *_this   = static_cast<FileButton *>(ptr);
+            if (_this == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            tk::Display *dpy    = (_this->wWidget != NULL) ? _this->wWidget->display() : NULL;
+            if (dpy == NULL)
+                return STATUS_BAD_STATE;
+
+            // Disable drag-in for the 'save' widget
+            if (_this->bSave)
+            {
+                dpy->reject_drag();
+                lsp_trace("Rejected drag");
+                return STATUS_OK;
+            }
+
+            // Process the drag request
+            ws::rectangle_t r;
+            _this->wWidget->get_rectangle(&r);
+
+            const char * const *ctype = dpy->get_drag_mime_types();
+            ssize_t idx = _this->pDragInSink->select_mime_type(ctype);
+            if (idx >= 0)
+            {
+                dpy->accept_drag(_this->pDragInSink, ws::DRAG_COPY, true, &r);
+                lsp_trace("Accepted drag");
+            }
+            else
+            {
+                dpy->reject_drag();
+                lsp_trace("Rejected drag");
+            }
+
             return STATUS_OK;
         }
 
