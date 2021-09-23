@@ -106,7 +106,7 @@ namespace lsp
                 sTextColor.set("tcolor", name, value);
                 sSpinColor.set("spin.color", name, value);
                 sSpinColor.set("scolor", name, value);
-                sEmptyText.set("text.empty", name, value);
+                sEmptyText.set("text", name, value);
                 sTextPadding.set("text.padding", name, value);
                 sEmbed.set("embed", name, value);
 
