@@ -168,6 +168,9 @@ namespace lsp
             else if (!strcmp(name, "expand"))       PARSE_BOOL(value, alloc->set_expand(__));
             else if (!strcmp(name, "hexpand"))      PARSE_BOOL(value, alloc->set_hexpand(__));
             else if (!strcmp(name, "vexpand"))      PARSE_BOOL(value, alloc->set_vexpand(__));
+            else if (!strcmp(name, "reduce"))       PARSE_BOOL(value, alloc->set_reduce(__));
+            else if (!strcmp(name, "hreduce"))      PARSE_BOOL(value, alloc->set_hreduce(__));
+            else if (!strcmp(name, "vreduce"))      PARSE_BOOL(value, alloc->set_vreduce(__));
             else return false;
 
             return true;
