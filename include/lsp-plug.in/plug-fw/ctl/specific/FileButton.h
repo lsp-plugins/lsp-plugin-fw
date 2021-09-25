@@ -42,6 +42,14 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                enum file_status_t
+                {
+                    FB_SELECT_FILE,
+                    FB_PROGRESS,
+                    FB_SUCCESS,
+                    FB_ERROR
+                };
+
                 class DragInSink: public tk::URLSink
                 {
                     protected:
@@ -56,11 +64,12 @@ namespace lsp
                 };
 
             protected:
+                size_t              nStatus;        // Current status of file load
                 bool                bSave;
-                ui::IPort          *pFile;
-                ui::IPort          *pCommand;
-                ui::IPort          *pProgress;
-                ui::IPort          *pPath;
+                ui::IPort          *pPort;          // Port that contains name of actual audio file
+                ui::IPort          *pCommand;       // Port that triggers command for save/load operation
+                ui::IPort          *pProgress;      // Port that indicates the loading progress
+                ui::IPort          *pPathPort;      // Port that contains the current navigation path of file dialog
 
                 DragInSink         *pDragInSink;
                 tk::FileDialog     *pDialog;
@@ -77,12 +86,16 @@ namespace lsp
                 ctl::Color          sInvTextColor;
 
             protected:
-                void                trigger_expr();
-                void                on_submit();
+                void                update_state();
+                void                show_file_dialog();
+                void                update_path();
+                void                commit_file();
 
             protected:
                 static status_t     slot_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_drag_request(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_dialog_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_dialog_hide(tk::Widget *sender, void *ptr, void *data);
 
             public:
                 explicit FileButton(ui::IWrapper *wrapper, tk::FileButton *widget, bool save);

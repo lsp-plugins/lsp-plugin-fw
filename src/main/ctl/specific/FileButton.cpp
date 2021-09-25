@@ -77,6 +77,15 @@ namespace lsp
             NULL
         };
 
+        static const char *styles[] =
+        {
+            "FileButton::Select",
+            "FileButton::Progress",
+            "FileButton::Success",
+            "FileButton::Error",
+            NULL
+        };
+
         //-----------------------------------------------------------------
         FileButton::DragInSink::DragInSink(FileButton *button)
         {
@@ -100,7 +109,7 @@ namespace lsp
 
         status_t FileButton::DragInSink::commit_url(const LSPString *url)
         {
-            if ((url == NULL) || (pButton->pFile == NULL))
+            if ((url == NULL) || (pButton->pPort == NULL))
                 return STATUS_OK;
 
             LSPString decoded;
@@ -114,8 +123,8 @@ namespace lsp
             lsp_trace("Set file path to %s", decoded.get_native());
             const char *path = decoded.get_utf8();
 
-            pButton->pFile->write(path, strlen(path));
-            pButton->pFile->notify_all();
+            pButton->pPort->write(path, strlen(path));
+            pButton->pPort->notify_all();
 
             return STATUS_OK;
         }
@@ -126,11 +135,12 @@ namespace lsp
         FileButton::FileButton(ui::IWrapper *wrapper, tk::FileButton *widget, bool save):
             Widget(wrapper, widget)
         {
+            nStatus         = FB_SELECT_FILE;
             bSave           = save;
-            pFile           = NULL;
+            pPort           = NULL;
             pCommand        = NULL;
             pProgress       = NULL;
-            pPath           = NULL;
+            pPathPort       = NULL;
 
             pDragInSink     = NULL;
             pDialog         = NULL;
@@ -145,6 +155,14 @@ namespace lsp
                 sink->unbind();
                 sink->release();
                 sink   = NULL;
+            }
+
+            // Destroy dialog
+            if (pDialog != NULL)
+            {
+                pDialog->destroy();
+                delete pDialog;
+                pDialog     = NULL;
             }
         }
 
@@ -174,6 +192,9 @@ namespace lsp
                 sTextColor.init(pWrapper, fb->text_color());
                 sInvTextColor.init(pWrapper, fb->inv_text_color());
 
+                // By default use 'all' file formats
+                parse_file_formats(&vFormats, "all");
+
                 // Fill the estimation list
                 tk::StringList *sl = fb->text_list();
                 sl->clear();
@@ -193,7 +214,7 @@ namespace lsp
             tk::FileButton *fb = tk::widget_cast<tk::FileButton>(wWidget);
             if (fb != NULL)
             {
-                bind_port(&pFile, "id", name, value);
+                bind_port(&pPort, "id", name, value);
                 bind_port(&pCommand, "command_id", name, value);
                 bind_port(&pCommand, "command.id", name, value);
                 bind_port(&pProgress, "progress_id", name, value);
@@ -222,44 +243,211 @@ namespace lsp
                 set_text_layout(fb->text_layout(), "text.layout", name, value);
                 set_text_layout(fb->text_layout(), "tlayout", name, value);
                 set_font(fb->font(), "font", name, value);
+
+                // Parse file formats
+                if ((!strcmp(name, "format")) || (!strcmp(name, "formats")) || (!strcmp(name, "fmt")))
+                    parse_file_formats(&vFormats, value);
             }
 
             return Widget::set(ctx, name, value);
         }
 
-        void FileButton::trigger_expr()
+        void FileButton::update_state()
         {
-            // TODO
+            // Compute the state
+            tk::FileButton *fb = tk::widget_cast<tk::FileButton>(wWidget);
+            if (fb == NULL)
+                return;
+
+            size_t state = sStatus.evaluate_int(STATUS_UNKNOWN_ERR);
+            switch (state)
+            {
+                case STATUS_UNSPECIFIED:    state = FB_SELECT_FILE; break;
+                case STATUS_IN_PROCESS:     state = FB_PROGRESS;    break;
+                case STATUS_OK:             state = FB_SUCCESS;     break;
+                default:                    state = FB_ERROR;       break;
+            }
+            const char * const *keys = (bSave) ? save_keys : load_keys;
+
+            // Discard styles
+            for (const char * const *s = styles; *s != NULL; ++s)
+                revoke_style(fb, *s);
+
+            float progress = fb->value()->min();
+            if (state == FB_PROGRESS)
+            {
+                if (sProgress.valid())
+                    progress = sProgress.evaluate_float(fb->value()->min());
+                else if (pProgress != NULL)
+                    progress = pProgress->value();
+            }
+            else if ((state == FB_SUCCESS) || (state == FB_ERROR))
+            {
+                if (pCommand != NULL)
+                    pCommand->set_value(0.0f);
+            }
+
+            // Update state of widget
+            inject_style(fb, styles[state]);
+            fb->text()->set(keys[state]);
+            fb->value()->set(progress);
         }
 
         void FileButton::end(ui::UIContext *ctx)
         {
             Widget::end(ctx);
-            trigger_expr();
+
+            tk::FileButton *fb = tk::widget_cast<tk::FileButton>(wWidget);
+            if (fb != NULL)
+            {
+                fb->value()->set_range(0.0f, 1.0f);
+                if (pProgress != NULL)
+                {
+                    const meta::port_t *meta = pProgress->metadata();
+                    if (meta != NULL)
+                    {
+                        if (meta->flags & meta::F_LOWER)
+                            fb->value()->set_min(meta->min);
+                        if (meta->flags & meta::F_UPPER)
+                            fb->value()->set_max(meta->max);
+                    }
+                }
+            }
+
+            update_state();
         }
 
         void FileButton::notify(ui::IPort *port)
         {
             Widget::notify(port);
+            bool update = false;
+            if (port != NULL)
+            {
+                if (pProgress == port)
+                    update      = true;
+                if (sProgress.depends(port))
+                    update      = true;
+                if (sStatus.depends(port))
+                    update      = true;
+            }
+
+            if (update)
+                update_state();
         }
 
         void FileButton::reloaded(const tk::StyleSheet *sheet)
         {
             Widget::reloaded(sheet);
-
-            trigger_expr();
+            update_state();
         }
 
-        void FileButton::on_submit()
+        void FileButton::show_file_dialog()
         {
-            lsp_trace("on_submit");
+            if (pDialog == NULL)
+            {
+                pDialog = new tk::FileDialog(wWidget->display());
+                if (pDialog == NULL)
+                    return;
+                status_t res = pDialog->init();
+                if (res != STATUS_OK)
+                {
+                    pDialog->destroy();
+                    delete pDialog;
+                    pDialog = NULL;
+                    return;
+                }
+
+                // Configure file dialog
+                if (bSave)
+                {
+                    pDialog->title()->set("titles.save_to_file");
+                    pDialog->mode()->set(tk::FDM_SAVE_FILE);
+                    pDialog->action_text()->set("actions.save");
+                    pDialog->use_confirm()->set(true);
+                    pDialog->confirm_message()->set("messages.file.confirm_overwrite");
+                }
+                else
+                {
+                    pDialog->title()->set("titles.load_from_file");
+                    pDialog->mode()->set(tk::FDM_OPEN_FILE);
+                    pDialog->action_text()->set("actions.open");
+                }
+
+                // Add all listed formats
+                tk::FileMask *ffi;
+                for (size_t i=0, n=vFormats.size(); i<n; ++i)
+                {
+                    file_format_t *f = vFormats.uget(i);
+                    if ((ffi = pDialog->filter()->add()) != NULL)
+                    {
+                        ffi->pattern()->set(f->filter, f->flags);
+                        ffi->title()->set(f->title);
+                        ffi->extensions()->set_raw(f->extension);
+                    }
+                }
+
+                pDialog->selected_filter()->set(0);
+
+                pDialog->slots()->bind(tk::SLOT_SUBMIT, slot_dialog_submit, this);
+                pDialog->slots()->bind(tk::SLOT_HIDE, slot_dialog_hide, this);
+            }
+
+            // Initialize the current path
+            const char *path = (pPathPort != NULL) ? pPathPort->buffer<char>() : NULL;
+            if (path != NULL)
+                pDialog->path()->set_raw(path);
+
+            // Show the dialog
+            pDialog->show(wWidget);
+        }
+
+        void FileButton::update_path()
+        {
+            if ((pPathPort == NULL) || (pDialog == NULL))
+                return;
+
+            // Obtain the current path from dialog
+            LSPString path;
+            if (pDialog->path()->format(&path) != STATUS_OK)
+                return;
+            if (path.length() <= 0)
+                return;
+
+            // Write new path as UTF-8 string
+            const char *u8path = path.get_utf8();
+            pPathPort->write(u8path, strlen(u8path));
+            pPathPort->notify_all();
+        }
+
+        void FileButton::commit_file()
+        {
+            if (pDialog == NULL)
+                return;
+
+            LSPString path;
+            if (pDialog->selected_file()->format(&path) != STATUS_OK)
+                return;
+
+            // Write new path as UTF-8 string
+            if (pPort != NULL)
+            {
+                const char *u8path = path.get_utf8();
+                pPort->write(u8path, strlen(u8path));
+                pPort->notify_all();
+            }
+            // Trigger file save
+            if (pCommand != NULL)
+            {
+                pCommand->set_value(1.0f);
+                pCommand->notify_all();
+            }
         }
 
         status_t FileButton::slot_submit(tk::Widget *sender, void *ptr, void *data)
         {
             FileButton *_this = static_cast<FileButton *>(ptr);
             if (_this != NULL)
-                _this->on_submit();
+                _this->show_file_dialog();
             return STATUS_OK;
         }
 
@@ -299,6 +487,25 @@ namespace lsp
                 lsp_trace("Rejected drag");
             }
 
+            return STATUS_OK;
+        }
+
+        status_t FileButton::slot_dialog_submit(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get controller and display
+            FileButton *_this   = static_cast<FileButton *>(ptr);
+            if (_this != NULL)
+                _this->commit_file();
+
+            return STATUS_OK;
+        }
+
+        status_t FileButton::slot_dialog_hide(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get controller and display
+            FileButton *_this   = static_cast<FileButton *>(ptr);
+            if (_this != NULL)
+                _this->update_path();
             return STATUS_OK;
         }
 

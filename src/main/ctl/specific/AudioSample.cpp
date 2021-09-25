@@ -680,6 +680,7 @@ namespace lsp
                 }
 
                 pDialog->title()->set("titles.load_audio_file");
+                pDialog->mode()->set(tk::FDM_OPEN_FILE);
                 tk::FileMask *ffi;
 
                 // Add all listed formats
