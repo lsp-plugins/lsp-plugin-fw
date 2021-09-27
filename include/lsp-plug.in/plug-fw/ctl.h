@@ -79,6 +79,9 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/Mesh.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/FBuffer.h>
 
+    #include <lsp-plug.in/plug-fw/ctl/3d/types.h>
+    #include <lsp-plug.in/plug-fw/ctl/3d/Viewer3D.h>
+
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/FileButton.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedChannel.h>
