@@ -453,7 +453,7 @@ namespace lsp
             buf.type            = r3d::PRIMITIVE_LINES;
             buf.width           = 2.0f;
             buf.count           = sizeof(axis_lines) / (sizeof(r3d::dot4_t) * 2);
-            buf.flags           = 0;
+            buf.flags           = r3d::BUFFER_BLENDING;
 
             buf.vertex.data     = axis_lines;
             buf.vertex.stride   = sizeof(r3d::dot4_t);
