@@ -45,7 +45,7 @@ namespace lsp
         CTL_FACTORY_IMPL_START(Viewer3D)
             status_t res;
 
-            if (!name->equals_ascii("viewer3d"))
+            if (!name->equals_ascii("area3d"))
                 return STATUS_NOT_FOUND;
 
             tk::Area3D *w = new tk::Area3D(context->display());
@@ -117,7 +117,21 @@ namespace lsp
             tk::Area3D *a3d = tk::widget_cast<tk::Area3D>(wWidget);
             if (a3d != NULL)
             {
-                // TODO
+                vAxes[0].bind("axis.x.color", a3d->style());
+                vAxes[1].bind("axis.y.color", a3d->style());
+                vAxes[2].bind("axis.z.color", a3d->style());
+
+                sBorderFlat.init(pWrapper, a3d->border_flat());
+                sColor.init(pWrapper, a3d->color());
+                sBorderColor.init(pWrapper, a3d->border_color());
+                sGlassColor.init(pWrapper, a3d->glass_color());
+                sAxes[0].init(pWrapper, &vAxes[0]);
+                sAxes[1].init(pWrapper, &vAxes[1]);
+                sAxes[2].init(pWrapper, &vAxes[2]);
+
+                vAxes[0].set("area3d_x");
+                vAxes[1].set("area3d_y");
+                vAxes[2].set("area3d_z");
 
                 a3d->slots()->bind(tk::SLOT_DRAW3D, slot_draw3d, this);
                 a3d->slots()->bind(tk::SLOT_MOUSE_DOWN, slot_mouse_down, this);
@@ -143,24 +157,26 @@ namespace lsp
                 bind_port(&pYaw, "yaw.id", name, value);
                 bind_port(&pPitch, "pitch.id", name, value);
 
+                // Set-up static properties
+                set_constraints(a3d->constraints(), name, value);
+                set_param(a3d->border_size(), "border.size", name, value);
+                set_param(a3d->border_size(), "bsize", name, value);
+                set_param(a3d->border_radius(), "border.radius", name, value);
+                set_param(a3d->border_radius(), "bradius", name, value);
+                set_param(a3d->border_radius(), "brad", name, value);
+                set_param(a3d->glass(), "glass", name, value);
+
+                // Set-up dynamic properties
+                sBorderFlat.set("border.flat", name, value);
+                sBorderFlat.set("bflat", name, value);
+                sColor.set("color", name, value);
+                sBorderColor.set("border.color", name, value);
+                sBorderColor.set("bcolor", name, value);
+                sGlassColor.set("glass.color", name, value);
+                sGlassColor.set("gcolor", name, value);
+
 //                case A_ID:
 //                    BIND_PORT(pRegistry, pFile, value);
-//                    break;
-//                case A_WIDTH:
-//                    if (r3d != NULL)
-//                        PARSE_INT(value, r3d->set_min_width(__));
-//                    break;
-//                case A_HEIGHT:;
-//                    if (r3d != NULL)
-//                        PARSE_INT(value, r3d->set_min_height(__));
-//                    break;
-//                case A_BORDER:
-//                    if (r3d != NULL)
-//                        PARSE_INT(value, r3d->set_border(__));
-//                    break;
-//                case A_SPACING:
-//                    if (r3d != NULL)
-//                        PARSE_INT(value, r3d->set_radius(__));
 //                    break;
 //                case A_STATUS_ID:
 //                    BIND_PORT(pRegistry, pStatus, value);
@@ -190,8 +206,14 @@ namespace lsp
             Widget::end(ctx);
         }
 
-        void Viewer3D::commit_view(ws::IR3DBackend *r3d)
+        void Viewer3D::property_changed(tk::Property *prop)
         {
+            // Test Axes colors for changes
+            for (size_t i=0; i<3; ++i)
+            {
+                if (vAxes[i].is(prop))
+                    wWidget->query_draw();
+            }
         }
 
         void Viewer3D::rotate_camera(ssize_t dx, ssize_t dy)
@@ -325,38 +347,14 @@ namespace lsp
             wWidget->query_draw();
         }
 
-        status_t Viewer3D::render(ws::IR3DBackend *r3d)
+        void Viewer3D::setup_camera(ws::IR3DBackend *r3d)
         {
-            // Get location of the area
-            ssize_t vx, vy, vw, vh;
-            r3d->get_location(&vx, &vy, &vw, &vh);
-
-            // Apply the world matrix
-            {
-                dsp::matrix3d_t world;
-
-                // Compute rotation matrix
-                dsp::matrix3d_t delta, tmp;
-                dsp::init_matrix3d_rotate_z(&delta, sAngles.fYaw);
-                dsp::init_matrix3d_rotate_x(&tmp, sAngles.fPitch);
-                dsp::apply_matrix3d_mm1(&delta, &tmp);
-
-                // Compute camera direction vector
-                dsp::init_vector_dxyz(&sDir, 0.0f, -1.0f, 0.0f);
-                dsp::init_vector_dxyz(&sSide, -1.0f, 0.0f, 0.0f);
-                dsp::init_vector_dxyz(&sXTop, 0.0f, 0.0f, -1.0f);
-                dsp::apply_matrix3d_mv1(&sDir, &delta);
-                dsp::apply_matrix3d_mv1(&sSide, &delta);
-                dsp::apply_matrix3d_mv1(&sXTop, &delta);
-
-                // Initialize camera look
-                dsp::init_matrix3d_lookat_p1v2(&world, &sPov, &sDir, &sTop);
-
-                r3d->set_matrix(r3d::MATRIX_WORLD, reinterpret_cast<r3d::mat4_t *>(&world));
-            }
-
             // Apply the projection matrix
             {
+                ssize_t vx, vy, vw, vh;
+
+                // Get location of the area
+                r3d->get_location(&vx, &vy, &vw, &vh);
                 dsp::matrix3d_t projection;
 
                 float aspect    = float(vw)/float(vh);
@@ -373,17 +371,31 @@ namespace lsp
             // Apply the view matrix
             {
                 dsp::matrix3d_t view;
+
+                // Compute rotation matrix
+                dsp::matrix3d_t delta, tmp;
+                dsp::init_matrix3d_rotate_z(&delta, sAngles.fYaw);
+                dsp::init_matrix3d_rotate_x(&tmp, sAngles.fPitch);
+                dsp::apply_matrix3d_mm1(&delta, &tmp);
+
+                // Compute camera direction vector
+                dsp::init_vector_dxyz(&sDir, 0.0f, -1.0f, 0.0f);
+                dsp::init_vector_dxyz(&sSide, -1.0f, 0.0f, 0.0f);
+                dsp::init_vector_dxyz(&sXTop, 0.0f, 0.0f, -1.0f);
+                dsp::apply_matrix3d_mv1(&sDir, &delta);
+                dsp::apply_matrix3d_mv1(&sSide, &delta);
+                dsp::apply_matrix3d_mv1(&sXTop, &delta);
+
+                // Initialize camera look
                 dsp::init_matrix3d_lookat_p1v2(&view, &sPov, &sDir, &sTop);
 
                 r3d->set_matrix(r3d::MATRIX_VIEW, reinterpret_cast<r3d::mat4_t *>(&view));
             }
+        }
 
-
-
-            // Need to update vertex list for the scene?
-            commit_view(r3d);
-
-            // Set Light parameters
+        void Viewer3D::setup_lighting(ws::IR3DBackend *r3d)
+        {
+            // TODO
 //            r3d::light_t light;
 //
 //            light.type          = r3d::LIGHT_POINT;
@@ -415,9 +427,17 @@ namespace lsp
 
             // Enable/disable lighting
 //            r3d->set_lights(&light, 1);
+        }
 
+        void Viewer3D::commit_view(ws::IR3DBackend *r3d)
+        {
+            // TODO
+        }
+
+        void Viewer3D::draw_axes(ws::IR3DBackend *r3d)
+        {
             r3d::buffer_t buf;
-            init_buffer(&buf);
+            r3d::init_buffer(&buf);
 
             // Draw axes
             buf.type            = r3d::PRIMITIVE_LINES;
@@ -437,7 +457,11 @@ namespace lsp
 
             // Draw call
             r3d->draw_primitives(&buf);
+        }
 
+        void Viewer3D::draw_supplementary(ws::IR3DBackend *r3d)
+        {
+            // TODO
 //            // Render supplementary objects
 //            for (size_t i=0, n=area->num_objects3d(); i<n; ++i)
 //            {
@@ -446,32 +470,53 @@ namespace lsp
 //                    obj->render(r3d);
 //            }
 //
-            // Draw scene primitives
+        }
+
+        void Viewer3D::draw_scene(ws::IR3DBackend *r3d)
+        {
+            // Check number of vertices in scene
             size_t nvertex      = vVertices.size();
-            if (nvertex > 0)
-            {
-                vertex3d_t *vv      = vVertices.array();
-                init_buffer(&buf);
+            if (nvertex <= 0)
+                return;
 
-                // Fill buffer
-                buf.type            = r3d::PRIMITIVE_TRIANGLES;
-                buf.width           = 1.0f;
-                buf.count           = nvertex / 3;
-                buf.flags           = r3d::BUFFER_BLENDING | r3d::BUFFER_LIGHTING;
+            vertex3d_t *vv      = vVertices.array();
 
-                buf.vertex.data     = &vv->p;
-                buf.vertex.stride   = sizeof(vertex3d_t);
-                buf.vertex.index    = NULL;
-                buf.normal.data     = &vv->n;
-                buf.normal.stride   = sizeof(vertex3d_t);
-                buf.normal.index    = NULL;
-                buf.color.data      = &vv->c;
-                buf.color.stride    = sizeof(vertex3d_t);
-                buf.color.index     = NULL;
+            // Fill buffer
+            r3d::buffer_t buf;
+            r3d::init_buffer(&buf);
 
-                // Draw call
-                r3d->draw_primitives(&buf);
-            }
+            buf.type            = r3d::PRIMITIVE_TRIANGLES;
+            buf.width           = 1.0f;
+            buf.count           = nvertex / 3;
+            buf.flags           = r3d::BUFFER_BLENDING | r3d::BUFFER_LIGHTING;
+
+            buf.vertex.data     = &vv->p;
+            buf.vertex.stride   = sizeof(vertex3d_t);
+            buf.vertex.index    = NULL;
+            buf.normal.data     = &vv->n;
+            buf.normal.stride   = sizeof(vertex3d_t);
+            buf.normal.index    = NULL;
+            buf.color.data      = &vv->c;
+            buf.color.stride    = sizeof(vertex3d_t);
+            buf.color.index     = NULL;
+
+            // Draw call
+            r3d->draw_primitives(&buf);
+        }
+
+        status_t Viewer3D::render(ws::IR3DBackend *r3d)
+        {
+            // Configure camera
+            setup_camera(r3d);
+            setup_lighting(r3d);
+
+            // Need to update vertex list for the scene?
+            commit_view(r3d);
+
+            // Perform draw
+            draw_axes(r3d);
+            draw_supplementary(r3d);
+            draw_scene(r3d);
 
             return STATUS_OK;
         }

@@ -88,6 +88,15 @@ namespace lsp
                 ssize_t             nMouseX;        // Mouse X position
                 ssize_t             nMouseY;        // Mouse Y position
 
+                // Properties
+                tk::prop::Color     vAxes[3];
+
+                ctl::Boolean        sBorderFlat;
+                ctl::Color          sColor;
+                ctl::Color          sBorderColor;
+                ctl::Color          sGlassColor;
+                ctl::Color          sAxes[3];
+
             protected:
                 static float        get_delta(ui::IPort *p, float dfl);
                 static float        get_adelta(ui::IPort *p, float dfl);
@@ -100,6 +109,11 @@ namespace lsp
             protected:
                 status_t            render(ws::IR3DBackend *r3d);
                 void                commit_view(ws::IR3DBackend *r3d);
+                void                setup_camera(ws::IR3DBackend *r3d);
+                void                setup_lighting(ws::IR3DBackend *r3d);
+                void                draw_axes(ws::IR3DBackend *r3d);
+                void                draw_supplementary(ws::IR3DBackend *r3d);
+                void                draw_scene(ws::IR3DBackend *r3d);
 
                 void                update_frustum();
                 void                rotate_camera(ssize_t dx, ssize_t dy);
@@ -110,6 +124,9 @@ namespace lsp
                 virtual ~Viewer3D();
 
                 virtual status_t    init();
+
+            protected:
+                virtual void        property_changed(tk::Property *prop);
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
