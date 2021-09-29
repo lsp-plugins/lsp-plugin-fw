@@ -28,17 +28,17 @@ namespace lsp
 {
     namespace ctl
     {
-        static const point3d_t axis_lines[] =
+        static const r3d::dot4_t axis_lines[] =
         {
             // X axis (red)
-            { {     0.0f,   0.0f,   0.0f,   1.0f }, {   1.0f,   0.0f,   0.0f,   1.0f } },
-            { {     0.25f,  0.0f,   0.0f,   1.0f }, {   1.0f,   0.0f,   0.0f,   1.0f } },
+            { 0.0f,   0.0f,   0.0f,   1.0f },
+            { 0.25f,  0.0f,   0.0f,   1.0f },
             // Y axis (green)
-            { {     0.0f,   0.0f,   0.0f,   1.0f }, {   0.0f,   1.0f,   0.0f,   1.0f } },
-            { {     0.0f,   0.25f,  0.0f,   1.0f }, {   0.0f,   1.0f,   0.0f,   1.0f } },
+            { 0.0f,   0.0f,   0.0f,   1.0f },
+            { 0.0f,   0.25f,  0.0f,   1.0f },
             // Z axis (blue)
-            { {     0.0f,   0.0f,   0.0f,   1.0f }, {   0.0f,   0.0f,   1.0f,   1.0f } },
-            { {     0.0f,   0.0f,   0.25f,  1.0f }, {   0.0f,   0.0f,   1.0f,   1.0f } }
+            { 0.0f,   0.0f,   0.0f,   1.0f },
+            { 0.0f,   0.0f,   0.25f,  1.0f }
         };
 
         //---------------------------------------------------------------------
@@ -439,20 +439,27 @@ namespace lsp
             r3d::buffer_t buf;
             r3d::init_buffer(&buf);
 
+            r3d::color_t axis_colors[6];
+
+            // Initialize colors
+            for (size_t i=0; i<3; ++i)
+            {
+                r3d::color_t *c = &axis_colors[i << 1];
+                sAxes[i].value()->get_rgba(c->r, c->g, c->b, c->a);
+                c[1]            = c[0];
+            }
+
             // Draw axes
             buf.type            = r3d::PRIMITIVE_LINES;
             buf.width           = 2.0f;
-            buf.count           = sizeof(axis_lines) / (sizeof(point3d_t) * 2);
+            buf.count           = sizeof(axis_lines) / (sizeof(r3d::dot4_t) * 2);
             buf.flags           = 0;
 
-            buf.vertex.data     = &axis_lines[0].p;
-            buf.vertex.stride   = sizeof(point3d_t);
+            buf.vertex.data     = axis_lines;
+            buf.vertex.stride   = sizeof(r3d::dot4_t);
             buf.vertex.index    = NULL;
-            buf.normal.data     = NULL;
-            buf.normal.stride   = sizeof(point3d_t);
-            buf.normal.index    = NULL;
-            buf.color.data      = &axis_lines[0].c;
-            buf.color.stride    = sizeof(point3d_t);
+            buf.color.data      = axis_colors;
+            buf.color.stride    = sizeof(r3d::color_t);
             buf.color.index     = NULL;
 
             // Draw call
