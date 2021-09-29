@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_3D_VIEWER3D_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_3D_VIEWER3D_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_3D_AREA3D_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_3D_AREA3D_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -37,7 +37,7 @@ namespace lsp
         /**
          * ComboBox controller
          */
-        class Viewer3D: public Widget
+        class Area3D: public Widget
         {
             public:
                 static const ctl_class_t metadata;
@@ -120,8 +120,8 @@ namespace lsp
                 void                move_camera(ssize_t dx, ssize_t dy, ssize_t dz);
 
             public:
-                explicit Viewer3D(ui::IWrapper *wrapper, tk::Area3D *widget);
-                virtual ~Viewer3D();
+                explicit Area3D(ui::IWrapper *wrapper, tk::Area3D *widget);
+                virtual ~Area3D();
 
                 virtual status_t    init();
 
@@ -139,4 +139,4 @@ namespace lsp
 
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_3D_VIEWER3D_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_3D_AREA3D_H_ */

@@ -42,7 +42,7 @@ namespace lsp
         };
 
         //---------------------------------------------------------------------
-        CTL_FACTORY_IMPL_START(Viewer3D)
+        CTL_FACTORY_IMPL_START(Area3D)
             status_t res;
 
             if (!name->equals_ascii("area3d"))
@@ -60,18 +60,18 @@ namespace lsp
             if ((res = w->init()) != STATUS_OK)
                 return res;
 
-            ctl::Viewer3D *wc  = new ctl::Viewer3D(context->wrapper(), w);
+            ctl::Area3D *wc  = new ctl::Area3D(context->wrapper(), w);
             if (wc == NULL)
                 return STATUS_NO_MEM;
 
             *ctl = wc;
             return STATUS_OK;
-        CTL_FACTORY_IMPL_END(Viewer3D)
+        CTL_FACTORY_IMPL_END(Area3D)
 
         //-----------------------------------------------------------------
-        const ctl_class_t Viewer3D::metadata    = { "Viewer3D", &Widget::metadata };
+        const ctl_class_t Area3D::metadata    = { "Viewer3D", &Widget::metadata };
 
-        Viewer3D::Viewer3D(ui::IWrapper *wrapper, tk::Area3D *widget): Widget(wrapper, widget)
+        Area3D::Area3D(ui::IWrapper *wrapper, tk::Area3D *widget): Widget(wrapper, widget)
         {
             pPosX           = NULL;
             pPosY           = NULL;
@@ -104,11 +104,11 @@ namespace lsp
             nMouseY         = 0;
         }
 
-        Viewer3D::~Viewer3D()
+        Area3D::~Area3D()
         {
         }
 
-        status_t Viewer3D::init()
+        status_t Area3D::init()
         {
             status_t res = ctl::Widget::init();
             if (res != STATUS_OK)
@@ -142,7 +142,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Viewer3D::set(ui::UIContext *ctx, const char *name, const char *value)
+        void Area3D::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::Area3D *a3d = tk::widget_cast<tk::Area3D>(wWidget);
             if (a3d != NULL)
@@ -199,14 +199,14 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        void Viewer3D::end(ui::UIContext *ctx)
+        void Area3D::end(ui::UIContext *ctx)
         {
 
 
             Widget::end(ctx);
         }
 
-        void Viewer3D::property_changed(tk::Property *prop)
+        void Area3D::property_changed(tk::Property *prop)
         {
             // Test Axes colors for changes
             for (size_t i=0; i<3; ++i)
@@ -216,7 +216,7 @@ namespace lsp
             }
         }
 
-        void Viewer3D::rotate_camera(ssize_t dx, ssize_t dy)
+        void Area3D::rotate_camera(ssize_t dx, ssize_t dy)
         {
             float dyaw      = get_adelta(pYaw, M_PI * 2e-3f);
             float dpitch    = get_adelta(pPitch, M_PI * 2e-3f);
@@ -236,7 +236,7 @@ namespace lsp
             submit_angle_change(&sAngles.fPitch, pitch, pPitch);
         }
 
-        void Viewer3D::move_camera(ssize_t dx, ssize_t dy, ssize_t dz)
+        void Area3D::move_camera(ssize_t dx, ssize_t dy, ssize_t dz)
         {
             dsp::point3d_t pov;
             float mdx       = dx * get_delta(pPosX, 0.01f) * 5.0f;
@@ -252,7 +252,7 @@ namespace lsp
             submit_pov_change(&sPov.z, pov.z, pPosZ);
         }
 
-        float Viewer3D::get_delta(ui::IPort *p, float dfl)
+        float Area3D::get_delta(ui::IPort *p, float dfl)
         {
             const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
             if ((meta != NULL) && (meta->flags & meta::F_STEP))
@@ -260,7 +260,7 @@ namespace lsp
             return dfl;
         }
 
-        float Viewer3D::get_adelta(ui::IPort *p, float dfl)
+        float Area3D::get_adelta(ui::IPort *p, float dfl)
         {
             const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
             if ((meta != NULL) && (meta->flags & meta::F_STEP))
@@ -268,7 +268,7 @@ namespace lsp
             return dfl;
         }
 
-        void Viewer3D::submit_pov_change(float *vold, float vnew, ui::IPort *port)
+        void Area3D::submit_pov_change(float *vold, float vnew, ui::IPort *port)
         {
             if (*vold == vnew)
                 return;
@@ -286,7 +286,7 @@ namespace lsp
             }
         }
 
-        void Viewer3D::submit_angle_change(float *vold, float vnew, ui::IPort *port)
+        void Area3D::submit_angle_change(float *vold, float vnew, ui::IPort *port)
         {
             if (*vold == vnew)
                 return;
@@ -307,7 +307,7 @@ namespace lsp
             }
         }
 
-        void Viewer3D::sync_pov_change(float *dst, ui::IPort *port, ui::IPort *psrc)
+        void Area3D::sync_pov_change(float *dst, ui::IPort *port, ui::IPort *psrc)
         {
             if ((psrc != port) || (port == NULL))
                 return;
@@ -317,7 +317,7 @@ namespace lsp
             wWidget->query_draw();
         }
 
-        void Viewer3D::sync_scale_change(float *dst, ui::IPort *port, ui::IPort *psrc)
+        void Area3D::sync_scale_change(float *dst, ui::IPort *port, ui::IPort *psrc)
         {
             if ((psrc != port) || (port == NULL))
                 return;
@@ -330,7 +330,7 @@ namespace lsp
             wWidget->query_draw();
         }
 
-        void Viewer3D::sync_angle_change(float *dst, ui::IPort *port, ui::IPort *psrc)
+        void Area3D::sync_angle_change(float *dst, ui::IPort *port, ui::IPort *psrc)
         {
             if ((psrc != port) || (port == NULL))
                 return;
@@ -347,7 +347,7 @@ namespace lsp
             wWidget->query_draw();
         }
 
-        void Viewer3D::setup_camera(ws::IR3DBackend *r3d)
+        void Area3D::setup_camera(ws::IR3DBackend *r3d)
         {
             // Apply the projection matrix
             {
@@ -393,7 +393,7 @@ namespace lsp
             }
         }
 
-        void Viewer3D::setup_lighting(ws::IR3DBackend *r3d)
+        void Area3D::setup_lighting(ws::IR3DBackend *r3d)
         {
             // TODO
 //            r3d::light_t light;
@@ -429,12 +429,12 @@ namespace lsp
 //            r3d->set_lights(&light, 1);
         }
 
-        void Viewer3D::commit_view(ws::IR3DBackend *r3d)
+        void Area3D::commit_view(ws::IR3DBackend *r3d)
         {
             // TODO
         }
 
-        void Viewer3D::draw_axes(ws::IR3DBackend *r3d)
+        void Area3D::draw_axes(ws::IR3DBackend *r3d)
         {
             r3d::buffer_t buf;
             r3d::init_buffer(&buf);
@@ -459,7 +459,7 @@ namespace lsp
             r3d->draw_primitives(&buf);
         }
 
-        void Viewer3D::draw_supplementary(ws::IR3DBackend *r3d)
+        void Area3D::draw_supplementary(ws::IR3DBackend *r3d)
         {
             // TODO
 //            // Render supplementary objects
@@ -472,7 +472,7 @@ namespace lsp
 //
         }
 
-        void Viewer3D::draw_scene(ws::IR3DBackend *r3d)
+        void Area3D::draw_scene(ws::IR3DBackend *r3d)
         {
             // Check number of vertices in scene
             size_t nvertex      = vVertices.size();
@@ -504,7 +504,7 @@ namespace lsp
             r3d->draw_primitives(&buf);
         }
 
-        status_t Viewer3D::render(ws::IR3DBackend *r3d)
+        status_t Area3D::render(ws::IR3DBackend *r3d)
         {
             // Configure camera
             setup_camera(r3d);
@@ -521,7 +521,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Viewer3D::notify(ui::IPort *port)
+        void Area3D::notify(ui::IPort *port)
         {
             sync_pov_change(&sPov.x, pPosX, port);
             sync_pov_change(&sPov.y, pPosY, port);
@@ -533,21 +533,21 @@ namespace lsp
             sync_scale_change(&sScale.dz, pScaleZ, port);
         }
 
-        status_t Viewer3D::slot_draw3d(tk::Widget *sender, void *ptr, void *data)
+        status_t Area3D::slot_draw3d(tk::Widget *sender, void *ptr, void *data)
         {
             if ((ptr == NULL) || (data == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            Viewer3D *_this     = static_cast<Viewer3D *>(ptr);
+            Area3D *_this     = static_cast<Area3D *>(ptr);
             return (_this != NULL) ? _this->render(static_cast<ws::IR3DBackend *>(data)) : STATUS_BAD_ARGUMENTS;
         }
 
-        status_t Viewer3D::slot_mouse_down(tk::Widget *sender, void *ptr, void *data)
+        status_t Area3D::slot_mouse_down(tk::Widget *sender, void *ptr, void *data)
         {
             if ((ptr == NULL) || (data == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            Viewer3D *_this     = static_cast<Viewer3D *>(ptr);
+            Area3D *_this     = static_cast<Area3D *>(ptr);
             ws::event_t *ev     = static_cast<ws::event_t *>(data);
 
             if (_this->nBMask == 0)
@@ -563,12 +563,12 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t Viewer3D::slot_mouse_up(tk::Widget *sender, void *ptr, void *data)
+        status_t Area3D::slot_mouse_up(tk::Widget *sender, void *ptr, void *data)
         {
             if ((ptr == NULL) || (data == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            Viewer3D *_this     = static_cast<Viewer3D *>(ptr);
+            Area3D *_this     = static_cast<Area3D *>(ptr);
             ws::event_t *ev     = static_cast<ws::event_t *>(data);
 
             if (_this->nBMask == 0)
@@ -588,12 +588,12 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t Viewer3D::slot_mouse_move(tk::Widget *sender, void *ptr, void *data)
+        status_t Area3D::slot_mouse_move(tk::Widget *sender, void *ptr, void *data)
         {
             if ((ptr == NULL) || (data == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            Viewer3D *_this     = static_cast<Viewer3D *>(ptr);
+            Area3D *_this     = static_cast<Area3D *>(ptr);
             ws::event_t *ev     = static_cast<ws::event_t *>(data);
 
             if (_this->nBMask == (1 << ws::MCB_MIDDLE))
