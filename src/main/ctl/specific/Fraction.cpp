@@ -106,9 +106,9 @@ namespace lsp
             {
                 // Bind ports
                 bind_port(&pPort, "id", name, value);
-                bind_port(&pPort, "denominator.id", name, value);
-                bind_port(&pPort, "denom.id", name, value);
-                bind_port(&pPort, "den.id", name, value);
+                bind_port(&pDen, "denominator.id", name, value);
+                bind_port(&pDen, "denom.id", name, value);
+                bind_port(&pDen, "den.id", name, value);
 
                 // Set simple properties
                 set_font(fr->font(), "font", name, value);
@@ -264,10 +264,15 @@ namespace lsp
             fSig        = float(nNum) / float(nDenom);
             sync_numerator();
 
-            pPort->set_value(fSig);
-            pDen->set_value(nDenom);
-            pPort->notify_all();
-            pDen->notify_all();
+            if (pPort != NULL)
+                pPort->set_value(fSig);
+            if (pDen != NULL)
+                pDen->set_value(nDenom);
+
+            if (pPort != NULL)
+                pPort->notify_all();
+            if (pDen != NULL)
+                pDen->notify_all();
         }
 
         void Fraction::sync_numerator()
