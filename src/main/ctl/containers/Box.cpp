@@ -63,6 +63,7 @@ namespace lsp
         Box::Box(ui::IWrapper *wrapper, tk::Box *widget, ssize_t orientation): Widget(wrapper, widget)
         {
             pClass          = &metadata;
+
             enOrientation   = orientation;
         }
 

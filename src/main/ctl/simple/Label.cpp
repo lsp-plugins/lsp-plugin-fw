@@ -76,6 +76,8 @@ namespace lsp
             sApply(dpy),
             sCancel(dpy)
         {
+            pClass      = &metadata;
+
             pLabel      = label;
         }
 

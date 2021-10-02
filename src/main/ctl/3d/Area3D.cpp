@@ -73,6 +73,8 @@ namespace lsp
 
         Area3D::Area3D(ui::IWrapper *wrapper, tk::Area3D *widget): Widget(wrapper, widget)
         {
+            pClass          = &metadata;
+
             pPosX           = NULL;
             pPosY           = NULL;
             pPosZ           = NULL;
@@ -395,38 +397,40 @@ namespace lsp
 
         void Area3D::setup_lighting(ws::IR3DBackend *r3d)
         {
-            // TODO
-//            r3d::light_t light;
-//
-//            light.type          = r3d::LIGHT_POINT;
-//            light.position      = sPov;
-//            light.direction.dx  = -sDir.dx;
-//            light.direction.dy  = -sDir.dy;
-//            light.direction.dz  = -sDir.dz;
-//            light.direction.dw  = 0.0f;
-//
-//            light.ambient.r     = 0.0f;
-//            light.ambient.g     = 0.0f;
-//            light.ambient.b     = 0.0f;
-//            light.ambient.a     = 1.0f;
-//
-//            light.diffuse.r     = 1.0f;
-//            light.diffuse.g     = 1.0f;
-//            light.diffuse.b     = 1.0f;
-//            light.diffuse.a     = 1.0f;
-//
-//            light.specular.r    = 1.0f;
-//            light.specular.g    = 1.0f;
-//            light.specular.b    = 1.0f;
-//            light.specular.a    = 1.0f;
-//
-//            light.constant      = 1.0f;
-//            light.linear        = 0.0f;
-//            light.quadratic     = 0.0f;
-//            light.cutoff        = 180.0f;
+            r3d::light_t light;
+
+            light.type          = r3d::LIGHT_POINT;
+            light.position.x    = sPov.x;
+            light.position.y    = sPov.y;
+            light.position.z    = sPov.z;
+            light.position.w    = sPov.w;
+            light.direction.dx  = -sDir.dx;
+            light.direction.dy  = -sDir.dy;
+            light.direction.dz  = -sDir.dz;
+            light.direction.dw  = 0.0f;
+
+            light.ambient.r     = 0.0f;
+            light.ambient.g     = 0.0f;
+            light.ambient.b     = 0.0f;
+            light.ambient.a     = 1.0f;
+
+            light.diffuse.r     = 1.0f;
+            light.diffuse.g     = 1.0f;
+            light.diffuse.b     = 1.0f;
+            light.diffuse.a     = 1.0f;
+
+            light.specular.r    = 1.0f;
+            light.specular.g    = 1.0f;
+            light.specular.b    = 1.0f;
+            light.specular.a    = 1.0f;
+
+            light.constant      = 1.0f;
+            light.linear        = 0.0f;
+            light.quadratic     = 0.0f;
+            light.cutoff        = 180.0f;
 
             // Enable/disable lighting
-//            r3d->set_lights(&light, 1);
+            r3d->set_lights(&light, 1);
         }
 
         void Area3D::commit_view(ws::IR3DBackend *r3d)
@@ -474,7 +478,7 @@ namespace lsp
 //            {
 //                LSPObject3D *obj = area->object3d(i);
 //                if ((obj != NULL) && (obj->visible()))
-//                    obj->render(r3d);
+//                    obj->render(+r3d);
 //            }
 //
         }
@@ -525,6 +529,11 @@ namespace lsp
             draw_supplementary(r3d);
             draw_scene(r3d);
 
+            return STATUS_OK;
+        }
+
+        status_t Area3D::add(ui::UIContext *ctx, ctl::Widget *child)
+        {
             return STATUS_OK;
         }
 

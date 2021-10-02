@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 22 мая 2021 г.
+ * Created on: 2 окт. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,48 +19,34 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <private/ctl/PluginWindowTemplate.h>
+#include <lsp-plug.in/plug-fw/ctl.h>
 
 namespace lsp
 {
     namespace ctl
     {
-
         //-----------------------------------------------------------------
-        // Plugin window
-        const ctl_class_t PluginWindowTemplate::metadata = { "PluginWindowTemplate", &Widget::metadata };
+        const ctl_class_t Object3D::metadata   = { "Object3D", &Widget::metadata };
 
-        PluginWindowTemplate::PluginWindowTemplate(ui::IWrapper *src, PluginWindow *window): Widget(src, window->widget())
+        Object3D::Object3D(ui::IWrapper *wrapper): Widget(wrapper, NULL)
         {
             pClass          = &metadata;
-            pWindow         = window;
         }
 
-        PluginWindowTemplate::~PluginWindowTemplate()
+        Object3D::~Object3D()
         {
         }
 
-        void PluginWindowTemplate::begin(ui::UIContext *ctx)
+        bool Object3D::submit_foreground(ctl::Area3D *caller, lltl::darray<r3d::buffer_t> *buf)
         {
-            Widget::begin(ctx);
+            return false;
         }
 
-        void PluginWindowTemplate::set(ui::UIContext *ctx, const char *name, const char *value)
+        bool Object3D::submit_background(ctl::Area3D *caller, dspu::bsp::context_t *ctx)
         {
-            Widget::set(ctx, name, value);
+            return false;
         }
-
-        status_t PluginWindowTemplate::add(ui::UIContext *ctx, ctl::Widget *child)
-        {
-            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
-            return (wnd != NULL) ? wnd->add(child->widget()) : STATUS_BAD_STATE;
-        }
-
-        void PluginWindowTemplate::end(ui::UIContext *ctx)
-        {
-            Widget::end(ctx);
-        }
-    }
-}
+    } // namespace ctl
+} // namespace lsp
 
 

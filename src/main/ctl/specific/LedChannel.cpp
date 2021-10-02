@@ -65,6 +65,7 @@ namespace lsp
             sPropRedZoneColor(&sProperties)
         {
             pClass          = &metadata;
+
             pPort           = NULL;
             nFlags          = 0;
             nType           = MT_PEAK;

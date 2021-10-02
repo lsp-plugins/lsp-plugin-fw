@@ -62,6 +62,8 @@ namespace lsp
 
         Separator::Separator(ui::IWrapper *wrapper, tk::Separator *widget, ssize_t orientation): Widget(wrapper, widget)
         {
+            pClass          = &metadata;
+
             nOrientation    = orientation;
         }
 

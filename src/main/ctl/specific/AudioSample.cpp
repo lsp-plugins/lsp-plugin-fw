@@ -60,7 +60,7 @@ namespace lsp
         //-----------------------------------------------------------------
         AudioSample::DataSink::DataSink(AudioSample *sample)
         {
-            pSample     = sample;
+            pSample         = sample;
         }
 
         AudioSample::DataSink::~DataSink()

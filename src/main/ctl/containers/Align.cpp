@@ -57,6 +57,7 @@ namespace lsp
 
         Align::Align(ui::IWrapper *wrapper, tk::Align *widget): Widget(wrapper, widget)
         {
+            pClass          = &metadata;
         }
 
         Align::~Align()

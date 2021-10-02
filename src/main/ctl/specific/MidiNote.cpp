@@ -68,12 +68,14 @@ namespace lsp
             sApply(dpy),
             sCancel(dpy)
         {
-            pLabel      = label;
+            pClass          = &metadata;
+
+            pLabel          = label;
         }
 
         MidiNote::PopupWindow::~PopupWindow()
         {
-            pLabel      = NULL;
+            pLabel          = NULL;
         }
 
         status_t MidiNote::PopupWindow::init()

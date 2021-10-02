@@ -34,6 +34,8 @@ namespace lsp
 {
     namespace ctl
     {
+        class Object3D;
+
         /**
          * ComboBox controller
          */
@@ -130,8 +132,10 @@ namespace lsp
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        notify(ui::IPort *port);
+                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
                 virtual void        end(ui::UIContext *ctx);
+
+                virtual void        notify(ui::IPort *port);
         };
 
     } /* namespace ctl */

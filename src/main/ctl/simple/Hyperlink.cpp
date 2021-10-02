@@ -57,6 +57,7 @@ namespace lsp
 
         Hyperlink::Hyperlink(ui::IWrapper *wrapper, tk::Hyperlink *widget): Widget(wrapper, widget)
         {
+            pClass          = &metadata;
         }
 
         Hyperlink::~Hyperlink()

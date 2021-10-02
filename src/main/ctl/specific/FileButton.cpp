@@ -135,6 +135,8 @@ namespace lsp
         FileButton::FileButton(ui::IWrapper *wrapper, tk::FileButton *widget, bool save):
             Widget(wrapper, widget)
         {
+            pClass          = &metadata;
+
             nStatus         = FB_SELECT_FILE;
             bSave           = save;
             pPort           = NULL;
