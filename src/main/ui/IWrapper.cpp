@@ -32,6 +32,7 @@
 
 #include <private/ui/xml/Handler.h>
 #include <private/ui/xml/RootNode.h>
+#include <private/ui/BuiltinStyle.h>
 
 namespace lsp
 {
@@ -945,12 +946,17 @@ namespace lsp
         status_t IWrapper::init_visual_schema()
         {
             status_t res;
+
+            // Register builtin styles provided by the framework
+            if ((res = BuiltinStyle::init_schema(pDisplay->schema())) != STATUS_OK)
+                return res;
+
+            // Try to load selected schema
             ui::IPort *s_port   = port(UI_VISUAL_SCHEMA_PORT);
             const char *schema  = ((s_port != NULL) && (meta::is_path_port(s_port->metadata()))) ?
                                     s_port->buffer<const char>() :
                                     NULL;
 
-            // Try to load selected schema
             if ((schema != NULL) && (strlen(schema) > 0))
             {
                 if ((res = load_visual_schema(schema)) == STATUS_OK)
