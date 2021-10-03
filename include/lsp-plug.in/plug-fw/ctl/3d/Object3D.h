@@ -35,7 +35,7 @@ namespace lsp
 {
     namespace ctl
     {
-        class Object3D;
+        class Area3D;
 
         /**
          * ComboBox controller
@@ -45,26 +45,38 @@ namespace lsp
             public:
                 static const ctl_class_t metadata;
 
+            protected:
+                ctl::Area3D        *pParent;
+                tk::Style           sStyle;
+
             public:
                 Object3D(ui::IWrapper *wrapper);
                 virtual ~Object3D();
 
+                virtual status_t    init();
+
+            public:
+                inline void         set_parent(ctl::Area3D *area)       { pParent   = area; }
+
             public:
                 /**
                  * Submit foreground object to the scene, the implementation should append data to the passed list
-                 * @param caller the 3D rendering caller
-                 * @param buf list of drawing buffers to append data, drawing buffer fields should point to valid memory locations
+                 * @param dst list of drawing buffers to append data, drawing buffer fields should point to valid memory locations
                  * @return true if there was some data submitted
                  */
-                virtual bool        submit_foreground(ctl::Area3D *caller, lltl::darray<r3d::buffer_t> *buf);
+                virtual bool        submit_foreground(lltl::darray<r3d::buffer_t> *dst);
 
                 /**
                  * Submit background object to the scene
-                 * @param caller the 3D rendering caller
-                 * @param ctx BSP context to append data
+                 * @param dst BSP context to append data
                  * @return true if there was some data submitted
                  */
-                virtual bool        submit_background(ctl::Area3D *caller, dspu::bsp::context_t *ctx);
+                virtual bool        submit_background(dspu::bsp::context_t *dst);
+
+                /**
+                 * Query for redraw
+                 */
+                virtual void        query_redraw();
         };
 
     } /* namespace ctl */

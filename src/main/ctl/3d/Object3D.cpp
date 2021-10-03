@@ -28,23 +28,57 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t Object3D::metadata   = { "Object3D", &Widget::metadata };
 
-        Object3D::Object3D(ui::IWrapper *wrapper): Widget(wrapper, NULL)
+        Object3D::Object3D(ui::IWrapper *wrapper):
+            Widget(wrapper, NULL),
+            sStyle(wrapper->display()->schema(), NULL, NULL)
         {
             pClass          = &metadata;
+
+            pParent         = NULL;
         }
 
         Object3D::~Object3D()
         {
+            pParent         = NULL;
         }
 
-        bool Object3D::submit_foreground(ctl::Area3D *caller, lltl::darray<r3d::buffer_t> *buf)
+        status_t Object3D::init()
+        {
+            status_t res = Widget::init();
+            if (res != STATUS_OK)
+                return res;
+
+            // Initialize style
+            res = sStyle.init();
+            if (res != STATUS_OK)
+                return res;
+
+            // Configure the style class
+            const char *ws_class = pClass->name;
+            tk::Style *sclass = pWrapper->display()->schema()->get(ws_class);
+            if (sclass != NULL)
+            {
+                LSP_STATUS_ASSERT(sStyle.set_default_parents(ws_class));
+                LSP_STATUS_ASSERT(sStyle.add_parent(sclass));
+            }
+
+            return STATUS_OK;
+        }
+
+        bool Object3D::submit_foreground(lltl::darray<r3d::buffer_t> *dst)
         {
             return false;
         }
 
-        bool Object3D::submit_background(ctl::Area3D *caller, dspu::bsp::context_t *ctx)
+        bool Object3D::submit_background(dspu::bsp::context_t *dst)
         {
             return false;
+        }
+
+        void Object3D::query_redraw()
+        {
+            if (pParent != NULL)
+                pParent->query_redraw();
         }
     } // namespace ctl
 } // namespace lsp

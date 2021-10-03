@@ -28,19 +28,6 @@ namespace lsp
 {
     namespace ctl
     {
-        static const r3d::dot4_t axis_lines[] =
-        {
-            // X axis (red)
-            { 0.0f,   0.0f,   0.0f,   1.0f },
-            { 0.25f,  0.0f,   0.0f,   1.0f },
-            // Y axis (green)
-            { 0.0f,   0.0f,   0.0f,   1.0f },
-            { 0.0f,   0.25f,  0.0f,   1.0f },
-            // Z axis (blue)
-            { 0.0f,   0.0f,   0.0f,   1.0f },
-            { 0.0f,   0.0f,   0.25f,  1.0f }
-        };
-
         //---------------------------------------------------------------------
         CTL_FACTORY_IMPL_START(Area3D)
             status_t res;
@@ -438,49 +425,23 @@ namespace lsp
             // TODO
         }
 
-        void Area3D::draw_axes(ws::IR3DBackend *r3d)
-        {
-            r3d::buffer_t buf;
-            r3d::init_buffer(&buf);
-
-            r3d::color_t axis_colors[6];
-
-            // Initialize colors
-            for (size_t i=0; i<3; ++i)
-            {
-                r3d::color_t *c = &axis_colors[i << 1];
-                sAxes[i].value()->get_rgba(c->r, c->g, c->b, c->a);
-                c[1]            = c[0];
-            }
-
-            // Draw axes
-            buf.type            = r3d::PRIMITIVE_LINES;
-            buf.width           = 2.0f;
-            buf.count           = sizeof(axis_lines) / (sizeof(r3d::dot4_t) * 2);
-            buf.flags           = r3d::BUFFER_BLENDING;
-
-            buf.vertex.data     = axis_lines;
-            buf.vertex.stride   = sizeof(r3d::dot4_t);
-            buf.vertex.index    = NULL;
-            buf.color.data      = axis_colors;
-            buf.color.stride    = sizeof(r3d::color_t);
-            buf.color.index     = NULL;
-
-            // Draw call
-            r3d->draw_primitives(&buf);
-        }
-
         void Area3D::draw_supplementary(ws::IR3DBackend *r3d)
         {
-            // TODO
-//            // Render supplementary objects
-//            for (size_t i=0, n=area->num_objects3d(); i<n; ++i)
-//            {
-//                LSPObject3D *obj = area->object3d(i);
-//                if ((obj != NULL) && (obj->visible()))
-//                    obj->render(+r3d);
-//            }
-//
+            lltl::darray<r3d::buffer_t> sBuffers;
+
+            // Prepare buffers
+            for (size_t i=0, n=vObjects.size(); i<n; ++i)
+            {
+                ctl::Object3D *obj = vObjects.uget(i);
+                if (obj == NULL)
+                    continue;
+
+                obj->submit_foreground(&sBuffers);
+            }
+
+            // Draw data
+            for (size_t i=0, n=sBuffers.size(); i<n; ++i)
+                r3d->draw_primitives(sBuffers.uget(i));
         }
 
         void Area3D::draw_scene(ws::IR3DBackend *r3d)
@@ -525,7 +486,6 @@ namespace lsp
             commit_view(r3d);
 
             // Perform draw
-            draw_axes(r3d);
             draw_supplementary(r3d);
             draw_scene(r3d);
 
@@ -534,6 +494,13 @@ namespace lsp
 
         status_t Area3D::add(ui::UIContext *ctx, ctl::Widget *child)
         {
+            ctl::Object3D *obj = ctl::ctl_cast<ctl::Object3D>(child);
+            if (obj == NULL)
+                return STATUS_BAD_TYPE;
+
+            if (!vObjects.add(obj))
+                return STATUS_NO_MEM;
+
             return STATUS_OK;
         }
 
@@ -620,6 +587,12 @@ namespace lsp
                 _this->move_camera(ev->nLeft - _this->nMouseX, 0, _this->nMouseY - ev->nTop);
 
             return STATUS_OK;
+        }
+
+        void Area3D::query_redraw()
+        {
+            if (wWidget != NULL)
+                wWidget->query_draw();
         }
 
     } /* namespace ctl */

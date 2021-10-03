@@ -47,12 +47,12 @@ namespace lsp
                 static status_t     init_schema(tk::Schema *schema);
         };
 
-        #define LSP_CTL_BUILTIN_STYLE_VAR(Name) Style ## Builtin
+        #define LSP_UI_BUILTIN_STYLE_VAR(Name) Style ## Builtin
 
-        #define LSP_CTL_BUILTIN_STYLE(Style, Name, Parents) \
-            static StyleFactory<Style> Style ## Factory(Name, Parents); \
+        #define LSP_UI_BUILTIN_STYLE(Style, Name, Parents) \
+            static ::lsp::tk::StyleFactory<Style> Style ## Factory(Name, Parents); \
             \
-            static BuiltinStyle Style ## Builtin(& Style ## Factory);
+            static ::lsp::ui::BuiltinStyle Style ## Builtin(& Style ## Factory);
 
 
     } // namespace ui

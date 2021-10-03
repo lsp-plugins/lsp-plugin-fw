@@ -82,6 +82,7 @@
     #include <lsp-plug.in/plug-fw/ctl/3d/types.h>
     #include <lsp-plug.in/plug-fw/ctl/3d/Area3D.h>
     #include <lsp-plug.in/plug-fw/ctl/3d/Object3D.h>
+    #include <lsp-plug.in/plug-fw/ctl/3d/Origin3D.h>
 
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/FileButton.h>

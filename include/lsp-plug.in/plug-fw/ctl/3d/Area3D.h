@@ -60,6 +60,7 @@ namespace lsp
 
             protected:
                 lltl::darray<vertex3d_t>    vVertices;  // Vertices of the scene
+                lltl::parray<ctl::Object3D> vObjects;
 
                 // Camera control
                 ui::IPort          *pPosX;
@@ -113,7 +114,7 @@ namespace lsp
                 void                commit_view(ws::IR3DBackend *r3d);
                 void                setup_camera(ws::IR3DBackend *r3d);
                 void                setup_lighting(ws::IR3DBackend *r3d);
-                void                draw_axes(ws::IR3DBackend *r3d);
+//                void                draw_axes(ws::IR3DBackend *r3d);
                 void                draw_supplementary(ws::IR3DBackend *r3d);
                 void                draw_scene(ws::IR3DBackend *r3d);
 
@@ -136,6 +137,8 @@ namespace lsp
                 virtual void        end(ui::UIContext *ctx);
 
                 virtual void        notify(ui::IPort *port);
+
+                void                query_redraw();
         };
 
     } /* namespace ctl */
