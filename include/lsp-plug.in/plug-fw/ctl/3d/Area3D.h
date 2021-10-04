@@ -121,6 +121,7 @@ namespace lsp
                 void                update_frustum();
                 void                rotate_camera(ssize_t dx, ssize_t dy);
                 void                move_camera(ssize_t dx, ssize_t dy, ssize_t dz);
+                void                notify_view_changed();
 
             public:
                 explicit Area3D(ui::IWrapper *wrapper, tk::Area3D *widget);
@@ -138,7 +139,11 @@ namespace lsp
 
                 virtual void        notify(ui::IPort *port);
 
-                void                query_redraw();
+            public:
+                void                query_draw();
+
+                inline const dsp::point3d_t    *point_of_view() const       { return &sPov;     }
+                inline const dsp::vector3d_t   *direction_of_view() const   { return &sDir;     }
         };
 
     } /* namespace ctl */

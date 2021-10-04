@@ -75,10 +75,15 @@ namespace lsp
             return false;
         }
 
-        void Object3D::query_redraw()
+        void Object3D::query_draw()
+        {
+            query_draw_parent();
+        }
+
+        void Object3D::query_draw_parent()
         {
             if (pParent != NULL)
-                pParent->query_redraw();
+                pParent->query_draw();
         }
     } // namespace ctl
 } // namespace lsp

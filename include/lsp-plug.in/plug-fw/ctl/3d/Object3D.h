@@ -76,7 +76,12 @@ namespace lsp
                 /**
                  * Query for redraw
                  */
-                virtual void        query_redraw();
+                virtual void        query_draw();
+
+                /**
+                 * Query for parent redraw
+                 */
+                virtual void        query_draw_parent();
         };
 
     } /* namespace ctl */

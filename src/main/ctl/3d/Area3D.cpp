@@ -270,8 +270,7 @@ namespace lsp
             else
             {
                 *vold           = vnew;
-                bViewChanged    = true;
-                wWidget->query_draw();
+                notify_view_changed();
             }
         }
 
@@ -291,8 +290,21 @@ namespace lsp
             else
             {
                 *vold           = vnew;
-                bViewChanged    = true;
-                wWidget->query_draw();
+                notify_view_changed();
+            }
+        }
+
+        void Area3D::notify_view_changed()
+        {
+            bViewChanged    = true;
+            query_draw();
+
+            // Notify children
+            for (size_t i=0, n=vObjects.size(); i<n; ++i)
+            {
+                ctl::Object3D *obj = vObjects.uget(i);
+                if (obj != NULL)
+                    obj->query_draw();
             }
         }
 
@@ -302,8 +314,7 @@ namespace lsp
                 return;
             *dst    = psrc->value();
 
-            bViewChanged    = true;
-            wWidget->query_draw();
+            notify_view_changed();
         }
 
         void Area3D::sync_scale_change(float *dst, ui::IPort *port, ui::IPort *psrc)
@@ -332,8 +343,7 @@ namespace lsp
                 value       = value * M_PI / 180.0f;
             *dst    = value;
 
-            bViewChanged    = true;
-            wWidget->query_draw();
+            notify_view_changed();
         }
 
         void Area3D::setup_camera(ws::IR3DBackend *r3d)
@@ -589,7 +599,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Area3D::query_redraw()
+        void Area3D::query_draw()
         {
             if (wWidget != NULL)
                 wWidget->query_draw();

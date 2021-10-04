@@ -1,0 +1,141 @@
+/*
+ * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *
+ * This file is part of lsp-plugin-fw
+ * Created on: 4 окт. 2021 г.
+ *
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * any later version.
+ *
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_3D_MESH3D_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_3D_MESH3D_H_
+
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
+    #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
+
+#include <lsp-plug.in/plug-fw/ctl/3d/Object3D.h>
+
+namespace lsp
+{
+    namespace ctl
+    {
+        namespace style
+        {
+            LSP_TK_STYLE_DEF_BEGIN(Mesh3D, lsp::tk::Style)
+                tk::prop::Color             sColor;         // Default color for triangles
+                tk::prop::Color             sLineColor;     // Default color for lines
+                tk::prop::Color             sPointColor;    // Default color for points
+                tk::prop::Float             sPosX;          // X position
+                tk::prop::Float             sPosY;          // Y position
+                tk::prop::Float             sPosZ;          // Z position
+                tk::prop::Float             sYaw;           // Yaw angle
+                tk::prop::Float             sPitch;         // Pitch angle
+                tk::prop::Float             sRoll;          // Roll angle
+                tk::prop::Float             sScaleX;        // Scaling by X axis
+                tk::prop::Float             sScaleY;        // Scaling by Y axis
+                tk::prop::Float             sScaleZ;        // Scaling by Z axis
+            LSP_TK_STYLE_DEF_END
+        }
+
+        /**
+         * ComboBox controller
+         */
+        class Mesh3D: public Object3D
+        {
+            public:
+                static const ctl_class_t metadata;
+
+            protected:
+                template <class D, class S>
+                    D *array_cast(S *ptr)
+                    {
+                        return reinterpret_cast<D *>(ptr);
+                    }
+
+                template <class D, class S>
+                    D *array_cast(const S *ptr)
+                    {
+                        return array_cast<D>(const_cast<S *>(ptr));
+                    }
+
+            protected:
+                dsp::matrix3d_t             sMatrix;        // Transformation matrix
+                bool                        bDataChanged;   // Rebuild mesh data
+                bool                        bPovChanged;    // Point of view has changed
+
+                tk::prop::Color             sColor;         // Default color for triangles
+                tk::prop::Color             sLineColor;     // Default color for lines
+                tk::prop::Color             sPointColor;    // Default color for points
+                tk::prop::Float             sPosX;          // X position
+                tk::prop::Float             sPosY;          // Y position
+                tk::prop::Float             sPosZ;          // Z position
+                tk::prop::Float             sYaw;           // Yaw angle
+                tk::prop::Float             sPitch;         // Pitch angle
+                tk::prop::Float             sRoll;          // Roll angle
+                tk::prop::Float             sScaleX;        // Scaling by X axis
+                tk::prop::Float             sScaleY;        // Scaling by Y axis
+                tk::prop::Float             sScaleZ;        // Scaling by Z axis
+
+                ctl::Color                  cColor;
+                ctl::Color                  cLineColor;
+                ctl::Color                  cPointColor;
+                ctl::Float                  cPosX;
+                ctl::Float                  cPosY;
+                ctl::Float                  cPosZ;
+                ctl::Float                  cYaw;
+                ctl::Float                  cPitch;
+                ctl::Float                  cRoll;
+                ctl::Float                  cScaleX;
+                ctl::Float                  cScaleY;
+                ctl::Float                  cScaleZ;
+
+                lltl::parray<r3d::buffer_t> vBuffers;
+
+            protected:
+                void                process_position_change();
+                void                reorder_triangles(const dsp::point3d_t *pov, r3d::buffer_t *buf);
+                virtual void        process_data_change();
+
+            public:
+                explicit Mesh3D(ui::IWrapper *wrapper);
+                virtual ~Mesh3D();
+
+                virtual status_t    init();
+                virtual void        destroy();
+
+            public:
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+
+                virtual void        property_changed(tk::Property *prop);
+
+                virtual bool        submit_foreground(lltl::darray<r3d::buffer_t> *dst);
+
+                virtual void        query_draw();
+
+                virtual void        query_data_change();
+
+            public:
+                void                clear();
+
+                status_t            append(r3d::buffer_t *buffer);
+        };
+
+    } /* namespace ctl */
+} /* namespace lsp */
+
+
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_3D_MESH3D_H_ */

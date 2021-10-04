@@ -131,13 +131,13 @@ namespace lsp
         void Origin3D::property_changed(tk::Property *prop)
         {
             if (sWidth.is(prop))
-                query_redraw();
+                query_draw();
             for (size_t i=0; i<3; ++i)
             {
                 if (sColor[i].is(prop))
-                    query_redraw();
+                    query_draw();
                 if (sLength[i].is(prop))
-                    query_redraw();
+                    query_draw();
             }
         }
 
