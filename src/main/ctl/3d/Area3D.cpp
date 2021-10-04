@@ -437,21 +437,29 @@ namespace lsp
 
         void Area3D::draw_supplementary(ws::IR3DBackend *r3d)
         {
-            lltl::darray<r3d::buffer_t> sBuffers;
+            lltl::darray<r3d::buffer_t> buffers;
 
             // Prepare buffers
             for (size_t i=0, n=vObjects.size(); i<n; ++i)
             {
                 ctl::Object3D *obj = vObjects.uget(i);
-                if (obj == NULL)
+                if ((obj == NULL) || (!obj->visibility()->get()))
                     continue;
 
-                obj->submit_foreground(&sBuffers);
+                obj->submit_foreground(&buffers);
             }
 
             // Draw data
-            for (size_t i=0, n=sBuffers.size(); i<n; ++i)
-                r3d->draw_primitives(sBuffers.uget(i));
+            for (size_t i=0, n=buffers.size(); i<n; ++i)
+                r3d->draw_primitives(buffers.uget(i));
+
+            // Destroy buffers if destructors are set
+            for (size_t i=0, n=buffers.size(); i<n; ++i)
+            {
+                r3d::buffer_t *buf = buffers.uget(i);
+                if (buf->free != NULL)
+                    buf->free(buf);
+            }
         }
 
         void Area3D::draw_scene(ws::IR3DBackend *r3d)

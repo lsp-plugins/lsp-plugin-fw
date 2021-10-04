@@ -82,6 +82,8 @@ namespace lsp
         {
             pClass          = &metadata;
 
+            dsp::init_matrix3d_identity(&sMatrix);
+
             bDataChanged    = false;
             bPovChanged     = false;
         }
@@ -179,6 +181,8 @@ namespace lsp
 
         void Mesh3D::property_changed(tk::Property *prop)
         {
+            Object3D::property_changed(prop);
+
             if (sColor.is(prop))
                 query_draw_parent();
             if (sLineColor.is(prop))
@@ -226,6 +230,8 @@ namespace lsp
 
             if (bDataChanged)
             {
+                // TODO: recompute matrix
+
                 process_data_change();
                 bDataChanged = false;
             }

@@ -34,16 +34,8 @@ namespace lsp
     {
         namespace style
         {
-            LSP_TK_STYLE_DEF_BEGIN(Source3D, lsp::tk::Style)
-                tk::prop::Color             sColor;         // X, Y, Z colors
-                tk::prop::Color             sNormalColor;   // Normal color
-                tk::prop::Integer           sMode;          // Mode
-                tk::prop::Float             sPosX;          // X position
-                tk::prop::Float             sPosY;          // Y position
-                tk::prop::Float             sPosZ;          // Z position
-                tk::prop::Float             sYaw;           // Yaw angle
-                tk::prop::Float             sPitch;         // Pitch angle
-                tk::prop::Float             sRoll;          // Roll angle
+            LSP_TK_STYLE_DEF_BEGIN(Source3D, Mesh3D)
+                tk::prop::Integer           sType;          // Mode
                 tk::prop::Float             sSize;          // Size
                 tk::prop::Float             sCurvature;     // Curvature
                 tk::prop::Float             sHeight;        // Height
@@ -54,44 +46,33 @@ namespace lsp
         /**
          * ComboBox controller
          */
-        class Source3D: public Object3D
+        class Source3D: public Mesh3D
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                bool                        bRebuildMesh;
-
-                tk::prop::Color             sColor;         // X, Y, Z colors
-                tk::prop::Color             sNormalColor;   // Normal color
-                tk::prop::Integer           sMode;          // Mode
-                tk::prop::Float             sPosX;          // X position
-                tk::prop::Float             sPosY;          // Y position
-                tk::prop::Float             sPosZ;          // Z position
-                tk::prop::Float             sYaw;           // Yaw angle
-                tk::prop::Float             sPitch;         // Pitch angle
-                tk::prop::Float             sRoll;          // Roll angle
+                tk::prop::Integer           sType;          // Mode
                 tk::prop::Float             sSize;          // Size
                 tk::prop::Float             sCurvature;     // Curvature
                 tk::prop::Float             sHeight;        // Height
                 tk::prop::Float             sAngle;         // Angle
 
-                ctl::Color                  cColor;
-                ctl::Color                  cNormalColor;
                 ctl::Integer                cMode;
-                ctl::Float                  cPosX;
-                ctl::Float                  cPosY;
-                ctl::Float                  cPosZ;
-                ctl::Float                  cYaw;
-                ctl::Float                  cPitch;
-                ctl::Float                  cRoll;
                 ctl::Float                  cSize;
                 ctl::Float                  cCurvature;
                 ctl::Float                  cHeight;
                 ctl::Float                  cAngle;
 
-                lltl::darray<vertex3d_t>    vTriangles;
-                lltl::darray<point3d_t>     vLines;
+                lltl::darray<dsp::point3d_t>    vVertices;  // Triangle vertices
+                lltl::darray<dsp::vector3d_t>   vNormals;   // Normals
+                lltl::darray<dsp::point3d_t>    vLines;     // Lines
+
+            protected:
+                static void         free_buffer(r3d::buffer_t *buf);
+
+            protected:
+                virtual void        process_data_change();
 
             public:
                 explicit Source3D(ui::IWrapper *wrapper);
@@ -103,8 +84,6 @@ namespace lsp
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
 
                 virtual void        property_changed(tk::Property *prop);
-
-                virtual bool        submit_foreground(lltl::darray<r3d::buffer_t> *dst);
         };
 
     } /* namespace ctl */

@@ -20,17 +20,32 @@
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <private/ui/BuiltinStyle.h>
 
 namespace lsp
 {
     namespace ctl
     {
+        namespace style
+        {
+            LSP_TK_STYLE_IMPL_BEGIN(Object3D, lsp::tk::Style)
+                // Bind
+                sVisibility.bind("visibile", this);
+
+                // Configure
+                sVisibility.set(true);
+            LSP_TK_STYLE_IMPL_END
+
+            LSP_UI_BUILTIN_STYLE(Object3D, "Object3D", "root");
+        }
+
         //-----------------------------------------------------------------
         const ctl_class_t Object3D::metadata   = { "Object3D", &Widget::metadata };
 
         Object3D::Object3D(ui::IWrapper *wrapper):
             Widget(wrapper, NULL),
-            sStyle(wrapper->display()->schema(), NULL, NULL)
+            sStyle(wrapper->display()->schema(), NULL, NULL),
+            sVisibility(&sProperties)
         {
             pClass          = &metadata;
 
@@ -62,7 +77,19 @@ namespace lsp
                 LSP_STATUS_ASSERT(sStyle.add_parent(sclass));
             }
 
+            // Bind to style
+            sVisibility.bind("visible", &sStyle);
+
+            // Bind controlles
+            cVisibility.init(pWrapper, &sVisibility);
+
             return STATUS_OK;
+        }
+
+        void Object3D::property_changed(tk::Property *prop)
+        {
+            if (sVisibility.is(prop))
+                query_draw_parent();
         }
 
         bool Object3D::submit_foreground(lltl::darray<r3d::buffer_t> *dst)

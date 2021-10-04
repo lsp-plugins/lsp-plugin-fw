@@ -37,6 +37,13 @@ namespace lsp
     {
         class Area3D;
 
+        namespace style
+        {
+            LSP_TK_STYLE_DEF_BEGIN(Object3D, lsp::tk::Style)
+                tk::prop::Boolean           sVisibility;    // Visibility
+            LSP_TK_STYLE_DEF_END
+        }
+
         /**
          * ComboBox controller
          */
@@ -49,14 +56,24 @@ namespace lsp
                 ctl::Area3D        *pParent;
                 tk::Style           sStyle;
 
+                tk::prop::Boolean   sVisibility;    // Visibility
+
+                ctl::Boolean        cVisibility;
+
             public:
-                Object3D(ui::IWrapper *wrapper);
+                explicit Object3D(ui::IWrapper *wrapper);
                 virtual ~Object3D();
 
                 virtual status_t    init();
 
+            protected:
+                virtual void        property_changed(tk::Property *prop);
+
             public:
                 inline void         set_parent(ctl::Area3D *area)       { pParent   = area; }
+
+            public:
+                LSP_TK_PROPERTY(tk::Boolean,    visibility,     &sVisibility);
 
             public:
                 /**
