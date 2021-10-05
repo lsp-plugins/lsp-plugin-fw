@@ -370,10 +370,10 @@ namespace lsp
             r3d::light_t light;
 
             light.type          = r3d::LIGHT_POINT;
-            light.position.x    = sPov.x;
-            light.position.y    = sPov.y;
-            light.position.z    = sPov.z;
-            light.position.w    = sPov.w;
+            light.position.x    = 0;
+            light.position.y    = 0;
+            light.position.z    = 0;
+            light.position.w    = 1.0;
             light.direction.dx  = -sDir.dx;
             light.direction.dy  = -sDir.dy;
             light.direction.dz  = -sDir.dz;
@@ -469,9 +469,9 @@ namespace lsp
 
         status_t Area3D::render(ws::IR3DBackend *r3d)
         {
-            // Configure camera
-            setup_camera(r3d);
+            // Configure camera and light
             setup_lighting(r3d);
+            setup_camera(r3d);
 
             // Need to update vertex list for the scene?
             commit_view(r3d);
