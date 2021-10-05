@@ -29,7 +29,7 @@ namespace lsp
         //-----------------------------------------------------------------
         namespace style
         {
-            LSP_TK_STYLE_IMPL_BEGIN(Mesh3D, lsp::tk::Style)
+            LSP_TK_STYLE_IMPL_BEGIN(Mesh3D, Object3D)
                 // Bind
                 sColor.bind("color", this);
                 sLineColor.bind("line.color", this);
@@ -224,17 +224,19 @@ namespace lsp
 
         bool Mesh3D::submit_foreground(lltl::darray<r3d::buffer_t> *dst)
         {
+            if (bDataChanged)
+            {
+                // TODO: recompute matrix
+                vBuffers.clear();
+
+                process_data_change(&vBuffers);
+                bDataChanged = false;
+            }
+
             size_t count = vBuffers.size();
             if (count <= 0)
                 return false;
 
-            if (bDataChanged)
-            {
-                // TODO: recompute matrix
-
-                process_data_change();
-                bDataChanged = false;
-            }
             if (bPovChanged)
             {
                 process_position_change();
@@ -293,7 +295,7 @@ namespace lsp
                 p2  = array_cast<dsp::point3d_t>(bv);
                 bv += bstride;
 
-                n0  = array_cast<dsp::vector3d_t>(bv);
+                n0  = array_cast<dsp::vector3d_t>(bn);
                 bn += nstride;
                 n1  = array_cast<dsp::vector3d_t>(bn);
                 bn += nstride;
@@ -332,7 +334,6 @@ namespace lsp
             for (size_t i=0, n=vBuffers.size(); i<n; ++i)
             {
                 r3d::buffer_t *buf = vBuffers.uget(i);
-                r3d::color_t *dfl  = &buf->color.dfl;
 
                 buf->model  = *reinterpret_cast<r3d::mat4_t *>(&sMatrix);
 
@@ -340,16 +341,16 @@ namespace lsp
                 {
                     case r3d::PRIMITIVE_TRIANGLES:
                         reorder_triangles(pov, buf);
-                        sColor.get_rgba(dfl->r, dfl->g, dfl->b, dfl->a);
+                        buf->color.dfl = cColor.r3d_color();
                         break;
                     case r3d::PRIMITIVE_WIREFRAME_TRIANGLES:
-                        sColor.get_rgba(dfl->r, dfl->g, dfl->b, dfl->a);
+                        buf->color.dfl = cColor.r3d_color();
                         break;
                     case r3d::PRIMITIVE_LINES:
-                        sLineColor.get_rgba(dfl->r, dfl->g, dfl->b, dfl->a);
+                        buf->color.dfl = cLineColor.r3d_color();
                         break;
                     case r3d::PRIMITIVE_POINTS:
-                        sPointColor.get_rgba(dfl->r, dfl->g, dfl->b, dfl->a);
+                        buf->color.dfl = cPointColor.r3d_color();
                         break;
                     default:
                         break;
@@ -357,7 +358,7 @@ namespace lsp
             }
         }
 
-        void Mesh3D::process_data_change()
+        void Mesh3D::process_data_change(lltl::parray<r3d::buffer_t> *dst)
         {
         }
 

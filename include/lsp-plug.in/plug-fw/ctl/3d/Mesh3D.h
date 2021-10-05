@@ -34,7 +34,7 @@ namespace lsp
     {
         namespace style
         {
-            LSP_TK_STYLE_DEF_BEGIN(Mesh3D, lsp::tk::Style)
+            LSP_TK_STYLE_DEF_BEGIN(Mesh3D, Object3D)
                 tk::prop::Color             sColor;         // Default color for triangles
                 tk::prop::Color             sLineColor;     // Default color for lines
                 tk::prop::Color             sPointColor;    // Default color for points
@@ -107,7 +107,7 @@ namespace lsp
             protected:
                 void                process_position_change();
                 void                reorder_triangles(const dsp::point3d_t *pov, r3d::buffer_t *buf);
-                virtual void        process_data_change();
+                virtual void        process_data_change(lltl::parray<r3d::buffer_t> *dst);
 
             public:
                 explicit Mesh3D(ui::IWrapper *wrapper);

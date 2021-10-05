@@ -29,7 +29,7 @@ namespace lsp
         //-----------------------------------------------------------------
         namespace style
         {
-            LSP_TK_STYLE_IMPL_BEGIN(Origin3D, lsp::tk::Style)
+            LSP_TK_STYLE_IMPL_BEGIN(Origin3D, Object3D)
                 // Bind
                 sWidth.bind("width", this);
                 sColor[0].bind("x.color", this);

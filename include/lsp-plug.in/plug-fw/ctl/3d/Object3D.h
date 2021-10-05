@@ -56,9 +56,7 @@ namespace lsp
                 ctl::Area3D        *pParent;
                 tk::Style           sStyle;
 
-                tk::prop::Boolean   sVisibility;    // Visibility
-
-                ctl::Boolean        cVisibility;
+                tk::prop::Boolean   wVisibility;
 
             public:
                 explicit Object3D(ui::IWrapper *wrapper);
@@ -73,7 +71,7 @@ namespace lsp
                 inline void         set_parent(ctl::Area3D *area)       { pParent   = area; }
 
             public:
-                LSP_TK_PROPERTY(tk::Boolean,    visibility,     &sVisibility);
+                LSP_TK_PROPERTY(tk::Boolean,    visibility,     &wVisibility);
 
             public:
                 /**

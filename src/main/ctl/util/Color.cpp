@@ -371,6 +371,36 @@ namespace lsp
         {
             reload();
         }
+
+        dsp::color3d_t Color::color3d() const
+        {
+            dsp::color3d_t res;
+            if (pColor != NULL)
+                pColor->get_rgba(res.r, res.g, res.b, res.a);
+            else
+            {
+                res.r   = 0.0f;
+                res.g   = 0.0f;
+                res.b   = 0.0f;
+                res.a   = 0.0f;
+            }
+            return res;
+        }
+
+        r3d::color_t Color::r3d_color() const
+        {
+            r3d::color_t res;
+            if (pColor != NULL)
+                pColor->get_rgba(res.r, res.g, res.b, res.a);
+            else
+            {
+                res.r   = 0.0f;
+                res.g   = 0.0f;
+                res.b   = 0.0f;
+                res.a   = 0.0f;
+            }
+            return res;
+        }
     }
 }
 

@@ -163,26 +163,6 @@ namespace lsp
                 sBorderColor.set("bcolor", name, value);
                 sGlassColor.set("glass.color", name, value);
                 sGlassColor.set("gcolor", name, value);
-
-//                case A_ID:
-//                    BIND_PORT(pRegistry, pFile, value);
-//                    break;
-//                case A_STATUS_ID:
-//                    BIND_PORT(pRegistry, pStatus, value);
-//                    break;
-//                case A_ORIENTATION_ID:
-//                    BIND_PORT(pRegistry, pOrientation, value);
-//                    break;
-//                case A_OPACITY:
-//                    PARSE_FLOAT(value, fOpacity = __);
-//                    break;
-//                case A_TRANSPARENCY:
-//                    PARSE_FLOAT(value, fOpacity = 1.0f - __);
-//                    break;
-//                case A_KVT_ROOT:
-//                    sKvtRoot.set_utf8(value);
-//                    pRegistry->add_kvt_listener(this);
-//                    break;
             }
 
             return Widget::set(ctx, name, value);
@@ -518,6 +498,7 @@ namespace lsp
 
             if (!vObjects.add(obj))
                 return STATUS_NO_MEM;
+            obj->set_parent(this);
 
             return STATUS_OK;
         }

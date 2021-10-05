@@ -27,6 +27,7 @@
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
 
 #include <lsp-plug.in/plug-fw/ctl/3d/Mesh3D.h>
+#include <lsp-plug.in/dsp-units/3d/rt/types.h>
 
 namespace lsp
 {
@@ -40,6 +41,8 @@ namespace lsp
                 tk::prop::Float             sCurvature;     // Curvature
                 tk::prop::Float             sHeight;        // Height
                 tk::prop::Float             sAngle;         // Angle
+                tk::prop::Float             sRayLength;       // Ray size
+                tk::prop::Float             sRayWidth;      // Ray width
             LSP_TK_STYLE_DEF_END
         }
 
@@ -57,22 +60,29 @@ namespace lsp
                 tk::prop::Float             sCurvature;     // Curvature
                 tk::prop::Float             sHeight;        // Height
                 tk::prop::Float             sAngle;         // Angle
+                tk::prop::Float             sRayLength;       // Ray size
+                tk::prop::Float             sRayWidth;      // Ray width
 
                 ctl::Integer                cMode;
                 ctl::Float                  cSize;
                 ctl::Float                  cCurvature;
                 ctl::Float                  cHeight;
                 ctl::Float                  cAngle;
+                ctl::Float                  cRayLength;
+                ctl::Float                  cRayWidth;
 
                 lltl::darray<dsp::point3d_t>    vVertices;  // Triangle vertices
                 lltl::darray<dsp::vector3d_t>   vNormals;   // Normals
                 lltl::darray<dsp::point3d_t>    vLines;     // Lines
+                r3d::buffer_t               sShape;
+                r3d::buffer_t               sRays;
 
             protected:
                 static void         free_buffer(r3d::buffer_t *buf);
+                void                create_mesh(const lltl::darray<dspu::rt::group_t> &groups);
 
             protected:
-                virtual void        process_data_change();
+                virtual void        process_data_change(lltl::parray<r3d::buffer_t> *dst);
 
             public:
                 explicit Source3D(ui::IWrapper *wrapper);

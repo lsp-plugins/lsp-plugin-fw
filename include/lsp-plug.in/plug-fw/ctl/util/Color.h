@@ -30,6 +30,8 @@
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/ctl/util/Expression.h>
 #include <lsp-plug.in/tk/tk.h>
+#include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/r3d/iface/types.h>
 
 namespace lsp
 {
@@ -87,6 +89,8 @@ namespace lsp
             public:
                 bool                set(const char *prefix, const char *name, const char *value);
                 inline const lsp::Color  *value() const   { return pColor->color();   }
+                dsp::color3d_t      color3d() const;
+                r3d::color_t        r3d_color() const;
 
                 /**
                  * Re-evaluate all expressions assigned to the controller

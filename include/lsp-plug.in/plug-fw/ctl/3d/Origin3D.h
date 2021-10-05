@@ -35,7 +35,7 @@ namespace lsp
     {
         namespace style
         {
-            LSP_TK_STYLE_DEF_BEGIN(Origin3D, lsp::tk::Style)
+            LSP_TK_STYLE_DEF_BEGIN(Origin3D, Object3D)
                 tk::prop::Float             sWidth;     // Width
                 tk::prop::Float             sLength[3]; // X, Y, Z length
                 tk::prop::Color             sColor[3];  // X, Y, Z colors

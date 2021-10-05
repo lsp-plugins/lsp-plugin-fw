@@ -30,7 +30,7 @@ namespace lsp
         {
             LSP_TK_STYLE_IMPL_BEGIN(Object3D, lsp::tk::Style)
                 // Bind
-                sVisibility.bind("visibile", this);
+                sVisibility.bind("visibility", this);
 
                 // Configure
                 sVisibility.set(true);
@@ -45,7 +45,7 @@ namespace lsp
         Object3D::Object3D(ui::IWrapper *wrapper):
             Widget(wrapper, NULL),
             sStyle(wrapper->display()->schema(), NULL, NULL),
-            sVisibility(&sProperties)
+            wVisibility(&sProperties)
         {
             pClass          = &metadata;
 
@@ -78,17 +78,17 @@ namespace lsp
             }
 
             // Bind to style
-            sVisibility.bind("visible", &sStyle);
+            wVisibility.bind("visibility", &sStyle);
 
             // Bind controlles
-            cVisibility.init(pWrapper, &sVisibility);
+            sVisibility.init(pWrapper, &wVisibility);
 
             return STATUS_OK;
         }
 
         void Object3D::property_changed(tk::Property *prop)
         {
-            if (sVisibility.is(prop))
+            if (wVisibility.is(prop))
                 query_draw_parent();
         }
 

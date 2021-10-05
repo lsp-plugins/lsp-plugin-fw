@@ -60,6 +60,8 @@ namespace lsp
                 sCurvature.bind("curvature", this);
                 sHeight.bind("height", this);
                 sAngle.bind("angle", this);
+                sRayLength.bind("ray.length", this);
+                sRayWidth.bind("ray.width", this);
 
                 // Configure
                 sType.set(0);
@@ -67,6 +69,8 @@ namespace lsp
                 sCurvature.set(0.0f);
                 sHeight.set(1.0f);
                 sAngle.set(0.0f);
+                sRayLength.set(0.25f);
+                sRayWidth.set(1.0f);
             LSP_TK_STYLE_IMPL_END
 
             LSP_UI_BUILTIN_STYLE(Source3D, "Source3D", "root");
@@ -94,9 +98,14 @@ namespace lsp
             sSize(&sProperties),
             sCurvature(&sProperties),
             sHeight(&sProperties),
-            sAngle(&sProperties)
+            sAngle(&sProperties),
+            sRayLength(&sProperties),
+            sRayWidth(&sProperties)
         {
             pClass      = &metadata;
+
+            r3d::init_buffer(&sShape);
+            r3d::init_buffer(&sRays);
         }
 
         Source3D::~Source3D()
@@ -133,6 +142,8 @@ namespace lsp
             sCurvature.bind("curvature", &sStyle);
             sHeight.bind("height", &sStyle);
             sAngle.bind("angle", &sStyle);
+            sRayLength.bind("ray.length", &sStyle);
+            sRayWidth.bind("ray.width", &sStyle);
 
             // Bind to controllers
             cMode.init(pWrapper, &sType);
@@ -140,12 +151,25 @@ namespace lsp
             cCurvature.init(pWrapper, &sCurvature);
             cHeight.init(pWrapper, &sHeight);
             cAngle.init(pWrapper, &sAngle);
+            cRayLength.init(pWrapper, &sRayLength);
+            cRayWidth.init(pWrapper, &sRayWidth);
 
             return STATUS_OK;
         }
 
         void Source3D::set(ui::UIContext *ctx, const char *name, const char *value)
         {
+            cMode.set("mode", name, value);
+            cSize.set("size", name, value);
+            cCurvature.set("curvature", name, value);
+            cHeight.set("height", name, value);
+            cAngle.set("angle", name, value);
+            cRayLength.set("ray.length", name, value);
+            cRayLength.set("rlength", name, value);
+            cRayWidth.set("ray.width", name, value);
+            cRayWidth.set("rwidth", name, value);
+
+            return Mesh3D::set(ctx, name, value);
         }
 
         void Source3D::property_changed(tk::Property *prop)
@@ -162,15 +186,20 @@ namespace lsp
                 query_data_change();
             if (sAngle.is(prop))
                 query_data_change();
+            if (sRayLength.is(prop))
+                query_data_change();
+            if (sRayWidth.is(prop))
+                query_data_change();
         }
 
-        void Source3D::process_data_change()
+        void Source3D::process_data_change(lltl::parray<r3d::buffer_t> *dst)
         {
+            Mesh3D::process_data_change(dst);
+
             dspu::room_source_config_t config;
             dspu::rt_source_settings_t settings;
 
             // Clear state
-            clear();
             vVertices.clear();
             vNormals.clear();
             vLines.clear();
@@ -201,9 +230,91 @@ namespace lsp
             if (res != STATUS_OK)
                 return;
 
-//            size_t  nt          = groups.size();
+            // Create mesh
+            create_mesh(groups);
 
+            // Initialize shape buffer
+            r3d::init_buffer(&sShape);
 
+            sShape.model            = *reinterpret_cast<r3d::mat4_t *>(&sMatrix);
+            sShape.type             = r3d::PRIMITIVE_TRIANGLES;
+            sShape.flags            = r3d::BUFFER_LIGHTING;
+            sShape.width            = 0.0f;
+            sShape.count            = groups.size();
+
+            sShape.vertex.data      = reinterpret_cast<r3d::dot4_t *>(vVertices.array());
+            sShape.vertex.stride    = sizeof(dsp::point3d_t);
+            sShape.normal.data      = reinterpret_cast<r3d::vec4_t *>(vNormals.array());
+            sShape.normal.stride    = sizeof(dsp::vector3d_t);
+            sShape.color.dfl        = cColor.r3d_color();
+
+            dst->add(&sShape);
+
+            // Initialize ray buffer
+            r3d::init_buffer(&sRays);
+
+            sRays.model             = *reinterpret_cast<r3d::mat4_t *>(&sMatrix);
+            sRays.type              = r3d::PRIMITIVE_LINES;
+            sRays.flags             = 0;
+            sRays.width             = sRayWidth.get();
+            sRays.count             = groups.size() * 3;
+            sRays.user              = NULL;
+            sRays.free              = NULL;
+
+            sRays.vertex.data       = reinterpret_cast<r3d::dot4_t *>(vLines.array());
+            sRays.vertex.stride     = sizeof(dsp::point3d_t);
+            sShape.color.dfl        = cLineColor.r3d_color();
+
+            dst->add(&sRays);
+        }
+
+        void Source3D::create_mesh(const lltl::darray<dspu::rt::group_t> &groups)
+        {
+            size_t  nt          = groups.size();
+            dsp::point3d_t *dp  = vVertices.append_n(nt * 3); // 1 triangle x 3 vertices
+            if (dp == NULL)
+                return;
+            dsp::vector3d_t *dn = vNormals.append_n(nt * 3); // 1 vertex = 1 normal
+            if (dn == NULL)
+                return;
+            dsp::point3d_t *dl  = vLines.append_n(nt * 6); // 1 triangle x 3 lines x 2 vertices
+            if (dp == NULL)
+                return;
+
+            const dspu::rt::group_t *grp = groups.array();
+            float ray_length    = sRayLength.get();
+
+            // Generate the final data
+            dsp::vector3d_t vn[3];
+            for (size_t i=0; i<nt; ++i, ++grp, dp += 3, dn += 3, dl += 6)
+            {
+                // Compute triangle vertices
+                dp[0]   = grp->p[0];
+                dp[1]   = grp->p[1];
+                dp[2]   = grp->p[2];
+
+                // Compute triangle normals
+                dsp::calc_normal3d_pv(&dn[0], dp);
+                dn[1]   = dn[0];
+                dn[2]   = dn[0];
+
+                // Compute rays
+                dl[0]   = dp[0];
+                dl[2]   = dp[1];
+                dl[4]   = dp[2];
+
+                dsp::init_vector_p2(&vn[0], &grp->s, &dp[0]);
+                dsp::init_vector_p2(&vn[1], &grp->s, &dp[1]);
+                dsp::init_vector_p2(&vn[2], &grp->s, &dp[2]);
+
+                dsp::normalize_vector(&vn[0]);
+                dsp::normalize_vector(&vn[1]);
+                dsp::normalize_vector(&vn[2]);
+
+                dsp::add_vector_pvk2(&dl[1], &dp[0], &vn[0], ray_length);
+                dsp::add_vector_pvk2(&dl[3], &dp[1], &vn[1], ray_length);
+                dsp::add_vector_pvk2(&dl[5], &dp[2], &vn[2], ray_length);
+            }
         }
 
     } /* namespace ctl */
