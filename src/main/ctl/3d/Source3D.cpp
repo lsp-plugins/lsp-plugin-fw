@@ -204,13 +204,9 @@ namespace lsp
             vNormals.clear();
             vLines.clear();
 
-            // Get point of view
-            const dsp::point3d_t *pov = (pParent != NULL) ? pParent->point_of_view() : NULL;
-            if (pov == NULL)
-                return;
-
             // Configure the source
-            config.sPos         = *pov;
+            dsp::init_point_xyz(&config.sPos, sPosX.get(), sPosY.get(), sPosZ.get());
+
             config.fYaw         = sYaw.get();
             config.fPitch       = sPitch.get();
             config.fRoll        = sRoll.get();
@@ -236,7 +232,7 @@ namespace lsp
             // Initialize shape buffer
             r3d::init_buffer(&sShape);
 
-            sShape.model            = *reinterpret_cast<r3d::mat4_t *>(&sMatrix);
+            sShape.model            = *reinterpret_cast<r3d::mat4_t *>(&settings.pos);
             sShape.type             = r3d::PRIMITIVE_TRIANGLES;
             sShape.flags            = r3d::BUFFER_LIGHTING;
             sShape.width            = 0.0f;
@@ -253,7 +249,7 @@ namespace lsp
             // Initialize ray buffer
             r3d::init_buffer(&sRays);
 
-            sRays.model             = *reinterpret_cast<r3d::mat4_t *>(&sMatrix);
+            sRays.model             = *reinterpret_cast<r3d::mat4_t *>(&settings.pos);
             sRays.type              = r3d::PRIMITIVE_LINES;
             sRays.flags             = 0;
             sRays.width             = sRayWidth.get();

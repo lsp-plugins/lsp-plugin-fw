@@ -493,15 +493,21 @@ namespace lsp
 
         void Widget::set(ui::UIContext *ctx, const char *name, const char *value)
         {
-            if (wWidget == NULL)
-                return;
+            if (wWidget != NULL)
+            {
+                set_param(wWidget->scaling(), "scaling", name, value);
+                set_param(wWidget->font_scaling(), "font.scaling", name, value);
+                set_param(wWidget->tag(), "ui:tag", name, value);
+                set_allocation(wWidget->allocation(), name, value);
 
-            if (!strcmp(name, "ui:id"))
-                ctx->widgets()->map(value, wWidget);
-            if (!strcmp(name, "ui:style"))
-                assign_styles(wWidget, value, true);
-            if (!strcmp(name, "ui:inject"))
-                assign_styles(wWidget, value, false);
+                if (!strcmp(name, "ui:id"))
+                    ctx->widgets()->map(value, wWidget);
+
+                if (!strcmp(name, "ui:style"))
+                    assign_styles(wWidget, value, true);
+                if (!strcmp(name, "ui:inject"))
+                    assign_styles(wWidget, value, false);
+            }
 
             sVisibility.set("visibility", name, value);
             sVisibility.set("visible", name, value);
@@ -511,17 +517,18 @@ namespace lsp
             sBgBrightness.set("bg.bright", name, value);
             sPointer.set("pointer", name, value);
 
-            set_param(wWidget->scaling(), "scaling", name, value);
-            set_param(wWidget->font_scaling(), "font.scaling", name, value);
-            set_param(wWidget->tag(), "ui:tag", name, value);
-            set_allocation(wWidget->allocation(), name, value);
-
             sPadding.set("pad", name, value);
             sPadding.set("padding", name, value);
             if (sBgColor.set("bg", name, value))
-                wWidget->bg_inherit()->set(false);
+            {
+                if (wWidget != NULL)
+                    wWidget->bg_inherit()->set(false);
+            }
             if (sBgColor.set("bg.color", name, value))
-                wWidget->bg_inherit()->set(false);
+            {
+                if (wWidget != NULL)
+                    wWidget->bg_inherit()->set(false);
+            }
             sBgInherit.set("bg.inherit", name, value);
             sBgInherit.set("ibg", name, value);
         }

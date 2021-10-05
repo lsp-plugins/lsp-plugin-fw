@@ -168,13 +168,6 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        void Area3D::end(ui::UIContext *ctx)
-        {
-
-
-            Widget::end(ctx);
-        }
-
         void Area3D::property_changed(tk::Property *prop)
         {
             // Test Axes colors for changes

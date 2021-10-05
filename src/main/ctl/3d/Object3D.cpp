@@ -89,7 +89,7 @@ namespace lsp
         void Object3D::property_changed(tk::Property *prop)
         {
             if (wVisibility.is(prop))
-                query_draw_parent();
+                query_draw();
         }
 
         bool Object3D::submit_foreground(lltl::darray<r3d::buffer_t> *dst)

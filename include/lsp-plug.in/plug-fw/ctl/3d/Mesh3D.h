@@ -41,9 +41,9 @@ namespace lsp
                 tk::prop::Float             sPosX;          // X position
                 tk::prop::Float             sPosY;          // Y position
                 tk::prop::Float             sPosZ;          // Z position
-                tk::prop::Float             sYaw;           // Yaw angle
-                tk::prop::Float             sPitch;         // Pitch angle
-                tk::prop::Float             sRoll;          // Roll angle
+                tk::prop::Float             sYaw;           // Yaw angle (degrees)
+                tk::prop::Float             sPitch;         // Pitch angle (degrees)
+                tk::prop::Float             sRoll;          // Roll angle (degrees)
                 tk::prop::Float             sScaleX;        // Scaling by X axis
                 tk::prop::Float             sScaleY;        // Scaling by Y axis
                 tk::prop::Float             sScaleZ;        // Scaling by Z axis
@@ -72,9 +72,17 @@ namespace lsp
                     }
 
             protected:
+                enum flags_t
+                {
+                    F_DATA_CHANGED          = 1 << 0,
+                    F_VIEW_CHANGED          = 1 << 1,
+                    F_TRANSFORM_CHANGED     = 1 << 2,
+                    F_COLOR_CHANGED         = 1 << 3,
+                };
+
+            protected:
                 dsp::matrix3d_t             sMatrix;        // Transformation matrix
-                bool                        bDataChanged;   // Rebuild mesh data
-                bool                        bPovChanged;    // Point of view has changed
+                size_t                      nFlags;         // Change flags
 
                 tk::prop::Color             sColor;         // Default color for triangles
                 tk::prop::Color             sLineColor;     // Default color for lines
@@ -82,9 +90,9 @@ namespace lsp
                 tk::prop::Float             sPosX;          // X position
                 tk::prop::Float             sPosY;          // Y position
                 tk::prop::Float             sPosZ;          // Z position
-                tk::prop::Float             sYaw;           // Yaw angle
-                tk::prop::Float             sPitch;         // Pitch angle
-                tk::prop::Float             sRoll;          // Roll angle
+                tk::prop::Float             sYaw;           // Yaw angle (degrees)
+                tk::prop::Float             sPitch;         // Pitch angle (degrees)
+                tk::prop::Float             sRoll;          // Roll angle (degrees)
                 tk::prop::Float             sScaleX;        // Scaling by X axis
                 tk::prop::Float             sScaleY;        // Scaling by Y axis
                 tk::prop::Float             sScaleZ;        // Scaling by Z axis
@@ -105,9 +113,11 @@ namespace lsp
                 lltl::parray<r3d::buffer_t> vBuffers;
 
             protected:
-                void                process_position_change();
-                void                reorder_triangles(const dsp::point3d_t *pov, r3d::buffer_t *buf);
+                virtual void        process_view_change(const dsp::point3d_t *pov);
+                virtual void        process_color_change();
+                virtual void        process_transform_change(dsp::matrix3d_t *transform);
                 virtual void        process_data_change(lltl::parray<r3d::buffer_t> *dst);
+                virtual void        reorder_triangles(const dsp::point3d_t *pov, r3d::buffer_t *buf);
 
             public:
                 explicit Mesh3D(ui::IWrapper *wrapper);
@@ -126,6 +136,10 @@ namespace lsp
                 virtual void        query_draw();
 
                 virtual void        query_data_change();
+
+                virtual void        query_transform_change();
+
+                virtual void        query_color_change();
 
             public:
                 void                clear();

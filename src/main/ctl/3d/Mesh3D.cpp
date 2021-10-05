@@ -84,8 +84,7 @@ namespace lsp
 
             dsp::init_matrix3d_identity(&sMatrix);
 
-            bDataChanged    = false;
-            bPovChanged     = false;
+            nFlags          = 0;
         }
 
         Mesh3D::~Mesh3D()
@@ -176,7 +175,7 @@ namespace lsp
             cScaleZ.set("sz", name, value);
             cScaleZ.set("scale.z", name, value);
 
-            return Widget::set(ctx, name, value);
+            return Object3D::set(ctx, name, value);
         }
 
         void Mesh3D::property_changed(tk::Property *prop)
@@ -184,63 +183,93 @@ namespace lsp
             Object3D::property_changed(prop);
 
             if (sColor.is(prop))
-                query_draw_parent();
+                query_color_change();
             if (sLineColor.is(prop))
-                query_draw_parent();
+                query_color_change();
             if (sPointColor.is(prop))
-                query_draw_parent();
+                query_color_change();
+
             if (sPosX.is(prop))
-                query_draw();
+                query_transform_change();
             if (sPosY.is(prop))
-                query_draw();
+                query_transform_change();
             if (sPosZ.is(prop))
-                query_draw();
+                query_transform_change();
             if (sYaw.is(prop))
-                query_draw();
+                query_transform_change();
             if (sPitch.is(prop))
-                query_draw();
+                query_transform_change();
             if (sRoll.is(prop))
-                query_draw();
+                query_transform_change();
             if (sScaleX.is(prop))
-                query_draw();
+                query_transform_change();
             if (sScaleY.is(prop))
-                query_draw();
+                query_transform_change();
             if (sScaleZ.is(prop))
-                query_draw();
+                query_transform_change();
         }
 
         void Mesh3D::query_draw()
         {
             // Mark mesh for rebuild
-            bPovChanged     = true;
+            nFlags         |= F_VIEW_CHANGED;
             Object3D::query_draw();
         }
 
         void Mesh3D::query_data_change()
         {
-            bDataChanged    = true;
+            nFlags         |= F_DATA_CHANGED;
+            query_draw();
+        }
+
+        void Mesh3D::query_transform_change()
+        {
+            nFlags         |= F_TRANSFORM_CHANGED;
+            query_draw();
+        }
+
+        void Mesh3D::query_color_change()
+        {
+            nFlags         |= F_COLOR_CHANGED;
             query_draw();
         }
 
         bool Mesh3D::submit_foreground(lltl::darray<r3d::buffer_t> *dst)
         {
-            if (bDataChanged)
+            if (nFlags & F_DATA_CHANGED)
             {
-                // TODO: recompute matrix
+                // Clear buffer and fill with data
                 vBuffers.clear();
-
                 process_data_change(&vBuffers);
-                bDataChanged = false;
+
+                // Cleanup flag
+                nFlags     &= ~F_DATA_CHANGED;
             }
 
+            // Is there data to submit?
             size_t count = vBuffers.size();
             if (count <= 0)
                 return false;
 
-            if (bPovChanged)
+            // Update state of other properties
+            if (nFlags & F_VIEW_CHANGED)
             {
-                process_position_change();
-                bPovChanged = false;
+                const dsp::point3d_t *pov  = (pParent != NULL) ? pParent->point_of_view() : NULL;
+                if (pov != NULL)
+                {
+                    process_view_change(pov);
+                    nFlags     &= ~F_VIEW_CHANGED;
+                }
+            }
+            if (nFlags & F_COLOR_CHANGED)
+            {
+                process_color_change();
+                nFlags     &= ~F_COLOR_CHANGED;
+            }
+            if (nFlags & F_TRANSFORM_CHANGED)
+            {
+                process_transform_change(&sMatrix);
+                nFlags     &= ~F_TRANSFORM_CHANGED;
             }
 
             // Add buffers
@@ -326,21 +355,33 @@ namespace lsp
             }
         }
 
-        void Mesh3D::process_position_change()
+        void Mesh3D::process_view_change(const dsp::point3d_t *pov)
         {
-            const dsp::point3d_t *pov  = (pParent != NULL) ? pParent->point_of_view() : NULL;
+            // Update mesh properties
+            for (size_t i=0, n=vBuffers.size(); i<n; ++i)
+            {
+                r3d::buffer_t *buf = vBuffers.uget(i);
+                switch (buf->type)
+                {
+                    case r3d::PRIMITIVE_TRIANGLES:
+                        reorder_triangles(pov, buf);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
 
+        void Mesh3D::process_color_change()
+        {
             // Update mesh properties
             for (size_t i=0, n=vBuffers.size(); i<n; ++i)
             {
                 r3d::buffer_t *buf = vBuffers.uget(i);
 
-                buf->model  = *reinterpret_cast<r3d::mat4_t *>(&sMatrix);
-
                 switch (buf->type)
                 {
                     case r3d::PRIMITIVE_TRIANGLES:
-                        reorder_triangles(pov, buf);
                         buf->color.dfl = cColor.r3d_color();
                         break;
                     case r3d::PRIMITIVE_WIREFRAME_TRIANGLES:
@@ -355,6 +396,33 @@ namespace lsp
                     default:
                         break;
                 }
+            }
+        }
+
+        void Mesh3D::process_transform_change(dsp::matrix3d_t *transform)
+        {
+            // Compute new position matrix
+            dsp::matrix3d_t m;
+
+            dsp::init_matrix3d_translate(transform, sPosX.get(), sPosY.get(), sPosZ.get());
+
+            dsp::init_matrix3d_rotate_z(&m, sYaw.get() * M_PI / 180.0f);
+            dsp::apply_matrix3d_mm1(transform, &m);
+
+            dsp::init_matrix3d_rotate_y(&m, sPitch.get() * M_PI / 180.0f);
+            dsp::apply_matrix3d_mm1(transform, &m);
+
+            dsp::init_matrix3d_rotate_x(&m, sRoll.get() * M_PI / 180.0f);
+            dsp::apply_matrix3d_mm1(transform, &m);
+
+            dsp::init_matrix3d_scale(&m, sScaleX.get(), sScaleY.get(), sScaleZ.get());
+            dsp::apply_matrix3d_mm1(transform, &m);
+
+            // Update mesh properties
+            for (size_t i=0, n=vBuffers.size(); i<n; ++i)
+            {
+                r3d::buffer_t *buf = vBuffers.uget(i);
+                buf->model  = *reinterpret_cast<r3d::mat4_t *>(transform);
             }
         }
 
