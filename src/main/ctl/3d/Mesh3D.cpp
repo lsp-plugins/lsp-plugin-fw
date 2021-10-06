@@ -82,8 +82,6 @@ namespace lsp
         {
             pClass          = &metadata;
 
-            dsp::init_matrix3d_identity(&sMatrix);
-
             nFlags          = 0;
         }
 
@@ -268,7 +266,7 @@ namespace lsp
             }
             if (nFlags & F_TRANSFORM_CHANGED)
             {
-                process_transform_change(&sMatrix);
+                process_transform_change();
                 nFlags     &= ~F_TRANSFORM_CHANGED;
             }
 
@@ -399,31 +397,8 @@ namespace lsp
             }
         }
 
-        void Mesh3D::process_transform_change(dsp::matrix3d_t *transform)
+        void Mesh3D::process_transform_change()
         {
-            // Compute new position matrix
-            dsp::matrix3d_t m;
-
-            dsp::init_matrix3d_translate(transform, sPosX.get(), sPosY.get(), sPosZ.get());
-
-            dsp::init_matrix3d_rotate_z(&m, sYaw.get() * M_PI / 180.0f);
-            dsp::apply_matrix3d_mm1(transform, &m);
-
-            dsp::init_matrix3d_rotate_y(&m, sPitch.get() * M_PI / 180.0f);
-            dsp::apply_matrix3d_mm1(transform, &m);
-
-            dsp::init_matrix3d_rotate_x(&m, sRoll.get() * M_PI / 180.0f);
-            dsp::apply_matrix3d_mm1(transform, &m);
-
-            dsp::init_matrix3d_scale(&m, sScaleX.get(), sScaleY.get(), sScaleZ.get());
-            dsp::apply_matrix3d_mm1(transform, &m);
-
-            // Update mesh properties
-            for (size_t i=0, n=vBuffers.size(); i<n; ++i)
-            {
-                r3d::buffer_t *buf = vBuffers.uget(i);
-                buf->model  = *reinterpret_cast<r3d::mat4_t *>(transform);
-            }
         }
 
         void Mesh3D::process_data_change(lltl::parray<r3d::buffer_t> *dst)

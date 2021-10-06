@@ -112,24 +112,6 @@ namespace lsp
         {
         }
 
-        void Source3D::free_buffer(r3d::buffer_t *buf)
-        {
-            if (buf == NULL)
-                return;
-
-            if (buf->vertex.data != NULL)
-            {
-                free(buf->vertex.data);
-                buf->vertex.data = NULL;
-            }
-            if (buf->normal.data != NULL)
-            {
-                free(buf->normal.data);
-                buf->normal.data = NULL;
-            }
-            free(buf);
-        }
-
         status_t Source3D::init()
         {
             status_t res = Mesh3D::init();
@@ -146,7 +128,7 @@ namespace lsp
             sRayWidth.bind("ray.width", &sStyle);
 
             // Bind to controllers
-            cMode.init(pWrapper, &sType);
+            cType.init(pWrapper, &sType);
             cSize.init(pWrapper, &sSize);
             cCurvature.init(pWrapper, &sCurvature);
             cHeight.init(pWrapper, &sHeight);
@@ -159,7 +141,7 @@ namespace lsp
 
         void Source3D::set(ui::UIContext *ctx, const char *name, const char *value)
         {
-            cMode.set("mode", name, value);
+            cType.set("type", name, value);
             cSize.set("size", name, value);
             cCurvature.set("curvature", name, value);
             cHeight.set("height", name, value);
@@ -192,21 +174,12 @@ namespace lsp
                 query_data_change();
         }
 
-        void Source3D::process_data_change(lltl::parray<r3d::buffer_t> *dst)
+        status_t Source3D::compute_source_settings(dspu::rt_source_settings_t *settings)
         {
-            Mesh3D::process_data_change(dst);
-
             dspu::room_source_config_t config;
-            dspu::rt_source_settings_t settings;
-
-            // Clear state
-            vVertices.clear();
-            vNormals.clear();
-            vLines.clear();
 
             // Configure the source
             dsp::init_point_xyz(&config.sPos, sPosX.get(), sPosY.get(), sPosZ.get());
-
             config.fYaw         = sYaw.get();
             config.fPitch       = sPitch.get();
             config.fRoll        = sRoll.get();
@@ -217,7 +190,35 @@ namespace lsp
             config.fCurvature   = sCurvature.get();
             config.fAmplitude   = 1.0f;
 
-            if (dspu::rt_configure_source(&settings, &config) != STATUS_OK)
+            return dspu::rt_configure_source(settings, &config);
+        }
+
+        void Source3D::process_transform_change()
+        {
+            Mesh3D::process_transform_change();
+
+            // Configure source settings
+            dspu::rt_source_settings_t settings;
+            if (compute_source_settings(&settings) != STATUS_OK)
+                return;
+
+            // Update mesh properties
+            sShape.model    = *reinterpret_cast<r3d::mat4_t *>(&settings.pos);
+            sRays.model     = *reinterpret_cast<r3d::mat4_t *>(&settings.pos);
+        }
+
+        void Source3D::process_data_change(lltl::parray<r3d::buffer_t> *dst)
+        {
+            Mesh3D::process_data_change(dst);
+
+            // Clear state
+            vVertices.clear();
+            vNormals.clear();
+            vLines.clear();
+
+            // Configure source settings
+            dspu::rt_source_settings_t settings;
+            if (compute_source_settings(&settings) != STATUS_OK)
                 return;
 
             // Generate source mesh depending on current configuration
@@ -238,9 +239,9 @@ namespace lsp
             sShape.width            = 0.0f;
             sShape.count            = groups.size();
 
-            sShape.vertex.data      = reinterpret_cast<r3d::dot4_t *>(vVertices.array());
+            sShape.vertex.data      = array_cast<r3d::dot4_t>(vVertices.array());
             sShape.vertex.stride    = sizeof(dsp::point3d_t);
-            sShape.normal.data      = reinterpret_cast<r3d::vec4_t *>(vNormals.array());
+            sShape.normal.data      = array_cast<r3d::vec4_t>(vNormals.array());
             sShape.normal.stride    = sizeof(dsp::vector3d_t);
             sShape.color.dfl        = cColor.r3d_color();
 
@@ -254,12 +255,10 @@ namespace lsp
             sRays.flags             = 0;
             sRays.width             = sRayWidth.get();
             sRays.count             = groups.size() * 3;
-            sRays.user              = NULL;
-            sRays.free              = NULL;
 
-            sRays.vertex.data       = reinterpret_cast<r3d::dot4_t *>(vLines.array());
+            sRays.vertex.data       = array_cast<r3d::dot4_t>(vLines.array());
             sRays.vertex.stride     = sizeof(dsp::point3d_t);
-            sShape.color.dfl        = cLineColor.r3d_color();
+            sRays.color.dfl         = cLineColor.r3d_color();
 
             dst->add(&sRays);
         }

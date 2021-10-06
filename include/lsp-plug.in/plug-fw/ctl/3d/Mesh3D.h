@@ -81,7 +81,6 @@ namespace lsp
                 };
 
             protected:
-                dsp::matrix3d_t             sMatrix;        // Transformation matrix
                 size_t                      nFlags;         // Change flags
 
                 tk::prop::Color             sColor;         // Default color for triangles
@@ -115,7 +114,7 @@ namespace lsp
             protected:
                 virtual void        process_view_change(const dsp::point3d_t *pov);
                 virtual void        process_color_change();
-                virtual void        process_transform_change(dsp::matrix3d_t *transform);
+                virtual void        process_transform_change();
                 virtual void        process_data_change(lltl::parray<r3d::buffer_t> *dst);
                 virtual void        reorder_triangles(const dsp::point3d_t *pov, r3d::buffer_t *buf);
 
