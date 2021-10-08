@@ -58,6 +58,19 @@ namespace lsp
 
                 tk::prop::Boolean   wVisibility;
 
+            protected:
+                template <class D, class S>
+                    D *array_cast(S *ptr)
+                    {
+                        return reinterpret_cast<D *>(ptr);
+                    }
+
+                template <class D, class S>
+                    D *array_cast(const S *ptr)
+                    {
+                        return array_cast<D>(const_cast<S *>(ptr));
+                    }
+
             public:
                 explicit Object3D(ui::IWrapper *wrapper);
                 virtual ~Object3D();

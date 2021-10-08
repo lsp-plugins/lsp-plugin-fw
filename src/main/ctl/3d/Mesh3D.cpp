@@ -87,8 +87,7 @@ namespace lsp
 
         Mesh3D::~Mesh3D()
         {
-            pParent         = NULL;
-            clear();
+            destroy();
         }
 
         status_t Mesh3D::init()
@@ -130,11 +129,6 @@ namespace lsp
 
         void Mesh3D::destroy()
         {
-            clear();
-        }
-
-        void Mesh3D::clear()
-        {
             for (size_t i=0, n=vBuffers.size(); i<n; ++i)
             {
                 r3d::buffer_t *buf = vBuffers.uget(i);
@@ -142,11 +136,6 @@ namespace lsp
                     buf->free(buf);
             }
             vBuffers.flush();
-        }
-
-        status_t Mesh3D::append(r3d::buffer_t *buffer)
-        {
-            return (vBuffers.add(buffer)) ? STATUS_OK : STATUS_NO_MEM;
         }
 
         void Mesh3D::set(ui::UIContext *ctx, const char *name, const char *value)

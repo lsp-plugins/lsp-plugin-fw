@@ -269,9 +269,6 @@ namespace lsp
 
         void Area3D::notify_view_changed()
         {
-            bViewChanged    = true;
-            query_draw();
-
             // Notify children
             for (size_t i=0, n=vObjects.size(); i<n; ++i)
             {
@@ -279,6 +276,8 @@ namespace lsp
                 if (obj != NULL)
                     obj->query_draw();
             }
+
+            query_view_change();
         }
 
         void Area3D::sync_pov_change(float *dst, ui::IPort *port, ui::IPort *psrc)
@@ -299,8 +298,7 @@ namespace lsp
                 return;
 
             *dst            = v;
-            bViewChanged    = true;
-            wWidget->query_draw();
+            query_view_change();
         }
 
         void Area3D::sync_angle_change(float *dst, ui::IPort *port, ui::IPort *psrc)
@@ -585,6 +583,12 @@ namespace lsp
         {
             if (wWidget != NULL)
                 wWidget->query_draw();
+        }
+
+        void Area3D::query_view_change()
+        {
+            bViewChanged        = true;
+            query_draw();
         }
 
     } /* namespace ctl */

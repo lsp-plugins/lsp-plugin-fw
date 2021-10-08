@@ -59,19 +59,6 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
-                template <class D, class S>
-                    D *array_cast(S *ptr)
-                    {
-                        return reinterpret_cast<D *>(ptr);
-                    }
-
-                template <class D, class S>
-                    D *array_cast(const S *ptr)
-                    {
-                        return array_cast<D>(const_cast<S *>(ptr));
-                    }
-
-            protected:
                 enum flags_t
                 {
                     F_DATA_CHANGED          = 1 << 0,
@@ -139,11 +126,6 @@ namespace lsp
                 virtual void        query_transform_change();
 
                 virtual void        query_color_change();
-
-            public:
-                void                clear();
-
-                status_t            append(r3d::buffer_t *buffer);
         };
 
     } /* namespace ctl */

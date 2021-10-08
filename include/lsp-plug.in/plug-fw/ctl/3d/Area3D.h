@@ -140,6 +140,7 @@ namespace lsp
 
             public:
                 void                query_draw();
+                void                query_view_change();
 
                 inline const dsp::point3d_t    *point_of_view() const       { return &sPov;     }
                 inline const dsp::vector3d_t   *direction_of_view() const   { return &sDir;     }
