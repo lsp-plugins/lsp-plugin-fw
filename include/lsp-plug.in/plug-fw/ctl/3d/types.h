@@ -40,13 +40,6 @@ namespace lsp
             r3d::dot4_t     p;      // Position
             r3d::color_t    c;      // Color
         } point3d_t;
-
-        typedef struct vertex3d_t
-        {
-            r3d::dot4_t     p;      // Position
-            r3d::vec4_t     n;      // Normal
-            r3d::color_t    c;      // Color
-        } vertex3d_t;
     #pragma pack(pop)
 
     } /* namespace ctl */

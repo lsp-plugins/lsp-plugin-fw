@@ -29,6 +29,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/tk/tk.h>
 #include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/dsp-units/3d/view/types.h>
 
 namespace lsp
 {
@@ -59,8 +60,8 @@ namespace lsp
                 } pov_angles_t;
 
             protected:
-                lltl::darray<vertex3d_t>    vVertices;  // Vertices of the scene
-                lltl::parray<ctl::Object3D> vObjects;
+                lltl::darray<dspu::view::vertex3d_t>    vVertices;  // Vertices of the scene
+                lltl::parray<ctl::Object3D>             vObjects;
 
                 // Camera control
                 ui::IPort          *pPosX;
@@ -68,17 +69,12 @@ namespace lsp
                 ui::IPort          *pPosZ;
                 ui::IPort          *pYaw;
                 ui::IPort          *pPitch;
-                ui::IPort          *pScaleX;
-                ui::IPort          *pScaleY;
-                ui::IPort          *pScaleZ;
-                ui::IPort          *pOrientation;
 
                 // Camera position
                 bool                bViewChanged;   // View has changed
                 float               fFov;           // Field of view
                 dsp::point3d_t      sPov;           // Point-of-view for the camera
                 dsp::point3d_t      sOldPov;        // Old point of view
-                dsp::vector3d_t     sScale;         // Scene scaling
                 dsp::vector3d_t     sTop;           // Top-of-view for the camera
                 dsp::vector3d_t     sXTop;          // Updated top-of-view for the camera
                 dsp::vector3d_t     sDir;           // Direction-of-view for the camera
@@ -99,6 +95,7 @@ namespace lsp
                 ctl::Color          sBorderColor;
                 ctl::Color          sGlassColor;
                 ctl::Color          sAxes[3];
+                ctl::Expression     sFov;
 
             protected:
                 static float        get_delta(ui::IPort *p, float dfl);
@@ -106,7 +103,6 @@ namespace lsp
                 void                submit_pov_change(float *vold, float vnew, ui::IPort *port);
                 void                submit_angle_change(float *vold, float vnew, ui::IPort *port);
                 void                sync_pov_change(float *dst, ui::IPort *port, ui::IPort *psrc);
-                void                sync_scale_change(float *dst, ui::IPort *port, ui::IPort *psrc);
                 void                sync_angle_change(float *dst, ui::IPort *port, ui::IPort *psrc);
 
             protected:

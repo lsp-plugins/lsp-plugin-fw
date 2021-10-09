@@ -60,7 +60,6 @@ namespace lsp
 
             private:
                 ui::IPort          *pFile;          // Location of the model file
-                ui::IPort          *pStatus;        // Status of loading of the model file
 
                 dsp::matrix3d_t     matOrientation; // Orientation matrix
 
@@ -90,6 +89,8 @@ namespace lsp
                 ctl::Float          cScaleX;
                 ctl::Float          cScaleY;
                 ctl::Float          cScaleZ;
+
+                ctl::Expression     sStatus;        // Status
 
             protected:
                 void                update_model_file();

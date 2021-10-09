@@ -67,17 +67,12 @@ namespace lsp
             pPosZ           = NULL;
             pYaw            = NULL;
             pPitch          = NULL;
-            pScaleX         = NULL;
-            pScaleY         = NULL;
-            pScaleZ         = NULL;
-            pOrientation    = NULL;
 
             bViewChanged    = true;
             fFov            = 70.0f;
 
             dsp::init_point_xyz(&sPov, 0.0f, -6.0f, 0.0f);
             dsp::init_point_xyz(&sOldPov, 0.0f, -6.0f, 0.0f);
-            dsp::init_vector_dxyz(&sScale, 1.0f, 1.0f, 1.0f);
             dsp::init_vector_dxyz(&sTop, 0.0f, 0.0f, -1.0f);
             dsp::init_vector_dxyz(&sXTop, 0.0f, 0.0f, -1.0f);
             dsp::init_vector_dxyz(&sDir, 0.0f, -1.0f, 0.0f);
@@ -137,12 +132,9 @@ namespace lsp
             if (a3d != NULL)
             {
                 // Bind ports
-                bind_port(&pPosX, "pos.x.id", name, value);
-                bind_port(&pPosY, "pos.y.id", name, value);
-                bind_port(&pPosZ, "pos.z.id", name, value);
-                bind_port(&pScaleX, "scale.x.id", name, value);
-                bind_port(&pScaleY, "scale.y.id", name, value);
-                bind_port(&pScaleZ, "scale.z.id", name, value);
+                bind_port(&pPosX, "x.id", name, value);
+                bind_port(&pPosY, "y.id", name, value);
+                bind_port(&pPosZ, "z.id", name, value);
                 bind_port(&pYaw, "yaw.id", name, value);
                 bind_port(&pPitch, "pitch.id", name, value);
 
@@ -154,6 +146,7 @@ namespace lsp
                 set_param(a3d->border_radius(), "bradius", name, value);
                 set_param(a3d->border_radius(), "brad", name, value);
                 set_param(a3d->glass(), "glass", name, value);
+                set_expr(&sFov, "fov", name, value);
 
                 // Set-up dynamic properties
                 sBorderFlat.set("border.flat", name, value);
@@ -289,18 +282,6 @@ namespace lsp
             notify_view_changed();
         }
 
-        void Area3D::sync_scale_change(float *dst, ui::IPort *port, ui::IPort *psrc)
-        {
-            if ((psrc != port) || (port == NULL))
-                return;
-            float v = psrc->value() * 0.01f;
-            if (*dst == v)
-                return;
-
-            *dst            = v;
-            query_view_change();
-        }
-
         void Area3D::sync_angle_change(float *dst, ui::IPort *port, ui::IPort *psrc)
         {
             if ((psrc != port) || (port == NULL))
@@ -403,7 +384,22 @@ namespace lsp
 
         void Area3D::commit_view(ws::IR3DBackend *r3d)
         {
-            // TODO
+            dspu::bsp::context_t ctx;
+
+            // Prepare context
+            for (size_t i=0, n=vObjects.size(); i<n; ++i)
+            {
+                ctl::Object3D *obj = vObjects.uget(i);
+                if ((obj == NULL) || (!obj->visibility()->get()))
+                    continue;
+
+                obj->submit_background(&ctx);
+            }
+
+            // Build BSP tree and commit the BSP tree to list of drawn vertexes
+            status_t res = ctx.build_tree();
+            if (res == STATUS_OK)
+                res = ctx.build_mesh(&vVertices, &sPov);
         }
 
         void Area3D::draw_supplementary(ws::IR3DBackend *r3d)
@@ -440,7 +436,7 @@ namespace lsp
             if (nvertex <= 0)
                 return;
 
-            vertex3d_t *vv      = vVertices.array();
+            dspu::view::vertex3d_t *vv  = vVertices.array();
 
             // Fill buffer
             r3d::buffer_t buf;
@@ -451,14 +447,14 @@ namespace lsp
             buf.count           = nvertex / 3;
             buf.flags           = r3d::BUFFER_BLENDING | r3d::BUFFER_LIGHTING;
 
-            buf.vertex.data     = &vv->p;
-            buf.vertex.stride   = sizeof(vertex3d_t);
+            buf.vertex.data     = reinterpret_cast<r3d::dot4_t *>(&vv->p);
+            buf.vertex.stride   = sizeof(dspu::view::vertex3d_t);
             buf.vertex.index    = NULL;
-            buf.normal.data     = &vv->n;
-            buf.normal.stride   = sizeof(vertex3d_t);
+            buf.normal.data     = reinterpret_cast<r3d::vec4_t *>(&vv->n);
+            buf.normal.stride   = sizeof(dspu::view::vertex3d_t);
             buf.normal.index    = NULL;
-            buf.color.data      = &vv->c;
-            buf.color.stride    = sizeof(vertex3d_t);
+            buf.color.data      = reinterpret_cast<r3d::color_t *>(&vv->c);
+            buf.color.stride    = sizeof(dspu::view::vertex3d_t);
             buf.color.index     = NULL;
 
             // Draw call
@@ -472,7 +468,11 @@ namespace lsp
             setup_camera(r3d);
 
             // Need to update vertex list for the scene?
-            commit_view(r3d);
+            if (bViewChanged)
+            {
+                commit_view(r3d);
+                bViewChanged    = false;
+            }
 
             // Perform draw
             draw_supplementary(r3d);
@@ -501,9 +501,12 @@ namespace lsp
             sync_pov_change(&sPov.z, pPosZ, port);
             sync_angle_change(&sAngles.fYaw, pYaw, port);
             sync_angle_change(&sAngles.fPitch, pPitch, port);
-            sync_scale_change(&sScale.dx, pScaleX, port);
-            sync_scale_change(&sScale.dy, pScaleY, port);
-            sync_scale_change(&sScale.dz, pScaleZ, port);
+
+            if (sFov.depends(port))
+            {
+                fFov    = sFov.evaluate_float(70);
+                query_draw();
+            }
         }
 
         status_t Area3D::slot_draw3d(tk::Widget *sender, void *ptr, void *data)

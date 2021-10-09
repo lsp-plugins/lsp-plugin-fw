@@ -114,7 +114,7 @@ namespace lsp
                 sScaleZ.set(1.0f);
             LSP_TK_STYLE_IMPL_END
 
-            LSP_UI_BUILTIN_STYLE(Object3D, "Object3D", "root");
+            LSP_UI_BUILTIN_STYLE(Model3D, "Model3D", "root");
         }
 
         //---------------------------------------------------------------------
@@ -148,7 +148,6 @@ namespace lsp
             sScaleZ(&sProperties)
         {
             pFile           = NULL;
-            pStatus         = NULL;
 
             dsp::init_matrix3d_identity(&matOrientation);
 
@@ -221,6 +220,15 @@ namespace lsp
             cScaleZ.set("sz", name, value);
             cScaleZ.set("scale.z", name, value);
 
+            if ((!strcmp("kvt.root", name) || (!strcmp("kvt_root", name))))
+            {
+                sKvtRoot.set_utf8(value);
+                if (!sKvtRoot.ends_with('/'))
+                    sKvtRoot.append('/');
+            }
+
+            set_expr(&sStatus, "status", name, value);
+
             return Object3D::set(ctx, name, value);
         }
 
@@ -230,7 +238,7 @@ namespace lsp
             if (port == NULL)
                 return;
 
-            if ((pFile == port) || (pStatus == port))
+            if ((pFile == port) || (sStatus.depends(port)))
                 update_model_file();
         }
 
@@ -240,7 +248,8 @@ namespace lsp
             sScene.clear();
 
             // Load scene only if status is not defined or valid
-            if ((pStatus == NULL) || (status_t(pStatus->value()) == STATUS_OK))
+            ssize_t status = (sStatus.valid()) ? sStatus.evaluate_int(STATUS_UNKNOWN_ERR) : STATUS_UNKNOWN_ERR;
+            if (status == STATUS_OK)
             {
                 const char *spath   = pFile->buffer<char>();
                 if (spath != NULL)
