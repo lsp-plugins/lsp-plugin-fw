@@ -289,7 +289,7 @@ namespace lsp
         {
             if (listener == NULL)
                 return STATUS_BAD_ARGUMENTS;
-            if (vKvtListeners.index_of(listener) < 0)
+            if (vKvtListeners.index_of(listener) >= 0)
                 return STATUS_ALREADY_BOUND;
 
             return (vKvtListeners.add(listener)) ? STATUS_OK : STATUS_NO_MEM;

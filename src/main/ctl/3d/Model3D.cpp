@@ -246,6 +246,12 @@ namespace lsp
                 update_model_file();
         }
 
+        void Model3D::end(ui::UIContext *ctx)
+        {
+            if (!sKvtRoot.is_empty())
+                pWrapper->kvt_subscribe(this);
+        }
+
         void Model3D::update_model_file()
         {
             // Clear scene state

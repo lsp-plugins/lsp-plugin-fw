@@ -112,6 +112,7 @@ namespace lsp
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
                 virtual void        notify(ui::IPort *port);
+                virtual void        end(ui::UIContext *ctx);
 
                 virtual void        property_changed(tk::Property *prop);
                 virtual bool        submit_background(dspu::bsp::context_t *dst);
