@@ -119,7 +119,7 @@ namespace lsp
 
         //---------------------------------------------------------------------
         CTL_FACTORY_IMPL_START(Model3D)
-            if (!name->equals_ascii("source3d"))
+            if (!name->equals_ascii("model3d"))
                 return STATUS_NOT_FOUND;
 
             ctl::Model3D *wc    = new ctl::Model3D(context->wrapper());
@@ -190,6 +190,8 @@ namespace lsp
             cScaleY.init(pWrapper, &sScaleY);
             cScaleZ.init(pWrapper, &sScaleZ);
 
+            sStatus.init(pWrapper, this);
+
             return STATUS_OK;
         }
 
@@ -200,6 +202,8 @@ namespace lsp
 
         void Model3D::set(ui::UIContext *ctx, const char *name, const char *value)
         {
+            bind_port(&pFile, "id", name, value);
+
             cOrientation.set("orientation", name, value);
             cOrientation.set("o", name, value);
             cTransparency.set("transparency", name, value);
@@ -332,7 +336,7 @@ namespace lsp
 
             // Compute the matrix
             // Translation
-            dsp::init_matrix3d_translate(m, dx - cx, dy - cy, dz - cz);
+            dsp::init_matrix3d_translate(m, dx + cx, dy + cy, dz + cz);
 
             // Rotation
             dsp::init_matrix3d_rotate_z(&tmp, yaw * M_PI / 180.0f);
@@ -343,7 +347,7 @@ namespace lsp
             dsp::apply_matrix3d_mm1(m, &tmp);
 
             // Scale
-            dsp::init_matrix3d_scale(&tmp, sx, sy, sz);
+            dsp::init_matrix3d_scale(&tmp, sx * 0.01f, sy * 0.01f, sz * 0.01f);
             dsp::apply_matrix3d_mm1(m, &tmp);
 
             // Move center to (0, 0, 0) point
@@ -421,7 +425,8 @@ namespace lsp
                 c.b         = xc.blue();
                 c.a         = xc.alpha();
 
-                dsp::apply_matrix3d_mm2(&m, &matOrientation, &om);
+                dsp::apply_matrix3d_mm2(&m, &world, &om);
+                dsp::apply_matrix3d_mm1(&m, &matOrientation);
                 if ((dst->add_object(o, &m, &c)) == STATUS_OK)
                     added       = true;
             }

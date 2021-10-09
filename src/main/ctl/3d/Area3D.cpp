@@ -117,6 +117,8 @@ namespace lsp
                 vAxes[1].set("area3d_y");
                 vAxes[2].set("area3d_z");
 
+                sFov.init(pWrapper, this);
+
                 a3d->slots()->bind(tk::SLOT_DRAW3D, slot_draw3d, this);
                 a3d->slots()->bind(tk::SLOT_MOUSE_DOWN, slot_mouse_down, this);
                 a3d->slots()->bind(tk::SLOT_MOUSE_UP, slot_mouse_up, this);
@@ -399,7 +401,10 @@ namespace lsp
             // Build BSP tree and commit the BSP tree to list of drawn vertexes
             status_t res = ctx.build_tree();
             if (res == STATUS_OK)
+            {
+                vVertices.clear();
                 res = ctx.build_mesh(&vVertices, &sPov);
+            }
         }
 
         void Area3D::draw_supplementary(ws::IR3DBackend *r3d)
