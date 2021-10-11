@@ -127,9 +127,9 @@ namespace lsp
                 if (set_value(&fStep, "step", name, value))
                     nFlags     |= FF_STEP;
 
-                if (set_value(&fStep, "dfl", name, value))
+                if (set_value(&fDefault, "dfl", name, value))
                     nFlags     |= FF_DFL;
-                if (set_value(&fStep, "default", name, value))
+                if (set_value(&fDefault, "default", name, value))
                     nFlags     |= FF_DFL;
 
                 if (set_value(&fBalance, "bal", name, value))

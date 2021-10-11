@@ -59,6 +59,7 @@
     #include <lsp-plug.in/plug-fw/ctl/simple/Separator.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Hyperlink.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Fader.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/ProgressBar.h>
 
     #include <lsp-plug.in/plug-fw/ctl/containers/Box.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/Align.h>
