@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 27 июн. 2021 г.
+ * Created on: 11 окт. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -21,16 +21,17 @@
 
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/ipc/Thread.h>
 
 namespace lsp
 {
     namespace ctl
     {
         //---------------------------------------------------------------------
-        CTL_FACTORY_IMPL_START(ComboBox)
+        CTL_FACTORY_IMPL_START(ThreadComboBox)
             status_t res;
 
-            if (!name->equals_ascii("combo"))
+            if (!name->equals_ascii("threadcombo"))
                 return STATUS_NOT_FOUND;
 
             tk::ComboBox *w = new tk::ComboBox(context->display());
@@ -45,32 +46,29 @@ namespace lsp
             if ((res = w->init()) != STATUS_OK)
                 return res;
 
-            ctl::ComboBox *wc  = new ctl::ComboBox(context->wrapper(), w);
+            ctl::ThreadComboBox *wc  = new ctl::ThreadComboBox(context->wrapper(), w);
             if (wc == NULL)
                 return STATUS_NO_MEM;
 
             *ctl = wc;
             return STATUS_OK;
-        CTL_FACTORY_IMPL_END(ComboBox)
+        CTL_FACTORY_IMPL_END(ThreadComboBox)
 
         //-----------------------------------------------------------------
-        const ctl_class_t ComboBox::metadata    = { "ComboBox", &Widget::metadata };
+        const ctl_class_t ThreadComboBox::metadata    = { "ThreadComboBox", &Widget::metadata };
 
-        ComboBox::ComboBox(ui::IWrapper *wrapper, tk::ComboBox *widget): Widget(wrapper, widget)
+        ThreadComboBox::ThreadComboBox(ui::IWrapper *wrapper, tk::ComboBox *widget): Widget(wrapper, widget)
         {
             pClass          = &metadata;
 
             pPort           = NULL;
-            fMin            = 0.0f;
-            fMax            = 0.0f;
-            fStep           = 0.0f;
         }
 
-        ComboBox::~ComboBox()
+        ThreadComboBox::~ThreadComboBox()
         {
         }
 
-        status_t ComboBox::init()
+        status_t ThreadComboBox::init()
         {
             LSP_STATUS_ASSERT(Widget::init());
 
@@ -92,7 +90,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void ComboBox::set(ui::UIContext *ctx, const char *name, const char *value)
+        void ThreadComboBox::set(ui::UIContext *ctx, const char *name, const char *value)
         {
             tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
             if (cbox != NULL)
@@ -132,107 +130,103 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        void ComboBox::notify(ui::IPort *port)
+        void ThreadComboBox::notify(ui::IPort *port)
         {
             Widget::notify(port);
 
-            if ((port == NULL) || (pPort != port))
-                return;
-
-            tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
-            if (cbox != NULL)
-            {
-                ssize_t index = (pPort->value() - fMin) / fStep;
-
-                tk::ListBoxItem *li = cbox->items()->get(index);
-                cbox->selected()->set(li);
-            }
-        }
-
-        void ComboBox::end(ui::UIContext *ctx)
-        {
-            if (pPort != NULL)
-                sync_metadata(pPort);
-
-            Widget::end(ctx);
-        }
-
-        void ComboBox::sync_metadata(ui::IPort *port)
-        {
             tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
             if (cbox == NULL)
                 return;
 
-            if (port != pPort)
-                return;
-
-            const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
-            if (p == NULL)
-                return;
-
-            meta::get_port_parameters(p, &fMin, &fMax, &fStep);
-
-            if (p->unit == meta::U_ENUM)
+            if ((pPort == port) && (cbox != NULL))
             {
-                ssize_t value   = pPort->value();
-                size_t i        = 0;
+                ssize_t index = pPort->value();
 
-                tk::WidgetList<tk::ListBoxItem> *lst = cbox->items();
-                lst->clear();
+                tk::ListBoxItem *selected = cbox->items()->get(index - 1);
+                if (selected != NULL)
+                    cbox->selected()->set(selected);
+            }
+        }
 
-                LSPString lck;
-                tk::ListBoxItem *li;
+        void ThreadComboBox::end(ui::UIContext *ctx)
+        {
+            Widget::end(ctx);
 
-                for (const meta::port_item_t *item = p->items; (item != NULL) && (item->text != NULL); ++item, ++i)
+            tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
+            if (cbox != NULL)
+            {
+                LSPString v;
+
+                for (size_t i=1, cores=ipc::Thread::system_cores(); i<=cores; ++i)
                 {
-                    li  = new tk::ListBoxItem(wWidget->display());
-                    if (li == NULL)
-                        return;
-                    li->init();
+                    if (!v.fmt_ascii("%d", int(i)))
+                        continue;
 
-                    ssize_t key     = fMin + fStep * i;
-                    if (item->lc_key != NULL)
+                    tk::ListBoxItem *w = new tk::ListBoxItem(cbox->display());
+                    if (w == NULL)
+                        continue;
+                    if (w->init() != STATUS_OK)
                     {
-                        lck.set_ascii("lists.");
-                        lck.append_ascii(item->lc_key);
-                        li->text()->set(&lck);
+                        w->destroy();
+                        delete w;
+                        continue;
                     }
-                    else
-                        li->text()->set_raw(item->text);
-                    lst->madd(li);
 
-                    if (key == value)
-                        cbox->selected()->set(li);
+                    w->text()->set_raw(&v);
+                    w->tag()->set(i);
+
+                    if (cbox->items()->madd(w) != STATUS_OK)
+                    {
+                        w->destroy();
+                        delete w;
+                    }
                 }
             }
         }
 
-        status_t ComboBox::slot_combo_submit(tk::Widget *sender, void *ptr, void *data)
+        status_t ThreadComboBox::slot_combo_submit(tk::Widget *sender, void *ptr, void *data)
         {
-            ComboBox *_this     = static_cast<ComboBox *>(ptr);
+            ThreadComboBox *_this     = static_cast<ThreadComboBox *>(ptr);
             if (_this != NULL)
                 _this->submit_value();
             return STATUS_OK;
         }
 
-        void ComboBox::submit_value()
+        void ThreadComboBox::submit_value()
         {
             if (pPort == NULL)
+                return;
+
+            const meta::port_t *meta = pPort->metadata();
+            if (meta == NULL)
                 return;
 
             tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
             if (cbox == NULL)
                 return;
 
-            ssize_t index = cbox->items()->index_of(cbox->selected()->get());
+            tk::ListBoxItem *selected = cbox->selected()->get();
+            ssize_t index   = (selected != NULL) ? selected->tag()->get() : 1;
+            float v         = meta::limit_value(meta, index);
+            ssize_t nindex  = v;
 
-            float value = fMin + fStep * index;
-            lsp_trace("index = %d, value=%f", int(index), value);
+            // The value does not match?
+            if (index != nindex)
+            {
+                selected = cbox->items()->get(index - 1);
+                if (selected != NULL)
+                    cbox->selected()->set(selected);
+            }
 
-            pPort->set_value(value);
+            lsp_trace("index = %d, value=%f", int(index), v);
+
+            pPort->set_value(v);
             pPort->notify_all();
         }
     } /* namespace ctl */
 } /* namespace lsp */
+
+
+
 
 

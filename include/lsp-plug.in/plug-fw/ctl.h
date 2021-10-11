@@ -97,6 +97,7 @@
     #include <lsp-plug.in/plug-fw/ctl/specific/MidiNote.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/TempoTap.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/Rack.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/ThreadComboBox.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
 
