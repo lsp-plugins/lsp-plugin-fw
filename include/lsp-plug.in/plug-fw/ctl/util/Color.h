@@ -88,9 +88,6 @@ namespace lsp
 
             public:
                 bool                set(const char *prefix, const char *name, const char *value);
-                inline const lsp::Color  *value() const   { return pColor->color();   }
-                dsp::color3d_t      color3d() const;
-                r3d::color_t        r3d_color() const;
 
                 /**
                  * Re-evaluate all expressions assigned to the controller
@@ -101,6 +98,15 @@ namespace lsp
 
             public:
                 virtual void        notify(ui::IPort *port);
+
+            public:
+                inline const lsp::Color  *value() const   { return pColor->color();   }
+                dsp::color3d_t      color3d() const;
+                r3d::color_t        r3d_color() const;
+                void                set(const lsp::Color *value);
+                void                set_hue(float hue);
+                void                set_saturation(float sat);
+                void                set_lightness(float light);
         };
     }
 }

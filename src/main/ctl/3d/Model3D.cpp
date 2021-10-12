@@ -99,6 +99,7 @@ namespace lsp
                 sScaleX.bind("scale.x", this);
                 sScaleY.bind("scale.y", this);
                 sScaleZ.bind("scale.z", this);
+                sColor.bind("color", this);
 
                 // Configure
                 sOrientation.set(0);
@@ -112,6 +113,7 @@ namespace lsp
                 sScaleX.set(1.0f);
                 sScaleY.set(1.0f);
                 sScaleZ.set(1.0f);
+                sColor.set("#ff0000");
             LSP_TK_STYLE_IMPL_END
 
             LSP_UI_BUILTIN_STYLE(Model3D, "Model3D", "root");
@@ -145,7 +147,8 @@ namespace lsp
             sRoll(&sProperties),
             sScaleX(&sProperties),
             sScaleY(&sProperties),
-            sScaleZ(&sProperties)
+            sScaleZ(&sProperties),
+            sColor(&sProperties)
         {
             pFile           = NULL;
 
@@ -176,6 +179,7 @@ namespace lsp
             sScaleX.bind("scale.x", &sStyle);
             sScaleY.bind("scale.y", &sStyle);
             sScaleZ.bind("scale.z", &sStyle);
+            sColor.bind("color", &sStyle);
 
             // Controllers
             cOrientation.init(pWrapper, &sOrientation);
@@ -189,6 +193,8 @@ namespace lsp
             cScaleX.init(pWrapper, &sScaleX);
             cScaleY.init(pWrapper, &sScaleY);
             cScaleZ.init(pWrapper, &sScaleZ);
+            cColor.init(pWrapper, &sColor);
+            cTempColor.init(pWrapper, &sTempColor);
 
             sStatus.init(pWrapper, this);
 
@@ -368,9 +374,7 @@ namespace lsp
 
             // Init color
             bool added = false;
-            lsp::Color col;
-            dsp::color3d_t c;
-            col.set_rgba(1.0f, 0.0f, 0.0f, sTransparency.get());
+            float opacity = lsp_limit(1.0f - sTransparency.get(), 0.0f, 1.0f);
 
             // Init world matrix for model
             dsp::matrix3d_t m, om, world;
@@ -395,8 +399,8 @@ namespace lsp
                 if (o == NULL)
                     continue;
 
-                lsp::Color xc(col);
-                xc.hue(float(i) / float(n));
+                cTempColor.set(cColor.value());
+                cTempColor.set_hue(float(i) / float(n));
 
                 // Apply changes
                 om = *(o->matrix());
@@ -416,7 +420,7 @@ namespace lsp
                             float hue = 0.0f;
                             read_object_properties(kvt, base.get_utf8(), &om, &hue, &visible);
                             o->set_visible(visible);
-                            xc.hue(hue);
+                            cTempColor.set_hue(hue);
                         }
 
                         pWrapper->kvt_release();
@@ -426,10 +430,8 @@ namespace lsp
                 if (!o->is_visible())
                     continue;
 
-                c.r         = xc.red();
-                c.g         = xc.green();
-                c.b         = xc.blue();
-                c.a         = xc.alpha();
+                dsp::color3d_t c    = cTempColor.color3d();
+                c.a                 = 1.0f - (1.0f - c.a) * opacity;
 
                 dsp::apply_matrix3d_mm2(&m, &world, &om);
                 dsp::apply_matrix3d_mm1(&m, &matOrientation);

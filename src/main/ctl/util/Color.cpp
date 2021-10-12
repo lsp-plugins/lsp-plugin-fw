@@ -25,6 +25,10 @@
 
 #define LCH_HUE_SHIFT       0.08333f /* 1/12 */
 
+#define COLOR_CTL_HUE       "color.hue.control"
+#define COLOR_CTL_SAT       "color.saturation.control"
+#define COLOR_CTL_LIGHT     "color.lightness.control"
+
 namespace lsp
 {
     namespace ctl
@@ -121,13 +125,13 @@ namespace lsp
             switch (index)
             {
                 case C_CTL_HUE:
-                    index = (get_control("color.hue.control", CTL_LCH) == CTL_LCH) ? C_LCH_H: C_HSL_H;
+                    index = (get_control(COLOR_CTL_HUE, CTL_LCH) == CTL_LCH) ? C_LCH_H: C_HSL_H;
                     break;
                 case C_CTL_LIGHT:
-                    index = (get_control("color.lightness.control", CTL_LCH) == CTL_LCH) ? C_LCH_L: C_HSL_L;
+                    index = (get_control(COLOR_CTL_LIGHT, CTL_LCH) == CTL_LCH) ? C_LCH_L: C_HSL_L;
                     break;
                 case C_CTL_SAT:
-                    index = (get_control("color.saturation.control", CTL_LCH) == CTL_LCH) ? C_LCH_C: C_HSL_S;
+                    index = (get_control(COLOR_CTL_SAT, CTL_LCH) == CTL_LCH) ? C_LCH_C: C_HSL_S;
                     break;
             }
 
@@ -400,6 +404,49 @@ namespace lsp
                 res.a   = 0.0f;
             }
             return res;
+        }
+
+        void Color::set(const lsp::Color *value)
+        {
+            if (pColor != NULL)
+                pColor->set(value);
+        }
+
+        void Color::set_hue(float hue)
+        {
+            if (pColor == NULL)
+                return;
+
+
+            switch (get_control(COLOR_CTL_HUE, CTL_LCH))
+            {
+                case CTL_LCH: pColor->lch_h(lch_hue(hue)); break;
+                default: pColor->hue(hue); break;
+            }
+        }
+
+        void Color::set_saturation(float sat)
+        {
+            if (pColor == NULL)
+                return;
+
+            switch (get_control(COLOR_CTL_SAT, CTL_LCH))
+            {
+                case CTL_LCH: pColor->lch_c(sat); break;
+                default: pColor->saturation(sat); break;
+            }
+        }
+
+        void Color::set_lightness(float light)
+        {
+            if (pColor == NULL)
+                return;
+
+            switch (get_control(COLOR_CTL_SAT, CTL_LCH))
+            {
+                case CTL_LCH: pColor->lch_l(light); break;
+                default: pColor->lightness(light); break;
+            }
         }
     }
 }

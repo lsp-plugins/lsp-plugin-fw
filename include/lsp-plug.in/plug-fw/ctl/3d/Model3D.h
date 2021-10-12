@@ -47,6 +47,7 @@ namespace lsp
                 tk::prop::Float             sScaleZ;        // Scaling by Z axis
                 tk::prop::Integer           sOrientation;   // Orientation
                 tk::prop::Float             sTransparency;  // Transparency
+                tk::prop::Color             sColor;         // Base color
             LSP_TK_STYLE_DEF_END
         }
 
@@ -77,6 +78,8 @@ namespace lsp
                 tk::prop::Float     sScaleX;        // Scaling by X axis
                 tk::prop::Float     sScaleY;        // Scaling by Y axis
                 tk::prop::Float     sScaleZ;        // Scaling by Z axis
+                tk::prop::Color     sColor;         // Base color
+                tk::prop::Color     sTempColor;     // Temporary color
 
                 ctl::Integer        cOrientation;   // Orientation controller
                 ctl::Float          cTransparency;  // Transparency
@@ -89,6 +92,8 @@ namespace lsp
                 ctl::Float          cScaleX;
                 ctl::Float          cScaleY;
                 ctl::Float          cScaleZ;
+                ctl::Color          cColor;
+                ctl::Color          cTempColor;
 
                 ctl::Expression     sStatus;        // Status
 
