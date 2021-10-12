@@ -79,6 +79,13 @@ namespace lsp
                     LSPString           location;
                 } schema_sel_t;
 
+                typedef struct preset_sel_t
+                {
+                    ctl::PluginWindow  *ctl;
+                    tk::MenuItem       *item;
+                    LSPString           location;
+                } preset_sel_t;
+
                 class ConfigSink: public tk::TextDataSink
                 {
                     private:
@@ -125,6 +132,7 @@ namespace lsp
                 lltl::parray<scaling_sel_t> vScalingSel;
                 lltl::parray<scaling_sel_t> vFontScalingSel;
                 lltl::parray<schema_sel_t>  vSchemaSel;
+                lltl::parray<preset_sel_t>  vPresetSel;
 
             protected:
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
@@ -156,6 +164,8 @@ namespace lsp
 
                 static status_t slot_select_language(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t slot_select_preset(tk::Widget *sender, void *ptr, void *data);
+
                 static status_t slot_scaling_toggle_prefer_host(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_scaling_zoom_in(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data);
@@ -170,8 +180,9 @@ namespace lsp
                 static status_t slot_window_resize(tk::Widget *sender, void *ptr, void *data);
 
             protected:
-                static i18n::IDictionary  *get_default_dict(tk::Widget *src);
-                static tk::FileFilters    *create_config_filters(tk::FileDialog *dlg);
+                static i18n::IDictionary   *get_default_dict(tk::Widget *src);
+                static tk::FileFilters     *create_config_filters(tk::FileDialog *dlg);
+                static ssize_t              compare_presets(const resource::resource_t *a, const resource::resource_t *b);
 
             protected:
                 void                do_destroy();
@@ -190,6 +201,8 @@ namespace lsp
                 status_t            init_scaling_support(tk::Menu *menu);
                 status_t            init_font_scaling_support(tk::Menu *menu);
                 status_t            init_visual_schema_support(tk::Menu *menu);
+                status_t            init_presets(tk::Menu *menu);
+                status_t            scan_presets(const char *location, lltl::darray<resource::resource_t> *presets);
                 status_t            create_main_menu();
                 bool                has_path_ports();
                 void                sync_language_selection();

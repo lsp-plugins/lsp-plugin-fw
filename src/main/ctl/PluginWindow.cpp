@@ -130,6 +130,15 @@ namespace lsp
                 pConfigSink->release();
             }
 
+            // Delete UI rendering backend bindings
+            for (size_t i=0, n=vBackendSel.size(); i<n; ++i)
+            {
+                backend_sel_t *s = vBackendSel.uget(i);
+                if (s != NULL)
+                    delete s;
+            }
+            vBackendSel.flush();
+
             // Delete language selection bindings
             for (size_t i=0, n=vLangSel.size(); i<n; ++i)
             {
@@ -165,6 +174,15 @@ namespace lsp
                     delete s;
             }
             vSchemaSel.flush();
+
+            // Delete preset list
+            for (size_t i=0, n=vPresetSel.size(); i<n; ++i)
+            {
+                preset_sel_t *s = vPresetSel.uget(i);
+                if (s != NULL)
+                    delete s;
+            }
+            vPresetSel.flush();
 
             wContent        = NULL;
             wGreeting       = NULL;
@@ -386,6 +404,8 @@ namespace lsp
                 // Add support of 3D rendering backend switch
                 if (meta->extensions & meta::E_3D_BACKEND)
                     init_r3d_support(wMenu);
+
+                init_presets(wMenu);
             }
 
             return STATUS_OK;
@@ -754,6 +774,123 @@ namespace lsp
             return STATUS_OK;
         }
 
+        ssize_t PluginWindow::compare_presets(const resource::resource_t *a, const resource::resource_t *b)
+        {
+            return strcmp(a->name, b->name);
+        }
+
+        status_t PluginWindow::scan_presets(const char *location, lltl::darray<resource::resource_t> *presets)
+        {
+            io::Path path;
+            LSPString tmp;
+            resource::resource_t *resources = NULL;
+
+            if (tmp.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s", location) < 0)
+                return STATUS_BAD_STATE;
+            ssize_t count = pWrapper->resources()->enumerate(&tmp, &resources);
+
+            // Process all resources and form the final list of preset files
+            for (ssize_t i=0; i<count; ++i)
+            {
+                resource::resource_t *item = &resources[i];
+
+                // Filter the preset file
+                if (item->type != resource::RES_FILE)
+                    continue;
+                if (path.set(item->name) != STATUS_OK)
+                {
+                    free(resources);
+                    return STATUS_NO_MEM;
+                }
+                if (path.get_ext(&tmp) != STATUS_OK)
+                {
+                    free(resources);
+                    return STATUS_BAD_STATE;
+                }
+                if (!tmp.equals_ascii("preset"))
+                    continue;
+
+                // Add preset file to result
+                if (path.get_noext(&tmp) != STATUS_OK)
+                {
+                    free(resources);
+                    return STATUS_BAD_STATE;
+                }
+                strncpy(item->name, tmp.get_utf8(), resource::RESOURCE_NAME_MAX);
+                item->name[resource::RESOURCE_NAME_MAX] = '\0';
+                if (!presets->add(item))
+                {
+                    free(resources);
+                    return STATUS_NO_MEM;
+                }
+            }
+
+            free(resources);
+            presets->qsort(compare_presets);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::init_presets(tk::Menu *menu)
+        {
+            if (menu == NULL)
+                return STATUS_OK;
+
+            // Enumerate presets
+            lltl::darray<resource::resource_t> presets;
+            const meta::plugin_t *metadata = pWrapper->ui()->metadata();
+            if ((metadata == NULL) || (metadata->ui_presets == NULL))
+                return STATUS_OK;
+            if (scan_presets(metadata->ui_presets, &presets) != STATUS_OK)
+                return STATUS_OK;
+            if (presets.is_empty())
+                return STATUS_OK;
+
+            // Create submenu item
+            tk::MenuItem *item          = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set("actions.load_preset");
+
+            // Create submenu
+            menu                        = create_menu();
+            if (menu == NULL)
+                return STATUS_NO_MEM;
+            item->menu()->set(menu);
+
+            preset_sel_t *sel;
+
+            for (size_t i=0, n=presets.size(); i<n; ++i)
+            {
+                // Enumerate next backend information
+                const resource::resource_t *preset = presets.uget(i);
+
+                // Create menu item
+                if ((item = create_menu_item(menu)) == NULL)
+                    return STATUS_NO_MEM;
+
+                item->text()->set_raw(preset->name);
+
+                // Create backend information
+                if ((sel = new preset_sel_t()) == NULL)
+                    return STATUS_NO_MEM;
+
+                sel->ctl    = this;
+                sel->item   = item;
+                sel->location.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s/%s.preset", metadata->ui_presets, preset->name);
+
+                if (!vPresetSel.add(sel))
+                {
+                    delete sel;
+                    return STATUS_NO_MEM;
+                }
+
+                item->slots()->bind(tk::SLOT_SUBMIT, slot_select_preset, sel);
+            }
+
+            return STATUS_OK;
+        }
+
         status_t PluginWindow::init_r3d_support(tk::Menu *menu)
         {
             if (menu == NULL)
@@ -918,6 +1055,19 @@ namespace lsp
             }
 
             lsp_trace("Language has been selected");
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_select_preset(tk::Widget *sender, void *ptr, void *data)
+        {
+            preset_sel_t *sel = reinterpret_cast<preset_sel_t *>(ptr);
+            lsp_trace("sender=%p, sel=%p", sender, sel);
+            if ((sender == NULL) || (sel == NULL) || (sel->ctl == NULL) || (sel->item == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            lsp_trace("Loading preset %s", sel->location.get_native());
+            sel->ctl->pWrapper->import_settings(&sel->location, true);
 
             return STATUS_OK;
         }
