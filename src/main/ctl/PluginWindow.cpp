@@ -193,6 +193,7 @@ namespace lsp
 
         status_t PluginWindow::slot_window_show(tk::Widget *sender, void *ptr, void *data)
         {
+// TODO: uncomment this before 1.2.0 release
 //            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
 //            __this->show_greeting_window();
             return STATUS_OK;
@@ -382,9 +383,9 @@ namespace lsp
                 // Create schema selection support menu
                 init_visual_schema_support(wMenu);
 
-//                // Add support of 3D rendering backend switch
-//                if (meta->extensions & E_3D_BACKEND)
-//                    init_r3d_support(pMenu);
+                // Add support of 3D rendering backend switch
+                if (meta->extensions & meta::E_3D_BACKEND)
+                    init_r3d_support(wMenu);
             }
 
             return STATUS_OK;
@@ -416,6 +417,29 @@ namespace lsp
             return item;
         }
 
+        tk::Menu *PluginWindow::create_menu()
+        {
+            status_t res;
+            tk::Menu *menu = new tk::Menu(wWidget->display());
+            if (menu == NULL)
+                return NULL;
+
+            if ((res = menu->init()) != STATUS_OK)
+            {
+                menu->destroy();
+                delete menu;
+                return NULL;
+            }
+            if (widgets()->add(menu) != STATUS_OK)
+            {
+                menu->destroy();
+                delete menu;
+                return NULL;
+            }
+
+            return menu;
+        }
+
         status_t PluginWindow::init_i18n_support(tk::Menu *menu)
         {
             if (menu == NULL)
@@ -438,21 +462,9 @@ namespace lsp
             root->text()->set("actions.select_language");
 
             // Create submenu
-            menu                = new tk::Menu(menu->display());
+            menu                        = create_menu();
             if (menu == NULL)
                 return STATUS_NO_MEM;
-            if ((res = menu->init()) != STATUS_OK)
-            {
-                menu->destroy();
-                delete menu;
-                return res;
-            }
-            if (widgets()->add(menu) != STATUS_OK)
-            {
-                menu->destroy();
-                delete menu;
-                return STATUS_NO_MEM;
-            }
             root->menu()->set(menu);
 
             // Iterate all children and add language keys
@@ -520,29 +532,16 @@ namespace lsp
 
         status_t PluginWindow::init_scaling_support(tk::Menu *menu)
         {
-            status_t res;
-
             // Create submenu item
             tk::MenuItem *item          = create_menu_item(menu);
             if (item == NULL)
                 return STATUS_NO_MEM;
             item->text()->set("actions.ui_scaling.select");
 
-            menu                = new tk::Menu(menu->display());
+            // Create submenu
+            menu                        = create_menu();
             if (menu == NULL)
                 return STATUS_NO_MEM;
-            if ((res = menu->init()) != STATUS_OK)
-            {
-                menu->destroy();
-                delete menu;
-                return res;
-            }
-            if (widgets()->add(menu) != STATUS_OK)
-            {
-                menu->destroy();
-                delete menu;
-                return STATUS_NO_MEM;
-            }
             item->menu()->set(menu);
             wUIScaling      = menu;
 
@@ -604,29 +603,14 @@ namespace lsp
 
         status_t PluginWindow::init_font_scaling_support(tk::Menu *menu)
         {
-            status_t res;
-
             // Create submenu item
             tk::MenuItem *item          = create_menu_item(menu);
             if (item == NULL)
                 return STATUS_NO_MEM;
             item->text()->set("actions.font_scaling.select");
 
-            menu                = new tk::Menu(menu->display());
-            if (menu == NULL)
-                return STATUS_NO_MEM;
-            if ((res = menu->init()) != STATUS_OK)
-            {
-                menu->destroy();
-                delete menu;
-                return res;
-            }
-            if (widgets()->add(menu) != STATUS_OK)
-            {
-                menu->destroy();
-                delete menu;
-                return STATUS_NO_MEM;
-            }
+            // Create submenu
+            menu                        = create_menu();
             item->menu()->set(menu);
             wFontScaling    = menu;
 
@@ -691,21 +675,10 @@ namespace lsp
                 return STATUS_NO_MEM;
             item->text()->set("actions.visual_schema.select");
 
-            menu                = new tk::Menu(menu->display());
+            // Create submenu
+            menu                        = create_menu();
             if (menu == NULL)
                 return STATUS_NO_MEM;
-            if ((res = menu->init()) != STATUS_OK)
-            {
-                menu->destroy();
-                delete menu;
-                return res;
-            }
-            if (widgets()->add(menu) != STATUS_OK)
-            {
-                menu->destroy();
-                delete menu;
-                return STATUS_NO_MEM;
-            }
             item->menu()->set(menu);
             tk::MenuItem *root  = item;
 
@@ -781,106 +754,81 @@ namespace lsp
             return STATUS_OK;
         }
 
-//        status_t PluginWindow::init_r3d_support(LSPMenu *menu)
-//        {
-//            if (menu == NULL)
-//                return STATUS_OK;
-//
-//            IDisplay *dpy   = menu->display()->display();
-//            if (dpy == NULL)
-//                return STATUS_OK;
-//
-//            status_t res;
-//
-//            // Create submenu item
-//            LSPMenuItem *item       = new LSPMenuItem(menu->display());
-//            if (item == NULL)
-//                return STATUS_NO_MEM;
-//            if ((res = item->init()) != STATUS_OK)
-//            {
-//                delete item;
-//                return res;
-//            }
-//            if (!vWidgets.add(item))
-//            {
-//                item->destroy();
-//                delete item;
-//                return STATUS_NO_MEM;
-//            }
-//
-//            // Add item to the main menu
-//            item->text()->set("actions.3d_rendering");
-//            menu->add(item);
-//
-//            // Get backend port
-//            const char *backend = (pR3DBackend != NULL) ? pR3DBackend->get_buffer<char>() : NULL;
-//
-//            // Create submenu
-//            menu                = new LSPMenu(menu->display());
-//            if (menu == NULL)
-//                return STATUS_NO_MEM;
-//            if ((res = menu->init()) != STATUS_OK)
-//            {
-//                menu->destroy();
-//                delete menu;
-//                return res;
-//            }
-//            if (!vWidgets.add(menu))
-//            {
-//                menu->destroy();
-//                delete menu;
-//                return STATUS_NO_MEM;
-//            }
-//            item->set_submenu(menu);
-//
-//            for (size_t id=0; ; ++id)
-//            {
-//                // Enumerate next backend information
-//                const R3DBackendInfo *info = dpy->enum_backend(id);
-//                if (info == NULL)
-//                    break;
-//
-//                // Create menu item
-//                item       = new LSPMenuItem(menu->display());
-//                if (item == NULL)
-//                    continue;
-//                if ((res = item->init()) != STATUS_OK)
-//                {
-//                    item->destroy();
-//                    delete item;
-//                    continue;
-//                }
-//                if (!vWidgets.add(item))
-//                {
-//                    item->destroy();
-//                    delete item;
-//                    continue;
-//                }
-//
-//                item->text()->set_raw(&info->display);
-//                menu->add(item);
-//
-//                // Create closure and bind
-//                backend_sel_t *sel = vBackendSel.add();
-//                if (sel != NULL)
-//                {
-//                    sel->ctl    = this;
-//                    sel->item   = item;
-//                    sel->id     = id;
-//                    item->slots()->bind(LSPSLOT_SUBMIT, slot_select_backend, sel);
-//                }
-//
-//                // Backend identifier matches?
-//                if ((backend == NULL) || (!info->uid.equals_ascii(backend)))
-//                {
-//                    slot_select_backend(item, sel, NULL);
-//                    if (backend == NULL)
-//                        backend     = info->uid.get_ascii();
-//                }
-//            }
-//
-//            return STATUS_OK;
-//        }
+        status_t PluginWindow::init_r3d_support(tk::Menu *menu)
+        {
+            if (menu == NULL)
+                return STATUS_OK;
+
+            ws::IDisplay *dpy           = menu->display()->display();
+            if (dpy == NULL)
+                return STATUS_OK;
+
+            // Create submenu item
+            tk::MenuItem *item          = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set("actions.3d_rendering");
+
+            // Get backend port
+            const char *backend = (pR3DBackend != NULL) ? pR3DBackend->buffer<char>() : NULL;
+
+            // Create submenu
+            menu                        = create_menu();
+            if (menu == NULL)
+                return STATUS_NO_MEM;
+            item->menu()->set(menu);
+
+            backend_sel_t *sel;
+
+            for (size_t id=0; ; ++id)
+            {
+                // Enumerate next backend information
+                const ws::R3DBackendInfo *info = dpy->enum_backend(id);
+                if (info == NULL)
+                    break;
+
+                // Create menu item
+                if ((item = create_menu_item(menu)) == NULL)
+                    return STATUS_NO_MEM;
+
+                item->type()->set_radio();
+                if (!info->lc_key.is_empty())
+                {
+                    LSPString tmp;
+                    tmp.set_ascii("lists.rendering.");
+                    tmp.append(&info->lc_key);
+                    item->text()->set_key(&tmp);
+                }
+                else
+                    item->text()->set_raw(&info->display);
+
+                // Create backend information
+                if ((sel = new backend_sel_t()) == NULL)
+                    return STATUS_NO_MEM;
+
+                sel->ctl    = this;
+                sel->item   = item;
+                sel->id     = id;
+                item->slots()->bind(tk::SLOT_SUBMIT, slot_select_backend, sel);
+                item->checked()->set((backend != NULL) && (info->uid.equals_ascii(backend)));
+
+                if (!vBackendSel.add(sel))
+                {
+                    delete sel;
+                    return STATUS_NO_MEM;
+                }
+            }
+
+            // Select fallback backend if none
+            if ((backend == NULL) && (vBackendSel.size() > 0))
+            {
+                sel = vBackendSel.uget(0);
+                if (sel != NULL)
+                    slot_select_backend(sel->item, sel, NULL);
+            }
+
+            return STATUS_OK;
+        }
 
         bool PluginWindow::has_path_ports()
         {
@@ -894,41 +842,50 @@ namespace lsp
             return false;
         }
 
-//        status_t PluginWindow::slot_select_backend(LSPWidget *sender, void *ptr, void *data)
-//        {
-//            backend_sel_t *sel = reinterpret_cast<backend_sel_t *>(ptr);
-//            if ((sender == NULL) || (sel == NULL) || (sel->ctl == NULL))
-//                return STATUS_BAD_ARGUMENTS;
-//
-//            IDisplay *dpy = sender->display()->display();
-//            if (dpy == NULL)
-//                return STATUS_BAD_STATE;
-//
-//            const R3DBackendInfo *info = dpy->enum_backend(sel->id);
-//            if (info == NULL)
-//                return STATUS_BAD_ARGUMENTS;
-//
-//            // Mark backend as selected
-//            dpy->select_backend_id(sel->id);
-//
-//            // Need to commit backend identifier to config file?
-//            const char *value = info->uid.get_ascii();
-//            if (value == NULL)
-//                return STATUS_NO_MEM;
-//
-//            if (sel->ctl->pR3DBackend != NULL)
-//            {
-//                const char *backend = sel->ctl->pR3DBackend->get_buffer<char>();
-//                if ((backend == NULL) || (strcmp(backend, value)))
-//                {
-//                    sel->ctl->pR3DBackend->write(value, strlen(value));
-//                    sel->ctl->pR3DBackend->notify_all();
-//                }
-//            }
-//
-//            return STATUS_OK;
-//        }
-//
+        status_t PluginWindow::slot_select_backend(tk::Widget *sender, void *ptr, void *data)
+        {
+            backend_sel_t *sel = reinterpret_cast<backend_sel_t *>(ptr);
+            if ((sender == NULL) || (sel == NULL) || (sel->ctl == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            ws::IDisplay *dpy = sender->display()->display();
+            if (dpy == NULL)
+                return STATUS_BAD_STATE;
+
+            const ws::R3DBackendInfo *info = dpy->enum_backend(sel->id);
+            if (info == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            // Mark backend as selected
+            dpy->select_backend_id(sel->id);
+
+            // Synchronize state of radio buttons
+            for (size_t i=0, n=sel->ctl->vBackendSel.size(); i<n; ++i)
+            {
+                backend_sel_t *xsel     = sel->ctl->vBackendSel.uget(i);
+                if (xsel->item == NULL)
+                    continue;
+                xsel->item->checked()->set(xsel->id == sel->id);
+            }
+
+            // Need to commit backend identifier to config file?
+            const char *value = info->uid.get_ascii();
+            if (value == NULL)
+                return STATUS_NO_MEM;
+
+            if (sel->ctl->pR3DBackend != NULL)
+            {
+                const char *backend = sel->ctl->pR3DBackend->buffer<char>();
+                if ((backend == NULL) || (strcmp(backend, value)))
+                {
+                    sel->ctl->pR3DBackend->write(value, strlen(value));
+                    sel->ctl->pR3DBackend->notify_all();
+                }
+            }
+
+            return STATUS_OK;
+        }
+
         status_t PluginWindow::slot_select_language(tk::Widget *sender, void *ptr, void *data)
         {
             lang_sel_t *sel = reinterpret_cast<lang_sel_t *>(ptr);

@@ -51,12 +51,12 @@ namespace lsp
                 static const tk::arrangement_t bottom_arrangements[];
 
             protected:
-//                typedef struct backend_sel_t
-//                {
-//                    CtlPluginWindow    *ctl;
-//                    LSPWidget          *item;
-//                    size_t              id;
-//                } backend_sel_t;
+                typedef struct backend_sel_t
+                {
+                    ctl::PluginWindow  *ctl;
+                    tk::MenuItem       *item;
+                    size_t              id;
+                } backend_sel_t;
 
                 typedef struct lang_sel_t
                 {
@@ -120,7 +120,7 @@ namespace lsp
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
 
-//                cstorage<backend_sel_t>     vBackendSel;
+                lltl::parray<backend_sel_t> vBackendSel;
                 lltl::parray<lang_sel_t>    vLangSel;
                 lltl::parray<scaling_sel_t> vScalingSel;
                 lltl::parray<scaling_sel_t> vFontScalingSel;
@@ -151,8 +151,8 @@ namespace lsp
 
                 static status_t slot_fetch_path(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_commit_path(tk::Widget *sender, void *ptr, void *data);
-//
-//                static status_t slot_select_backend(LSPWidget *sender, void *ptr, void *data);
+
+                static status_t slot_select_backend(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_select_language(tk::Widget *sender, void *ptr, void *data);
 
@@ -182,9 +182,10 @@ namespace lsp
                 tk::Label          *create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, const char *style_name);
                 tk::Hyperlink      *create_hlink(tk::WidgetContainer *dst, const char *url, const char *text, const expr::Parameters *params, const char *style_name);
                 tk::MenuItem       *create_menu_item(tk::Menu *dst);
+                tk::Menu           *create_menu();
                 status_t            create_dialog_window(ctl::Window **ctl, tk::Window **dst, const char *path);
 
-//                status_t        init_r3d_support(LSPMenu *menu);
+                status_t            init_r3d_support(tk::Menu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);
                 status_t            init_scaling_support(tk::Menu *menu);
                 status_t            init_font_scaling_support(tk::Menu *menu);
