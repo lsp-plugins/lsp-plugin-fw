@@ -73,7 +73,8 @@ namespace lsp
                 enum flags_t
                 {
                     F_QUIT          = 1 << 0,       // Quit main loop flag
-                    F_SAVE_CONFIG   = 1 << 1        // Save configuration flag
+                    F_CONFIG_DIRTY  = 1 << 1,       // The configuration needs to be saved
+                    F_CONFIG_LOCK   = 1 << 2,       // The configuration file is locked for update
                 };
 
             protected:
@@ -102,6 +103,7 @@ namespace lsp
                 status_t        create_alias(const LSPString *id, const LSPString *name);
                 status_t        build_ui(const char *path);
                 void            build_config_header(LSPString *c);
+                void            build_global_config_header(LSPString *c);
                 status_t        init_visual_schema();
                 status_t        load_global_config(config::PullParser *parser);
                 status_t        init_global_constants(const tk::StyleSheet *sheet);
@@ -255,6 +257,11 @@ namespace lsp
                 virtual void                dump_state_request();
 
                 /**
+                 * Perform main iteration. Should be regularly called by the wrapper code
+                 */
+                virtual void                main_iteration();
+
+                /**
                  * Signal to quit main loop
                  */
                 void                        quit_main_loop();
@@ -317,6 +324,16 @@ namespace lsp
                 virtual status_t            load_global_config(const io::Path *file);
                 virtual status_t            load_global_config(const LSPString *file);
                 virtual status_t            load_global_config(io::IInSequence *is);
+
+                /**
+                 * Save global configuration file
+                 * @param file the pato to the configuration file
+                 * @return status of operation
+                 */
+                virtual status_t            save_global_config(const char *file);
+                virtual status_t            save_global_config(const io::Path *file);
+                virtual status_t            save_global_config(const LSPString *file);
+                virtual status_t            save_global_config(io::IOutSequence *os);
 
                 /**
                  * Add schema listener

@@ -167,7 +167,7 @@ namespace lsp
                         if (format_relative_path(&value, path, base))
                             path    = value.get_utf8();
                     }
-                    LSP_STATUS_ASSERT(s->write_string(meta->id, "", flags));
+                    LSP_STATUS_ASSERT(s->write_string(meta->id, path, flags));
 
                     break;
                 }

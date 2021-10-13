@@ -81,13 +81,13 @@ namespace lsp
                 /**
                  * Perform single iteration of main event loop of the plugin
                  */
-                void        main_iteration();
+                virtual void            main_iteration();
 
                 /**
                  * Transfer all desired data from DSP to UI
                  * @param ts current execution timestamp
                  */
-                bool        sync(ws::timestamp_t ts);
+                bool                    sync(ws::timestamp_t ts);
         };
 
         // Implementation
@@ -125,14 +125,6 @@ namespace lsp
             // Initialize parent
             if ((res = IWrapper::init(loader)) != STATUS_OK)
                 return res;
-
-            // Load the global configuration file
-            io::Path gconfig;
-            if ((res = system::get_home_directory(&gconfig)) == STATUS_OK)
-            {
-                if (gconfig.append_child(".config/lsp-plugins/lsp-plugins.cfg") == STATUS_OK)
-                    load_global_config(&gconfig);
-            }
 
             // Initialize display settings
             tk::display_settings_t settings;
@@ -358,6 +350,9 @@ namespace lsp
             // Call main iteration for the underlying display
             if (pDisplay != NULL)
                 pDisplay->main_iteration();
+
+            // Call wrapper for main iteration
+            IWrapper::main_iteration();
         }
 
         void UIWrapper::sync_kvt(core::KVTStorage *kvt)

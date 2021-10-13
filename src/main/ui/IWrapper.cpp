@@ -29,10 +29,13 @@
 #include <lsp-plug.in/io/OutFileStream.h>
 #include <lsp-plug.in/io/OutSequence.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
+#include <lsp-plug.in/runtime/system.h>
 
 #include <private/ui/xml/Handler.h>
 #include <private/ui/xml/RootNode.h>
 #include <private/ui/BuiltinStyle.h>
+
+static const char *config_separator = "-------------------------------------------------------------------------------";
 
 namespace lsp
 {
@@ -242,6 +245,17 @@ namespace lsp
                         lsp_error("Could not instantiate time port id=%s", p->id);
                         break;
                 }
+            }
+
+            // Load the global configuration file
+            io::Path gconfig;
+            if ((res = system::get_user_config_path(&gconfig)) == STATUS_OK)
+            {
+                res = gconfig.append_child("lsp-plugins");
+                if (res == STATUS_OK)
+                    res = gconfig.append_child("lsp-plugins.cfg");
+                if (res == STATUS_OK)
+                    res = load_global_config(&gconfig);
             }
 
             return STATUS_OK;
@@ -528,7 +542,29 @@ namespace lsp
 
         void IWrapper::global_config_changed(IPort *src)
         {
-            nFlags     |= F_SAVE_CONFIG;
+            if ((nFlags & (F_CONFIG_LOCK | F_CONFIG_DIRTY)) == 0)
+                nFlags     |= F_CONFIG_DIRTY;
+        }
+
+        void IWrapper::main_iteration()
+        {
+            if ((nFlags & (F_CONFIG_LOCK | F_CONFIG_DIRTY)) == F_CONFIG_DIRTY)
+            {
+                // Save global configuration
+                io::Path path;
+                status_t res = system::get_user_config_path(&path);
+                if (res == STATUS_OK)
+                    res = path.append_child("lsp-plugins");
+                if (res == STATUS_OK)
+                    res = path.mkdir(true);
+                if (res == STATUS_OK)
+                    res = path.append_child("lsp-plugins.cfg");
+                if (res == STATUS_OK)
+                    res = save_global_config(&path);
+
+                // Reset flags
+                nFlags     &= ~F_CONFIG_DIRTY;
+            }
         }
 
         void IWrapper::quit_main_loop()
@@ -682,6 +718,8 @@ namespace lsp
             if (pkg->version.branch)
                 pkv.fmt_append_ascii("-%s", pkg->version.branch);
 
+            c->append_ascii     (config_separator);
+            c->append           ('\n');
             c->append_utf8      ("This file contains configuration of the audio plugin.\n");
             c->fmt_append_utf8  ("  Package:             %s (%s)\n", pkg->artifact);
             c->fmt_append_utf8  ("  Package version:     %s\n", pkv.get_utf8());
@@ -704,6 +742,23 @@ namespace lsp
             c->append           ('\n');
             c->fmt_append_utf8  ("(C) %s\n", pkg->full_name);
             c->fmt_append_utf8  ("  %s\n", pkg->site);
+            c->append           ('\n');
+            c->append_ascii     (config_separator);
+        }
+
+        void IWrapper::build_global_config_header(LSPString *c)
+        {
+            const meta::package_t *pkg = package();
+
+            c->append_ascii     (config_separator);
+            c->append           ('\n');
+            c->append           ('\n');
+            c->append_utf8      ("This file contains global configuration of plugins.\n");
+            c->append           ('\n');
+            c->fmt_append_utf8  ("(C) %s\n", pkg->full_name);
+            c->fmt_append_utf8  ("  %s\n", pkg->site);
+            c->append           ('\n');
+            c->append_ascii     (config_separator);
         }
 
         status_t IWrapper::export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *relative)
@@ -714,9 +769,9 @@ namespace lsp
             LSPString name, value, comment;
 
             // Write port data
-            for (size_t i=0, n=vPorts.size(); i<n; ++i)
+            for (size_t i=0, n=ports->size(); i<n; ++i)
             {
-                IPort *p    = vPorts.uget(i);
+                IPort *p    = ports->uget(i);
                 if (p == NULL)
                     continue;
 
@@ -743,10 +798,13 @@ namespace lsp
                 name.clear();
                 value.clear();
                 res     = core::serialize_port_value(s, meta, data, relative, 0);
-                if ((res != STATUS_OK) && (res != STATUS_BAD_TYPE))
-                    return res;
-                if ((res = s->writeln()) != STATUS_OK)
-                    return res;
+                if (res != STATUS_BAD_TYPE)
+                {
+                    if (res != STATUS_OK)
+                        return res;
+                    if ((res = s->writeln()) != STATUS_OK)
+                        return res;
+                }
             }
 
             return STATUS_OK;
@@ -851,8 +909,7 @@ namespace lsp
                 return res;
 
             // Write header
-            LSPString name, value, comment;
-
+            LSPString comment;
             build_config_header(&comment);
             if ((res = s.write_comment(&comment)) != STATUS_OK)
                 return res;
@@ -868,7 +925,13 @@ namespace lsp
             if (kvt != NULL)
             {
                 // Write comment
-                res = s.write_comment("KVT parameters");
+                res = s.writeln();
+                if (res == STATUS_OK)
+                    res = s.write_comment(config_separator);
+                if (res == STATUS_OK)
+                    res = s.write_comment("KVT parameters");
+                if (res == STATUS_OK)
+                    res = s.write_comment(config_separator);
                 if (res == STATUS_OK)
                     res = s.writeln();
                 if (res == STATUS_OK)
@@ -877,6 +940,11 @@ namespace lsp
                 kvt->gc();
                 kvt_release();
             }
+
+            if (res == STATUS_OK)
+                res = s.writeln();
+            if (res == STATUS_OK)
+                res = s.write_comment(config_separator);
 
             return res;
         }
@@ -975,6 +1043,9 @@ namespace lsp
             status_t res;
             config::param_t param;
 
+            // Lock config update
+            nFlags |= F_CONFIG_LOCK;
+
             while ((res = parser->next(&param)) == STATUS_OK)
             {
                 for (size_t i=0, n=vConfigPorts.size(); i<n; ++i)
@@ -991,7 +1062,79 @@ namespace lsp
                 }
             }
 
+            // Unlock config update
+            nFlags &= ~F_CONFIG_LOCK;
+
             return (res == STATUS_EOF) ? STATUS_OK : res;
+        }
+
+        status_t IWrapper::save_global_config(const char *file)
+        {
+            io::Path path;
+            status_t res = path.set(file);
+            if (res != STATUS_OK)
+                return res;
+
+            return save_global_config(&path);
+        }
+
+        status_t IWrapper::save_global_config(const LSPString *file)
+        {
+            io::Path path;
+            status_t res = path.set(file);
+            if (res != STATUS_OK)
+                return res;
+
+            return save_global_config(&path);
+        }
+
+        status_t IWrapper::save_global_config(const io::Path *file)
+        {
+            io::OutFileStream os;
+            io::OutSequence o;
+
+            status_t res = os.open(file, io::File::FM_WRITE_NEW);
+            if (res != STATUS_OK)
+                return res;
+
+            // Wrap
+            if ((res = o.wrap(&os, WRAP_CLOSE, "UTF-8")) != STATUS_OK)
+            {
+                os.close();
+                return res;
+            }
+
+            // Export settings
+            res = save_global_config(&o);
+            status_t res2 = o.close();
+
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t IWrapper::save_global_config(io::IOutSequence *os)
+        {
+            // Create configuration serializer
+            config::Serializer s;
+            status_t res = s.wrap(os, 0);
+            if (res != STATUS_OK)
+                return res;
+
+            // Write header
+            LSPString comment;
+            build_global_config_header(&comment);
+            if ((res = s.write_comment(&comment)) != STATUS_OK)
+                return res;
+            if ((res = s.writeln()) != STATUS_OK)
+                return res;
+
+            // Export regular ports
+            if ((res = export_ports(&s, &vConfigPorts, NULL)) != STATUS_OK)
+                return res;
+
+            if (res == STATUS_OK)
+                res = s.write_comment(config_separator);
+
+            return res;
         }
 
         bool IWrapper::set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base)
@@ -1040,6 +1183,7 @@ namespace lsp
                     }
 
                     port->write(value, len, flags);
+                    port->notify_all();
                     break;
                 }
                 default:
