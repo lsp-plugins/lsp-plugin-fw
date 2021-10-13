@@ -78,8 +78,13 @@ namespace lsp
                 ctl::Expression     sStatus;
                 ctl::Expression     sProgress;
                 ctl::Padding        sTextPadding;
+                ctl::Boolean        sGradient;
+                ctl::Integer        sBorderSize;
+                ctl::Integer        sBorderPressedSize;
                 ctl::Color          sColor;
                 ctl::Color          sInvColor;
+                ctl::Color          sBorderColor;
+                ctl::Color          sInvBorderColor;
                 ctl::Color          sLineColor;
                 ctl::Color          sInvLineColor;
                 ctl::Color          sTextColor;

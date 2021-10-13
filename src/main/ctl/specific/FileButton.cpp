@@ -186,9 +186,14 @@ namespace lsp
                 sStatus.init(pWrapper, this);
                 sProgress.init(pWrapper, this);
                 sTextPadding.init(pWrapper, fb->text_padding());
+                sGradient.init(pWrapper, fb->gradient());
+                sBorderSize.init(pWrapper, fb->border_size());
+                sBorderPressedSize.init(pWrapper, fb->border_pressed_size());
 
                 sColor.init(pWrapper, fb->color());
                 sInvColor.init(pWrapper, fb->inv_color());
+                sBorderColor.init(pWrapper, fb->border_color());
+                sInvBorderColor.init(pWrapper, fb->inv_border_color());
                 sLineColor.init(pWrapper, fb->line_color());
                 sInvLineColor.init(pWrapper, fb->inv_line_color());
                 sTextColor.init(pWrapper, fb->text_color());
@@ -228,10 +233,19 @@ namespace lsp
                 sTextPadding.set("text.padding", name, value);
                 sTextPadding.set("text.pad", name, value);
                 sTextPadding.set("tpad", name, value);
+                sGradient.set("gradient", name, value);
+                sBorderSize.set("border.size", name, value);
+                sBorderSize.set("bsize", name, value);
+                sBorderPressedSize.set("border.pressed.size", name, value);
+                sBorderPressedSize.set("bpsize", name, value);
 
                 sColor.set("color", name, value);
                 sInvColor.set("inv.color", name, value);
                 sInvColor.set("icolor", name, value);
+                sBorderColor.set("border.color", name, value);
+                sBorderColor.set("bcolor", name, value);
+                sInvBorderColor.set("border.inv.color", name, value);
+                sInvBorderColor.set("ibcolor", name, value);
                 sLineColor.set("line.color", name, value);
                 sLineColor.set("lcolor", name, value);
                 sInvLineColor.set("line.inv.color", name, value);
