@@ -428,12 +428,38 @@ namespace lsp
 
             public:
 
+                /**
+                 * Enumerate the pending for transfer elements.
+                 * The returned iterator will be automatically garbage-collected on gc() call.
+                 *
+                 * @return element iterator
+                 */
                 KVTIterator *enum_tx_pending();
 
+                /**
+                 * Enumerate the pending for receive elements.
+                 * The returned iterator will be automatically garbage-collected on gc() call.
+                 *
+                 * @return element iterator
+                 */
                 KVTIterator *enum_rx_pending();
 
+                /**
+                 * Enumerate the whole contents of storage.
+                 * The returned iterator will be automatically garbage-collected on gc() call.
+                 *
+                 * @return element iterator
+                 */
                 KVTIterator *enum_all();
 
+                /**
+                 * Enumerate the whole KVT tree branch
+                 * The returned iterator will be automatically garbage-collected on gc() call.
+                 *
+                 * @param name branch name
+                 * @param recursive enumerate sub-elements of the KVT tree branch
+                 * @return element iterator
+                 */
                 KVTIterator *enum_branch(const char *name, bool recursive = false);
         };
 

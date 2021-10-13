@@ -706,24 +706,12 @@ namespace lsp
             c->fmt_append_utf8  ("  %s\n", pkg->site);
         }
 
-        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *relative)
+        status_t IWrapper::export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *relative)
         {
-            // Create configuration serializer
-            config::Serializer s;
-            status_t res = s.wrap(os, 0);
-            if (res != STATUS_OK)
-                return res;
-
-            // Write header
-            LSPString name, value, comment;
+            status_t res;
             float buf;
             const void *data;
-
-            build_config_header(&comment);
-            if ((res = s.write_comment(&comment)) != STATUS_OK)
-                return res;
-            if ((res = s.writeln()) != STATUS_OK)
-                return res;
+            LSPString name, value, comment;
 
             // Write port data
             for (size_t i=0, n=vPorts.size(); i<n; ++i)
@@ -754,16 +742,143 @@ namespace lsp
                 comment.clear();
                 name.clear();
                 value.clear();
-                res     = core::serialize_port_value(&s, meta, data, relative, 0);
+                res     = core::serialize_port_value(s, meta, data, relative, 0);
                 if ((res != STATUS_OK) && (res != STATUS_BAD_TYPE))
                     return res;
-                if ((res = s.writeln()) != STATUS_OK)
+                if ((res = s->writeln()) != STATUS_OK)
                     return res;
             }
 
-            // All is OK, proceed with KVT //TODO
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::export_kvt(config::Serializer *s, core::KVTStorage *kvt, const io::Path *relative)
+        {
+            status_t res;
+            core::KVTIterator *iter = kvt->enum_all();
+
+            // Emit the whole list of KVT parameters
+            while ((iter != NULL) && (iter->next() == STATUS_OK))
+            {
+                const core::kvt_param_t *p;
+
+                // Get KVT parameter
+                res = iter->get(&p);
+                if (res == STATUS_NOT_FOUND)
+                    continue;
+                else if (res != STATUS_OK)
+                {
+                    lsp_warn("Could not get parameter: code=%d", int(res));
+                    break;
+                }
+
+                // Skip transient and private parameters
+                if ((iter->is_transient()) || (iter->is_private()))
+                    continue;
+
+                // Get parameter name
+                const char *pname = iter->name();
+
+                // Serialize state
+                switch (p->type)
+                {
+                    case core::KVT_INT32:
+                        res = s->write_i32(pname, p->i32, config::SF_TYPE_SET);
+                        break;
+                    case core::KVT_UINT32:
+                        res = s->write_u32(pname, p->u32, config::SF_TYPE_SET);
+                        break;
+                    case core::KVT_INT64:
+                        res = s->write_i64(pname, p->i64, config::SF_TYPE_SET);
+                        break;
+                    case core::KVT_UINT64:
+                        res = s->write_u64(pname, p->u64, config::SF_TYPE_SET);
+                        break;
+                    case core::KVT_FLOAT32:
+                        res = s->write_f32(pname, p->f32, config::SF_TYPE_SET);
+                        break;
+                    case core::KVT_FLOAT64:
+                        res = s->write_f64(pname, p->f64, config::SF_TYPE_SET);
+                        break;
+                    case core::KVT_STRING:
+                        res = s->write_string(pname, p->str, config::SF_TYPE_STR | config::SF_QUOTED);
+                        break;
+                    case core::KVT_BLOB:
+                    {
+                        config::blob_t blob;
+                        blob.length = 0;
+                        blob.ctype  = const_cast<char *>(p->blob.ctype);
+                        blob.data   = NULL;
+
+                        // Encode BLOB to BASE-64
+                        if ((p->blob.size > 0) && (p->blob.data != NULL))
+                        {
+                            size_t dst_size     = 0x10 + ((p->blob.size * 4) / 3);
+                            blob.data = static_cast<char *>(::malloc(dst_size));
+                            if (blob.data != NULL)
+                            {
+                                size_t dst_left = dst_size, src_left = p->blob.size;
+                                dsp::base64_enc(blob.data, &dst_left, p->blob.data, &src_left);
+                            }
+                        }
+
+                        res = s->write_blob(pname, &blob, config::SF_TYPE_SET | config::SF_QUOTED);
+                        if (blob.data != NULL)
+                            free(blob.data);
+                        break;
+                    }
+                    default:
+                        res = STATUS_BAD_STATE;
+                        break;
+                }
+
+                if (res != STATUS_OK)
+                {
+                    lsp_warn("Error emitting parameter %s: %d", pname, int(res));
+                    continue;
+                }
+            }
 
             return STATUS_OK;
+        }
+
+        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *relative)
+        {
+            // Create configuration serializer
+            config::Serializer s;
+            status_t res = s.wrap(os, 0);
+            if (res != STATUS_OK)
+                return res;
+
+            // Write header
+            LSPString name, value, comment;
+
+            build_config_header(&comment);
+            if ((res = s.write_comment(&comment)) != STATUS_OK)
+                return res;
+            if ((res = s.writeln()) != STATUS_OK)
+                return res;
+
+            // Export regular ports
+            if ((res = export_ports(&s, &vPorts, relative)) != STATUS_OK)
+                return res;
+
+            // Export KVT data
+            core::KVTStorage *kvt = kvt_lock();
+            if (kvt != NULL)
+            {
+                // Write comment
+                res = s.write_comment("KVT parameters");
+                if (res == STATUS_OK)
+                    res = s.writeln();
+                if (res == STATUS_OK)
+                    res = export_kvt(&s, kvt, relative);
+
+                kvt->gc();
+                kvt_release();
+            }
+
+            return res;
         }
 
         status_t IWrapper::import_settings(const char *file, bool preset)

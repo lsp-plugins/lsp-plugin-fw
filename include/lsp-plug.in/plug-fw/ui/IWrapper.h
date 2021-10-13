@@ -42,6 +42,7 @@
 #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
 #include <lsp-plug.in/plug-fw/ui/IKVTListener.h>
 #include <lsp-plug.in/fmt/config/PullParser.h>
+#include <lsp-plug.in/fmt/config/Serializer.h>
 
 namespace lsp
 {
@@ -105,6 +106,8 @@ namespace lsp
                 status_t        load_global_config(config::PullParser *parser);
                 status_t        init_global_constants(const tk::StyleSheet *sheet);
                 status_t        apply_visual_schema(const tk::StyleSheet *sheet);
+                status_t        export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *relative);
+                status_t        export_kvt(config::Serializer *s, core::KVTStorage *kvt, const io::Path *relative);
 
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
