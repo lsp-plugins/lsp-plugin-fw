@@ -67,6 +67,11 @@ namespace lsp
                 virtual void destroy()
                 {
                 }
+
+                virtual void update_value(float value)
+                {
+                    set_value(value);
+                }
         };
 
         class PortGroup: public Port
@@ -405,7 +410,7 @@ namespace lsp
                     return fCurrValue;
                 }
 
-                void update_value(float value)
+                virtual void update_value(float value)
                 {
                     fNewValue   = limit_value(pMetadata, value);
                 }

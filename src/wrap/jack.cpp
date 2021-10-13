@@ -482,8 +482,18 @@ namespace lsp
             // Load configuration (if specified in parameters)
             if (cmdline.cfg_file != NULL)
             {
-                if ((res = w->pUIWrapper->import_settings(cmdline.cfg_file, false)) != STATUS_OK)
-                    fprintf(stderr, "Error loading configuration file: '%s': %s\n", cmdline.cfg_file, get_status(res));
+                if (w->pUIWrapper != NULL)
+                {
+                    if ((res = w->pUIWrapper->import_settings(cmdline.cfg_file, false)) != STATUS_OK)
+                        fprintf(stderr, "Error loading configuration file: '%s': %s\n", cmdline.cfg_file, get_status(res));
+                }
+                else if (w->pWrapper != NULL)
+                {
+                    if ((res = w->pWrapper->import_settings(cmdline.cfg_file)) != STATUS_OK)
+                        fprintf(stderr, "Error loading configuration file: '%s': %s\n", cmdline.cfg_file, get_status(res));
+                }
+                else
+                    fprintf(stderr, "Error loading configuration file: '%s': no accessible wrapper\n", cmdline.cfg_file);
             }
 
             return STATUS_OK;

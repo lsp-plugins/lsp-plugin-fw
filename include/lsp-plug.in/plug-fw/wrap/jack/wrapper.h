@@ -26,6 +26,7 @@
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 
 #include <lsp-plug.in/common/debug.h>
@@ -97,12 +98,15 @@ namespace lsp
                 int             latency_callback(jack_latency_callback_mode_t mode);
                 int             run(size_t samples);
 
+                status_t        import_settings(config::PullParser *parser);
+
             protected:
                 static int      process(jack_nframes_t nframes, void *arg);
                 static int      sync_buffer_size(jack_nframes_t nframes, void *arg);
                 static int      jack_sync(jack_transport_state_t state, jack_position_t *pos, void *arg);
                 static int      latency_callback(jack_latency_callback_mode_t mode, void *arg);
                 static void     shutdown(void *arg);
+                static bool     set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
@@ -172,6 +176,11 @@ namespace lsp
 
                 jack::Port                         *port_by_id(const char *id);
                 jack::Port                         *port_by_idx(size_t index);
+
+                status_t                            import_settings(const char *path);
+                status_t                            import_settings(const LSPString *path);
+                status_t                            import_settings(const io::Path *path);
+                status_t                            import_settings(io::IInSequence *is);
 
 //            public:
 //                bool transfer_dsp_to_ui();
@@ -792,6 +801,218 @@ namespace lsp
             }
 
             return NULL;
+        }
+
+        status_t Wrapper::import_settings(const char *file)
+        {
+            config::PullParser parser;
+            status_t res = parser.open(file);
+            if (res == STATUS_OK)
+                res = import_settings(&parser);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t Wrapper::import_settings(const LSPString *file)
+        {
+            config::PullParser parser;
+            status_t res = parser.open(file);
+            if (res == STATUS_OK)
+                res = import_settings(&parser);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t Wrapper::import_settings(const io::Path *file)
+        {
+            config::PullParser parser;
+            status_t res = parser.open(file);
+            if (res == STATUS_OK)
+                res = import_settings(&parser);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t Wrapper::import_settings(io::IInSequence *is)
+        {
+            config::PullParser parser;
+            status_t res = parser.wrap(is);
+            if (res == STATUS_OK)
+                res = import_settings(&parser);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t Wrapper::import_settings(config::PullParser *parser)
+        {
+            status_t res;
+            config::param_t param;
+            core::KVTStorage *kvt = kvt_lock();
+
+            while ((res = parser->next(&param)) == STATUS_OK)
+            {
+                if ((param.name.starts_with('/')) && (kvt != NULL)) // KVT
+                {
+                    core::kvt_param_t kp;
+
+                    switch (param.type())
+                    {
+                        case config::SF_TYPE_I32:
+                            kp.type         = core::KVT_INT32;
+                            kp.i32          = param.v.i32;
+                            break;
+                        case config::SF_TYPE_U32:
+                            kp.type         = core::KVT_UINT32;
+                            kp.u32          = param.v.u32;
+                            break;
+                        case config::SF_TYPE_I64:
+                            kp.type         = core::KVT_INT64;
+                            kp.i64          = param.v.i64;
+                            break;
+                        case config::SF_TYPE_U64:
+                            kp.type         = core::KVT_UINT64;
+                            kp.u64          = param.v.u64;
+                            break;
+                        case config::SF_TYPE_F32:
+                            kp.type         = core::KVT_FLOAT32;
+                            kp.f32          = param.v.f32;
+                            break;
+                        case config::SF_TYPE_F64:
+                            kp.type         = core::KVT_FLOAT64;
+                            kp.f64          = param.v.f64;
+                            break;
+                        case config::SF_TYPE_BOOL:
+                            kp.type         = core::KVT_FLOAT32;
+                            kp.f32          = (param.v.bval) ? 1.0f : 0.0f;
+                            break;
+                        case config::SF_TYPE_STR:
+                            kp.type         = core::KVT_STRING;
+                            kp.str          = param.v.str;
+                            break;
+                        case config::SF_TYPE_BLOB:
+                            kp.type         = core::KVT_BLOB;
+                            kp.blob.size    = param.v.blob.length;
+                            kp.blob.ctype   = param.v.blob.ctype;
+                            kp.blob.data    = NULL;
+                            if (param.v.blob.data != NULL)
+                            {
+                                // Allocate memory
+                                size_t src_left = strlen(param.v.blob.data);
+                                size_t dst_left = 0x10 + param.v.blob.length;
+                                void *blob      = ::malloc(dst_left);
+                                if (blob != NULL)
+                                {
+                                    kp.blob.data    = blob;
+
+                                    // Decode
+                                    size_t n = dsp::base64_dec(blob, &dst_left, param.v.blob.data, &src_left);
+                                    if ((n != param.v.blob.length) || (src_left != 0))
+                                    {
+                                        ::free(blob);
+                                        kp.type         = core::KVT_ANY;
+                                        kp.blob.data    = NULL;
+                                    }
+                                }
+                                else
+                                    kp.type         = core::KVT_ANY;
+                            }
+                            break;
+                        default:
+                            kp.type         = core::KVT_ANY;
+                            break;
+                    }
+
+                    if (kp.type != core::KVT_ANY)
+                    {
+                        const char *id = param.name.get_utf8();
+                        kvt->put(id, &kp, core::KVT_RX);
+                    }
+
+                    // Free previously allocated data
+                    if ((kp.type == core::KVT_BLOB) && (kp.blob.data != NULL))
+                        free(const_cast<void *>(kp.blob.data));
+                }
+                else
+                {
+                    for (size_t i=0, n=vPorts.size(); i<n; ++i)
+                    {
+                        jack::Port *p = vPorts.uget(i);
+                        if (p == NULL)
+                            continue;
+                        const meta::port_t *meta = p->metadata();
+                        if ((meta != NULL) && (param.name.equals_ascii(meta->id)))
+                        {
+                            set_port_value(p, &param, plug::PF_STATE_IMPORT, NULL);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Release KVT
+            if (kvt != NULL)
+            {
+                kvt->gc();
+                kvt_release();
+            }
+
+            return (res == STATUS_EOF) ? STATUS_OK : res;
+        }
+
+        bool Wrapper::set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base)
+        {
+            // Get metadata
+            const meta::port_t *p = (port != NULL) ? port->metadata() : NULL;
+            if (p == NULL)
+                return false;
+
+            // Check that it's a control port
+            if (!meta::is_in_port(p))
+                return false;
+
+            // Apply changes
+            switch (p->role)
+            {
+                case meta::R_PORT_SET:
+                case meta::R_CONTROL:
+                {
+                    if (meta::is_discrete_unit(p->unit))
+                    {
+                        if (meta::is_bool_unit(p->unit))
+                            port->update_value((param->to_bool()) ? 1.0f : 0.0f);
+                        else
+                            port->update_value(param->to_int());
+                    }
+                    else
+                        port->update_value(param->to_float());
+                    break;
+                }
+                case meta::R_PATH:
+                {
+                    // Check type of argument
+                    if (!param->is_string())
+                        return false;
+
+                    const char *value = param->v.str;
+                    size_t len      = ::strlen(value);
+                    io::Path path;
+
+                    if (core::parse_relative_path(&path, base, value, len))
+                    {
+                        // Update value and it's length
+                        value   = path.as_utf8();
+                        len     = strlen(value);
+                    }
+
+                    path_t *bpath = (meta::is_path_port(port->metadata())) ? port->buffer<path_t>() : NULL;
+                    if (bpath != NULL)
+                        bpath->submit(value, flags);
+                    break;
+                }
+                default:
+                    return false;
+            }
+            return true;
         }
     }
 }

@@ -877,6 +877,7 @@ namespace lsp
                             {
                                 size_t dst_left = dst_size, src_left = p->blob.size;
                                 dsp::base64_enc(blob.data, &dst_left, p->blob.data, &src_left);
+                                blob.length = p->blob.size;
                             }
                         }
 
@@ -951,51 +952,162 @@ namespace lsp
 
         status_t IWrapper::import_settings(const char *file, bool preset)
         {
-            io::Path path;
-            status_t res = path.set(file);
-            if (res != STATUS_OK)
-                return res;
-
-            return import_settings(&path, preset);
+            config::PullParser parser;
+            status_t res = parser.open(file);
+            if (res == STATUS_OK)
+                res = import_settings(&parser, preset);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
         }
 
         status_t IWrapper::import_settings(const LSPString *file, bool preset)
         {
-            io::Path path;
-            status_t res = path.set(file);
-            if (res != STATUS_OK)
-                return res;
-
-            return import_settings(&path, preset);
+            config::PullParser parser;
+            status_t res = parser.open(file);
+            if (res == STATUS_OK)
+                res = import_settings(&parser, preset);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
         }
 
         status_t IWrapper::import_settings(const io::Path *file, bool preset)
         {
-            io::InFileStream is;
-            io::InSequence i;
-
-            status_t res = is.open(file);
-            if (res != STATUS_OK)
-                return res;
-
-            // Wrap
-            if ((res = i.wrap(&is, WRAP_CLOSE, "UTF-8")) != STATUS_OK)
-            {
-                is.close();
-                return res;
-            }
-
-            // Export settings
-            res = import_settings(&i, preset);
-            status_t res2 = i.close();
-
+            config::PullParser parser;
+            status_t res = parser.open(file);
+            if (res == STATUS_OK)
+                res = import_settings(&parser, preset);
+            status_t res2 = parser.close();
             return (res == STATUS_OK) ? res2 : res;
         }
 
         status_t IWrapper::import_settings(io::IInSequence *is, bool preset)
         {
-            // TODO: implement import
-            return STATUS_OK;
+            config::PullParser parser;
+            status_t res = parser.wrap(is);
+            if (res == STATUS_OK)
+                res = import_settings(&parser, preset);
+            status_t res2 = parser.close();
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t IWrapper::import_settings(config::PullParser *parser, bool preset)
+        {
+            status_t res;
+            config::param_t param;
+            core::KVTStorage *kvt = kvt_lock();
+
+            while ((res = parser->next(&param)) == STATUS_OK)
+            {
+                if ((param.name.starts_with('/')) && (kvt != NULL)) // KVT
+                {
+                    core::kvt_param_t kp;
+
+                    switch (param.type())
+                    {
+                        case config::SF_TYPE_I32:
+                            kp.type         = core::KVT_INT32;
+                            kp.i32          = param.v.i32;
+                            break;
+                        case config::SF_TYPE_U32:
+                            kp.type         = core::KVT_UINT32;
+                            kp.u32          = param.v.u32;
+                            break;
+                        case config::SF_TYPE_I64:
+                            kp.type         = core::KVT_INT64;
+                            kp.i64          = param.v.i64;
+                            break;
+                        case config::SF_TYPE_U64:
+                            kp.type         = core::KVT_UINT64;
+                            kp.u64          = param.v.u64;
+                            break;
+                        case config::SF_TYPE_F32:
+                            kp.type         = core::KVT_FLOAT32;
+                            kp.f32          = param.v.f32;
+                            break;
+                        case config::SF_TYPE_F64:
+                            kp.type         = core::KVT_FLOAT64;
+                            kp.f64          = param.v.f64;
+                            break;
+                        case config::SF_TYPE_BOOL:
+                            kp.type         = core::KVT_FLOAT32;
+                            kp.f32          = (param.v.bval) ? 1.0f : 0.0f;
+                            break;
+                        case config::SF_TYPE_STR:
+                            kp.type         = core::KVT_STRING;
+                            kp.str          = param.v.str;
+                            break;
+                        case config::SF_TYPE_BLOB:
+                            kp.type         = core::KVT_BLOB;
+                            kp.blob.size    = param.v.blob.length;
+                            kp.blob.ctype   = param.v.blob.ctype;
+                            kp.blob.data    = NULL;
+                            if (param.v.blob.data != NULL)
+                            {
+                                // Allocate memory
+                                size_t src_left = strlen(param.v.blob.data);
+                                size_t dst_left = 0x10 + param.v.blob.length;
+                                void *blob      = ::malloc(dst_left);
+                                if (blob != NULL)
+                                {
+                                    kp.blob.data    = blob;
+
+                                    // Decode
+                                    size_t n = dsp::base64_dec(blob, &dst_left, param.v.blob.data, &src_left);
+                                    if ((n != param.v.blob.length) || (src_left != 0))
+                                    {
+                                        ::free(blob);
+                                        kp.type         = core::KVT_ANY;
+                                        kp.blob.data    = NULL;
+                                    }
+                                }
+                                else
+                                    kp.type         = core::KVT_ANY;
+                            }
+                            break;
+                        default:
+                            kp.type         = core::KVT_ANY;
+                            break;
+                    }
+
+                    if (kp.type != core::KVT_ANY)
+                    {
+                        const char *id = param.name.get_utf8();
+                        kvt->put(id, &kp, core::KVT_RX);
+                        kvt_notify_write(kvt, id, &kp);
+                    }
+
+                    // Free previously allocated data
+                    if ((kp.type == core::KVT_BLOB) && (kp.blob.data != NULL))
+                        free(const_cast<void *>(kp.blob.data));
+                }
+                else
+                {
+                    size_t flags = (preset) ? plug::PF_PRESET_IMPORT : plug::PF_STATE_IMPORT;
+
+                    for (size_t i=0, n=vPorts.size(); i<n; ++i)
+                    {
+                        ui::IPort *p = vPorts.uget(i);
+                        if (p == NULL)
+                            continue;
+                        const meta::port_t *meta = p->metadata();
+                        if ((meta != NULL) && (param.name.equals_ascii(meta->id)))
+                        {
+                            if (set_port_value(p, &param, flags, NULL))
+                                p->notify_all();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Release KVT
+            if (kvt != NULL)
+            {
+                kvt->gc();
+                kvt_release();
+            }
+
+            return (res == STATUS_EOF) ? STATUS_OK : res;
         }
 
         status_t IWrapper::load_global_config(const char *file)
@@ -1056,7 +1168,8 @@ namespace lsp
                     const meta::port_t *meta = p->metadata();
                     if ((meta != NULL) && (param.name.equals_ascii(meta->id)))
                     {
-                        set_port_value(p, &param, plug::PF_STATE_IMPORT, NULL);
+                        if (set_port_value(p, &param, plug::PF_STATE_IMPORT, NULL))
+                            p->notify_all();
                         break;
                     }
                 }
@@ -1183,7 +1296,6 @@ namespace lsp
                     }
 
                     port->write(value, len, flags);
-                    port->notify_all();
                     break;
                 }
                 default:

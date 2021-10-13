@@ -113,7 +113,7 @@ namespace lsp
                 virtual void set_value(float value)
                 {
                     fValue  = limit_value(pMetadata, value);
-                    static_cast<ControlPort *>(pPort)->update_value(fValue);
+                    pPort->update_value(fValue);
                 }
 
                 virtual void write(const void *buffer, size_t size)
@@ -121,7 +121,7 @@ namespace lsp
                     if (size == sizeof(float))
                     {
                         fValue  = *static_cast<const float *>(buffer);
-                        static_cast<ControlPort *>(pPort)->update_value(fValue);
+                        pPort->update_value(fValue);
                     }
                 }
         };
