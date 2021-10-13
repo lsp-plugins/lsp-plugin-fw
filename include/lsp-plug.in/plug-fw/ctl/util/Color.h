@@ -55,6 +55,7 @@ namespace lsp
                     C_XYZ_X, C_XYZ_Y, C_XYZ_Z,
                     C_LAB_L, C_LAB_A, C_LAB_B,
                     C_LCH_L, C_LCH_C, C_LCH_H,
+                    C_CMYK_C, C_CMYK_M, C_CMYK_Y, C_CMYK_K,
                     C_ALPHA,
 
                     // Custom controls

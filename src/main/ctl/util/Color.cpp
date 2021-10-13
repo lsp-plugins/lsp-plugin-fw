@@ -154,6 +154,10 @@ namespace lsp
                 case C_LCH_L:       pColor->lch_l(value->v_float);          break;
                 case C_LCH_C:       pColor->lch_c(value->v_float);          break;
                 case C_LCH_H:       pColor->lch_h(lch_hue(value->v_float)); break;
+                case C_CMYK_C:      pColor->cyan(value->v_float);           break;
+                case C_CMYK_M:      pColor->magenta(value->v_float);        break;
+                case C_CMYK_Y:      pColor->yellow(value->v_float);         break;
+                case C_CMYK_K:      pColor->black(value->v_float);          break;
                 case C_ALPHA:       pColor->alpha(value->v_float);          break;
                 default: break;
             }
@@ -227,6 +231,20 @@ namespace lsp
                     else if (!strcmp(name, ".c"))           idx = C_LCH_C;
                     else if (!strcmp(name, ".hue"))         idx = C_LCH_H;
                     else if (!strcmp(name, ".h"))           idx = C_LCH_H;
+                }
+                else if (!strncmp(name, ".cmyk", 5))
+                {
+                    // '.cmyk' sub-prefix
+                    name       += 5;
+                    if      (!strcmp(name, ".cyan"))        idx = C_CMYK_C;
+                    else if (!strcmp(name, ".c"))           idx = C_CMYK_C;
+                    else if (!strcmp(name, ".magenta"))     idx = C_CMYK_M;
+                    else if (!strcmp(name, ".m"))           idx = C_CMYK_M;
+                    else if (!strcmp(name, ".yellow"))      idx = C_CMYK_Y;
+                    else if (!strcmp(name, ".y"))           idx = C_CMYK_Y;
+                    else if (!strcmp(name, ".black"))       idx = C_CMYK_K;
+                    else if (!strcmp(name, ".key"))         idx = C_CMYK_K;
+                    else if (!strcmp(name, ".k"))           idx = C_CMYK_K;
                 }
                 else
                 {
