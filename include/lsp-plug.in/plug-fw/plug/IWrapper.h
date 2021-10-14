@@ -31,6 +31,7 @@
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/ipc/IExecutor.h>
 #include <lsp-plug.in/resource/ILoader.h>
+#include <lsp-plug.in/resource/PrefixLoader.h>
 
 namespace lsp
 {
@@ -47,11 +48,11 @@ namespace lsp
                 IWrapper & operator = (const IWrapper &);
 
             protected:
-                Module             *pPlugin;
-                resource::ILoader  *pLoader;
+                Module                     *pPlugin;
+                resource::PrefixLoader      sLoader;
 
             public:
-                explicit IWrapper(Module *plugin, resource::ILoader *loader);
+                explicit IWrapper(Module *plugin);
                 virtual ~IWrapper();
 
             public:
@@ -59,7 +60,7 @@ namespace lsp
                  * Get builtin resource loader
                  * @return builtin resource loader
                  */
-                inline resource::ILoader   *resources()         { return pLoader;       }
+                inline resource::ILoader   *resources()         { return &sLoader;  }
 
                 /** Get executor service
                  *

@@ -952,31 +952,27 @@ namespace lsp
 
         status_t IWrapper::import_settings(const char *file, bool preset)
         {
-            config::PullParser parser;
-            status_t res = parser.open(file);
-            if (res == STATUS_OK)
-                res = import_settings(&parser, preset);
-            status_t res2 = parser.close();
-            return (res == STATUS_OK) ? res2 : res;
+            io::Path tmp;
+            status_t res = tmp.set(file);
+            return (res == STATUS_OK) ? import_settings(&tmp, preset) : res;
         }
 
         status_t IWrapper::import_settings(const LSPString *file, bool preset)
         {
-            config::PullParser parser;
-            status_t res = parser.open(file);
-            if (res == STATUS_OK)
-                res = import_settings(&parser, preset);
-            status_t res2 = parser.close();
-            return (res == STATUS_OK) ? res2 : res;
+            io::Path tmp;
+            status_t res = tmp.set(file);
+            return (res == STATUS_OK) ? import_settings(&tmp, preset) : res;
         }
 
         status_t IWrapper::import_settings(const io::Path *file, bool preset)
         {
-            config::PullParser parser;
-            status_t res = parser.open(file);
-            if (res == STATUS_OK)
-                res = import_settings(&parser, preset);
-            status_t res2 = parser.close();
+            // Read the resource as sequence
+            io::IInSequence *is = sLoader.read_sequence(file, "UTF-8");
+            if (is == NULL)
+                return sLoader.last_error();
+            status_t res = import_settings(is, preset);
+            status_t res2 = is->close();
+            delete is;
             return (res == STATUS_OK) ? res2 : res;
         }
 
@@ -1501,10 +1497,8 @@ namespace lsp
             status_t res    = sheet->parse_data(is);
             status_t res2   = is->close();
             delete is;
-            if (res == STATUS_OK)
-                res         = res2;
 
-            return res;
+            return (res == STATUS_OK) ? res2 : res;
         }
 
         status_t IWrapper::add_schema_listener(ui::ISchemaListener *listener)

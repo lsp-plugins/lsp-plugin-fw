@@ -109,7 +109,7 @@ namespace lsp
                 static bool     set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
-                explicit Wrapper(plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
+                explicit Wrapper(plug::Module *plugin): IWrapper(plugin)
                 {
                     pClient         = NULL;
                     nState          = S_CREATED;
@@ -143,7 +143,7 @@ namespace lsp
                     nDumpResp       = 0;
                 }
 
-                status_t                            init();
+                status_t                            init(resource::ILoader *loader);
 
                 void                                destroy();
 
@@ -218,17 +218,24 @@ namespace lsp
             return strcmp(a->id, b->id);
         }
 
-        status_t Wrapper::init()
+        status_t Wrapper::init(resource::ILoader *loader)
         {
+            status_t res;
+            if (loader != NULL)
+            {
+                if ((res = sLoader.add_prefix(LSP_BUILTIN_PREFIX, loader)) != STATUS_OK)
+                    return res;
+            }
+
             // Load package information
-            io::IInStream *is = pLoader->read_stream("manifest.json");
+            io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
             if (is == NULL)
             {
                 lsp_error("No manifest.json found in resources");
                 return STATUS_BAD_STATE;
             }
 
-            status_t res    = meta::load_manifest(&pPackage, is);
+            res = meta::load_manifest(&pPackage, is);
             is->close();
             delete is;
 

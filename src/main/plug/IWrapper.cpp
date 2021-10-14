@@ -29,10 +29,9 @@ namespace lsp
 {
     namespace plug
     {
-        IWrapper::IWrapper(Module *plugin, resource::ILoader *loader)
+        IWrapper::IWrapper(Module *plugin)
         {
             pPlugin     = plugin;
-            pLoader     = loader;
         }
 
         IWrapper::~IWrapper()

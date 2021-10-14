@@ -263,22 +263,30 @@ namespace lsp
             // Clear scene state
             sScene.clear();
 
-            // Load scene only if status is not defined or valid
-            ssize_t status = (sStatus.valid()) ? sStatus.evaluate_int(STATUS_UNKNOWN_ERR) : STATUS_UNKNOWN_ERR;
-            if (status == STATUS_OK)
-            {
-                const char *spath   = pFile->buffer<char>();
-                if (spath != NULL)
-                {
-                    // Try to load
-                    status_t res = sScene.load(spath);
-                    if (res != STATUS_OK)
-                        sScene.clear();
-                }
-            }
-
             // Mark that view has changed and query for redraw
             query_mesh_change();
+
+            // Load scene only if status is not defined or valid
+            ssize_t status = (sStatus.valid()) ? sStatus.evaluate_int(STATUS_UNKNOWN_ERR) : STATUS_UNKNOWN_ERR;
+            if (status != STATUS_OK)
+                return;
+
+            const char *spath   = pFile->buffer<char>();
+            if (spath == NULL)
+                return;
+
+            // Load file from resources
+            lsp_trace("Loading scene from %s", spath);
+            io::IInStream *is = pWrapper->resources()->read_stream(spath);
+            if (is == NULL)
+                return;
+
+            // Try to load
+            status_t res = sScene.load(is);
+            if (res != STATUS_OK)
+                sScene.clear();
+            is->close();
+            delete is;
         }
 
         void Model3D::property_changed(tk::Property *prop)

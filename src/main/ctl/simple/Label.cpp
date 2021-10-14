@@ -28,6 +28,10 @@
 #define INPUT_STYLE_INVALID     "Value::PopupWindow::InvalidInput"
 #define INPUT_STYLE_MISMATCH    "Value::PopupWindow::MismatchInput"
 
+#define STATUS_STYLE_OK         "Value::Status::OK"
+#define STATUS_STYLE_WARN       "Value::Status::Warn"
+#define STATUS_STYLE_ERROR      "Value::Status::Error"
+
 namespace lsp
 {
     namespace ctl
@@ -269,19 +273,24 @@ namespace lsp
                 case CTL_STATUS_CODE:
                 {
                     status_t code = fValue;
-                    const char *text = get_status_lc_key(code);
+                    const char *lc_key = get_status_lc_key(code);
+                    LSPString key;
 
-                    revoke_style(lbl, "Value::Status::OK");
-                    revoke_style(lbl, "Value::Status::Warn");
-                    revoke_style(lbl, "Value::Status::Error");
+                    revoke_style(lbl, STATUS_STYLE_OK);
+                    revoke_style(lbl, STATUS_STYLE_WARN);
+                    revoke_style(lbl, STATUS_STYLE_ERROR);
 
                     if (status_is_success(code))
-                        inject_style(lbl, "Value::Status::OK");
+                        inject_style(lbl, STATUS_STYLE_OK);
                     else if (status_is_preliminary(code))
-                        inject_style(lbl, "Value::Status::Warn");
+                        inject_style(lbl, STATUS_STYLE_WARN);
                     else
-                        inject_style(lbl, "Value::Status::Error");
-                    lbl->text()->set(text);
+                        inject_style(lbl, STATUS_STYLE_ERROR);
+
+                    if (key.set_ascii("statuses.std."))
+                        key.append_ascii(lc_key);
+
+                    lbl->text()->set(&key);
                     break;
                 }
 

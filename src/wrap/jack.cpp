@@ -443,14 +443,14 @@ namespace lsp
             #endif
 
             // Initialize plugin wrapper
-            w->pWrapper     = new jack::Wrapper(w->pPlugin, w->pLoader);
+            w->pWrapper     = new jack::Wrapper(w->pPlugin);
             if (w->pWrapper == NULL)
             {
                 jack_destroy_wrapper(w);
                 return STATUS_NO_MEM;
             }
 
-            if ((res = w->pWrapper->init()) != STATUS_OK)
+            if ((res = w->pWrapper->init(w->pLoader)) != STATUS_OK)
             {
                 jack_destroy_wrapper(w);
                 return res;
