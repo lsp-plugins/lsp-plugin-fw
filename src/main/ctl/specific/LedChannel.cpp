@@ -142,8 +142,6 @@ namespace lsp
                 sTextVisible.set("text.visibility", name, value);
 
                 sColor.set("color", name, value);
-                if (!strcmp(name, "value.color"))
-                    lsp_trace("debug");
                 sValueColor.set("value.color", name, value);
                 sYellowZoneColor.set("yellow.color", name, value);
                 sRedZoneColor.set("red.color", name, value);

@@ -204,9 +204,7 @@ namespace lsp
 
         bool is_log_rule(const port_t *port)
         {
-            if (port->flags & F_LOG)
-                return true;
-            return is_decibel_unit(port->unit);
+            return (port->flags & F_LOG);
         }
 
         size_t list_size(const port_item_t *list)
