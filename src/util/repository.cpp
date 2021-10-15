@@ -29,7 +29,10 @@
 #include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/io/PathPattern.h>
+#include <lsp-plug.in/io/OutFileStream.h>
+#include <lsp-plug.in/io/OutSequence.h>
 #include <lsp-plug.in/fmt/json/dom.h>
+#include <lsp-plug.in/fmt/xml/PullParser.h>
 
 namespace lsp
 {
@@ -45,6 +48,13 @@ namespace lsp
             lltl::pphash<LSPString, LSPString>  local;          // Local files
             lltl::pphash<LSPString, LSPString>  fonts;          // Fonts
         } context_t;
+
+        typedef struct xml_node_t
+        {
+            LSPString name;             // Name of XML node
+            size_t    attributes;       // Number of attributes
+            size_t    children;          // Number of children
+        } xml_node_t;
 
         /**
          * File handler function
@@ -111,6 +121,25 @@ namespace lsp
             ctx->fonts.values(&paths);
             ctx->fonts.flush();
             drop_paths(&paths);
+        }
+
+        void destroy_nodes(lltl::parray<xml_node_t> *stack)
+        {
+            for (size_t i=0, n=stack->size(); i<n; ++i)
+            {
+                xml_node_t *node = stack->uget(i);
+                if (node != NULL)
+                    delete node;
+            }
+            stack->flush();
+        }
+
+        bool is_xml_file(const io::Path *path)
+        {
+            LSPString ext;
+            if (path->get_ext(&ext) != STATUS_OK)
+                return false;
+            return ext.equals_ascii_nocase("xml");
         }
 
         status_t add_unique_file(lltl::pphash<LSPString, LSPString> *dst, const LSPString *relative, const LSPString *full)
@@ -202,6 +231,266 @@ namespace lsp
             }
 
             return STATUS_OK;
+        }
+
+        status_t write_xml_tag(io::IOutSequence *os, const LSPString *s)
+        {
+            LSPString tmp;
+            status_t res;
+
+            for (size_t i=0, n=s->length(); i<n; ++i)
+            {
+                lsp_wchar_t c = s->at(i);
+
+                // Emit character data
+                if ((c >= 0) && (c < 0x80))
+                {
+                    if (c < 0x20)
+                    {
+                        if (tmp.fmt_ascii("&#%02x", int(c)) < 0)
+                            return STATUS_NO_MEM;
+                        res = os->write(&tmp);
+                    }
+                    else
+                        res = os->write(c);
+                }
+                else
+                {
+                    if (tmp.fmt_ascii("&#%04x", int(c)) < 0)
+                        return STATUS_NO_MEM;
+                    res = os->write(&tmp);
+                }
+
+                // Analyze result
+                if (res != STATUS_OK)
+                    return res;
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t write_xml_string(io::IOutSequence *os, const LSPString *s)
+        {
+            LSPString tmp;
+            status_t res;
+
+            for (size_t i=0, n=s->length(); i<n; ++i)
+            {
+                lsp_wchar_t c = s->at(i);
+
+                // Emit character data
+                if ((c >= 0) && (c < 0x80))
+                {
+                    if (c < 0x20)
+                    {
+                        if (tmp.fmt_ascii("&#%02x", int(c)) < 0)
+                            return STATUS_NO_MEM;
+                        res = os->write(&tmp);
+                    }
+                    else
+                    {
+                        switch (c)
+                        {
+                            case '\"': res = os->write_ascii("&quot;"); break;
+                            //case '\'': res = os->write_ascii("&apos;"); break; // Don't need this at this moment
+                            case '<': res = os->write_ascii("&lt;"); break;
+                            case '>': res = os->write_ascii("&gt;"); break;
+                            case '&': res = os->write_ascii("&amp;"); break;
+                            default: res = os->write(c); break;
+                        }
+
+                    }
+                }
+                else
+                {
+                    if (tmp.fmt_ascii("&#%04x", int(c)) < 0)
+                        return STATUS_NO_MEM;
+                    res = os->write(&tmp);
+                }
+
+                // Analyze result
+                if (res != STATUS_OK)
+                    return res;
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t do_xml_processing(xml::PullParser *p, io::IOutSequence *os)
+        {
+            status_t res;
+            lltl::parray<xml_node_t> stack;
+
+            do
+            {
+                // Get next XML element
+                if ((res = p->read_next()) < 0)
+                {
+                    res = -res;
+                    break;
+                }
+
+                if (res == xml::XT_END_DOCUMENT)
+                {
+                    res = STATUS_OK;
+                    break;
+                }
+
+                xml_node_t *curr = (stack.is_empty()) ? NULL : stack.last();
+
+                switch (res)
+                {
+                    // Skip characters and comments
+                    case xml::XT_CHARACTERS:
+                    case xml::XT_COMMENT:
+                    case xml::XT_DTD:
+                    case xml::XT_START_DOCUMENT:
+                        res = STATUS_OK;
+                        break;
+
+                    case xml::XT_START_ELEMENT:
+                    {
+                        if (curr != NULL)
+                        {
+                            // If we meet the first child, we need to end the tag definition
+                            if ((curr->children++) <= 0)
+                            {
+                                if ((res = os->write('>')) != STATUS_OK)
+                                    break;
+                            }
+                        }
+
+                        // Create new node
+                        if ((curr = new xml_node_t) == NULL)
+                        {
+                            res = STATUS_NO_MEM;
+                            break;
+                        }
+                        curr->attributes    = 0;
+                        curr->children      = 0;
+
+                        // Add to stack and initialize name
+                        if ((!stack.push(curr)) || (!curr->name.set(p->name())))
+                        {
+                            delete curr;
+                            res = STATUS_NO_MEM;
+                            break;
+                        }
+
+                        // Emit tag name
+                        res = os->write_ascii("<");
+                        if (res == STATUS_OK)
+                            res = write_xml_tag(os, p->name());
+                        break;
+                    }
+
+                    case xml::XT_END_ELEMENT:
+                    {
+                        // Check that we are in valid state
+                        if (curr == NULL)
+                        {
+                            res = STATUS_BAD_STATE;
+                            break;
+                        }
+
+                        // If there were some children, then use long form of tag
+                        if (curr->children > 0)
+                        {
+                            res = os->write_ascii("</");
+                            if (res == STATUS_OK)
+                                res = write_xml_tag(os, &curr->name);
+                            if (res == STATUS_OK)
+                                res = os->write('>');
+                        }
+                        else
+                            res = os->write_ascii("/>"); // Use short form
+
+                        if (res != STATUS_OK)
+                            break;
+
+                        // Destroy the current node and pop the stack
+                        if (!stack.pop())
+                        {
+                            res = STATUS_NO_MEM;
+                            break;
+                        }
+                        delete curr;
+
+                        break;
+                    }
+
+                    case xml::XT_ATTRIBUTE:
+                    {
+                        // Check that we are in valid state
+                        if (curr == NULL)
+                        {
+                            res = STATUS_BAD_STATE;
+                            break;
+                        }
+
+                        ++curr->attributes;
+
+                        // Emit the attribute
+                        res = os->write(' ');
+                        if (res == STATUS_OK)
+                            res = write_xml_tag(os, p->name());
+                        if (res == STATUS_OK)
+                            res = os->write_ascii("=\"");
+                        if (res == STATUS_OK)
+                            res = write_xml_string(os, p->value());
+                        if (res == STATUS_OK)
+                            res = os->write('\"');
+                        break;
+                    }
+
+                    default:
+                        res = STATUS_CORRUPTED;
+                        break;
+                }
+            } while (res == STATUS_OK);
+
+            // Destroy stack
+            destroy_nodes(&stack);
+
+            return res;
+        }
+
+        status_t preprocess_xml(const LSPString *src, const io::Path *dst)
+        {
+            status_t res, res2;
+            xml::PullParser p;
+            io::OutFileStream ofs;
+            io::OutSequence os;
+
+            // Open XML file
+            if ((res = p.open(src)) == STATUS_OK)
+            {
+                if ((res = ofs.open(dst, io::File::FM_WRITE_NEW)) == STATUS_OK)
+                {
+                    if ((res = os.wrap(&ofs, false, "UTF-8") == STATUS_OK))
+                    {
+                        // Do XML processing
+                        res = do_xml_processing(&p, &os);
+                    }
+
+                    // Close output sequence
+                    res2 = os.close();
+                    if (res == STATUS_OK)
+                        res = res2;
+                }
+
+                // Close output file
+                res2 = ofs.close();
+                if (res == STATUS_OK)
+                    res = res2;
+            }
+
+            // Close XML file
+            res2 = p.close();
+            if (res == STATUS_OK)
+                res = res2;
+
+            return res;
         }
 
         status_t schema_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
@@ -575,10 +864,22 @@ namespace lsp
                     fprintf(stderr, "Could not create directory for file: %s\n", df.as_native());
                     return res;
                 }
-                if ((nbytes = io::File::copy(source, &df)) < 0)
+
+                if (is_xml_file(&df))
                 {
-                    fprintf(stderr, "Could not create file: %s\n", df.as_native());
-                    return -nbytes;
+                    if ((res = preprocess_xml(source, &df)) != STATUS_OK)
+                    {
+                        fprintf(stderr, "Error preprocessing XML file '%s', error: %d\n", df.as_native(), int(res));
+                        return res;
+                    }
+                }
+                else
+                {
+                    if ((nbytes = io::File::copy(source, &df)) < 0)
+                    {
+                        fprintf(stderr, "Could not create file: %s, error: %d\n", df.as_native(), int(-nbytes));
+                        return -nbytes;
+                    }
                 }
             }
 
