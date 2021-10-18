@@ -626,7 +626,7 @@ namespace lsp
                             return res;
                         }
 
-                        printf("  found  dir: %s\n", rel.as_native());
+//                        printf("  found  dir: %s\n", rel.as_native());
                     }
                 }
                 else if (pattern->test(&item))
@@ -638,7 +638,7 @@ namespace lsp
                         return res;
 
                     // Handle the file
-                    printf("  found file: %s\n", rel.as_native());
+                    //printf("  found file: %s\n", rel.as_native());
                     if ((res = handler(ctx, rel.as_string(), full.as_string())) != STATUS_OK)
                         return res;
                 }
