@@ -817,7 +817,7 @@ namespace lsp
                     return STATUS_BAD_STATE;
                 }
                 strncpy(item->name, tmp.get_utf8(), resource::RESOURCE_NAME_MAX);
-                item->name[resource::RESOURCE_NAME_MAX] = '\0';
+                item->name[resource::RESOURCE_NAME_MAX-1] = '\0';
                 if (!presets->add(item))
                 {
                     free(resources);

@@ -221,6 +221,9 @@ endif
 ifndef $(ARTIFACT_ID)_PATH
   $(ARTIFACT_ID)_PATH        := $(BASEDIR)
 endif
+ifndef HOST_$(ARTIFACT_ID)_PATH
+  HOST_$(ARTIFACT_ID)_PATH   := $(BASEDIR)
+endif
 
 $(ARTIFACT_ID)_TESTING      = $(TEST)
 $(ARTIFACT_ID)_TYPE        := src

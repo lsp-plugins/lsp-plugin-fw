@@ -104,6 +104,11 @@ HOST_LSP_PLUGIN_FW_OBJ      = \
 HOST_LSP_PLUGIN_FW_MFLAGS  += $(foreach dep,$(DEPENDENCIES),-DUSE_$(dep)) 
 HOST_LSP_PLUGIN_FW_CFLAGS  += $(foreach dep,$(DEPENDENCIES), $(HOST_$(dep)_CFLAGS))
 
+$(info LSP_PLUGIN_FW_OBJ = $(LSP_PLUGIN_FW_OBJ))
+$(info LSP_PLUGIN_FW_BIN = $(LSP_PLUGIN_FW_BIN))
+$(info HOST_LSP_PLUGIN_FW_OBJ = $(HOST_LSP_PLUGIN_FW_OBJ))
+$(info $$($$(HOST)LSP_PLUGIN_FW_BIN) = $($(HOST)LSP_PLUGIN_FW_BIN) $$(HOST) = $(HOST))
+
 # Source code location for (cross) build
 CXX_SRC_CORE                = $(call rwildcard, main/core, *.cpp)
 CXX_SRC_META                = $(call rwildcard, main/meta, *.cpp)
@@ -176,13 +181,13 @@ HOST_OBJ_WRAP_JACK          = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $
 HOST_OBJ_UTIL               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_UTIL))
 HOST_OBJ_TEST               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_TEST))
 HOST_OBJ                    = \
-  $(OBJ_CORE) \
-  $(OBJ_META) \
-  $(OBJ_DSP) \
-  $(OBJ_UI) \
-  $(OBJ_CTL) \
-  $(OBJ_UTIL) \
-  $(OBJ_WRAP_JACK)
+  $(HOST_OBJ_CORE) \
+  $(HOST_OBJ_META) \
+  $(HOST_OBJ_DSP) \
+  $(HOST_OBJ_UI) \
+  $(HOST_OBJ_CTL) \
+  $(HOST_OBJ_UTIL) \
+  $(HOST_OBJ_WRAP_JACK)
 
 ifeq ($(TEST),1)
   HOST_CXX_SRC               += $(HOST_CXX_SRC_TEST)
@@ -193,7 +198,7 @@ endif
 #------------------------------------------------------------------------------
 # Utilities
 UTL_BIN_PATH                = $(HOST_ARTIFACT_BIN)/util
-UTL_RES_PATH                = $(HOST_ARTIFACT_BIN)/res
+UTL_RES_PATH                = $(ARTIFACT_BIN)/res
 
 UTL_JACK_MAKE               = $(UTL_BIN_PATH)/jack_make$(EXECUTABLE_EXT)
 UTL_JACK_MAKE_OBJ           = $(UTL_BIN_PATH)/jack_make.o
@@ -347,7 +352,7 @@ $(OBJ_WRAP_JACK): EXT_FLAGS=$(WRAP_JACK_CFLAGS)
 ifeq ($(BUILD_HOST),1)
 
 $(HOST_OBJ):
-	echo "  $(CXX)  [$(LSP_PLUGIN_FW_NAME)] $(HOST_CXX_FILE)"
+	echo "  $(HOST_CXX)  [$(LSP_PLUGIN_FW_NAME)] $(HOST_CXX_FILE)"
 	mkdir -p $(dir $@)
 	$(HOST_CXX) -o $(@) -c $(HOST_CXX_FILE) -fPIC $(HOST_CXXFLAGS) $(HOST_LSP_PLUGIN_FW_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_CFLAGS)
 
@@ -409,28 +414,23 @@ $(HOST_LSP_PLUGIN_FW_OBJ_UI): $(HOST_OBJ_UI)
 	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_UI) -r $(HOST_OBJ_UI)
 	
 $(HOST_LSP_PLUGIN_FW_OBJ_CTL): $(HOST_OBJ_CTL)
-	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_CTL))"
-	$(LD) -o $(LSP_PLUGIN_FW_OBJ_CTL) -r $(OBJ_CTL)
+	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_CTL))"
+	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_CTL) -r $(HOST_OBJ_CTL)
 	
 $(HOST_LSP_PLUGIN_FW_OBJ_TEST): $(HOST_OBJ_TEST)
-	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_TEST))"
-	$(LD) -o $(LSP_PLUGIN_FW_OBJ_TEST) -r $(OBJ_TEST)
+	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_TEST))"
+	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_TEST) -r $(HOST_OBJ_TEST)
 	
-$(HOST_LSP_PLUGIN_FW_OBJ_RES): $(HOST_UTL_RESPACK) resources
+$(HOST_LSP_PLUGIN_FW_OBJ_RES): $(UTL_RESPACK) resources
 	echo "$(notdir $(UTL_RESPACK)) $(notdir $(HOST_LSP_PLUGIN_FW_SRC_RES))"
-	echo $(UTL_RESPACK) $(HOST_LSP_PLUGIN_FW_SRC_RES) $(HOST_UTL_RES_PATH)
-	$(UTL_RESPACK) $(HOST_LSP_PLUGIN_FW_SRC_RES) $(HOST_UTL_RES_PATH)
+	echo $(UTL_RESPACK) $(HOST_LSP_PLUGIN_FW_SRC_RES) $(UTL_RES_PATH)
+	$(UTL_RESPACK) $(HOST_LSP_PLUGIN_FW_SRC_RES) $(UTL_RES_PATH)
 	$(HOST_CXX) -o $(@) -c $(HOST_LSP_PLUGIN_FW_SRC_RES) -fPIC $(HOST_CXXFLAGS) $(HOST_LSP_PLUGIN_FW_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_CFLAGS)
 
 endif
 
 #------------------------------------------------------------------------------
 # Utilities
-$(info UTL_JACK_MAKE_OBJ = $(UTL_JACK_MAKE_OBJ))
-$(info HOST_LSP_PLUGIN_FW_OBJ = $(HOST_LSP_PLUGIN_FW_OBJ))
-$(info UTL_JACK_MAKE_DEPS = $(UTL_JACK_MAKE_DEPS))
-$(info HOST_PLUG_DEPS = $(HOST_PLUG_DEPS))
-
 $(UTL_JACK_MAKE): $(UTL_JACK_MAKE_OBJ) $(HOST_LSP_PLUGIN_FW_OBJ) $(UTL_JACK_MAKE_DEPS) $(HOST_PLUG_DEPS)
 	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(UTL_BIN_PATH)
