@@ -157,7 +157,10 @@ namespace lsp
             if (meta->ui_resource != NULL)
             {
                 if ((res = build_ui(meta->ui_resource)) != STATUS_OK)
+                {
+                    lsp_error("Error building UI for resource %s: code=%d", meta->ui_resource, int(res));
                     return res;
+                }
             }
 
             // Call the post-initialization routine

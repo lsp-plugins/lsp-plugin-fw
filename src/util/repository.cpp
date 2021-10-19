@@ -245,9 +245,9 @@ namespace lsp
                 // Emit character data
                 if ((c >= 0) && (c < 0x80))
                 {
-                    if (c < 0x20)
+                    if ((c < 0x20) && (c != '\t'))
                     {
-                        if (tmp.fmt_ascii("&#%02x", int(c)) < 0)
+                        if (tmp.fmt_ascii("&#x%02x;", int(c)) < 0)
                             return STATUS_NO_MEM;
                         res = os->write(&tmp);
                     }
@@ -256,7 +256,7 @@ namespace lsp
                 }
                 else
                 {
-                    if (tmp.fmt_ascii("&#%04x", int(c)) < 0)
+                    if (tmp.fmt_ascii("&#x%04x;", int(c)) < 0)
                         return STATUS_NO_MEM;
                     res = os->write(&tmp);
                 }
@@ -281,9 +281,9 @@ namespace lsp
                 // Emit character data
                 if ((c >= 0) && (c < 0x80))
                 {
-                    if (c < 0x20)
+                    if ((c < 0x20) && (c != '\t'))
                     {
-                        if (tmp.fmt_ascii("&#%02x", int(c)) < 0)
+                        if (tmp.fmt_ascii("&#x%02x;", int(c)) < 0)
                             return STATUS_NO_MEM;
                         res = os->write(&tmp);
                     }
@@ -303,7 +303,7 @@ namespace lsp
                 }
                 else
                 {
-                    if (tmp.fmt_ascii("&#%04x", int(c)) < 0)
+                    if (tmp.fmt_ascii("&#x%04x;", int(c)) < 0)
                         return STATUS_NO_MEM;
                     res = os->write(&tmp);
                 }

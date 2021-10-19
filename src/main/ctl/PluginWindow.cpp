@@ -1171,7 +1171,9 @@ namespace lsp
 
             ui::xml::RootNode root(&xctx, "window", &wnd);
             ui::xml::Handler handler(pWrapper->resources());
-            handler.parse_resource(LSP_BUILTIN_PREFIX "ui/window.xml", &root);
+            res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/window.xml", &root);
+            if (res != STATUS_OK)
+                lsp_warn("Error parsing resource: %s, error: %d", LSP_BUILTIN_PREFIX "ui/window.xml", int(res));
             wnd.destroy();
 
             // Get proper widgets and initialize window layout
