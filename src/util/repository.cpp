@@ -835,10 +835,10 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t export_files(const io::Path *dst, lltl::pphash<LSPString, LSPString> *files)
+        status_t export_files(bool strict, const io::Path *dst, lltl::pphash<LSPString, LSPString> *files)
         {
             io::Path df;
-            status_t res;
+            status_t res = STATUS_OK;
             wssize_t nbytes;
             lltl::parray<LSPString> flist;
 
@@ -859,17 +859,21 @@ namespace lsp
 
                 printf("  copying %s -> %s\n", source->get_native(), df.as_native());
 
-                if ((res = df.mkparent(true)) != STATUS_OK)
+                if ((res = update_status(res, df.mkparent(true))) != STATUS_OK)
                 {
                     fprintf(stderr, "Could not create directory for file: %s\n", df.as_native());
+                    if (!strict)
+                        continue;
                     return res;
                 }
 
                 if (is_xml_file(&df))
                 {
-                    if ((res = preprocess_xml(source, &df)) != STATUS_OK)
+                    if ((res = update_status(res, preprocess_xml(source, &df))) != STATUS_OK)
                     {
                         fprintf(stderr, "Error preprocessing XML file '%s', error: %d\n", df.as_native(), int(res));
+                        if (!strict)
+                            continue;
                         return res;
                     }
                 }
@@ -878,18 +882,23 @@ namespace lsp
                     if ((nbytes = io::File::copy(source, &df)) < 0)
                     {
                         fprintf(stderr, "Could not create file: %s, error: %d\n", df.as_native(), int(-nbytes));
+                        if (!strict)
+                        {
+                            res = update_status(res, -nbytes);
+                            continue;
+                        }
                         return -nbytes;
                     }
                 }
             }
 
-            return STATUS_OK;
+            return res;
         }
 
-        status_t export_i18n(const io::Path *dst, lltl::pphash<LSPString, json::Node> *files)
+        status_t export_i18n(bool strict, const io::Path *dst, lltl::pphash<LSPString, json::Node> *files)
         {
             io::Path df;
-            status_t res;
+            status_t res = STATUS_OK;
             lltl::parray<LSPString> flist;
             json::serial_flags_t settings;
 
@@ -917,15 +926,19 @@ namespace lsp
 
                 printf("  writing i18n file %s\n", df.as_native());
 
-                if ((res = df.mkparent(true)) != STATUS_OK)
+                if ((res = update_status(res, df.mkparent(true))) != STATUS_OK)
                 {
                     fprintf(stderr, "Could not create directory for file: %s\n", df.as_native());
+                    if (!strict)
+                        continue;
                     return res;
                 }
 
-                if ((res = json::dom_save(&df, node, &settings, "UTF-8")) != STATUS_OK)
+                if ((res = update_status(res, json::dom_save(&df, node, &settings, "UTF-8"))) != STATUS_OK)
                 {
                     fprintf(stderr, "Could not write file: %s\n", df.as_native());
+                    if (!strict)
+                        continue;
                     return res;
                 }
             }
@@ -933,7 +946,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t build_repository(const char *destdir, const char *localdir, const char *const *paths, size_t npaths)
+        status_t build_repository(bool strict, const char *destdir, const char *localdir, const char *const *paths, size_t npaths)
         {
             context_t ctx;
             status_t res;
@@ -965,20 +978,20 @@ namespace lsp
 
             io::Path dst;
             res = dst.set(destdir);
-            if (res == STATUS_OK)
-                res = export_files(&dst, &ctx.schema);
-            if (res == STATUS_OK)
-                res = export_files(&dst, &ctx.ui);
-            if (res == STATUS_OK)
-                res = export_files(&dst, &ctx.preset);
-            if (res == STATUS_OK)
-                res = export_files(&dst, &ctx.other);
-            if (res == STATUS_OK)
-                res = export_i18n(&dst, &ctx.i18n);
-            if (res == STATUS_OK)
-                res = export_files(&dst, &ctx.local);
-            if (res == STATUS_OK)
-                res = export_files(&dst, &ctx.fonts);
+            if ((res == STATUS_OK) || (!strict))
+                res = update_status(res, export_files(strict, &dst, &ctx.schema));
+            if ((res == STATUS_OK) || (!strict))
+                res = update_status(res, export_files(strict, &dst, &ctx.ui));
+            if ((res == STATUS_OK) || (!strict))
+                res = update_status(res, export_files(strict, &dst, &ctx.preset));
+            if ((res == STATUS_OK) || (!strict))
+                res = update_status(res, export_files(strict, &dst, &ctx.other));
+            if ((res == STATUS_OK) || (!strict))
+                res = update_status(res, export_i18n(strict, &dst, &ctx.i18n));
+            if ((res == STATUS_OK) || (!strict))
+                res = update_status(res, export_files(strict, &dst, &ctx.local));
+            if ((res == STATUS_OK) || (!strict))
+                res = update_status(res, export_files(strict, &dst, &ctx.fonts));
 
             // Export local resources
             io::Path src;
@@ -1004,7 +1017,7 @@ int main(int argc, const char **argv)
         return lsp::STATUS_BAD_ARGUMENTS;
     }
 
-    lsp::status_t res = lsp::resource::build_repository(argv[1], argv[2], &argv[3], argc - 3);
+    lsp::status_t res = lsp::resource::build_repository(true, argv[1], argv[2], &argv[3], argc - 3);
     if (res != lsp::STATUS_OK)
         fprintf(stderr, "Error while generating build files, code=%d\n", int(res));
 
