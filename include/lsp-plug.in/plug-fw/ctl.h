@@ -78,6 +78,7 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/Text.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Dot.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Mesh.h>
+    #include <lsp-plug.in/plug-fw/ctl/graph/Stream.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/FBuffer.h>
 
     #include <lsp-plug.in/plug-fw/ctl/3d/types.h>

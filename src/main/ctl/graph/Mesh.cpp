@@ -193,17 +193,16 @@ namespace lsp
                     ++yi;
             }
 
-            // Resize mesh data
-            data->set_size(mesh->nItems);
+            // Resize mesh data and set strobe flag
+            data->set_size(mesh->nItems, si >= 0);
 
+            // Fill mesh data
             if ((xi >= 0) && (xi < ssize_t(mesh->nBuffers)))
                 data->set_x(mesh->pvData[xi], mesh->nItems);
             if ((yi >= 0) && (xi < ssize_t(mesh->nBuffers)))
                 data->set_y(mesh->pvData[yi], mesh->nItems);
-// TODO
-//            if ((si >= 0) && (si < mesh->nBuffers))
-//                data->set_s(mesh->pvData[si], mesh->nItems);
-
+            if ((si >= 0) && (si < ssize_t(mesh->nBuffers)))
+                data->set_s(mesh->pvData[si], mesh->nItems);
         }
 
         void Mesh::reloaded(const tk::StyleSheet *sheet)
@@ -211,7 +210,7 @@ namespace lsp
             Widget::reloaded(sheet);
             rebuild_mesh();
         }
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
