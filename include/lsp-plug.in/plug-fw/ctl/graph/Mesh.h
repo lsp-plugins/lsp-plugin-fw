@@ -46,6 +46,7 @@ namespace lsp
                 ctl::Integer        sWidth;
                 ctl::Boolean        sSmooth;
                 ctl::Boolean        sFill;
+                ctl::Integer        sStrobes;
 
                 ctl::Color          sColor;
                 ctl::Color          sFillColor;
@@ -53,12 +54,22 @@ namespace lsp
                 ctl::Expression     sXIndex;
                 ctl::Expression     sYIndex;
                 ctl::Expression     sSIndex;
+                ctl::Expression     sMaxDots;
+                ctl::Expression     sStrobe;
+
+                bool                bStream;
+                bool                bStrobe;
+                ssize_t             nXIndex;
+                ssize_t             nYIndex;
+                ssize_t             nSIndex;
+                ssize_t             nMaxDots;
 
             protected:
-                void                rebuild_mesh();
+                void                trigger_expr();
+                void                commit_data();
 
             public:
-                explicit Mesh(ui::IWrapper *wrapper, tk::GraphMesh *widget);
+                explicit Mesh(ui::IWrapper *wrapper, tk::GraphMesh *widget, bool stream);
                 virtual ~Mesh();
 
                 virtual status_t    init();
@@ -67,7 +78,6 @@ namespace lsp
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
                 virtual void        notify(ui::IPort *port);
                 virtual void        end(ui::UIContext *ctx);
-                virtual void        reloaded(const tk::StyleSheet *sheet);
         };
     } /* namespace lsp */
 } /* namespace ctl */
