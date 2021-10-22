@@ -154,6 +154,13 @@ namespace lsp
                 set_param(btn->font_scaling(), "font.scaling", name, value);
                 set_param(btn->font_scaling(), "font.scale", name, value);
                 set_text_layout(btn->text_layout(), name, value);
+
+                if (set_value(&fDflValue, "value", name, value))
+                {
+                    bValueSet = true;
+                    commit_value(fDflValue);
+                    fDflValue = fValue;
+                }
             }
 
             Widget::set(ctx, name, value);
