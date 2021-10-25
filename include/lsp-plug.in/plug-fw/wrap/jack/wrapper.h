@@ -35,6 +35,7 @@
 #include <lsp-plug.in/ipc/IExecutor.h>
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/ipc/Mutex.h>
+#include <lsp-plug.in/dsp-units/units.h>
 
 #include <jack/jack.h>
 
@@ -991,7 +992,25 @@ namespace lsp
                             port->update_value(param->to_int());
                     }
                     else
-                        port->update_value(param->to_float());
+                    {
+                        float v = param->to_float();
+
+                        // Decode decibels to values
+                        if ((meta::is_decibel_unit(p->unit)) && (param->is_decibel()))
+                        {
+                            if ((p->unit == meta::U_GAIN_AMP) || (p->unit == meta::U_GAIN_POW))
+                            {
+                                if (v < -250.0f)
+                                    v       = 0.0f;
+                                else if (v > 250.0f)
+                                    v       = (p->unit == meta::U_GAIN_AMP) ? dspu::db_to_gain(250.0f) : dspu::db_to_power(250.0f);
+                                else
+                                    v       = (p->unit == meta::U_GAIN_AMP) ? dspu::db_to_gain(v) : dspu::db_to_power(v);
+                            }
+                        }
+
+                        port->set_value(v);
+                    }
                     break;
                 }
                 case meta::R_PATH:

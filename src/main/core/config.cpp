@@ -23,6 +23,7 @@
 #include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/fmt/config/types.h>
+#include <lsp-plug.in/dsp-units/units.h>
 
 namespace lsp
 {
@@ -63,7 +64,7 @@ namespace lsp
         }
 
         status_t serialize_port_value(config::Serializer *s,
-                const meta::port_t *meta, const void *data, const io::Path *base, size_t flags
+            const meta::port_t *meta, const void *data, const io::Path *base, size_t flags
         )
         {
             LSPString comment, value;
@@ -143,7 +144,26 @@ namespace lsp
                         if (meta->flags & meta::F_EXT)
                             flags  |= config::SF_PREC_LONG;
                         if (meta::is_decibel_unit(meta->unit))
+                        {
                             flags  |= config::SF_DECIBELS;
+
+                            if (meta->unit == meta::U_DB)
+                            {
+                                if (v < -250.0f)
+                                    v   = -INFINITY;
+                                else if (v > 250.0f)
+                                    v   = +INFINITY;
+                            }
+                            else
+                            {
+                                if (abs(v) > 1e+40)
+                                    v   = +INFINITY;
+                                else if (abs(v) < 1e-40)
+                                    v   = -INFINITY;
+                                else
+                                    v   = (meta->unit == meta::U_GAIN_AMP) ? dspu::gain_to_db(v) : dspu::power_to_db(v);
+                            }
+                        }
                         LSP_STATUS_ASSERT(s->write_f32(meta->id, v, flags));
                     }
 

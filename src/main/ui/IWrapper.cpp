@@ -28,6 +28,7 @@
 #include <lsp-plug.in/io/InSequence.h>
 #include <lsp-plug.in/io/OutFileStream.h>
 #include <lsp-plug.in/io/OutSequence.h>
+#include <lsp-plug.in/dsp-units/units.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
 #include <lsp-plug.in/runtime/system.h>
 
@@ -1271,7 +1272,25 @@ namespace lsp
                             port->set_value(param->to_int(), flags);
                     }
                     else
-                        port->set_value(param->to_float(), flags);
+                    {
+                        float v = param->to_float();
+
+                        // Decode decibels to values
+                        if ((meta::is_decibel_unit(p->unit)) && (param->is_decibel()))
+                        {
+                            if ((p->unit == meta::U_GAIN_AMP) || (p->unit == meta::U_GAIN_POW))
+                            {
+                                if (v < -250.0f)
+                                    v       = 0.0f;
+                                else if (v > 250.0f)
+                                    v       = (p->unit == meta::U_GAIN_AMP) ? dspu::db_to_gain(250.0f) : dspu::db_to_power(250.0f);
+                                else
+                                    v       = (p->unit == meta::U_GAIN_AMP) ? dspu::db_to_gain(v) : dspu::db_to_power(v);
+                            }
+                        }
+
+                        port->set_value(v, flags);
+                    }
                     break;
                 }
                 case meta::R_PATH:
