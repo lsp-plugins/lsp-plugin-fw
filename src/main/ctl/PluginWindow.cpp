@@ -232,8 +232,6 @@ namespace lsp
             if (wnd == NULL)
                 return STATUS_BAD_STATE;
 
-            wnd->tag()->set(0x100500);
-
             // Bind ports
             BIND_PORT(pWrapper, pPVersion, VERSION_PORT);
             BIND_PORT(pWrapper, pPath, CONFIG_PATH_PORT);
