@@ -31,12 +31,14 @@ namespace lsp
     {
         IWrapper::IWrapper(Module *plugin)
         {
-            pPlugin     = plugin;
+            pPlugin         = plugin;
+            pCanvasFactory  = NULL;
         }
 
         IWrapper::~IWrapper()
         {
-            pPlugin     = NULL;
+            pPlugin         = NULL;
+            pCanvasFactory  = NULL;
         }
 
         ipc::IExecutor *IWrapper::executor()
@@ -49,11 +51,6 @@ namespace lsp
         }
 
         const position_t *IWrapper::position()
-        {
-            return NULL;
-        }
-
-        ICanvas *IWrapper::create_canvas(ICanvas *&cv, size_t width, size_t height)
         {
             return NULL;
         }
@@ -75,6 +72,13 @@ namespace lsp
 
         void IWrapper::state_changed()
         {
+        }
+
+        plug::ICanvasFactory *IWrapper::set_canvas_factory(plug::ICanvasFactory *factory)
+        {
+            plug::ICanvasFactory *old = pCanvasFactory;
+            pCanvasFactory = factory;
+            return old;
         }
 
         void IWrapper::dump_plugin_state()

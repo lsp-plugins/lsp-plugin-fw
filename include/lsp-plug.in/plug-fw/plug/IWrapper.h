@@ -50,6 +50,7 @@ namespace lsp
             protected:
                 Module                     *pPlugin;
                 resource::PrefixLoader      sLoader;
+                plug::ICanvasFactory       *pCanvasFactory;     // Canvas factory
 
             public:
                 explicit IWrapper(Module *plugin);
@@ -60,68 +61,73 @@ namespace lsp
                  * Get builtin resource loader
                  * @return builtin resource loader
                  */
-                inline resource::ILoader   *resources()         { return &sLoader;  }
+                inline resource::ILoader       *resources()         { return &sLoader;          }
+
+                /**
+                 * Get canvas factory
+                 * @return canvas factory
+                 */
+                inline plug::ICanvasFactory    *canvas_factory()    { return pCanvasFactory;    }
+
+                /**
+                 * Set the canvas factory
+                 * @param factory canvas factory
+                 * @return pointer to previous factory
+                 */
+                plug::ICanvasFactory           *set_canvas_factory(plug::ICanvasFactory *factory);
 
                 /** Get executor service
                  *
                  * @return executor service
                  */
-                virtual ipc::IExecutor     *executor();
+                virtual ipc::IExecutor         *executor();
 
                 /** Query for inline display drawing
                  *
                  */
-                virtual void                query_display_draw();
+                virtual void                    query_display_draw();
 
                 /** Get current time position
                  *
                  * @return current time position
                  */
-                virtual const position_t   *position();
-
-                /**
-                 * Create/resize canvas
-                 * @param cv valid pointer to ICanvas object or NULL if there's none
-                 * @param width the requested width of canvas
-                 * @param height the requested height of canvas
-                 * @return the pointer to valid canvas object or NULL on error
-                 */
-                virtual ICanvas            *create_canvas(ICanvas *&cv, size_t width, size_t height);
+                virtual const position_t       *position();
 
                 /**
                  * Lock KVT storage and return pointer to the storage,
                  * this is non-RT-safe operation
                  * @return pointer to KVT storage or NULL if KVT is not supported
                  */
-                virtual core::KVTStorage   *kvt_lock();
+                virtual core::KVTStorage       *kvt_lock();
 
                 /**
                  * Try to lock KVT storage and return pointer to the storage on success
                  * @return pointer to KVT storage or NULL
                  */
-                virtual core::KVTStorage   *kvt_trylock();
+                virtual core::KVTStorage       *kvt_trylock();
 
                 /**
                  * Release the KVT storage
                  * @return true on success
                  */
-                virtual bool                kvt_release();
+                virtual bool                    kvt_release();
 
                 /**
                  * Notify the host about internal state change
                  */
-                virtual void                state_changed();
+                virtual void                    state_changed();
 
                 /**
                  * Dump the state of plugin
                  */
-                virtual void                dump_plugin_state();
+                virtual void                    dump_plugin_state();
 
                 /**
                  * Get package version
                  * @return package version
                  */
                 virtual const meta::package_t  *package() const;
+
         };
     }
 } /* namespace lsp */

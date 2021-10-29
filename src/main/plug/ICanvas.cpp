@@ -127,7 +127,7 @@ namespace lsp
         {
         }
 
-        void *ICanvas::data()
+        canvas_data_t *ICanvas::data()
         {
             return NULL;
         }
@@ -143,6 +143,10 @@ namespace lsp
         }
 
         void ICanvas::end_direct()
+        {
+        }
+
+        void ICanvas::sync()
         {
         }
     }

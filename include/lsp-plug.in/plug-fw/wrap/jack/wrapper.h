@@ -91,8 +91,6 @@ namespace lsp
 
                 meta::package_t                *pPackage;           // Package descriptor
 
-//                size_t                  nCounter;
-
             protected:
                 void            create_port(const meta::port_t *port, const char *postfix);
                 int             sync_position(jack_transport_state_t state, const jack_position_t *pos);
@@ -128,7 +126,6 @@ namespace lsp
                     nDumpResp       = 0;
 
                     pPackage        = NULL;
-//                    nCounter        = 0;
                 }
 
                 virtual ~Wrapper()
@@ -154,8 +151,6 @@ namespace lsp
                 virtual void                        query_display_draw()    { atomic_add(&nQueryDrawReq, 1);    }
 
                 virtual const plug::position_t     *position()  { return &sPosition;                }
-
-                virtual plug::ICanvas              *create_canvas(plug::ICanvas *&cv, size_t width, size_t height);
 
                 virtual core::KVTStorage           *kvt_lock();
 
@@ -183,25 +178,16 @@ namespace lsp
                 status_t                            import_settings(const io::Path *path);
                 status_t                            import_settings(io::IInSequence *is);
 
-//            public:
-//                bool transfer_dsp_to_ui();
-//
-//                // Inline display interface
-//                canvas_data_t *render_inline_display(size_t width, size_t height);
-//                virtual void query_display_draw()
-//                {
-//                    nQueryDraw++;
-//                }
-//
-//                virtual ICanvas *create_canvas(ICanvas *&cv, size_t width, size_t height);
-//
-//                inline bool test_display_draw()
-//                {
-//                    atomic_t last       = nQueryDraw;
-//                    bool result         = last != nQueryDrawLast;
-//                    nQueryDrawLast      = last;
-//                    return result;
-//                }
+                // Inline display interface
+                plug::canvas_data_t                *render_inline_display(size_t width, size_t height);
+
+                inline bool                         test_display_draw()
+                {
+                    atomic_t last       = nQueryDrawReq;
+                    bool result         = last != nQueryDrawResp;
+                    nQueryDrawResp      = last;
+                    return result;
+                }
         };
     }
 }
@@ -780,9 +766,26 @@ namespace lsp
             lsp_warn("JACK NOTIFICATION: shutdown");
         }
 
-        plug::ICanvas *Wrapper::create_canvas(plug::ICanvas *&cv, size_t width, size_t height)
+        plug::canvas_data_t *Wrapper::render_inline_display(size_t width, size_t height)
         {
-            return NULL; // TODO
+            // Check for Inline display support
+            const meta::plugin_t *meta = pPlugin->metadata();
+            if ((meta == NULL) || (!(meta->extensions & meta::E_INLINE_DISPLAY)))
+                return NULL;
+
+            // Lazy initialization
+            if (pCanvas == NULL)
+            {
+                pCanvas     =   (pCanvasFactory != NULL) ? pCanvasFactory->create_canvas(width, height) : NULL;
+                if (pCanvas == NULL)
+                    return NULL;
+            }
+
+            // Call plugin for rendering and return canvas data
+            bool res = pPlugin->inline_display(pCanvas, width, height);
+            pCanvas->sync();
+
+            return (res) ? pCanvas->data() : NULL;
         }
 
         jack::Port *Wrapper::port_by_idx(size_t index)

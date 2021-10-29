@@ -44,6 +44,7 @@ namespace lsp
         {
             private:
                 ICanvas & operator = (const ICanvas &);
+                ICanvas(const ICanvas &);
 
             protected:
                 canvas_data_t       sData;
@@ -198,7 +199,7 @@ namespace lsp
                  *
                  * @return raw buffer data
                  */
-                virtual void *data();
+                virtual canvas_data_t *data();
 
                 /**
                  * Return pointer to the beginning of the specified row
@@ -216,6 +217,11 @@ namespace lsp
                  * End direct access to the surface
                  */
                 virtual void end_direct();
+
+                /**
+                 * Synchronize canvas drawing buffer
+                 */
+                virtual void sync();
         };
     }
 } /* namespace lsp */

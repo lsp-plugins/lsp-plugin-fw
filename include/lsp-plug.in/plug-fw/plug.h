@@ -29,6 +29,7 @@
     #include <lsp-plug.in/plug-fw/plug/data.h>
     #include <lsp-plug.in/plug-fw/plug/IPort.h>
     #include <lsp-plug.in/plug-fw/plug/ICanvas.h>
+    #include <lsp-plug.in/plug-fw/plug/ICanvasFactory.h>
     #include <lsp-plug.in/plug-fw/plug/IWrapper.h>
     #include <lsp-plug.in/plug-fw/plug/Module.h>
     #include <lsp-plug.in/plug-fw/plug/Factory.h>

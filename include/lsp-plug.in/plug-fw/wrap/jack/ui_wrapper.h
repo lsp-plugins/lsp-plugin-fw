@@ -29,9 +29,12 @@
 
 #include <lsp-plug.in/plug-fw/wrap/jack/ui_ports.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/util/CairoCanvas.h>
 #include <lsp-plug.in/lltl/parray.h>
 
 #include <lsp-plug.in/tk/tk.h>
+
+#define JACK_INLINE_DISPLAY_SIZE        128
 
 namespace lsp
 {
@@ -51,6 +54,7 @@ namespace lsp
 
                 lltl::parray<jack::UIPort>      vSyncPorts;         // Ports for synchronization
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
+                wrap::CairoCanvasFactory        sCanvasFactory;
 
             public:
                 explicit UIWrapper(jack::Wrapper *wrapper, ui::Module *ui);
@@ -88,6 +92,11 @@ namespace lsp
                  * @param ts current execution timestamp
                  */
                 bool                    sync(ws::timestamp_t ts);
+
+                /**
+                 * Synchronize application icon
+                 */
+                void                    sync_inline_display();
         };
 
         // Implementation
@@ -109,6 +118,9 @@ namespace lsp
         status_t UIWrapper::init(resource::ILoader *loader)
         {
             status_t res = STATUS_OK;
+
+            // Inject canvas factory to the backend wrapper
+            pWrapper->set_canvas_factory(&sCanvasFactory);
 
             // Force position sync at startup
             nPosition   = pWrapper->nPosition - 1;
@@ -135,7 +147,6 @@ namespace lsp
 
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US"));
-//            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_SCHEMA_PATH, "schema/lsp-modern.xml"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
 
             // Create the display
@@ -172,6 +183,9 @@ namespace lsp
 
         void UIWrapper::destroy()
         {
+            // Remove canvas factory from backend wrapper
+            pWrapper->set_canvas_factory(NULL);
+
             // Call the parent class for destroy
             IWrapper::destroy();
 
@@ -412,7 +426,7 @@ namespace lsp
 
         bool UIWrapper::sync(ws::timestamp_t ts)
         {
-            // Validate state
+            // Initialize DSP state
             dsp::context_t ctx;
             dsp::start(&ctx);
 
@@ -450,44 +464,46 @@ namespace lsp
                 pWrapper->kvt_release();
             }
 
-            // Limit refresh rate of window icon and refresh icon
-//            if (nCounter++ >= 5)
-//            {
-//                // Reset counter first
-//                nCounter = 0;
-//                LSPWindow *root = (pUI != NULL) ? pUI->root_window() : NULL;
-//
-//                if (root != NULL)
-//                {
-//                    // Check if inline display is present
-//                    canvas_data_t *data = NULL;
-//                    if (test_display_draw())
-//                        data = render_inline_display(JACK_INLINE_DISPLAY_SIZE, JACK_INLINE_DISPLAY_SIZE);
-//
-//                    // Check that returned data is valid
-//                    if ((data != NULL) && (data->pData != NULL) && (data->nWidth > 0) && (data->nHeight > 0))
-//                    {
-//                        size_t row_size = data->nWidth * sizeof(uint32_t);
-//
-//                        if (data->nStride > row_size)
-//                        {
-//                            // Compress image data if stride is greater than row size
-//                            uint8_t *dst = data->pData;
-//                            for (size_t row = 0; row < data->nHeight; ++row)
-//                            {
-//                                uint8_t *p  = &data->pData[row * data->nStride];
-//                                memmove(dst, p, row_size);
-//                            }
-//                        }
-//
-//                        root->set_icon(data->pData, data->nWidth, data->nHeight);
-//                    }
-//                } // root != NULL
-//            }
-
             dsp::finish(&ctx);
 
             return true;
+        }
+
+        void UIWrapper::sync_inline_display()
+        {
+            // Check that window is present
+            if (wWindow == NULL)
+                return;
+
+            // Initialize DSP state
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+
+            // Check if inline display is present
+            plug::canvas_data_t *data = NULL;
+            if (pWrapper->test_display_draw())
+                data = pWrapper->render_inline_display(JACK_INLINE_DISPLAY_SIZE, JACK_INLINE_DISPLAY_SIZE);
+
+            // Check that returned data is valid
+            if ((data != NULL) && (data->pData != NULL) && (data->nWidth > 0) && (data->nHeight > 0))
+            {
+                size_t row_size = data->nWidth * sizeof(uint32_t);
+
+                if (data->nStride > row_size)
+                {
+                    // Compress image data if stride is greater than row size
+                    uint8_t *dst = data->pData;
+                    for (size_t row = 0; row < data->nHeight; ++row)
+                    {
+                        uint8_t *p  = &data->pData[row * data->nStride];
+                        memmove(dst, p, row_size);
+                    }
+                }
+
+                wWindow->set_icon(data->pData, data->nWidth, data->nHeight);
+            }
+
+            dsp::finish(&ctx);
         }
     }
 }

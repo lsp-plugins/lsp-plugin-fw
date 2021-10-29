@@ -56,6 +56,9 @@
     #define IF_XDND_PROXY_SUPPORT(...)
 #endif
 
+#define RECONNECT_INTERVAL          1000u   /* 1 second     */
+#define ICON_SYNC_INTERVAL          200u    /* 5 FPS        */
+
 namespace lsp
 {
     namespace wrap
@@ -69,7 +72,8 @@ namespace lsp
             ui::Module         *pUI;                // Plugin UI
             jack::Wrapper      *pWrapper;           // Plugin wrapper
             jack::UIWrapper    *pUIWrapper;         // Plugin UI wrapper
-            ws::timestamp_t     nLastReconnect;
+            ws::timestamp_t     nLastReconnect;     // Last connection time
+            ws::timestamp_t     nLastIconSync;      // Last icon synchronization time
             volatile bool       bInterrupt;         // Interrupt signal received
         } jack_wrapper_t;
 
@@ -520,7 +524,7 @@ namespace lsp
             if (jw->disconnected())
             {
                 // Try each second to make new connection
-                if ((ctime - w->nLastReconnect) >= 1000)
+                if ((ctime - w->nLastReconnect) >= RECONNECT_INTERVAL)
                 {
                     printf("Trying to connect to JACK\n");
                     if (jw->connect() == STATUS_OK)
@@ -545,6 +549,13 @@ namespace lsp
                     {
                         w->pUIWrapper->notify_all();
                         w->bNotify      = false;
+                    }
+
+                    // Update icon
+                    if ((ctime - w->nLastIconSync) > ICON_SYNC_INTERVAL)
+                    {
+                        w->pUIWrapper->sync_inline_display();
+                        w->nLastIconSync = ctime;
                     }
                 }
 
