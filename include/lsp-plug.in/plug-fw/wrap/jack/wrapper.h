@@ -52,6 +52,7 @@ namespace lsp
         class Wrapper: public plug::IWrapper
         {
             private:
+                Wrapper(const Wrapper &);
                 Wrapper & operator = (const Wrapper &);
 
                 friend class    UIWrapper;
@@ -108,41 +109,10 @@ namespace lsp
                 static bool     set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
-                explicit Wrapper(plug::Module *plugin): IWrapper(plugin)
-                {
-                    pClient         = NULL;
-                    nState          = S_CREATED;
-                    bUpdateSettings = true;
-                    nLatency        = 0;
-                    pExecutor       = NULL;
-                    pCanvas         = NULL;
-
-                    nPosition       = 0;
-                    plug::position_t::init(&sPosition);
-
-                    nQueryDrawReq   = 0;
-                    nQueryDrawResp  = 0;
-                    nDumpReq        = 0;
-                    nDumpResp       = 0;
-
-                    pPackage        = NULL;
-                }
-
-                virtual ~Wrapper()
-                {
-                    pClient         = NULL;
-                    nState          = S_CREATED;
-                    nLatency        = 0;
-                    pExecutor       = NULL;
-                    pCanvas         = NULL;
-                    nQueryDrawReq   = 0;
-                    nQueryDrawResp  = 0;
-                    nDumpReq        = 0;
-                    nDumpResp       = 0;
-                }
+                explicit Wrapper(plug::Module *plugin);
+                virtual ~Wrapper();
 
                 status_t                            init(resource::ILoader *loader);
-
                 void                                destroy();
 
             public:
@@ -189,8 +159,8 @@ namespace lsp
                     return result;
                 }
         };
-    }
-}
+    } /* namespace jack */
+} /* namespace lsp */
 
 #include <lsp-plug.in/plug-fw/wrap/jack/ports.h>
 
@@ -198,6 +168,39 @@ namespace lsp
 {
     namespace jack
     {
+        Wrapper::Wrapper(plug::Module *plugin): IWrapper(plugin)
+        {
+            pClient         = NULL;
+            nState          = S_CREATED;
+            bUpdateSettings = true;
+            nLatency        = 0;
+            pExecutor       = NULL;
+            pCanvas         = NULL;
+
+            nPosition       = 0;
+            plug::position_t::init(&sPosition);
+
+            nQueryDrawReq   = 0;
+            nQueryDrawResp  = 0;
+            nDumpReq        = 0;
+            nDumpResp       = 0;
+
+            pPackage        = NULL;
+        }
+
+        Wrapper::~Wrapper()
+        {
+            pClient         = NULL;
+            nState          = S_CREATED;
+            nLatency        = 0;
+            pExecutor       = NULL;
+            pCanvas         = NULL;
+            nQueryDrawReq   = 0;
+            nQueryDrawResp  = 0;
+            nDumpReq        = 0;
+            nDumpResp       = 0;
+        }
+
         static ssize_t cmp_port_identifiers(const jack::Port *pa, const jack::Port *pb)
         {
             const meta::port_t *a = pa->metadata();
