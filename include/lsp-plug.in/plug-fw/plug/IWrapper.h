@@ -49,11 +49,11 @@ namespace lsp
 
             protected:
                 Module                     *pPlugin;
-                resource::PrefixLoader      sLoader;
+                resource::ILoader          *pLoader;
                 plug::ICanvasFactory       *pCanvasFactory;     // Canvas factory
 
             public:
-                explicit IWrapper(Module *plugin);
+                explicit IWrapper(Module *plugin, resource::ILoader *loader);
                 virtual ~IWrapper();
 
             public:
@@ -61,7 +61,7 @@ namespace lsp
                  * Get builtin resource loader
                  * @return builtin resource loader
                  */
-                inline resource::ILoader       *resources()         { return &sLoader;          }
+                inline resource::ILoader       *resources()         { return pLoader;           }
 
                 /**
                  * Get canvas factory

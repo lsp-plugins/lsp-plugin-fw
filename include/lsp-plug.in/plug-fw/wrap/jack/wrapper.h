@@ -109,10 +109,10 @@ namespace lsp
                 static bool     set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
-                explicit Wrapper(plug::Module *plugin);
+                explicit Wrapper(plug::Module *plugin, resource::ILoader *loader);
                 virtual ~Wrapper();
 
-                status_t                            init(resource::ILoader *loader);
+                status_t                            init();
                 void                                destroy();
 
             public:
@@ -168,7 +168,7 @@ namespace lsp
 {
     namespace jack
     {
-        Wrapper::Wrapper(plug::Module *plugin): IWrapper(plugin)
+        Wrapper::Wrapper(plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
         {
             pClient         = NULL;
             nState          = S_CREATED;
@@ -208,14 +208,9 @@ namespace lsp
             return strcmp(a->id, b->id);
         }
 
-        status_t Wrapper::init(resource::ILoader *loader)
+        status_t Wrapper::init()
         {
             status_t res;
-            if (loader != NULL)
-            {
-                if ((res = sLoader.add_prefix(LSP_BUILTIN_PREFIX, loader)) != STATUS_OK)
-                    return res;
-            }
 
             // Load package information
             io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");

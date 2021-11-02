@@ -60,7 +60,7 @@ namespace lsp
                 lltl::parray<ladspa::Port>          vPorts;             // All ports
 
                 ipc::IExecutor                     *pExecutor;          // Executor service
-                ssize_t                             nLatencyID;         // ID of Latency port
+                size_t                              nLatencyID;         // ID of Latency port
                 LADSPA_Data                        *pLatency;           // Latency output
                 bool                                bUpdateSettings;    // Settings update flag
                 plug::position_t                    sPosition;          // Previous position
@@ -72,10 +72,10 @@ namespace lsp
                 void                                add_port(ladspa::Port *p);
 
             public:
-                explicit Wrapper(plug::Module *plugin);
+                explicit Wrapper(plug::Module *plugin, resource::ILoader *loader);
                 virtual ~Wrapper();
 
-                status_t                            init(resource::ILoader *loader, unsigned long sr);
+                status_t                            init(unsigned long sr);
                 void                                destroy();
 
             public:
@@ -104,7 +104,7 @@ namespace lsp
 {
     namespace ladspa
     {
-        Wrapper::Wrapper(plug::Module *plugin): IWrapper(plugin)
+        Wrapper::Wrapper(plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
         {
             pExecutor       = NULL;
             nLatencyID      = -1;
@@ -123,14 +123,9 @@ namespace lsp
             pLatency        = NULL;
         }
 
-        status_t Wrapper::init(resource::ILoader *loader, unsigned long sr)
+        status_t Wrapper::init(unsigned long sr)
         {
             status_t res;
-            if (loader != NULL)
-            {
-                if ((res = sLoader.add_prefix(LSP_BUILTIN_PREFIX, loader)) != STATUS_OK)
-                    return res;
-            }
 
             // Load package information
             io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
@@ -229,7 +224,11 @@ namespace lsp
                 case meta::R_BYPASS:
                 case meta::R_METER:
                 {
-                    ladspa::Port *lp = (out) ? new ladspa::OutputPort(port) : new ladspa::InputPort(port);
+                    ladspa::Port *lp;
+                    if (out)
+                        lp = new ladspa::OutputPort(port);
+                    else
+                        lp = new ladspa::InputPort(port);
                     add_port(lp);
                     break;
                 }

@@ -81,12 +81,13 @@ namespace lsp
 
     namespace ui
     {
-        IWrapper::IWrapper(Module *ui)
+        IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
         {
             pDisplay    = NULL;
             wWindow     = NULL;
             pWindow     = NULL;
             pUI         = ui;
+            pLoader     = loader;
             nFlags      = 0;
         }
 
@@ -94,6 +95,7 @@ namespace lsp
         {
             pDisplay    = NULL;
             pUI         = NULL;
+            pLoader     = NULL;
             nFlags      = 0;
         }
 
@@ -192,16 +194,9 @@ namespace lsp
             vPorts.flush();
         }
 
-        status_t IWrapper::init(resource::ILoader *loader)
+        status_t IWrapper::init()
         {
             status_t res;
-
-            // Bind the loader
-            if (loader != NULL)
-            {
-                if ((res = sLoader.add_prefix(LSP_BUILTIN_PREFIX, loader)) != STATUS_OK)
-                    return res;
-            }
 
             // Create additional ports (ui)
             for (const meta::port_t *p = meta::config_metadata; p->id != NULL; ++p)
@@ -632,7 +627,7 @@ namespace lsp
 
             // Parse the XML document
             xml::RootNode root(&ctx, "plugin", pWindow);
-            xml::Handler handler(&sLoader);
+            xml::Handler handler(resources());
             return handler.parse_resource(&xpath, &root);
         }
 
@@ -968,9 +963,9 @@ namespace lsp
         status_t IWrapper::import_settings(const io::Path *file, bool preset)
         {
             // Read the resource as sequence
-            io::IInSequence *is = sLoader.read_sequence(file, "UTF-8");
+            io::IInSequence *is = pLoader->read_sequence(file, "UTF-8");
             if (is == NULL)
-                return sLoader.last_error();
+                return pLoader->last_error();
             status_t res = import_settings(is, preset);
             status_t res2 = is->close();
             delete is;
@@ -1396,7 +1391,7 @@ namespace lsp
             status_t res;
 
             // Apply schema
-            if ((res = pDisplay->schema()->apply(sheet, &sLoader)) != STATUS_OK)
+            if ((res = pDisplay->schema()->apply(sheet, pLoader)) != STATUS_OK)
                 return res;
 
             // Initialize global constants
@@ -1508,9 +1503,9 @@ namespace lsp
                 return STATUS_BAD_ARGUMENTS;
 
             // Read the resource as sequence
-            io::IInSequence *is = sLoader.read_sequence(file, "UTF-8");
+            io::IInSequence *is = pLoader->read_sequence(file, "UTF-8");
             if (is == NULL)
-                return sLoader.last_error();
+                return pLoader->last_error();
 
             // Parse the sheet data and close the input sequence
             status_t res    = sheet->parse_data(is);

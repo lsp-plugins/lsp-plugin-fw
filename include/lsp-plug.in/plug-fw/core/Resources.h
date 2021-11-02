@@ -77,6 +77,21 @@ namespace lsp
                  */
                 virtual resource::ILoader          *loader();
         };
+
+
+        /**
+         * Create resource loader for plugin
+         * @return resource loader for plugin, should be deleted after use
+         */
+        LSP_SYMBOL_HIDDEN
+        resource::ILoader *create_resource_loader();
+
+        /**
+         * Create builtin resource loader for plugin
+         * @return resource loader for plugin, should be deleted after use
+         */
+        LSP_SYMBOL_HIDDEN
+        resource::ILoader *create_builtin_loader();
     }
 }
 

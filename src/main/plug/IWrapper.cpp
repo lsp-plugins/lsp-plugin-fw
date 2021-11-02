@@ -29,15 +29,17 @@ namespace lsp
 {
     namespace plug
     {
-        IWrapper::IWrapper(Module *plugin)
+        IWrapper::IWrapper(Module *plugin, resource::ILoader *loader)
         {
             pPlugin         = plugin;
+            pLoader         = loader;
             pCanvasFactory  = NULL;
         }
 
         IWrapper::~IWrapper()
         {
             pPlugin         = NULL;
+            pLoader         = NULL;
             pCanvasFactory  = NULL;
         }
 

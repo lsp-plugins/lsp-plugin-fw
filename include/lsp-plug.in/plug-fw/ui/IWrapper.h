@@ -82,7 +82,7 @@ namespace lsp
                 tk::Window                     *wWindow;            // The main window
                 ctl::Window                    *pWindow;            // The controller for window
                 ui::Module                     *pUI;
-                resource::PrefixLoader          sLoader;            // Prefix-based resource loader
+                resource::ILoader              *pLoader;            // Prefix-based resource loader
                 size_t                          nFlags;             // Flags
                 expr::Variables                 sGlobalVars;        // Global variables
 
@@ -116,10 +116,10 @@ namespace lsp
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
-                explicit IWrapper(ui::Module *ui);
+                explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
                 virtual ~IWrapper();
 
-                virtual status_t    init(resource::ILoader *loader);
+                virtual status_t    init();
                 virtual void        destroy();
 
             public:
@@ -127,7 +127,7 @@ namespace lsp
                  * Get builtin resource loader
                  * @return builtin resource loader
                  */
-                inline resource::ILoader   *resources()         { return &sLoader;      }
+                inline resource::ILoader   *resources()         { return pLoader;       }
 
                 /**
                  * Get the wrapped UI

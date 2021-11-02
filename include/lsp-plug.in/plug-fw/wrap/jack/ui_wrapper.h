@@ -57,10 +57,10 @@ namespace lsp
                 wrap::CairoCanvasFactory        sCanvasFactory;
 
             public:
-                explicit UIWrapper(jack::Wrapper *wrapper, ui::Module *ui);
+                explicit UIWrapper(jack::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui);
                 virtual ~UIWrapper();
 
-                virtual status_t init(resource::ILoader *loader);
+                virtual status_t init();
                 virtual void destroy();
 
             protected:
@@ -100,7 +100,7 @@ namespace lsp
         };
 
         // Implementation
-        UIWrapper::UIWrapper(jack::Wrapper *wrapper, ui::Module *ui) : ui::IWrapper(ui)
+        UIWrapper::UIWrapper(jack::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui) : ui::IWrapper(ui, loader)
         {
             pPlugin     = wrapper->pPlugin;
             pWrapper    = wrapper;
@@ -115,7 +115,7 @@ namespace lsp
             pWrapper    = NULL;
         }
 
-        status_t UIWrapper::init(resource::ILoader *loader)
+        status_t UIWrapper::init()
         {
             status_t res = STATUS_OK;
 
@@ -135,14 +135,14 @@ namespace lsp
             }
 
             // Initialize parent
-            if ((res = IWrapper::init(loader)) != STATUS_OK)
+            if ((res = IWrapper::init()) != STATUS_OK)
                 return res;
 
             // Initialize display settings
             tk::display_settings_t settings;
             resource::Environment env;
 
-            settings.resources      = &sLoader;
+            settings.resources      = pLoader;
             settings.environment    = &env;
 
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
