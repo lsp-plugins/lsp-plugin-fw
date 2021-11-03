@@ -294,6 +294,7 @@ namespace lsp
             const char             *full_name;      // Full name
             const char             *site;           // Site URL
             const char             *license;        // License
+            const char             *copyright;      // Copyright
             lsp::version_t          version;        // Package version
         } package_t;
 

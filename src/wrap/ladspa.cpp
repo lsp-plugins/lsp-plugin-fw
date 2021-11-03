@@ -206,6 +206,23 @@ namespace lsp
             return strdup(unit);
         }
 
+        char *make_plugin_name(const meta::plugin_t *m)
+        {
+            if (m->description)
+                return strdup(m->description);
+            if (m->name)
+                return strdup(m->name);
+            if (m->uid)
+                return strdup(m->uid);
+            if (m->ladspa_lbl)
+                return strdup(m->ladspa_lbl);
+            char *str = NULL;
+            if (asprintf(&str, "plugin %u", (unsigned int)m->ladspa_id) >= 0)
+                return str;
+
+            return NULL;
+        }
+
         void make_descriptor(LADSPA_Descriptor *d, const meta::package_t *manifest, const meta::plugin_t *m)
         {
             ssize_t n;
@@ -214,12 +231,11 @@ namespace lsp
             d->UniqueID             = m->ladspa_id;
             d->Label                = m->ladspa_lbl;
             d->Properties           = LADSPA_PROPERTY_HARD_RT_CAPABLE;
-            n                       = asprintf(&str, "%s - %s", m->description, m->name);
-            d->Name                 = (n >= 0) ? str : NULL;
+            d->Name                 = make_plugin_name(m);
             n                       = ((manifest) && (manifest->brand)) ? asprintf(&str, "%s LADSPA", manifest->brand) : -1;
             d->Maker                = (n >= 0) ? str : NULL;
             d->ImplementationData   = const_cast<char *>(m->developer->name);
-            d->Copyright            = ((manifest) && (manifest->full_name)) ? strdup(manifest->full_name) : NULL;
+            d->Copyright            = ((manifest) && (manifest->copyright)) ? strdup(manifest->copyright) : NULL;
             d->PortCount            = 1; // 1 port used for latency output
 
             // Calculate number of ports
@@ -371,6 +387,11 @@ namespace lsp
             d->cleanup              = ladspa::cleanup;
         }
 
+        static ssize_t cmp_descriptors(const LADSPA_Descriptor *d1, const LADSPA_Descriptor *d2)
+        {
+            return strcmp(d1->Label, d2->Label);
+        }
+
         void gen_descriptors()
         {
             // Perform size test first
@@ -389,7 +410,7 @@ namespace lsp
             // Obtain the manifest
             status_t res;
             meta::package_t *manifest = NULL;
-            resource::ILoader *loader = core::create_builtin_loader();
+            resource::ILoader *loader = core::create_resource_loader();
             if (loader != NULL)
             {
                 io::IInStream *is = loader->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
@@ -418,6 +439,10 @@ namespace lsp
                     if (meta == NULL)
                         break;
 
+                    // Skip plugins not compatible with LADSPA
+                    if ((meta->ladspa_id == 0) || (meta->ladspa_lbl == NULL))
+                        continue;
+
                     // Allocate new descriptor
                     LADSPA_Descriptor *d = descriptors.add();
                     if (d == NULL)
@@ -430,6 +455,9 @@ namespace lsp
                     make_descriptor(d, manifest, meta);
                 }
             }
+
+            // Sort descriptors
+            descriptors.qsort(cmp_descriptors);
 
             // Free previously loaded manifest data
             if (manifest != NULL)
@@ -472,7 +500,7 @@ namespace lsp
         };
 
         //---------------------------------------------------------------------
-        static StaticManager static_data(gen_descriptors, drop_descriptors);
+        static StaticFinalizer finalizer(drop_descriptors);
     }
 }
 

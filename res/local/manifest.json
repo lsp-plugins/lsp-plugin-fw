@@ -2,6 +2,7 @@
 	"artifact": "lsp-plugin-fw",
 	"full_name": "LSP Plugin Framework",
 	"short_name": "LSP PF",
+	"copyright": "Linux Studio Plugins Project",
 	"brand": "LSP",
 	"site": "https://lsp-plug.in/",
 	"license": "LGPL",

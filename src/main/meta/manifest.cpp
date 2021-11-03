@@ -211,6 +211,7 @@ namespace lsp
             p->full_name        = NULL;
             p->site             = NULL;
             p->license          = NULL;
+            p->copyright        = NULL;
             p->version.major    = 0;
             p->version.minor    = 0;
             p->version.micro    = 0;
@@ -228,6 +229,8 @@ namespace lsp
                 res = fetch_string(&p->site, "site", &jo);
             if (res == STATUS_OK)
                 res = fetch_string(&p->license, "license", &jo);
+            if (res == STATUS_OK)
+                res = fetch_string(&p->copyright, "copyright", &jo);
             if (res == STATUS_OK)
                 res = fetch_version(&p->version, "version", &jo);
 
@@ -248,6 +251,7 @@ namespace lsp
             drop_string(&pkg->full_name);
             drop_string(&pkg->site);
             drop_string(&pkg->license);
+            drop_string(&pkg->copyright);
             drop_string(&pkg->version.branch);
             free(pkg);
         }
