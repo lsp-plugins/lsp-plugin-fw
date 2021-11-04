@@ -86,7 +86,34 @@ ifeq ($(PLATFORM),BSD)
 endif
 
 ifeq ($(PLATFORM),Windows)
-  DEPENDENCIES             += \
+  DEPENDENCIES += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+endif
+
+#------------------------------------------------------------------------------
+# LADSPA build dependencies
+DEPENDENCIES_LADSPA = \
+  $(DEPENDENCIES_COMMON)
+
+DEPENDENCIES_LADSPA_WRAP = \
+  LIBPTHREAD \
+  LIBDL \
+  LSP_COMMON_LIB
+
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_LADSPA += \
+    LIBSNDFILE
+endif
+
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_LADSPA += \
+    LIBSNDFILE
+endif
+
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_LADSPA += \
     LIBSHLWAPI \
     LIBWINMM \
     LIBMSACM
@@ -118,7 +145,7 @@ ifeq ($(PLATFORM),BSD)
 endif
 
 ifeq ($(PLATFORM),Windows)
-  DEPENDENCIES_COMMON   += \
+  DEPENDENCIES_COMMON += \
     LIBSHLWAPI \
     LIBWINMM \
     LIBMSACM

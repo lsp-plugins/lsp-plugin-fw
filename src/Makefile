@@ -65,36 +65,38 @@ $(info HOST_BIN_DEPENDENCIES = $(HOST_BIN_DEPENDENCIES))
 
 #------------------------------------------------------------------------------
 # Framework settings for (cross) build
-LSP_PLUGIN_FW_SRC_RES       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
+LSP_PLUGIN_FW_SRC_RES               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
 
-LSP_PLUGIN_FW_OBJ_CORE      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
-LSP_PLUGIN_FW_OBJ_META      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-meta.o
-LSP_PLUGIN_FW_OBJ_DSP       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-dsp.o
-LSP_PLUGIN_FW_OBJ_UI        = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui.o
-LSP_PLUGIN_FW_OBJ_CTL       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ctl.o
-LSP_PLUGIN_FW_OBJ_TEST      = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-test.o
-LSP_PLUGIN_FW_OBJ_RES       = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.o
-LSP_PLUGIN_FW_OBJ           = \
+LSP_PLUGIN_FW_OBJ_CORE              = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
+LSP_PLUGIN_FW_OBJ_META              = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-meta.o
+LSP_PLUGIN_FW_OBJ_DSP               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-dsp.o
+LSP_PLUGIN_FW_OBJ_UI                = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui.o
+LSP_PLUGIN_FW_OBJ_CTL               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ctl.o
+LSP_PLUGIN_FW_OBJ_WRAP_CAIRO        = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-wrap-cairo.o
+LSP_PLUGIN_FW_OBJ_TEST              = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-test.o
+LSP_PLUGIN_FW_OBJ_RES               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.o
+LSP_PLUGIN_FW_OBJ                   = \
   $(LSP_PLUGIN_FW_OBJ_CORE) \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
   $(LSP_PLUGIN_FW_OBJ_UI) \
   $(LSP_PLUGIN_FW_OBJ_CTL)
 
-LSP_PLUGIN_FW_MFLAGS       += $(foreach dep,$(DEPENDENCIES),-DUSE_$(dep)) 
-LSP_PLUGIN_FW_CFLAGS       += $(foreach dep,$(DEPENDENCIES), $($(dep)_CFLAGS))
+LSP_PLUGIN_FW_MFLAGS           += $(foreach dep,$(DEPENDENCIES),-DUSE_$(dep)) 
+LSP_PLUGIN_FW_CFLAGS           += $(foreach dep,$(DEPENDENCIES), $($(dep)_CFLAGS))
 
 # Framework settings for host build
-HOST_LSP_PLUGIN_FW_SRC_RES  = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
+HOST_LSP_PLUGIN_FW_SRC_RES          = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
 
-HOST_LSP_PLUGIN_FW_OBJ_CORE = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
-HOST_LSP_PLUGIN_FW_OBJ_META = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-meta.o
-HOST_LSP_PLUGIN_FW_OBJ_DSP  = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-dsp.o
-HOST_LSP_PLUGIN_FW_OBJ_UI   = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui.o
-HOST_LSP_PLUGIN_FW_OBJ_CTL  = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ctl.o
-HOST_LSP_PLUGIN_FW_OBJ_TEST = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-test.o
-HOST_LSP_PLUGIN_FW_OBJ_RES  = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.o
-HOST_LSP_PLUGIN_FW_OBJ      = \
+HOST_LSP_PLUGIN_FW_OBJ_CORE         = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
+HOST_LSP_PLUGIN_FW_OBJ_META         = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-meta.o
+HOST_LSP_PLUGIN_FW_OBJ_DSP          = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-dsp.o
+HOST_LSP_PLUGIN_FW_OBJ_UI           = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui.o
+HOST_LSP_PLUGIN_FW_OBJ_CTL          = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ctl.o
+HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO   = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-wrap-cairo.o
+HOST_LSP_PLUGIN_FW_OBJ_TEST         = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-test.o
+HOST_LSP_PLUGIN_FW_OBJ_RES          = $($(HOST)LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.o
+HOST_LSP_PLUGIN_FW_OBJ              = \
   $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
   $(HOST_LSP_PLUGIN_FW_OBJ_META) \
   $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
@@ -116,6 +118,8 @@ CXX_SRC_DSP                 = $(call rwildcard, main/plug, *.cpp)
 CXX_SRC_UI                  = $(call rwildcard, main/ui, *.cpp)
 CXX_SRC_CTL                 = $(call rwildcard, main/ctl, *.cpp)
 CXX_SRC_WRAP_JACK           = wrap/jack.cpp
+CXX_SRC_WRAP_LADSPA         = wrap/ladspa.cpp
+CXX_SRC_WRAP_CAIRO          = $(call rwildcard, wrap/cairo, *.cpp)
 CXX_SRC_UTIL                = $(call rwildcard, util, *.cpp)
 CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
 CXX_SRC                     = \
@@ -125,6 +129,8 @@ CXX_SRC                     = \
   $(CXX_SRC_UI) \
   $(CXX_SRC_CTL) \
   $(CXX_SRC_WRAP_JACK) \
+  $(CXX_SRC_WRAP_LADSPA) \
+  $(CXX_SRC_WRAP_CAIRO) \
   $(CXX_SRC_UTIL)
 
 # Source code location for host
@@ -134,6 +140,8 @@ HOST_CXX_SRC_DSP            = $(CXX_SRC_DSP)
 HOST_CXX_SRC_UI             = $(CXX_SRC_UI)
 HOST_CXX_SRC_CTL            = $(CXX_SRC_CTL)
 HOST_CXX_SRC_WRAP_JACK      = $(CXX_SRC_WRAP_JACK)
+HOST_CXX_SRC_WRAP_LADSPA    = $(CXX_SRC_WRAP_LADSPA)
+HOST_CXX_SRC_WRAP_CAIRO     = $(CXX_SRC_WRAP_CAIRO)
 HOST_CXX_SRC_UTIL           = $(CXX_SRC_UTIL)
 HOST_CXX_SRC_TEST           = $(CXX_SRC_TEST)
 HOST_CXX_SRC                = \
@@ -143,6 +151,8 @@ HOST_CXX_SRC                = \
   $(HOST_CXX_SRC_UI) \
   $(HOST_CXX_SRC_CTL) \
   $(HOST_CXX_SRC_WRAP_JACK) \
+  $(HOST_CXX_SRC_WRAP_LADSPA) \
+  $(HOST_CXX_SRC_WRAP_CAIRO) \
   $(HOST_CXX_SRC_UTIL)
 
 # Object files for (cross) build
@@ -153,6 +163,8 @@ OBJ_DSP                     = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_
 OBJ_UI                      = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UI))
 OBJ_CTL                     = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_CTL))
 OBJ_WRAP_JACK               = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_JACK))
+OBJ_WRAP_LADSPA             = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_LADSPA))
+OBJ_WRAP_CAIRO              = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_CAIRO))
 OBJ_UTIL                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UTIL))
 OBJ_TEST                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_TEST))
 OBJ                         = \
@@ -162,7 +174,9 @@ OBJ                         = \
   $(OBJ_UI) \
   $(OBJ_CTL) \
   $(OBJ_UTIL) \
-  $(OBJ_WRAP_JACK)
+  $(OBJ_WRAP_JACK) \
+  $(OBJ_WRAP_LADSPA) \
+  $(OBJ_WRAP_CAIRO)
 
 ifeq ($(TEST),1)
   CXX_SRC                    += $(CXX_SRC_TEST)
@@ -178,6 +192,8 @@ HOST_OBJ_DSP                = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $
 HOST_OBJ_UI                 = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_UI))
 HOST_OBJ_CTL                = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_CTL))
 HOST_OBJ_WRAP_JACK          = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_JACK))
+HOST_OBJ_WRAP_LADSPA        = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_LADSPA))
+HOST_OBJ_WRAP_CAIRO         = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_CAIRO))
 HOST_OBJ_UTIL               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_UTIL))
 HOST_OBJ_TEST               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_TEST))
 HOST_OBJ                    = \
@@ -187,7 +203,9 @@ HOST_OBJ                    = \
   $(HOST_OBJ_UI) \
   $(HOST_OBJ_CTL) \
   $(HOST_OBJ_UTIL) \
-  $(HOST_OBJ_WRAP_JACK)
+  $(HOST_OBJ_WRAP_JACK) \
+  $(HOST_OBJ_WRAP_LADSPA) \
+  $(HOST_OBJ_WRAP_CAIRO)
 
 ifeq ($(TEST),1)
   HOST_CXX_SRC               += $(HOST_CXX_SRC_TEST)
@@ -255,10 +273,23 @@ ARTIFACT_LIB_JACK_OBJS      = \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
   $(LSP_PLUGIN_FW_OBJ_UI) \
+  $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_PLUG_UI) \
   $(OBJ_WRAP_JACK)
+  
+ARTIFACT_LIB_LADSPA         = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-ladspa-$(ARTIFACT_VERSION)$(LIBRARY_EXT)
+ARTIFACT_LIB_LADSPA_DEPS    = $(foreach dep, $(call uniq, $(DEPENDENCIES_LADSPA)), $(if $($(dep)_OBJ), $(dep)))
+ARTIFACT_LIB_LADSPA_LIBS    = $(foreach dep, $(call uniq, $(DEPENDENCIES_LADSPA)), $($(dep)_OBJ))
+ARTIFACT_LIB_LADSPA_LDFLAGS = $(foreach dep, $(call uniq, $(DEPENDENCIES_LADSPA)), $($(dep)_LDFLAGS))
+ARTIFACT_LIB_LADSPA_OBJS    = \
+  $(LSP_PLUGIN_FW_OBJ_CORE) \
+  $(LSP_PLUGIN_FW_OBJ_META) \
+  $(LSP_PLUGIN_FW_OBJ_DSP) \
+  $(OBJ_PLUG_META) \
+  $(OBJ_PLUG_DSP) \
+  $(OBJ_WRAP_LADSPA)
 
 BIN_INSTALL                 = $(foreach dep, $(BIN_DEPENDENCIES), install_$(dep))
 BIN_ARTIFACT_ID             = $(patsubst install_%,%,$(@))
@@ -349,6 +380,10 @@ $(OBJ):
 
 $(OBJ_WRAP_JACK): EXT_FLAGS=$(WRAP_JACK_CFLAGS)
 
+$(OBJ_WRAP_LADSPA): EXT_FLAGS=$(WRAP_LADSPA_CFLAGS)
+
+$(OBJ_WRAP_CAIRO): EXT_FLAGS=$(WRAP_CAIRO_CFLAGS)
+
 ifeq ($(BUILD_HOST),1)
 
 $(HOST_OBJ):
@@ -357,6 +392,10 @@ $(HOST_OBJ):
 	$(HOST_CXX) -o $(@) -c $(HOST_CXX_FILE) -fPIC $(HOST_CXXFLAGS) $(HOST_LSP_PLUGIN_FW_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_CFLAGS)
 
 $(HOST_OBJ_WRAP_JACK): EXT_FLAGS=$(HOST_WRAP_JACK_CFLAGS)
+
+$(HOST_OBJ_WRAP_LADSPA): EXT_FLAGS=$(HOST_WRAP_LADSPA_CFLAGS)
+
+$(HOST_OBJ_WRAP_CAIRO): EXT_FLAGS=$(HOST_WRAP_CAIRO_CFLAGS)
 
 endif
 
@@ -383,6 +422,10 @@ $(LSP_PLUGIN_FW_OBJ_UI): $(OBJ_UI)
 $(LSP_PLUGIN_FW_OBJ_CTL): $(OBJ_CTL)
 	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_CTL))"
 	$(LD) -o $(LSP_PLUGIN_FW_OBJ_CTL) -r $(OBJ_CTL)
+	
+$(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO): $(OBJ_WRAP_CAIRO)
+	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO))"
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) -r $(OBJ_WRAP_CAIRO)
 	
 $(LSP_PLUGIN_FW_OBJ_TEST): $(OBJ_TEST)
 	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_TEST))"
@@ -417,6 +460,10 @@ $(HOST_LSP_PLUGIN_FW_OBJ_CTL): $(HOST_OBJ_CTL)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_CTL))"
 	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_CTL) -r $(HOST_OBJ_CTL)
 	
+$(HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO): $(HOST_OBJ_WRAP_CAIRO)
+	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO))"
+	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) -r $(HOST_OBJ_WRAP_CAIRO)
+	
 $(HOST_LSP_PLUGIN_FW_OBJ_TEST): $(HOST_OBJ_TEST)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_TEST))"
 	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_TEST) -r $(HOST_OBJ_TEST)
@@ -448,10 +495,20 @@ $(UTL_RESPACK): $(UTL_RESPACK_OBJ) $(HOST_LSP_PLUGIN_FW_OBJ) $(UTL_RESPACK_DEPS)
 
 #------------------------------------------------------------------------------
 # Binaries
-$(ARTIFACT_LIB_JACK): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(OBJ_WRAP_JACK) $(ARTIFACT_LIB_JACK_DEPS) $(PLUG_DEPS)
+$(info LSP_PLUGIN_FW_OBJ = $(LSP_PLUGIN_FW_OBJ))
+$(info LSP_PLUGIN_FW_OBJ_RES = $(LSP_PLUGIN_FW_OBJ_RES))
+$(info OBJ_WRAP_JACK = $(OBJ_WRAP_JACK))
+$(info ARTIFACT_LIB_JACK_DEPS = $(ARTIFACT_LIB_JACK_DEPS))
+$(info PLUG_DEPS = $(PLUG_DEPS))
+$(ARTIFACT_LIB_JACK): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) $(OBJ_WRAP_JACK) $(ARTIFACT_LIB_JACK_DEPS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
 	echo $(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
 	$(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
+	
+$(ARTIFACT_LIB_LADSPA): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(OBJ_WRAP_LADSPA) $(ARTIFACT_LIB_LADSPA_DEPS) $(PLUG_DEPS)
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_LADSPA))"
+	echo $(CXX) -o $(ARTIFACT_LIB_LADSPA) $(ARTIFACT_LIB_LADSPA_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_LADSPA_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LADSPA_LDFLAGS)
+	$(CXX) -o $(ARTIFACT_LIB_LADSPA) $(ARTIFACT_LIB_LADSPA_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_LADSPA_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LADSPA_LDFLAGS)
 
 # All targets
 resources: $(UTL_REPOSITORY)
@@ -475,7 +532,9 @@ jack: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
 	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
-all: jack
+ladspa: $(ARTIFACT_LIB_LADSPA) 
+
+all: jack ladspa
 
 #------------------------------------------------------------------------------
 # Installation

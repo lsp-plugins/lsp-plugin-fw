@@ -41,11 +41,6 @@
 #include <lsp-plug.in/plug-fw/wrap/ladspa/ports.h>
 #include <lsp-plug.in/plug-fw/wrap/ladspa/wrapper.h>
 
-#ifndef LSP_IDE_DEBUG
-    /* LADSPA format does not require any built-in resources */
-    BUILTIN_RESOURCES_STUB
-#endif /* LSP_IDE_DEBUG */
-
 namespace lsp
 {
     namespace ladspa
