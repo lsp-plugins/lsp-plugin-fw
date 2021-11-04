@@ -50,7 +50,6 @@ namespace lsp
             protected:
                 Module                     *pPlugin;
                 resource::ILoader          *pLoader;
-                plug::ICanvasFactory       *pCanvasFactory;     // Canvas factory
 
             public:
                 explicit IWrapper(Module *plugin, resource::ILoader *loader);
@@ -62,19 +61,6 @@ namespace lsp
                  * @return builtin resource loader
                  */
                 inline resource::ILoader       *resources()         { return pLoader;           }
-
-                /**
-                 * Get canvas factory
-                 * @return canvas factory
-                 */
-                inline plug::ICanvasFactory    *canvas_factory()    { return pCanvasFactory;    }
-
-                /**
-                 * Set the canvas factory
-                 * @param factory canvas factory
-                 * @return pointer to previous factory
-                 */
-                plug::ICanvasFactory           *set_canvas_factory(plug::ICanvasFactory *factory);
 
                 /** Get executor service
                  *

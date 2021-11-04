@@ -19,14 +19,35 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/wrap/util/CairoCanvas.h>
+#include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/stdlib/math.h>
+
 #include <cairo/cairo.h>
 
 namespace lsp
 {
     namespace wrap
     {
+        //---------------------------------------------------------------------
+        class CairoCanvasFactory: public plug::ICanvasFactory
+        {
+            private:
+                CairoCanvasFactory(const CairoCanvasFactory &);
+                CairoCanvasFactory & operator = (const CairoCanvasFactory &);
+
+            public:
+                explicit CairoCanvasFactory();
+                virtual ~CairoCanvasFactory();
+
+                /** Create canvas
+                 *
+                 * @param width initial width of canvas
+                 * @param height initial height of canvas
+                 * @return pointer to object or NULL if creation of canvas is not possible
+                 */
+                virtual plug::ICanvas *create_canvas(size_t width, size_t height);
+        };
+
         //---------------------------------------------------------------------
         class CairoCanvas: public plug::ICanvas
         {
@@ -65,6 +86,7 @@ namespace lsp
                 virtual void sync();
         };
 
+        //---------------------------------------------------------------------
         CairoCanvasFactory::CairoCanvasFactory()
         {
         }
@@ -340,6 +362,9 @@ namespace lsp
             cairo_surface_mark_dirty(pSurface);
             sData.pData = NULL;
         }
+
+        //---------------------------------------------------------------------
+        static CairoCanvasFactory cairo_canvas_factory;
     } /* namespace wrap */
 } /* namespace lsp */
 

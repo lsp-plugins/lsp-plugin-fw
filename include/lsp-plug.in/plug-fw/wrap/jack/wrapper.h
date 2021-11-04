@@ -774,7 +774,12 @@ namespace lsp
             // Lazy initialization
             if (pCanvas == NULL)
             {
-                pCanvas     =   (pCanvasFactory != NULL) ? pCanvasFactory->create_canvas(width, height) : NULL;
+                for (plug::ICanvasFactory *factory = plug::ICanvasFactory::root(); factory != NULL; factory = factory->next())
+                {
+                    pCanvas = factory->create_canvas(width, height);
+                    if (pCanvas != NULL)
+                        break;
+                }
                 if (pCanvas == NULL)
                     return NULL;
             }

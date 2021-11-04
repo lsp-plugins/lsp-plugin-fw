@@ -19,14 +19,18 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/plug/ICanvasFactory.h>
+#include <lsp-plug.in/plug-fw/plug.h>
 
 namespace lsp
 {
     namespace plug
     {
+        ICanvasFactory *ICanvasFactory::pRoot = NULL;
+
         ICanvasFactory::ICanvasFactory()
         {
+            pNext       = pRoot;
+            pRoot       = this;
         }
 
         ICanvasFactory::~ICanvasFactory()
@@ -36,6 +40,16 @@ namespace lsp
         ICanvas *ICanvasFactory::create_canvas(size_t width, size_t height)
         {
             return NULL;
+        }
+
+        ICanvasFactory *ICanvasFactory::root()
+        {
+            return pRoot;
+        }
+
+        ICanvasFactory *ICanvasFactory::next()
+        {
+            return pNext;
         }
 
     } /* namespace plug */

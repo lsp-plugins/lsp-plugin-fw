@@ -19,7 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/plug/ICanvas.h>
+#include <lsp-plug.in/plug-fw/plug.h>
 
 namespace lsp
 {

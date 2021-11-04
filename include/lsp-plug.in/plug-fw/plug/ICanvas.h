@@ -22,6 +22,10 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_PLUG_ICANVAS_H_
 #define LSP_PLUG_IN_PLUG_FW_PLUG_ICANVAS_H_
 
+#ifndef LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_
+    #error "Use #include <lsp-plug.in/plug-fw/plug.h>"
+#endif /* LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_ */
+
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/runtime/Color.h>
 

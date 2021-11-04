@@ -33,14 +33,12 @@ namespace lsp
         {
             pPlugin         = plugin;
             pLoader         = loader;
-            pCanvasFactory  = NULL;
         }
 
         IWrapper::~IWrapper()
         {
             pPlugin         = NULL;
             pLoader         = NULL;
-            pCanvasFactory  = NULL;
         }
 
         ipc::IExecutor *IWrapper::executor()
@@ -74,13 +72,6 @@ namespace lsp
 
         void IWrapper::state_changed()
         {
-        }
-
-        plug::ICanvasFactory *IWrapper::set_canvas_factory(plug::ICanvasFactory *factory)
-        {
-            plug::ICanvasFactory *old = pCanvasFactory;
-            pCanvasFactory = factory;
-            return old;
         }
 
         void IWrapper::dump_plugin_state()

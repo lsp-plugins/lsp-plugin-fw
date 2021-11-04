@@ -22,6 +22,10 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_PLUG_ICANVASFACTORY_H_
 #define LSP_PLUG_IN_PLUG_FW_PLUG_ICANVASFACTORY_H_
 
+#ifndef LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_
+    #error "Use #include <lsp-plug.in/plug-fw/plug.h>"
+#endif /* LSP_PLUG_IN_PLUG_FW_PLUG_IMPL_H_ */
+
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/plug/ICanvas.h>
 #include <lsp-plug.in/runtime/Color.h>
@@ -36,6 +40,10 @@ namespace lsp
         class ICanvasFactory
         {
             private:
+                static ICanvasFactory *pRoot;
+                ICanvasFactory *pNext;
+
+            private:
                 ICanvasFactory & operator = (const ICanvasFactory &);
                 ICanvasFactory(const ICanvasFactory &);
 
@@ -43,6 +51,7 @@ namespace lsp
                 explicit ICanvasFactory();
                 virtual ~ICanvasFactory();
 
+            public:
                 /** Create canvas
                  *
                  * @param width initial width of canvas
@@ -50,6 +59,10 @@ namespace lsp
                  * @return pointer to object or NULL if creation of canvas is not possible
                  */
                 virtual ICanvas *create_canvas(size_t width, size_t height);
+
+            public:
+                static ICanvasFactory *root();
+                ICanvasFactory *next();
         };
     }
 }

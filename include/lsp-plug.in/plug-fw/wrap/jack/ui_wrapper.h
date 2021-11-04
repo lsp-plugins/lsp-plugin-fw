@@ -29,7 +29,6 @@
 
 #include <lsp-plug.in/plug-fw/wrap/jack/ui_ports.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/util/CairoCanvas.h>
 #include <lsp-plug.in/lltl/parray.h>
 
 #include <lsp-plug.in/tk/tk.h>
@@ -54,7 +53,6 @@ namespace lsp
 
                 lltl::parray<jack::UIPort>      vSyncPorts;         // Ports for synchronization
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
-                wrap::CairoCanvasFactory        sCanvasFactory;
 
             public:
                 explicit UIWrapper(jack::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui);
@@ -119,9 +117,6 @@ namespace lsp
         {
             status_t res = STATUS_OK;
 
-            // Inject canvas factory to the backend wrapper
-            pWrapper->set_canvas_factory(&sCanvasFactory);
-
             // Force position sync at startup
             nPosition   = pWrapper->nPosition - 1;
             const meta::plugin_t *meta = pUI->metadata();
@@ -183,9 +178,6 @@ namespace lsp
 
         void UIWrapper::destroy()
         {
-            // Remove canvas factory from backend wrapper
-            pWrapper->set_canvas_factory(NULL);
-
             // Call the parent class for destroy
             IWrapper::destroy();
 
