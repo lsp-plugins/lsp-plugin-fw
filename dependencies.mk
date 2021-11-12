@@ -113,6 +113,14 @@ LIBCAIRO_VERSION           := system
 LIBCAIRO_NAME              := cairo
 LIBCAIRO_TYPE              := pkg
 
+LIBLV2_VERSION             := system
+LIBLV2_NAME                := lv2
+LIBLV2_TYPE                := pkg
+
+LIBLADSPA_VERSION          := system
+LIBLADSPA_NAME             := ladspa
+LIBLADSPA_TYPE             := opt
+
 LIBGL_VERSION              := system
 LIBGL_NAME                 := gl
 LIBGL_TYPE                 := pkg

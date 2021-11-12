@@ -97,18 +97,15 @@ endif
 DEPENDENCIES_LADSPA = \
   $(DEPENDENCIES_COMMON)
 
-DEPENDENCIES_LADSPA_WRAP = \
-  LIBPTHREAD \
-  LIBDL \
-  LSP_COMMON_LIB
-
 ifeq ($(PLATFORM),Linux)
   DEPENDENCIES_LADSPA += \
+    LIBLADSPA \
     LIBSNDFILE
 endif
 
 ifeq ($(PLATFORM),BSD)
   DEPENDENCIES_LADSPA += \
+    LIBLADSPA \
     LIBSNDFILE
 endif
 
@@ -120,11 +117,63 @@ ifeq ($(PLATFORM),Windows)
 endif
 
 #------------------------------------------------------------------------------
+# LV2 build dependencies
+DEPENDENCIES_LV2 = \
+  $(DEPENDENCIES_COMMON)
+  
+DEPENDENCIES_LV2_UI = \
+  $(DEPENDENCIES_COMMON) \
+  $(DEPENDENCIES_COMMON_UI)
+
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_LV2 += \
+    LIBLV2 \
+    LIBSNDFILE \
+    LIBCAIRO
+    
+  DEPENDENCIES_LV2_UI += \
+    LIBLV2 \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
+
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_LV2 += \
+    LIBLV2 \
+    LIBSNDFILE \
+    LIBCAIRO
+    
+  DEPENDENCIES_LV2_UI += \
+    LIBLV2 \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
+
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_LV2 += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+    
+  DEPENDENCIES_LV2_UI += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+endif
+
+#------------------------------------------------------------------------------
 # List of dependencies
 DEPENDENCIES = \
   $(DEPENDENCIES_PLUGINS) \
   $(DEPENDENCIES_JACK) \
-  $(DEPENDENCIES_JACK_UI)
+  $(DEPENDENCIES_JACK_UI) \
+  $(DEPENDENCIES_LADSPA) \
+  $(DEPENDENCIES_LV2) \
+  $(DEPENDENCIES_LV2_UI)
 
 TEST_DEPENDENCIES = \
   LSP_TEST_FW
