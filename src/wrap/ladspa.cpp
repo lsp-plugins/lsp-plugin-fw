@@ -90,14 +90,14 @@ namespace lsp
 
             // Lookup plugin identifier among all registered plugin factories
             plug::Module *plugin = NULL;
+            const meta::plugin_t *meta = NULL;
 
-            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+            for (plug::Factory *f = plug::Factory::root(); (plugin == NULL) && (f != NULL); f = f->next())
             {
-                for (size_t i=0; ; ++i)
+                for (size_t i=0; plugin == NULL; ++i)
                 {
                     // Enumerate next element
-                    const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
+                    if ((meta = f->enumerate(i)) == NULL)
                         break;
 
                     // Check plugin identifier
@@ -107,17 +107,17 @@ namespace lsp
                         // Instantiate the plugin and return
                         if ((plugin = f->create(meta)) == NULL)
                         {
-                            fprintf(stderr, "Plugin instantiation error: %s\n", meta->ladspa_lbl);
+                            lsp_error("Plugin instantiation error: %s", meta->ladspa_lbl);
                             return NULL;
                         }
                     }
                 }
             }
 
-            // No plugin has been found
+            // No plugin has been found?
             if (plugin == NULL)
             {
-                fprintf(stderr, "Unknown plugin identifier: %s\n", descriptor->Label);
+                lsp_error("Unknown plugin identifier: %s", descriptor->Label);
                 return NULL;
             }
 
@@ -131,15 +131,15 @@ namespace lsp
                     status_t res = wrapper->init(sample_rate);
                     if (res == STATUS_OK)
                         return reinterpret_cast<LADSPA_Handle>(wrapper);
-                    fprintf(stderr, "Error initializing plugin wrapper, code: %d\n", int(res));
+                    lsp_error("Error initializing plugin wrapper, code: %d", int(res));
                     delete wrapper;
                 }
                 else
-                    fprintf(stderr, "Error allocating plugin wrapper\n");
+                    lsp_error("Error allocating plugin wrapper");
                 delete loader;
             }
             else
-                fprintf(stderr, "No resource loader available\n");
+                lsp_error("No resource loader available");
             delete plugin;
 
             // Plugin could not be instantiated
@@ -461,7 +461,7 @@ namespace lsp
                 manifest = NULL;
             }
 
-            // Unlock mutex
+            // Unlock descriptor mutex
             descriptors_mutex.unlock();
         };
 
