@@ -525,7 +525,7 @@ namespace lsp
              public:
                  explicit MeshPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext, false)
                  {
-                     sMesh.init(meta, ext);
+                     sMesh.init(meta);
                  }
 
                  virtual ~MeshPort()

@@ -24,14 +24,25 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
+
+#include <lv2.h>
+#include <lv2/lv2plug.in/ns/ext/atom/atom.h>
+#include <lv2/lv2plug.in/ns/ext/urid/urid.h>
 
 namespace lsp
 {
     namespace lv2
     {
+        #define LSP_LV2_ATOM_KEY_SIZE       (sizeof(uint32_t) * 2)
+        #define LSP_LV2_SIZE_PAD(size)      ::lsp::align_size((size + 0x200), 0x200)
+
+
+        struct Extensions;
+
         enum
         {
             LSP_LV2_PRIVATE     = 1 << 0
@@ -66,7 +77,7 @@ namespace lsp
                 pMesh       = NULL;
             }
 
-            void init(const meta::port_t *meta, Extensions *ext)
+            void init(const meta::port_t *meta)
             {
                 // Calculate sizes
                 nBuffers            = meta->step;

@@ -27,6 +27,7 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ext/osc.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/stdio.h>
@@ -54,7 +55,7 @@
 #include <lv2/lv2plug.in/ns/ext/instance-access/instance-access.h>
 
 // Non-official features
-#include <3rdparty/ardour/inline-display.h>
+#include <lsp-plug.in/3rdparty/ardour/inline-display.h>
 
 // Some definitions that may be lacking in LV2
 #ifndef LV2_ATOM__Object
@@ -77,9 +78,6 @@ typedef struct LV2_Atom_Midi
 
 namespace lsp
 {
-    #define LSP_LV2_ATOM_KEY_SIZE       (sizeof(uint32_t) * 2)
-    #define LSP_LV2_SIZE_PAD(size)      ::lsp::align_size((size + 0x200), 0x200)
-
     namespace lv2
     {
         struct Extensions;
