@@ -91,7 +91,7 @@ namespace lsp
         class Serializable
         {
             protected:
-                Extensions             *pExt;
+                lv2::Extensions        *pExt;
                 LV2_URID                urid;
 
             public:
@@ -774,7 +774,7 @@ namespace lsp
                     write_data(nAtomOut, lv2_atom_total_size(msg), uridEventTransfer, msg);
                 }
 
-                bool ui_write_patch(Serializable *p)
+                bool ui_write_patch(lv2::Serializable *p)
                 {
                     if ((map == NULL) || (p->get_urid() <= 0))
                         return false;
@@ -815,7 +815,7 @@ namespace lsp
                             break;
                         else if (meta::is_in_port(p) && (!in))
                             break;
-                        size            += LV2Mesh::size_of_port(p);
+                        size            += lv2_mesh_t::size_of_port(p);
                         break;
                     case meta::R_STREAM:
                     {
