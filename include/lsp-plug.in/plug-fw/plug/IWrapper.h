@@ -50,6 +50,10 @@ namespace lsp
             protected:
                 Module                     *pPlugin;
                 resource::ILoader          *pLoader;
+                plug::ICanvas              *pCanvas;            // Inline display featured canvas
+
+            protected:
+                plug::ICanvas              *create_canvas(size_t width, size_t height);
 
             public:
                 explicit IWrapper(Module *plugin, resource::ILoader *loader);

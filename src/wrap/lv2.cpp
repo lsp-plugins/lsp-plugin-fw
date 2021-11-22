@@ -152,6 +152,8 @@ namespace lsp
             else
                 fprintf(stderr, "No resource loader available");
             delete plugin;
+
+            return static_cast<LV2_Handle>(NULL);
         }
 
         void run(LV2_Handle instance, uint32_t sample_count)

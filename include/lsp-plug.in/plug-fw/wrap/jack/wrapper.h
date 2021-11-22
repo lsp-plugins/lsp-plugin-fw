@@ -73,7 +73,6 @@ namespace lsp
                 bool                            bUpdateSettings;    // Plugin settings are required to be updated
                 ssize_t                         nLatency;           // The actual latency of device
                 ipc::IExecutor                 *pExecutor;          // Off-line task executor
-                plug::ICanvas                  *pCanvas;            // Inline display featured canvas
                 core::KVTStorage                sKVT;               // Key-value tree
                 ipc::Mutex                      sKVTMutex;          // Key-value tree mutex
 
@@ -176,7 +175,6 @@ namespace lsp
             bUpdateSettings = true;
             nLatency        = 0;
             pExecutor       = NULL;
-            pCanvas         = NULL;
 
             nPosition       = 0;
             plug::position_t::init(&sPosition);
@@ -195,7 +193,6 @@ namespace lsp
             nState          = S_CREATED;
             nLatency        = 0;
             pExecutor       = NULL;
-            pCanvas         = NULL;
             nQueryDrawReq   = 0;
             nQueryDrawResp  = 0;
             nDumpReq        = 0;
@@ -504,14 +501,6 @@ namespace lsp
             // Forget the plugin instance
             pPlugin     = NULL;
 
-            // Drop canvas
-            if (pCanvas != NULL)
-            {
-                pCanvas->destroy();
-                delete pCanvas;
-                pCanvas     = NULL;
-            }
-
             // Destroy executor service
             if (pExecutor != NULL)
             {
@@ -783,29 +772,16 @@ namespace lsp
 
         plug::canvas_data_t *Wrapper::render_inline_display(size_t width, size_t height)
         {
-            // Check for Inline display support
-            const meta::plugin_t *meta = pPlugin->metadata();
-            if ((meta == NULL) || (!(meta->extensions & meta::E_INLINE_DISPLAY)))
+            // Allocate canvas for drawing
+            plug::ICanvas *canvas = create_canvas(width, height);
+            if (canvas == NULL)
                 return NULL;
 
-            // Lazy initialization
-            if (pCanvas == NULL)
-            {
-                for (plug::ICanvasFactory *factory = plug::ICanvasFactory::root(); factory != NULL; factory = factory->next())
-                {
-                    pCanvas = factory->create_canvas(width, height);
-                    if (pCanvas != NULL)
-                        break;
-                }
-                if (pCanvas == NULL)
-                    return NULL;
-            }
-
             // Call plugin for rendering and return canvas data
-            bool res = pPlugin->inline_display(pCanvas, width, height);
-            pCanvas->sync();
+            bool res = pPlugin->inline_display(canvas, width, height);
+            canvas->sync();
 
-            return (res) ? pCanvas->data() : NULL;
+            return (res) ? canvas->data() : NULL;
         }
 
         jack::Port *Wrapper::port_by_idx(size_t index)
