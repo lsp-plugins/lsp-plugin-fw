@@ -33,7 +33,6 @@
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 
 #include <lsp-plug.in/common/types.h>
-#include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/dsp-units/iface/IStateDumper.h>
 
 namespace lsp
@@ -51,7 +50,6 @@ namespace lsp
                 Module &operator = (const Module &);
 
             protected:
-                lltl::parray<IPort>         vPorts;
                 const meta::plugin_t       *pMetadata;
                 IWrapper                   *pWrapper;
 
@@ -67,8 +65,9 @@ namespace lsp
                 /** Initialize plugin module
                  *
                  * @param wrapper plugin wrapper interface
+                 * @param ports list of ports supplied by plugin wrapper
                  */
-                virtual void                init(IWrapper *wrapper);
+                virtual void                init(IWrapper *wrapper, IPort **ports);
 
                 /** Destroy plugin module
                  *
@@ -79,10 +78,6 @@ namespace lsp
                 const meta::plugin_t       *metadata() const                { return pMetadata;         }
                 inline ssize_t              latency() const                 { return nLatency;          }
                 inline void                 set_latency(ssize_t latency)    { nLatency = latency;       }
-
-                inline bool                 add_port(IPort *port)           { return vPorts.add(port);  }
-                inline IPort               *port(size_t id)                 { return vPorts[id];        }
-                inline size_t               ports_count() const             { return vPorts.size();     }
 
                 void                        set_sample_rate(long sr);
 

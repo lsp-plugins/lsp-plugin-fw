@@ -85,7 +85,7 @@ namespace lsp
                 volatile atomic_t               nDumpReq;           // Dump state to file request
                 atomic_t                        nDumpResp;          // Dump state to file response
 
-                lltl::parray<jack::Port>        vPorts;             // All ports
+                lltl::parray<jack::Port>        vAllPorts;          // All ports
                 lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
                 lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
@@ -93,7 +93,7 @@ namespace lsp
                 meta::package_t                *pPackage;           // Package descriptor
 
             protected:
-                void            create_port(const meta::port_t *port, const char *postfix);
+                void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 int             sync_position(jack_transport_state_t state, const jack_position_t *pos);
                 int             latency_callback(jack_latency_callback_mode_t mode);
                 int             run(size_t samples);
@@ -236,17 +236,18 @@ namespace lsp
                 return STATUS_BAD_STATE;
 
             // Create ports
+            lltl::parray<plug::IPort> plugin_ports;
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
-                create_port(port, NULL);
+                create_port(&plugin_ports, port, NULL);
 
             // Generate list of sorted ports by identifier
-            if (!vSortedPorts.add(vPorts))
+            if (!vSortedPorts.add(vAllPorts))
                 return STATUS_NO_MEM;
             vSortedPorts.qsort(cmp_port_identifiers);
 
             // Initialize plugin and UI
             if (pPlugin != NULL)
-                pPlugin->init(this);
+                pPlugin->init(this, plugin_ports.array());
 
             // Update state, mark initialized
             nState      = S_INITIALIZED;
@@ -367,10 +368,10 @@ namespace lsp
         int Wrapper::run(size_t samples)
         {
             // Prepare ports
-            for (size_t i=0, n=vPorts.size(); i<n; ++i)
+            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
             {
                 // Get port
-                jack::Port *port = vPorts.uget(i);
+                jack::Port *port = vAllPorts.uget(i);
                 if (port == NULL)
                     continue;
 
@@ -410,9 +411,9 @@ namespace lsp
             }
 
             // Post-process ALL ports
-            for (size_t i=0, n=vPorts.size(); i<n; ++i)
+            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
             {
-                jack::Port *port = vPorts.uget(i);
+                jack::Port *port = vAllPorts.uget(i);
                 if (port != NULL)
                     port->post_process(samples);
             }
@@ -472,14 +473,14 @@ namespace lsp
             disconnect();
 
             // Destroy ports
-            for (size_t i=0, n=vPorts.size(); i<n; ++i)
+            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
             {
-                Port *p = vPorts.uget(i);
+                Port *p = vAllPorts.uget(i);
 //                lsp_trace("destroy port id=%s", p->metadata()->id);
                 p->destroy();
                 delete p;
             }
-            vPorts.flush();
+            vAllPorts.flush();
             vSortedPorts.flush();
 
             // Cleanup generated metadata
@@ -517,7 +518,7 @@ namespace lsp
             pPackage    = NULL;
         }
 
-        void Wrapper::create_port(const meta::port_t *port, const char *postfix)
+        void Wrapper::create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix)
         {
             jack::Port *jp  = NULL;
 
@@ -566,8 +567,8 @@ namespace lsp
                     LSPString postfix_str;
                     jack::PortGroup     *pg      = new jack::PortGroup(port, this);
                     pg->init();
-                    vPorts.add(pg);
-                    pPlugin->add_port(pg);
+                    vAllPorts.add(pg);
+                    plugin_ports->add(pg);
 
                     for (size_t row=0; row<pg->rows(); ++row)
                     {
@@ -588,7 +589,7 @@ namespace lsp
                                 else if (meta::is_lowering_port(cm))
                                     cm->start    = cm->max - ((cm->max - cm->min) * row) / float(pg->rows());
 
-                                create_port(cm, port_post);
+                                create_port(plugin_ports, cm, port_post);
                             }
                         }
                     }
@@ -605,9 +606,9 @@ namespace lsp
                 jp->init();
                 #ifdef LSP_DEBUG
                     const char *src_id = jp->metadata()->id;
-                    for (size_t i=0, n=vPorts.size(); i<n; ++i)
+                    for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
                     {
-                        jack::Port *p = vPorts.uget(i);
+                        jack::Port *p = vAllPorts.uget(i);
                         if (!strcmp(src_id, p->metadata()->id))
                         {
                             lsp_error("ERROR: port %s already defined", src_id);
@@ -615,8 +616,8 @@ namespace lsp
                     }
                 #endif /* LSP_DEBUG */
 
-                vPorts.add(jp);
-                pPlugin->add_port(jp);
+                vAllPorts.add(jp);
+                plugin_ports->add(jp);
             }
         }
 
@@ -793,7 +794,7 @@ namespace lsp
 
         jack::Port *Wrapper::port_by_idx(size_t index)
         {
-            return vPorts.get(index);
+            return vAllPorts.get(index);
         }
 
         jack::Port *Wrapper::port_by_id(const char *id)
@@ -948,9 +949,9 @@ namespace lsp
                 }
                 else
                 {
-                    for (size_t i=0, n=vPorts.size(); i<n; ++i)
+                    for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
                     {
-                        jack::Port *p = vPorts.uget(i);
+                        jack::Port *p = vAllPorts.uget(i);
                         if (p == NULL)
                             continue;
                         const meta::port_t *meta = p->metadata();

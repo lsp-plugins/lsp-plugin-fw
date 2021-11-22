@@ -80,7 +80,7 @@ namespace lsp
             pWrapper->query_display_draw();
         }
 
-        void Module::init(IWrapper *wrapper)
+        void Module::init(IWrapper *wrapper, IPort **ports)
         {
             pWrapper        = wrapper;
         }
@@ -116,7 +116,6 @@ namespace lsp
 
         void Module::destroy()
         {
-            vPorts.flush();
             bActivated      = false;
         }
 
