@@ -116,6 +116,11 @@ namespace lsp
                 void                            transmit_atoms(size_t samples);
                 void                            save_kvt_parameters();
                 void                            restore_kvt_parameters();
+                void                            transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req);
+                void                            transmit_time_position_to_clients();
+                void                            transmit_midi_events(lv2::Port *p);
+                void                            transmit_osc_events(lv2::Port *p);
+                void                            transmit_kvt_events();
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader, lv2::Extensions *ext);
@@ -711,10 +716,397 @@ namespace lsp
             // TODO
         }
 
+        void Wrapper::transmit_time_position_to_clients()
+        {
+            LV2_Atom_Forge_Frame    frame;
+
+            pExt->forge_frame_time(0); // Event header
+            pExt->forge_object(&frame, 0, pExt->uridTimePosition);
+
+            pExt->forge_key(pExt->uridTimeFrame);
+            pExt->forge_long(int64_t(sPosition.frame));
+
+            pExt->forge_key(pExt->uridTimeFrameRate);
+            pExt->forge_float(fSampleRate);
+
+            pExt->forge_key(pExt->uridTimeSpeed);
+            pExt->forge_float(sPosition.speed);
+
+            pExt->forge_key(pExt->uridTimeBarBeat);
+            pExt->forge_float(sPosition.tick / sPosition.ticksPerBeat);
+
+            pExt->forge_key(pExt->uridTimeBar);
+            pExt->forge_long(0);
+
+            pExt->forge_key(pExt->uridTimeBeatUnit);
+            pExt->forge_int(int(sPosition.denominator));
+
+            pExt->forge_key(pExt->uridTimeBeatUnit);
+            pExt->forge_float(sPosition.numerator);
+
+            pExt->forge_key(pExt->uridTimeBeatsPerMinute);
+            pExt->forge_float(sPosition.beatsPerMinute);
+
+            pExt->forge_pop(&frame);
+        }
+
+        void Wrapper::transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req)
+        {
+            // Serialize time/position of plugin
+            LV2_Atom_Forge_Frame    frame;
+
+            // Serialize pending for transmission ports
+            for (size_t i=0, n = vPluginPorts.size(); i<n; ++i)
+            {
+                // Get port
+                lv2::Port *p = vPluginPorts[i];
+                if (p == NULL)
+                    continue;
+
+                // Skip MESH, FBUFFER, PATH ports visible in global space
+                switch (p->metadata()->role)
+                {
+                    case meta::R_AUDIO:
+                    case meta::R_MIDI:
+                    case meta::R_OSC:
+                    case meta::R_UI_SYNC:
+                    case meta::R_MESH:
+                    case meta::R_STREAM:
+                    case meta::R_FBUFFER:
+                        continue;
+                    case meta::R_PATH:
+                        if (p->tx_pending()) // Tranmission request pending?
+                            break;
+                        if (state_req) // State request pending?
+                            break;
+                        if ((p->get_id() >= 0) && (patch_req)) // Global port and patch request pending?
+                            break;
+                        continue;
+                    default:
+                        if (p->tx_pending()) // Transmission request pending?
+                            break;
+                        if (state_req) // State request pending?
+                            break;
+                        continue;
+                }
+
+                // Check that we need to transmit the value
+                if ((!state_req) && (!p->tx_pending()))
+                    continue;
+
+                // Create patch message containing valule of the port
+                lsp_trace("Serialize port id=%s, value=%f", p->metadata()->id, p->value());
+
+                pExt->forge_frame_time(0);
+                pExt->forge_object(&frame, pExt->uridPatchMessage, pExt->uridPatchSet);
+                pExt->forge_key(pExt->uridPatchProperty);
+                pExt->forge_urid(p->get_urid());
+                pExt->forge_key(pExt->uridPatchValue);
+                p->serialize();
+                pExt->forge_pop(&frame);
+            }
+
+            // Serialize meshes (it's own primitive MESH)
+            for (size_t i=0, n=vMeshPorts.size(); i<n; ++i)
+            {
+                lv2::Port *p = vMeshPorts[i];
+                if (p == NULL)
+                    continue;
+                if ((!sync_req) && (!p->tx_pending()))
+                    continue;
+                plug::mesh_t *mesh  = p->buffer<plug::mesh_t>();
+                if ((mesh == NULL) || (!mesh->containsData()))
+                    continue;
+
+//                lsp_trace("transmit mesh id=%s", p->metadata()->id);
+                pExt->forge_frame_time(0);  // Event header
+                pExt->forge_object(&frame, p->get_urid(), pExt->uridMeshType);
+                p->serialize();
+                pExt->forge_pop(&frame);
+
+                // Cleanup data of the mesh for refill
+                mesh->markEmpty();
+            }
+
+            // Serialize streams (it's own primitive STREAM)
+            for (size_t i=0, n=vStreamPorts.size(); i<n; ++i)
+            {
+                lv2::Port *p = vStreamPorts[i];
+                if ((p == NULL) || (!p->tx_pending()))
+                    continue;
+                plug::stream_t *s = p->buffer<plug::stream_t>();
+                if (s == NULL)
+                    continue;
+
+                pExt->forge_frame_time(0);  // Event header
+                pExt->forge_object(&frame, p->get_urid(), pExt->uridStreamType);
+                p->serialize();
+                pExt->forge_pop(&frame);
+            }
+
+            // Serialize frame buffers (it's own primitive FRAMEBUFFER)
+            for (size_t i=0, n=vFrameBufferPorts.size(); i<n; ++i)
+            {
+                lv2::Port *p = vFrameBufferPorts[i];
+                if ((p == NULL) || (!p->tx_pending()))
+                    continue;
+                plug::frame_buffer_t *fb= p->buffer<plug::frame_buffer_t>();
+                if (fb == NULL)
+                    continue;
+
+                pExt->forge_frame_time(0);  // Event header
+                pExt->forge_object(&frame, p->get_urid(), pExt->uridFrameBufferType);
+                p->serialize();
+                pExt->forge_pop(&frame);
+            }
+        }
+
+        void Wrapper::transmit_midi_events(lv2::Port *p)
+        {
+            plug::midi_t   *midi    = p->buffer<plug::midi_t>();
+            if ((midi == NULL) || (midi->nEvents <= 0))  // There are no events ?
+                return;
+
+            midi->sort();   // Sort buffer chronologically
+
+            // Serialize MIDI events
+            LV2_Atom_Midi buf;
+            buf.atom.type       = pExt->uridMidiEventType;
+
+            for (size_t i=0; i<midi->nEvents; ++i)
+            {
+                const midi::event_t *me = &midi->vEvents[i];
+
+                // Debug
+                #ifdef LSP_TRACE
+                    #define TRACE_KEY(x)    case midi::MIDI_MSG_ ## x: evt_type = #x; break;
+
+                    char tmp_evt_type[32];
+                    const char *evt_type = NULL;
+                    switch (me->type)
+                    {
+                        TRACE_KEY(NOTE_OFF)
+                        TRACE_KEY(NOTE_ON)
+                        TRACE_KEY(NOTE_PRESSURE)
+                        TRACE_KEY(NOTE_CONTROLLER)
+                        TRACE_KEY(PROGRAM_CHANGE)
+                        TRACE_KEY(CHANNEL_PRESSURE)
+                        TRACE_KEY(PITCH_BEND)
+                        TRACE_KEY(SYSTEM_EXCLUSIVE)
+                        TRACE_KEY(MTC_QUARTER)
+                        TRACE_KEY(SONG_POS)
+                        TRACE_KEY(SONG_SELECT)
+                        TRACE_KEY(TUNE_REQUEST)
+                        TRACE_KEY(END_EXCLUSIVE)
+                        TRACE_KEY(CLOCK)
+                        TRACE_KEY(START)
+                        TRACE_KEY(CONTINUE)
+                        TRACE_KEY(STOP)
+                        TRACE_KEY(ACTIVE_SENSING)
+                        TRACE_KEY(RESET)
+                        default:
+                            snprintf(tmp_evt_type, sizeof(tmp_evt_type), "UNKNOWN(0x%02x)", int(me->type));
+                            evt_type = tmp_evt_type;
+                            break;
+                    }
+
+                    lsp_trace("MIDI Event: type=%s, timestamp=%ld", evt_type, (long)(me->timestamp));
+
+                    #undef TRACE_KEY
+
+                #endif /* LSP_TRACE */
+
+                ssize_t size = midi::encode(buf.body, me);
+                if (size <= 0)
+                {
+                    lsp_error("Tried to serialize invalid MIDI event, error=%d", int(-size));
+                    continue;
+                }
+                buf.atom.size = size;
+
+                lsp_trace("midi dump: %02x %02x %02x (%d: %d)",
+                    int(buf.body[0]), int(buf.body[1]), int(buf.body[2]), int(buf.atom.size), int(buf.atom.size + sizeof(LV2_Atom)));
+
+                // Serialize object
+                pExt->forge_frame_time(0);
+                pExt->forge_raw(&buf.atom, sizeof(LV2_Atom) + buf.atom.size);
+                pExt->forge_pad(sizeof(LV2_Atom) + buf.atom.size);
+            }
+        }
+
+        void Wrapper::transmit_kvt_events()
+        {
+            LV2_Atom atom;
+
+            size_t size;
+            while (true)
+            {
+                status_t res = pKVTDispatcher->fetch(pOscPacket, &size, OSC_PACKET_MAX);
+
+                switch (res)
+                {
+                    case STATUS_OK:
+                    {
+                        lsp_trace("Transmitting OSC packet of %d bytes", int(size));
+                        osc::dump_packet(pOscPacket, size);
+
+                        atom.size       = size;
+                        atom.type       = pExt->uridOscRawPacket;
+
+                        pExt->forge_frame_time(0);
+                        pExt->forge_raw(&atom, sizeof(LV2_Atom));
+                        pExt->forge_raw(pOscPacket, size);
+                        pExt->forge_pad(sizeof(LV2_Atom) + size);
+                        break;
+                    }
+
+                    case STATUS_OVERFLOW:
+                        lsp_warn("Received too big OSC packet, skipping");
+                        pKVTDispatcher->skip();
+                        break;
+
+                    case STATUS_NO_DATA:
+                        return;
+
+                    default:
+                        lsp_warn("Received error while deserializing KVT changes: %d", int(res));
+                        return;
+                }
+            }
+        }
+
         void Wrapper::transmit_atoms(size_t samples)
         {
-            // TODO
+            // Get sequence
+            if (pAtomOut == NULL)
+                return;
+
+            // Update synchronization time
+            nSyncTime      -= samples;
+            bool sync_req       = nSyncTime <= 0;
+            if (sync_req)
+            {
+                nSyncTime      += nSyncSamples;
+
+                // Check that queue_draw() request for inline display is pending
+                if ((bQueueDraw) && (pExt->iDisplay != NULL))
+                {
+                    pExt->iDisplay->queue_draw(pExt->iDisplay->handle);
+                    bQueueDraw      = false;
+                }
+            }
+
+            // Check that patch request is pending
+            bool patch_req  = nPatchReqs > 0;
+            if (patch_req)
+                nPatchReqs      --;
+
+            // Check that state request is pending
+            bool state_req  = nStateReqs > 0;
+            if (state_req)
+                nStateReqs      --;
+
+            // Initialize forge
+            LV2_Atom_Sequence *sequence = reinterpret_cast<LV2_Atom_Sequence *>(pAtomOut);
+            pExt->forge_set_buffer(sequence, sequence->atom.size);
+
+            // Forge sequence header
+            LV2_Atom_Forge_Frame    seq;
+            pExt->forge_sequence_head(&seq, 0);
+
+            // Transmit state change atom if state has been changed
+            if (change_state_atomic(SM_CHANGED, SM_REPORTED))
+            {
+                LV2_Atom_Forge_Frame frame;
+                pExt->forge_frame_time(0); // Event header
+                pExt->forge_object(&frame, pExt->uridBlank, pExt->uridStateChanged);
+                pExt->forge_pop(&frame);
+                lsp_trace("#STATE MODE = %d", nStateMode);
+            }
+
+            // For each MIDI port, serialize it's data
+            for (size_t i=0, n_midi=vMidiOutPorts.size(); i<n_midi; ++i)
+            {
+                lv2::Port *p    = vMidiOutPorts.uget(i);
+                if (meta::is_midi_out_port(p->metadata()))
+                    continue;
+                transmit_midi_events(p);
+            }
+
+            // For each OSC port, serialize it's data
+            for (size_t i=0, n_osc=vOscOutPorts.size(); i<n_osc; ++i)
+            {
+                lv2::Port *p    = vOscOutPorts.uget(i);
+                if (meta::is_osc_out_port(p->metadata()))
+                    continue;
+                transmit_osc_events(p);
+            }
+
+            // Transmit different data to clients
+            if (nClients > 0)
+            {
+                if (pKVTDispatcher != NULL)
+                    transmit_kvt_events();
+
+                transmit_time_position_to_clients();
+                transmit_port_data_to_clients(sync_req, patch_req, state_req);
+            }
+
+            // Complete sequence
+            pExt->forge_pop(&seq);
         }
+
+        void Wrapper::transmit_osc_events(lv2::Port *p)
+        {
+            plug::osc_buffer_t *osc = p->buffer<plug::osc_buffer_t>();
+            if (osc == NULL)  // There are no events ?
+                return;
+
+            size_t size;
+            LV2_Atom atom;
+
+            while (true)
+            {
+                // Try to fetch record from buffer
+                status_t res = osc->fetch(pOscPacket, &size, OSC_PACKET_MAX);
+
+                switch (res)
+                {
+                    case STATUS_OK:
+                    {
+                        lsp_trace("Transmitting OSC packet of %d bytes", int(size));
+                        osc::dump_packet(pOscPacket, size);
+
+                        atom.size       = size;
+                        atom.type       = pExt->uridOscRawPacket;
+
+                        pExt->forge_frame_time(0);
+                        pExt->forge_raw(&atom, sizeof(LV2_Atom));
+                        pExt->forge_raw(pOscPacket, size);
+                        pExt->forge_pad(sizeof(LV2_Atom) + size);
+                        break;
+                    }
+
+                    case STATUS_NO_DATA: // No more data to transmit
+                        return;
+
+                    case STATUS_OVERFLOW:
+                    {
+                        lsp_warn("Too large OSC packet in the buffer, skipping");
+                        osc->skip();
+                        break;
+                    }
+
+                    default:
+                    {
+                        lsp_warn("OSC packet parsing error %d, skipping", int(res));
+                        osc->skip();
+                        break;
+                    }
+                }
+            }
+        }
+
 
         void Wrapper::save_kvt_parameters()
         {
@@ -971,13 +1363,14 @@ namespace lsp
                         continue;
                     }
 
+                    // Remove prefix for the KVT parameter
                     const char *uri = pExt->unmap_urid(body->key);
-                    if (::strncmp(uri, pExt->uriKvt, prefix_len) != uri)
+                    if (::strncmp(uri, pExt->uriKvt, prefix_len) != 0)
                     {
                         lsp_warn("Invalid property: urid=%d, uri=%s", body->key, uri);
                         continue;
                     }
-                    if (uri[prefix_len] != '/')
+                    else if (uri[prefix_len] != '/')
                     {
                         lsp_warn("Invalid property: urid=%d, uri=%s", body->key, uri);
                         continue;
@@ -1003,7 +1396,7 @@ namespace lsp
                             if (xbody->value.type == pExt->forge.Int)
                             {
                                 size_t pflags   = (reinterpret_cast<const LV2_Atom_Int *>(&xbody->value))->body;
-                                lsp_trace("pflags = %d", int(pflags));
+//                                lsp_trace("pflags = %d", int(pflags));
                                 if (pflags & LSP_LV2_PRIVATE)
                                     flags          |= core::KVT_PRIVATE;
                             }
