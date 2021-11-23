@@ -74,10 +74,8 @@ namespace lsp
                 lltl::parray<lv2::Port>         vMeshPorts;
                 lltl::parray<lv2::Port>         vFrameBufferPorts;
                 lltl::parray<lv2::Port>         vStreamPorts;
-                lltl::parray<lv2::Port>         vMidiInPorts;
-                lltl::parray<lv2::Port>         vMidiOutPorts;
-                lltl::parray<lv2::Port>         vOscInPorts;
-                lltl::parray<lv2::Port>         vOscOutPorts;
+                lltl::parray<lv2::Port>         vMidiPorts;
+                lltl::parray<lv2::Port>         vOscPorts;
                 lltl::parray<lv2::AudioPort>    vAudioPorts;
                 lltl::parray<meta::port_t>      vGenMetadata;   // Generated metadata
 
@@ -407,10 +405,8 @@ namespace lsp
             vExtPorts.flush();
             vMeshPorts.flush();
             vStreamPorts.flush();
-            vMidiInPorts.flush();
-            vMidiOutPorts.flush();
-            vOscInPorts.flush();
-            vOscOutPorts.flush();
+            vMidiPorts.flush();
+            vOscPorts.flush();
             vFrameBufferPorts.flush();
             vPluginPorts.flush();
             vGenMetadata.flush();
@@ -481,24 +477,22 @@ namespace lsp
 
                 case meta::R_MIDI:
                     if (pExt->atom_supported())
+                    {
                         result = new lv2::MidiPort(p, pExt);
+                        vMidiPorts.add(result);
+                    }
                     else
                         result = new lv2::Port(p, pExt, false);
-                    if (meta::is_out_port(p))
-                        vMidiOutPorts.add(result);
-                    else
-                        vMidiInPorts.add(result);
                     plugin_ports->add(result);
                     break;
                 case meta::R_OSC:
                     if (pExt->atom_supported())
+                    {
                         result = new lv2::OscPort(p, pExt);
+                        vOscPorts.add(result);
+                    }
                     else
                         result = new lv2::Port(p, pExt, false);
-                    if (meta::is_out_port(p))
-                        vOscOutPorts.add(result);
-                    else
-                        vOscInPorts.add(result);
                     plugin_ports->add(result);
                     break;
 
@@ -672,16 +666,29 @@ namespace lsp
             }
 
             // Call the main processing unit (split data buffers into chunks not greater than MaxBlockLength)
-            size_t n_in_ports = vAudioPorts.size();
+            size_t n_audio_ports = vAudioPorts.size();
             for (size_t off=0; off < samples; )
             {
                 size_t to_process = samples - off;
                 if (to_process > pExt->nMaxBlockLength)
                     to_process = pExt->nMaxBlockLength;
 
-                for (size_t i=0; i<n_in_ports; ++i)
-                    vAudioPorts.uget(i)->sanitize(off, to_process);
+                // Sanitize input data
+                for (size_t i=0; i<n_audio_ports; ++i)
+                {
+                    lv2::AudioPort *port = vAudioPorts.uget(i);
+                    if (meta::is_audio_in_port(port->metadata()))
+                        port->sanitize(off, to_process);
+                }
+                // Process samples
                 pPlugin->process(to_process);
+                // Sanitize output data
+                for (size_t i=0; i<n_audio_ports; ++i)
+                {
+                    lv2::AudioPort *port = vAudioPorts.uget(i);
+                    if (meta::is_audio_out_port(port->metadata()))
+                        port->sanitize(off, to_process);
+                }
 
                 off += to_process;
             }
@@ -712,22 +719,11 @@ namespace lsp
 
         void Wrapper::clear_midi_ports()
         {
-            // Clear all MIDI_IN ports
-            for (size_t i=0, n=vMidiInPorts.size(); i<n; ++i)
+            // Clear all MIDI ports
+            for (size_t i=0, n=vMidiPorts.size(); i<n; ++i)
             {
-                lv2::Port *p        = vMidiInPorts.uget(i);
-                if ((p == NULL) || (p->metadata()->role != meta::R_MIDI))
-                    continue;
-                plug::midi_t *midi  = p->buffer<plug::midi_t>();
-                if (midi != NULL)
-                    midi->clear();
-            }
-
-            // Clear all MIDI_OUT ports
-            for (size_t i=0, n=vMidiOutPorts.size(); i<n; ++i)
-            {
-                lv2::Port *p        = vMidiOutPorts.uget(i);
-                if ((p == NULL) || (p->metadata()->role != meta::R_MIDI))
+                lv2::Port *p        = vMidiPorts.uget(i);
+                if (!meta::is_midi_port(p->metadata()))
                     continue;
                 plug::midi_t *midi  = p->buffer<plug::midi_t>();
                 if (midi != NULL)
@@ -738,7 +734,7 @@ namespace lsp
         void Wrapper::receive_midi_event(const LV2_Atom_Event *ev)
         {
             // Are there any MIDI input ports in plugin?
-            if (vMidiInPorts.size() <= 0)
+            if (vMidiPorts.size() <= 0)
                 return;
 
             // Decode MIDI event
@@ -795,9 +791,9 @@ namespace lsp
             me.timestamp      = uint32_t(ev->time.frames);
 
             // For each MIDI port: add event to the queue
-            for (size_t i=0, n=vMidiInPorts.size(); i<n; ++i)
+            for (size_t i=0, n=vMidiPorts.size(); i<n; ++i)
             {
-                lv2::Port *midi = vMidiInPorts.uget(i);
+                lv2::Port *midi = vMidiPorts.uget(i);
                 if (!meta::is_midi_in_port(midi->metadata()))
                     continue;
                 plug::midi_t *buf   = midi->buffer<plug::midi_t>();
@@ -843,9 +839,9 @@ namespace lsp
                     pKVTDispatcher->submit(msg_start, msg_size);
                 else
                 {
-                    for (size_t i=0, n=vOscInPorts.size(); i<n; ++i)
+                    for (size_t i=0, n=vOscPorts.size(); i<n; ++i)
                     {
-                        lv2::Port *p = vOscInPorts.uget(i);
+                        lv2::Port *p = vOscPorts.uget(i);
                         if (!meta::is_osc_in_port(p->metadata()))
                             continue;
 
@@ -1371,19 +1367,19 @@ namespace lsp
             }
 
             // For each MIDI port, serialize it's data
-            for (size_t i=0, n_midi=vMidiOutPorts.size(); i<n_midi; ++i)
+            for (size_t i=0, n_midi=vMidiPorts.size(); i<n_midi; ++i)
             {
-                lv2::Port *p    = vMidiOutPorts.uget(i);
-                if (meta::is_midi_out_port(p->metadata()))
+                lv2::Port *p    = vMidiPorts.uget(i);
+                if (!meta::is_midi_out_port(p->metadata()))
                     continue;
                 transmit_midi_events(p);
             }
 
             // For each OSC port, serialize it's data
-            for (size_t i=0, n_osc=vOscOutPorts.size(); i<n_osc; ++i)
+            for (size_t i=0, n_osc=vOscPorts.size(); i<n_osc; ++i)
             {
-                lv2::Port *p    = vOscOutPorts.uget(i);
-                if (meta::is_osc_out_port(p->metadata()))
+                lv2::Port *p    = vOscPorts.uget(i);
+                if (!meta::is_osc_out_port(p->metadata()))
                     continue;
                 transmit_osc_events(p);
             }

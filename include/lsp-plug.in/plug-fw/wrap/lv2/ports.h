@@ -279,11 +279,15 @@ namespace lsp
                  void sanitize(size_t off, size_t samples)
                  {
                      pFrame  = reinterpret_cast<float *>(pBuffer) + off;
+
+                     // Sanitize plugin's input if possible
                      if (pSanitized != NULL)
                      {
-                         dsp::sanitize2(pSanitized, reinterpret_cast<float *>(pFrame), samples);
+                         dsp::sanitize2(pSanitized, pFrame, samples);
                          pFrame      = pSanitized;
                      }
+                     else if (meta::is_out_port(pMetadata))
+                         dsp::sanitize1(pFrame, samples); // Sanitize plugin's output
                  }
          };
 
