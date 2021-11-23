@@ -112,15 +112,20 @@ namespace lsp
             protected:
                 lv2::Port                      *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *meta, const char *postfix, bool virt);
                 void                            clear_midi_ports();
-                void                            receive_atoms(size_t samples);
-                void                            transmit_atoms(size_t samples);
                 void                            save_kvt_parameters();
                 void                            restore_kvt_parameters();
+
                 void                            transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req);
                 void                            transmit_time_position_to_clients();
                 void                            transmit_midi_events(lv2::Port *p);
                 void                            transmit_osc_events(lv2::Port *p);
                 void                            transmit_kvt_events();
+                void                            transmit_atoms(size_t samples);
+
+                void                            receive_midi_event(const LV2_Atom_Event *ev);
+                void                            receive_raw_osc_event(osc::parse_frame_t *frame);
+                void                            receive_atom_object(const LV2_Atom_Event *ev);
+                void                            receive_atoms(size_t samples);
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader, lv2::Extensions *ext);
@@ -173,6 +178,7 @@ namespace lsp
                 virtual const plug::position_t *position()              { return &sPosition; }
 
                 lv2::Port                      *port(const char *id);
+                lv2::Port                      *port_by_urid(LV2_URID urid);
 
                 void                            connect_direct_ui();
 
@@ -273,6 +279,24 @@ namespace lsp
         static ssize_t compare_ports_by_urid(const lv2::Port *a, const lv2::Port *b)
         {
             return ssize_t(a->get_urid()) - ssize_t(b->get_urid());
+        }
+
+        lv2::Port *Wrapper::port_by_urid(LV2_URID urid)
+        {
+            // Try to find the corresponding port
+            ssize_t first = 0, last = vPluginPorts.size() - 1;
+            while (first <= last)
+            {
+                size_t center   = (first + last) >> 1;
+                lv2::Port *p    = vPluginPorts.uget(center);
+                if (urid == p->get_urid())
+                    return p;
+                else if (urid < p->get_urid())
+                    last    = center - 1;
+                else
+                    first   = center + 1;
+            }
+            return NULL;
         }
 
         status_t Wrapper::init(float srate)
@@ -711,9 +735,331 @@ namespace lsp
             }
         }
 
+        void Wrapper::receive_midi_event(const LV2_Atom_Event *ev)
+        {
+            // Are there any MIDI input ports in plugin?
+            if (vMidiInPorts.size() <= 0)
+                return;
+
+            // Decode MIDI event
+            midi::event_t me;
+            const uint8_t *bytes        = reinterpret_cast<const uint8_t*>(ev + 1);
+
+            // Debug
+            #ifdef LSP_TRACE
+                #define TRACE_KEY(x)    case midi::MIDI_MSG_ ## x: evt_type = #x; break;
+                lsp_trace("midi dump: %02x %02x %02x", int(bytes[0]), int(bytes[1]), int(bytes[2]));
+
+                char tmp_evt_type[32];
+                const char *evt_type = NULL;
+                switch (me.type)
+                {
+                    TRACE_KEY(NOTE_OFF)
+                    TRACE_KEY(NOTE_ON)
+                    TRACE_KEY(NOTE_PRESSURE)
+                    TRACE_KEY(NOTE_CONTROLLER)
+                    TRACE_KEY(PROGRAM_CHANGE)
+                    TRACE_KEY(CHANNEL_PRESSURE)
+                    TRACE_KEY(PITCH_BEND)
+                    TRACE_KEY(SYSTEM_EXCLUSIVE)
+                    TRACE_KEY(MTC_QUARTER)
+                    TRACE_KEY(SONG_POS)
+                    TRACE_KEY(SONG_SELECT)
+                    TRACE_KEY(TUNE_REQUEST)
+                    TRACE_KEY(END_EXCLUSIVE)
+                    TRACE_KEY(CLOCK)
+                    TRACE_KEY(START)
+                    TRACE_KEY(CONTINUE)
+                    TRACE_KEY(STOP)
+                    TRACE_KEY(ACTIVE_SENSING)
+                    TRACE_KEY(RESET)
+                    default:
+                        snprintf(tmp_evt_type, sizeof(tmp_evt_type), "UNKNOWN(0x%02x)", int(me.type));
+                        evt_type = tmp_evt_type;
+                        break;
+                }
+
+                lsp_trace("MIDI Event: type=%s, timestamp=%ld", evt_type, (long)(me.timestamp));
+
+                #undef TRACE_KEY
+
+            #endif /* LSP_TRACE */
+
+            if (midi::decode(&me, bytes) <= 0)
+            {
+                lsp_warn("Could not decode MIDI message");
+                return;
+            }
+
+            // Put the event to the queue
+            me.timestamp      = uint32_t(ev->time.frames);
+
+            // For each MIDI port: add event to the queue
+            for (size_t i=0, n=vMidiInPorts.size(); i<n; ++i)
+            {
+                lv2::Port *midi = vMidiInPorts.uget(i);
+                if (!meta::is_midi_in_port(midi->metadata()))
+                    continue;
+                plug::midi_t *buf   = midi->buffer<plug::midi_t>();
+                if (buf == NULL)
+                    continue;
+                if (!buf->push(me))
+                    lsp_warn("MIDI event queue overflow");
+            }
+        }
+
+        void Wrapper::receive_raw_osc_event(osc::parse_frame_t *frame)
+        {
+            osc::parse_token_t token;
+            status_t res = osc::parse_token(frame, &token);
+            if (res != STATUS_OK)
+                return;
+
+            if (token == osc::PT_BUNDLE)
+            {
+                osc::parse_frame_t child;
+                uint64_t time_tag;
+                status_t res = osc::parse_begin_bundle(&child, frame, &time_tag);
+                if (res != STATUS_OK)
+                    return;
+                receive_raw_osc_event(&child); // Perform recursive call
+                osc::parse_end(&child);
+            }
+            else if (token == osc::PT_MESSAGE)
+            {
+                const void *msg_start;
+                size_t msg_size;
+                const char *msg_addr;
+
+                // Perform address lookup and routing
+                status_t res = osc::parse_raw_message(frame, &msg_start, &msg_size, &msg_addr);
+                if (res != STATUS_OK)
+                    return;
+
+                lsp_trace("Received OSC message of %d bytes, address=%s", int(msg_size), msg_addr);
+                osc::dump_packet(msg_start, msg_size);
+
+                if (::strstr(msg_addr, "/KVT/") == msg_addr)
+                    pKVTDispatcher->submit(msg_start, msg_size);
+                else
+                {
+                    for (size_t i=0, n=vOscInPorts.size(); i<n; ++i)
+                    {
+                        lv2::Port *p = vOscInPorts.uget(i);
+                        if (!meta::is_osc_in_port(p->metadata()))
+                            continue;
+
+                        // Submit message to the buffer
+                        plug::osc_buffer_t *buf = p->buffer<plug::osc_buffer_t>();
+                        if (buf != NULL)
+                            buf->submit(msg_start, msg_size);
+                    }
+                }
+            }
+        }
+
+        void Wrapper::receive_atom_object(const LV2_Atom_Event *ev)
+        {
+                // Analyze object type
+            const LV2_Atom_Object *obj = reinterpret_cast<const LV2_Atom_Object*>(&ev->body);
+    //        lsp_trace("obj->body.otype (%d) = %s", int(obj->body.otype), pExt->unmap_urid(obj->body.otype));
+    //        lsp_trace("obj->body.id (%d) = %s", int(obj->body.id), pExt->unmap_urid(obj->body.id));
+
+            if (obj->body.otype == pExt->uridPatchGet) // PatchGet request
+            {
+                lsp_trace("triggered patch request");
+                #ifdef LSP_TRACE
+                for (
+                    LV2_Atom_Property_Body *body = lv2_atom_object_begin(&obj->body) ;
+                    !lv2_atom_object_is_end(&obj->body, obj->atom.size, body) ;
+                    body = lv2_atom_object_next(body)
+                )
+                {
+                    lsp_trace("body->key (%d) = %s", int(body->key), pExt->unmap_urid(body->key));
+                    lsp_trace("body->value.type (%d) = %s", int(body->value.type), pExt->unmap_urid(body->value.type));
+                }
+                #endif /* LSP_TRACE */
+
+                // Increment the number of patch requests
+                nPatchReqs  ++;
+            }
+            else if (obj->body.otype == pExt->uridPatchSet) // PatchSet request
+            {
+                // Parse atom body
+                const LV2_Atom_URID    *key     = NULL;
+                const LV2_Atom         *value   = NULL;
+
+                for (
+                    LV2_Atom_Property_Body *body = lv2_atom_object_begin(&obj->body) ;
+                    !lv2_atom_object_is_end(&obj->body, obj->atom.size, body) ;
+                    body = lv2_atom_object_next(body)
+                )
+                {
+                    lsp_trace("body->key (%d) = %s", int(body->key), pExt->unmap_urid(body->key));
+                    lsp_trace("body->value.type (%d) = %s", int(body->value.type), pExt->unmap_urid(body->value.type));
+
+                    if ((body->key  == pExt->uridPatchProperty) && (body->value.type == pExt->uridAtomUrid))
+                    {
+                        key     = reinterpret_cast<const LV2_Atom_URID *>(&body->value);
+                        lsp_trace("body->value.body (%d) = %s", int(key->body), pExt->unmap_urid(key->body));
+                    }
+                    else if (body->key   == pExt->uridPatchValue)
+                        value   = &body->value;
+
+                    if ((key != NULL) && (value != NULL))
+                    {
+                        lv2::Port *p    = port_by_urid(key->body);
+                        if ((p != NULL) && (p->get_type_urid() == value->type))
+                        {
+                            lsp_trace("forwarding patch message to port %s", p->metadata()->id);
+                            if (p->deserialize(value, 0)) // No flags for simple PATCH message
+                            {
+                                // Change state if it is a virtual port
+                                if (p->is_virtual())
+                                    state_changed();
+                            }
+                        }
+
+                        key     = NULL;
+                        value   = NULL;
+                    }
+                }
+            }
+            else if (obj->body.otype == pExt->uridTimePosition) // Time position notification
+            {
+                plug::position_t pos    = sPosition;
+
+                pos.sampleRate          = fSampleRate;
+                pos.ticksPerBeat        = DEFAULT_TICKS_PER_BEAT;
+
+                for (
+                    LV2_Atom_Property_Body *body = lv2_atom_object_begin(&obj->body) ;
+                    !lv2_atom_object_is_end(&obj->body, obj->atom.size, body) ;
+                    body = lv2_atom_object_next(body)
+                )
+                {
+    //                lsp_trace("body->key (%d) = %s", int(body->key), pExt->unmap_urid(body->key));
+    //                lsp_trace("body->value.type (%d) = %s", int(body->value.type), pExt->unmap_urid(body->value.type));
+
+                    if ((body->key == pExt->uridTimeFrame) && (body->value.type == pExt->forge.Long))
+                        pos.frame           = (reinterpret_cast<LV2_Atom_Long *>(&body->value))->body;
+                    else if ((body->key == pExt->uridTimeSpeed) && (body->value.type == pExt->forge.Float))
+                        pos.speed           = (reinterpret_cast<LV2_Atom_Float *>(&body->value))->body;
+                    else if ((body->key == pExt->uridTimeBeatsPerMinute) && (body->value.type == pExt->forge.Float))
+                        pos.beatsPerMinute  = (reinterpret_cast<LV2_Atom_Float *>(&body->value))->body;
+                    else if ((body->key == pExt->uridTimeBeatUnit) && (body->value.type == pExt->forge.Int))
+                        pos.denominator     = (reinterpret_cast<LV2_Atom_Int *>(&body->value))->body;
+                    else if ((body->key == pExt->uridTimeBeatsPerBar) && (body->value.type == pExt->forge.Float))
+                        pos.numerator       = (reinterpret_cast<LV2_Atom_Float *>(&body->value))->body;
+                    else if ((body->key == pExt->uridTimeBarBeat) && (body->value.type == pExt->forge.Float))
+                        pos.tick            = (reinterpret_cast<LV2_Atom_Float *>(&body->value))->body * pos.ticksPerBeat;
+                }
+    //            lsp_trace("triggered timePosition event\n"
+    //                      "  frame      = %lld\n"
+    //                      "  speed      = %f\n"
+    //                      "  bpm        = %f\n"
+    //                      "  numerator  = %f\n"
+    //                      "  denominator= %f\n"
+    //                      "  tick       = %f\n",
+    //                      (long long)(pos.frame), pos.speed, pos.beatsPerMinute, pos.denominator, pos.numerator, pos.tick
+    //                    );
+
+                // Call plugin callback and update position
+                bUpdateSettings = pPlugin->set_position(&pos);
+                sPosition = pos;
+            }
+            else if (obj->body.otype == pExt->uridUINotification)
+            {
+                if (obj->body.id == pExt->uridConnectUI)
+                {
+                    nClients    ++;
+                    nStateReqs  ++;
+                    lsp_trace("UI has connected, current number of clients=%d", int(nClients));
+                    if (pKVTDispatcher != NULL)
+                        pKVTDispatcher->connect_client();
+
+                    // Notify all ports that UI has connected to backend
+                    for (size_t i=0, n = vAllPorts.size(); i<n; ++i)
+                    {
+                        lv2::Port *p = vAllPorts.get(i);
+                        if (p != NULL)
+                            p->ui_connected();
+                    }
+                }
+                else if (obj->body.id == pExt->uridDisconnectUI)
+                {
+                    nClients    --;
+                    if (pKVTDispatcher != NULL)
+                        pKVTDispatcher->disconnect_client();
+                    lsp_trace("UI has disconnected, current number of clients=%d", int(nClients));
+                }
+                else if (obj->body.id == pExt->uridDumpState)
+                {
+                    lsp_trace("Received DUMP_STATE event");
+                    atomic_add(&nDumpReq, 1);
+                }
+            }
+            else
+            {
+                lsp_trace("Unknown object: \n"
+                          "  ev->body.type (%d) = %s\n"
+                          "  obj->body.otype (%d) = %s\n"
+                          "  obj->body.id (%d) = %s",
+                         int(ev->body.type), pExt->unmap_urid(ev->body.type),
+                         int(obj->body.otype), pExt->unmap_urid(obj->body.otype),
+                         int(obj->body.id), pExt->unmap_urid(obj->body.id)
+                 );
+            }
+        }
+
         void Wrapper::receive_atoms(size_t samples)
         {
-            // TODO
+            // Update synchronization
+            if (nSyncTime <= 0)
+            {
+                size_t n_ports  = vMeshPorts.size();
+                for (size_t i=0; i<n_ports; ++i)
+                {
+                    plug::mesh_t *mesh  = vMeshPorts[i]->buffer<plug::mesh_t>();
+    //                lsp_trace("Mesh id=%s is waiting=%s", vMeshPorts[i]->metadata()->id, (mesh->isWaiting()) ? "true" : "false");
+                    if ((mesh != NULL) && (mesh->isWaiting()))
+                        mesh->cleanup();
+                }
+            }
+
+            // Get sequence
+            if (pAtomIn == NULL)
+                return;
+
+            const LV2_Atom_Sequence *seq = reinterpret_cast<const LV2_Atom_Sequence *>(pAtomIn);
+
+    //        lsp_trace("pSequence->atom.type (%d) = %s", int(pSequence->atom.type), pExt->unmap_urid(pSequence->atom.type));
+    //        lsp_trace("pSequence->atom.size = %d", int(pSequence->atom.size));
+
+            for (
+                const LV2_Atom_Event* ev = lv2_atom_sequence_begin(&seq->body);
+                !lv2_atom_sequence_is_end(&seq->body, seq->atom.size, ev);
+                ev = lv2_atom_sequence_next(ev)
+            )
+            {
+    //            lsp_trace("ev->body.type (%d) = %s", int(ev->body.type), pExt->unmap_urid(ev->body.type));
+                if (ev->body.type == pExt->uridMidiEventType)
+                    receive_midi_event(ev);
+                else if (ev->body.type == pExt->uridOscRawPacket)
+                {
+                    osc::parser_t parser;
+                    osc::parser_frame_t root;
+                    status_t res = osc::parse_begin(&root, &parser, &ev[1], ev->body.size);
+                    if (res == STATUS_OK)
+                    {
+                        receive_raw_osc_event(&root);
+                        osc::parse_end(&root);
+                        osc::parse_destroy(&parser);
+                    }
+                }
+                else if ((ev->body.type == pExt->uridObject) || (ev->body.type == pExt->uridBlank))
+                    receive_atom_object(ev);
+            }
         }
 
         void Wrapper::transmit_time_position_to_clients()
