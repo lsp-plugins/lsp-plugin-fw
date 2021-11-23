@@ -103,6 +103,7 @@ namespace lsp
             protected:
                 static int      process(jack_nframes_t nframes, void *arg);
                 static int      sync_buffer_size(jack_nframes_t nframes, void *arg);
+                static int      sync_sample_rate(jack_nframes_t nframes, void *arg);
                 static int      jack_sync(jack_transport_state_t state, jack_position_t *pos, void *arg);
                 static int      latency_callback(jack_latency_callback_mode_t mode, void *arg);
                 static void     shutdown(void *arg);
@@ -300,13 +301,13 @@ namespace lsp
             jack_on_shutdown(pClient, shutdown, this);
 
             // Determine size of buffer
-            size_t buf_size             = jack_get_buffer_size(pClient);
             if (jack_set_buffer_size_callback(pClient, sync_buffer_size, this))
             {
                 lsp_error("Could not setup buffer size callback");
                 nState = S_CONN_LOST;
                 return STATUS_DISCONNECTED;
             }
+            size_t buf_size             = jack_get_buffer_size(pClient);
 
             // Connect data ports
             for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
@@ -320,6 +321,12 @@ namespace lsp
             }
 
             // Set plugin sample rate and call for settings update
+            if (jack_set_sample_rate_callback(pClient, sync_sample_rate, this))
+            {
+                lsp_error("Could not setup sample rate callback");
+                nState = S_CONN_LOST;
+                return STATUS_DISCONNECTED;
+            }
             jack_nframes_t sr           = jack_get_sample_rate(pClient);
             pPlugin->set_sample_rate(sr);
             sPosition.sampleRate        = sr;
@@ -725,7 +732,7 @@ namespace lsp
 
         int Wrapper::sync_buffer_size(jack_nframes_t nframes, void *arg)
         {
-            jack::Wrapper *_this    = static_cast<jack::Wrapper *>(arg);
+            jack::Wrapper *_this        = static_cast<jack::Wrapper *>(arg);
 
             for (size_t i=0, n=_this->vDataPorts.size(); i<n; ++i)
             {
@@ -734,6 +741,15 @@ namespace lsp
                     p->set_buffer_size(nframes);
             }
 
+            return 0;
+        }
+
+        int Wrapper::sync_sample_rate(jack_nframes_t nframes, void *arg)
+        {
+            jack::Wrapper *_this        = static_cast<jack::Wrapper *>(arg);
+            _this->pPlugin->set_sample_rate(nframes);
+            _this->sPosition.sampleRate = nframes;
+            _this->bUpdateSettings      = true;
             return 0;
         }
 

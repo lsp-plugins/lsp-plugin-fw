@@ -193,9 +193,9 @@ namespace lsp
                 {
                     // Determine port type
                     const char *port_type = NULL;
-                    if (pMetadata->role == meta::R_AUDIO)
+                    if (meta::is_audio_port(pMetadata))
                         port_type = JACK_DEFAULT_AUDIO_TYPE;
-                    else if (pMetadata->role == meta::R_MIDI)
+                    else if (meta::is_midi_port(pMetadata))
                     {
                         port_type   = JACK_DEFAULT_MIDI_TYPE;
                         pMidi       = static_cast<plug::midi_t *>(::malloc(sizeof(plug::midi_t)));
@@ -229,7 +229,7 @@ namespace lsp
 
                 void set_buffer_size(size_t size)
                 {
-                    // set_buffer_size should affect only input audio ports currently
+                    // set_buffer_size should affect only input audio ports at this moment
                     if ((!meta::is_in_port(pMetadata)) || (pMidi != NULL))
                         return;
 
@@ -371,6 +371,9 @@ namespace lsp
                         // Cleanup the output buffer
                         pMidi->clear();
                     }
+                    else if (meta::is_audio_out_port(pMetadata))
+                        // Sanitize output data
+                        dsp::sanitize1(reinterpret_cast<float *>(pDataBuffer), samples);
 
                     pBuffer     = NULL;
                 }
