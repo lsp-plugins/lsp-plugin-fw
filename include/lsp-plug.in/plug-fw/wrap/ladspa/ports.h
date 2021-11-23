@@ -92,14 +92,13 @@ namespace lsp
                 void sanitize(size_t off, size_t samples)
                 {
                     pBuffer     = &pData[off];
-                    if (pSanitized == NULL)
-                        return;
-
-                    if (samples <= LADSPA_MAX_BLOCK_LENGTH)
+                    if (pSanitized != NULL)
                     {
-                        dsp::sanitize2(pSanitized, reinterpret_cast<float *>(pBuffer), samples);
+                        dsp::sanitize2(pSanitized, pBuffer, samples);
                         pBuffer     = pSanitized;
                     }
+                    else if (meta::is_out_port(pMetadata))
+                        dsp::sanitize1(pBuffer, samples); // Sanitize output of plugin
                 }
         };
 

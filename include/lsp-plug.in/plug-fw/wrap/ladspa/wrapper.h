@@ -315,9 +315,22 @@ namespace lsp
                 if (to_process > LADSPA_MAX_BLOCK_LENGTH)
                     to_process = LADSPA_MAX_BLOCK_LENGTH;
 
+                // Sanitize input data
                 for (size_t i=0; i<n_in_ports; ++i)
-                    vAudioPorts.uget(i)->sanitize(off, to_process);
+                {
+                    ladspa::AudioPort *port = vAudioPorts.uget(i);
+                    if (meta::is_audio_in_port(port->metadata()))
+                        port->sanitize(off, to_process);
+                }
+                // Process samples
                 pPlugin->process(to_process);
+                // Sanitize output data
+                for (size_t i=0; i<n_in_ports; ++i)
+                {
+                    ladspa::AudioPort *port = vAudioPorts.uget(i);
+                    if (meta::is_audio_out_port(port->metadata()))
+                        port->sanitize(off, to_process);
+                }
 
                 off += to_process;
             }

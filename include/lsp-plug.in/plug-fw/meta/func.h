@@ -60,6 +60,46 @@ namespace lsp
             return (p != NULL) && (p->role == R_AUDIO);
         }
 
+        static inline bool is_audio_in_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_AUDIO) && (!(p->flags & F_OUT));
+        }
+
+        static inline bool is_audio_out_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_AUDIO) && (p->flags & F_OUT);
+        }
+
+        static inline bool is_midi_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_MIDI);
+        }
+
+        static inline bool is_midi_in_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_MIDI) && (!(p->flags & F_OUT));
+        }
+
+        static inline bool is_midi_out_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_MIDI) && (p->flags & F_OUT);
+        }
+
+        static inline bool is_osc_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_OSC);
+        }
+
+        static inline bool is_osc_in_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_OSC) && (!(p->flags & F_OUT));
+        }
+
+        static inline bool is_osc_out_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_OSC) && (p->flags & F_OUT);
+        }
+
         static inline bool is_control_port(const port_t *p)
         {
             return (p != NULL) && (p->role == R_CONTROL);
