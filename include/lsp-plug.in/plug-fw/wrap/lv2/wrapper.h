@@ -32,6 +32,7 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/executor.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ports.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/sink.h>
 
 namespace lsp
 {
@@ -113,6 +114,8 @@ namespace lsp
                 void                            clear_midi_ports();
                 void                            receive_atoms(size_t samples);
                 void                            transmit_atoms(size_t samples);
+                void                            save_kvt_parameters();
+                void                            restore_kvt_parameters();
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader, lv2::Extensions *ext);
@@ -713,13 +716,393 @@ namespace lsp
             // TODO
         }
 
+        void Wrapper::save_kvt_parameters()
+        {
+            const core::kvt_param_t *p;
+
+            status_t res    = STATUS_OK;
+
+            // We should use our own forge to prevent from race condition
+            LV2_Atom_Forge forge;
+            LV2_Atom_Forge_Frame frame;
+            lv2::lv2_sink   sink(0x100);
+
+            // Initialize sink
+            lv2_atom_forge_init(&forge, pExt->map);
+            lv2_atom_forge_set_sink(&forge, lv2_sink::sink, lv2_sink::deref, &sink);
+            lv2_atom_forge_object(&forge, &frame, 0, pExt->uridKvtType);
+
+            // Read the whole KVT storage
+            core::KVTIterator *it = sKVT.enum_all();
+            while (it->next() == STATUS_OK)
+            {
+                res             = it->get(&p);
+                if (res == STATUS_NOT_FOUND) // Not a parameter
+                    continue;
+                else if (res != STATUS_OK)
+                {
+                    lsp_warn("it->get() returned %d", int(res));
+                    break;
+                }
+                else if (it->is_transient()) // Skip transient parameters
+                    continue;
+
+                int flags       = 0;
+                if (it->is_private())
+                    flags          |= LSP_LV2_PRIVATE;
+
+                const char *name = it->name();
+                if (name == NULL)
+                {
+                    lsp_trace("it->name() returned NULL");
+                    break;
+                }
+
+                kvt_dump_parameter("Saving state of KVT parameter: %s = ", p, name);
+
+                LV2_URID key        =  pExt->map_kvt(name);
+
+                LV2_Atom_Forge_Frame prop;
+                lv2_atom_forge_key(&forge, key);
+                lv2_atom_forge_object(&forge, &prop, 0, pExt->uridKvtPropertyType);
+                lv2_atom_forge_key(&forge, pExt->uridKvtPropertyFlags);
+                lv2_atom_forge_int(&forge, flags);
+
+                switch (p->type)
+                {
+                    case core::KVT_INT32:
+                    case core::KVT_UINT32:
+                    {
+                        LV2_Atom_Int v;
+                        v.atom.type     = (p->type == core::KVT_INT32) ? pExt->forge.Int : pExt->uridTypeUInt;
+                        v.atom.size     = sizeof(v) - sizeof(LV2_Atom);
+                        v.body          = p->i32;
+
+                        lv2_atom_forge_key(&forge, pExt->uridKvtPropertyValue);
+                        lv2_atom_forge_primitive(&forge, &v.atom);
+                        break;
+                    }
+
+                    case core::KVT_INT64:
+                    case core::KVT_UINT64:
+                    {
+                        LV2_Atom_Long v;
+                        v.atom.type     = (p->type == core::KVT_INT64) ? pExt->forge.Long : pExt->uridTypeULong;
+                        v.atom.size     = sizeof(v) - sizeof(LV2_Atom);
+                        v.body          = p->i64;
+                        lv2_atom_forge_key(&forge, pExt->uridKvtPropertyValue);
+                        lv2_atom_forge_primitive(&forge, &v.atom);
+                        break;
+                    }
+                    case core::KVT_FLOAT32:
+                    {
+                        LV2_Atom_Float v;
+                        v.atom.type     = pExt->forge.Float;
+                        v.atom.size     = sizeof(v) - sizeof(LV2_Atom);
+                        v.body          = p->f32;
+                        lv2_atom_forge_key(&forge, pExt->uridKvtPropertyValue);
+                        lv2_atom_forge_primitive(&forge, &v.atom);
+                        break;
+                    }
+                    case core::KVT_FLOAT64:
+                    {
+                        LV2_Atom_Double v;
+                        v.atom.type     = pExt->forge.Double;
+                        v.atom.size     = sizeof(v) - sizeof(LV2_Atom);
+                        v.body          = p->f64;
+                        lv2_atom_forge_key(&forge, pExt->uridKvtPropertyValue);
+                        lv2_atom_forge_primitive(&forge, &v.atom);
+                        break;
+                    }
+                    case core::KVT_STRING:
+                    {
+                        lv2_atom_forge_key(&forge, pExt->uridKvtPropertyValue);
+                        const char *str = (p->str != NULL) ? p->str : "";
+                        lv2_atom_forge_typed_string(&forge, forge.String, str, ::strlen(str));
+                        break;
+                    }
+                    case core::KVT_BLOB:
+                    {
+                        LV2_Atom_Forge_Frame obj;
+
+                        lv2_atom_forge_key(&forge, pExt->uridKvtPropertyValue);
+                        lv2_atom_forge_object(&forge, &obj, 0, pExt->uridBlobType);
+                        {
+                            if (p->blob.ctype != NULL)
+                            {
+                                lv2_atom_forge_key(&forge, pExt->uridContentType);
+                                lv2_atom_forge_typed_string(&forge, forge.String, p->blob.ctype, ::strlen(p->blob.ctype));
+                            }
+
+                            uint32_t size = ((p->blob.size > 0) && (p->blob.data != NULL)) ? p->blob.size : 0;
+                            lv2_atom_forge_key(&forge, pExt->uridContent);
+                            lv2_atom_forge_atom(&forge, size, forge.Chunk);
+                            if (size > 0)
+                                lv2_atom_forge_write(&forge, p->blob.data, size);
+                        }
+                        lv2_atom_forge_pop(&forge, &obj);
+                        break;
+                    }
+
+                    default:
+                        res     = STATUS_BAD_TYPE;
+                        break;
+                }
+
+                lv2_atom_forge_pop(&forge, &prop);
+
+                // Successful status?
+                if (res != STATUS_OK)
+                    break;
+            } // while
+
+            if ((res == STATUS_OK) && (sink.res == STATUS_OK))
+            {
+                // TEST
+                /*{
+                    kvt_param_t xp;
+                    xp.blob.ctype   = "text/plain";
+                    xp.blob.data    = "Test text";
+                    xp.blob.size    = strlen("Test text") + 1;
+                    p = &xp;
+
+                    LV2_Atom_Forge_Frame obj;
+                    LV2_URID key        =  pExt->map_kvt("/TEST_BLOB");
+
+                    lv2_atom_forge_key(&forge, key);
+                    lv2_atom_forge_object(&forge, &obj, 0, pExt->uridBlobType);
+                    {
+                        if (p->blob.ctype != NULL)
+                        {
+                            lv2_atom_forge_key(&forge, pExt->uridContentType);
+                            lv2_atom_forge_typed_string(&forge, forge.String, p->blob.ctype, ::strlen(p->blob.ctype));
+                        }
+
+                        uint32_t size = ((p->blob.size > 0) && (p->blob.data != NULL)) ? p->blob.size : 0;
+                        lv2_atom_forge_key(&forge, pExt->uridContent);
+                        lv2_atom_forge_atom(&forge, size, forge.Chunk);
+                        if (size > 0)
+                            lv2_atom_forge_write(&forge, p->blob.data, size);
+                    }
+                    lv2_atom_forge_pop(&forge, &obj);
+                }*/
+
+                lv2_atom_forge_pop(&forge, &frame);
+                LV2_Atom *msg = reinterpret_cast<LV2_Atom *>(sink.buf);
+                pExt->store_value(pExt->uridKvtObject, msg->type, &msg[1], msg->size);
+            }
+            else
+                lsp_trace("Failed execution, result=%d, sink state=%d", int(res), int(sink.res));
+        }
+
         void Wrapper::save_state(
                 LV2_State_Store_Function   store,
                 LV2_State_Handle           handle,
                 uint32_t                   flags,
                 const LV2_Feature *const * features)
         {
-            // TODO
+            pExt->init_state_context(store, NULL, handle, flags, features);
+
+            // Mark state as synchronized
+            nStateMode      = SM_SYNC;
+            lsp_trace("#STATE MODE = %d", nStateMode);
+
+            // Save state of all ports
+            size_t ports_count = vAllPorts.size();
+
+            for (size_t i=0; i<ports_count; ++i)
+            {
+                // Get port
+                lv2::Port *lvp      = vAllPorts[i];
+                if (lvp == NULL)
+                    continue;
+
+                // Save state of port
+                lvp->save();
+            }
+
+            // Save state of all KVT parameters
+            if (sKVTMutex.lock())
+            {
+                save_kvt_parameters();
+                sKVT.gc();
+                sKVTMutex.unlock();
+            }
+
+            pExt->reset_state_context();
+            pPlugin->state_saved();
+        }
+
+        void Wrapper::restore_kvt_parameters()
+        {
+            uint32_t p_type;
+            size_t p_size;
+            const void *ptr = pExt->retrieve_value(pExt->uridKvtObject, &p_type, &p_size);
+            size_t prefix_len = ::strlen(pExt->uriKvt);
+            if (ptr == NULL)
+                return;
+
+//            lsp_dumpb("Contents of the atom object:", ptr, p_size);
+            lsp_trace("p_type = %d (%s), p_size = %d", int(p_type), pExt->unmap_urid(p_type), int(p_size));
+
+            if ((p_type == pExt->forge.Object) || (p_type == pExt->uridBlank))
+            {
+                const LV2_Atom_Object_Body *obody = reinterpret_cast<const LV2_Atom_Object_Body *>(ptr);
+
+                for (
+                    LV2_Atom_Property_Body *body = lv2_atom_object_begin(obody) ;
+                    !lv2_atom_object_is_end(obody, p_size, body) ;
+                    body = lv2_atom_object_next(body)
+                )
+                {
+//                    lsp_trace("body->key (%d) = %s", int(body->key), pExt->unmap_urid(body->key));
+//                    lsp_trace("body->value.type (%d) = %s", int(body->value.type), pExt->unmap_urid(body->value.type));
+
+                    const LV2_Atom_Object *pobject = reinterpret_cast<const LV2_Atom_Object *>(&body->value);
+                    if ((pobject->atom.type != pExt->uridObject) && (pobject->atom.type != pExt->uridBlank))
+                    {
+                        lsp_warn("Unsupported value type (%d) = %s", int(body->value.type), pExt->unmap_urid(body->value.type));
+                        continue;
+                    }
+//                    lsp_trace("pobject->body.otype (%d) = %s", int(pobject->body.otype), pExt->unmap_urid(pobject->body.otype));
+                    if (pobject->body.otype != pExt->uridKvtPropertyType)
+                    {
+                        lsp_warn("Unsupported object type (%d) = %s", int(pobject->body.otype), pExt->unmap_urid(pobject->body.otype));
+                        continue;
+                    }
+
+                    const char *uri = pExt->unmap_urid(body->key);
+                    if (::strncmp(uri, pExt->uriKvt, prefix_len) != uri)
+                    {
+                        lsp_warn("Invalid property: urid=%d, uri=%s", body->key, uri);
+                        continue;
+                    }
+                    if (uri[prefix_len] != '/')
+                    {
+                        lsp_warn("Invalid property: urid=%d, uri=%s", body->key, uri);
+                        continue;
+                    }
+
+                    const char *name = &uri[prefix_len + 1];
+                    core::kvt_param_t p;
+                    size_t flags    = core::KVT_TX;
+                    p.type          = core::KVT_ANY;
+
+                    for (
+                        LV2_Atom_Property_Body *xbody = lv2_atom_object_begin(&pobject->body) ;
+                        !lv2_atom_object_is_end(&pobject->body, body->value.size, xbody) ;
+                        xbody = lv2_atom_object_next(xbody)
+                    )
+                    {
+//                        lsp_trace("xbody->key (%d) = %s", int(xbody->key), pExt->unmap_urid(xbody->key));
+//                        lsp_trace("xbody->value.type (%d) = %s", int(xbody->value.type), pExt->unmap_urid(xbody->value.type));
+
+                        // Analyze type of value
+                        if (xbody->key == pExt->uridKvtPropertyFlags)
+                        {
+                            if (xbody->value.type == pExt->forge.Int)
+                            {
+                                size_t pflags   = (reinterpret_cast<const LV2_Atom_Int *>(&xbody->value))->body;
+                                lsp_trace("pflags = %d", int(pflags));
+                                if (pflags & LSP_LV2_PRIVATE)
+                                    flags          |= core::KVT_PRIVATE;
+                            }
+                        }
+                        else if (xbody->key == pExt->uridKvtPropertyValue)
+                        {
+                            p_type      = xbody->value.type;
+
+                            if (p_type == pExt->forge.Int)
+                            {
+                                p.type  = core::KVT_INT32;
+                                p.i32   = (reinterpret_cast<const LV2_Atom_Int *>(&xbody->value))->body;
+                            }
+                            else if (p_type == pExt->uridTypeUInt)
+                            {
+                                p.type  = core::KVT_UINT32;
+                                p.u32   = (reinterpret_cast<const LV2_Atom_Int *>(&xbody->value))->body;
+                            }
+                            else if (p_type == pExt->forge.Long)
+                            {
+                                p.type  = core::KVT_INT64;
+                                p.i64   = (reinterpret_cast<const LV2_Atom_Long *>(&xbody->value))->body;
+                            }
+                            else if (p_type == pExt->uridTypeULong)
+                            {
+                                p.type  = core::KVT_UINT64;
+                                p.u64   = (reinterpret_cast<const LV2_Atom_Long *>(&xbody->value))->body;
+                            }
+                            else if (p_type == pExt->forge.Float)
+                            {
+                                p.type  = core::KVT_FLOAT32;
+                                p.f32   = (reinterpret_cast<const LV2_Atom_Float *>(&xbody->value))->body;
+                            }
+                            else if (p_type == pExt->forge.Double)
+                            {
+                                p.type  = core::KVT_FLOAT64;
+                                p.f64   = (reinterpret_cast<const LV2_Atom_Double *>(&xbody->value))->body;
+                            }
+                            else if (p_type == pExt->forge.String)
+                            {
+                                p.type  = core::KVT_STRING;
+                                p.str   = reinterpret_cast<const char *>(&body[1]);
+                            }
+                            else if ((p_type == pExt->uridObject) || (p_type == pExt->uridBlank))
+                            {
+                                const LV2_Atom_Object *obj = reinterpret_cast<const LV2_Atom_Object *>(&xbody->value);
+                                lsp_trace("obj->atom.type = %d (%s), obj->body.id = %d (%s), obj->body.otype = %d (%s)",
+                                        obj->atom.type, pExt->unmap_urid(obj->atom.type),
+                                        obj->body.id, pExt->unmap_urid(obj->body.id),
+                                        obj->body.otype, pExt->unmap_urid(obj->body.otype)
+                                        );
+
+                                if (obj->body.otype != pExt->uridBlobType)
+                                    break;
+
+                                // Read the value
+                                p.blob.ctype    = NULL;
+                                p.blob.data     = NULL;
+                                p.blob.size     = ~size_t(0);
+
+                                for (
+                                    LV2_Atom_Property_Body *blob = lv2_atom_object_begin(&obj->body) ;
+                                    !lv2_atom_object_is_end(&obj->body, obj->atom.size, blob) ;
+                                    blob = lv2_atom_object_next(blob)
+                                )
+                                {
+                                    lsp_trace("blob->key (%d) = %s", int(blob->key), pExt->unmap_urid(blob->key));
+                                    lsp_trace("blob->value.type (%d) = %s", int(blob->value.type), pExt->unmap_urid(blob->value.type));
+
+                                    if ((blob->key == pExt->uridContentType) && (blob->value.type == pExt->forge.String))
+                                        p.blob.ctype    = reinterpret_cast<const char *>(&blob[1]);
+                                    else if ((blob->key == pExt->uridContent) && (blob->value.type == pExt->forge.Chunk))
+                                    {
+                                        p.blob.size     = blob->value.size;
+                                        if (p.blob.size > 0)
+                                            p.blob.data     = &blob[1];
+                                    }
+                                }
+
+                                // Change type
+                                if (p.blob.size != (~size_t(0)))
+                                    p.type          = core::KVT_BLOB;
+                            }
+                        }
+                    }
+
+                    // Store property
+                    if (p.type != core::KVT_ANY)
+                    {
+                        kvt_dump_parameter("Fetched parameter %s = ", &p, name);
+                        status_t res = sKVT.put(name, &p, flags);
+                        if (res != STATUS_OK)
+                            lsp_warn("Could not store parameter to KVT");
+                    }
+                    else
+                        lsp_warn("KVT property %s has unsupported type or is invalid: 0x%x (%s)",
+                                name, p_type, pExt->unmap_urid(p_type));
+                }
+            } // for
         }
 
         void Wrapper::restore_state(
@@ -729,7 +1112,35 @@ namespace lsp
             const LV2_Feature *const *  features
         )
         {
-            // TODO
+            pExt->init_state_context(NULL, retrieve, handle, flags, features);
+
+            // Restore posts state
+            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+            {
+                // Get port
+                lv2::Port *lvp  = vAllPorts[i];
+                if (lvp == NULL)
+                    continue;
+
+                // Restore state of port
+                lvp->restore();
+            }
+
+            // Restore KVT state
+            if (sKVTMutex.lock())
+            {
+                // Clear KVT
+                sKVT.clear();
+                restore_kvt_parameters();
+                sKVT.gc();
+                sKVTMutex.unlock();
+            }
+
+            pExt->reset_state_context();
+            pPlugin->state_loaded();
+
+            nStateMode = SM_LOADING;
+            lsp_trace("#STATE MODE = %d", nStateMode);
         }
 
         bool Wrapper::change_state_atomic(state_mode_t from, state_mode_t to)
