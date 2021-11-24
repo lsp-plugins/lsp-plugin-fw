@@ -119,6 +119,7 @@ CXX_SRC_UI                  = $(call rwildcard, main/ui, *.cpp)
 CXX_SRC_CTL                 = $(call rwildcard, main/ctl, *.cpp)
 CXX_SRC_WRAP_JACK           = wrap/jack.cpp
 CXX_SRC_WRAP_LADSPA         = wrap/ladspa.cpp
+CXX_SRC_WRAP_LV2            = wrap/lv2.cpp
 CXX_SRC_WRAP_CAIRO          = $(call rwildcard, wrap/cairo, *.cpp)
 CXX_SRC_UTIL                = $(call rwildcard, util, *.cpp)
 CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
@@ -130,6 +131,7 @@ CXX_SRC                     = \
   $(CXX_SRC_CTL) \
   $(CXX_SRC_WRAP_JACK) \
   $(CXX_SRC_WRAP_LADSPA) \
+  $(CXX_SRC_WRAP_LV2) \
   $(CXX_SRC_WRAP_CAIRO) \
   $(CXX_SRC_UTIL)
 
@@ -141,6 +143,7 @@ HOST_CXX_SRC_UI             = $(CXX_SRC_UI)
 HOST_CXX_SRC_CTL            = $(CXX_SRC_CTL)
 HOST_CXX_SRC_WRAP_JACK      = $(CXX_SRC_WRAP_JACK)
 HOST_CXX_SRC_WRAP_LADSPA    = $(CXX_SRC_WRAP_LADSPA)
+HOST_CXX_SRC_WRAP_LV2       = $(CXX_SRC_WRAP_LV2)
 HOST_CXX_SRC_WRAP_CAIRO     = $(CXX_SRC_WRAP_CAIRO)
 HOST_CXX_SRC_UTIL           = $(CXX_SRC_UTIL)
 HOST_CXX_SRC_TEST           = $(CXX_SRC_TEST)
@@ -152,6 +155,7 @@ HOST_CXX_SRC                = \
   $(HOST_CXX_SRC_CTL) \
   $(HOST_CXX_SRC_WRAP_JACK) \
   $(HOST_CXX_SRC_WRAP_LADSPA) \
+  $(HOST_CXX_SRC_WRAP_LV2) \
   $(HOST_CXX_SRC_WRAP_CAIRO) \
   $(HOST_CXX_SRC_UTIL)
 
@@ -164,6 +168,7 @@ OBJ_UI                      = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_
 OBJ_CTL                     = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_CTL))
 OBJ_WRAP_JACK               = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_JACK))
 OBJ_WRAP_LADSPA             = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_LADSPA))
+OBJ_WRAP_LV2                = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_LV2))
 OBJ_WRAP_CAIRO              = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_CAIRO))
 OBJ_UTIL                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UTIL))
 OBJ_TEST                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_TEST))
@@ -176,6 +181,7 @@ OBJ                         = \
   $(OBJ_UTIL) \
   $(OBJ_WRAP_JACK) \
   $(OBJ_WRAP_LADSPA) \
+  $(OBJ_WRAP_LV2) \
   $(OBJ_WRAP_CAIRO)
 
 ifeq ($(TEST),1)
@@ -193,6 +199,7 @@ HOST_OBJ_UI                 = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $
 HOST_OBJ_CTL                = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_CTL))
 HOST_OBJ_WRAP_JACK          = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_JACK))
 HOST_OBJ_WRAP_LADSPA        = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_LADSPA))
+HOST_OBJ_WRAP_LV2           = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_LV2))
 HOST_OBJ_WRAP_CAIRO         = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_CAIRO))
 HOST_OBJ_UTIL               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_UTIL))
 HOST_OBJ_TEST               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_TEST))
@@ -205,6 +212,7 @@ HOST_OBJ                    = \
   $(HOST_OBJ_UTIL) \
   $(HOST_OBJ_WRAP_JACK) \
   $(HOST_OBJ_WRAP_LADSPA) \
+  $(HOST_OBJ_WRAP_LV2) \
   $(HOST_OBJ_WRAP_CAIRO)
 
 ifeq ($(TEST),1)
@@ -290,6 +298,18 @@ ARTIFACT_LIB_LADSPA_OBJS    = \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_WRAP_LADSPA)
+  
+ARTIFACT_LIB_LV2            = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-lv2-$(ARTIFACT_VERSION)$(LIBRARY_EXT)
+ARTIFACT_LIB_LV2_DEPS       = $(foreach dep, $(call uniq, $(DEPENDENCIES_LV2)), $(if $($(dep)_OBJ), $(dep)))
+ARTIFACT_LIB_LV2_LIBS       = $(foreach dep, $(call uniq, $(DEPENDENCIES_LV2)), $($(dep)_OBJ))
+ARTIFACT_LIB_LV2_LDFLAGS    = $(foreach dep, $(call uniq, $(DEPENDENCIES_LV2)), $($(dep)_LDFLAGS))
+ARTIFACT_LIB_LV2_OBJS       = \
+  $(LSP_PLUGIN_FW_OBJ_CORE) \
+  $(LSP_PLUGIN_FW_OBJ_META) \
+  $(LSP_PLUGIN_FW_OBJ_DSP) \
+  $(OBJ_PLUG_META) \
+  $(OBJ_PLUG_DSP) \
+  $(OBJ_WRAP_LV2)
 
 BIN_INSTALL                 = $(foreach dep, $(BIN_DEPENDENCIES), install_$(dep))
 BIN_ARTIFACT_ID             = $(patsubst install_%,%,$(@))
@@ -382,6 +402,8 @@ $(OBJ_WRAP_JACK): EXT_FLAGS=$(WRAP_JACK_CFLAGS)
 
 $(OBJ_WRAP_LADSPA): EXT_FLAGS=$(WRAP_LADSPA_CFLAGS)
 
+$(OBJ_WRAP_LV2): EXT_FLAGS=$(WRAP_LV2_CFLAGS)
+
 $(OBJ_WRAP_CAIRO): EXT_FLAGS=$(WRAP_CAIRO_CFLAGS)
 
 ifeq ($(BUILD_HOST),1)
@@ -394,6 +416,8 @@ $(HOST_OBJ):
 $(HOST_OBJ_WRAP_JACK): EXT_FLAGS=$(HOST_WRAP_JACK_CFLAGS)
 
 $(HOST_OBJ_WRAP_LADSPA): EXT_FLAGS=$(HOST_WRAP_LADSPA_CFLAGS)
+
+$(HOST_OBJ_WRAP_LV2): EXT_FLAGS=$(HOST_WRAP_LV2_CFLAGS)
 
 $(HOST_OBJ_WRAP_CAIRO): EXT_FLAGS=$(HOST_WRAP_CAIRO_CFLAGS)
 
@@ -509,6 +533,11 @@ $(ARTIFACT_LIB_LADSPA): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(OBJ_WRAP
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_LADSPA))"
 	echo $(CXX) -o $(ARTIFACT_LIB_LADSPA) $(ARTIFACT_LIB_LADSPA_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_LADSPA_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LADSPA_LDFLAGS)
 	$(CXX) -o $(ARTIFACT_LIB_LADSPA) $(ARTIFACT_LIB_LADSPA_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_LADSPA_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LADSPA_LDFLAGS)
+	
+$(ARTIFACT_LIB_LV2): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(OBJ_WRAP_LV2) $(ARTIFACT_LIB_LV2_DEPS) $(PLUG_DEPS)
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_LV2))"
+	echo $(CXX) -o $(ARTIFACT_LIB_LV2) $(ARTIFACT_LIB_LV2_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_LV2_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LV2_LDFLAGS)
+	$(CXX) -o $(ARTIFACT_LIB_LV2) $(ARTIFACT_LIB_LV2_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_LV2_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LV2_LDFLAGS)
 
 # All targets
 resources: $(UTL_REPOSITORY)
@@ -534,7 +563,9 @@ jack: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
 
 ladspa: $(ARTIFACT_LIB_LADSPA) 
 
-all: jack ladspa
+lv2: $(ARTIFACT_LIB_LV2)
+
+all: jack ladspa lv2
 
 #------------------------------------------------------------------------------
 # Installation
