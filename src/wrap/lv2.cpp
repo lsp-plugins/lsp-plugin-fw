@@ -23,6 +23,7 @@
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/runtime/static.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 
@@ -126,7 +127,9 @@ namespace lsp
             if (loader != NULL)
             {
                 // Create LV2 extension handler
-                lv2::Extensions *ext = new lv2::Extensions(features, meta->lv2_uri, "", "", NULL, NULL); // TODO: add URLs
+                lv2::Extensions *ext = new lv2::Extensions(features,
+                        meta->lv2_uri, LSP_LV2_TYPES_URI, LSP_LV2_UI_URI,
+                        NULL, NULL);
                 if (ext != NULL)
                 {
                     // Create LV2 plugin wrapper

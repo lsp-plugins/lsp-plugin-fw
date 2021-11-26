@@ -37,6 +37,11 @@ namespace lsp
 {
     namespace lv2
     {
+        #define LSP_LV2_BASE_URI            "http://lsp-plug.in/"
+        #define LSP_LV2_TYPES_URI           LSP_LV2_BASE_URI "types/lv2"
+        #define LSP_LV2_UI_URI              LSP_LV2_BASE_URI "ui/lv2"
+        #define LSP_LV2_KVT_URI             LSP_LV2_BASE_URI "ui/kvt"
+
         #define LSP_LV2_ATOM_KEY_SIZE       (sizeof(uint32_t) * 2)
         #define LSP_LV2_SIZE_PAD(size)      ::lsp::align_size((size + 0x200), 0x200)
 

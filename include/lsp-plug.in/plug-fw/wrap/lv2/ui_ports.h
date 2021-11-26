@@ -286,7 +286,7 @@ namespace lsp
             public:
                 explicit UIMeshPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *xport) : UIPort(meta, ext)
                 {
-                    sMesh.init(meta, ext);
+                    sMesh.init(meta);
                     bParsed     = false;
                     pPort       = NULL;
 

@@ -309,20 +309,20 @@ namespace lsp
                     uridObject                  = forge.Object;
                     uridBlank                   = map_uri(LV2_ATOM__Blank);
                     uridStateChanged            = map_uri(LV2_STATE__StateChanged);
-                    uridUINotification          = map_type("UINotification");
+                    uridUINotification          = map_type_legacy("UINotification");
                     uridConnectUI               = map_primitive("ui_connect");
                     uridDisconnectUI            = map_primitive("ui_disconnect");
                     uridDumpState               = map_primitive("dumpState");
                     uridPathType                = forge.Path;
                     uridMidiEventType           = map_uri(LV2_MIDI__MidiEvent);
                     uridKvtObject               = map_primitive("KVT");
-                    uridKvtType                 = map_type("KVT");
-                    uridKvtPropertyType         = map_type("KVTProperty");
-                    uridKvtPropertyValue        = map_field("KVTProperty#value");
-                    uridKvtPropertyFlags        = map_field("KVTProperty#flags");
-                    uridBlobType                = map_type("Blob");
-                    uridContentType             = map_field("Blob#ContentType");
-                    uridContent                 = map_field("Blob#Content");
+                    uridKvtType                 = map_type_legacy("KVT");
+                    uridKvtPropertyType         = map_type_legacy("KVTProperty");
+                    uridKvtPropertyValue        = map_field("KVTProperty", "value");
+                    uridKvtPropertyFlags        = map_field("KVTProperty", "flags");
+                    uridBlobType                = map_type_legacy("Blob");
+                    uridContentType             = map_field("Blob", "ContentType");
+                    uridContent                 = map_field("Blob", "Content");
 
                     uridTypeUInt                = map_uri(LV2_ATOM_PREFIX "UInt" );
                     uridTypeULong               = map_uri(LV2_ATOM_PREFIX "ULong" );
@@ -365,25 +365,25 @@ namespace lsp
                     uridOscRawPacket            = map_uri(LV2_OSC__RawPacket);
 
                     // LSP-related URIDs
-                    uridMeshType                = map_type("Mesh");
-                    uridMeshItems               = map_field("Mesh#items");
-                    uridMeshDimensions          = map_field("Mesh#dimensions");
-                    uridMeshData                = map_field("Mesh#data");
+                    uridMeshType                = map_type_legacy("Mesh");
+                    uridMeshItems               = map_field("Mesh", "items");
+                    uridMeshDimensions          = map_field("Mesh", "dimensions");
+                    uridMeshData                = map_field("Mesh", "data");
 
-                    uridFrameBufferType         = map_type("FrameBuffer");
-                    uridFrameBufferRows         = map_field("FrameBuffer#rows");
-                    uridFrameBufferCols         = map_field("FrameBuffer#columns");
-                    uridFrameBufferFirstRowID   = map_field("FrameBuffer#firstRowID");
-                    uridFrameBufferLastRowID    = map_field("FrameBuffer#lastRowID");
-                    uridFrameBufferData         = map_field("FrameBuffer#data");
+                    uridFrameBufferType         = map_type_legacy("FrameBuffer");
+                    uridFrameBufferRows         = map_field("FrameBuffer", "rows");
+                    uridFrameBufferCols         = map_field("FrameBuffer", "columns");
+                    uridFrameBufferFirstRowID   = map_field("FrameBuffer", "firstRowID");
+                    uridFrameBufferLastRowID    = map_field("FrameBuffer", "lastRowID");
+                    uridFrameBufferData         = map_field("FrameBuffer", "data");
 
-                    uridStreamType              = map_type("Stream");
-                    uridStreamDimensions        = map_field("Stream#dimensions");
-                    uridStreamFrame             = map_field("Stream#frame");
-                    uridStreamFrameType         = map_type("StreamFrame");
-                    uridStreamFrameId           = map_field("StreamFrame#id");
-                    uridStreamFrameSize         = map_field("StreamFrame#size");
-                    uridStreamFrameData         = map_field("StreamFrame#data");
+                    uridStreamType              = map_type_legacy("Stream");
+                    uridStreamDimensions        = map_field("Stream", "dimensions");
+                    uridStreamFrame             = map_field("Stream", "frame");
+                    uridStreamFrameType         = map_type_legacy("StreamFrame");
+                    uridStreamFrameId           = map_field("StreamFrame", "id");
+                    uridStreamFrameSize         = map_field("StreamFrame", "size");
+                    uridStreamFrameData         = map_field("StreamFrame", "data");
 
                     // Decode passed options if they are present
                     if (opts != NULL)
@@ -617,14 +617,19 @@ namespace lsp
                     return map_uri("%s/ports#%s", uriPlugin, id);
                 }
 
-                inline LV2_URID map_type(const char *id) const
+                inline LV2_URID map_type_legacy(const char *type) const
                 {
-                    return map_uri("%s/types#%s", uriTypes, id);
+                    return map_uri("%s/types#%s", uriTypes, type);
                 }
 
-                inline LV2_URID map_field(const char *id) const
+                inline LV2_URID map_type(const char *type) const
                 {
-                    return map_uri("%s/%s", uriTypes, id);
+                    return map_uri("%s/%s", uriTypes, type);
+                }
+
+                inline LV2_URID map_field(const char *type, const char *id) const
+                {
+                    return map_uri("%s/%s#%s", uriTypes, type, id);
                 }
 
                 inline LV2_URID map_kvt(const char *id) const
