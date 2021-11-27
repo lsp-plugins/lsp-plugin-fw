@@ -148,8 +148,8 @@ namespace lsp
                 inline tk::Display         *display()           { return pDisplay;      }
 
                 /**
-                 * Get window widget
-                 * @return window widget
+                 * Get root window widget
+                 * @return root window widget
                  */
                 inline tk::Window          *window()            { return wWindow;       }
 

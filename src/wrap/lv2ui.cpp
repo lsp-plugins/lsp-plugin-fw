@@ -26,6 +26,7 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ui_wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/impl/ui_wrapper.h>
 
 namespace lsp
 {
@@ -54,6 +55,7 @@ namespace lsp
             // Initialize dsp (if possible)
             dsp::init();
 
+            const meta::plugin_t *meta = NULL;
             ui::Module *ui= NULL;
 
             // Lookup plugin identifier among all registered plugin factories
@@ -62,8 +64,7 @@ namespace lsp
                 for (size_t i=0; ; ++i)
                 {
                     // Enumerate next element
-                    const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
+                    if ((meta = f->enumerate(i)) == NULL)
                         break;
 
                     // Check plugin identifier
@@ -86,15 +87,53 @@ namespace lsp
                 return LV2UI_Handle(NULL);
             }
 
-            // Create wrapper
-            LV2UIWrapper *w                 = new LV2UIWrapper(p, ext);
-            w->init();
+            // Create the resource loader
+            resource::ILoader *loader = core::create_resource_loader();
+            if (loader != NULL)
+            {
+                // Create LV2 extension handler
+                lv2::Extensions *ext = new lv2::Extensions(features,
+                        meta->lv2_uri, LSP_LV2_TYPES_URI, LSP_LV2_UI_URI,
+                        controller, write_function);
+                if (ext != NULL)
+                {
+                    // Create LV2 plugin wrapper
+                    lv2::UIWrapper *wrapper  = new lv2::UIWrapper(ui, loader, ext);
+                    if (wrapper != NULL)
+                    {
+                        // Initialize LV2 plugin wrapper
+                        status_t res = wrapper->init();
+                        if (res != STATUS_OK)
+                        {
+                            lsp_error("Error initializing plugin wrapper, code: %d", int(res));
+                            wrapper->destroy(); // The ext, loader and ui will be destroyed here
+                            delete wrapper;
+                            wrapper = NULL;
+                            *widget = NULL;
+                        }
+                        else
+                        {
+                            tk::Window *root = wrapper->window();
+                            *widget  = reinterpret_cast<LV2UI_Widget>((root != NULL) ? root->handle() : NULL);
+                            lsp_trace("returned widget handle = %p", *widget);
+                        }
 
-            LSPWindow *root                 = p->root_window();
-            *widget                         = reinterpret_cast<LV2UI_Widget>((root != NULL) ? root->handle() : NULL);
-            lsp_trace("returned widget handle = %p", *widget);
+                        return reinterpret_cast<LV2UI_Handle>(NULL);
+                    }
+                    else
+                        lsp_error("Error allocating plugin wrapper");
+                    delete ext;
+                }
+                else
+                    fprintf(stderr, "No resource loader available");
+                delete loader;
+            }
+            else
+                lsp_error("No resource loader available");
 
-            return reinterpret_cast<LV2UI_Handle>(w);
+            ui->destroy();
+            delete ui;
+            return reinterpret_cast<LV2UI_Handle>(NULL);
         }
 
         void ui_cleanup(LV2UI_Handle ui)

@@ -26,6 +26,7 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/impl/wrapper.h>
 
 
 namespace lsp
@@ -138,11 +139,16 @@ namespace lsp
                     {
                         // Initialize LV2 plugin wrapper
                         status_t res = wrapper->init(sample_rate);
-                        if (res == STATUS_OK)
-                            return reinterpret_cast<LV2_Handle>(wrapper);
+                        if (res != STATUS_OK)
+                        {
+                            lsp_error("Error initializing plugin wrapper, code: %d", int(res));
 
-                        lsp_error("Error initializing plugin wrapper, code: %d", int(res));
-                        delete wrapper;
+                            wrapper->destroy(); // The ext, loader and plugin will be destroyed here
+                            delete wrapper;
+                            wrapper = NULL;
+                        }
+
+                        return reinterpret_cast<LV2_Handle>(wrapper);
                     }
                     else
                         lsp_error("Error allocating plugin wrapper");

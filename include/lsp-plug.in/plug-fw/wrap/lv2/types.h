@@ -45,6 +45,14 @@ namespace lsp
         #define LSP_LV2_ATOM_KEY_SIZE       (sizeof(uint32_t) * 2)
         #define LSP_LV2_SIZE_PAD(size)      ::lsp::align_size((size + 0x200), 0x200)
 
+        #define LSP_LV2_LATENCY_PORT        "out_latency"
+        #define LSP_LV2_ATOM_PORT_IN        "in_ui"
+        #define LSP_LV2_MIDI_PORT_IN        "in_midi"
+        #define LSP_LV2_OSC_PORT_IN         "in_osc"
+        #define LSP_LV2_ATOM_PORT_OUT       "out_ui"
+        #define LSP_LV2_MIDI_PORT_OUT       "out_midi"
+        #define LSP_LV2_OSC_PORT_OUT        "out_osc"
+
 
         struct Extensions;
 
