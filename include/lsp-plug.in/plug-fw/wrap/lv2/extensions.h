@@ -26,45 +26,13 @@
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/wrap/lv2/ext/osc.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/lv2.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/stdlib.h>
 #include <lsp-plug.in/stdlib/string.h>
-
-// LV2 includes
-#include <lv2.h>
-#include <lv2/lv2plug.in/ns/ext/atom/atom.h>
-#include <lv2/lv2plug.in/ns/ext/atom/forge.h>
-#include <lv2/lv2plug.in/ns/ext/atom/util.h>
-#include <lv2/lv2plug.in/ns/ext/urid/urid.h>
-#include <lv2/lv2plug.in/ns/ext/state/state.h>
-#include <lv2/lv2plug.in/ns/ext/patch/patch.h>
-#include <lv2/lv2plug.in/ns/ext/midi/midi.h>
-#include <lv2/lv2plug.in/ns/ext/worker/worker.h>
-#include <lv2/lv2plug.in/ns/ext/time/time.h>
-#include <lv2/lv2plug.in/ns/ext/options/options.h>
-#include <lv2/lv2plug.in/ns/ext/port-props/port-props.h>
-#include <lv2/lv2plug.in/ns/ext/port-groups/port-groups.h>
-#include <lv2/lv2plug.in/ns/ext/resize-port/resize-port.h>
-#include <lv2/lv2plug.in/ns/ext/buf-size/buf-size.h>
-#include <lv2/lv2plug.in/ns/extensions/units/units.h>
-#include <lv2/lv2plug.in/ns/extensions/ui/ui.h>
-#include <lv2/lv2plug.in/ns/ext/instance-access/instance-access.h>
-
-// Non-official features
-#include <lsp-plug.in/3rdparty/ardour/inline-display.h>
-
-// Some definitions that may be lacking in LV2
-#ifndef LV2_ATOM__Object
-    #define LV2_ATOM__Object            LV2_ATOM_PREFIX "Object"
-#endif /* LV2_ATOM__Object */
-
-#ifndef LV2_STATE__StateChanged
-    #define LV2_STATE__StateChanged     LV2_STATE_PREFIX "StateChanged"
-#endif /* LV2_STATE__StateChanged */
 
 #pragma pack(push, 1)
 typedef struct LV2_Atom_Midi

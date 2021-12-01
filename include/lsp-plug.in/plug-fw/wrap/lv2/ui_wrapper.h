@@ -47,10 +47,6 @@ namespace lsp
         class UIWrapper: public ui::IWrapper
         {
             private:
-                // Atom ports' metadata for LV2 plugins
-                static const meta::port_t   latency_port;
-
-            private:
                 lltl::parray<lv2::UIPort>   vAllPorts;      // List of all created ports, for garbage collection
                 lltl::parray<lv2::UIPort>   vExtPorts;
                 lltl::parray<lv2::UIPort>   vMeshPorts;

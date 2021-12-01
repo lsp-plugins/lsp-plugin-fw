@@ -290,10 +290,13 @@ namespace lsp
         {
             const char             *artifact;       // Artifact name (UTF-8)
             const char             *brand;          // Brand name
+            const char             *brand_id;       // Brand identifier for serialization (LV2 TTL, for example)
             const char             *short_name;     // Sort name/Acronym
             const char             *full_name;      // Full name
             const char             *site;           // Site URL
+            const char             *email;          // Email
             const char             *license;        // License
+            const char             *lv2_license;    // License URI for LV2
             const char             *copyright;      // Copyright
             lsp::version_t          version;        // Package version
         } package_t;

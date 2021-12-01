@@ -28,10 +28,7 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-
-#include <lv2.h>
-#include <lv2/lv2plug.in/ns/ext/atom/atom.h>
-#include <lv2/lv2plug.in/ns/ext/urid/urid.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/lv2.h>
 
 namespace lsp
 {

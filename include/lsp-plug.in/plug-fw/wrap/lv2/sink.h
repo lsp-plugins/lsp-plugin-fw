@@ -23,12 +23,9 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_LV2_SINK_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/lv2.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/stdlib/stdlib.h>
-
-#include <lv2.h>
-#include <lv2/lv2plug.in/ns/ext/atom/atom.h>
-#include <lv2/lv2plug.in/ns/ext/atom/forge.h>
 
 namespace lsp
 {

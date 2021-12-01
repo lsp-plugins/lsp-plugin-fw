@@ -24,17 +24,12 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ui_wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/static.h>
 
 namespace lsp
 {
     namespace lv2
     {
-        //---------------------------------------------------------------------
-        const meta::port_t UIWrapper::latency_port =
-        {
-            LSP_LV2_LATENCY_PORT, "Latency OUT", meta::U_NONE, meta::R_CONTROL, meta::F_OUT | meta::F_INT | meta::F_LOWER | meta::F_UPPER, 0, MAX_SAMPLE_RATE, 0, 0, NULL
-        };
-
         //---------------------------------------------------------------------
         ssize_t UIWrapper::compare_ports_by_urid(const lv2::UIPort *a, const lv2::UIPort *b)
         {

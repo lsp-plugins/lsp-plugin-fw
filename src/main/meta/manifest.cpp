@@ -109,7 +109,7 @@ namespace lsp
             }
 
             *s      = str.clone_utf8();
-            if (*s == NULL)
+            if ((*s == NULL) && (str.length() > 0))
                 return STATUS_NO_MEM;
 
             return STATUS_OK;
@@ -222,13 +222,19 @@ namespace lsp
             if (res == STATUS_OK)
                 res = fetch_string(&p->brand, "brand", &jo);
             if (res == STATUS_OK)
+                res = fetch_string(&p->brand, "brand_id", &jo);
+            if (res == STATUS_OK)
                 res = fetch_string(&p->short_name, "short_name", &jo);
             if (res == STATUS_OK)
                 res = fetch_string(&p->full_name, "full_name", &jo);
             if (res == STATUS_OK)
                 res = fetch_string(&p->site, "site", &jo);
             if (res == STATUS_OK)
+                res = fetch_string(&p->email, "email", &jo);
+            if (res == STATUS_OK)
                 res = fetch_string(&p->license, "license", &jo);
+            if (res == STATUS_OK)
+                res = fetch_string(&p->license, "lv2_license", &jo);
             if (res == STATUS_OK)
                 res = fetch_string(&p->copyright, "copyright", &jo);
             if (res == STATUS_OK)
@@ -247,6 +253,7 @@ namespace lsp
 
             drop_string(&pkg->artifact);
             drop_string(&pkg->brand);
+            drop_string(&pkg->brand_id);
             drop_string(&pkg->short_name);
             drop_string(&pkg->full_name);
             drop_string(&pkg->site);
