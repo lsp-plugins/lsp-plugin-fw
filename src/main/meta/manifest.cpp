@@ -207,10 +207,14 @@ namespace lsp
                 return STATUS_NO_MEM;
 
             p->artifact         = NULL;
+            p->brand            = NULL;
+            p->brand_id         = NULL;
             p->short_name       = NULL;
             p->full_name        = NULL;
             p->site             = NULL;
+            p->email            = NULL;
             p->license          = NULL;
+            p->lv2_license      = NULL;
             p->copyright        = NULL;
             p->version.major    = 0;
             p->version.minor    = 0;
@@ -222,7 +226,7 @@ namespace lsp
             if (res == STATUS_OK)
                 res = fetch_string(&p->brand, "brand", &jo);
             if (res == STATUS_OK)
-                res = fetch_string(&p->brand, "brand_id", &jo);
+                res = fetch_string(&p->brand_id, "brand_id", &jo);
             if (res == STATUS_OK)
                 res = fetch_string(&p->short_name, "short_name", &jo);
             if (res == STATUS_OK)
@@ -234,7 +238,7 @@ namespace lsp
             if (res == STATUS_OK)
                 res = fetch_string(&p->license, "license", &jo);
             if (res == STATUS_OK)
-                res = fetch_string(&p->license, "lv2_license", &jo);
+                res = fetch_string(&p->lv2_license, "lv2_license", &jo);
             if (res == STATUS_OK)
                 res = fetch_string(&p->copyright, "copyright", &jo);
             if (res == STATUS_OK)

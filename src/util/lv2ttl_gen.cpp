@@ -227,6 +227,11 @@ namespace lsp
                         fprintf(stderr, "Not specified directory name for '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
+                    else if (cfg->out_dir)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
                     cfg->out_dir = argv[i++];
                 }
                 else if ((!::strcmp(arg, "--input")) || (!::strcmp(arg, "-i")))
@@ -236,6 +241,11 @@ namespace lsp
                         fprintf(stderr, "Not specified file name for '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
+                    else if (cfg->lv2_binary)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
                     cfg->lv2_binary = argv[i++];
                 }
                 else if ((!::strcmp(arg, "--ui-input")) || (!::strcmp(arg, "-ui")))
@@ -243,6 +253,11 @@ namespace lsp
                     if (i >= argc)
                     {
                         fprintf(stderr, "Not specified file name for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    else if (cfg->lv2ui_binary)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->lv2ui_binary = argv[i++];
@@ -327,8 +342,7 @@ namespace lsp
         static const char *get_module_prefix(char *buf, size_t len, const char *uri)
         {
             const char *str = strrchr(uri, '/');
-            if (str == NULL)
-                str = uri;
+            str = (str != NULL) ? &str[1] : uri;
 
             ssize_t src_len = lsp_min(str - uri, ssize_t(len));
             memcpy(buf, uri, src_len);
@@ -575,7 +589,7 @@ namespace lsp
         static void emit_prefix(FILE *out, const char *prefix, const char *value)
         {
             ssize_t len = fprintf(out, "@prefix %s: ", prefix);
-            while (len < 20)
+            while ((len++) < 20)
                 fputc(' ', out);
             fprintf(out, "<%s> .\n", value);
         }
@@ -664,13 +678,13 @@ namespace lsp
             fprintf(out, "\tlv2:microVersion %d ;\n", int(LSP_MODULE_VERSION_MICRO(m.version)));
             if ((dev != NULL) && (dev->uid != NULL))
                 fprintf(out, "\tdoap:developer %s:%s ;\n", LV2TTL_DEVELOPERS_PREFIX, m.developer->uid);
-            fprintf(out, "\tdoap:maintainer %s:%s ;\n", LV2TTL_DEVELOPERS_PREFIX, manifest->brand_id);
-            fprintf(out, "\tdoap:license <%s> ;\n", manifest->lv2_license);
+            if (manifest->brand_id != NULL)
+                fprintf(out, "\tdoap:maintainer %s:%s ;\n", LV2TTL_DEVELOPERS_PREFIX, manifest->brand_id);
+            if (manifest->lv2_license != NULL)
+                fprintf(out, "\tdoap:license <%s> ;\n", manifest->lv2_license);
             fprintf(out, "\tlv2:binary <%s> ;\n", cmd->lv2_binary);
             if (requirements & REQ_LV2UI)
                 fprintf(out, "\tui:ui %s:%s ;\n", LV2TTL_PLUGIN_UI_PREFIX, get_module_uid(m.lv2ui_uri));
-
-            fprintf(out, "\n");
 
             // Emit required features
             fprintf(out, "\tlv2:requiredFeature urid:map ;\n");
@@ -683,7 +697,7 @@ namespace lsp
 
             // Different supported options
             if (requirements & REQ_LV2UI)
-                fprintf(out, "\topts:supportedOption ui:updateRate ;\n\n");
+                fprintf(out, "\topts:supportedOption ui:updateRate ;\n");
 
             if (pg_main_in != NULL)
                 fprintf(out, "\tpg:mainInput %s:%s ;\n", LV2TTL_PORT_GROUP_PREFIX, pg_main_in->id);
@@ -692,7 +706,7 @@ namespace lsp
 
             // Replacement for LADSPA plugin
             if (m.ladspa_id > 0)
-                fprintf(out, "\n\tdc:replaces <urn:ladspa:%ld> ;\n", long(m.ladspa_id));
+                fprintf(out, "\tdc:replaces <urn:ladspa:%ld> ;\n", long(m.ladspa_id));
 
             // Separator
             fprintf(out, "\n");
@@ -987,7 +1001,7 @@ namespace lsp
             }
 
             // Finish port list
-            fprintf(out, "\n\t.");
+            fprintf(out, "\n\t.\n");
         }
 
         void gen_plugin_ttl_file(
@@ -1071,10 +1085,14 @@ namespace lsp
             fprintf(out, " ;\n\tfoaf:name \"%s LV2\"", manifest->brand);
             fprintf(out, " ;\n\tfoaf:mbox <mailto:%s>", manifest->email);
             fprintf(out, " ;\n\tfoaf:homepage <%s>", manifest->site);
-            fprintf(out, "\n\t.\n\n");
+            fprintf(out, "\n\t.\n");
 
             // Output plugin metadata
-            gen_plugin_ttl(out, requirements, m, manifest, cmd);
+            if (cmd->lv2_binary != NULL)
+            {
+                fprintf(out, "\n\n");
+                gen_plugin_ttl(out, requirements, m, manifest, cmd);
+            }
 
             // Output plugin UIs
             if ((requirements & REQ_LV2UI) && (cmd->lv2ui_binary != NULL))
@@ -1109,6 +1127,7 @@ namespace lsp
             prefix[0] = '\0';
             ui_prefix[0] = '\0';
 
+            // Find first prefix for UI and DSP module and emit it as short symbolic name
             if (cmd->lv2_binary != NULL)
             {
                 for (size_t i=0, n=plugins.size(); i<n; ++i)
@@ -1118,6 +1137,7 @@ namespace lsp
                     {
                         get_module_prefix(prefix, sizeof(prefix), m->lv2_uri);
                         emit_prefix(out, LV2TTL_PLUGIN_PREFIX, prefix);
+                        break;
                     }
                 }
             }
@@ -1129,7 +1149,8 @@ namespace lsp
                     if (m->lv2ui_uri)
                     {
                         get_module_prefix(ui_prefix, sizeof(ui_prefix), m->lv2ui_uri);
-                        emit_prefix(out, LV2TTL_PLUGIN_UI_PREFIX, prefix);
+                        emit_prefix(out, LV2TTL_PLUGIN_UI_PREFIX, ui_prefix);
+                        break;
                     }
                 }
             }
@@ -1165,7 +1186,7 @@ namespace lsp
                     const meta::plugin_t *m = plugins.uget(i);
                     if ((m->lv2_uri != NULL) && (m->lv2ui_uri != NULL))
                     {
-                        if (strncmp(prefix, m->lv2ui_uri, ui_prefix_len) == 0)
+                        if (strncmp(ui_prefix, m->lv2ui_uri, ui_prefix_len) == 0)
                             fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_UI_PREFIX, &m->lv2ui_uri[ui_prefix_len]);
                         else
                             fprintf(out, "<%s>\n", m->lv2ui_uri);
@@ -1204,7 +1225,7 @@ namespace lsp
                 {
                     // Enumerate next element
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
+                    if ((meta == NULL) || (meta->lv2_uri == NULL))
                         break;
 
                     // Add metadata to list
