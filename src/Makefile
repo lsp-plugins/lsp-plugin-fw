@@ -239,22 +239,41 @@ UTL_JACK_MAKE_OBJ           = $(UTL_BIN_PATH)/jack_make.o
 UTL_JACK_MAKE_DEPS          = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
 UTL_JACK_MAKE_LIBS          = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_OBJ))
 UTL_JACK_MAKE_LDFLAGS       = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_LDFLAGS))
-UTL_JACK_MAKE_OBJS          = $(HOST_LSP_PLUGIN_FW_OBJ_CORE) $(HOST_LSP_PLUGIN_FW_OBJ_META) $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-                              $(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP)
+UTL_JACK_MAKE_OBJS          = \
+  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
+  $(HOST_OBJ_PLUG_META) \
+  $(HOST_OBJ_PLUG_DSP)
+
+UTL_LV2TTL_GEN              = $(UTL_BIN_PATH)/lv2ttl_gen$(EXECUTABLE_EXT)
+UTL_LV2TTL_GEN_OBJ          = $(UTL_BIN_PATH)/lv2ttl_gen.o
+UTL_LV2TTL_GEN_DEPS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
+UTL_LV2TTL_GEN_LIBS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_OBJ))
+UTL_LV2TTL_GEN_LDFLAGS      = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_LDFLAGS))
+UTL_LV2TTL_GEN_OBJS         = \
+  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
+  $(HOST_OBJ_PLUG_META) \
+  $(HOST_OBJ_PLUG_DSP)
 
 UTL_REPOSITORY              = $(UTL_BIN_PATH)/repository$(EXECUTABLE_EXT)
 UTL_REPOSITORY_OBJ          = $(UTL_BIN_PATH)/repository.o
 UTL_REPOSITORY_DEPS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
 UTL_REPOSITORY_LIBS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_OBJ))
 UTL_REPOSITORY_LDFLAGS      = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_LDFLAGS))
-UTL_REPOSITORY_OBJS         = $(HOST_LSP_PLUGIN_FW_OBJ_CORE)
+UTL_REPOSITORY_OBJS         = \
+  $(HOST_LSP_PLUGIN_FW_OBJ_CORE)
 
 UTL_RESPACK                 = $(UTL_BIN_PATH)/respack$(EXECUTABLE_EXT)
 UTL_RESPACK_OBJ             = $(UTL_BIN_PATH)/respack.o
 UTL_RESPACK_DEPS            = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
 UTL_RESPACK_LIBS            = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_OBJ))
 UTL_RESPACK_LDFLAGS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_LDFLAGS))
-UTL_RESPACK_OBJS            = $(HOST_LSP_PLUGIN_FW_OBJ_CORE)
+UTL_RESPACK_OBJS            = \
+  $(HOST_LSP_PLUGIN_FW_OBJ_CORE)
 
 #------------------------------------------------------------------------------
 # Plugins
@@ -531,17 +550,22 @@ endif
 # Utilities
 $(UTL_JACK_MAKE): $(UTL_JACK_MAKE_OBJ) $(HOST_LSP_PLUGIN_FW_OBJ) $(UTL_JACK_MAKE_DEPS) $(HOST_PLUG_DEPS)
 	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
-	mkdir -p $(UTL_BIN_PATH)
+	mkdir -p $(dir $(@))
 	$(HOST_CXX) -o $(@) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
+	
+$(UTL_LV2TTL_GEN): $(UTL_LV2TTL_GEN_OBJ) $(HOST_LSP_PLUGIN_FW_OBJ) $(UTL_LV2TTL_GEN_DEPS) $(HOST_PLUG_DEPS)
+	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+	mkdir -p $(dir $(@))
+	$(HOST_CXX) -o $(@) $(UTL_LV2TTL_GEN_OBJ) $(UTL_LV2TTL_GEN_OBJS) $(UTL_LV2TTL_GEN_LIBS) $(EXE_FLAGS) $(UTL_LV2TTL_GEN_LDFLAGS)
 
 $(UTL_REPOSITORY): $(UTL_REPOSITORY_OBJ) $(HOST_LSP_PLUGIN_FW_OBJ) $(UTL_REPOSITORY_DEPS) $(HOST_PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
-	mkdir -p $(UTL_BIN_PATH)
+	mkdir -p $(dir $(@))
 	$(HOST_CXX) -o $(@) $(UTL_REPOSITORY_OBJ) $(UTL_REPOSITORY_OBJS) $(UTL_REPOSITORY_LIBS) $(HOST_EXE_FLAGS) $(UTL_REPOSITORY_LDFLAGS)
 
 $(UTL_RESPACK): $(UTL_RESPACK_OBJ) $(HOST_LSP_PLUGIN_FW_OBJ) $(UTL_RESPACK_DEPS) $(HOST_PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
-	mkdir -p $(UTL_BIN_PATH)
+	mkdir -p $(dir $(@))
 	$(HOST_CXX) -o $(@) $(UTL_RESPACK_OBJ) $(UTL_RESPACK_OBJS) $(UTL_RESPACK_LIBS) $(HOST_EXE_FLAGS) $(UTL_RESPACK_LDFLAGS)
 
 #------------------------------------------------------------------------------
@@ -591,7 +615,7 @@ jack: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
 
 ladspa: $(ARTIFACT_LIB_LADSPA) 
 
-lv2: $(ARTIFACT_LIB_LV2) $(ARTIFACT_LIB_LV2_UI)
+lv2: $(UTL_LV2TTL_GEN) $(ARTIFACT_LIB_LV2) $(ARTIFACT_LIB_LV2_UI)
 
 all: jack ladspa lv2
 
