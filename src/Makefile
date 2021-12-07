@@ -119,6 +119,8 @@ CXX_SRC_UI                  = $(call rwildcard, main/ui, *.cpp)
 CXX_SRC_CTL                 = $(call rwildcard, main/ctl, *.cpp)
 CXX_SRC_WRAP_JACK           = wrap/jack.cpp
 CXX_SRC_WRAP_LADSPA         = wrap/ladspa.cpp
+CXX_SRC_WRAP_LV2            = wrap/lv2.cpp
+CXX_SRC_WRAP_LV2_UI         = wrap/lv2ui.cpp
 CXX_SRC_WRAP_CAIRO          = $(call rwildcard, wrap/cairo, *.cpp)
 CXX_SRC_UTIL                = $(call rwildcard, util, *.cpp)
 CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
@@ -130,6 +132,8 @@ CXX_SRC                     = \
   $(CXX_SRC_CTL) \
   $(CXX_SRC_WRAP_JACK) \
   $(CXX_SRC_WRAP_LADSPA) \
+  $(CXX_SRC_WRAP_LV2) \
+  $(CXX_SRC_WRAP_LV2_UI) \
   $(CXX_SRC_WRAP_CAIRO) \
   $(CXX_SRC_UTIL)
 
@@ -141,6 +145,8 @@ HOST_CXX_SRC_UI             = $(CXX_SRC_UI)
 HOST_CXX_SRC_CTL            = $(CXX_SRC_CTL)
 HOST_CXX_SRC_WRAP_JACK      = $(CXX_SRC_WRAP_JACK)
 HOST_CXX_SRC_WRAP_LADSPA    = $(CXX_SRC_WRAP_LADSPA)
+HOST_CXX_SRC_WRAP_LV2       = $(CXX_SRC_WRAP_LV2)
+HOST_CXX_SRC_WRAP_LV2_UI    = $(CXX_SRC_WRAP_LV2_UI)
 HOST_CXX_SRC_WRAP_CAIRO     = $(CXX_SRC_WRAP_CAIRO)
 HOST_CXX_SRC_UTIL           = $(CXX_SRC_UTIL)
 HOST_CXX_SRC_TEST           = $(CXX_SRC_TEST)
@@ -152,6 +158,8 @@ HOST_CXX_SRC                = \
   $(HOST_CXX_SRC_CTL) \
   $(HOST_CXX_SRC_WRAP_JACK) \
   $(HOST_CXX_SRC_WRAP_LADSPA) \
+  $(HOST_CXX_SRC_WRAP_LV2) \
+  $(HOST_CXX_SRC_WRAP_LV2_UI) \
   $(HOST_CXX_SRC_WRAP_CAIRO) \
   $(HOST_CXX_SRC_UTIL)
 
@@ -164,6 +172,8 @@ OBJ_UI                      = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_
 OBJ_CTL                     = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_CTL))
 OBJ_WRAP_JACK               = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_JACK))
 OBJ_WRAP_LADSPA             = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_LADSPA))
+OBJ_WRAP_LV2                = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_LV2))
+OBJ_WRAP_LV2_UI             = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_LV2_UI))
 OBJ_WRAP_CAIRO              = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_CAIRO))
 OBJ_UTIL                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UTIL))
 OBJ_TEST                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_TEST))
@@ -176,6 +186,8 @@ OBJ                         = \
   $(OBJ_UTIL) \
   $(OBJ_WRAP_JACK) \
   $(OBJ_WRAP_LADSPA) \
+  $(OBJ_WRAP_LV2) \
+  $(OBJ_WRAP_LV2_UI) \
   $(OBJ_WRAP_CAIRO)
 
 ifeq ($(TEST),1)
@@ -193,6 +205,8 @@ HOST_OBJ_UI                 = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $
 HOST_OBJ_CTL                = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_CTL))
 HOST_OBJ_WRAP_JACK          = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_JACK))
 HOST_OBJ_WRAP_LADSPA        = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_LADSPA))
+HOST_OBJ_WRAP_LV2           = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_LV2))
+HOST_OBJ_WRAP_LV2_UI        = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_LV2_UI))
 HOST_OBJ_WRAP_CAIRO         = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_CAIRO))
 HOST_OBJ_UTIL               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_UTIL))
 HOST_OBJ_TEST               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_TEST))
@@ -205,6 +219,8 @@ HOST_OBJ                    = \
   $(HOST_OBJ_UTIL) \
   $(HOST_OBJ_WRAP_JACK) \
   $(HOST_OBJ_WRAP_LADSPA) \
+  $(HOST_OBJ_WRAP_LV2) \
+  $(HOST_OBJ_WRAP_LV2_UI) \
   $(HOST_OBJ_WRAP_CAIRO)
 
 ifeq ($(TEST),1)
@@ -223,22 +239,41 @@ UTL_JACK_MAKE_OBJ           = $(UTL_BIN_PATH)/jack_make.o
 UTL_JACK_MAKE_DEPS          = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
 UTL_JACK_MAKE_LIBS          = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_OBJ))
 UTL_JACK_MAKE_LDFLAGS       = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_LDFLAGS))
-UTL_JACK_MAKE_OBJS          = $(HOST_LSP_PLUGIN_FW_OBJ_CORE) $(HOST_LSP_PLUGIN_FW_OBJ_META) $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-                              $(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP)
+UTL_JACK_MAKE_OBJS          = \
+  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
+  $(HOST_OBJ_PLUG_META) \
+  $(HOST_OBJ_PLUG_DSP)
+
+UTL_LV2TTL_GEN              = $(UTL_BIN_PATH)/lv2ttl_gen$(EXECUTABLE_EXT)
+UTL_LV2TTL_GEN_OBJ          = $(UTL_BIN_PATH)/lv2ttl_gen.o
+UTL_LV2TTL_GEN_DEPS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
+UTL_LV2TTL_GEN_LIBS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_OBJ))
+UTL_LV2TTL_GEN_LDFLAGS      = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_LDFLAGS))
+UTL_LV2TTL_GEN_OBJS         = \
+  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
+  $(HOST_OBJ_PLUG_META) \
+  $(HOST_OBJ_PLUG_DSP)
 
 UTL_REPOSITORY              = $(UTL_BIN_PATH)/repository$(EXECUTABLE_EXT)
 UTL_REPOSITORY_OBJ          = $(UTL_BIN_PATH)/repository.o
 UTL_REPOSITORY_DEPS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
 UTL_REPOSITORY_LIBS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_OBJ))
 UTL_REPOSITORY_LDFLAGS      = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_LDFLAGS))
-UTL_REPOSITORY_OBJS         = $(HOST_LSP_PLUGIN_FW_OBJ_CORE)
+UTL_REPOSITORY_OBJS         = \
+  $(HOST_LSP_PLUGIN_FW_OBJ_CORE)
 
 UTL_RESPACK                 = $(UTL_BIN_PATH)/respack$(EXECUTABLE_EXT)
 UTL_RESPACK_OBJ             = $(UTL_BIN_PATH)/respack.o
 UTL_RESPACK_DEPS            = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
 UTL_RESPACK_LIBS            = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_OBJ))
 UTL_RESPACK_LDFLAGS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_LDFLAGS))
-UTL_RESPACK_OBJS            = $(HOST_LSP_PLUGIN_FW_OBJ_CORE)
+UTL_RESPACK_OBJS            = \
+  $(HOST_LSP_PLUGIN_FW_OBJ_CORE)
 
 #------------------------------------------------------------------------------
 # Plugins
@@ -290,6 +325,33 @@ ARTIFACT_LIB_LADSPA_OBJS    = \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_WRAP_LADSPA)
+  
+ARTIFACT_LIB_LV2            = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-lv2-$(ARTIFACT_VERSION)$(LIBRARY_EXT)
+ARTIFACT_LIB_LV2_DEPS       = $(foreach dep, $(call uniq, $(DEPENDENCIES_LV2)), $(if $($(dep)_OBJ), $(dep)))
+ARTIFACT_LIB_LV2_LIBS       = $(foreach dep, $(call uniq, $(DEPENDENCIES_LV2)), $($(dep)_OBJ))
+ARTIFACT_LIB_LV2_LDFLAGS    = $(foreach dep, $(call uniq, $(DEPENDENCIES_LV2)), $($(dep)_LDFLAGS))
+ARTIFACT_LIB_LV2_OBJS       = \
+  $(LSP_PLUGIN_FW_OBJ_CORE) \
+  $(LSP_PLUGIN_FW_OBJ_META) \
+  $(LSP_PLUGIN_FW_OBJ_DSP) \
+  $(OBJ_PLUG_META) \
+  $(OBJ_PLUG_DSP) \
+  $(OBJ_WRAP_LV2)
+
+ARTIFACT_LIB_LV2_UI         = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-lv2ui-$(ARTIFACT_VERSION)$(LIBRARY_EXT)
+ARTIFACT_LIB_LV2_UI_DEPS    = $(foreach dep, $(call uniq, $(DEPENDENCIES_LV2_UI)), $(if $($(dep)_OBJ), $(dep)))
+ARTIFACT_LIB_LV2_UI_LIBS    = $(foreach dep, $(call uniq, $(DEPENDENCIES_LV2_UI)), $($(dep)_OBJ))
+ARTIFACT_LIB_LV2_UI_LDFLAGS = $(foreach dep, $(call uniq, $(DEPENDENCIES_LV2_UI)), $($(dep)_LDFLAGS))
+ARTIFACT_LIB_LV2_UI_OBJS    = \
+  $(LSP_PLUGIN_FW_OBJ_CORE) \
+  $(LSP_PLUGIN_FW_OBJ_META) \
+  $(LSP_PLUGIN_FW_OBJ_DSP) \
+  $(LSP_PLUGIN_FW_OBJ_UI) \
+  $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) \
+  $(OBJ_PLUG_META) \
+  $(OBJ_PLUG_DSP) \
+  $(OBJ_PLUG_UI) \
+  $(OBJ_WRAP_LV2_UI)
 
 BIN_INSTALL                 = $(foreach dep, $(BIN_DEPENDENCIES), install_$(dep))
 BIN_ARTIFACT_ID             = $(patsubst install_%,%,$(@))
@@ -382,6 +444,10 @@ $(OBJ_WRAP_JACK): EXT_FLAGS=$(WRAP_JACK_CFLAGS)
 
 $(OBJ_WRAP_LADSPA): EXT_FLAGS=$(WRAP_LADSPA_CFLAGS)
 
+$(OBJ_WRAP_LV2): EXT_FLAGS=$(WRAP_LV2_CFLAGS)
+
+$(OBJ_WRAP_LV2_UI): EXT_FLAGS=$(WRAP_LV2_UI_CFLAGS)
+
 $(OBJ_WRAP_CAIRO): EXT_FLAGS=$(WRAP_CAIRO_CFLAGS)
 
 ifeq ($(BUILD_HOST),1)
@@ -394,6 +460,10 @@ $(HOST_OBJ):
 $(HOST_OBJ_WRAP_JACK): EXT_FLAGS=$(HOST_WRAP_JACK_CFLAGS)
 
 $(HOST_OBJ_WRAP_LADSPA): EXT_FLAGS=$(HOST_WRAP_LADSPA_CFLAGS)
+
+$(HOST_OBJ_WRAP_LV2): EXT_FLAGS=$(HOST_WRAP_LV2_CFLAGS)
+
+$(HOST_OBJ_WRAP_LV2_UI): EXT_FLAGS=$(HOST_WRAP_LV2_UI_CFLAGS)
 
 $(HOST_OBJ_WRAP_CAIRO): EXT_FLAGS=$(HOST_WRAP_CAIRO_CFLAGS)
 
@@ -480,17 +550,22 @@ endif
 # Utilities
 $(UTL_JACK_MAKE): $(UTL_JACK_MAKE_OBJ) $(HOST_LSP_PLUGIN_FW_OBJ) $(UTL_JACK_MAKE_DEPS) $(HOST_PLUG_DEPS)
 	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
-	mkdir -p $(UTL_BIN_PATH)
+	mkdir -p $(dir $(@))
 	$(HOST_CXX) -o $(@) $(UTL_JACK_MAKE_OBJ) $(UTL_JACK_MAKE_OBJS) $(UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(UTL_JACK_MAKE_LDFLAGS)
+	
+$(UTL_LV2TTL_GEN): $(UTL_LV2TTL_GEN_OBJ) $(HOST_LSP_PLUGIN_FW_OBJ) $(UTL_LV2TTL_GEN_DEPS) $(HOST_PLUG_DEPS)
+	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+	mkdir -p $(dir $(@))
+	$(HOST_CXX) -o $(@) $(UTL_LV2TTL_GEN_OBJ) $(UTL_LV2TTL_GEN_OBJS) $(UTL_LV2TTL_GEN_LIBS) $(EXE_FLAGS) $(UTL_LV2TTL_GEN_LDFLAGS)
 
 $(UTL_REPOSITORY): $(UTL_REPOSITORY_OBJ) $(HOST_LSP_PLUGIN_FW_OBJ) $(UTL_REPOSITORY_DEPS) $(HOST_PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
-	mkdir -p $(UTL_BIN_PATH)
+	mkdir -p $(dir $(@))
 	$(HOST_CXX) -o $(@) $(UTL_REPOSITORY_OBJ) $(UTL_REPOSITORY_OBJS) $(UTL_REPOSITORY_LIBS) $(HOST_EXE_FLAGS) $(UTL_REPOSITORY_LDFLAGS)
 
 $(UTL_RESPACK): $(UTL_RESPACK_OBJ) $(HOST_LSP_PLUGIN_FW_OBJ) $(UTL_RESPACK_DEPS) $(HOST_PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
-	mkdir -p $(UTL_BIN_PATH)
+	mkdir -p $(dir $(@))
 	$(HOST_CXX) -o $(@) $(UTL_RESPACK_OBJ) $(UTL_RESPACK_OBJS) $(UTL_RESPACK_LIBS) $(HOST_EXE_FLAGS) $(UTL_RESPACK_LDFLAGS)
 
 #------------------------------------------------------------------------------
@@ -502,13 +577,19 @@ $(info ARTIFACT_LIB_JACK_DEPS = $(ARTIFACT_LIB_JACK_DEPS))
 $(info PLUG_DEPS = $(PLUG_DEPS))
 $(ARTIFACT_LIB_JACK): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) $(OBJ_WRAP_JACK) $(ARTIFACT_LIB_JACK_DEPS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
-	echo $(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
 	$(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
 	
 $(ARTIFACT_LIB_LADSPA): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(OBJ_WRAP_LADSPA) $(ARTIFACT_LIB_LADSPA_DEPS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_LADSPA))"
-	echo $(CXX) -o $(ARTIFACT_LIB_LADSPA) $(ARTIFACT_LIB_LADSPA_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_LADSPA_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LADSPA_LDFLAGS)
 	$(CXX) -o $(ARTIFACT_LIB_LADSPA) $(ARTIFACT_LIB_LADSPA_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_LADSPA_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LADSPA_LDFLAGS)
+	
+$(ARTIFACT_LIB_LV2): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(OBJ_WRAP_LV2) $(ARTIFACT_LIB_LV2_DEPS) $(PLUG_DEPS)
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_LV2))"
+	$(CXX) -o $(ARTIFACT_LIB_LV2) $(ARTIFACT_LIB_LV2_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_LV2_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LV2_LDFLAGS)
+	
+$(ARTIFACT_LIB_LV2_UI): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_RES) $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) $(OBJ_WRAP_LV2_UI) $(ARTIFACT_LIB_LV2_UI_DEPS) $(PLUG_DEPS)
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_LV2_UI))"
+	$(CXX) -o $(ARTIFACT_LIB_LV2_UI) $(ARTIFACT_LIB_LV2_UI_LIBS) $(LSP_PLUGIN_FW_OBJ_RES) $(ARTIFACT_LIB_LV2_UI_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LV2_UI_LDFLAGS)
 
 # All targets
 resources: $(UTL_REPOSITORY)
@@ -534,7 +615,9 @@ jack: $(UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
 
 ladspa: $(ARTIFACT_LIB_LADSPA) 
 
-all: jack ladspa
+lv2: $(UTL_LV2TTL_GEN) $(ARTIFACT_LIB_LV2) $(ARTIFACT_LIB_LV2_UI)
+
+all: jack ladspa lv2
 
 #------------------------------------------------------------------------------
 # Installation

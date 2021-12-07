@@ -33,12 +33,22 @@ namespace lsp
         {
             pPlugin         = plugin;
             pLoader         = loader;
+            pCanvas         = NULL;
         }
 
         IWrapper::~IWrapper()
         {
+            // Drop canvas
+            if (pCanvas != NULL)
+            {
+                pCanvas->destroy();
+                delete pCanvas;
+            }
+
+            // Clear fields
             pPlugin         = NULL;
             pLoader         = NULL;
+            pCanvas         = NULL;
         }
 
         ipc::IExecutor *IWrapper::executor()
@@ -188,6 +198,28 @@ namespace lsp
         const meta::package_t *IWrapper::package() const
         {
             return NULL;
+        }
+
+        plug::ICanvas *IWrapper::create_canvas(size_t width, size_t height)
+        {
+            // Check for Inline display support
+            const meta::plugin_t *meta = pPlugin->metadata();
+            if ((meta == NULL) || (!(meta->extensions & meta::E_INLINE_DISPLAY)))
+                return NULL;
+
+            // Check that canvas is already present
+            if (pCanvas != NULL)
+                return pCanvas;
+
+            // Try to create canvas using registered factories
+            for (plug::ICanvasFactory *factory = plug::ICanvasFactory::root(); factory != NULL; factory = factory->next())
+            {
+                pCanvas = factory->create_canvas(width, height);
+                if (pCanvas != NULL)
+                    break;
+            }
+
+            return pCanvas;
         }
     }
 }

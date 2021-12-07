@@ -4,7 +4,10 @@
 	"short_name": "LSP PF",
 	"copyright": "Linux Studio Plugins Project",
 	"brand": "LSP",
+	"brand_id": "lsp",
 	"site": "https://lsp-plug.in/",
+	"email": "lsp.plugin@gmail.com",
 	"license": "LGPL",
+	"lv2_license": "http://usefulinc.com/doap/licenses/lgpl",
 	"version": "0.5.0"
 }
