@@ -93,8 +93,6 @@ namespace lsp
         #define VST_FX_VERSION_KVT_SUPPORT      2000
         #define VST_FX_VERSION_JUCE_FIX         3000
 
-        typedef unsigned long                   serial_t;
-
         inline VstInt32 cconst(const char *vst_id)
         {
             if (vst_id == NULL)

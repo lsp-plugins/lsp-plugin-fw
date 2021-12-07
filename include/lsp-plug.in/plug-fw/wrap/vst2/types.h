@@ -37,7 +37,7 @@ namespace lsp
         /**
          * Path data primitive
          */
-        typedef struct vst_path_t: public plug::path_t
+        typedef struct path_t: public plug::path_t
         {
             enum flags_t
             {
@@ -77,12 +77,12 @@ namespace lsp
                 sUiPath[0]      = '\0';
             }
 
-            virtual const char *get_path()
+            virtual const char *path()
             {
                 return sPath;
             }
 
-            virtual size_t get_flags()
+            virtual size_t flags()
             {
                 return nXFlags;
             }
@@ -186,7 +186,7 @@ namespace lsp
                 return sync;
             }
 
-        } vst_path_t;
+        } path_t;
 
     } /* namespace vst2 */
 } /* namespace lsp */
