@@ -76,13 +76,13 @@ namespace lsp
                 core::KVTStorage                sKVT;               // Key-value tree
                 ipc::Mutex                      sKVTMutex;          // Key-value tree mutex
 
-                atomic_t                        nPosition;          // Position counter
+                volatile uatomic_t              nPosition;          // Position counter
                 plug::position_t                sPosition;          // Actual time position
 
-                volatile atomic_t               nQueryDrawReq;      // QueryDraw request
-                atomic_t                        nQueryDrawResp;     // QueryDraw response
-                volatile atomic_t               nDumpReq;           // Dump state to file request
-                atomic_t                        nDumpResp;          // Dump state to file response
+                volatile uatomic_t              nQueryDrawReq;      // QueryDraw request
+                uatomic_t                       nQueryDrawResp;     // QueryDraw response
+                volatile uatomic_t              nDumpReq;           // Dump state to file request
+                uatomic_t                       nDumpResp;          // Dump state to file response
 
                 lltl::parray<jack::Port>        vAllPorts;          // All ports
                 lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
@@ -153,7 +153,7 @@ namespace lsp
 
                 inline bool                         test_display_draw()
                 {
-                    atomic_t last       = nQueryDrawReq;
+                    uatomic_t last      = nQueryDrawReq;
                     bool result         = last != nQueryDrawResp;
                     nQueryDrawResp      = last;
                     return result;
@@ -396,7 +396,7 @@ namespace lsp
             }
 
             // Need to dump state?
-            atomic_t dump_req   = nDumpReq;
+            uatomic_t dump_req  = nDumpReq;
             if (dump_req != nDumpResp)
             {
                 dump_plugin_state();

@@ -62,6 +62,7 @@ namespace lsp
             pLatency    = NULL;
             bConnected  = false;
             pOscBuffer  = NULL;
+            pPackage    = NULL;
 
             plug::position_t::init(&sPosition);
         }
@@ -73,6 +74,7 @@ namespace lsp
             nLatencyID  = 0;
             pLatency    = NULL;
             bConnected  = false;
+            pPackage    = NULL;
         }
 
         void UIWrapper::destroy()
@@ -127,6 +129,13 @@ namespace lsp
                 pExt        = NULL;
             }
 
+            // Destroy manifest
+            if (pPackage != NULL)
+            {
+                meta::free_manifest(pPackage);
+                pPackage        = NULL;
+            }
+
             // Drop loader
             if (pLoader != NULL)
             {
@@ -139,6 +148,25 @@ namespace lsp
         {
             // Get plugin metadata
             const meta::plugin_t *meta  = pUI->metadata();
+            status_t res;
+
+            // Load package information
+            io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
+            if (is == NULL)
+            {
+                lsp_error("No manifest.json found in resources");
+                return STATUS_BAD_STATE;
+            }
+
+            res = meta::load_manifest(&pPackage, is);
+            is->close();
+            delete is;
+
+            if (res != STATUS_OK)
+            {
+                lsp_error("Error while reading manifest file");
+                return res;
+            }
 
             // Create OSC packet buffer
             pOscBuffer      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX + sizeof(LV2_Atom)));
@@ -171,8 +199,7 @@ namespace lsp
             }
 
             // Initialize wrapper
-            status_t res = IWrapper::init();
-            if (res != STATUS_OK)
+            if ((res = IWrapper::init()) != STATUS_OK)
                 return res;
 
             // Initialize display settings
@@ -948,6 +975,11 @@ namespace lsp
         bool UIWrapper::kvt_release()
         {
             return sKVTMutex.unlock();
+        }
+
+        const meta::package_t *UIWrapper::package() const
+        {
+            return pPackage;
         }
     } /* namespace lv2 */
 } /* namespace lsp */

@@ -94,9 +94,10 @@ namespace lsp
                 bool                    bUpdateSettings;// Settings update
                 float                   fSampleRate;
                 uint8_t                *pOscPacket;     // OSC packet data
-                volatile atomic_t       nStateMode;     // State change flag
-                volatile atomic_t       nDumpReq;
-                atomic_t                nDumpResp;
+                volatile uatomic_t      nStateMode;     // State change flag
+                volatile uatomic_t      nDumpReq;
+                uatomic_t               nDumpResp;
+                meta::package_t        *pPackage;
 
                 plug::position_t        sPosition;
                 core::KVTStorage        sKVT;
@@ -195,6 +196,8 @@ namespace lsp
                 virtual void                    state_changed()         { change_state_atomic(SM_SYNC, SM_CHANGED); }
 
                 inline core::KVTDispatcher     *kvt_dispatcher()        { return pKVTDispatcher; }
+
+                virtual const meta::package_t  *package() const;
         };
     } /* namespace lv2 */
 } /* namespace lsp */

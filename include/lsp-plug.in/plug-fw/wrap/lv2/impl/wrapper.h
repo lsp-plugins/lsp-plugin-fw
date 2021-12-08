@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
+#include <lsp-plug.in/plug-fw/meta/manifest.h>
 
 namespace lsp
 {
@@ -80,6 +81,7 @@ namespace lsp
             nStateMode      = SM_LOADING;
             nDumpReq        = 0;
             nDumpResp       = 0;
+            pPackage        = NULL;
             pKVTDispatcher  = NULL;
 
             plug::position_t::init(&sPosition);
@@ -104,6 +106,7 @@ namespace lsp
             sSurface.width  = 0;
             sSurface.height = 0;
             sSurface.stride = 0;
+            pPackage        = NULL;
         }
 
         lv2::Port *Wrapper::port_by_urid(LV2_URID urid)
@@ -147,6 +150,25 @@ namespace lsp
 
             // Get plugin metadata
             const meta::plugin_t *m  = pPlugin->metadata();
+            status_t res;
+
+            // Load package information
+            io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
+            if (is == NULL)
+            {
+                lsp_error("No manifest.json found in resources");
+                return STATUS_BAD_STATE;
+            }
+
+            res = meta::load_manifest(&pPackage, is);
+            is->close();
+            delete is;
+
+            if (res != STATUS_OK)
+            {
+                lsp_error("Error while reading manifest file");
+                return res;
+            }
 
             // Create ports
             lsp_trace("Creaing ports");
@@ -242,6 +264,13 @@ namespace lsp
             {
                 lsp_trace("destroy generated port metadata %p", vGenMetadata[i]);
                 drop_port_metadata(vGenMetadata[i]);
+            }
+
+            // Destroy manifest
+            if (pPackage != NULL)
+            {
+                meta::free_manifest(pPackage);
+                pPackage        = NULL;
             }
 
             vAllPorts.flush();
@@ -411,12 +440,7 @@ namespace lsp
                                 cm->start    = cm->max - ((cm->max - cm->min) * row) / float(pg->rows());
 
                             // Recursively generate new ports associated with the port set
-                            lv2::Port *p    = create_port(plugin_ports, cm, postfix_buf, true);
-                            if ((p != NULL) && (p->metadata()->role != meta::R_PORT_SET))
-                            {
-                                vPluginPorts.add(p);
-                                plugin_ports->add(p);
-                            }
+                            create_port(plugin_ports, cm, postfix_buf, true);
                         }
                     }
 
@@ -508,7 +532,7 @@ namespace lsp
             }
 
             // Need to dump state?
-            atomic_t dump_req   = nDumpReq;
+            uatomic_t dump_req  = nDumpReq;
             if (dump_req != nDumpResp)
             {
                 dump_plugin_state();
@@ -1838,6 +1862,11 @@ namespace lsp
         bool Wrapper::kvt_release()
         {
             return sKVTMutex.unlock();
+        }
+
+        const meta::package_t *Wrapper::package() const
+        {
+            return pPackage;
         }
     } /* namespace lv2 */
 } /* namespace lsp */
