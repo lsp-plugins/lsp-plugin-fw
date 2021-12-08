@@ -200,6 +200,11 @@ namespace lsp
             return NULL;
         }
 
+        const meta::plugin_t *IWrapper::metadata() const
+        {
+            return pPlugin->metadata();
+        }
+
         plug::ICanvas *IWrapper::create_canvas(size_t width, size_t height)
         {
             // Check for Inline display support

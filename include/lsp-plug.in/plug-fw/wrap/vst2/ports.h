@@ -285,26 +285,31 @@ namespace lsp
             public:
                 virtual void *buffer() { return pBuffer; };
 
-                void bind(float *data, size_t samples)
+                void bind(float *data)
                 {
                     pBuffer     = data;
-                    if (pSanitized == NULL)
-                        return;
+                }
 
+                void sanitize(size_t samples)
+                {
                     // Perform sanitize() if possible
-                    if (samples <= nBufSize)
+                    if (samples > nBufSize)
+                    {
+                        lsp_warn("Could not sanitize buffer data for port %s, not enough buffer size (required: %d, actual: %d)",
+                                pMetadata->id, int(samples), int(nBufSize));
+                        samples = nBufSize;
+                    }
+
+                    if (pSanitized != NULL)
                     {
                         dsp::sanitize2(pSanitized, reinterpret_cast<float *>(pBuffer), samples);
                         pBuffer = pSanitized;
                     }
                     else
-                    {
-                        lsp_warn("Could not sanitize buffer data for port %s, not enough buffer size (required: %d, actual: %d)",
-                                pMetadata->id, int(samples), int(nBufSize));
-                    }
+                        dsp::sanitize1(pBuffer, samples);
                 };
 
-                void set_blk_size(size_t size)
+                void set_block_size(size_t size)
                 {
                     if (!meta::is_in_port(pMetadata))
                         return;

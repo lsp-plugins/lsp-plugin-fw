@@ -71,7 +71,7 @@ namespace lsp
         #define VST_PROGRAM_HDR_SKIP            (2*sizeof(VstInt32))
         #define VST_BANK_HDR_SIZE               (sizeof(fxBank) - VST_BANK_HDR_SKIP)
         #define VST_PROGRAM_HDR_SIZE            (sizeof(fxProgram) - VST_PROGRAM_HDR_SKIP)
-        #define VST_STATE_BUFFER_SIZE           (VST_BANK_HDR_SIZE + sizeof(vst_state))
+        #define VST_STATE_BUFFER_SIZE           (VST_BANK_HDR_SIZE + sizeof(vst2::state_t))
 
         enum serial_types_t
         {
@@ -107,6 +107,50 @@ namespace lsp
             }
             return CCONST(vst_id[0], vst_id[1], vst_id[2], vst_id[3]);
         }
+
+    #ifdef LSP_TRACE
+        inline void dump_vst_bank(const void *bank, size_t ck_size)
+        {
+            const uint8_t *ddump        = reinterpret_cast<const uint8_t *>(bank);
+            lsp_trace("Chunk dump:");
+
+            for (size_t offset=0; offset < ck_size; offset += 16)
+            {
+                // Print HEX dump
+                lsp_nprintf("%08x: ", int(offset));
+                for (size_t i=0; i<0x10; ++i)
+                {
+                    if ((offset + i) < ck_size)
+                        lsp_nprintf("%02x ", int(ddump[i]));
+                    else
+                        lsp_nprintf("   ");
+                }
+                lsp_nprintf("   ");
+
+                // Print character dump
+                for (size_t i=0; i<0x10; ++i)
+                {
+                    if ((offset + i) < ck_size)
+                    {
+                        uint8_t c   = ddump[i];
+                        if ((c < 0x20) || (c >= 0x7f))
+                            c           = '.';
+                        lsp_nprintf("%c", c);
+                    }
+                    else
+                        lsp_nprintf(" ");
+                }
+                lsp_printf("");
+
+                // Move pointer
+                ddump       += 0x10;
+            }
+        }
+    #else
+        inline void dump_vst_bank(const void *bank, size_t ck_size)
+        {
+        }
+    #endif /* LSP_TRACE */
     } /* namespace vst2 */
 } /* namespace lsp */
 
