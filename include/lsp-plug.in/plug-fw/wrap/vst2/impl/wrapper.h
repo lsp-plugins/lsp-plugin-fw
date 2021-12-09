@@ -55,7 +55,7 @@ namespace lsp
             nDumpResp       = 0;
             pBypass         = NULL;
             bUpdateSettings = true;
-            bUIActive       = false;
+            pUIWrapper             = NULL;
             pPackage        = NULL;
 
             plug::position_t::init(&sPosition);
@@ -370,9 +370,14 @@ namespace lsp
         {
         }
 
-        void Wrapper::set_ui_active(bool ui_active)
+        void Wrapper::set_ui_wrapper(UIWrapper *ui)
         {
-            bUIActive       = ui_active;
+            pUIWrapper  = ui;
+        }
+
+        UIWrapper *Wrapper::ui_wrapper()
+        {
+            return pUIWrapper;
         }
 
         void Wrapper::sync_position()
@@ -436,11 +441,14 @@ namespace lsp
             }
 
             // Sync UI state
-            if (bUIActive != pPlugin->ui_active())
+            if (pUIWrapper != NULL)
             {
-                if (bUIActive)
+                if (!pPlugin->ui_active())
                     pPlugin->activate_ui();
-                else
+            }
+            else
+            {
+                if (pPlugin->ui_active())
                     pPlugin->deactivate_ui();
             }
 

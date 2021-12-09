@@ -39,6 +39,8 @@ namespace lsp
 {
     namespace vst2
     {
+        class UIWrapper;
+
         class Wrapper: public plug::IWrapper
         {
             private:
@@ -47,7 +49,7 @@ namespace lsp
                 ipc::IExecutor                     *pExecutor;
                 vst2::chunk_t                       sChunk;
                 bool                                bUpdateSettings;
-                bool                                bUIActive;
+                UIWrapper                          *pUIWrapper;
                 float                               fLatency;
                 uatomic_t                           nDumpReq;
                 uatomic_t                           nDumpResp;
@@ -102,7 +104,10 @@ namespace lsp
                 inline void                     mains_changed(VstIntPtr value);
                 inline bool                     has_bypass() const;
                 inline void                     set_bypass(bool bypass);
-                inline void                     set_ui_active(bool ui_active);
+
+                inline void                     set_ui_wrapper(UIWrapper *ui);
+
+                inline UIWrapper               *ui_wrapper();
 
                 size_t                          serialize_state(const void **dst, bool program);
 

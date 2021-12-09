@@ -61,10 +61,8 @@ namespace lsp
         } state_header_t;
     #pragma pack(pop)
 
-        #define VST_CREATE_INSTANCE_NAME        vst_create_instance
-        #define VST_CREATE_INSTANCE_STRNAME     LSP_STRINGIFY(VST_CREATE_INSTANCE_NAME)
-        #define VST_GET_VERSION_NAME            vst_get_lsp_build_version
-        #define VST_GET_VERSION_STRNAME         LSP_STRINGIFY(VST_GET_VERSION_NAME)
+        #define VST_MAIN_FUNCTION               vst_create_instance
+        #define VST_MAIN_FUNCTION_STR           LSP_STRINGIFY(VST_MAIN_FUNCTION)
 
         #define LSP_VST_USER_MAGIC              CCONST('L', 'S', 'P', 'U')
         #define VST_BANK_HDR_SKIP               (2*sizeof(VstInt32))
@@ -106,6 +104,32 @@ namespace lsp
                 return 0;
             }
             return CCONST(vst_id[0], vst_id[1], vst_id[2], vst_id[3]);
+        }
+
+        inline char *cconst_to_str(char *buf, VstInt32 cconst)
+        {
+            buf[0] = char(cconst >> 24);
+            buf[1] = char(cconst >> 16);
+            buf[2] = char(cconst >> 8);
+            buf[3] = char(cconst);
+            buf[4] = '\0';
+            return buf;
+        }
+
+        inline VstInt32 version(uint32_t lsp_version)
+        {
+            size_t major = LSP_MODULE_VERSION_MAJOR(lsp_version);
+            size_t minor = LSP_MODULE_VERSION_MINOR(lsp_version);
+            size_t micro = LSP_MODULE_VERSION_MICRO(lsp_version);
+
+            // Limit version elemnts for VST
+            if (minor >= 10)
+                minor   = 9;
+            if (micro >= 100)
+                micro = 99;
+
+            // The VST versioning is too dumb, make micro version extended
+            return (major * 1000) + (minor * 100) + micro;
         }
 
     #ifdef LSP_TRACE
