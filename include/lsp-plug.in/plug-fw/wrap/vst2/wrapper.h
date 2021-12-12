@@ -44,6 +44,12 @@ namespace lsp
         class Wrapper: public plug::IWrapper
         {
             private:
+                Wrapper & operator = (const Wrapper &);
+                Wrapper(const Wrapper &);
+
+                friend class UIWrapper;
+
+            private:
                 AEffect                            *pEffect;
                 audioMasterCallback                 pMaster;
                 ipc::IExecutor                     *pExecutor;
@@ -58,6 +64,7 @@ namespace lsp
                 lltl::parray<vst2::AudioPort>       vAudioPorts;    // List of audio ports
                 lltl::parray<vst2::ParameterPort>   vParams;        // List of controllable parameters
                 lltl::parray<vst2::Port>            vPorts;         // List of all created VST ports
+                lltl::parray<vst2::Port>            vSortedPorts;   // List of all created VST ports ordered by unique id
                 lltl::parray<vst2::Port>            vProxyPorts;    // List of all created VST proxy ports
                 lltl::parray<meta::port_t>          vGenMetadata;   // Generated metadata
 
@@ -70,7 +77,6 @@ namespace lsp
 
             private:
                 vst2::Port                 *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
-                vst2::Port                 *find_by_id(const char *id);
 
             protected:
                 status_t                    check_vst_bank_header(const fxBank *bank, size_t size);
@@ -95,6 +101,8 @@ namespace lsp
 
             public:
                 inline vst2::ParameterPort     *parameter_port(size_t index);
+                vst2::Port                     *find_by_id(const char *id);
+
                 inline void                     open();
                 void                            run(float** inputs, float** outputs, size_t samples);
                 void                            run_legacy(float** inputs, float** outputs, size_t samples);

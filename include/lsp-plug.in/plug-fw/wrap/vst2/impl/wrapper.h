@@ -69,6 +69,13 @@ namespace lsp
             pPackage        = NULL;
         }
 
+        static ssize_t cmp_port_identifiers(const vst2::Port *pa, const vst2::Port *pb)
+        {
+            const meta::port_t *a = pa->metadata();
+            const meta::port_t *b = pb->metadata();
+            return strcmp(a->id, b->id);
+        }
+
         status_t Wrapper::init()
         {
             AEffect *e                      = pEffect;
@@ -106,6 +113,9 @@ namespace lsp
                     return STATUS_NO_MEM;
                 }
             }
+            if (!vSortedPorts.add(&vPorts))
+                return STATUS_NO_MEM;
+            vSortedPorts.qsort(cmp_port_identifiers);
 
             // Get buffer size
             ssize_t blk_size = pMaster(pEffect, audioMasterGetBlockSize, 0, 0, 0, 0);
@@ -1000,21 +1010,19 @@ namespace lsp
 
         vst2::Port *Wrapper::find_by_id(const char *id)
         {
-            for (size_t i=0; i< vPorts.size(); ++i)
+            ssize_t first=0, last = vSortedPorts.size() - 1;
+            while (first <= last)
             {
-                // Get VST port
-                vst2::Port *sp      = vPorts[i];
-                if (sp == NULL)
-                    continue;
+                ssize_t mid             = (first + last) >> 1;
+                vst2::Port *p           = vSortedPorts.uget(mid);
+                int cmp                 = strcmp(id, p->metadata()->id);
 
-                // Get port metadata
-                const meta::port_t *p         = sp->metadata();
-                if ((p == NULL) || (p->id == NULL))
-                    continue;
-
-                // Check that ID of the port matches
-                if (!::strcmp(p->id, id))
-                    return sp;
+                if (cmp < 0)
+                    last                    = mid - 1;
+                else if (cmp > 0)
+                    first                   = mid + 1;
+                else
+                    return p;
             }
 
             return NULL;

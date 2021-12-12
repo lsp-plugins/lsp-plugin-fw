@@ -21,7 +21,9 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/impl/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/impl/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 

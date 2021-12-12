@@ -257,14 +257,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void IWrapper::ui_activated()
-        {
-        }
-
-        void IWrapper::ui_deactivated()
-        {
-        }
-
         void IWrapper::notify_all()
         {
             for (size_t i=0, n=vPorts.size(); i<n; ++i)
@@ -597,12 +589,12 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::build_ui(const char *path)
+        status_t IWrapper::build_ui(const char *path, void *handle, ssize_t screen)
         {
             status_t res;
 
             // Create window widget
-            wWindow     = new tk::Window(pDisplay);
+            wWindow     = new tk::Window(pDisplay, handle, screen);
             if (wWindow == NULL)
                 return STATUS_NO_MEM;
             if ((res = wWindow->init()) != STATUS_OK)

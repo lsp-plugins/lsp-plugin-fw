@@ -101,7 +101,7 @@ namespace lsp
                 size_t          rebuild_sorted_ports();
                 void            global_config_changed(IPort *src);
                 status_t        create_alias(const LSPString *id, const LSPString *name);
-                status_t        build_ui(const char *path);
+                status_t        build_ui(const char *path, void *handle = NULL, ssize_t screen = -1);
                 void            build_config_header(LSPString *c);
                 void            build_global_config_header(LSPString *c);
                 status_t        init_visual_schema();
@@ -207,16 +207,6 @@ namespace lsp
                  * @return actual scaling factor or default value if scaling factor is not supported
                  */
                 virtual float               ui_scaling_factor(float scaling);
-
-                /** Callback method, executes when the UI has been shown
-                 *
-                 */
-                virtual void                ui_activated();
-
-                /** Callback method, executes when the UI has been hidden
-                 *
-                 */
-                virtual void                ui_deactivated();
 
                 /**
                  * Notify all ports for estimated connection
