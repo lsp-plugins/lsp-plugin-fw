@@ -43,8 +43,7 @@ DEPENDENCIES_COMMON_UI = \
   LSP_R3D_IFACE \
   LSP_WS_LIB \
   LSP_TK_LIB \
-  LSP_R3D_BASE_LIB \
-  LSP_R3D_GLX_LIB
+  LSP_R3D_BASE_LIB
 
 #------------------------------------------------------------------------------
 # Jack build dependencies
@@ -171,6 +170,40 @@ ifeq ($(PLATFORM),Windows)
 endif
 
 #------------------------------------------------------------------------------
+# VST build dependencies
+DEPENDENCIES_VST2 = \
+  $(DEPENDENCIES_COMMON) \
+  $(DEPENDENCIES_COMMON_UI)
+
+DEPENDENCIES_VST2_WRAP = \
+  LIBPTHREAD \
+  LIBDL \
+  LSP_COMMON_LIB
+
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_VST2 += \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
+
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_VST2 += \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
+
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_VST2 += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+endif
+
+#------------------------------------------------------------------------------
 # List of dependencies
 DEPENDENCIES = \
   $(DEPENDENCIES_PLUGINS) \
@@ -180,7 +213,8 @@ DEPENDENCIES = \
   $(DEPENDENCIES_LADSPA) \
   $(DEPENDENCIES_LV2) \
   $(DEPENDENCIES_LV2_UI) \
-  $(DEPENDENCIES_LV2TTL_GEN)
+  $(DEPENDENCIES_LV2TTL_GEN) \
+  $(DEPENDENCIES_VST2)
 
 TEST_DEPENDENCIES = \
   LSP_TEST_FW
@@ -189,11 +223,13 @@ TEST_DEPENDENCIES = \
 # Platform-specific dependencies
 ifeq ($(PLATFORM),Linux)
   TEST_DEPENDENCIES += \
+    LSP_R3D_GLX_LIB \
     LIBGL
 endif
 
 ifeq ($(PLATFORM),BSD)
   TEST_DEPENDENCIES += \
+    LSP_R3D_GLX_LIB \
     LIBGL
     
   DEPENDENCIES_COMMON += \

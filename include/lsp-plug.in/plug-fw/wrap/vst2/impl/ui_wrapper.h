@@ -101,8 +101,8 @@ namespace lsp
                         for (const meta::port_t *p=port->members; p->id != NULL; ++p)
                         {
                             // Initialize port name
-                            strncpy(param_name, p->id, sizeof(param_name));
-                            strncat(param_name, postfix_buf, sizeof(param_name));
+                            strncpy(param_name, p->id, sizeof(param_name)-1);
+                            strncat(param_name, postfix_buf, sizeof(param_name)-1);
                             param_name[sizeof(param_name) - 1] = '\0';
 
                             // Obtain backend port and create UI port for it
