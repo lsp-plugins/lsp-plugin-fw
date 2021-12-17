@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 17 дек. 2021 г.
+ * Created on: 23 дек. 2020 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -36,7 +36,7 @@ namespace lsp
     {
         static ssize_t meta_sort_func(const meta::plugin_t *a, const meta::plugin_t *b)
         {
-            return strcmp(a->vst2_uid, b->vst2_uid);
+            return strcmp(a->uid, b->uid);
         }
 
         status_t enumerate_plugins(lltl::parray<meta::plugin_t> *list)
@@ -50,8 +50,6 @@ namespace lsp
                     const meta::plugin_t *meta = f->enumerate(i);
                     if (meta == NULL)
                         break;
-                    else if (meta->vst2_uid == NULL)
-                        continue;
 
                     // Add metadata to list
                     if (!list->add(const_cast<meta::plugin_t *>(meta)))
@@ -82,8 +80,8 @@ namespace lsp
             // Write to file
             fprintf(out,    "//------------------------------------------------------------------------------\n");
             fprintf(out,    "// File:            %s\n", name->get_utf8());
-            fprintf(out,    "// JACK Plugin:     %s - %s [JACK]\n", meta->name, meta->description);
-            fprintf(out,    "// JACK UID:        '%s'\n", meta->uid);
+            fprintf(out,    "// VST2 Plugin:     %s - %s [VST2]\n", meta->name, meta->description);
+            fprintf(out,    "// VST2 UID:        '%s'\n", meta->vst2_uid);
             fprintf(out,    "// Version:         %d.%d.%d\n",
                     LSP_MODULE_VERSION_MAJOR(meta->version),
                     LSP_MODULE_VERSION_MINOR(meta->version),
@@ -93,16 +91,16 @@ namespace lsp
 
             // Write code
             fprintf(out,    "// Pass Plugin UID for factory function\n");
-            fprintf(out,    "#define JACK_PLUGIN_UID     \"%s\"\n", meta->uid);
+            fprintf(out,    "#define VST2_PLUGIN_UID     \"%s\"\n", meta->vst2_uid);
             fprintf(out,    "\n");
 
             fprintf(out,    "#include <lsp-plug.in/common/types.h>\n");
             fprintf(out,    "\n");
 
             fprintf(out,    "// Include factory function implementation\n");
-            fprintf(out,    "#define LSP_PLUG_IN_JACK_MAIN_IMPL\n");
-            fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/jack/main.h>\n");
-            fprintf(out,    "#undef LSP_PLUG_IN_JACK_MAIN_IMPL\n");
+            fprintf(out,    "#define LSP_PLUG_IN_VST2_MAIN_IMPL\n");
+            fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/vst2/main.h>\n");
+            fprintf(out,    "#undef LSP_PLUG_IN_VST2_MAIN_IMPL\n");
 
             // Close file
             fclose(out);
@@ -232,17 +230,17 @@ namespace lsp
                 if ((res = make_filename(&fname, meta->uid)) != STATUS_OK)
                     return res;
 
-                fprintf(out, "  %s$(EXECUTABLE_EXT)", fname.get_utf8());
+                fprintf(out, "  %s$(LIBRARY_EXT)", fname.get_utf8());
                 if (++i >= n)
                     fprintf(out, "\n\n");
                 else
                     fprintf(out, " \\\n");
             }
 
-            fprintf(out, "FILE = $(@:%%$(EXECUTABLE_EXT)=%%.cpp)\n");
+            fprintf(out, "FILE = $(@:%%$(LIBRARY_EXT)=%%.cpp)\n");
             fprintf(out, "DEP_CXX = $(foreach src,$(CXX_FILES),$(patsubst %%.cpp,%%.d,$(src)))\n");
             fprintf(out, "DEP_CXX_FILE = $(patsubst %%.d,%%.cpp,$(@))\n");
-            fprintf(out, "DEP_DEP_FILE = $(patsubst %%.d,%%$(EXECUTABLE_EXT),$(@))\n");
+            fprintf(out, "DEP_DEP_FILE = $(patsubst %%.d,%%$(LIBRARY_EXT),$(@))\n");
             fprintf(out, "\n");
 
             fprintf(out, ".DEFAULT_GOAL := all\n");
@@ -262,7 +260,7 @@ namespace lsp
             fprintf(out, "\n");
             fprintf(out, "$(OBJ_FILES):\n");
             fprintf(out, "\techo \"  $(CXX) $(FILE)\"\n");
-            fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
+            fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(SO_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");
             fprintf(out, "install: $(OBJ_FILES)\n");
@@ -320,8 +318,8 @@ namespace lsp
 
             return gen_makefile(&path, &list);
         }
-    } /* namespace vst2_make */
-} /* namespace lsp */
+    } /* vst2_make */
+} /* lsp */
 
 #ifndef LSP_IDE_DEBUG
 int main(int argc, const char **argv)
@@ -335,7 +333,6 @@ int main(int argc, const char **argv)
     return res;
 }
 #endif /* LSP_IDE_DEBUG */
-
 
 
 

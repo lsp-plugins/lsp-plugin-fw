@@ -91,16 +91,16 @@ namespace lsp
 
             // Write code
             fprintf(out,    "// Pass Plugin UID for factory function\n");
-            fprintf(out,    "#define VST2_PLUGIN_UID     \"%s\"\n", meta->uid);
+            fprintf(out,    "#define JACK_PLUGIN_UID     \"%s\"\n", meta->uid);
             fprintf(out,    "\n");
 
             fprintf(out,    "#include <lsp-plug.in/common/types.h>\n");
             fprintf(out,    "\n");
 
             fprintf(out,    "// Include factory function implementation\n");
-            fprintf(out,    "#define LSP_PLUG_IN_VST2_MAIN_IMPL\n");
-            fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/vst2/main.h>\n");
-            fprintf(out,    "#undef LSP_PLUG_IN_VST2_MAIN_IMPL\n");
+            fprintf(out,    "#define LSP_PLUG_IN_JACK_MAIN_IMPL\n");
+            fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/jack/main.h>\n");
+            fprintf(out,    "#undef LSP_PLUG_IN_JACK_MAIN_IMPL\n");
 
             // Close file
             fclose(out);
