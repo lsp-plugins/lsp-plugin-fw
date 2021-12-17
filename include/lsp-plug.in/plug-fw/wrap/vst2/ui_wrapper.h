@@ -31,6 +31,8 @@ namespace lsp
 {
     namespace vst2
     {
+        class Wrapper;
+
         class UIWrapper: public ui::IWrapper
         {
             private:
@@ -46,7 +48,7 @@ namespace lsp
                 vst2::UIPort                   *create_port(const meta::port_t *port, const char *postfix);
 
             public:
-                explicit UIWrapper(ui::Module *ui, resource::ILoader *loader, vst2::Wrapper *wrapper);
+                explicit UIWrapper(ui::Module *ui, vst2::Wrapper *wrapper);
                 virtual ~UIWrapper();
 
                 virtual status_t                init(void *root_widget);
@@ -63,11 +65,13 @@ namespace lsp
                 virtual const meta::package_t  *package() const;
 
             public:
-                bool                            show_ui(void *root_widget);
+                bool                            show_ui();
                 void                            hide_ui();
-                void                            iterate_ui();
                 void                            resize_ui(const ws::rectangle_t *r);
                 ERect                          *ui_rect();
+
+            public:
+                static UIWrapper               *create(vst2::Wrapper *wrapper, void *root_widget);
         };
     } /* namespace vst2 */
 } /* namespace lsp */

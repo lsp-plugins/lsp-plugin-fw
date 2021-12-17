@@ -30,8 +30,8 @@ namespace lsp
 {
     namespace vst2
     {
-        UIWrapper::UIWrapper(ui::Module *ui, resource::ILoader *loader, vst2::Wrapper *wrapper):
-            IWrapper(ui, loader)
+        UIWrapper::UIWrapper(ui::Module *ui, vst2::Wrapper *wrapper):
+            IWrapper(ui, wrapper->resources())
         {
             pWrapper        = wrapper;
             sRect.top       = 0;
@@ -208,6 +208,14 @@ namespace lsp
 
             // Call parent instance
             IWrapper::destroy();
+
+            // Destroy UI
+            if (pUI != NULL)
+            {
+                pUI->destroy();
+                delete pUI;
+                pUI = NULL;
+            }
         }
 
         core::KVTStorage *UIWrapper::kvt_lock()
@@ -317,7 +325,7 @@ namespace lsp
             }
         }
 
-        bool UIWrapper::show_ui(void *root_widget)
+        bool UIWrapper::show_ui()
         {
             // Force all parameters to be re-shipped to the UI
             for (size_t i=0; i<vUIPorts.size(); ++i)
@@ -336,9 +344,10 @@ namespace lsp
             transfer_dsp_to_ui();
 
             // Show the UI window
+            tk::Window *wnd     = window();
+
             // TODO
 //            ws::size_limit_t sr;
-//            tk::Window *wnd     = window();
 //            wnd->get_padded_size_limits(&sr);
 //            wnd->size_request(&sr);
 //
@@ -354,7 +363,7 @@ namespace lsp
 //            r.nHeight           = sr.nMinHeight;
 //            resize_ui(&r);
 //
-//            wnd->show();
+            wnd->show();
 
             return true;
         }
@@ -410,6 +419,51 @@ namespace lsp
             ws::rectangle_t *rect = static_cast<ws::rectangle_t *>(data);
             wrapper->resize_ui(rect);
             return STATUS_OK;
+        }
+
+        UIWrapper *UIWrapper::create(vst2::Wrapper *wrapper, void *root_widget)
+        {
+            const char *vst2_uid = wrapper->metadata()->vst2_uid;
+
+            // Lookup plugin identifier among all registered plugin factories
+            for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *meta = f->enumerate(i);
+                    if (meta == NULL)
+                        break;
+
+                    // Check plugin identifier
+                    if (!::strcmp(meta->vst2_uid, vst2_uid))
+                    {
+                        // Instantiate the plugin UI and return
+                        ui::Module *ui = f->create(meta);
+                        vst2::UIWrapper *ui_wrapper = (ui != NULL) ? new vst2::UIWrapper(ui, wrapper) : NULL;
+
+                        if (ui_wrapper != NULL)
+                        {
+                            if (ui_wrapper->init(root_widget) == STATUS_OK)
+                                return ui_wrapper;
+
+                            ui_wrapper->destroy();
+                            delete wrapper;
+                        }
+                        else if (ui != NULL)
+                        {
+                            ui->destroy();
+                            delete ui;
+                        }
+
+                        return NULL;
+                    }
+                }
+            }
+
+            // No plugin has been found
+            fprintf(stderr, "Not found UI for plugin: %s, will continue in headless mode\n", vst2_uid);
+            return NULL;
         }
     } /* namespace vst2 */
 } /* namespace lsp */

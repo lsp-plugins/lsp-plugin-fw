@@ -485,32 +485,62 @@ namespace lsp
                     break;
                 }
 
-    #ifndef LSP_NO_VST_UI
-// TODO
-//                case effEditOpen: // Run editor
-//                    if (w->show_ui(ptr))
-//                        v = 1;
-//                    break;
-//
-//                case effEditClose: // Close editor
-//                    w->hide_ui();
-//                    v = 1;
-//                    break;
-//
-//                case effEditIdle: // Run editor's iteration
-//                    w->iterate_ui();
-//                    v = 1;
-//                    break;
-//
-//                case effEditGetRect: // Return UI dimensions
-//                {
-//                    ERect **er = reinterpret_cast<ERect **>(ptr);
-//                    *er = w->get_ui_rect();
-//                    lsp_trace("Edit rect = {%d, %d, %d, %d}", int((*er)->left), int((*er)->top), int((*er)->right), int((*er)->bottom));
-//                    v = 1;
-//                    break;
-//                }
-    #endif
+            #ifndef LSP_NO_VST_UI
+                case effEditOpen: // Run editor
+                {
+                    UIWrapper *ui = w->ui_wrapper();
+                    if (ui == NULL)
+                    {
+                        if ((ui = UIWrapper::create(w, ptr)) == NULL)
+                            break;
+                    }
+
+                    if (ui->show_ui())
+                    {
+                        w->set_ui_wrapper(ui);
+                        v = 1;
+                    }
+                    break;
+                }
+
+                case effEditClose: // Close editor
+                {
+                    UIWrapper *ui = w->ui_wrapper();
+                    if (ui == NULL)
+                        break;
+
+                    w->set_ui_wrapper(NULL);
+                    ui->hide_ui();
+                    ui->destroy();
+                    delete ui;
+                    v = 1;
+                    break;
+                }
+
+                case effEditIdle: // Run editor's iteration
+                {
+                    UIWrapper *ui = w->ui_wrapper();
+                    if (ui == NULL)
+                        break;
+
+                    ui->main_iteration();
+                    v = 1;
+                    break;
+                }
+
+                case effEditGetRect: // Return UI dimensions
+                {
+                    UIWrapper *ui = w->ui_wrapper();
+                    if (ui == NULL)
+                        break;
+
+                    ERect **er = reinterpret_cast<ERect **>(ptr);
+                    *er = ui->ui_rect();
+                    lsp_trace("Edit rect = {%d, %d, %d, %d}", int((*er)->left), int((*er)->top), int((*er)->right), int((*er)->bottom));
+                    v = 1;
+                    break;
+                }
+            #endif
 
                 case effSetProgram:
                 case effGetProgram:
@@ -723,12 +753,12 @@ namespace lsp
                         break;
 
                     // Check plugin identifier
-                    if (vst2::cconst(meta->vst_uid) == uid)
+                    if (vst2::cconst(meta->vst2_uid) == uid)
                     {
                         // Instantiate the plugin and return
                         if ((plugin = f->create(meta)) == NULL)
                         {
-                            lsp_error("Plugin instantiation error: %s", meta->vst_uid);
+                            lsp_error("Plugin instantiation error: %s", meta->vst2_uid);
                             return NULL;
                         }
                     }
@@ -781,7 +811,7 @@ namespace lsp
                     e->initialDelay                     = 0;
                     e->object                           = wrapper;
                     e->user                             = NULL;
-                    e->uniqueID                         = vst2::cconst(m->vst_uid);
+                    e->uniqueID                         = vst2::cconst(m->vst2_uid);
                     e->version                          = vst2::version(m->version);
                     e->processReplacing                 = vst2::process_replacing;
                     e->processDoubleReplacing           = NULL; // Currently no double-replacing

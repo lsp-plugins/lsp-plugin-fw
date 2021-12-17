@@ -721,8 +721,8 @@ namespace lsp
                 c->fmt_append_utf8   ("  UID:                 %s\n", meta->uid);
             if (meta->lv2_uri != NULL)
                 c->fmt_append_utf8   ("  LV2 URI:             %s\n", meta->lv2_uri);
-            if (meta->vst_uid != NULL)
-                c->fmt_append_utf8   ("  VST identifier:      %s\n", meta->vst_uid);
+            if (meta->vst2_uid != NULL)
+                c->fmt_append_utf8   ("  VST identifier:      %s\n", meta->vst2_uid);
             if (meta->ladspa_id > 0)
                 c->fmt_append_utf8   ("  LADSPA identifier:   %d\n", meta->ladspa_id);
             if (meta->ladspa_lbl > 0)
