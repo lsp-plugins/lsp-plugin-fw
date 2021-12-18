@@ -46,6 +46,31 @@
 
 namespace lsp
 {
+    #ifdef ARCH_32BIT
+    static const char *jack_core_paths[] =
+    {
+        LSP_LIB_PREFIX("/lib")
+        LSP_LIB_PREFIX("/lib32")
+        LSP_LIB_PREFIX("/bin")
+        LSP_LIB_PREFIX("/sbin")
+
+        "/usr/local/lib32",
+        "/usr/lib32",
+        "/lib32",
+        "/usr/local/lib",
+        "/usr/lib",
+        "/lib",
+        "/usr/local/bin",
+        "/usr/bin",
+        "/bin",
+        "/usr/local/sbin",
+        "/usr/sbin",
+        "/sbin",
+        NULL
+    };
+    #endif
+
+    #ifdef ARCH_64BIT
     static const char *jack_core_paths[] =
     {
         LSP_LIB_PREFIX("/lib")
@@ -67,6 +92,7 @@ namespace lsp
         "/sbin",
         NULL
     };
+    #endif /* ARCH_64_BIT */
 
     static jack_main_function_t lookup_jack_main(void **hInstance, const version_t *required, const char *path)
     {
