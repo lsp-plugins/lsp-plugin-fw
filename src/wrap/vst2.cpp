@@ -728,7 +728,7 @@ namespace lsp
             return (vp != NULL) ? vp->vst_value() : 0.0f;
         }
 
-        AEffect *instantiate(VstInt32 uid, audioMasterCallback callback)
+        AEffect *instantiate(const char *uid, audioMasterCallback callback)
         {
             // Initialize debug
             // lsp_debug_init("lxvst"); // TODO
@@ -753,7 +753,7 @@ namespace lsp
                         break;
 
                     // Check plugin identifier
-                    if (vst2::cconst(meta->vst2_uid) == uid)
+                    if (!strcmp(meta->vst2_uid, uid))
                     {
                         // Instantiate the plugin and return
                         if ((plugin = f->create(meta)) == NULL)
@@ -768,8 +768,7 @@ namespace lsp
             // No plugin has been found?
             if (plugin == NULL)
             {
-                char buf[8];
-                lsp_error("Unknown plugin identifier: %s", cconst_to_str(buf, uid));
+                lsp_error("Unknown plugin identifier: %s", uid);
                 return NULL;
             }
 
@@ -852,7 +851,7 @@ extern "C"
     using namespace lsp;
 
     LSP_CSYMBOL_EXPORT
-    AEffect *VST_MAIN_FUNCTION(const VstInt32 plugin_vst2_id, audioMasterCallback callback)
+    AEffect *VST_MAIN_FUNCTION(const char *plugin_vst2_id, audioMasterCallback callback)
     {
         return lsp::vst2::instantiate(plugin_vst2_id, callback);
     }

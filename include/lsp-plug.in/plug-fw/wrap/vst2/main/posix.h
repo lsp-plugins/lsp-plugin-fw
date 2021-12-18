@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 22 янв. 2021 г.
+ * Created on: 18 дек. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,20 +19,23 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_VST2_MAIN_POSIX_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_VST2_MAIN_POSIX_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 
-#ifndef LSP_PLUG_IN_JACK_MAIN_IMPL
+#ifndef LSP_PLUG_IN_VST2_MAIN_IMPL
     #error "This header should not be included directly"
-#endif /* LSP_PLUG_IN_JACK_MAIN_IMPL */
+#endif /* LSP_PLUG_IN_VST2_MAIN_IMPL */
 
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/common/static.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/common/types.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/defs.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/main.h>
 #include <lsp-plug.in/plug-fw/wrap/common/libpath.h>
+#include <lsp-plug.in/3rdparty/steinberg/vst2.h>
 
 // System libraries
 #include <sys/types.h>
@@ -46,57 +49,46 @@
 
 namespace lsp
 {
-    namespace jack
+    namespace vst2
     {
-        #ifdef ARCH_32BIT
+    #ifdef ARCH_32BIT
         static const char *core_library_paths[] =
         {
-            LSP_LIB_PREFIX("/lib")
-            LSP_LIB_PREFIX("/lib32")
-            LSP_LIB_PREFIX("/bin")
-            LSP_LIB_PREFIX("/sbin")
-
+            LSP_LIB_PREFIX("/lib"),
+            LSP_LIB_PREFIX("/lib32"),
+            LSP_LIB_PREFIX("/bin"),
+            LSP_LIB_PREFIX("/sbin"),
             "/usr/local/lib32",
             "/usr/lib32",
             "/lib32",
             "/usr/local/lib",
-            "/usr/lib",
+            "/usr/lib" ,
             "/lib",
-            "/usr/local/bin",
-            "/usr/bin",
-            "/bin",
-            "/usr/local/sbin",
-            "/usr/sbin",
-            "/sbin",
             NULL
         };
-        #endif
-
-        #ifdef ARCH_64BIT
+    #endif /* ARCH_32BIT */
+    #ifdef ARCH_64BIT
         static const char *core_library_paths[] =
         {
-            LSP_LIB_PREFIX("/lib")
-            LSP_LIB_PREFIX("/lib64")
-            LSP_LIB_PREFIX("/bin")
-            LSP_LIB_PREFIX("/sbin")
-
+//            LSP_LIB_PREFIX("/lib"),
+//            LSP_LIB_PREFIX("/lib64"),
+//            LSP_LIB_PREFIX("/bin"),
+//            LSP_LIB_PREFIX("/sbin"),
             "/usr/local/lib64",
             "/usr/lib64",
             "/lib64",
             "/usr/local/lib",
-            "/usr/lib",
+            "/usr/lib" ,
             "/lib",
-            "/usr/local/bin",
-            "/usr/bin",
-            "/bin",
-            "/usr/local/sbin",
-            "/usr/sbin",
-            "/sbin",
             NULL
         };
-        #endif /* ARCH_64_BIT */
+    #endif /* ARCH_64BIT */
 
-        static jack_main_function_t lookup_jack_main(void **hInstance, const version_t *required, const char *path)
+        static void *hInstance = NULL;
+        static vst2::create_instance_t factory = NULL;
+
+        // The factory for creating plugin instances
+        static vst2::create_instance_t lookup_factory(void **hInstance, const char *path, const version_t *required, bool subdir = true)
         {
             lsp_trace("Searching core library at %s", path);
 
@@ -142,19 +134,6 @@ namespace lsp
                         de->d_type  = DT_REG;
                 }
 
-                // Scan symbolic link if present
-                if (de->d_type == DT_LNK)
-                {
-                    struct stat st;
-                    if (stat(ptr, &st) != 0)
-                        continue;
-
-                    if (S_ISDIR(st.st_mode))
-                        de->d_type = DT_DIR;
-                    else if (S_ISREG(st.st_mode))
-                        de->d_type = DT_REG;
-                }
-
                 // Analyze file
                 if (de->d_type == DT_DIR)
                 {
@@ -162,18 +141,21 @@ namespace lsp
                     if (strstr(de->d_name, LSP_ARTIFACT_ID) == NULL)
                         continue;
 
-                    jack_main_function_t f = lookup_jack_main(hInstance, required, ptr);
-                    if (f != NULL)
+                    if (subdir)
                     {
-                        free(ptr);
-                        closedir(d);
-                        return f;
+                        vst2::create_instance_t f = lookup_factory(hInstance, ptr, required, false);
+                        if (f != NULL)
+                        {
+                            free(ptr);
+                            closedir(d);
+                            return f;
+                        }
                     }
                 }
                 else if (de->d_type == DT_REG)
                 {
                     // Skip library if it doesn't contain 'lsp-plugins' in name
-                    if ((strstr(de->d_name, LSP_ARTIFACT_ID) == NULL) || (strstr(de->d_name, ".so") == NULL))
+                    if ((strstr(de->d_name, LSP_ARTIFACT_ID) == NULL) || (strcasestr(de->d_name, ".so") == NULL))
                         continue;
 
                     lsp_trace("Trying library %s", ptr);
@@ -221,10 +203,10 @@ namespace lsp
                     }
 
                     // Fetch function
-                    jack_main_function_t f = reinterpret_cast<jack_main_function_t>(dlsym(inst, JACK_MAIN_FUNCTION_NAME));
+                    vst2::create_instance_t f = reinterpret_cast<vst2::create_instance_t>(dlsym(inst, VST_MAIN_FUNCTION_STR));
                     if (!f)
                     {
-                        lsp_trace("function %s not found: %s", JACK_MAIN_FUNCTION_NAME, dlerror());
+                        lsp_trace("function %s not found: %s", VST_MAIN_FUNCTION_STR, dlerror());
                         // Close library
                         dlclose(inst);
                         continue;
@@ -244,26 +226,13 @@ namespace lsp
             return NULL;
         }
 
-        static jack_main_function_t get_main_function(void **hInstance, const version_t *required, const char *binary_path)
+        static vst2::create_instance_t get_main_function(const version_t *required)
         {
+            if (factory != NULL)
+                return factory;
+
             lsp_debug("Trying to find CORE library");
 
-            char path[PATH_MAX+1];
-            jack_main_function_t jack_main  = NULL;
-
-            // Try to find files in current directory
-            if (binary_path != NULL)
-            {
-                strncpy(path, binary_path, PATH_MAX);
-                char *rchr  = strrchr(path, FILE_SEPARATOR_C);
-                if (rchr != NULL)
-                {
-                    *rchr       = '\0';
-                    jack_main   = lookup_jack_main(hInstance, required, path);
-                }
-            }
-
-            // Get the home directory
             const char *homedir = getenv("HOME");
             char *buf = NULL;
 
@@ -285,72 +254,100 @@ namespace lsp
                 }
             }
 
-            // Scan home directory first
-            if ((jack_main == NULL) && (homedir != NULL))
+            // Initialize factory with NULL
+            char path[PATH_MAX];
+
+            // Try to lookup home directory
+            if (homedir != NULL)
             {
                 lsp_trace("home directory = %s", homedir);
-                jack_main       = lookup_jack_main(hInstance, required, homedir);
-
-                if (jack_main == NULL)
+                if (factory == NULL)
                 {
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib", homedir);
-                    jack_main       = lookup_jack_main(hInstance, required, path);
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S ".vst", homedir);
+                    factory     = lookup_factory(&hInstance, path, required);
                 }
-
-                if (jack_main == NULL)
+                if (factory == NULL)
                 {
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib64", homedir);
-                    jack_main       = lookup_jack_main(hInstance, required, path);
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S ".vst2", homedir);
+                    factory     = lookup_factory(&hInstance, path, required);
                 }
-
-                if (jack_main == NULL)
+                if (factory == NULL)
                 {
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "bin", homedir);
-                    jack_main       = lookup_jack_main(hInstance, required, path);
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S ".lxvst", homedir);
+                    factory     = lookup_factory(&hInstance, path, required);
+                }
+                if (factory == NULL)
+                {
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst", homedir);
+                    factory     = lookup_factory(&hInstance, path, required);
+                }
+                if (factory == NULL)
+                {
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst2", homedir);
+                    factory     = lookup_factory(&hInstance, path, required);
+                }
+                if (factory == NULL)
+                {
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lxvst", homedir);
+                    factory     = lookup_factory(&hInstance, path, required);
                 }
             }
 
-            // Scan system directories
-            if (jack_main == NULL)
+            // Try to lookup standard directories
+            if (factory == NULL)
             {
                 for (const char **p = core_library_paths; (p != NULL) && (*p != NULL); ++p)
                 {
-                    jack_main       = lookup_jack_main(hInstance, required, *p);
-                    if (jack_main != NULL)
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst", *p);
+                    factory     = lookup_factory(&hInstance, path, required);
+                    if (factory != NULL)
+                        break;
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst2", *p);
+                    factory     = lookup_factory(&hInstance, path, required);
+                    if (factory != NULL)
+                        break;
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lxvst", *p);
+                    factory     = lookup_factory(&hInstance, path, required);
+                    if (factory != NULL)
                         break;
                 }
             }
 
             // Try to lookup additional directories obtained from file mapping
-            if (jack_main == NULL)
+            if (factory == NULL)
             {
                 char *libpath = get_library_path();
                 if (libpath != NULL)
                 {
-                    jack_main     = lookup_jack_main(hInstance, required, libpath);
+                    factory         = lookup_factory(&hInstance, libpath, required);
                     ::free(libpath);
                 }
             }
 
-            if (jack_main == NULL)
+            if (factory == NULL)
             {
                 char **paths = get_library_paths(core_library_paths);
                 if (paths != NULL)
                 {
                     for (char **p = paths; (p != NULL) && (*p != NULL); ++p)
                     {
-                        jack_main     = lookup_jack_main(hInstance, required, *p);
-                        if (jack_main != NULL)
+                        factory     = lookup_factory(&hInstance, *p, required);
+                        if (factory != NULL)
                             break;
 
-                        snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib", *p);
-                        jack_main       = lookup_jack_main(hInstance, required, path);
-                        if (jack_main != NULL)
+                        snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst", *p);
+                        factory     = lookup_factory(&hInstance, path, required);
+                        if (factory != NULL)
                             break;
 
-                        snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib64", *p);
-                        jack_main       = lookup_jack_main(hInstance, required, path);
-                        if (jack_main != NULL)
+                        snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst2", *p);
+                        factory     = lookup_factory(&hInstance, path, required);
+                        if (factory != NULL)
+                            break;
+
+                        snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lxvst", *p);
+                        factory     = lookup_factory(&hInstance, path, required);
+                        if (factory != NULL)
                             break;
                     }
 
@@ -363,15 +360,37 @@ namespace lsp
                 delete [] buf;
 
             // Return factory instance (if present)
-            return jack_main;
+            return factory;
         }
-    } /* namespace jack */
-}; /* namespace lsp */
 
-//------------------------------------------------------------------------
-int main(int argc, const char **argv)
+        void free_core_library()
+        {
+            if (hInstance != NULL)
+            {
+                dlclose(hInstance);
+                hInstance = NULL;
+                factory = NULL;
+            }
+        }
+
+        static StaticFinalizer finalizer(free_core_library);
+    } /* namespace vst2 */
+} /* namespace lsp */
+
+
+// The main function
+VST_MAIN(callback)
 {
-    void *hInstance;
+    // Get VST Version of the Host
+    if (!callback (NULL, audioMasterVersion, 0, 0, NULL, 0.0f))
+    {
+        lsp_error("audioMastercallback failed request");
+        return 0;  // old version
+    }
+
+    // Check that we need to instantiate the factory
+    lsp_trace("Getting factory");
+
     static const lsp::version_t version =
     {
         PLUGIN_PACKAGE_MAJOR,
@@ -380,20 +399,19 @@ int main(int argc, const char **argv)
         PLUGIN_PACKAGE_BRANCH
     };
 
-    lsp::jack_main_function_t jack_main = lsp::jack::get_main_function(&hInstance, &version, argv[0]);
-    if (jack_main == NULL)
-    {
-        lsp_error("Could not find JACK plugin core library");
-        return -lsp::STATUS_NOT_FOUND;
-    }
+    lsp::vst2::create_instance_t f = lsp::vst2::get_main_function(&version);
 
-    int code = jack_main(JACK_PLUGIN_UID, argc, argv);
+    // Create effect
+    AEffect *effect     = NULL;
 
-    if (hInstance != NULL)
-        dlclose(hInstance);
+    if (f != NULL)
+        effect = f(VST2_PLUGIN_UID, callback);
+    else
+        lsp_error("Could not find VST core library");
 
-    return code;
+    // Return VST AEffect structure
+    return effect;
 }
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_VST2_MAIN_POSIX_H_ */

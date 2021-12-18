@@ -21,7 +21,7 @@
 
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/darray.h>
-#include <lsp-plug.in/runtime/static.h>
+#include <lsp-plug.in/common/static.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>

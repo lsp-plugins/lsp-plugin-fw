@@ -23,6 +23,7 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_VST2_DEFS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/meta/types.h>
 
 #include <lsp-plug.in/3rdparty/steinberg/vst2.h>
 #include <lsp-plug.in/common/debug.h>
@@ -34,7 +35,7 @@ namespace lsp
     namespace vst2
     {
         // This routine should be defined in the linked library
-        typedef AEffect * (* create_instance_t) (VstInt32 uid, audioMasterCallback callback);
+        typedef AEffect * (* create_instance_t) (const char *uid, audioMasterCallback callback);
 
         typedef const char * (* get_version_t) ();
 

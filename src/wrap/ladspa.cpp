@@ -28,7 +28,7 @@
 #include <lsp-plug.in/io/IInStream.h>
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/darray.h>
-#include <lsp-plug.in/runtime/static.h>
+#include <lsp-plug.in/common/static.h>
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
