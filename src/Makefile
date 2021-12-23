@@ -64,14 +64,6 @@ LADSPA_LIBDIR          := $(LIBDIR)/ladspa
 LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
 VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_LIBDIR)
 
-$(info PLUGIN_ARTIFACT_ID = $(PLUGIN_ARTIFACT_ID))
-$(info PLUGIN_ARTIFACT_PREFIX = $(PLUGIN_ARTIFACT_PREFIX))
-$(info TEST = $(TEST))
-$(info TEST_DEPENDENCIES = $(TEST_DEPENDENCIES))
-$(info HOST_TEST_DEPENDENCIES = $(HOST_TEST_DEPENDENCIES))
-$(info DEPENDENCIES = $(DEPENDENCIES))
-$(info HOST_DEPENDENCIES = $(HOST_DEPENDENCIES))
-
 #------------------------------------------------------------------------------
 # Framework settings for (cross) build
 LSP_PLUGIN_FW_SRC_RES               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
@@ -114,11 +106,6 @@ HOST_LSP_PLUGIN_FW_OBJ              = \
 
 HOST_LSP_PLUGIN_FW_MFLAGS  += $(foreach dep,$(DEPENDENCIES),-DUSE_$(dep)) 
 HOST_LSP_PLUGIN_FW_CFLAGS  += $(foreach dep,$(DEPENDENCIES), $(HOST_$(dep)_CFLAGS))
-
-$(info LSP_PLUGIN_FW_OBJ = $(LSP_PLUGIN_FW_OBJ))
-$(info LSP_PLUGIN_FW_BIN = $(LSP_PLUGIN_FW_BIN))
-$(info HOST_LSP_PLUGIN_FW_OBJ = $(HOST_LSP_PLUGIN_FW_OBJ))
-$(info $$($$(HOST)LSP_PLUGIN_FW_BIN) = $($(HOST)LSP_PLUGIN_FW_BIN) $$(HOST) = $(HOST))
 
 # Source code location for (cross) build
 CXX_SRC_CORE                = $(call rwildcard, main/core, *.cpp)
@@ -207,6 +194,7 @@ OBJ                         = \
 
 ifeq ($(TEST),1)
   CXX_SRC                    += $(CXX_SRC_TEST)
+  HOST_CXX_SRC               += $(HOST_CXX_SRC_TEST)
   OBJ                        += $(OBJ_TEST)
   LSP_PLUGIN_FW_OBJ          += $(LSP_PLUGIN_FW_OBJ_TEST)
 endif
@@ -404,6 +392,35 @@ ARTIFACT_LIB_VST2_OBJS      = \
   $(OBJ_PLUG_UI) \
   $(OBJ_WRAP_VST2)
 
+ifeq ($(TEST),1)
+  ARTIFACT_BIN_TEST           = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)-test$(EXECUTABLE_EXT)
+  ARTIFACT_BIN_TEST_PATH      = $(ARTIFACT_BIN)
+  ARTIFACT_BIN_TEST_DEPS      = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $(DEPENDENCIES_JACK_UI) $(TEST_DEPENDENCIES)), $(if $($(dep)_OBJ), $(dep)))
+  ARTIFACT_BIN_TEST_LIBS      = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $(DEPENDENCIES_JACK_UI) $(TEST_DEPENDENCIES)), $($(dep)_OBJ))
+  ARTIFACT_BIN_TEST_LDFLAGS   = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $(DEPENDENCIES_JACK_UI) $(TEST_DEPENDENCIES)), $($(dep)_LDFLAGS))
+  ARTIFACT_BIN_TEST_OBJS      = \
+    $(LSP_PLUGIN_FW_OBJ_CORE) \
+    $(LSP_PLUGIN_FW_OBJ_META) \
+    $(LSP_PLUGIN_FW_OBJ_DSP) \
+    $(LSP_PLUGIN_FW_OBJ_UI) \
+    $(LSP_PLUGIN_FW_OBJ_RES) \
+    $(LSP_PLUGIN_FW_OBJ_TEST) \
+    $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) \
+    $(OBJ_PLUG_META) \
+    $(OBJ_PLUG_DSP) \
+    $(OBJ_PLUG_UI) \
+    $(OBJ_WRAP_JACK) \
+    $(OBJ_WRAP_LADSPA) \
+    $(OBJ_WRAP_LV2) \
+    $(OBJ_WRAP_LV2UI) \
+    $(OBJ_WRAP_VST2) \
+    $(UTL_JACK_MAKE_OBJ) \
+    $(UTL_VST2_MAKE_OBJ) \
+    $(UTL_LV2TTL_GEN_OBJ) \
+    $(UTL_REPOSITORY_OBJ) \
+    $(UTL_RESPACK_OBJ)
+endif
+
 BIN_INSTALL                 = $(foreach dep, $(DEPENDENCIES_BIN), install_$(dep))
 BIN_UNINSTALL               = $(foreach dep, $(DEPENDENCIES_BIN), uninstall_$(dep))
 BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
@@ -458,7 +475,7 @@ DEP_CFLAGS              = $(call query,CFLAGS,$(ALL_DEPENDENCIES))
 
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
-.PHONY: jack ladspa dssi lv2 vst2
+.PHONY: jack ladspa dssi lv2 vst2 test
 .PHONY: resources
 .PHONY: install_jack install_ladspa install_lv2 install_vst2
 .PHONY: uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2
@@ -663,8 +680,13 @@ $(ARTIFACT_LIB_LV2_UI): $(LSP_PLUGIN_FW_OBJ) $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) $(O
 	$(CXX) -o $(ARTIFACT_LIB_LV2_UI) $(ARTIFACT_LIB_LV2_UI_LIBS) $(ARTIFACT_LIB_LV2_UI_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LV2_UI_LDFLAGS)
 	
 $(ARTIFACT_LIB_VST2): $(LSP_PLUGIN_FW_OBJ) $(OBJ_WRAP_VST2) $(ARTIFACT_LIB_VST2_DEPS) $(ARTIFACT_LIB_VST2_OBJS) $(PLUG_DEPS)
-	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_LV2_UI))"
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_VST2))"
 	$(CXX) -o $(ARTIFACT_LIB_VST2) $(ARTIFACT_LIB_VST2_LIBS) $(ARTIFACT_LIB_VST2_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_VST2_LDFLAGS)
+	
+$(ARTIFACT_BIN_TEST): $(LSP_PLUGIN_FW_OBJ) $(ARTIFACT_BIN_TEST_DEPS) $(ARTIFACT_BIN_TEST_OBJS) $(PLUG_DEPS)
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_BIN_TEST))"
+	echo "ARTIFACT_BIN_TEST_OBJS = $(ARTIFACT_BIN_TEST_OBJS)"
+	$(CXX) -o $(ARTIFACT_BIN_TEST) $(ARTIFACT_BIN_TEST_LIBS) $(ARTIFACT_BIN_TEST_OBJS) $(EXE_FLAGS) $(ARTIFACT_BIN_TEST_LDFLAGS)
 
 # All targets
 resources: $(UTL_REPOSITORY)
@@ -710,7 +732,9 @@ vst2: $(ARTIFACT_LIB_VST2) $(UTL_VST2_MAKE)
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
-all: $(DEPENDENCIES_BIN) jack ladspa lv2 vst2
+test: $(ARTIFACT_BIN_TEST)
+
+all: $(DEPENDENCIES_BIN) test jack ladspa lv2 vst2
 
 #------------------------------------------------------------------------------
 # Installation
@@ -751,7 +775,6 @@ install: $(BIN_INSTALL) install_jack install_ladspa install_lv2 install_vst2
 # Deinstallation
 $(BIN_UNINSTALL):
 	echo "Uninstall $(notdir $($(BIN_UNINST_ARTIFACT_ID)_PATH))"
-	echo make -C "$($(BIN_UNINST_ARTIFACT_ID)_PATH)" uninstall DESTDIR="$(DESTDIR)"
 	make -C "$($(BIN_UNINST_ARTIFACT_ID)_PATH)" uninstall DESTDIR="$(DESTDIR)"
 
 uninstall_jack:
@@ -760,7 +783,6 @@ uninstall_jack:
 	make -C "$(ARTIFACT_LIB_JACK_PATH)" uninstall DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 uninstall_ladspa:
-	echo "LADSPA_LIBDIR = $(LADSPA_LIBDIR)"
 	echo "Uninstall ladspa"
 	-rm -f "$(DESTDIR)/$(LADSPA_LIBDIR)/$(notdir $(ARTIFACT_LIB_LADSPA))"
 
