@@ -222,7 +222,7 @@ namespace lsp
             }
 
             fprintf(out, "# Output files\n");
-            fprintf(out, "OBJ_FILES = \\\n");
+            fprintf(out, "EXE_FILES = \\\n");
             for (size_t i=0, n=list->size(); i<n; )
             {
                 // Get plugin metadata
@@ -230,17 +230,17 @@ namespace lsp
                 if ((res = make_filename(&fname, meta->uid)) != STATUS_OK)
                     return res;
 
-                fprintf(out, "  %s$(EXECUTABLE_EXT)", fname.get_utf8());
+                fprintf(out, "  $(EXT_PREFIX)%s$(EXECUTABLE_EXT)", fname.get_utf8());
                 if (++i >= n)
                     fprintf(out, "\n\n");
                 else
                     fprintf(out, " \\\n");
             }
 
-            fprintf(out, "FILE = $(@:%%$(EXECUTABLE_EXT)=%%.cpp)\n");
+            fprintf(out, "FILE = $(@:$(EXT_PREFIX)%%$(EXECUTABLE_EXT)=%%.cpp)\n");
             fprintf(out, "DEP_CXX = $(foreach src,$(CXX_FILES),$(patsubst %%.cpp,%%.d,$(src)))\n");
             fprintf(out, "DEP_CXX_FILE = $(patsubst %%.d,%%.cpp,$(@))\n");
-            fprintf(out, "DEP_DEP_FILE = $(patsubst %%.d,%%$(EXECUTABLE_EXT),$(@))\n");
+            fprintf(out, "DEP_DEP_FILE = $(patsubst %%.d,$(EXT_PREFIX)%%$(EXECUTABLE_EXT),$(@))\n");
             fprintf(out, "\n");
 
             fprintf(out, ".DEFAULT_GOAL := all\n");
@@ -255,16 +255,16 @@ namespace lsp
             fprintf(out, "\tcat $(DEP_CXX) >Makefile.d\n");
 
             fprintf(out, "\n");
-            fprintf(out, "all: $(OBJ_FILES)\n");
+            fprintf(out, "all: $(EXE_FILES)\n");
 
             fprintf(out, "\n");
-            fprintf(out, "$(OBJ_FILES):\n");
+            fprintf(out, "$(EXE_FILES):\n");
             fprintf(out, "\techo \"  $(CXX) $(FILE)\"\n");
             fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");
-            fprintf(out, "install: $(OBJ_FILES)\n");
-            fprintf(out, "\t$(INSTALL) $(OBJ_FILES) $(DESTDIR)/\n");
+            fprintf(out, "install: $(EXE_FILES)\n");
+            fprintf(out, "\t$(INSTALL) $(EXE_FILES) $(DESTDIR)/\n");
 
             fprintf(out, "\n");
             fprintf(out, "# Dependencies\n");

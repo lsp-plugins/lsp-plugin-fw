@@ -41,6 +41,7 @@ else
 endif
 
 HOST_DEPENDENCIES       = $(DEPENDENCIES)
+HOST_DEPENDENCIES_BIN   = $(DEPENDENCIES_BIN)
 HOST_TEST_DEPENDENCIES  = $(TEST_DEPENDENCIES)
 HOST_PLUGIN_DEPENDENCIES= $(PLUGIN_DEPENDENCIES)
 
@@ -52,19 +53,20 @@ else
   HOST_UNIQ_DEPENDENCIES := $(call uniq, $(HOST_DEPENDENCIES))
 endif
 
-BIN_DEPENDENCIES        = $(foreach dep,$(UNIQ_DEPENDENCIES),$(if $(findstring bin,$($(dep)_TYPE)),$(dep)))
-DEPENDENCIES            = $(filter-out $(BIN_DEPENDENCIES), $(UNIQ_DEPENDENCIES))
+DEPENDENCIES            = $(filter-out $(DEPENDENCIES_BIN), $(UNIQ_DEPENDENCIES))
+HOST_DEPENDENCIES_BIN   = $(DEPENDENCIES_BIN)
+HOST_DEPENDENCIES       = $(filter-out $(HOST_DEPENDENCIES_BIN), $(HOST_UNIQ_DEPENDENCIES))
 
-HOST_BIN_DEPENDENCIES   = $(foreach dep,$(HOST_UNIQ_DEPENDENCIES),$(if $(findstring bin,$($(dep)_TYPE)),$(dep)))
-HOST_DEPENDENCIES       = $(filter-out $(HOST_BIN_DEPENDENCIES), $(HOST_UNIQ_DEPENDENCIES))
+JACK_LIBDIR             := $(LIBDIR)/$($(ARTIFACT_ID)_NAME)
+LADSPA_LIBDIR           := $(LIBDIR)/ladspa
+LV2_LIBDIR              := $(LIBDIR)/lv2/$($(ARTIFACT_ID)_NAME).lv2
+VST2_LIBDIR             := $(LIBDIR)/vst/$($(ARTIFACT_ID)_NAME)
 
 $(info TEST = $(TEST))
 $(info TEST_DEPENDENCIES = $(TEST_DEPENDENCIES))
 $(info HOST_TEST_DEPENDENCIES = $(HOST_TEST_DEPENDENCIES))
 $(info DEPENDENCIES = $(DEPENDENCIES))
-$(info BIN_DEPENDENCIES = $(BIN_DEPENDENCIES))
 $(info HOST_DEPENDENCIES = $(HOST_DEPENDENCIES))
-$(info HOST_BIN_DEPENDENCIES = $(HOST_BIN_DEPENDENCIES))
 
 #------------------------------------------------------------------------------
 # Framework settings for (cross) build
@@ -398,7 +400,7 @@ ARTIFACT_LIB_VST2_OBJS      = \
   $(OBJ_PLUG_UI) \
   $(OBJ_WRAP_VST2)
 
-BIN_INSTALL                 = $(foreach dep, $(BIN_DEPENDENCIES), install_$(dep))
+BIN_INSTALL                 = $(foreach dep, $(DEPENDENCIES_BIN), install_$(dep))
 BIN_ARTIFACT_ID             = $(patsubst install_%,%,$(@))
 
 #------------------------------------------------------------------------------
@@ -455,7 +457,7 @@ DEP_CFLAGS              = $(call query,CFLAGS,$(ALL_DEPENDENCIES))
 .PHONY: jack ladspa dssi lv2 vst2
 .PHONY: resources
 .PHONY: install_jack install_ladspa install_lv2 install_vst2
-.PHONY: $(DEPENDENCIES)
+.PHONY: $(DEPENDENCIES) $(DEPENDENCIES_BIN)
 .PHONY: $(BIN_INSTALL)
 
 #------------------------------------------------------------------------------
@@ -485,7 +487,7 @@ $(SRC_DEPS) $(PLUG_DEPS):
 	mkdir -p "$($(@)_BIN)"
 	$(MAKE) -C "$($(@)_PATH)" compile VERBOSE="$(VERBOSE)" PROJECT="$(PROJECT)" CONFIG="$(CONFIG)" ARTIFACT_ID="$(@)" NO_DEPENDENCIES="1" DEMO_TEST="0"
 
-$(BIN_DEPENDENCIES):
+$(DEPENDENCIES_BIN):
 	echo "make [$($(@)_NAME)]"
 	$(MAKE) -C "$($(@)_PATH)" all VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" DEMO_TEST="0"
 
@@ -672,6 +674,7 @@ jack: $(ARTIFACT_LIB_JACK) $(UTL_JACK_MAKE)
 	echo "  make JACK"
 	echo -e \
 	  '# Auto-generated script, do not edit\n\n' \
+	  'EXT_PREFIX=$($(ARTIFACT_ID)_NAME)-\n' \
 	  'EXT_OBJS=$(WRAP_JACK_OBJS)\n' \
 	  'EXT_CFLAGS=$(WRAP_JACK_CFLAGS)\n' \
 	  'EXT_CXXFLAGS=$(WRAP_JACK_CFLAGS)\n' \
@@ -699,29 +702,41 @@ vst2: $(ARTIFACT_LIB_VST2) $(UTL_VST2_MAKE)
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
-all: jack ladspa lv2 vst2
+all: $(DEPENDENCIES_BIN) jack ladspa lv2 vst2
 
 #------------------------------------------------------------------------------
 # Installation
-$(BIN_INSTALL):
+$(BIN_INSTALL): $(DEPENDENCIES_BIN)
 	echo "INSTALL $(notdir $($(BIN_ARTIFACT_ID)_PATH))"
 	echo make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 	make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 
-install_jack:
+install_jack: jack
 	echo "INSTALL jack"
+	mkdir -p "$(DESTDIR)/$(JACK_LIBDIR)"
 	mkdir -p "$(DESTDIR)/$(BINDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_JACK) "$(DESTDIR)$(JACK_LIBDIR)/"
 	make -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
-install_ladspa:
+install_ladspa: ladspa
+	echo "INSTALL ladspa"
+	mkdir -p "$(DESTDIR)/$(LADSPA_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(DESTDIR)/$(LADSPA_LIBDIR)/"
 
-install_lv2:
+install_lv2: lv2
+	echo "INSTALL lv2"
+	mkdir -p "$(DESTDIR)/$(LV2_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_LV2) "$(DESTDIR)/$(LV2_LIBDIR)/"
+	$(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(DESTDIR)/$(LV2_LIBDIR)/"
+	$(UTL_LV2TTL_GEN) -o "$(DESTDIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" -ui $(ARTIFACT_LIB_LV2_UI)
 
 install_vst2:
+	echo "INSTALL vst2"
+	mkdir -p "$(DESTDIR)/$(VST2_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)/$(VST2_LIBDIR)/"
+	make -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(DESTDIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
 install: $(BIN_INSTALL) install_jack install_ladspa install_lv2 install_vst2
-	echo "INSTALL $(notdir $(ARTIFACT_LIB_JACK))"
-	$(INSTALL) $(ARTIFACT_LIB_JACK) "$(DESTDIR)/$(LIBDIR)"
 
 # Dependencies
 -include $(CURDIR)/Makefile.d

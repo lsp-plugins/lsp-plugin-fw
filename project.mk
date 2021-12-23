@@ -45,6 +45,21 @@ DEPENDENCIES_COMMON_UI = \
   LSP_TK_LIB \
   LSP_R3D_BASE_LIB
 
+DEPENDENCIES_BIN =
+
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_BIN += \
+    LSP_R3D_GLX_LIB
+endif
+
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_BIN += \
+    LSP_R3D_GLX_LIB
+endif
+
+ifeq ($(PLATFORM),Windows)
+endif
+
 #------------------------------------------------------------------------------
 # Jack build dependencies
 DEPENDENCIES_JACK = \
