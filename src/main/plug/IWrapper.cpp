@@ -176,7 +176,7 @@ namespace lsp
 
                 // Write plugin identifiers
                 v.write("lv2_uri", tmp.get_utf8());
-                v.write("vst_id", meta->vst_uid);
+                v.write("vst_id", meta->vst2_uid);
                 v.write("ladspa_id", meta->ladspa_id);
                 v.write("ladspa_label", meta->ladspa_lbl);
 
@@ -198,6 +198,11 @@ namespace lsp
         const meta::package_t *IWrapper::package() const
         {
             return NULL;
+        }
+
+        const meta::plugin_t *IWrapper::metadata() const
+        {
+            return pPlugin->metadata();
         }
 
         plug::ICanvas *IWrapper::create_canvas(size_t width, size_t height)

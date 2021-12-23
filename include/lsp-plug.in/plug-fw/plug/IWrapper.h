@@ -48,7 +48,7 @@ namespace lsp
                 IWrapper & operator = (const IWrapper &);
 
             protected:
-                Module                     *pPlugin;
+                plug::Module               *pPlugin;
                 resource::ILoader          *pLoader;
                 plug::ICanvas              *pCanvas;            // Inline display featured canvas
 
@@ -65,6 +65,12 @@ namespace lsp
                  * @return builtin resource loader
                  */
                 inline resource::ILoader       *resources()         { return pLoader;           }
+
+                /**
+                 * Get the wrapped plugin module
+                 * @return wrapped plugin module
+                 */
+                inline plug::Module            *module()            { return pPlugin;           }
 
                 /** Get executor service
                  *
@@ -117,6 +123,12 @@ namespace lsp
                  * @return package version
                  */
                 virtual const meta::package_t  *package() const;
+
+                /**
+                 * Get metadata of wrapped plugin
+                 * @return metadata of wrapped plugin
+                 */
+                const meta::plugin_t           *metadata() const;
 
         };
     }

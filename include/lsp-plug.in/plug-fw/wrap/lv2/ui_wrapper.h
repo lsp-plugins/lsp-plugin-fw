@@ -23,19 +23,21 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_LV2_UI_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
-
-#include <lsp-plug.in/ipc/NativeExecutor.h>
-#include <lsp-plug.in/lltl/parray.h>
-#include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/executor.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ports.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ui_ports.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/sink.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
+
+
+#include <lsp-plug.in/ipc/NativeExecutor.h>
+#include <lsp-plug.in/lltl/parray.h>
 
 namespace lsp
 {
@@ -66,6 +68,7 @@ namespace lsp
                 core::KVTStorage            sKVT;           // KVT storage
                 ipc::Mutex                  sKVTMutex;      // KVT mutex
                 uint8_t                    *pOscBuffer;     // OSC packet data
+                meta::package_t            *pPackage;       // Package metadata
 
             protected:
                 lv2::UIPort                *create_port(const meta::port_t *p, const char *postfix);
@@ -113,6 +116,8 @@ namespace lsp
                 int                         idle();
 
                 void                        dump_state_request();
+
+                virtual const meta::package_t  *package() const;
         };
     } /* namespace lv2 */
 } /* namespace lsp */

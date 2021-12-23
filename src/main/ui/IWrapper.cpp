@@ -257,14 +257,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void IWrapper::ui_activated()
-        {
-        }
-
-        void IWrapper::ui_deactivated()
-        {
-        }
-
         void IWrapper::notify_all()
         {
             for (size_t i=0, n=vPorts.size(); i<n; ++i)
@@ -597,12 +589,12 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::build_ui(const char *path)
+        status_t IWrapper::build_ui(const char *path, void *handle, ssize_t screen)
         {
             status_t res;
 
             // Create window widget
-            wWindow     = new tk::Window(pDisplay);
+            wWindow     = new tk::Window(pDisplay, handle, screen);
             if (wWindow == NULL)
                 return STATUS_NO_MEM;
             if ((res = wWindow->init()) != STATUS_OK)
@@ -729,8 +721,8 @@ namespace lsp
                 c->fmt_append_utf8   ("  UID:                 %s\n", meta->uid);
             if (meta->lv2_uri != NULL)
                 c->fmt_append_utf8   ("  LV2 URI:             %s\n", meta->lv2_uri);
-            if (meta->vst_uid != NULL)
-                c->fmt_append_utf8   ("  VST identifier:      %s\n", meta->vst_uid);
+            if (meta->vst2_uid != NULL)
+                c->fmt_append_utf8   ("  VST identifier:      %s\n", meta->vst2_uid);
             if (meta->ladspa_id > 0)
                 c->fmt_append_utf8   ("  LADSPA identifier:   %d\n", meta->ladspa_id);
             if (meta->ladspa_lbl > 0)

@@ -107,7 +107,7 @@ namespace lsp
             params->set_cstring("meta_plugin_uid", plugin->uid);
             params->set_cstring("meta_plugin_lv2_uri", plugin->lv2_uri);
             params->set_cstring("meta_plugin_lv2ui_uri", plugin->lv2ui_uri);
-            params->set_cstring("meta_plugin_vst_uid", plugin->vst_uid);
+            params->set_cstring("meta_plugin_vst2_uid", plugin->vst2_uid);
             params->set_int    ("meta_plugin_ladspa_id", plugin->ladspa_id);
             params->set_cstring("meta_plugin_ladspa_lbl", plugin->ladspa_lbl);
 

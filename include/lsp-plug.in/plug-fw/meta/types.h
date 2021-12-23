@@ -313,7 +313,7 @@ namespace lsp
             const char             *uid;            // Unique character identifier of plugin
             const char             *lv2_uri;        // LV2 URI
             const char             *lv2ui_uri;      // LV2 UI URI
-            const char             *vst_uid;        // Steinberg VST ID of the plugin
+            const char             *vst2_uid;       // Steinberg VST 2.x ID of the plugin
             const uint32_t          ladspa_id;      // LADSPA ID of the plugin
             const char             *ladspa_lbl;     // LADSPA unique label of the plugin
             const version_t         version;        // Version of the plugin

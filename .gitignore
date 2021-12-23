@@ -13,4 +13,5 @@
 /.config.mk
 /INSTALL/
 /.cfg
+/.install
 /git
