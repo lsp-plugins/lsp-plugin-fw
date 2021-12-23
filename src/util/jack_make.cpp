@@ -241,6 +241,7 @@ namespace lsp
             fprintf(out, "DEP_CXX = $(foreach src,$(CXX_FILES),$(patsubst %%.cpp,%%.d,$(src)))\n");
             fprintf(out, "DEP_CXX_FILE = $(patsubst %%.d,%%.cpp,$(@))\n");
             fprintf(out, "DEP_DEP_FILE = $(patsubst %%.d,$(EXT_PREFIX)%%$(EXECUTABLE_EXT),$(@))\n");
+            fprintf(out, "JACK_CXX_DEFS = -DEXT_ARTIFACT_ID=\\\"$(EXT_ARTIFACT_ID)\\\"\n");
             fprintf(out, "\n");
 
             fprintf(out, ".DEFAULT_GOAL := all\n");
@@ -248,7 +249,7 @@ namespace lsp
 
             fprintf(out, "\n");
             fprintf(out, "$(DEP_CXX): dep_clean\n");
-            fprintf(out, "\t$(CXX) -MM -MT \"$(DEP_DEP_FILE)\" -MF $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(DEP_CXX_FILE)\n");
+            fprintf(out, "\t$(CXX) -MM -MT \"$(DEP_DEP_FILE)\" -MF $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(JACK_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(DEP_CXX_FILE)\n");
 
             fprintf(out, "\n");
             fprintf(out, "depend: $(DEP_CXX)\n");
@@ -260,7 +261,7 @@ namespace lsp
             fprintf(out, "\n");
             fprintf(out, "$(EXE_FILES):\n");
             fprintf(out, "\techo \"  $(CXX) $(FILE)\"\n");
-            fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
+            fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(JACK_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");
             fprintf(out, "install: $(EXE_FILES)\n");

@@ -54,10 +54,11 @@ namespace lsp
     #ifdef ARCH_32BIT
         static const char *core_library_paths[] =
         {
-            LSP_LIB_PREFIX("/lib"),
-            LSP_LIB_PREFIX("/lib32"),
-            LSP_LIB_PREFIX("/bin"),
-            LSP_LIB_PREFIX("/sbin"),
+            LSP_LIB_PREFIX("/lib")
+            LSP_LIB_PREFIX("/lib32")
+            LSP_LIB_PREFIX("/bin")
+            LSP_LIB_PREFIX("/sbin")
+
             "/usr/local/lib32",
             "/usr/lib32",
             "/lib32",
@@ -70,10 +71,11 @@ namespace lsp
     #ifdef ARCH_64BIT
         static const char *core_library_paths[] =
         {
-//            LSP_LIB_PREFIX("/lib"),
-//            LSP_LIB_PREFIX("/lib64"),
-//            LSP_LIB_PREFIX("/bin"),
-//            LSP_LIB_PREFIX("/sbin"),
+            LSP_LIB_PREFIX("/lib")
+            LSP_LIB_PREFIX("/lib64")
+            LSP_LIB_PREFIX("/bin")
+            LSP_LIB_PREFIX("/sbin")
+
             "/usr/local/lib64",
             "/usr/lib64",
             "/lib64",
@@ -134,13 +136,13 @@ namespace lsp
                         de->d_type  = DT_REG;
                 }
 
+                // Skip directory entry if it doesn't contain EXT_ARTIFACT_ID (for example, 'lsp-plugins') in name
+                if ((strlen(EXT_ARTIFACT_ID) > 0) && (strstr(de->d_name, EXT_ARTIFACT_ID) == NULL))
+                    continue;
+
                 // Analyze file
                 if (de->d_type == DT_DIR)
                 {
-                    // Skip directory if it doesn't contain 'lsp-plugins' in name
-                    if (strstr(de->d_name, LSP_ARTIFACT_ID) == NULL)
-                        continue;
-
                     if (subdir)
                     {
                         vst2::create_instance_t f = lookup_factory(hInstance, ptr, required, false);
@@ -155,7 +157,7 @@ namespace lsp
                 else if (de->d_type == DT_REG)
                 {
                     // Skip library if it doesn't contain 'lsp-plugins' in name
-                    if ((strstr(de->d_name, LSP_ARTIFACT_ID) == NULL) || (strcasestr(de->d_name, ".so") == NULL))
+                    if (strcasestr(de->d_name, ".so") == NULL)
                         continue;
 
                     lsp_trace("Trying library %s", ptr);

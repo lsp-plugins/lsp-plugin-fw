@@ -155,13 +155,13 @@ namespace lsp
                         de->d_type = DT_REG;
                 }
 
+                // Skip directory entry if it does not contain FILE_PREFIX (for example, 'lsp-plugins') in name
+                if ((strlen(EXT_ARTIFACT_ID)) && (strstr(de->d_name, EXT_ARTIFACT_ID) == NULL))
+                    continue;
+
                 // Analyze file
                 if (de->d_type == DT_DIR)
                 {
-                    // Skip directory if it doesn't contain 'lsp-plugins' in name
-                    if (strstr(de->d_name, LSP_ARTIFACT_ID) == NULL)
-                        continue;
-
                     jack_main_function_t f = lookup_jack_main(hInstance, required, ptr);
                     if (f != NULL)
                     {
@@ -173,7 +173,7 @@ namespace lsp
                 else if (de->d_type == DT_REG)
                 {
                     // Skip library if it doesn't contain 'lsp-plugins' in name
-                    if ((strstr(de->d_name, LSP_ARTIFACT_ID) == NULL) || (strstr(de->d_name, ".so") == NULL))
+                    if (strstr(de->d_name, ".so") == NULL)
                         continue;
 
                     lsp_trace("Trying library %s", ptr);
