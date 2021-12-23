@@ -58,10 +58,11 @@ HOST_DEPENDENCIES_BIN   = $(DEPENDENCIES_BIN)
 HOST_DEPENDENCIES       = $(filter-out $(HOST_DEPENDENCIES_BIN), $(HOST_UNIQ_DEPENDENCIES))
 
 PLUGIN_ARTIFACT_PREFIX := $(if $(PLUGIN_ARTIFACT_ID),$(PLUGIN_ARTIFACT_ID)-,)
-JACK_LIBDIR            := $(LIBDIR)/$(PLUGIN_ARTIFACT_ID)
+INSTALL_LIBDIR         := $(if $(PLUGIN_ARTIFACT_ID),$(PLUGIN_ARTIFACT_ID),$($(ARTIFACT_ID)_NAME))
+JACK_LIBDIR            := $(LIBDIR)/$(INSTALL_LIBDIR)
 LADSPA_LIBDIR          := $(LIBDIR)/ladspa
-LV2_LIBDIR             := $(LIBDIR)/lv2/$(PLUGIN_ARTIFACT_ID).lv2
-VST2_LIBDIR            := $(LIBDIR)/vst/$(PLUGIN_ARTIFACT_ID)
+LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
+VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_LIBDIR)
 
 $(info PLUGIN_ARTIFACT_ID = $(PLUGIN_ARTIFACT_ID))
 $(info PLUGIN_ARTIFACT_PREFIX = $(PLUGIN_ARTIFACT_PREFIX))
@@ -404,7 +405,9 @@ ARTIFACT_LIB_VST2_OBJS      = \
   $(OBJ_WRAP_VST2)
 
 BIN_INSTALL                 = $(foreach dep, $(DEPENDENCIES_BIN), install_$(dep))
-BIN_ARTIFACT_ID             = $(patsubst install_%,%,$(@))
+BIN_UNINSTALL               = $(foreach dep, $(DEPENDENCIES_BIN), uninstall_$(dep))
+BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
+BIN_UNINST_ARTIFACT_ID      = $(patsubst uninstall_%,%,$(@))
 
 #------------------------------------------------------------------------------
 # Nested variables
@@ -458,8 +461,9 @@ DEP_CFLAGS              = $(call query,CFLAGS,$(ALL_DEPENDENCIES))
 .PHONY: jack ladspa dssi lv2 vst2
 .PHONY: resources
 .PHONY: install_jack install_ladspa install_lv2 install_vst2
+.PHONY: uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2
 .PHONY: $(DEPENDENCIES) $(DEPENDENCIES_BIN)
-.PHONY: $(BIN_INSTALL)
+.PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL)
 
 #------------------------------------------------------------------------------
 # Dependencies
@@ -711,36 +715,66 @@ all: $(DEPENDENCIES_BIN) jack ladspa lv2 vst2
 #------------------------------------------------------------------------------
 # Installation
 $(BIN_INSTALL): $(DEPENDENCIES_BIN)
-	echo "INSTALL $(notdir $($(BIN_ARTIFACT_ID)_PATH))"
-	echo make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
-	make -C "$($(BIN_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
+	echo "Install $(notdir $($(BIN_INST_ARTIFACT_ID)_PATH))"
+	echo make -C "$($(BIN_INST_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
+	make -C "$($(BIN_INST_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 
 install_jack: jack
-	echo "INSTALL jack"
+	echo "Install jack"
 	mkdir -p "$(DESTDIR)/$(JACK_LIBDIR)"
 	mkdir -p "$(DESTDIR)/$(BINDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_JACK) "$(DESTDIR)$(JACK_LIBDIR)/"
 	make -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 install_ladspa: ladspa
-	echo "INSTALL ladspa"
+	echo "Install ladspa"
 	mkdir -p "$(DESTDIR)/$(LADSPA_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(DESTDIR)/$(LADSPA_LIBDIR)/"
 
 install_lv2: lv2
-	echo "INSTALL lv2"
+	echo "Install lv2"
 	mkdir -p "$(DESTDIR)/$(LV2_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_LV2) "$(DESTDIR)/$(LV2_LIBDIR)/"
 	$(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(DESTDIR)/$(LV2_LIBDIR)/"
 	$(UTL_LV2TTL_GEN) -o "$(DESTDIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" -ui $(ARTIFACT_LIB_LV2_UI)
 
 install_vst2:
-	echo "INSTALL vst2"
+	echo "Install vst2"
 	mkdir -p "$(DESTDIR)/$(VST2_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)/$(VST2_LIBDIR)/"
 	make -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(DESTDIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
 install: $(BIN_INSTALL) install_jack install_ladspa install_lv2 install_vst2
+	@echo "Install OK"
+
+#------------------------------------------------------------------------------
+# Deinstallation
+$(BIN_UNINSTALL):
+	echo "Uninstall $(notdir $($(BIN_UNINST_ARTIFACT_ID)_PATH))"
+	echo make -C "$($(BIN_UNINST_ARTIFACT_ID)_PATH)" uninstall DESTDIR="$(DESTDIR)"
+	make -C "$($(BIN_UNINST_ARTIFACT_ID)_PATH)" uninstall DESTDIR="$(DESTDIR)"
+
+uninstall_jack:
+	echo "Uninstall jack"
+	-rm -rf "$(DESTDIR)$(JACK_LIBDIR)"
+	make -C "$(ARTIFACT_LIB_JACK_PATH)" uninstall DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
+
+uninstall_ladspa:
+	echo "LADSPA_LIBDIR = $(LADSPA_LIBDIR)"
+	echo "Uninstall ladspa"
+	-rm -f "$(DESTDIR)/$(LADSPA_LIBDIR)/$(notdir $(ARTIFACT_LIB_LADSPA))"
+
+uninstall_lv2:
+	echo "Uninstall lv2"
+	mkdir -p "$(DESTDIR)/$(LV2_LIBDIR)"
+	-rm -rf "$(DESTDIR)/$(LV2_LIBDIR)"
+
+uninstall_vst2:
+	echo "Uninstall vst2"
+	-rm -rf "$(DESTDIR)/$(VST2_LIBDIR)"
+
+uninstall: $(BIN_UNINSTALL) uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2
+	@echo "Uninstall OK"
 
 # Dependencies
 -include $(CURDIR)/Makefile.d

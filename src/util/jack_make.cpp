@@ -268,6 +268,10 @@ namespace lsp
             fprintf(out, "\t$(INSTALL) $(EXE_FILES) $(DESTDIR)/\n");
 
             fprintf(out, "\n");
+            fprintf(out, "uninstall: \n");
+            fprintf(out, "\t-rm -f $(addprefix $(DESTDIR)/,$(EXE_FILES))\n");
+
+            fprintf(out, "\n");
             fprintf(out, "# Dependencies\n");
             fprintf(out, "-include Makefile.d\n");
 
