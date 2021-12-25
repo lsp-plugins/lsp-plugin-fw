@@ -22,17 +22,7 @@
 #include <lsp-plug.in/test-fw/init.h>
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/io/Dir.h>
-
-#ifdef LSP_IDE_DEBUG
-namespace lsp
-{
-    namespace resource
-    {
-        // Resource merge
-        status_t build_repository(bool strict, const char *dst, const char *local_dir, const char * const *paths, size_t npaths);
-    }
-}
-#endif /* LSP_IDE_DEBUG */
+#include <lsp-plug.in/plug-fw/util/repository/repository.h>
 
 INIT_BEGIN(repository)
 
@@ -68,19 +58,26 @@ INIT_BEGIN(repository)
 
     INIT_FUNC
     {
-    #ifdef LSP_IDE_DEBUG
+        repository::cmdline_t cmd;
+
         static const char *paths[]=
         {
             "",
-            "modules/*"
+            "modules/*",
+            NULL
         };
 
         io::Path resdir;
         resdir.set(tempdir(), "resources");
 
+        cmd.strict = false;
+        cmd.dst_dir = resdir.as_utf8();
+        cmd.local_dir = "res/local";
+        for (const char **p = paths; *p != NULL; ++p)
+            cmd.paths.add(const_cast<char *>(*p));
+
         remove_dir(&resdir);
-        lsp::resource::build_repository(false, resdir.as_utf8(), "res/local", paths, sizeof(paths)/sizeof(const char *));
-    #endif /* LSP_IDE_DEBUG */
+        lsp::repository::make_repository(&cmd);
     }
 INIT_END
 
