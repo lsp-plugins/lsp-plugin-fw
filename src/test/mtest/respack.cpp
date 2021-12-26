@@ -22,14 +22,8 @@
 #include <lsp-plug.in/test-fw/mtest.h>
 
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/plug-fw/util/respack/respack.h>
 
-namespace lsp
-{
-    namespace resource
-    {
-        status_t pack_tree(const char *destfile, const char *dir);
-    }
-}
 
 MTEST_BEGIN("", respack)
 
@@ -41,7 +35,7 @@ MTEST_BEGIN("", respack)
         MTEST_ASSERT(resdir.set(tempdir(), "resources") == STATUS_OK)
         MTEST_ASSERT(outfile.fmt("%s/mtest-%s.cpp", tempdir(), full_name()) > 0);
 
-        MTEST_ASSERT(resource::pack_tree(outfile.as_native(), resdir.as_native()) == STATUS_OK);
+        MTEST_ASSERT(lsp::respack::pack_resources(outfile.as_native(), resdir.as_native()) == STATUS_OK);
     }
 
 MTEST_END
