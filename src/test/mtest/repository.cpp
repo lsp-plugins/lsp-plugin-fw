@@ -3,7 +3,7 @@
  *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 30 янв. 2021 г.
+ * Created on: 27 дек. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,13 +19,34 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/test-fw/mtest.h>
+
+#include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/plug-fw/util/repository/repository.h>
 
 
-#ifndef LSP_IDE_DEBUG
-int main(int argc, const char **argv)
-{
-    return lsp::repository::main(argc, argv);
-}
-#endif /* LSP_IDE_DEBUG */
+MTEST_BEGIN("", repository)
+
+    MTEST_MAIN
+    {
+        io::Path resdir;
+        io::Path outfile;
+
+        MTEST_ASSERT(resdir.set(tempdir(), "test-resources") == STATUS_OK)
+        int narg = 0;
+        const char *varg[20];
+
+        varg[narg++] = full_name();
+        varg[narg++] = "-o";
+        varg[narg++] = resdir.as_native();
+        varg[narg++] = "-l";
+        varg[narg++] = "res/local";
+        varg[narg++] = "modules/*";
+
+        status_t res = lsp::repository::main(narg, varg);
+        MTEST_ASSERT(res == STATUS_OK);
+    }
+
+MTEST_END
+
 

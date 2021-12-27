@@ -1082,7 +1082,7 @@ namespace lsp
                 }
                 else
                 {
-                    if (!cfg->paths.add(const_cast<char *>(argv[i++])))
+                    if (!cfg->paths.add(const_cast<char *>(arg)))
                         return STATUS_NO_MEM;
                 }
             }
