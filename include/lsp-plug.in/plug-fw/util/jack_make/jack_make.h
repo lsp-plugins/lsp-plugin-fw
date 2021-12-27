@@ -75,11 +75,19 @@ namespace lsp
         status_t gen_makefile(const io::Path *base, lltl::parray<meta::plugin_t> *list);
 
         /**
-         * The main function of the utility
-         * @param path destination path to generate makefiles
+         * Generate all necessary files to build JACK plugin wrappers
+         * @param out_dir output directory to generate files
          * @return status of operation
          */
-        status_t main(const char *path);
+        status_t generate_files(const char *out_dir);
+
+        /**
+         * The main function of the utility
+         * @param argc number of command line arguments
+         * @param argv list of command line arguments
+         * @return status of operation
+         */
+        status_t main(int argc, const char **argv);
     }
 }
 

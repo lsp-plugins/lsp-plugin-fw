@@ -114,6 +114,7 @@ HOST_LSP_PLUGIN_FW_CFLAGS  += $(foreach dep,$(DEPENDENCIES), $(HOST_$(dep)_CFLAG
 
 # Source code location for (cross) build
 CXX_SRC_CORE                = $(call rwildcard, main/core, *.cpp)
+CXX_SRC_VERSION             = main/version.cpp
 CXX_SRC_META                = $(call rwildcard, main/meta, *.cpp)
 CXX_SRC_DSP                 = $(call rwildcard, main/plug, *.cpp)
 CXX_SRC_UI                  = $(call rwildcard, main/ui, *.cpp)
@@ -128,6 +129,7 @@ CXX_SRC_UTIL                = $(call rwildcard, util, *.cpp)
 CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
 CXX_SRC                     = \
   $(CXX_SRC_CORE) \
+  $(CXX_SRC_VERSION) \
   $(CXX_SRC_META) \
   $(CXX_SRC_DSP) \
   $(CXX_SRC_UI) \
@@ -142,6 +144,7 @@ CXX_SRC                     = \
 
 # Source code location for host
 HOST_CXX_SRC_CORE           = $(CXX_SRC_CORE)
+HOST_CXX_SRC_VERSION        = $(CXX_SRC_VERSION)
 HOST_CXX_SRC_META           = $(CXX_SRC_META)
 HOST_CXX_SRC_DSP            = $(CXX_SRC_DSP)
 HOST_CXX_SRC_UI             = $(CXX_SRC_UI)
@@ -156,6 +159,7 @@ HOST_CXX_SRC_UTIL           = $(CXX_SRC_UTIL)
 HOST_CXX_SRC_TEST           = $(CXX_SRC_TEST)
 HOST_CXX_SRC                = \
   $(HOST_CXX_SRC_CORE) \
+  $(HOST_CXX_SRC_VERSION) \
   $(HOST_CXX_SRC_META) \
   $(HOST_CXX_SRC_DSP) \
   $(HOST_CXX_SRC_UI) \
@@ -171,6 +175,7 @@ HOST_CXX_SRC                = \
 # Object files for (cross) build
 OBJ_STUB                    = $(patsubst %.cpp, %.o, $(CXX_SRC_STUB))
 OBJ_CORE                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_CORE))
+OBJ_VERSION                 = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_VERSION))
 OBJ_META                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_META))
 OBJ_DSP                     = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_DSP))
 OBJ_UI                      = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UI))
@@ -185,6 +190,7 @@ OBJ_UTIL                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_
 OBJ_TEST                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_TEST))
 OBJ                         = \
   $(OBJ_CORE) \
+  $(OBJ_VERSION) \
   $(OBJ_META) \
   $(OBJ_DSP) \
   $(OBJ_UI) \
@@ -207,6 +213,7 @@ endif
 # Object files for host build
 HOST_OBJ_STUB               = $(patsubst %.cpp, %.o, $(HOST_CXX_SRC_STUB))
 HOST_OBJ_CORE               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_CORE))
+HOST_OBJ_VERSION            = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_VERSION))
 HOST_OBJ_META               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_META))
 HOST_OBJ_DSP                = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_DSP))
 HOST_OBJ_UI                 = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_UI))
@@ -221,6 +228,7 @@ HOST_OBJ_UTIL               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $
 HOST_OBJ_TEST               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_TEST))
 HOST_OBJ                    = \
   $(HOST_OBJ_CORE) \
+  $(HOST_OBJ_VERSION) \
   $(HOST_OBJ_META) \
   $(HOST_OBJ_DSP) \
   $(HOST_OBJ_UI) \
@@ -244,6 +252,8 @@ endif
 UTL_BIN_PATH                = $(HOST_ARTIFACT_BIN)/utils-bin
 UTL_RES_PATH                = $(ARTIFACT_BIN)/res
 
+UTL_COMMON_OBJ              = $(patsubst %.cpp,$(HOST_ARTIFACT_BIN)/%.o,$(call rwildcard, util/common, *.cpp))
+
 UTL_JACK_MAKE               = $(UTL_BIN_PATH)/jack_make$(EXECUTABLE_EXT)
 UTL_JACK_MAKE_OBJ           = $(patsubst %.cpp,$(HOST_ARTIFACT_BIN)/%.o,$(call rwildcard, util/jack_make, *.cpp))
 UTL_JACK_MAKE_MAIN_OBJ      = $(HOST_ARTIFACT_BIN)/util/jack_make.o
@@ -255,10 +265,10 @@ UTL_JACK_MAKE_OBJS          = \
   $(HOST_LSP_PLUGIN_FW_OBJ_META) \
   $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
   $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
-  $(HOST_LSP_PLUGIN_FW_OBJ) \
   $(HOST_OBJ_PLUG_META) \
   $(HOST_OBJ_PLUG_DSP) \
   $(UTL_JACK_MAKE_OBJ) \
+  $(UTL_COMMON_OBJ) \
   $(UTL_JACK_MAKE_MAIN_OBJ)
 
 UTL_VST2_MAKE               = $(UTL_BIN_PATH)/vst2_make$(EXECUTABLE_EXT)
@@ -272,10 +282,10 @@ UTL_VST2_MAKE_OBJS          = \
   $(HOST_LSP_PLUGIN_FW_OBJ_META) \
   $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
   $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
-  $(HOST_LSP_PLUGIN_FW_OBJ) \
   $(HOST_OBJ_PLUG_META) \
   $(HOST_OBJ_PLUG_DSP) \
   $(UTL_VST2_MAKE_OBJ) \
+  $(UTL_COMMON_OBJ) \
   $(UTL_VST2_MAKE_MAIN_OBJ)
 
 UTL_LV2TTL_GEN              = $(UTL_BIN_PATH)/lv2ttl_gen$(EXECUTABLE_EXT)
@@ -289,7 +299,6 @@ UTL_LV2TTL_GEN_OBJS         = \
   $(HOST_LSP_PLUGIN_FW_OBJ_META) \
   $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
   $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
-  $(HOST_LSP_PLUGIN_FW_OBJ) \
   $(HOST_OBJ_PLUG_META) \
   $(HOST_OBJ_PLUG_DSP) \
   $(UTL_LV2TTL_GEN_OBJ) \
@@ -345,6 +354,7 @@ ARTIFACT_LIB_JACK_LIBS      = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $
 ARTIFACT_LIB_JACK_LDFLAGS   = $(foreach dep, $(call uniq, $(DEPENDENCIES_JACK) $(DEPENDENCIES_JACK_UI)), $($(dep)_LDFLAGS))
 ARTIFACT_LIB_JACK_OBJS      = \
   $(LSP_PLUGIN_FW_OBJ_CORE) \
+  $(LSP_PLUGIN_FW_OBJ_VERSION) \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
   $(LSP_PLUGIN_FW_OBJ_UI) \
@@ -405,6 +415,7 @@ ARTIFACT_LIB_VST2_LIBS      = $(foreach dep, $(call uniq, $(DEPENDENCIES_VST2)),
 ARTIFACT_LIB_VST2_LDFLAGS   = $(foreach dep, $(call uniq, $(DEPENDENCIES_VST2)), $($(dep)_LDFLAGS))
 ARTIFACT_LIB_VST2_OBJS      = \
   $(LSP_PLUGIN_FW_OBJ_CORE) \
+  $(LSP_PLUGIN_FW_OBJ_VERSION) \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
   $(LSP_PLUGIN_FW_OBJ_UI) \
@@ -425,6 +436,7 @@ ifeq ($(TEST),1)
     $(LSP_PLUGIN_FW_OBJ_META) \
     $(LSP_PLUGIN_FW_OBJ_DSP) \
     $(LSP_PLUGIN_FW_OBJ_UI) \
+    $(LSP_PLUGIN_FW_OBJ_CTL) \
     $(LSP_PLUGIN_FW_OBJ_RES) \
     $(LSP_PLUGIN_FW_OBJ_TEST) \
     $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) \
@@ -658,6 +670,8 @@ endif
 
 #------------------------------------------------------------------------------
 # Utilities
+$(info UTL_JACK_MAKE_OBJS = $(UTL_JACK_MAKE_OBJS))
+$(info UTL_JACK_MAKE_LIBS = $(UTL_JACK_MAKE_LIBS))
 $(UTL_JACK_MAKE): $(UTL_JACK_MAKE_DEPS) $(UTL_JACK_MAKE_OBJS) $(HOST_PLUG_DEPS)
 	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))

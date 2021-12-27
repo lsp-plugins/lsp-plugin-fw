@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 23 дек. 2020 г.
+ * Created on: 27 дек. 2021 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,14 +19,31 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/util/jack_make/jack_make.h>
+#include <lsp-plug.in/common/types.h>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
 
 #ifndef LSP_IDE_DEBUG
-int main(int argc, const char **argv)
-{
-    return lsp::jack_make::main(argc, argv);
-}
+    static const ::lsp::version_t module_version =
+    {
+        PLUGIN_PACKAGE_MAJOR,
+        PLUGIN_PACKAGE_MINOR,
+        PLUGIN_PACKAGE_MICRO,
+        PLUGIN_PACKAGE_BRANCH
+    };
+
+    LSP_CSYMBOL_EXPORT
+    LSP_DEF_VERSION_FUNC_HEADER
+    {
+        return &module_version;
+    }
 #endif /* LSP_IDE_DEBUG */
 
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 

@@ -612,22 +612,6 @@ extern "C"
         return (res == STATUS_OK) ? 0 : -res;
     }
 
-#ifndef LSP_IDE_DEBUG
-    LSP_CSYMBOL_EXPORT
-    LSP_DEF_VERSION_FUNC_HEADER
-    {
-        static const ::lsp::version_t v =
-        {
-            PLUGIN_PACKAGE_MAJOR,
-            PLUGIN_PACKAGE_MINOR,
-            PLUGIN_PACKAGE_MICRO,
-            PLUGIN_PACKAGE_BRANCH
-        };
-
-        return &v;
-    }
-#endif /* LSP_IDE_DEBUG */
-
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

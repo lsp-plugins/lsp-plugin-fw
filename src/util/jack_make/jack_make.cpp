@@ -291,7 +291,7 @@ namespace lsp
             return 0;
         }
 
-        status_t main(const char *base)
+        status_t generate_files(const char *base)
         {
             io::Path path, file;
             LSPString fname;
@@ -331,6 +331,17 @@ namespace lsp
             }
 
             return gen_makefile(&path, &list);
+        }
+
+        int main(int argc, const char **argv)
+        {
+            if (argc < 2)
+                fprintf(stderr, "required destination path");
+            lsp::status_t res = generate_files(argv[1]);
+            if (res != lsp::STATUS_OK)
+                fprintf(stderr, "Error while generating build files, code=%d", int(res));
+
+            return res;
         }
     }
 }
