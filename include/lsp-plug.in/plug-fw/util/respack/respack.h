@@ -30,12 +30,30 @@ namespace lsp
     namespace respack
     {
         /**
-         * Pack directory with resources and generate the output C++ file for compilation.
-         * @param destfile destination file
-         * @param dir source directory to perform packing
+         * Command-line arguments
+         */
+        typedef struct cmdline_t
+        {
+            const char         *src_dir;    // Source directory
+            const char         *dst_file;   // Destination file
+            const char         *checksums;  // Output checksums file
+        } cmdline_t;
+
+        /**
+         * Parse command-line arguments
+         * @param cmd command-line arguments to store
+         * @param argc number of command line arguments
+         * @param argv list of command line arguments
          * @return status of operation
          */
-        status_t pack_resources(const char *destfile, const char *dir);
+        status_t parse_cmdline(cmdline_t *cmd, int argc, const char **argv);
+
+        /**
+         * Pack directory with resources and generate the output C++ file for compilation.
+         * @param cmd command-line arguments
+         * @return status of operation
+         */
+        status_t pack_resources(const cmdline_t *cmd);
 
         /**
          * Execute the code of utility

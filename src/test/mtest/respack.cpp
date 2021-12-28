@@ -31,11 +31,18 @@ MTEST_BEGIN("", respack)
     {
         io::Path resdir;
         io::Path outfile;
+        io::Path cksum;
 
         MTEST_ASSERT(resdir.set(tempdir(), "resources") == STATUS_OK)
         MTEST_ASSERT(outfile.fmt("%s/mtest-%s.cpp", tempdir(), full_name()) > 0);
+        MTEST_ASSERT(cksum.fmt("%s/mtest-%s-cksum.json", tempdir(), full_name()) > 0);
 
-        MTEST_ASSERT(lsp::respack::pack_resources(outfile.as_native(), resdir.as_native()) == STATUS_OK);
+        respack::cmdline_t cmd;
+        cmd.src_dir = resdir.as_native();
+        cmd.dst_file = outfile.as_native();
+        cmd.checksums = cksum.as_native();
+
+        MTEST_ASSERT(lsp::respack::pack_resources(&cmd) == STATUS_OK);
     }
 
 MTEST_END

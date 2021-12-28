@@ -30,6 +30,7 @@
 #include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/resource/Compressor.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
+#include <lsp-plug.in/plug-fw/util/common/checksum.h>
 #include <lsp-plug.in/plug-fw/util/respack/respack.h>
 #include <lsp-plug.in/runtime/system.h>
 
@@ -90,6 +91,7 @@ namespace lsp
                 FILE                   *fd;                             // File descriptor
                 OutFileStream          *os;                             // Output stream
                 wssize_t                in_bytes;                       // Overall size of input data
+
 
             public:
                 explicit inline state_t()
@@ -376,11 +378,133 @@ namespace lsp
 
             // End of anonymous namespace
             fprintf(fd, "}\n");
+            fflush(fd);
+            fclose(fd);
+            ctx->fd = NULL;
 
             return STATUS_OK;
         }
 
-        status_t pack_resources(const char *destfile, const char *dir)
+        status_t validate_checksums(const cmdline_t *cfg, state_t *ctx)
+        {
+            status_t res;
+            util::checksum_t *cks;
+            io::Path file, cksum;
+
+            if ((cfg->checksums == NULL) || (cfg->dst_file == NULL))
+                return STATUS_OK;
+
+            if ((res = file.set_native(cfg->dst_file)) != STATUS_OK)
+                return STATUS_OK;
+            if ((res = cksum.set_native(cfg->checksums)) != STATUS_OK)
+                return STATUS_OK;
+
+            if ((!file.is_reg()) || (!cksum.is_reg()))
+                return STATUS_OK;
+
+            // Now read checksum file
+            util::checksum_list_t ck;
+            if ((res = util::read_checksums(&ck, &cksum)) != STATUS_OK)
+                return STATUS_OK; // Need to regenerate file
+
+            // Now we need to validate checksums with files
+            lltl::parray<lltl::parray<io::Path> > files;
+            if (!ctx->ext.values(&files))
+                return STATUS_OK;
+
+            for (size_t i=0, n=files.size(); i<n; ++i)
+            {
+                lltl::parray<io::Path> *list = files.uget(i);
+                for (size_t j=0, m=list->size(); j<m; ++j)
+                {
+                    // File should be present and match the checksum
+                    io::Path *fname = list->uget(j);
+                    cks = ck.get(fname->as_string());
+                    if ((!cks) || (!util::match_checksum(cks, fname)))
+                    {
+                        util::drop_checksums(&ck);
+                        return STATUS_OK;
+                    }
+
+                    // Checksums matched, remove item from list
+                    ck.remove(fname->as_string(), NULL);
+                    free(cks);
+                    cks = NULL;
+                }
+            }
+
+            // Validate checksum with generated file
+            cks = ck.get(file.as_string());
+            if ((!cks) || (!util::match_checksum(cks, &file)))
+            {
+                util::drop_checksums(&ck);
+                return STATUS_OK;
+            }
+            ck.remove(file.as_string(), NULL);
+            free(cks);
+            cks = NULL;
+
+
+            // We need to ensure that the list is empty now. If it is true, then all checksums matched.
+            res = (ck.size() > 0) ? STATUS_OK : STATUS_SKIP;
+            util::drop_checksums(&ck);
+
+            return res;
+        }
+
+        status_t write_checksums(const cmdline_t *cfg, state_t *ctx)
+        {
+            status_t res;
+            io::Path file, cksum;
+
+            if ((cfg->checksums == NULL) || (cfg->dst_file == NULL))
+                return STATUS_OK;
+
+            if ((res = file.set_native(cfg->dst_file)) != STATUS_OK)
+                return res;
+            if ((res = cksum.set_native(cfg->checksums)) != STATUS_OK)
+                return res;
+
+            if (!file.is_reg())
+                return STATUS_BAD_FORMAT;
+
+            util::checksum_list_t ck;
+
+            // Now we need to generate checksum list
+            lltl::parray<lltl::parray<io::Path> > files;
+            if (!ctx->ext.values(&files))
+                return STATUS_OK;
+
+            for (size_t i=0, n=files.size(); i<n; ++i)
+            {
+                lltl::parray<io::Path> *list = files.uget(i);
+                for (size_t j=0, m=list->size(); j<m; ++j)
+                {
+                    // File should be present and match the checksum
+                    io::Path *fname = list->uget(j);
+                    if ((res = util::add_checksum(&ck, NULL, fname)) != STATUS_OK)
+                    {
+                        util::drop_checksums(&ck);
+                        return res;
+                    }
+                }
+            }
+
+            // Add checksum of target file
+            if ((res = util::add_checksum(&ck, NULL, &file)) != STATUS_OK)
+            {
+                util::drop_checksums(&ck);
+                return res;
+            }
+
+            // Write checksums and exit
+            res = util::save_checksums(&ck, &cksum);
+            util::drop_checksums(&ck);
+
+            return res;
+        }
+
+        status_t pack_resources(const cmdline_t *cfg)
         {
             status_t res;
             io::Path path;
@@ -389,17 +513,39 @@ namespace lsp
             system::get_time(&ts);
             state_t *ctx = new state_t();
 
-            printf("Packing resources to %s from %s\n", destfile, dir);
+            printf("Packing resources to %s from %s\n", cfg->dst_file, cfg->src_dir);
 
-            res     = path.set_native(dir);
+            // Scan the source directory for files
+            res     = path.set_native(cfg->src_dir);
             if (res == STATUS_OK)
                 res     = scan_directory(ctx, &path, &path);
+
+            // If we have checksums, we need to ensure that
+            bool skip_file_creation = false;
             if (res == STATUS_OK)
-                res     = create_resource_file(ctx, destfile);
-            if (res == STATUS_OK)
-                res     = compress_data(ctx, &path);
-            if (res == STATUS_OK)
-                res     = write_entries(ctx);
+            {
+                res = validate_checksums(cfg, ctx);
+                if (res == STATUS_SKIP)
+                {
+                    skip_file_creation = true;
+                    res = STATUS_OK;
+                }
+            }
+
+            // Skip file creation
+            if ((res == STATUS_OK) && (!skip_file_creation))
+            {
+                if (res == STATUS_OK)
+                    res     = create_resource_file(ctx, cfg->dst_file);
+                if (res == STATUS_OK)
+                    res     = compress_data(ctx, &path);
+                if (res == STATUS_OK)
+                    res     = write_entries(ctx);
+
+                // Need to write checksums?
+                if ((res == STATUS_OK) && (cfg->checksums != NULL))
+                    res     = write_checksums(cfg, ctx);
+            }
 
             drop_context(ctx);
 
@@ -409,16 +555,97 @@ namespace lsp
             return res;
         }
 
-        int main(int argc, const char **argv)
+        status_t parse_cmdline(cmdline_t *cfg, int argc, const char **argv)
         {
-            if (argc < 3)
+            cfg->dst_file   = NULL;
+            cfg->src_dir    = NULL;
+            cfg->checksums  = NULL;
+
+            // Parse arguments
+            int i = 1;
+
+            while (i < argc)
             {
-                fprintf(stderr, "USAGE: <dst-file> <src-dir>\n");
-                return lsp::STATUS_BAD_ARGUMENTS;
+                const char *arg = argv[i++];
+                if ((!::strcmp(arg, "--help")) || (!::strcmp(arg, "-h")))
+                {
+                    printf("Usage: %s [parameters] [resource-directories]\n\n", argv[0]);
+                    printf("Available parameters:\n");
+                    printf("  -c, --checksums <file>    Write file checksums to the specified file\n");
+                    printf("  -h, --help                Show help\n");
+                    printf("  -i, --input <dir>         The local resource directory\n");
+                    printf("  -o, --output <file>       The name of the destination file to generate resources\n");
+                    printf("\n");
+
+                    return STATUS_CANCELLED;
+                }
+                else if ((!::strcmp(arg, "--output")) || (!::strcmp(arg, "-o")))
+                {
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified directory name for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    else if (cfg->dst_file)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->dst_file = argv[i++];
+                }
+                else if ((!::strcmp(arg, "--input")) || (!::strcmp(arg, "-i")))
+                {
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified directory name for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    else if (cfg->src_dir)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->src_dir = argv[i++];
+                }
+                else if ((!::strcmp(arg, "--checksums")) || (!::strcmp(arg, "-c")))
+                {
+                    if (cfg->checksums)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->checksums = argv[i++];
+                }
             }
 
-            lsp::status_t res = pack_resources(argv[1], argv[2]);
-            if (res != lsp::STATUS_OK)
+            printf("src_dir = %s\n", cfg->src_dir);
+            printf("dst_file = %s\n", cfg->dst_file);
+            printf("checksums = %s\n", cfg->checksums);
+
+            // Validate mandatory arguments
+            if (cfg->src_dir == NULL)
+            {
+                fprintf(stderr, "Input directory name is required\n");
+                return STATUS_BAD_ARGUMENTS;
+            }
+            if (cfg->dst_file == NULL)
+            {
+                fprintf(stderr, "Output file name is required\n");
+                return STATUS_BAD_ARGUMENTS;
+            }
+
+            return STATUS_OK;
+        }
+
+        int main(int argc, const char **argv)
+        {
+            cmdline_t cmd;
+            lsp::status_t res;
+
+            if ((res = parse_cmdline(&cmd, argc, argv)) != STATUS_OK)
+                return res;
+
+            if ((res = pack_resources(&cmd)) != lsp::STATUS_OK)
                 fprintf(stderr, "Error while generating resource file, code=%d\n", int(res));
 
             return res;

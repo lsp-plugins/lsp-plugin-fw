@@ -1075,7 +1075,7 @@ namespace lsp
                 {
                     printf("Usage: %s [parameters] [resource-directories]\n\n", argv[0]);
                     printf("Available parameters:\n");
-                    printf("  -c, --checksums           Write file checksums to the specified file\n");
+                    printf("  -c, --checksums <file>    Write file checksums to the specified file\n");
                     printf("  -h, --help                Show help\n");
                     printf("  -l, --local <dir>         The local resource directory\n");
                     printf("  -ns, --no-strict          Disable strict processing\n");

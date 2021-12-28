@@ -23,6 +23,7 @@
 
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/stdlib/stdio.h>
+#include <lsp-plug.in/fmt/json/Parser.h>
 #include <lsp-plug.in/fmt/json/Serializer.h>
 
 namespace lsp
@@ -68,6 +69,15 @@ namespace lsp
             return STATUS_OK;
         }
 
+        bool match_checksum(const checksum_t *cksum, const io::Path *file)
+        {
+            checksum_t ck;
+            status_t res = calc_checksum(&ck, file);
+            if (res != STATUS_OK)
+                return res;
+            return match_checksum(cksum, &ck);
+        }
+
         status_t add_checksum(checksum_list_t *list, const io::Path *base, const io::Path *file)
         {
             status_t res;
@@ -84,7 +94,7 @@ namespace lsp
             if (key == NULL)
                 return STATUS_NO_MEM;
 
-            checksum_t *cksum = reinterpret_cast<checksum_t *>(malloc(sizeof(checksum_t)));
+            checksum_t *cksum = static_cast<checksum_t *>(malloc(sizeof(checksum_t)));
             if (cksum == NULL)
                 return STATUS_NO_MEM;
 
@@ -186,6 +196,143 @@ namespace lsp
             values.flush();
 
             return STATUS_OK;
+        }
+
+        static status_t parse_checksum(uint64_t *value, const LSPString *s)
+        {
+            uint64_t res = 0;
+            size_t out = 0;
+
+            for (size_t i=0, n=s->length(); i<n; ++i)
+            {
+                lsp_wchar_t ch = s->char_at(i);
+                if ((ch >= '0') && (ch <= '9'))
+                    ch -= '0';
+                else if ((ch >= 'a') && (ch <= 'f'))
+                    ch -= ('a' - 10);
+                else if ((ch >= 'A') && (ch <= 'F'))
+                    ch -= ('A' - 10);
+                else
+                    return STATUS_BAD_FORMAT;
+                if ((out++) >= 16)
+                    return STATUS_BAD_FORMAT;
+
+                res = (res << 4) | ch;
+            }
+
+            *value = res;
+
+            return STATUS_OK;
+        }
+
+        static status_t do_read_checksum(checksum_t *cksum, json::Parser *p)
+        {
+            json::event_t ev;
+            status_t res;
+
+            // Checksum 1
+            if ((res = p->read_next(&ev)) != STATUS_OK)
+                return res;
+            if ((ev.type != json::JE_STRING))
+                return STATUS_BAD_FORMAT;
+            if ((res = parse_checksum(&cksum->ck1, &ev.sValue)) != STATUS_OK)
+                return res;
+
+            // Checksum 2
+            if ((res = p->read_next(&ev)) != STATUS_OK)
+                return res;
+            if ((ev.type != json::JE_STRING))
+                return STATUS_BAD_FORMAT;
+            if ((res = parse_checksum(&cksum->ck2, &ev.sValue)) != STATUS_OK)
+                return res;
+
+            // Checksum 3
+            if ((res = p->read_next(&ev)) != STATUS_OK)
+                return res;
+            if ((ev.type != json::JE_STRING))
+                return STATUS_BAD_FORMAT;
+            if ((res = parse_checksum(&cksum->ck3, &ev.sValue)) != STATUS_OK)
+                return res;
+
+            return STATUS_OK;
+        }
+
+        static status_t do_load_checksums(checksum_list_t *list, json::Parser *p)
+        {
+            json::event_t ev;
+            status_t res;
+            LSPString key;
+            checksum_t *cksum = NULL;
+
+            if ((res = p->read_next(&ev)) != STATUS_OK)
+                return res;
+            if (ev.type != json::JE_OBJECT_START)
+                return STATUS_CORRUPTED;
+
+            while ((res == p->read_next(&ev)) != STATUS_OK)
+            {
+                // End of JSON object ?
+                if (ev.type == json::JE_OBJECT_END)
+                    break;
+                else if (ev.type != json::JE_PROPERTY)
+                    return STATUS_CORRUPTED;
+
+                // Read key
+                key.swap(ev.sValue);
+
+                // Read values
+                if ((res = p->read_next(&ev)) != STATUS_OK)
+                    return res;
+                if (ev.type != json::JE_ARRAY_START)
+                    return STATUS_CORRUPTED;
+
+                // Read checksum
+                cksum = static_cast<checksum_t *>(malloc(sizeof(checksum_t)));
+                if (cksum == NULL)
+                    return STATUS_NO_MEM;
+
+                if ((res = do_read_checksum(cksum, p)) != STATUS_OK)
+                {
+                    free(cksum);
+                    return res;
+                }
+                if (!list->create(&key, cksum))
+                {
+                    free(cksum);
+                    return STATUS_NO_MEM;
+                }
+
+                // Ensure that we reached the end of array
+                if ((res = p->read_next(&ev)) != STATUS_OK)
+                    return res;
+                if (ev.type != json::JE_ARRAY_END)
+                    return STATUS_CORRUPTED;
+            }
+
+            if ((res = p->read_next(&ev)) != STATUS_EOF)
+                return STATUS_CORRUPTED;
+            return STATUS_OK;
+        }
+
+        status_t read_checksums(checksum_list_t *list, const io::Path *file)
+        {
+            status_t res, res2;
+            checksum_list_t tmp;
+            json::Parser p;
+
+            if ((res = p.open(file, json::JSON_VERSION5)) != STATUS_OK)
+                return res;
+
+            res = do_load_checksums(&tmp, &p);
+            res2 = p.close();
+            if (res == STATUS_OK)
+                res = res2;
+
+            if (res == STATUS_OK)
+                tmp.swap(list);
+            drop_checksums(&tmp);
+
+            return res;
         }
 
     } /* namespace util */

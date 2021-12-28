@@ -51,6 +51,14 @@ namespace lsp
         bool match_checksum(const checksum_t *c1, const checksum_t *c2);
 
         /**
+         * Compute checksum of the file and match to specified checksum
+         * @param cksum checksum to read
+         * @param file path to the file
+         * @return status of operation
+         */
+        bool match_checksum(const checksum_t *cksum, const io::Path *file);
+
+        /**
          * Compute checksum of the file
          * @param dst destination checksum to store data
          * @param file path to the file
@@ -74,6 +82,14 @@ namespace lsp
          * @return status of operation
          */
         status_t save_checksums(checksum_list_t *list, const io::Path *file);
+
+        /**
+         * Read all checksums from the input file
+         * @param list checksum list
+         * @param file file to read
+         * @return status of operation
+         */
+        status_t read_checksums(checksum_list_t *list, const io::Path *file);
 
         /**
          * Erase all the checksums from collection
