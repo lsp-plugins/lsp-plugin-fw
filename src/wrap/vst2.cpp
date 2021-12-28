@@ -848,29 +848,11 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-    using namespace lsp;
-
     LSP_CSYMBOL_EXPORT
     AEffect *VST_MAIN_FUNCTION(const char *plugin_vst2_id, audioMasterCallback callback)
     {
         return lsp::vst2::instantiate(plugin_vst2_id, callback);
     }
-
-#ifndef LSP_IDE_DEBUG
-    LSP_CSYMBOL_EXPORT
-    LSP_DEF_VERSION_FUNC_HEADER
-    {
-        static const ::lsp::version_t v =
-        {
-            PLUGIN_PACKAGE_MAJOR,
-            PLUGIN_PACKAGE_MINOR,
-            PLUGIN_PACKAGE_MICRO,
-            PLUGIN_PACKAGE_BRANCH
-        };
-
-        return &v;
-    }
-#endif /* LSP_IDE_DEBUG */
 
 #ifdef __cplusplus
 }

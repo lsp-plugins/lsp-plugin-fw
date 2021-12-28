@@ -21,15 +21,8 @@
 
 #include <lsp-plug.in/test-fw/mtest.h>
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/plug-fw/util/lv2ttl_gen/lv2ttl_gen.h>
 #include <lsp-plug.in/runtime/system.h>
-
-namespace lsp
-{
-    namespace lv2
-    {
-        status_t gen_ttl(int argc, const char **argv);
-    }
-}
 
 MTEST_BEGIN("", lv2ttl_gen)
 
@@ -56,7 +49,7 @@ MTEST_BEGIN("", lv2ttl_gen)
             "some" FILE_SEPARATOR_S "long" FILE_SEPARATOR_S "path" FILE_SEPARATOR_S "lv2-frontend.so"
         };
 
-        MTEST_ASSERT(lsp::lv2::gen_ttl(sizeof(data)/sizeof(const char *), data) == 0)
+        MTEST_ASSERT(lsp::lv2ttl_gen::main(sizeof(data)/sizeof(const char *), data) == 0)
     }
 
 MTEST_END
