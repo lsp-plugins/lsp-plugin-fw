@@ -40,6 +40,7 @@ namespace lsp
             bool                strict;     // Strict mode
             const char         *dst_dir;    // Destination directory
             const char         *local_dir;  // Local directory
+            const char         *checksums;  // Output checksums file
             lltl::parray<char>  paths;      // Additional resource paths
         } cmdline_t;
 

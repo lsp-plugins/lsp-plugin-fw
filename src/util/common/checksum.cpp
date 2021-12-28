@@ -21,7 +21,9 @@
 
 #include <lsp-plug.in/plug-fw/util/common/checksum.h>
 
+#include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/stdlib/stdio.h>
+#include <lsp-plug.in/fmt/json/Serializer.h>
 
 namespace lsp
 {
@@ -65,6 +67,127 @@ namespace lsp
 
             return STATUS_OK;
         }
+
+        status_t add_checksum(checksum_list_t *list, const io::Path *base, const io::Path *file)
+        {
+            status_t res;
+            io::Path path;
+
+            if ((res = path.set(file)) != STATUS_OK)
+                return res;
+            if (base != NULL)
+            {
+                if ((res = path.remove_base(base)) != STATUS_OK)
+                    return res;
+            }
+            const LSPString *key = path.as_string();
+            if (key == NULL)
+                return STATUS_NO_MEM;
+
+            checksum_t *cksum = reinterpret_cast<checksum_t *>(malloc(sizeof(checksum_t)));
+            if (cksum == NULL)
+                return STATUS_NO_MEM;
+
+            if ((res = calc_checksum(cksum, file)) == STATUS_OK)
+            {
+                if (list->create(key, cksum))
+                    return STATUS_OK;
+                res = STATUS_NO_MEM;
+            }
+
+            free(cksum);
+            return res;
+        }
+
+        static status_t do_save_checksums(checksum_list_t *list, json::Serializer *s)
+        {
+            char buf[0x20];
+            status_t res;
+            lltl::parray<LSPString> keys;
+            if ((res = s->start_object()) != STATUS_OK)
+                return res;
+
+            // Form the list of files
+            if (!list->keys(&keys))
+                return STATUS_NO_MEM;
+            keys.qsort();
+
+            // Generate key <=> value checksums
+            for (size_t i=0, n=keys.size(); i<n; ++i)
+            {
+                LSPString *key = keys.uget(i);
+                if (key == NULL)
+                    return STATUS_CORRUPTED;
+                checksum_t *cksum = list->get(key);
+                if (cksum == NULL)
+                    return STATUS_CORRUPTED;
+
+                // Emit the list of checksums
+                if ((res = s->write_property(key)) != STATUS_OK)
+                    return res;
+                if ((res = s->start_array()) != STATUS_OK)
+                    return res;
+
+                snprintf(buf, sizeof(buf)-1, "%016llx", (unsigned long long)(cksum->ck1));
+                if ((res = s->write_string(buf)))
+                    return res;
+                snprintf(buf, sizeof(buf)-1, "%016llx", (unsigned long long)(cksum->ck2));
+                if ((res = s->write_string(buf)))
+                    return res;
+                snprintf(buf, sizeof(buf)-1, "%016llx", (unsigned long long)(cksum->ck3));
+                if ((res = s->write_string(buf)))
+                    return res;
+
+                if ((res = s->end_array()) != STATUS_OK)
+                    return res;
+            }
+
+
+            if ((res = s->end_object()) != STATUS_OK)
+                return res;
+
+            return STATUS_OK;
+        }
+
+        status_t save_checksums(checksum_list_t *list, const io::Path *file)
+        {
+            status_t res, res2;
+            json::Serializer s;
+            json::serial_flags_t flags;
+
+            // Create serializer
+            json::init_serial_flags(&flags);
+            flags.multiline = true;
+            flags.padding = 1;
+            flags.ident = '\t';
+            if ((res = s.open(file, &flags, "UTF-8")) != STATUS_OK)
+                return res;
+
+            // Write items
+            res = do_save_checksums(list, &s);
+            res2 = s.close();
+
+            return (res == STATUS_OK) ? res2 : res;
+        }
+
+        status_t drop_checksums(checksum_list_t *list)
+        {
+            lltl::parray<checksum_t> values;
+            if (!list->values(&values))
+                return STATUS_NO_MEM;
+            list->flush();
+
+            for (size_t i=0, n=values.size(); i<n; ++i)
+            {
+                checksum_t *cksum = values.uget(i);
+                if (cksum != NULL)
+                    free(cksum);
+            }
+            values.flush();
+
+            return STATUS_OK;
+        }
+
     } /* namespace util */
 } /* namespace lsp */
 

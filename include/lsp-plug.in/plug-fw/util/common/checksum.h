@@ -27,6 +27,7 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/lltl/pphash.h>
 
 namespace lsp
 {
@@ -38,6 +39,8 @@ namespace lsp
             uint64_t ck2;
             uint64_t ck3;
         } checksum_t;
+
+        typedef lltl::pphash<LSPString, checksum_t>     checksum_list_t;
 
         /**
          * Ensure that one checksum matches another checksum
@@ -54,6 +57,30 @@ namespace lsp
          * @return status of operation
          */
         status_t calc_checksum(checksum_t *dst, const io::Path *file);
+
+        /**
+         * Compute checksum of the file and add it to the checksum list
+         * @param list checksum list
+         * @param base base of path of the file or NULL if not required
+         * @param file file to compute checksum
+         * @return status of operation
+         */
+        status_t add_checksum(checksum_list_t *list, const io::Path *base, const io::Path *file);
+
+        /**
+         * Save all checksums to the output file
+         * @param list checksum list
+         * @param file file to save
+         * @return status of operation
+         */
+        status_t save_checksums(checksum_list_t *list, const io::Path *file);
+
+        /**
+         * Erase all the checksums from collection
+         * @param list checksum list
+         * @return status of operation
+         */
+        status_t drop_checksums(checksum_list_t *list);
 
     } /* namespace util */
 } /* namespace lsp */

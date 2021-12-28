@@ -251,6 +251,7 @@ endif
 # Utilities
 UTL_BIN_PATH                = $(HOST_ARTIFACT_BIN)/utils-bin
 UTL_RES_PATH                = $(ARTIFACT_BIN)/res
+UTL_RES_CHECKSUM            = $(ARTIFACT_BIN)/res-checksum.json
 
 UTL_COMMON_OBJ              = $(patsubst %.cpp,$(HOST_ARTIFACT_BIN)/%.o,$(call rwildcard, util/common, *.cpp))
 
@@ -312,6 +313,7 @@ UTL_REPOSITORY_LIBS         = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)),
 UTL_REPOSITORY_LDFLAGS      = $(foreach dep, $(call uniq, $(HOST_DEPENDENCIES)), $($(dep)_LDFLAGS))
 UTL_REPOSITORY_OBJS         = \
   $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
+  $(UTL_COMMON_OBJ) \
   $(UTL_REPOSITORY_OBJ) \
   $(UTL_REPOSITORY_MAIN_OBJ)
 
@@ -448,6 +450,7 @@ ifeq ($(TEST),1)
     $(OBJ_WRAP_LV2) \
     $(OBJ_WRAP_LV2UI) \
     $(OBJ_WRAP_VST2) \
+    $(UTL_COMMON_OBJ) \
     $(UTL_JACK_MAKE_OBJ) \
     $(UTL_VST2_MAKE_OBJ) \
     $(UTL_LV2TTL_GEN_OBJ) \
@@ -728,7 +731,7 @@ $(ARTIFACT_BIN_TEST): $(LSP_PLUGIN_FW_OBJ) $(ARTIFACT_BIN_TEST_DEPS) $(ARTIFACT_
 resources: $(UTL_REPOSITORY)
 	echo "  $(UTL_REPOSITORY)"
 	echo "$(UTL_REPOSITORY) $(UTL_RES_PATH)"
-	$(UTL_REPOSITORY) -o "$(UTL_RES_PATH)" -l "$(ROOTDIR)/res/local" "$(ROOTDIR)/modules/*"
+	$(UTL_REPOSITORY) -c "$(UTL_RES_CHECKSUM)" -o "$(UTL_RES_PATH)" -l "$(ROOTDIR)/res/local" "$(ROOTDIR)/modules/*"
 
 jack: $(ARTIFACT_LIB_JACK) $(UTL_JACK_MAKE)
 	echo "  $(notdir $(UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(ARTIFACT_BIN)/%,%, $(ARTIFACT_LIB_JACK_PATH))"

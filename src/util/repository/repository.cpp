@@ -31,6 +31,7 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/lltl/phashset.h>
+#include <lsp-plug.in/plug-fw/util/common/checksum.h>
 #include <lsp-plug.in/plug-fw/util/repository/repository.h>
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/runtime/LSPString.h>
@@ -42,6 +43,8 @@ namespace lsp
     {
         typedef struct context_t
         {
+            bool                                use_checksums;  // Use checksums
+            io::Path                            base;           // Destination directory
             lltl::pphash<LSPString, LSPString>  schema;         // XML files (schemas)
             lltl::pphash<LSPString, LSPString>  ui;             // XML files (UI)
             lltl::pphash<LSPString, LSPString>  preset;         // Preset files
@@ -49,13 +52,14 @@ namespace lsp
             lltl::pphash<LSPString, LSPString>  other;          // Other files
             lltl::pphash<LSPString, LSPString>  local;          // Local files
             lltl::pphash<LSPString, LSPString>  fonts;          // Fonts
+            util::checksum_list_t               checksums;      // Checksums
         } context_t;
 
         typedef struct xml_node_t
         {
             LSPString name;             // Name of XML node
             size_t    attributes;       // Number of attributes
-            size_t    children;          // Number of children
+            size_t    children;         // Number of children
         } xml_node_t;
 
         /**
@@ -123,6 +127,9 @@ namespace lsp
             ctx->fonts.values(&paths);
             ctx->fonts.flush();
             drop_paths(&paths);
+
+            // Drop checksums
+            util::drop_checksums(&ctx->checksums);
         }
 
         void destroy_nodes(lltl::parray<xml_node_t> *stack)
@@ -837,7 +844,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t export_files(bool strict, const io::Path *dst, lltl::pphash<LSPString, LSPString> *files)
+        status_t export_files(bool strict, context_t *ctx, lltl::pphash<LSPString, LSPString> *files)
         {
             io::Path df;
             status_t res = STATUS_OK;
@@ -856,7 +863,7 @@ namespace lsp
 
                 if ((name == NULL) || (source == NULL))
                     return STATUS_BAD_STATE;
-                if ((res = df.set(dst, name)) != STATUS_OK)
+                if ((res = df.set(&ctx->base, name)) != STATUS_OK)
                     return res;
 
                 printf("  copying %s -> %s\n", source->get_native(), df.as_native());
@@ -871,6 +878,7 @@ namespace lsp
 
                 if (is_xml_file(&df))
                 {
+                    // Preprocess XML file
                     if ((res = update_status(res, preprocess_xml(source, &df))) != STATUS_OK)
                     {
                         fprintf(stderr, "Error preprocessing XML file '%s', error: %d\n", df.as_native(), int(res));
@@ -881,6 +889,7 @@ namespace lsp
                 }
                 else
                 {
+                    // Copy file
                     if ((nbytes = io::File::copy(source, &df)) < 0)
                     {
                         fprintf(stderr, "Could not create file: %s, error: %d\n", df.as_native(), int(-nbytes));
@@ -892,12 +901,22 @@ namespace lsp
                         return -nbytes;
                     }
                 }
+
+                // Compute checksum of the output file
+                if (ctx->use_checksums)
+                {
+                    if ((res = util::add_checksum(&ctx->checksums, &ctx->base, &df)) != STATUS_OK)
+                    {
+                        fprintf(stderr, "Could not compute file checksum: %s, error: %d\n", df.as_native(), int(res));
+                        return res;
+                    }
+                }
             }
 
             return res;
         }
 
-        status_t export_i18n(bool strict, const io::Path *dst, lltl::pphash<LSPString, json::Node> *files)
+        status_t export_i18n(bool strict, context_t *ctx, lltl::pphash<LSPString, json::Node> *files)
         {
             io::Path df;
             status_t res = STATUS_OK;
@@ -923,12 +942,12 @@ namespace lsp
 
                 if ((name == NULL) || (node == NULL))
                     return STATUS_BAD_STATE;
-                if ((res = df.set(dst, name)) != STATUS_OK)
+                if ((res = df.set(&ctx->base, name)) != STATUS_OK)
                     return res;
 
                 printf("  writing i18n file %s\n", df.as_native());
 
-                if ((res = update_status(res, df.mkparent(true))) != STATUS_OK)
+                if ((res = df.mkparent(true)) != STATUS_OK)
                 {
                     fprintf(stderr, "Could not create directory for file: %s\n", df.as_native());
                     if (!strict)
@@ -936,12 +955,25 @@ namespace lsp
                     return res;
                 }
 
-                if ((res = update_status(res, json::dom_save(&df, node, &settings, "UTF-8"))) != STATUS_OK)
+                // Save file
+                if ((res = json::dom_save(&df, node, &settings, "UTF-8")) != STATUS_OK)
                 {
                     fprintf(stderr, "Could not write file: %s\n", df.as_native());
                     if (!strict)
                         continue;
                     return res;
+                }
+
+                // Compute checksum
+                if (ctx->use_checksums)
+                {
+                    if ((res = util::add_checksum(&ctx->checksums, &ctx->base, &df)) != STATUS_OK)
+                    {
+                        fprintf(stderr, "Could not compute file checksum: %s, error: %d\n", df.as_native(), int(res));
+                        if (!strict)
+                            continue;
+                        return res;
+                    }
                 }
             }
 
@@ -955,6 +987,14 @@ namespace lsp
             system::time_t ts, te;
 
             system::get_time(&ts);
+
+            // Parse basic parameters
+            ctx.use_checksums = cmd->checksums != NULL;
+            if ((res = ctx.base.set_native(cmd->dst_dir)) != STATUS_OK)
+            {
+                fprintf(stderr, "Could not parse path: %s, error code=%d\n", cmd->dst_dir, int(res));
+                return res;
+            }
 
             // Scan local files
             if ((res = scan_local_files(cmd->local_dir, &ctx)) != STATUS_OK)
@@ -978,27 +1018,35 @@ namespace lsp
             // Export all resources
             printf("Generating resource tree\n");
 
-            io::Path dst;
             bool strict = cmd->strict;
-            res = dst.set(cmd->dst_dir);
             if ((res == STATUS_OK) || (!strict))
-                res = update_status(res, export_files(strict, &dst, &ctx.schema));
+                res = update_status(res, export_files(strict, &ctx, &ctx.schema));
             if ((res == STATUS_OK) || (!strict))
-                res = update_status(res, export_files(strict, &dst, &ctx.ui));
+                res = update_status(res, export_files(strict, &ctx, &ctx.ui));
             if ((res == STATUS_OK) || (!strict))
-                res = update_status(res, export_files(strict, &dst, &ctx.preset));
+                res = update_status(res, export_files(strict, &ctx, &ctx.preset));
             if ((res == STATUS_OK) || (!strict))
-                res = update_status(res, export_files(strict, &dst, &ctx.other));
+                res = update_status(res, export_files(strict, &ctx, &ctx.other));
             if ((res == STATUS_OK) || (!strict))
-                res = update_status(res, export_i18n(strict, &dst, &ctx.i18n));
+                res = update_status(res, export_i18n(strict, &ctx, &ctx.i18n));
             if ((res == STATUS_OK) || (!strict))
-                res = update_status(res, export_files(strict, &dst, &ctx.local));
+                res = update_status(res, export_files(strict, &ctx, &ctx.local));
             if ((res == STATUS_OK) || (!strict))
-                res = update_status(res, export_files(strict, &dst, &ctx.fonts));
+                res = update_status(res, export_files(strict, &ctx, &ctx.fonts));
 
-            // Export local resources
-            io::Path src;
-            res = src.set(cmd->local_dir);
+            // Export checksums if specified
+            if (cmd->checksums)
+            {
+                io::Path path;
+                if ((res = path.set_native(cmd->checksums)) != STATUS_OK)
+                    return res;
+                printf("Writing checksums to file: %s\n", path.as_native());
+                if ((res = util::save_checksums(&ctx.checksums, &path)) != STATUS_OK)
+                {
+                    fprintf(stderr, "Could not write checksum file: %s\n", path.as_native());
+                    return res;
+                }
+            }
 
             // Destroy context
             destroy_context(&ctx);
@@ -1014,6 +1062,7 @@ namespace lsp
             cfg->strict     = true;
             cfg->dst_dir    = NULL;
             cfg->local_dir  = NULL;
+            cfg->checksums  = NULL;
 
             // Parse arguments
             int i = 1;
@@ -1026,6 +1075,7 @@ namespace lsp
                 {
                     printf("Usage: %s [parameters] [resource-directories]\n\n", argv[0]);
                     printf("Available parameters:\n");
+                    printf("  -c, --checksums           Write file checksums to the specified file\n");
                     printf("  -h, --help                Show help\n");
                     printf("  -l, --local <dir>         The local resource directory\n");
                     printf("  -ns, --no-strict          Disable strict processing\n");
@@ -1079,6 +1129,15 @@ namespace lsp
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->strict = false;
+                }
+                else if ((!::strcmp(arg, "--checksums")) || (!::strcmp(arg, "-c")))
+                {
+                    if (cfg->checksums)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->checksums = argv[i++];
                 }
                 else
                 {

@@ -73,6 +73,7 @@ INIT_BEGIN(repository)
         cmd.strict = false;
         cmd.dst_dir = resdir.as_utf8();
         cmd.local_dir = "res/local";
+        cmd.checksums = NULL;
         for (const char **p = paths; *p != NULL; ++p)
             cmd.paths.add(const_cast<char *>(*p));
 
