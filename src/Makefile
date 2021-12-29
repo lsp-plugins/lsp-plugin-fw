@@ -329,10 +329,6 @@ UTL_RESPACK_OBJS            = \
   $(UTL_RESPACK_OBJ) \
   $(UTL_RESPACK_MAIN_OBJ)
 
-$(info files=$(call rwildcard, util/repository, *.cpp))
-$(info UTL_RESPACK_OBJ=$(UTL_RESPACK_OBJ))
-$(info UTL_RESPACK_MAIN_OBJ=$(UTL_RESPACK_MAIN_OBJ))
-
 #------------------------------------------------------------------------------
 # Plugins
 OBJ_PLUG_META               = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_META))
@@ -674,8 +670,6 @@ endif
 
 #------------------------------------------------------------------------------
 # Utilities
-$(info UTL_JACK_MAKE_OBJS = $(UTL_JACK_MAKE_OBJS))
-$(info UTL_JACK_MAKE_LIBS = $(UTL_JACK_MAKE_LIBS))
 $(UTL_JACK_MAKE): $(UTL_JACK_MAKE_DEPS) $(UTL_JACK_MAKE_OBJS) $(HOST_PLUG_DEPS)
 	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
@@ -732,6 +726,7 @@ $(ARTIFACT_BIN_TEST): $(LSP_PLUGIN_FW_OBJ) $(ARTIFACT_BIN_TEST_DEPS) $(ARTIFACT_
 resources: $(UTL_REPOSITORY)
 	echo "  $(UTL_REPOSITORY)"
 	echo "$(UTL_REPOSITORY) $(UTL_RES_PATH)"
+	echo $(UTL_REPOSITORY) -o "$(UTL_RES_PATH)" -l "$(ROOTDIR)/res/local" "$(ROOTDIR)/modules/*"
 	$(UTL_REPOSITORY) -o "$(UTL_RES_PATH)" -l "$(ROOTDIR)/res/local" "$(ROOTDIR)/modules/*"
 
 jack: $(ARTIFACT_LIB_JACK) $(UTL_JACK_MAKE)
