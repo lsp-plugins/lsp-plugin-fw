@@ -64,10 +64,9 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t gen_cpp_file(const io::Path *file, const meta::plugin_t *meta)
+        status_t gen_cpp_file(const io::Path *file, const char *fname, const meta::plugin_t *meta)
         {
             // Generate file
-            LSPString fname;
             FILE *out = fopen(file->as_native(), "w");
             if (out == NULL)
             {
@@ -76,13 +75,10 @@ namespace lsp
                 return STATUS_IO_ERROR;
             }
 
-            status_t res = file->get_last(&fname);
-            if (res != STATUS_OK)
-                return res;
-
             // Write to file
             fprintf(out,    "//------------------------------------------------------------------------------\n");
-            fprintf(out,    "// File:            %s\n", fname.get_utf8());
+            if (fname != NULL)
+                fprintf(out,    "// File:            %s\n", fname);
             fprintf(out,    "// JACK Plugin:     %s - %s [JACK]\n", meta->name, meta->description);
             fprintf(out,    "// JACK UID:        '%s'\n", meta->uid);
             fprintf(out,    "// Version:         %d.%d.%d\n",
@@ -131,7 +127,7 @@ namespace lsp
                     return res;
 
                 // Generate temporary file
-                if ((res = gen_cpp_file(&temp, meta)) != STATUS_OK)
+                if ((res = gen_cpp_file(&temp, fname.get_native(), meta)) != STATUS_OK)
                     return res;
 
                 // Compute checksums of file
@@ -164,7 +160,7 @@ namespace lsp
             else
             {
                 // Generate direct file
-                if ((res = gen_cpp_file(file, meta)) != STATUS_OK)
+                if ((res = gen_cpp_file(file, fname.get_native(), meta)) != STATUS_OK)
                     return res;
 
                 // Output information
@@ -270,7 +266,7 @@ namespace lsp
 
             fprintf(out, "\n");
             fprintf(out, "$(EXE_FILES):\n");
-            fprintf(out, "\techo \"  $(CXX) $(FILE)\"\n");
+            fprintf(out, "\techo \"  $(CXX) [jack] $(FILE)\"\n");
             fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(JACK_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");

@@ -45,10 +45,11 @@ namespace lsp
         /**
          * Generate C++ loader file for the specific plugin
          * @param file the name of the file
+         * @param fname file name printed at the header (optional)
          * @param meta plugin metadata
          * @return status of operation
          */
-        status_t gen_cpp_file(const io::Path *file, const meta::plugin_t *meta);
+        status_t gen_cpp_file(const io::Path *file, const char *fname, const meta::plugin_t *meta);
 
         /**
          * Generate temporary C++ file and replace the existing file with it if file checksums do not match

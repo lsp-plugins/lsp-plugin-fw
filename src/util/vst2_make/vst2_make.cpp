@@ -66,14 +66,8 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t gen_cpp_file(const io::Path *file, const meta::plugin_t *meta)
+        status_t gen_cpp_file(const io::Path *file, const char *fname, const meta::plugin_t *meta)
         {
-            LSPString name;
-            status_t res;
-
-            if ((res = file->get_last(&name)) != STATUS_OK)
-                return res;
-
             // Generate file
             FILE *out = fopen(file->as_native(), "w");
             if (out == NULL)
@@ -85,7 +79,8 @@ namespace lsp
 
             // Write to file
             fprintf(out,    "//------------------------------------------------------------------------------\n");
-            fprintf(out,    "// File:            %s\n", name.get_utf8());
+            if (fname != NULL)
+                fprintf(out,    "// File:            %s\n", fname);
             fprintf(out,    "// VST2 Plugin:     %s - %s [VST2]\n", meta->name, meta->description);
             fprintf(out,    "// VST2 UID:        '%s'\n", meta->vst2_uid);
             fprintf(out,    "// Version:         %d.%d.%d\n",
@@ -116,19 +111,24 @@ namespace lsp
 
         static status_t gen_source_file(const io::Path *file, const meta::plugin_t *meta)
         {
+            LSPString fname;
+            io::Path temp;
             status_t res;
+
+            // Get file name
+            if ((res = file->get_last(&fname)) != STATUS_OK)
+                return STATUS_NO_MEM;
 
             // Generate temporary file
             if (file->exists())
             {
-                io::Path temp;
                 if ((res = temp.set(file)) != STATUS_OK)
                     return res;
                 if ((res = temp.append(".tmp")) != STATUS_OK)
                     return res;
 
                 // Generate temporary file
-                if ((res = gen_cpp_file(&temp, meta)) != STATUS_OK)
+                if ((res = gen_cpp_file(&temp, fname.get_native(), meta)) != STATUS_OK)
                     return res;
 
                 // Compute checksums of file
@@ -161,7 +161,7 @@ namespace lsp
             else
             {
                 // Generate direct file
-                if ((res = gen_cpp_file(file, meta)) != STATUS_OK)
+                if ((res = gen_cpp_file(file, fname.get_native(), meta)) != STATUS_OK)
                     return res;
 
                 // Output information
@@ -267,7 +267,7 @@ namespace lsp
 
             fprintf(out, "\n");
             fprintf(out, "$(OBJ_FILES):\n");
-            fprintf(out, "\techo \"  $(CXX) $(FILE)\"\n");
+            fprintf(out, "\techo \"  $(CXX) [vst2] $(FILE)\"\n");
             fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(EXT_CXXFLAGS) $(VST2_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(SO_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");
