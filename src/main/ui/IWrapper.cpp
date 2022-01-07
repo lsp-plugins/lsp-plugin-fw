@@ -1502,7 +1502,7 @@ namespace lsp
             // Parse the sheet data and close the input sequence
             status_t res    = sheet->parse_data(is);
             if (res != STATUS_OK)
-                lsp_warn("Error loading stylesheet '%s': %s", file->get_native(), sheet->error()->get_native());
+                lsp_warn("Error loading stylesheet '%s': code=%d, %s", file->get_native(), int(res), sheet->error()->get_native());
 
             status_t res2   = is->close();
             delete is;

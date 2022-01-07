@@ -24,6 +24,8 @@
 #include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/plug-fw/util/repository/repository.h>
 
+#ifdef LSP_IDE_DEBUG
+
 INIT_BEGIN(repository)
 
     void remove_dir(const io::Path *path)
@@ -55,7 +57,6 @@ INIT_BEGIN(repository)
         path->remove();
     }
 
-
     INIT_FUNC
     {
         repository::cmdline_t cmd;
@@ -81,6 +82,8 @@ INIT_BEGIN(repository)
         lsp::repository::make_repository(&cmd);
     }
 INIT_END
+
+#endif /* LSP_IDE_DEBUG */
 
 
 

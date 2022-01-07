@@ -114,9 +114,11 @@ MTEST_BEGIN("", standalone)
         printf("Calling JACK_MAIN_FUNCTION\n");
 
         // Pass the path to resource directory
+    #ifdef LSP_IDE_DEBUG
         io::Path resdir;
         resdir.set(tempdir(), "resources");
         system::set_env_var("LSP_RESOURCE_PATH", resdir.as_string());
+    #endif /* LSP_IDE_DEBUG */
 
         // Call the main function
         int result = JACK_MAIN_FUNCTION(argv[0], argc, args);
