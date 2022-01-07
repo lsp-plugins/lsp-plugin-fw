@@ -105,7 +105,7 @@ namespace lsp
             // Create resource loader
             if (res != STATUS_OK)
             {
-                lsp_warn("Could not obtain directory wit resources");
+                lsp_warn("Could not obtain directory with resources");
                 return NULL;
             }
 

@@ -34,7 +34,6 @@
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ipc/Library.h>
-#include <lsp-plug.in/resource/DirLoader.h>
 
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/ui.h>
