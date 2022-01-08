@@ -47,20 +47,15 @@ MTEST_BEGIN("", unpack)
             MTEST_ASSERT(child.set(out, list[i].name) == STATUS_OK);
             MTEST_ASSERT(sub.set(path, list[i].name) == STATUS_OK);
 
-            printf("Found subdirectory: %s\n", sub.as_native());
             if (list[i].type == resource::RES_DIR)
             {
+                printf("Found subdirectory: %s\n", sub.as_native());
                 status_t res = unpack_resources(&child, &sub, loader);
                 MTEST_ASSERT(res == STATUS_OK);
             }
             else
             {
                 printf("Unpacking resource: %s -> %s\n", sub.as_native(), child.as_native());
-
-                if (!strcmp(list[i].name, "legacy-dark.xml"))
-                {
-                    printf("debug\n");
-                }
 
                 // Create destination path
                 MTEST_ASSERT(out->mkdir(true) == STATUS_OK);
