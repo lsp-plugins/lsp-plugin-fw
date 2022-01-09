@@ -136,11 +136,11 @@ HOST_LSP_PLUGIN_FW_ALL_CFLAGS      += $(foreach dep,$(DEPENDENCIES), $(HOST_$(de
 
 # Source code location for (cross) build
 CXX_SRC_CORE                = $(call rwildcard, main/core, *.cpp)
-CXX_SRC_VERSION             = main/version.cpp
 CXX_SRC_META                = $(call rwildcard, main/meta, *.cpp)
 CXX_SRC_DSP                 = $(call rwildcard, main/plug, *.cpp)
 CXX_SRC_UI                  = $(call rwildcard, main/ui, *.cpp)
 CXX_SRC_CTL                 = $(call rwildcard, main/ctl, *.cpp)
+CXX_SRC_EXPORT              = $(call rwildcard, export, *.cpp)
 CXX_SRC_WRAP_JACK           = wrap/jack.cpp
 CXX_SRC_WRAP_LADSPA         = wrap/ladspa.cpp
 CXX_SRC_WRAP_LV2            = wrap/lv2.cpp
@@ -151,7 +151,7 @@ CXX_SRC_UTIL                = $(call rwildcard, util, *.cpp)
 CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
 CXX_SRC                     = \
   $(CXX_SRC_CORE) \
-  $(CXX_SRC_VERSION) \
+  $(CXX_SRC_EXPORT) \
   $(CXX_SRC_META) \
   $(CXX_SRC_DSP) \
   $(CXX_SRC_UI) \
@@ -166,7 +166,7 @@ CXX_SRC                     = \
 
 # Source code location for host
 HOST_CXX_SRC_CORE           = $(CXX_SRC_CORE)
-HOST_CXX_SRC_VERSION        = $(CXX_SRC_VERSION)
+HOST_CXX_SRC_EXPORT         = $(CXX_SRC_EXPORT)
 HOST_CXX_SRC_META           = $(CXX_SRC_META)
 HOST_CXX_SRC_DSP            = $(CXX_SRC_DSP)
 HOST_CXX_SRC_UI             = $(CXX_SRC_UI)
@@ -181,7 +181,7 @@ HOST_CXX_SRC_UTIL           = $(CXX_SRC_UTIL)
 HOST_CXX_SRC_TEST           = $(CXX_SRC_TEST)
 HOST_CXX_SRC                = \
   $(HOST_CXX_SRC_CORE) \
-  $(HOST_CXX_SRC_VERSION) \
+  $(HOST_CXX_SRC_EXPORT) \
   $(HOST_CXX_SRC_META) \
   $(HOST_CXX_SRC_DSP) \
   $(HOST_CXX_SRC_UI) \
@@ -197,7 +197,7 @@ HOST_CXX_SRC                = \
 # Object files for (cross) build
 OBJ_STUB                    = $(patsubst %.cpp, %.o, $(CXX_SRC_STUB))
 OBJ_CORE                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_CORE))
-OBJ_VERSION                 = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_VERSION))
+OBJ_EXPORT                  = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_EXPORT))
 OBJ_META                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_META))
 OBJ_DSP                     = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_DSP))
 OBJ_UI                      = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UI))
@@ -212,7 +212,7 @@ OBJ_UTIL                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_
 OBJ_TEST                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_TEST))
 OBJ                         = \
   $(OBJ_CORE) \
-  $(OBJ_VERSION) \
+  $(OBJ_EXPORT) \
   $(OBJ_META) \
   $(OBJ_DSP) \
   $(OBJ_UI) \
@@ -235,7 +235,7 @@ endif
 # Object files for host build
 HOST_OBJ_STUB               = $(patsubst %.cpp, %.o, $(HOST_CXX_SRC_STUB))
 HOST_OBJ_CORE               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_CORE))
-HOST_OBJ_VERSION            = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_VERSION))
+HOST_OBJ_EXPORT             = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_EXPORT))
 HOST_OBJ_META               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_META))
 HOST_OBJ_DSP                = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_DSP))
 HOST_OBJ_UI                 = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_UI))
@@ -250,7 +250,7 @@ HOST_OBJ_UTIL               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $
 HOST_OBJ_TEST               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_TEST))
 HOST_OBJ                    = \
   $(HOST_OBJ_CORE) \
-  $(HOST_OBJ_VERSION) \
+  $(HOST_OBJ_EXPORT) \
   $(HOST_OBJ_META) \
   $(HOST_OBJ_DSP) \
   $(HOST_OBJ_UI) \
@@ -386,7 +386,7 @@ ARTIFACT_LIB_JACK_OBJS      = \
   $(LSP_PLUGIN_FW_OBJ_CTL) \
   $(LSP_PLUGIN_FW_OBJ_RES) \
   $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) \
-  $(OBJ_VERSION) \
+  $(OBJ_EXPORT) \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_PLUG_UI) \
@@ -452,7 +452,7 @@ ARTIFACT_LIB_VST2_OBJS      = \
   $(LSP_PLUGIN_FW_OBJ_UI) \
   $(LSP_PLUGIN_FW_OBJ_CTL) \
   $(LSP_PLUGIN_FW_OBJ_RES) \
-  $(OBJ_VERSION) \
+  $(OBJ_EXPORT) \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_PLUG_UI) \
@@ -520,8 +520,8 @@ WRAP_VST2_LDFLAGS          := $(call query,LDFLAGS,$(DEPENDENCIES_VST2_WRAP))
 WRAP_VST2_OBJS             := $(call query,OBJ,$(DEPENDENCIES_VST2_WRAP))
 WRAP_VST2_INC              := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_VST2_WRAP) LSP_PLUGIN_FW))
 
-OBJ_VERSION_CFLAGS         := $(VERSION_CFLAGS)
-HOST_OBJ_VERSION_CFLAGS    := $(VERSION_CFLAGS)
+OBJ_EXPORT_CFLAGS          := $(VERSION_CFLAGS)
+HOST_OBJ_EXPORT_CFLAGS     := $(VERSION_CFLAGS)
 
 #------------------------------------------------------------------------------
 # Dependencies
@@ -593,7 +593,7 @@ $(OBJ_WRAP_VST2): EXT_FLAGS=$(WRAP_VST2_CFLAGS)
 
 $(OBJ_WRAP_CAIRO): EXT_FLAGS=$(WRAP_CAIRO_CFLAGS)
 
-$(OBJ_VERSION): EXT_FLAGS=$(OBJ_VERSION_CFLAGS)
+$(OBJ_EXPORT): EXT_FLAGS=$(OBJ_EXPORT_CFLAGS)
 
 $(HOST_OBJ):
 	echo "  $(HOST_CXX)  [$(LSP_PLUGIN_FW_NAME)] $(HOST_CXX_FILE)"
@@ -612,7 +612,7 @@ $(HOST_OBJ_WRAP_VST2): EXT_FLAGS=$(HOST_WRAP_VST2_CFLAGS)
 
 $(HOST_OBJ_WRAP_CAIRO): EXT_FLAGS=$(HOST_WRAP_CAIRO_CFLAGS)
 
-$(HOST_OBJ_VERSION): EXT_FLAGS=$(HOST_OBJ_VERSION_CFLAGS)
+$(HOST_OBJ_EXPORT): EXT_FLAGS=$(HOST_OBJ_EXPORT_CFLAGS)
 
 #compile:
 
