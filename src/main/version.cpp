@@ -21,18 +21,16 @@
 
 #include <lsp-plug.in/common/types.h>
 
-#ifdef __cplusplus
-extern "C"
+namespace lsp
 {
-#endif /* __cplusplus */
 
 #ifndef LSP_IDE_DEBUG
-    static const ::lsp::version_t module_version =
+    static const version_t module_version =
     {
-        PLUGIN_PACKAGE_MAJOR,
-        PLUGIN_PACKAGE_MINOR,
-        PLUGIN_PACKAGE_MICRO,
-        PLUGIN_PACKAGE_BRANCH
+        LSP_PLUGIN_PACKAGE_MAJOR,
+        LSP_PLUGIN_PACKAGE_MINOR,
+        LSP_PLUGIN_PACKAGE_MICRO,
+        LSP_PLUGIN_PACKAGE_BRANCH
     };
 
     LSP_CSYMBOL_EXPORT
@@ -42,8 +40,6 @@ extern "C"
     }
 #endif /* LSP_IDE_DEBUG */
 
-#ifdef __cplusplus
 }
-#endif /* __cplusplus */
 
 

@@ -48,13 +48,15 @@ namespace lsp
 {
     namespace jack
     {
-        #ifdef ARCH_32BIT
+    #ifdef ARCH_32BIT
         static const char *core_library_paths[] =
         {
-            LSP_LIB_PREFIX("/lib")
-            LSP_LIB_PREFIX("/lib32")
-            LSP_LIB_PREFIX("/bin")
-            LSP_LIB_PREFIX("/sbin")
+        #ifdef LSP_INSTALL_PREFIX
+            LSP_INSTALL_PREFIX "/lib"
+            LSP_INSTALL_PREFIX "/lib32"
+            LSP_INSTALL_PREFIX "/bin"
+            LSP_INSTALL_PREFIX "/sbin"
+        #endif /* LSP_INSTALL_PREFIX */
 
             "/usr/local/lib32",
             "/usr/lib32",
@@ -70,15 +72,17 @@ namespace lsp
             "/sbin",
             NULL
         };
-        #endif
+    #endif /* ARCH_32BIT */
 
-        #ifdef ARCH_64BIT
+    #ifdef ARCH_64BIT
         static const char *core_library_paths[] =
         {
-            LSP_LIB_PREFIX("/lib")
-            LSP_LIB_PREFIX("/lib64")
-            LSP_LIB_PREFIX("/bin")
-            LSP_LIB_PREFIX("/sbin")
+        #ifdef LSP_INSTALL_PREFIX
+            LSP_INSTALL_PREFIX "/lib"
+            LSP_INSTALL_PREFIX "/lib64"
+            LSP_INSTALL_PREFIX "/bin"
+            LSP_INSTALL_PREFIX "/sbin"
+        #endif /* LSP_INSTALL_PREFIX */
 
             "/usr/local/lib64",
             "/usr/lib64",
@@ -94,7 +98,7 @@ namespace lsp
             "/sbin",
             NULL
         };
-        #endif /* ARCH_64_BIT */
+    #endif /* ARCH_32_BIT */
 
         static jack_main_function_t lookup_jack_main(void **hInstance, const version_t *required, const char *path)
         {
@@ -374,10 +378,10 @@ int main(int argc, const char **argv)
     void *hInstance;
     static const lsp::version_t version =
     {
-        PLUGIN_PACKAGE_MAJOR,
-        PLUGIN_PACKAGE_MINOR,
-        PLUGIN_PACKAGE_MICRO,
-        PLUGIN_PACKAGE_BRANCH
+        LSP_PLUGIN_PACKAGE_MAJOR,
+        LSP_PLUGIN_PACKAGE_MINOR,
+        LSP_PLUGIN_PACKAGE_MICRO,
+        LSP_PLUGIN_PACKAGE_BRANCH
     };
 
     lsp::jack_main_function_t jack_main = lsp::jack::get_main_function(&hInstance, &version, argv[0]);

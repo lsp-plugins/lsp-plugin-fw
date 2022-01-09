@@ -54,10 +54,12 @@ namespace lsp
     #ifdef ARCH_32BIT
         static const char *core_library_paths[] =
         {
-            LSP_LIB_PREFIX("/lib")
-            LSP_LIB_PREFIX("/lib32")
-            LSP_LIB_PREFIX("/bin")
-            LSP_LIB_PREFIX("/sbin")
+        #ifdef LSP_INSTALL_PREFIX
+            LSP_INSTALL_PREFIX "/lib"
+            LSP_INSTALL_PREFIX "/lib32"
+            LSP_INSTALL_PREFIX "/bin"
+            LSP_INSTALL_PREFIX "/sbin"
+        #endif /* LSP_INSTALL_PREFIX */
 
             "/usr/local/lib32",
             "/usr/lib32",
@@ -68,13 +70,16 @@ namespace lsp
             NULL
         };
     #endif /* ARCH_32BIT */
+
     #ifdef ARCH_64BIT
         static const char *core_library_paths[] =
         {
-            LSP_LIB_PREFIX("/lib")
-            LSP_LIB_PREFIX("/lib64")
-            LSP_LIB_PREFIX("/bin")
-            LSP_LIB_PREFIX("/sbin")
+        #ifdef LSP_INSTALL_PREFIX
+            LSP_INSTALL_PREFIX "/lib"
+            LSP_INSTALL_PREFIX "/lib64"
+            LSP_INSTALL_PREFIX "/bin"
+            LSP_INSTALL_PREFIX "/sbin"
+        #endif /* LSP_INSTALL_PREFIX */
 
             "/usr/local/lib64",
             "/usr/lib64",
@@ -395,10 +400,10 @@ VST_MAIN(callback)
 
     static const lsp::version_t version =
     {
-        PLUGIN_PACKAGE_MAJOR,
-        PLUGIN_PACKAGE_MINOR,
-        PLUGIN_PACKAGE_MICRO,
-        PLUGIN_PACKAGE_BRANCH
+        LSP_PLUGIN_PACKAGE_MAJOR,
+        LSP_PLUGIN_PACKAGE_MINOR,
+        LSP_PLUGIN_PACKAGE_MICRO,
+        LSP_PLUGIN_PACKAGE_BRANCH
     };
 
     lsp::vst2::create_instance_t f = lsp::vst2::get_main_function(&version);

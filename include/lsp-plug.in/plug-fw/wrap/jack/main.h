@@ -32,12 +32,6 @@
     #error "Plugin metadata identifier not defined"
 #endif /* JACK_PLUGIN_UID */
 
-#ifdef LSP_INSTALL_PREFIX
-    #define LSP_LIB_PREFIX(x)       LSP_INSTALL_PREFIX x,
-#else
-    #define LSP_LIB_PREFIX(x)
-#endif /* PREFIX */
-
 #if defined(PLATFORM_WINDOWS)
     #include <lsp-plug.in/plug-fw/wrap/jack/main/winnt.h>
 #else
