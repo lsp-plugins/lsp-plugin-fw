@@ -27,10 +27,23 @@ MODDIR                  = $(CURDIR)/..
 ROOTDIR                := $(MODDIR)
 CONFIG                 := $(MODDIR)/.config.mk
 
+# Project configuration
 include $(CONFIG)
-include $(MODDIR)/project.mk
-include $(ROOTDIR)/dependencies.mk
 include $(ROOTDIR)/make/functions.mk
+
+# Artifact dependencies
+include $(MODDIR)/project.mk
+include $(MODDIR)/dependencies.mk
+MODDIR_DEPENDENCIES        := $(DEPENDENCIES)
+MODDIR_TEST_DEPENDENCIES   := $(TEST_DEPENDENCIES)
+MODDIR_ALL_DEPENDENCIES    := $(ALL_DEPENDENCIES)
+
+# Injected lugin dependencies
+include $(ROOTDIR)/dependencies.mk
+include $(ROOTDIR)/plugins.mk
+ROOTDIR_DEPENDENCIES       := $(DEPENDENCIES)
+ROOTDIR_TEST_DEPENDENCIES  := $(TEST_DEPENDENCIES)
+ROOTDIR_ALL_DEPENDENCIES   := $(ALL_DEPENDENCIES)
 
 # Artifact settings
 ifeq ($(BUILD_HOST),1)
@@ -41,7 +54,7 @@ endif
 
 # Setup test dependencies
 ifeq ($(TEST),1)
-  DEPENDENCIES_TEST      := $(call uniq, $(TEST_DEPENDENCIES))
+  DEPENDENCIES_TEST      := $(call uniq, $(MODDIR_TEST_DEPENDENCIES) $(ROOTDIR_TEST_DEPENDENCIES))
   DEPENDENCIES_TEST_UI   := $(call uniq, $(TEST_DEPENDENCIES_UI))
 else
   DEPENDENCIES_TEST      :=
@@ -50,7 +63,7 @@ endif
 HOST_DEPENDENCIES_TEST          = $(DEPENDENCIES_TEST)
 HOST_DEPENDENCIES_TEST_UI       = $(DEPENDENCIES_TEST_UI)
 
-UNIQ_DEPENDENCIES              := $(call uniq, $(DEPENDENCIES) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(ARTIFACT_ID))
+UNIQ_DEPENDENCIES              := $(call uniq, $(MODDIR_DEPENDENCIES) $(ROOTDIR_DEPENDENCIES) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(ARTIFACT_ID))
 UNIQ_DEPENDENCIES_BIN          := $(call uniq, $(DEPENDENCIES_BIN))
 UNIQ_PLUGIN_DEPENDENCIES       := $(call uniq, $(PLUGIN_DEPENDENCIES))
 HOST_UNIQ_DEPENDENCIES         := $(UNIQ_DEPENDENCIES)
@@ -58,6 +71,7 @@ HOST_UNIQ_DEPENDENCIES_BIN     := $(UNIQ_DEPENDENCIES_BIN)
 HOST_UNIQ_PLUGIN_DEPENDENCIES  := $(UNIQ_PLUGIN_DEPENDENCIES)
 
 DEPENDENCIES                    = $(filter-out $(UNIQ_DEPENDENCIES_BIN), $(UNIQ_DEPENDENCIES))
+ALL_DEPENDENCIES                = $(call uniq, $(MODDIR_ALL_DEPENDENCIES) $(ROOTDIR_ALL_DEPENDENCIES))
 DEPENDENCIES_BIN                = $(UNIQ_DEPENDENCIES_BIN)
 PLUGIN_DEPENDENCIES             = $(UNIQ_PLUGIN_DEPENDENCIES)
 HOST_DEPENDENCIES               = $(filter-out $(HOST_UNIQ_DEPENDENCIES_BIN), $(HOST_UNIQ_DEPENDENCIES))

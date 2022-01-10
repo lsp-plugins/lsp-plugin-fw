@@ -159,3 +159,9 @@ LIBMSACM_NAME              := libmsacm
 LIBMSACM_TYPE              := opt
 LIBMSACM_LDFLAGS           := -lmsacm32
 
+# Specify description of plugin dependencies
+LSP_PLUGINS_COMP_DELAY_VERSION          := 1.0.3
+LSP_PLUGINS_COMP_DELAY_NAME             := lsp-plugins-comp-delay
+LSP_PLUGINS_COMP_DELAY_TYPE             := plug
+LSP_PLUGINS_COMP_DELAY_URL_RO           := https://github.com/lsp-plugins/$(LSP_PLUGINS_COMP_DELAY_NAME).git
+LSP_PLUGINS_COMP_DELAY_URL_RW           := git@github.com:lsp-plugins/$(LSP_PLUGINS_COMP_DELAY_NAME).git

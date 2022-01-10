@@ -30,11 +30,11 @@ ifeq ($(TREE),1)
   include $(BASEDIR)/make/system.mk
   include $(BASEDIR)/make/tools.mk
   include $(BASEDIR)/modules.mk
-  include $(BASEDIR)/plugins.mk
 else
   -include $(CONFIG)
 endif
 include $(BASEDIR)/dependencies.mk
+include $(BASEDIR)/plugins.mk
 
 MERGED_DEPENDENCIES        := \
   $(DEPENDENCIES) \
