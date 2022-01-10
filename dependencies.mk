@@ -18,144 +18,284 @@
 # along with lsp-plugin-fw.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-# Variables that describe dependencies
-LSP_COMMON_LIB_VERSION     := 1.0.14
-LSP_COMMON_LIB_NAME        := lsp-common-lib
-LSP_COMMON_LIB_TYPE        := src
-LSP_COMMON_LIB_URL_RO      := https://github.com/lsp-plugins/$(LSP_COMMON_LIB_NAME).git
-LSP_COMMON_LIB_URL_RW      := git@github.com:lsp-plugins/$(LSP_COMMON_LIB_NAME).git
+#------------------------------------------------------------------------------
+# Plugin dependencies
+DEPENDENCIES_COMMON = \
+  LIBPTHREAD \
+  LIBDL \
+  LSP_COMMON_LIB \
+  LSP_DSP_LIB \
+  LSP_DSP_UNITS \
+  LSP_LLTL_LIB \
+  LSP_RUNTIME_LIB \
+  LSP_PLUGINS_SHARED \
+  LSP_3RD_PARTY
 
-LSP_LLTL_LIB_VERSION       := 0.5.7
-LSP_LLTL_LIB_NAME          := lsp-lltl-lib
-LSP_LLTL_LIB_TYPE          := src
-LSP_LLTL_LIB_URL_RO        := https://github.com/lsp-plugins/$(LSP_LLTL_LIB_NAME).git
-LSP_LLTL_LIB_URL_RW        := git@github.com:lsp-plugins/$(LSP_LLTL_LIB_NAME).git
+DEPENDENCIES_COMMON_UI = \
+  LSP_R3D_IFACE \
+  LSP_WS_LIB \
+  LSP_TK_LIB \
+  LSP_R3D_BASE_LIB
 
-LSP_TEST_FW_VERSION        := 1.0.8
-LSP_TEST_FW_NAME           := lsp-test-fw
-LSP_TEST_FW_TYPE           := src
-LSP_TEST_FW_URL_RO         := https://github.com/lsp-plugins/$(LSP_TEST_FW_NAME).git
-LSP_TEST_FW_URL_RW         := git@github.com:lsp-plugins/$(LSP_TEST_FW_NAME).git
+DEPENDENCIES_BIN =
 
-LSP_RUNTIME_LIB_VERSION    := 0.5.10
-LSP_RUNTIME_LIB_NAME       := lsp-runtime-lib
-LSP_RUNTIME_LIB_TYPE       := src
-LSP_RUNTIME_LIB_URL_RO     := https://github.com/lsp-plugins/$(LSP_RUNTIME_LIB_NAME).git
-LSP_RUNTIME_LIB_URL_RW     := git@github.com:lsp-plugins/$(LSP_RUNTIME_LIB_NAME).git
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_BIN += \
+    LSP_R3D_GLX_LIB
+endif
 
-LSP_R3D_IFACE_VERSION      := 0.5.2
-LSP_R3D_IFACE_NAME         := lsp-r3d-iface
-LSP_R3D_IFACE_TYPE         := src
-LSP_R3D_IFACE_URL_RO       := https://github.com/lsp-plugins/$(LSP_R3D_IFACE_NAME).git
-LSP_R3D_IFACE_URL_RW       := git@github.com:lsp-plugins/$(LSP_R3D_IFACE_NAME).git
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_BIN += \
+    LSP_R3D_GLX_LIB
+endif
 
-LSP_R3D_BASE_LIB_VERSION   := 0.5.5
-LSP_R3D_BASE_LIB_NAME      := lsp-r3d-base-lib
-LSP_R3D_BASE_LIB_TYPE      := src
-LSP_R3D_BASE_LIB_URL_RO    := https://github.com/lsp-plugins/$(LSP_R3D_BASE_LIB_NAME).git
-LSP_R3D_BASE_LIB_URL_RW    := git@github.com:lsp-plugins/$(LSP_R3D_BASE_LIB_NAME).git
+ifeq ($(PLATFORM),Windows)
+endif
 
-LSP_R3D_GLX_LIB_VERSION    := 0.5.4
-LSP_R3D_GLX_LIB_NAME       := lsp-r3d-glx-lib
-LSP_R3D_GLX_LIB_TYPE       := bin
-LSP_R3D_GLX_LIB_URL_RO     := https://github.com/lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
-LSP_R3D_GLX_LIB_URL_RW     := git@github.com:lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
+#------------------------------------------------------------------------------
+# Jack build dependencies
+DEPENDENCIES_JACK = \
+  $(DEPENDENCIES_COMMON)
 
-LSP_WS_LIB_VERSION         := 0.5.4
-LSP_WS_LIB_NAME            := lsp-ws-lib
-LSP_WS_LIB_TYPE            := src
-LSP_WS_LIB_URL_RO          := https://github.com/lsp-plugins/$(LSP_WS_LIB_NAME).git
-LSP_WS_LIB_URL_RW          := git@github.com:lsp-plugins/$(LSP_WS_LIB_NAME).git
+DEPENDENCIES_JACK_UI = \
+  $(DEPENDENCIES_COMMON_UI)
 
-LSP_DSP_LIB_VERSION        := 0.5.14
-LSP_DSP_LIB_NAME           := lsp-dsp-lib
-LSP_DSP_LIB_TYPE           := src
-LSP_DSP_LIB_URL_RO         := https://github.com/lsp-plugins/$(LSP_DSP_LIB_NAME).git
-LSP_DSP_LIB_URL_RW         := git@github.com:lsp-plugins/$(LSP_DSP_LIB_NAME).git
+DEPENDENCIES_JACK_WRAP = \
+  LIBPTHREAD \
+  LIBDL \
+  LSP_COMMON_LIB
 
-LSP_DSP_UNITS_VERSION      := 0.5.4
-LSP_DSP_UNITS_NAME         := lsp-dsp-units
-LSP_DSP_UNITS_TYPE         := src
-LSP_DSP_UNITS_URL_RO       := https://github.com/lsp-plugins/$(LSP_DSP_UNITS_NAME).git
-LSP_DSP_UNITS_URL_RW       := git@github.com:lsp-plugins/$(LSP_DSP_UNITS_NAME).git
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_JACK += \
+    LIBJACK \
+    LIBSNDFILE
 
-LSP_TK_LIB_VERSION         := 0.5.1
-LSP_TK_LIB_NAME            := lsp-tk-lib
-LSP_TK_LIB_TYPE            := src
-LSP_TK_LIB_URL_RO          := https://github.com/lsp-plugins/$(LSP_TK_LIB_NAME).git
-LSP_TK_LIB_URL_RW          := git@github.com:lsp-plugins/$(LSP_TK_LIB_NAME).git
+  DEPENDENCIES_JACK_UI += \
+    LIBJACK \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
 
-LSP_3RD_PARTY_VERSION      := 0.5.1
-LSP_3RD_PARTY_NAME         := lsp-3rd-party
-LSP_3RD_PARTY_TYPE         := hdr
-LSP_3RD_PARTY_URL_RO       := https://github.com/lsp-plugins/$(LSP_3RD_PARTY_NAME).git
-LSP_3RD_PARTY_URL_RW       := git@github.com:lsp-plugins/$(LSP_3RD_PARTY_NAME).git
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_JACK += \
+    LIBJACK \
+    LIBSNDFILE
+    
+  DEPENDENCIES_JACK_UI += \
+    LIBJACK \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
 
-LSP_PLUGINS_SHARED_VERSION := 0.5.0
-LSP_PLUGINS_SHARED_NAME    := lsp-plugins-shared
-LSP_PLUGINS_SHARED_TYPE    := src
-LSP_PLUGINS_SHARED_URL_RO  := https://github.com/lsp-plugins/$(LSP_PLUGINS_SHARED_NAME).git
-LSP_PLUGINS_SHARED_URL_RW  := git@github.com:lsp-plugins/$(LSP_PLUGINS_SHARED_NAME).git
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_JACK += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+endif
 
-LIBSNDFILE_VERSION         := system
-LIBSNDFILE_NAME            := sndfile
-LIBSNDFILE_TYPE            := pkg
+#------------------------------------------------------------------------------
+# LADSPA build dependencies
+DEPENDENCIES_LADSPA = \
+  $(DEPENDENCIES_COMMON)
 
-LIBJACK_VERSION            := system
-LIBJACK_NAME               := jack
-LIBJACK_TYPE               := pkg
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_LADSPA += \
+    LIBLADSPA \
+    LIBSNDFILE
+endif
 
-LIBX11_VERSION             := system
-LIBX11_NAME                := x11
-LIBX11_TYPE                := pkg
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_LADSPA += \
+    LIBLADSPA \
+    LIBSNDFILE
+endif
 
-LIBCAIRO_VERSION           := system
-LIBCAIRO_NAME              := cairo
-LIBCAIRO_TYPE              := pkg
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_LADSPA += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+endif
 
-LIBLV2_VERSION             := system
-LIBLV2_NAME                := lv2
-LIBLV2_TYPE                := pkg
+#------------------------------------------------------------------------------
+# LV2 build dependencies
+DEPENDENCIES_LV2 = \
+  $(DEPENDENCIES_COMMON)
+  
+DEPENDENCIES_LV2_UI = \
+  $(DEPENDENCIES_COMMON) \
+  $(DEPENDENCIES_COMMON_UI)
+  
+DEPENDENCIES_LV2TTL_GEN = \
+  LIBPTHREAD \
+  LIBDL \
+  LSP_COMMON_LIB
 
-LIBLADSPA_VERSION          := system
-LIBLADSPA_NAME             := ladspa
-LIBLADSPA_TYPE             := opt
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_LV2 += \
+    LIBLV2 \
+    LIBSNDFILE \
+    LIBCAIRO
+    
+  DEPENDENCIES_LV2_UI += \
+    LIBLV2 \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
 
-LIBGL_VERSION              := system
-LIBGL_NAME                 := gl
-LIBGL_TYPE                 := pkg
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_LV2 += \
+    LIBLV2 \
+    LIBSNDFILE \
+    LIBCAIRO
+    
+  DEPENDENCIES_LV2_UI += \
+    LIBLV2 \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
 
-LIBPTHREAD_VERSION         := system
-LIBPTHREAD_NAME            := libpthread
-LIBPTHREAD_TYPE            := opt
-LIBPTHREAD_LDFLAGS         := -lpthread
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_LV2 += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+    
+  DEPENDENCIES_LV2_UI += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+endif
 
-LIBDL_VERSION              := system
-LIBDL_NAME                 := libdl
-LIBDL_TYPE                 := opt
-LIBDL_LDFLAGS              := -ldl
+#------------------------------------------------------------------------------
+# VST build dependencies
+DEPENDENCIES_VST2 = \
+  $(DEPENDENCIES_COMMON) \
+  $(DEPENDENCIES_COMMON_UI)
 
-LIBICONV_VERSION           := system
-LIBICONV_NAME              := libiconv
-LIBICONV_TYPE              := opt
-LIBICONV_LDFLAGS           := -liconv
+DEPENDENCIES_VST2_WRAP = \
+  LIBPTHREAD \
+  LIBDL \
+  LSP_COMMON_LIB \
+  LSP_3RD_PARTY
 
-LIBFREETYPE_VERSION        := system
-LIBFREETYPE_NAME           := freetype2
-LIBFREETYPE_TYPE           := pkg
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_VST2 += \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
 
-LIBSHLWAPI_VERSION         := system
-LIBSHLWAPI_NAME            := libshlwapi
-LIBSHLWAPI_TYPE            := opt
-LIBSHLWAPI_LDFLAGS         := -lshlwapi
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_VST2 += \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
 
-LIBWINMM_VERSION           := system
-LIBWINMM_NAME              := libwinmm
-LIBWINMM_TYPE              := opt
-LIBWINMM_LDFLAGS           := -lwinmm
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_VST2 += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+endif
 
-LIBMSACM_VERSION           := system
-LIBMSACM_NAME              := libmsacm
-LIBMSACM_TYPE              := opt
-LIBMSACM_LDFLAGS           := -lmsacm32
+#------------------------------------------------------------------------------
+# List of dependencies
+DEPENDENCIES = \
+  $(DEPENDENCIES_PLUGINS) \
+  $(DEPENDENCIES_JACK) \
+  $(DEPENDENCIES_JACK_UI) \
+  $(DEPENDENCIES_JACK_WRAP) \
+  $(DEPENDENCIES_LADSPA) \
+  $(DEPENDENCIES_LV2) \
+  $(DEPENDENCIES_LV2_UI) \
+  $(DEPENDENCIES_LV2TTL_GEN) \
+  $(DEPENDENCIES_VST2)
 
+TEST_DEPENDENCIES = \
+  LSP_TEST_FW
+
+#------------------------------------------------------------------------------
+# Platform-specific dependencies
+ifeq ($(PLATFORM),Linux)
+  TEST_DEPENDENCIES += \
+    LSP_R3D_GLX_LIB \
+    LIBGL
+endif
+
+ifeq ($(PLATFORM),BSD)
+  TEST_DEPENDENCIES += \
+    LSP_R3D_GLX_LIB \
+    LIBGL
+    
+  DEPENDENCIES_COMMON += \
+    LIBICONV
+endif
+
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_COMMON += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM
+endif
+
+#------------------------------------------------------------------------------
+# All possible dependencies
+ALL_DEPENDENCIES = \
+  $(DEPENDENCIES_COMMON) \
+  $(DEPENDENCIES_COMMON_UI) \
+  $(TEST_DEPENDENCIES) \
+  LIBJACK \
+  LIBGL \
+  LIBSNDFILE \
+  LIBX11 \
+  LIBCAIRO \
+  LIBDL \
+  LIBICONV \
+  LIBFREETYPE \
+  LIBSHLWAPI \
+  LIBWINMM \
+  LIBMSACM
+
+#------------------------------------------------------------------------------
+# List of all plugin dependencies
+PLUGIN_DEPENDENCIES = \
+  LSP_PLUGINS_COMP_DELAY \
+  LSP_PLUGINS_PHASE_DETECTOR \
+  LSP_PLUGINS_SPECTRUM_ANALYZER \
+  LSP_PLUGINS_SAMPLER \
+  LSP_PLUGINS_TRIGGER \
+  LSP_PLUGINS_PARA_EQUALIZER \
+  LSP_PLUGINS_GRAPH_EQUALIZER \
+  LSP_PLUGINS_COMPRESSOR \
+  LSP_PLUGINS_DYNA_PROCESSOR \
+  LSP_PLUGINS_EXPANDER \
+  LSP_PLUGINS_GATE \
+  LSP_PLUGINS_LIMITER \
+  LSP_PLUGINS_IMPULSE_RESPONSES \
+  LSP_PLUGINS_IMPULSE_REVERB \
+  LSP_PLUGINS_SLAP_DELAY \
+  LSP_PLUGINS_OSCILLATOR \
+  LSP_PLUGINS_LATENCY_METER \
+  LSP_PLUGINS_MB_COMPRESSOR \
+  LSP_PLUGINS_PROFILER \
+  LSP_PLUGINS_ROOM_BUILDER \
+  LSP_PLUGINS_MB_EXPANDER \
+  LSP_PLUGINS_MB_GATE \
+  LSP_PLUGINS_LOUD_COMP \
+  LSP_PLUGINS_SURGE_FILTER \
+  LSP_PLUGINS_CROSSOVER \
+  LSP_PLUGINS_ART_DELAY \
+  LSP_PLUGINS_OSCILLOSCOPE

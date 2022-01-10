@@ -23,15 +23,14 @@ ifneq ($(VERBOSE),1)
 .SILENT:
 endif
 
-BASEDIR                 = $(CURDIR)
-CONFIG                 := $(ROOTDIR)/.config.mk
-PROJECT                := $(ROOTDIR)/project.mk
-PLUGINS                := $(ROOTDIR)/plugins.mk
+MODDIR                  = $(CURDIR)/..
+ROOTDIR                := $(MODDIR)
+CONFIG                 := $(MODDIR)/.config.mk
 
 include $(CONFIG)
-include $(PLUGINS)
-include $(PROJECT)
-include $(BASEDIR)/../make/functions.mk
+include $(MODDIR)/project.mk
+include $(ROOTDIR)/dependencies.mk
+include $(ROOTDIR)/make/functions.mk
 
 # Artifact settings
 ifeq ($(BUILD_HOST),1)
@@ -51,7 +50,7 @@ endif
 HOST_DEPENDENCIES_TEST          = $(DEPENDENCIES_TEST)
 HOST_DEPENDENCIES_TEST_UI       = $(DEPENDENCIES_TEST_UI)
 
-UNIQ_DEPENDENCIES              := $(call uniq, $(DEPENDENCIES) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI))
+UNIQ_DEPENDENCIES              := $(call uniq, $(DEPENDENCIES) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(ARTIFACT_ID))
 UNIQ_DEPENDENCIES_BIN          := $(call uniq, $(DEPENDENCIES_BIN))
 UNIQ_PLUGIN_DEPENDENCIES       := $(call uniq, $(PLUGIN_DEPENDENCIES))
 HOST_UNIQ_DEPENDENCIES         := $(UNIQ_DEPENDENCIES)
@@ -92,7 +91,7 @@ VERSION_CFLAGS             := \
 LSP_PLUGIN_FW_SRC_RES               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
 LSP_PLUGIN_FW_SRC_RES_CKSUM         = $(LSP_PLUGIN_FW_BIN)/res-checksum.json
 
-LSP_PLUGIN_FW_DEPS                  = $(filter-out LSP_PLUGIN_FW, $(DEPENDENCIES))
+LSP_PLUGIN_FW_DEPS                  = $(filter-out $(ARTIFACT_ID), $(DEPENDENCIES))
 LSP_PLUGIN_FW_OBJ_CORE              = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
 LSP_PLUGIN_FW_OBJ_META              = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-meta.o
 LSP_PLUGIN_FW_OBJ_DSP               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-dsp.o

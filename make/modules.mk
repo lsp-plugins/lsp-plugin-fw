@@ -21,31 +21,36 @@ ifneq ($(VERBOSE),1)
 .SILENT:
 endif
 
-BASEDIR            := $(CURDIR)
-PLUGINS            := $(BASEDIR)/plugins.mk
-DEPLIST            := $(BASEDIR)/dependencies.mk
-PROJECT            := $(BASEDIR)/project.mk
-CONFIG             := $(CURDIR)/.config.mk
+BASEDIR                := $(CURDIR)
+CONFIG                 := $(BASEDIR)/.config.mk
 
+include $(BASEDIR)/project.mk
 include $(BASEDIR)/make/functions.mk
 ifeq ($(TREE),1)
-  include $(DEPLIST)
+  include $(BASEDIR)/make/system.mk
+  include $(BASEDIR)/make/tools.mk
+  include $(BASEDIR)/modules.mk
+  include $(BASEDIR)/plugins.mk
 else
   -include $(CONFIG)
 endif
+include $(BASEDIR)/dependencies.mk
 
-include $(PLUGINS)
-include $(PROJECT)
-
-UNIQ_DEPENDENCIES       = $(call uniq,$(DEPENDENCIES) $(TEST_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
-UNIQ_ALL_DEPENDENCIES  := $(call uniq,$(ALL_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
-
-$(info UNIQ_DEPENDENCIES = $(UNIQ_DEPENDENCIES))
+MERGED_DEPENDENCIES        := \
+  $(DEPENDENCIES) \
+  $(TEST_DEPENDENCIES) \
+  $(PLUGIN_DEPENDENCIES)
+UNIQ_MERGED_DEPENDENCIES   := $(call uniq, $(MERGED_DEPENDENCIES))
+UNIQ_ALL_DEPENDENCIES      := $(call uniq, $(ALL_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
 
 # Find the proper branch of the GIT repository
 ifeq ($(TREE),1)
   MODULES                := $(BASEDIR)/modules
   GIT                    := git
+  
+  $(foreach dep,$(UNIQ_ALL_DEPENDENCIES), \
+    $(eval $(dep)_URL=$($(dep)_URL_RO)) \
+  )
   
   ifeq ($(findstring -devel,$(ARTIFACT_VERSION)),-devel)
     $(foreach dep, $(UNIQ_ALL_DEPENDENCIES), \
@@ -61,10 +66,10 @@ ifeq ($(TREE),1)
 endif
 
 # Form list of modules, exclude all modules that have 'system' version
-SRC_MODULES         = $(foreach dep, $(UNIQ_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
-HDR_MODULES         = $(foreach dep, $(UNIQ_DEPENDENCIES), $(if $(findstring hdr,$($(dep)_TYPE)),$(dep)))
-BIN_MODULES         = $(foreach dep, $(UNIQ_DEPENDENCIES), $(if $(findstring bin,$($(dep)_TYPE)),$(dep)))
-PLUG_MODULES        = $(foreach dep, $(UNIQ_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
+SRC_MODULES         = $(foreach dep, $(UNIQ_MERGED_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
+HDR_MODULES         = $(foreach dep, $(UNIQ_MERGED_DEPENDENCIES), $(if $(findstring hdr,$($(dep)_TYPE)),$(dep)))
+BIN_MODULES         = $(foreach dep, $(UNIQ_MERGED_DEPENDENCIES), $(if $(findstring bin,$($(dep)_TYPE)),$(dep)))
+PLUG_MODULES        = $(foreach dep, $(UNIQ_MERGED_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
 ALL_SRC_MODULES     = $(foreach dep, $(UNIQ_ALL_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
 ALL_HDR_MODULES     = $(foreach dep, $(UNIQ_ALL_DEPENDENCIES), $(if $(findstring hdr,$($(dep)_TYPE)),$(dep)))
 ALL_BIN_MODULES     = $(foreach dep, $(UNIQ_ALL_DEPENDENCIES), $(if $(findstring bin,$($(dep)_TYPE)),$(dep)))

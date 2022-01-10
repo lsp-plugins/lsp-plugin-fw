@@ -48,13 +48,18 @@ endif
 include $(BASEDIR)/make/functions.mk
 include $(BASEDIR)/make/system.mk
 include $(BASEDIR)/make/tools.mk
-include $(BASEDIR)/dependencies.mk
+include $(BASEDIR)/modules.mk
 include $(BASEDIR)/project.mk
+include $(BASEDIR)/dependencies.mk
 include $(PLUGINS)
 
 # Compute the full list of dependencies
-UNIQ_DEPENDENCIES          := $(call uniq, $(DEPENDENCIES) $(TEST_DEPENDENCIES) $(PLUGIN_DEPENDENCIES))
-DEPENDENCIES                = $(UNIQ_DEPENDENCIES)
+MERGED_DEPENDENCIES        := \
+  $(DEPENDENCIES) \
+  $(TEST_DEPENDENCIES) \
+  $(PLUGIN_DEPENDENCIES)
+UNIQ_MERGED_DEPENDENCIES   := $(call uniq, $(MERGED_DEPENDENCIES))
+DEPENDENCIES                = $(UNIQ_MERGED_DEPENDENCIES)
 
 # Determine versions
 ifeq ($(findstring -devel,$(ARTIFACT_VERSION)),-devel)
@@ -109,9 +114,9 @@ define optconfig =
   $(if $(HOST_$(name)_OBJ),,     $(eval HOST_$(name)_OBJ :=))
 endef
 
-define srcconfig =
+define _modconfig =
   $(eval name=$(1))
-  $(eval builtin=$(patsubst $(ARTIFACT_NAME),,$($(name)_NAME)))
+  $(eval builtin=$(2))
   
   $(if $($(name)_DESC),,         $(eval $(name)_DESC         := $($(name)_DESC)))
   $(if $($(name)_URL),,          $(eval $(name)_URL          := $($(name)_URL$(X_URL_SUFFIX))))
@@ -122,7 +127,7 @@ define srcconfig =
   $(if $($(name)_TEST),,         $(eval $(name)_TEST         := $($(name)_PATH)/test))
   $(if $($(name)_TESTING),,      $(eval $(name)_TESTING      := 0))
   $(if $($(name)_BIN),,          $(eval $(name)_BIN          := $(TARGET_BUILDDIR)/$($(name)_NAME)))
-  $(if $($(name)_CFLAGS),,       $(eval $(name)_CFLAGS       := "-I\"$($(name)_INC)\"" $(if $(builtin),"-D$(name)_BUILTIN")))
+  $(if $($(name)_CFLAGS),,       $(eval $(name)_CFLAGS       := "-I\"$($(name)_INC)\""$(if $(builtin)," -D$(name)_BUILTIN")))
   $(if $($(name)_LDLAGS),,       $(eval $(name)_LDFLAGS      :=))
   $(if $($(name)_OBJ),,          $(eval $(name)_OBJ          := "$($(name)_BIN)/$($(name)_NAME).o"))
   $(if $($(name)_OBJ_TEST),,     $(eval $(name)_OBJ_TEST     := "$($(name)_BIN)/$($(name)_NAME)-test.o"))
@@ -134,11 +139,22 @@ define srcconfig =
   $(if $(HOST_$(name)_TEST),,    $(eval HOST_$(name)_TEST    := $(HOST_$(name)_PATH)/test))
   $(if $(HOST_$(name)_TESTING),, $(eval HOST_$(name)_TESTING := 0))
   $(if $(HOST_$(name)_BIN),,     $(eval HOST_$(name)_BIN     := $(HOST_BUILDDIR)/$($(name)_NAME)))
-  $(if $(HOST_$(name)_CFLAGS),,  $(eval HOST_$(name)_CFLAGS  := "-I\"$(HOST_$(name)_INC)\"" $(if $(builtin),"-D$(name)_BUILTIN")))
+  $(if $(HOST_$(name)_CFLAGS),,  $(eval HOST_$(name)_CFLAGS  := "-I\"$(HOST_$(name)_INC)\""$(if $(builtin)," -D$(name)_BUILTIN")))
   $(if $(HOST_$(name)_LDLAGS),,  $(eval HOST_$(name)_LDFLAGS :=))
   $(if $(HOST_$(name)_OBJ),,     $(eval HOST_$(name)_OBJ     := "$(HOST_$(name)_BIN)/$($(name)_NAME).o"))
   $(if $(HOST_$(name)_OBJ_TEST),,$(eval HOST_$(name)_OBJ_TEST:= "$(HOST_$(name)_BIN)/$($(name)_NAME)-test.o"))
   $(if $(HOST_$(name)_MFLAGS),,  $(eval HOST_$(name)_MFLAGS  := $(if $(builtin),"-D$(name)_BUILTIN -fvisibility=hidden")))
+endef
+
+define srcconfig =
+  $(eval name=$(1))
+  $(eval builtin=$(patsubst $(ARTIFACT_NAME),,$($(name)_NAME)))
+  $(eval $(call _modconfig,$(name),$(builtin)))
+endef 
+
+define binconfig =
+  $(eval name=$(1))
+  $(eval $(call _modconfig,$(1),))
 endef
 
 define hdrconfig =
@@ -151,13 +167,13 @@ define hdrconfig =
   $(if $($(name)_PATH),,         $(eval $(name)_PATH         := $(MODULES)/$($(name)_NAME)))
   $(if $($(name)_INC),,          $(eval $(name)_INC          := $($(name)_PATH)/include))
   $(if $($(name)_TESTING),,      $(eval $(name)_TESTING      := 0))
-  $(if $($(name)_CFLAGS),,       $(eval $(name)_CFLAGS       := "-I\"$($(name)_INC)\"" $(if $(builtin),"-D$(name)_BUILTIN")))
+  $(if $($(name)_CFLAGS),,       $(eval $(name)_CFLAGS       := "-I\"$($(name)_INC)\""$(if $(builtin)," -D$(name)_BUILTIN")))
   $(if $($(name)_MFLAGS),,       $(eval $(name)_MFLAGS       := $(if $(builtin),"-D$(name)_BUILTIN -fvisibility=hidden")))
   
   $(if $(HOST_$(name)_PATH),,    $(eval HOST_$(name)_PATH    := $(MODULES)/$($(name)_NAME)))
   $(if $(HOST_$(name)_INC),,     $(eval HOST_$(name)_INC     := $(HOST_$(name)_PATH)/include))
   $(if $(HOST_$(name)_TESTING),, $(eval HOST_$(name)_TESTING := 0))
-  $(if $(HOST_$(name)_CFLAGS),,  $(eval HOST_$(name)_CFLAGS  := "-I\"$(HOST_$(name)_INC)\"" $(if $(builtin),"-D$(name)_BUILTIN")))
+  $(if $(HOST_$(name)_CFLAGS),,  $(eval HOST_$(name)_CFLAGS  := "-I\"$(HOST_$(name)_INC)\""$(if $(builtin)," -D$(name)_BUILTIN")))
   $(if $(HOST_$(name)_MFLAGS),,  $(eval HOST_$(name)_MFLAGS  := $(if $(builtin),"-D$(name)_BUILTIN -fvisibility=hidden")))
 endef
 
@@ -203,8 +219,8 @@ define vardef =
   $(if $(findstring src, $($(name)_TYPE)), $(eval $(call srcconfig,  $(name))))
   $(if $(findstring hdr, $($(name)_TYPE)), $(eval $(call hdrconfig,  $(name))))
   $(if $(findstring lib, $($(name)_TYPE)), $(eval $(call libconfig,  $(name))))
+  $(if $(findstring bin, $($(name)_TYPE)), $(eval $(call binconfig,  $(name))))
   $(if $(findstring opt, $($(name)_TYPE)), $(eval $(call optconfig,  $(name))))
-  $(if $(findstring bin, $($(name)_TYPE)), $(eval $(call srcconfig,  $(name))))
   $(if $(findstring plug,$($(name)_TYPE)), $(eval $(call plugconfig, $(name))))
 endef
 
@@ -225,6 +241,7 @@ ifndef HOST_$(ARTIFACT_ID)_PATH
   HOST_$(ARTIFACT_ID)_PATH   := $(BASEDIR)
 endif
 
+ROOT_ARTIFACT_ID           := $(ARTIFACT_ID)
 $(ARTIFACT_ID)_TESTING      = $(TEST)
 $(ARTIFACT_ID)_TYPE        := src
 
