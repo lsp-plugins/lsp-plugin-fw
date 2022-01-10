@@ -245,7 +245,7 @@ ROOT_ARTIFACT_ID           := $(ARTIFACT_ID)
 $(ARTIFACT_ID)_TESTING      = $(TEST)
 $(ARTIFACT_ID)_TYPE        := src
 
-OVERALL_DEPS := $(DEPENDENCIES) $(ARTIFACT_ID)
+OVERALL_DEPS := $(call uniq,$(DEPENDENCIES) $(ARTIFACT_ID))
 __tmp := $(foreach dep,$(OVERALL_DEPS),$(call vardef, $(dep)))
 
 CONFIG_VARS = \
