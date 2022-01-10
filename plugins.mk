@@ -19,11 +19,6 @@
 #
 
 #------------------------------------------------------------------------------
-# Specify plugin package version
-PLUGIN_PACKAGE_VERSION                  := 0.0.1
-PLUGIN_ARTIFACT_ID                      := lsp-plugins
-
-#------------------------------------------------------------------------------
 # List of all plugin dependencies
 PLUGIN_DEPENDENCIES = \
   LSP_PLUGINS_COMP_DELAY
