@@ -226,6 +226,7 @@ namespace lsp
                 else
                     fprintf(out, " \\\n");
             }
+            fprintf(out, "\n");
 
             fprintf(out, "# Output files\n");
             fprintf(out, "EXE_FILES = \\\n");
@@ -242,6 +243,7 @@ namespace lsp
                 else
                     fprintf(out, " \\\n");
             }
+            fprintf(out, "\n");
 
             fprintf(out, "FILE = $(@:$(EXT_PREFIX)%%$(EXECUTABLE_EXT)=%%.cpp)\n");
             fprintf(out, "DEP_CXX = $(foreach src,$(CXX_FILES),$(patsubst %%.cpp,%%.d,$(src)))\n");
