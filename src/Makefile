@@ -553,6 +553,10 @@ DEP_CXX_FILE            = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.d,%.cpp,$(@))
 DEP_DEP_FILE            = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
 DEP_CFLAGS              = $(call query,CFLAGS,$(ALL_DEPENDENCIES))
 
+HOST_DEP_CXX            = $(filter-out $(DEP_CXX), $(foreach src,$(HOST_CXX_SRC),$(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.d,$(src))))
+HOST_DEP_CXX_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.cpp,$(@))
+HOST_DEP_DEP_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
+
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
 .PHONY: jack ladspa dssi lv2 vst2 test
@@ -570,14 +574,25 @@ $(DEP_CXX): dep_clean
 	echo "  dep  [$(ARTIFACT_NAME)] $(DEP_CXX_FILE)"
 	mkdir -p $(dir $(@))
 	$(CXX) -MM -MT "\$$($(ARTIFACT_ID)_BIN)/$(DEP_DEP_FILE)" -MF $(@) $(DEP_CXX_FILE) $(CXXFLAGS) $(CXXDEFS) $(INCLUDE) $(DEP_CFLAGS)
+	
+$(HOST_DEP_CXX): dep_clean
+	echo "  dep  [$(ARTIFACT_NAME)] $(HOST_DEP_CXX_FILE)"
+	mkdir -p $(dir $(@))
+	$(CXX) -MM -MT "\$$(HOST_$(ARTIFACT_ID)_BIN)/$(HOST_DEP_DEP_FILE)" -MF $(@) $(HOST_DEP_CXX_FILE) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(INCLUDE) $(HOST_DEP_CFLAGS)
 
 depend: $(DEP_CXX)
 	$(foreach dep,$(ALL_DEPENDENCIES) $(ARTIFACT_ID),\
 	  $(if $($(dep)_INC), \
 	    $(eval SED_RULES += s/$(shell echo "$($(dep)_INC)" | sed "s/\\//\\\\\//g")/\$$$$\\($(dep)_INC\\)/g;)\
 	  )\
+	  $(if $(HOST_$(dep)_INC), \
+	    $(eval SED_RULES += s/$(shell echo "$(HOST_$(dep)_INC)" | sed "s/\\//\\\\\//g")/\$$$$\\(HOST_$(dep)_INC\\)/g;)\
+	  )\
 	  $(if $($(dep)_BIN), \
 	    $(eval SED_RULES += s/$(shell echo "$($(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\($(dep)_BIN\\)/g;)\
+	  )\
+	  $(if $(HOST_$(dep)_BIN), \
+	    $(eval SED_RULES += s/$(shell echo "$(HOST_$(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\(HOST_$(dep)_BIN\\)/g;)\
 	  )\
 	)
 	cat $(DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.d
@@ -766,7 +781,7 @@ $(ARTIFACT_BIN_TEST): $(LSP_PLUGIN_FW_OBJ) $(ARTIFACT_BIN_TEST_DEPS) $(ARTIFACT_
 resources: $(HOST_UTL_REPOSITORY)
 	echo "  $(HOST_UTL_REPOSITORY)"
 	echo $(HOST_UTL_REPOSITORY) -o "$(HOST_UTL_RES_PATH)" $(LSP_PLUGIN_FW_OBJ_VARS) -m "$(ROOTDIR)/res/manifest.json" "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
-	$(HOST_UTL_REPOSITORY) -o "$(HOST_UTL_RES_PATH)" -l "$(ROOTDIR)/res/local" "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
+	$(HOST_UTL_REPOSITORY) -o "$(HOST_UTL_RES_PATH)" $(LSP_PLUGIN_FW_OBJ_VARS) -m "$(ROOTDIR)/res/manifest.json" "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
 
 jack: $(HOST_UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
 	echo "  $(notdir $(HOST_UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_JACK_PATH))"

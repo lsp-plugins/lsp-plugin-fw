@@ -590,6 +590,7 @@ namespace lsp
             // Open directory
             if ((res = path.set(base, child)) != STATUS_OK)
                 return res;
+            printf("Scan files: %s", path.as_native());
             if ((res = fd.open(&path)) != STATUS_OK)
                 return STATUS_OK;
 
