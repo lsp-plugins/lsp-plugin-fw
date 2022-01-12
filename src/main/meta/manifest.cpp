@@ -142,14 +142,11 @@ namespace lsp
             char *e;
             errno = 0;
 
-            printf("Parsing version: %s\n", xv);
-
             val = strtol(xv, &e, 10);
 
             if ((errno == 0) && (e > xv))
             {
                 v->major    = val;
-                printf("major = %d\n", int(v->major));
                 if (*e == '.')
                 {
                     xv = e + 1;
@@ -159,8 +156,6 @@ namespace lsp
                     if ((errno == 0) && (e > xv))
                     {
                         v->minor    = val;
-                        printf("minor = %d\n", int(v->major));
-
                         if (*e == '.')
                         {
                             xv = e + 1;
@@ -170,7 +165,6 @@ namespace lsp
                             if ((errno == 0) && (e > xv))
                             {
                                 v->micro    = val;
-                                printf("micro = %d\n", int(v->major));
                             }
                         }
                     }
@@ -189,7 +183,6 @@ namespace lsp
             // Should be end of line now
             if (*e != '\0')
             {
-                printf("bad end of line\n");
                 drop_string(&v->branch);
                 return STATUS_BAD_FORMAT;
             }
@@ -249,12 +242,7 @@ namespace lsp
             if (res == STATUS_OK)
                 res = fetch_string(&p->copyright, "copyright", &jo);
             if (res == STATUS_OK)
-            {
-                printf("Parsing version\n");
                 res = fetch_version(&p->version, "version", &jo);
-                if (res != STATUS_OK)
-                    fprintf(stderr, "Error parsing version\n");
-            }
 
             if (res == STATUS_OK)
                 *pkg            = p;
