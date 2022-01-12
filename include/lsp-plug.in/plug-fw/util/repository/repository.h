@@ -37,11 +37,13 @@ namespace lsp
          */
         typedef struct cmdline_t
         {
-            bool                strict;     // Strict mode
-            const char         *dst_dir;    // Destination directory
-            const char         *local_dir;  // Local directory
-            const char         *checksums;  // Output checksums file
-            lltl::parray<char>  paths;      // Additional resource paths
+            bool                        strict;     // Strict mode
+            const char                 *dst_dir;    // Destination directory
+            const char                 *local_dir;  // Local directory
+            const char                 *checksums;  // Output checksums file
+            const char                 *manifest;   // Manifest file
+            lltl::parray<char>          paths;      // Additional resource paths
+            lltl::parray<char>          vars;       // Variables
         } cmdline_t;
 
         /**

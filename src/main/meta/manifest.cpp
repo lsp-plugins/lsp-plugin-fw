@@ -178,6 +178,7 @@ namespace lsp
                     v->branch   = strdup(e + 1);
                     if (!v->branch)
                         return STATUS_NO_MEM;
+                    e += strlen(e);
                 }
 
                 // Should be end of line now
@@ -207,6 +208,7 @@ namespace lsp
                 return STATUS_NO_MEM;
 
             p->artifact         = NULL;
+            p->artifact_name    = NULL;
             p->brand            = NULL;
             p->brand_id         = NULL;
             p->short_name       = NULL;
@@ -223,6 +225,8 @@ namespace lsp
 
             if (res == STATUS_OK)
                 res = fetch_string(&p->artifact, "artifact", &jo);
+            if (res == STATUS_OK)
+                res = fetch_string(&p->artifact_name, "artifact_name", &jo);
             if (res == STATUS_OK)
                 res = fetch_string(&p->brand, "brand", &jo);
             if (res == STATUS_OK)
@@ -256,6 +260,7 @@ namespace lsp
                 return;
 
             drop_string(&pkg->artifact);
+            drop_string(&pkg->artifact_name);
             drop_string(&pkg->brand);
             drop_string(&pkg->brand_id);
             drop_string(&pkg->short_name);

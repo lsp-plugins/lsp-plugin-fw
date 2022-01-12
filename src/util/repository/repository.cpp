@@ -28,6 +28,8 @@
 #include <lsp-plug.in/io/PathPattern.h>
 #include <lsp-plug.in/io/OutFileStream.h>
 #include <lsp-plug.in/io/OutSequence.h>
+#include <lsp-plug.in/io/InSequence.h>
+#include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/lltl/phashset.h>
@@ -980,6 +982,193 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t process_line(LSPString *out, LSPString *in, lltl::pphash<LSPString, LSPString> *vars)
+        {
+            ssize_t first = 0, last = in->length();
+            LSPString key;
+
+            while (first < last)
+            {
+                // Find the '$' match
+                ssize_t idx1 = in->index_of(first, '$');
+                if (idx1 < 0)
+                    break;
+                if ((++idx1) >= last)
+                    break;
+
+                // Sequence should match '${'
+                if (in->char_at(idx1) != '{')
+                {
+                    if (!out->append('$'))
+                        return STATUS_NO_MEM;
+                    ++first;
+                    continue;
+                }
+
+                // Find the enclosing bracket
+                ssize_t idx2 = in->index_of(++idx1, '}');
+                if (idx2 < 0)
+                    break;
+
+                // Append variable value
+                if (!key.set(in, idx1, idx2))
+                    return STATUS_NO_MEM;
+
+                LSPString *value = vars->get(&key);
+                if (value == NULL)
+                {
+                    if (!out->append(in, idx1, idx2))
+                        return STATUS_NO_MEM;
+                }
+                else if (!out->append(value))
+                    return STATUS_NO_MEM;
+
+                // Update index of sequence
+                first = idx2 + 1;
+            }
+
+            if (first < last)
+            {
+                if (!out->append(in, first, last))
+                    return STATUS_NO_MEM;
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t make_vars(lltl::pphash<LSPString, LSPString> *vars, const cmdline_t *cmd)
+        {
+            LSPString k, v;
+
+            for (size_t i=0, n=cmd->vars.size(); i<n; ++i)
+            {
+                v.clear();
+
+                const char *def = cmd->vars.uget(i);
+                char *value = strchr(def, '=');
+
+                if (value)
+                {
+                    if (!k.set_native(def, value - def))
+                        return STATUS_NO_MEM;
+                    if (!v.set_native(value))
+                        return STATUS_NO_MEM;
+                }
+                else if (!k.set_native(def))
+                    return STATUS_NO_MEM;
+
+                LSPString *xv = v.clone();
+                if (value == NULL)
+                    return STATUS_NO_MEM;
+                if (!vars->create(&k, &v))
+                {
+                    delete xv;
+                    fprintf(stderr, "Duplicate variable: %s\n", k.get_native());
+                    return STATUS_DUPLICATED;
+                }
+            }
+
+            return STATUS_OK;
+        }
+
+        void destroy_vars(lltl::pphash<LSPString, LSPString> *vars)
+        {
+            lltl::parray<LSPString> k, v;
+            if (vars->items(&k, &v))
+            {
+                for (size_t i=0, n=v.size(); i<n; ++i)
+                {
+                    LSPString *key = v.uget(i);
+                    LSPString *value = v.uget(i);
+                    delete key;
+                    delete value;
+                }
+            }
+            k.flush();
+            v.flush();
+            vars->flush();
+        }
+
+        status_t process_manifest_file(context_t *ctx, const cmdline_t *cmd)
+        {
+            if (!cmd->manifest)
+                return STATUS_OK;
+
+            status_t res;
+            LSPString fname;
+            io::Path src, dst;
+
+            // Initialize paths
+            if ((res = src.set(cmd->manifest)) != STATUS_OK)
+                return res;
+            if ((res = src.get_last(&fname)) != STATUS_OK)
+                return res;
+            if ((res = dst.set(cmd->dst_dir, &fname)) != STATUS_OK)
+                return res;
+
+            io::InFileStream ifs;
+            io::OutFileStream ofs;
+            io::InSequence is;
+            io::OutSequence os;
+
+            // Form the list of variables for substitution
+            lltl::pphash<LSPString, LSPString> vars;
+            if ((res = make_vars(&vars, cmd)) != STATUS_OK)
+            {
+                destroy_vars(&vars);
+                return res;
+            }
+
+            // Process the manifest file
+            if ((res = ifs.open(&src)) == STATUS_OK)
+            {
+                if ((res = is.wrap(&ifs, WRAP_NONE, "utf-8")) == STATUS_OK)
+                {
+                    if ((res = ofs.open(&dst, io::File::FM_WRITE_NEW)) == STATUS_OK)
+                    {
+                        if ((res = os.wrap(&ofs, WRAP_NONE, "utf-8")) == STATUS_OK)
+                        {
+                            LSPString in_line, out_line;
+
+                            while (true)
+                            {
+                                if ((res = is.read_line(&in_line, true)) != STATUS_OK)
+                                {
+                                    if (res == STATUS_EOF)
+                                        res = STATUS_OK;
+                                    else
+                                        fprintf(stderr, "Error reading manifest template: error code=%d", int(res));
+                                    break;
+                                }
+
+                                if ((res = process_line(&out_line, &in_line, &vars)) != STATUS_OK)
+                                {
+                                    fprintf(stderr, "Error processing manifest file: error code=%d", int(res));
+                                    break;
+                                }
+
+                                if ((res = os.write(&out_line)) != STATUS_OK)
+                                {
+                                    fprintf(stderr, "Error writing manifest file: error code=%d", int(res));
+                                    break;
+                                }
+                            }
+
+                            res = update_status(res, os.close());
+                        }
+                        res = update_status(res, ofs.close());
+                    }
+                    res = update_status(res, is.close());
+                }
+
+                res = update_status(res, ifs.close());
+            }
+
+            destroy_vars(&vars);
+
+            return res;
+        }
+
         status_t make_repository(const cmdline_t *cmd)
         {
             context_t ctx;
@@ -1033,6 +1222,8 @@ namespace lsp
                 res = update_status(res, export_files(strict, &ctx, &ctx.local));
             if ((res == STATUS_OK) || (!strict))
                 res = update_status(res, export_files(strict, &ctx, &ctx.fonts));
+            if ((res == STATUS_OK) || (!strict))
+                res = process_manifest_file(&ctx, cmd);
 
             // Export checksums if specified
             if (cmd->checksums)
@@ -1062,6 +1253,7 @@ namespace lsp
             cfg->strict     = true;
             cfg->dst_dir    = NULL;
             cfg->local_dir  = NULL;
+            cfg->manifest   = NULL;
             cfg->checksums  = NULL;
 
             // Parse arguments
@@ -1075,11 +1267,14 @@ namespace lsp
                 {
                     printf("Usage: %s [parameters] [resource-directories]\n\n", argv[0]);
                     printf("Available parameters:\n");
-                    printf("  -c, --checksums <file>    Write file checksums to the specified file\n");
-                    printf("  -h, --help                Show help\n");
-                    printf("  -l, --local <dir>         The local resource directory\n");
-                    printf("  -ns, --no-strict          Disable strict processing\n");
-                    printf("  -o, --output <dir>        The name of the destination directory to place resources\n");
+                    printf("  -c, --checksums <file>        Write file checksums to the specified file\n");
+                    printf("  -d, --define <key>=<value>    Define variable for manifest\n");
+                    printf("  -h, --help                    Show help\n");
+                    printf("  -l, --local <dir>             The local resource directory\n");
+                    printf("  -m, --manifest <file>         Manifest file\n");
+                    printf("  -ns, --no-strict              Disable strict processing\n");
+                    printf("  -o, --output <dir>            The name of the destination directory to\n");
+                    printf("                                place resources\n");
                     printf("\n");
 
                     return STATUS_CANCELLED;
@@ -1112,6 +1307,15 @@ namespace lsp
                     }
                     cfg->local_dir = argv[i++];
                 }
+                else if ((!::strcmp(arg, "--manifest")) || (!::strcmp(arg, "-m")))
+                {
+                    if (cfg->manifest)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->manifest = argv[i++];
+                }
                 else if ((!::strcmp(arg, "--strict")) || (!::strcmp(arg, "-s")))
                 {
                     if (strict_set)
@@ -1129,6 +1333,11 @@ namespace lsp
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->strict = false;
+                }
+                else if ((!::strcmp(arg, "--define")) || (!::strcmp(arg, "-d")))
+                {
+                    if (!cfg->vars.add(const_cast<char *>(arg)))
+                        return STATUS_NO_MEM;
                 }
                 else if ((!::strcmp(arg, "--checksums")) || (!::strcmp(arg, "-c")))
                 {
