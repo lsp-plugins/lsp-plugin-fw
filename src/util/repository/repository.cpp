@@ -735,6 +735,9 @@ namespace lsp
             io::Path base;
             LSPString child;
 
+            if (path == NULL)
+                return STATUS_OK;
+
             if ((res = base.set(path)) != STATUS_OK)
                 return res;
 
@@ -987,6 +990,8 @@ namespace lsp
             ssize_t first = 0, last = in->length();
             LSPString key;
 
+            out->clear();
+
             while (first < last)
             {
                 // Find the '$' match
@@ -1013,8 +1018,10 @@ namespace lsp
                 // Append variable value
                 if (!key.set(in, idx1, idx2))
                     return STATUS_NO_MEM;
+                if (!out->append(in, first, idx1 - 2))
+                    return STATUS_NO_MEM;
 
-                LSPString *value = vars->get(&key);
+                const LSPString *value = vars->get(&key);
                 if (value == NULL)
                 {
                     if (!out->append(in, idx1, idx2))
@@ -1045,13 +1052,13 @@ namespace lsp
                 v.clear();
 
                 const char *def = cmd->vars.uget(i);
-                char *value = strchr(def, '=');
+                const char *value = strchr(def, '=');
 
                 if (value)
                 {
                     if (!k.set_native(def, value - def))
                         return STATUS_NO_MEM;
-                    if (!v.set_native(value))
+                    if (!v.set_native(value + 1))
                         return STATUS_NO_MEM;
                 }
                 else if (!k.set_native(def))
@@ -1060,7 +1067,7 @@ namespace lsp
                 LSPString *xv = v.clone();
                 if (value == NULL)
                     return STATUS_NO_MEM;
-                if (!vars->create(&k, &v))
+                if (!vars->create(&k, xv))
                 {
                     delete xv;
                     fprintf(stderr, "Duplicate variable: %s\n", k.get_native());
@@ -1073,19 +1080,16 @@ namespace lsp
 
         void destroy_vars(lltl::pphash<LSPString, LSPString> *vars)
         {
-            lltl::parray<LSPString> k, v;
-            if (vars->items(&k, &v))
+            lltl::parray<LSPString> v;
+            if (vars->values(&v))
             {
                 for (size_t i=0, n=v.size(); i<n; ++i)
                 {
-                    LSPString *key = v.uget(i);
                     LSPString *value = v.uget(i);
-                    delete key;
                     delete value;
                 }
+                v.flush();
             }
-            k.flush();
-            v.flush();
             vars->flush();
         }
 
@@ -1128,6 +1132,8 @@ namespace lsp
                     {
                         if ((res = os.wrap(&ofs, WRAP_NONE, "utf-8")) == STATUS_OK)
                         {
+                            printf("  writing manifest: %s\n", dst.as_native());
+
                             LSPString in_line, out_line;
 
                             while (true)

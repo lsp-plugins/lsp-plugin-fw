@@ -211,9 +211,8 @@ namespace lsp
 
         status_t PluginWindow::slot_window_show(tk::Widget *sender, void *ptr, void *data)
         {
-// TODO: uncomment this before 1.2.0 release
-//            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-//            __this->show_greeting_window();
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            __this->show_greeting_window();
             return STATUS_OK;
         }
 

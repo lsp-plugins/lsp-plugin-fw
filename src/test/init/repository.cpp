@@ -68,15 +68,26 @@ INIT_BEGIN(repository)
             NULL
         };
 
+        static const char *vars[]=
+        {
+            "ARTIFACT_ID=test",
+            "ARTIFACT_DESC=Test Case",
+            "ARTIFACT_VERSION=0.0.0-devel",
+            NULL
+        };
+
         io::Path resdir;
         resdir.set(tempdir(), "resources");
 
         cmd.strict = false;
         cmd.dst_dir = resdir.as_utf8();
-        cmd.local_dir = "res/local";
+        cmd.local_dir = NULL;
+        cmd.manifest = "res/manifest.json";
         cmd.checksums = NULL;
         for (const char **p = paths; *p != NULL; ++p)
             cmd.paths.add(const_cast<char *>(*p));
+        for (const char **p = vars; *p != NULL; ++p)
+            cmd.vars.add(const_cast<char *>(*p));
 
         remove_dir(&resdir);
         lsp::repository::make_repository(&cmd);
