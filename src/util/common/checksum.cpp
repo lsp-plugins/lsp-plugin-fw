@@ -47,7 +47,7 @@ namespace lsp
 
             FILE *in = fopen(file->as_native(), "r");
             if (in == NULL)
-                return STATUS_OK;
+                return STATUS_NOT_FOUND;
 
             while (true)
             {

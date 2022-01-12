@@ -389,7 +389,7 @@ namespace lsp
         {
             status_t res;
             util::checksum_t *cks;
-            io::Path file, cksum;
+            io::Path file, cksum, src_dir;
 
             if ((cfg->checksums == NULL) || (cfg->dst_file == NULL))
                 return STATUS_OK;
@@ -397,6 +397,8 @@ namespace lsp
             if ((res = file.set_native(cfg->dst_file)) != STATUS_OK)
                 return STATUS_OK;
             if ((res = cksum.set_native(cfg->checksums)) != STATUS_OK)
+                return STATUS_OK;
+            if ((res = src_dir.set_native(cfg->src_dir)) != STATUS_OK)
                 return STATUS_OK;
 
             if ((!file.is_reg()) || (!cksum.is_reg()))
@@ -412,6 +414,18 @@ namespace lsp
             if (!ctx->ext.values(&files))
                 return STATUS_OK;
 
+            // Validate checksum for generated file
+            cks = ck.get(file.as_string());
+            if ((!cks) || (!util::match_checksum(cks, &file)))
+            {
+                util::drop_checksums(&ck);
+                return STATUS_OK;
+            }
+            ck.remove(file.as_string(), NULL);
+            free(cks);
+            cks = NULL;
+
+            // Validate checksum for other files
             for (size_t i=0, n=files.size(); i<n; ++i)
             {
                 lltl::parray<io::Path> *list = files.uget(i);
@@ -419,8 +433,14 @@ namespace lsp
                 {
                     // File should be present and match the checksum
                     io::Path *fname = list->uget(j);
+                    if ((res = file.set(&src_dir, fname)) != STATUS_OK)
+                    {
+                        util::drop_checksums(&ck);
+                        return res;
+                    }
+
                     cks = ck.get(fname->as_string());
-                    if ((!cks) || (!util::match_checksum(cks, fname)))
+                    if ((!cks) || (!util::match_checksum(cks, &file)))
                     {
                         util::drop_checksums(&ck);
                         return STATUS_OK;
@@ -433,18 +453,6 @@ namespace lsp
                 }
             }
 
-            // Validate checksum with generated file
-            cks = ck.get(file.as_string());
-            if ((!cks) || (!util::match_checksum(cks, &file)))
-            {
-                util::drop_checksums(&ck);
-                return STATUS_OK;
-            }
-            ck.remove(file.as_string(), NULL);
-            free(cks);
-            cks = NULL;
-
-
             // We need to ensure that the list is empty now. If it is true, then all checksums matched.
             res = (ck.size() > 0) ? STATUS_OK : STATUS_SKIP;
             util::drop_checksums(&ck);
@@ -455,7 +463,7 @@ namespace lsp
         status_t write_checksums(const cmdline_t *cfg, state_t *ctx)
         {
             status_t res;
-            io::Path file, cksum;
+            io::Path file, cksum, src_dir;
 
             if ((cfg->checksums == NULL) || (cfg->dst_file == NULL))
                 return STATUS_OK;
@@ -463,6 +471,8 @@ namespace lsp
             if ((res = file.set_native(cfg->dst_file)) != STATUS_OK)
                 return res;
             if ((res = cksum.set_native(cfg->checksums)) != STATUS_OK)
+                return res;
+            if ((res = src_dir.set_native(cfg->src_dir)) != STATUS_OK)
                 return res;
 
             if (!file.is_reg())
@@ -475,6 +485,14 @@ namespace lsp
             if (!ctx->ext.values(&files))
                 return STATUS_OK;
 
+            // Add checksum of target file
+            if ((res = util::add_checksum(&ck, NULL, &file)) != STATUS_OK)
+            {
+                util::drop_checksums(&ck);
+                return res;
+            }
+
+            // Add checksum to listed files
             for (size_t i=0, n=files.size(); i<n; ++i)
             {
                 lltl::parray<io::Path> *list = files.uget(i);
@@ -482,19 +500,18 @@ namespace lsp
                 {
                     // File should be present and match the checksum
                     io::Path *fname = list->uget(j);
-                    if ((res = util::add_checksum(&ck, NULL, fname)) != STATUS_OK)
+                    if ((res = file.set(&src_dir, fname)) != STATUS_OK)
+                    {
+                        util::drop_checksums(&ck);
+                        return res;
+                    }
+
+                    if ((res = util::add_checksum(&ck, &src_dir, &file)) != STATUS_OK)
                     {
                         util::drop_checksums(&ck);
                         return res;
                     }
                 }
-            }
-
-            // Add checksum of target file
-            if ((res = util::add_checksum(&ck, NULL, &file)) != STATUS_OK)
-            {
-                util::drop_checksums(&ck);
-                return res;
             }
 
             // Write checksums and exit

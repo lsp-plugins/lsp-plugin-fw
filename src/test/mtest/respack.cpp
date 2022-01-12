@@ -22,6 +22,7 @@
 #include <lsp-plug.in/test-fw/mtest.h>
 
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/util/respack/respack.h>
 
 
@@ -29,20 +30,35 @@ MTEST_BEGIN("", respack)
 
     MTEST_MAIN
     {
-        io::Path resdir;
-        io::Path outfile;
-        io::Path cksum;
+        if (argc > 0)
+        {
+            lltl::parray<char> args;
+            MTEST_ASSERT(args.add(const_cast<char *>(full_name())));
 
-        MTEST_ASSERT(resdir.set(tempdir(), "resources") == STATUS_OK)
-        MTEST_ASSERT(outfile.fmt("%s/mtest-%s.cpp", tempdir(), full_name()) > 0);
-        MTEST_ASSERT(cksum.fmt("%s/mtest-%s-cksum.json", tempdir(), full_name()) > 0);
+            for (int i=0; i<argc; ++i)
+            {
+                MTEST_ASSERT(args.add(const_cast<char *>(argv[i])));
+            }
 
-        respack::cmdline_t cmd;
-        cmd.src_dir = resdir.as_native();
-        cmd.dst_file = outfile.as_native();
-        cmd.checksums = cksum.as_native();
+            MTEST_ASSERT(lsp::respack::main(args.size(), const_cast<const char **>(args.array())) == STATUS_OK);
+        }
+        else
+        {
+            io::Path resdir;
+            io::Path outfile;
+            io::Path cksum;
 
-        MTEST_ASSERT(lsp::respack::pack_resources(&cmd) == STATUS_OK);
+            MTEST_ASSERT(resdir.set(tempdir(), "resources") == STATUS_OK)
+            MTEST_ASSERT(outfile.fmt("%s/mtest-%s.cpp", tempdir(), full_name()) > 0);
+            MTEST_ASSERT(cksum.fmt("%s/mtest-%s-cksum.json", tempdir(), full_name()) > 0);
+
+            respack::cmdline_t cmd;
+            cmd.src_dir = resdir.as_native();
+            cmd.dst_file = outfile.as_native();
+            cmd.checksums = cksum.as_native();
+
+            MTEST_ASSERT(lsp::respack::pack_resources(&cmd) == STATUS_OK);
+        }
     }
 
 MTEST_END
