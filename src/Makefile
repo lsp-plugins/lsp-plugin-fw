@@ -245,13 +245,6 @@ OBJ                         = \
   $(OBJ_WRAP_VST2) \
   $(OBJ_WRAP_CAIRO)
 
-ifeq ($(TEST),1)
-  CXX_SRC                    += $(CXX_SRC_TEST)
-  HOST_CXX_SRC               += $(HOST_CXX_SRC_TEST)
-  OBJ                        += $(OBJ_TEST)
-  LSP_PLUGIN_FW_OBJ          += $(LSP_PLUGIN_FW_OBJ_TEST)
-endif
-
 # Object files for host build
 HOST_OBJ_STUB               = $(patsubst %.cpp, %.o, $(HOST_CXX_SRC_STUB))
 HOST_OBJ_CORE               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_CORE))
@@ -284,6 +277,10 @@ HOST_OBJ                    = \
   $(HOST_OBJ_WRAP_CAIRO)
 
 ifeq ($(TEST),1)
+  CXX_SRC                    += $(CXX_SRC_TEST)
+  OBJ                        += $(OBJ_TEST)
+  LSP_PLUGIN_FW_OBJ          += $(LSP_PLUGIN_FW_OBJ_TEST)
+  
   HOST_CXX_SRC               += $(HOST_CXX_SRC_TEST)
   HOST_OBJ                   += $(HOST_OBJ_TEST)
   HOST_LSP_PLUGIN_FW_OBJ     += $(HOST_LSP_PLUGIN_FW_OBJ_TEST)
@@ -523,9 +520,6 @@ PLUG_DEPS                   = $(foreach dep, $(DEPENDENCIES) $(PLUGIN_DEPENDENCI
 HOST_SRC_DEPS               = $(foreach dep, $(HOST_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
 HOST_PLUG_DEPS              = $(foreach dep, $(HOST_DEPENDENCIES) $(HOST_PLUGIN_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
 
-$(info PLUG_DEPS=$(PLUG_DEPS))
-$(info OBJ_PLUG_META=$(OBJ_PLUG_META))
-
 #------------------------------------------------------------------------------
 # Functional variables
 CXX_FILE                    = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.o,%.cpp, $(@))
@@ -570,6 +564,9 @@ HOST_DEP_DEP_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
 # Dependencies
 dep_clean:
 
+$(info DEP_CXX = $(DEP_CXX))
+$(info HOST_DEP_CXX = $(HOST_DEP_CXX))
+
 $(DEP_CXX): dep_clean
 	echo "  dep  [$(ARTIFACT_NAME)] $(DEP_CXX_FILE)"
 	mkdir -p $(dir $(@))
@@ -578,9 +575,9 @@ $(DEP_CXX): dep_clean
 $(HOST_DEP_CXX): dep_clean
 	echo "  dep  [$(ARTIFACT_NAME)] $(HOST_DEP_CXX_FILE)"
 	mkdir -p $(dir $(@))
-	$(CXX) -MM -MT "\$$(HOST_$(ARTIFACT_ID)_BIN)/$(HOST_DEP_DEP_FILE)" -MF $(@) $(HOST_DEP_CXX_FILE) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(INCLUDE) $(HOST_DEP_CFLAGS)
+	$(HOST_CXX) -MM -MT "\$$(HOST_$(ARTIFACT_ID)_BIN)/$(HOST_DEP_DEP_FILE)" -MF $(@) $(HOST_DEP_CXX_FILE) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(INCLUDE) $(HOST_DEP_CFLAGS)
 
-depend: $(DEP_CXX)
+depend: $(DEP_CXX) $(HOST_DEP_CXX)
 	$(foreach dep,$(ALL_DEPENDENCIES) $(ARTIFACT_ID),\
 	  $(if $($(dep)_INC), \
 	    $(eval SED_RULES += s/$(shell echo "$($(dep)_INC)" | sed "s/\\//\\\\\//g")/\$$$$\\($(dep)_INC\\)/g;)\
@@ -595,7 +592,7 @@ depend: $(DEP_CXX)
 	    $(eval SED_RULES += s/$(shell echo "$(HOST_$(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\(HOST_$(dep)_BIN\\)/g;)\
 	  )\
 	)
-	cat $(DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.d
+	cat $(DEP_CXX) $(HOST_DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.d
 
 #------------------------------------------------------------------------------
 # Derived source code libraries
