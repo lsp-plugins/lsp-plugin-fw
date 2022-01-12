@@ -141,11 +141,15 @@ namespace lsp
             long val;
             char *e;
             errno = 0;
+
+            printf("Parsing version: %s\n", xv);
+
             val = strtol(xv, &e, 10);
 
             if ((errno == 0) && (e > xv))
             {
                 v->major    = val;
+                printf("major = %d\n", int(v->major));
                 if (*e == '.')
                 {
                     xv = e + 1;
@@ -155,6 +159,7 @@ namespace lsp
                     if ((errno == 0) && (e > xv))
                     {
                         v->minor    = val;
+                        printf("minor = %d\n", int(v->major));
 
                         if (*e == '.')
                         {
@@ -163,33 +168,31 @@ namespace lsp
                             val = strtol(xv, &e, 10);
 
                             if ((errno == 0) && (e > xv))
+                            {
                                 v->micro    = val;
-                            else
-                                return STATUS_BAD_FORMAT;
+                                printf("micro = %d\n", int(v->major));
+                            }
                         }
                     }
-                    else
-                        return STATUS_BAD_FORMAT;
-                }
-
-                // Branch?
-                if (*e == '-')
-                {
-                    v->branch   = strdup(e + 1);
-                    if (!v->branch)
-                        return STATUS_NO_MEM;
-                    e += strlen(e);
-                }
-
-                // Should be end of line now
-                if (*e != '\0')
-                {
-                    drop_string(&v->branch);
-                    return STATUS_BAD_FORMAT;
                 }
             }
-            else
+
+            // Branch?
+            if (*e == '-')
+            {
+                v->branch   = strdup(e + 1);
+                if (!v->branch)
+                    return STATUS_NO_MEM;
+                e += strlen(e);
+            }
+
+            // Should be end of line now
+            if (*e != '\0')
+            {
+                printf("bad end of line\n");
+                drop_string(&v->branch);
                 return STATUS_BAD_FORMAT;
+            }
 
             return STATUS_OK;
         }
@@ -246,7 +249,12 @@ namespace lsp
             if (res == STATUS_OK)
                 res = fetch_string(&p->copyright, "copyright", &jo);
             if (res == STATUS_OK)
+            {
+                printf("Parsing version\n");
                 res = fetch_version(&p->version, "version", &jo);
+                if (res != STATUS_OK)
+                    fprintf(stderr, "Error parsing version\n");
+            }
 
             if (res == STATUS_OK)
                 *pkg            = p;

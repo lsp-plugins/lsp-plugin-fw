@@ -618,10 +618,6 @@ namespace lsp
                 }
             }
 
-            printf("src_dir = %s\n", cfg->src_dir);
-            printf("dst_file = %s\n", cfg->dst_file);
-            printf("checksums = %s\n", cfg->checksums);
-
             // Validate mandatory arguments
             if (cfg->src_dir == NULL)
             {

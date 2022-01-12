@@ -590,7 +590,6 @@ namespace lsp
             // Open directory
             if ((res = path.set(base, child)) != STATUS_OK)
                 return res;
-            printf("Scan files: %s", path.as_native());
             if ((res = fd.open(&path)) != STATUS_OK)
                 return STATUS_OK;
 
@@ -1074,6 +1073,8 @@ namespace lsp
                     fprintf(stderr, "Duplicate variable: %s\n", k.get_native());
                     return STATUS_DUPLICATED;
                 }
+
+                printf("  defined variable: %s = %s\n", k.get_native(), xv->get_native());
             }
 
             return STATUS_OK;
@@ -1154,7 +1155,7 @@ namespace lsp
                                     break;
                                 }
 
-                                if ((res = os.write(&out_line)) != STATUS_OK)
+                                if ((res = os.writeln(&out_line)) != STATUS_OK)
                                 {
                                     fprintf(stderr, "Error writing manifest file: error code=%d", int(res));
                                     break;
@@ -1197,15 +1198,18 @@ namespace lsp
             {
                 // Destroy context and return error
                 destroy_context(&ctx);
+                fprintf(stderr, "Failed scanning local files\n");
                 return res;
             }
 
             // Scan for resource path
             for (size_t i=0, n=cmd->paths.size(); i<n; ++i)
             {
-                if ((res = lookup_path(cmd->paths.uget(i), &ctx)) != STATUS_OK)
+                const char *path = cmd->paths.uget(i);
+                if ((res = lookup_path(path, &ctx)) != STATUS_OK)
                 {
                     // Destroy context and return error
+                    fprintf(stderr, "Failed lookup path: %s\n", path);
                     destroy_context(&ctx);
                     return res;
                 }
@@ -1343,7 +1347,7 @@ namespace lsp
                 }
                 else if ((!::strcmp(arg, "--define")) || (!::strcmp(arg, "-d")))
                 {
-                    if (!cfg->vars.add(const_cast<char *>(arg)))
+                    if (!cfg->vars.add(const_cast<char *>(argv[i++])))
                         return STATUS_NO_MEM;
                 }
                 else if ((!::strcmp(arg, "--checksums")) || (!::strcmp(arg, "-c")))

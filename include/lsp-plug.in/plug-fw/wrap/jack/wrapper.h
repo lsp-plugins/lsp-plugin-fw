@@ -224,7 +224,7 @@ namespace lsp
 
             if (res != STATUS_OK)
             {
-                lsp_error("Error while reading manifest file");
+                lsp_error("Error while reading manifest file, error: %d", int(res));
                 return res;
             }
 
