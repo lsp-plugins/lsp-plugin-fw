@@ -249,7 +249,9 @@ namespace lsp
             fprintf(out, "DEP_CXX = $(foreach src,$(CXX_FILES),$(patsubst %%.cpp,%%.d,$(src)))\n");
             fprintf(out, "DEP_CXX_FILE = $(patsubst %%.d,%%.cpp,$(@))\n");
             fprintf(out, "DEP_DEP_FILE = $(patsubst %%.d,$(EXT_PREFIX)%%$(EXECUTABLE_EXT),$(@))\n");
-            fprintf(out, "JACK_CXX_DEFS = -DEXT_ARTIFACT_ID=\\\"$(EXT_ARTIFACT_ID)\\\"\n");
+            fprintf(out, "JACK_CXX_DEFS = \\\n");
+            fprintf(out, "  $(if $(EXT_ARTIFACT_NAME),-DEXT_ARTIFACT_NAME=\\\"$(EXT_ARTIFACT_NAME)\\\") \\\n");
+            fprintf(out, "  $(if $(EXT_ARTIFACT_GROUP),-DEXT_ARTIFACT_GROUP=\\\"$(EXT_ARTIFACT_GROUP)\\\")\n");
             fprintf(out, "\n");
 
             fprintf(out, ".DEFAULT_GOAL := all\n");

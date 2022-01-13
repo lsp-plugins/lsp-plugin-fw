@@ -141,13 +141,14 @@ namespace lsp
                         de->d_type  = DT_REG;
                 }
 
-                // Skip directory entry if it doesn't contain EXT_ARTIFACT_ID (for example, 'lsp-plugins') in name
-                if ((strlen(EXT_ARTIFACT_ID) > 0) && (strstr(de->d_name, EXT_ARTIFACT_ID) == NULL))
-                    continue;
-
                 // Analyze file
                 if (de->d_type == DT_DIR)
                 {
+                #ifdef EXT_ARTIFACT_GROUP
+                    // Skip directory entry if it doesn't contain EXT_ARTIFACT_GROUP (for example, 'lsp-plugins') in name
+                    if ((strlen(EXT_ARTIFACT_GROUP) > 0) && (strstr(de->d_name, EXT_ARTIFACT_GROUP) == NULL))
+                        continue;
+                #endif /* EXT_ARTIFACT_GROUP */
                     if (subdir)
                     {
                         vst2::create_instance_t f = lookup_factory(hInstance, ptr, required, false);
@@ -161,6 +162,13 @@ namespace lsp
                 }
                 else if (de->d_type == DT_REG)
                 {
+                #ifdef EXT_ARTIFACT_NAME
+                    // Skip directory entry if it doesn't contain EXT_ARTIFACT_NAME (for example, 'lsp-plugins') in name
+                    if ((strlen(EXT_ARTIFACT_NAME) > 0) && (strstr(de->d_name, EXT_ARTIFACT_NAME) == NULL))
+                        continue;
+                #endif /* EXT_ARTIFACT_NAME */
+
+
                     // Skip library if it doesn't contain 'lsp-plugins' in name
                     if (strcasestr(de->d_name, ".so") == NULL)
                         continue;
