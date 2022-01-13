@@ -599,6 +599,8 @@ $(SRC_DEPS) $(PLUG_DEPS):
 	mkdir -p "$($(@)_BIN)"
 	$(MAKE) -C "$($(@)_PATH)" compile VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" NO_DEPENDENCIES="1" DEMO_TEST="0"
 
+$(info DEPENDENCIES_BIN=$(DEPENDENCIES_BIN))
+
 $(DEPENDENCIES_BIN):
 	echo "make [$($(@)_NAME)]"
 	$(MAKE) -C "$($(@)_PATH)" all VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" DEMO_TEST="0"
