@@ -24,7 +24,7 @@ endif
 # Definitions
 PREFIX                     := /usr/local
 LIBDIR                     := $(PREFIX)/lib
-BINDIR                     := $(PREFIX)/bin
+BINDIR                     := $(PREFIX)/binARTIFACT_ID
 INCDIR                     := $(PREFIX)/include
 BASEDIR                    := $(CURDIR)
 ROOTDIR                    := $(CURDIR)
@@ -70,7 +70,6 @@ ifeq ($(findstring -devel,$(ARTIFACT_VERSION)),-devel)
   )
   # Strip '-devel' from version
   tmp_version :=$(shell echo "$(ARTIFACT_VERSION)" | sed s/-devel//g)
-  ARTIFACT_VERSION=$(tmp_version)
 else
   $(foreach dep,$(DEPENDENCIES),\
     $(eval $(dep)_BRANCH="$($(dep)_VERSION)") \

@@ -42,8 +42,8 @@ MERGED_DEPENDENCIES        := \
   $(TEST_DEPENDENCIES) \
   $(TEST_DEPENDENCIES_UI) \
   $(PLUGIN_DEPENDENCIES)
-UNIQ_MERGED_DEPENDENCIES   := $(filter-out $(ROOT_ARTIFACT_ID),$(call uniq, $(MERGED_DEPENDENCIES)))
-UNIQ_ALL_DEPENDENCIES      := $(filter-out $(ROOT_ARTIFACT_ID),$(call uniq, $(ALL_DEPENDENCIES) $(PLUGIN_DEPENDENCIES)))
+UNIQ_MERGED_DEPENDENCIES   := $(filter-out $(ARTIFACT_ID),$(call uniq, $(MERGED_DEPENDENCIES)))
+UNIQ_ALL_DEPENDENCIES      := $(filter-out $(ARTIFACT_ID),$(call uniq, $(ALL_DEPENDENCIES) $(PLUGIN_DEPENDENCIES)))
 
 # Find the proper branch of the GIT repository
 ifeq ($(TREE),1)
