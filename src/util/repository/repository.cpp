@@ -1165,10 +1165,10 @@ namespace lsp
                     }
                 }
                 else
-                    fprintf(stderr, "Error writint manifest file %s: error code=%d", dst.as_native(), int(res));
+                    fprintf(stderr, "Error writint manifest file %s: error code=%d\n", dst.as_native(), int(res));
             }
             else
-                fprintf(stderr, "Error processing manifest template %s: error code=%d", cmd->manifest, int(res));
+                fprintf(stderr, "Error processing manifest template %s: error code=%d\n", cmd->manifest, int(res));
 
             // Close resources
             res = update_status(res, os.close());
