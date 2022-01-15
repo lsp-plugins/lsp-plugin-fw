@@ -1127,50 +1127,54 @@ namespace lsp
 
             // Process the manifest file
             if ((res = ifs.open(&src)) == STATUS_OK)
+                res = is.wrap(&ifs, WRAP_NONE, "utf-8");
+
+            if (res == STATUS_OK)
             {
-                if ((res = is.wrap(&ifs, WRAP_NONE, "utf-8")) == STATUS_OK)
+                if ((res = ofs.open(&dst, io::File::FM_WRITE_NEW)) == STATUS_OK)
+                    res = os.wrap(&ofs, WRAP_NONE, "utf-8");
+
+                if (res == STATUS_OK)
                 {
-                    if ((res = ofs.open(&dst, io::File::FM_WRITE_NEW)) == STATUS_OK)
+                    printf("  writing manifest: %s\n", dst.as_native());
+
+                    LSPString in_line, out_line;
+
+                    while (true)
                     {
-                        if ((res = os.wrap(&ofs, WRAP_NONE, "utf-8")) == STATUS_OK)
+                        if ((res = is.read_line(&in_line, true)) != STATUS_OK)
                         {
-                            printf("  writing manifest: %s\n", dst.as_native());
-
-                            LSPString in_line, out_line;
-
-                            while (true)
-                            {
-                                if ((res = is.read_line(&in_line, true)) != STATUS_OK)
-                                {
-                                    if (res == STATUS_EOF)
-                                        res = STATUS_OK;
-                                    else
-                                        fprintf(stderr, "Error reading manifest template: error code=%d", int(res));
-                                    break;
-                                }
-
-                                if ((res = process_line(&out_line, &in_line, &vars)) != STATUS_OK)
-                                {
-                                    fprintf(stderr, "Error processing manifest file: error code=%d", int(res));
-                                    break;
-                                }
-
-                                if ((res = os.writeln(&out_line)) != STATUS_OK)
-                                {
-                                    fprintf(stderr, "Error writing manifest file: error code=%d", int(res));
-                                    break;
-                                }
-                            }
-
-                            res = update_status(res, os.close());
+                            if (res == STATUS_EOF)
+                                res = STATUS_OK;
+                            else
+                                fprintf(stderr, "Error reading manifest template %s: error code=%d", cmd->manifest, int(res));
+                            break;
                         }
-                        res = update_status(res, ofs.close());
-                    }
-                    res = update_status(res, is.close());
-                }
 
-                res = update_status(res, ifs.close());
+                        if ((res = process_line(&out_line, &in_line, &vars)) != STATUS_OK)
+                        {
+                            fprintf(stderr, "Error processing manifest template %s: error code=%d", cmd->manifest, int(res));
+                            break;
+                        }
+
+                        if ((res = os.writeln(&out_line)) != STATUS_OK)
+                        {
+                            fprintf(stderr, "Error writing manifest file %s: error code=%d", dst.as_native(), int(res));
+                            break;
+                        }
+                    }
+                }
+                else
+                    fprintf(stderr, "Error writint manifest file %s: error code=%d", dst.as_native(), int(res));
             }
+            else
+                fprintf(stderr, "Error processing manifest template %s: error code=%d", cmd->manifest, int(res));
+
+            // Close resources
+            res = update_status(res, os.close());
+            res = update_status(res, ofs.close());
+            res = update_status(res, is.close());
+            res = update_status(res, ifs.close());
 
             destroy_vars(&vars);
 
