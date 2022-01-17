@@ -1051,6 +1051,7 @@ namespace lsp
 
             emit_prefix(out, "lv2", LV2_CORE_PREFIX);
             emit_prefix(out, "rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+            emit_prefix(out, "ui", LV2_UI_PREFIX);
 
             // Generate and emit prefixes for plugin and plugin UI
             prefix[0] = '\0';
