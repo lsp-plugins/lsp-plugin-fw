@@ -273,13 +273,12 @@ namespace lsp
         {
             const char *str = strrchr(uri, '/');
             str = (str != NULL) ? &str[1] : uri;
+            ssize_t src_len = lsp_min(str - uri, ssize_t(len-1));
 
-            ssize_t src_len = lsp_min(str - uri, ssize_t(len));
             memcpy(buf, uri, src_len);
-            buf[len - 1] = '\0';
+            buf[src_len] = '\0';
             return buf;
         }
-
 
         static void print_units(FILE *out, int unit)
         {
