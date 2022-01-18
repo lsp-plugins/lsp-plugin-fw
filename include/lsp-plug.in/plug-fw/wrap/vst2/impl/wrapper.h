@@ -469,15 +469,12 @@ namespace lsp
             for (size_t i=0, n=vAudioPorts.size(); i<n; ++i)
             {
                 vst2::AudioPort *port = vAudioPorts.uget(i);
-                if (meta::is_audio_in_port(port->metadata()))
-                {
-                    port->bind(*(inputs++));
-                    port->sanitize(samples);
-                }
-                else
-                {
-                    port->bind(*(outputs++));
-                }
+                float *data = (meta::is_audio_in_port(port->metadata())) ? *(inputs++) : *(outputs++);
+                if (port == NULL)
+                    continue;
+
+                port->bind(data);
+                port->sanitize_before(samples);
             }
 
             // Process ALL ports for changes
@@ -522,8 +519,8 @@ namespace lsp
             for (size_t i=0, n=vAudioPorts.size(); i<n; ++i)
             {
                 vst2::AudioPort *port = vAudioPorts.uget(i);
-                if (meta::is_audio_out_port(port->metadata()))
-                    port->sanitize(samples);
+                if (port != NULL)
+                    port->sanitize_after(samples);
             }
 
             // Report latency

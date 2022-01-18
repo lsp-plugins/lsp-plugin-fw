@@ -543,16 +543,14 @@ namespace lsp
             size_t n_audio_ports = vAudioPorts.size();
             for (size_t off=0; off < samples; )
             {
-                size_t to_process = samples - off;
-                if (to_process > pExt->nMaxBlockLength)
-                    to_process = pExt->nMaxBlockLength;
+                size_t to_process = lsp_min(samples - off, pExt->nMaxBlockLength);
 
                 // Sanitize input data
                 for (size_t i=0; i<n_audio_ports; ++i)
                 {
                     lv2::AudioPort *port = vAudioPorts.uget(i);
-                    if (meta::is_audio_in_port(port->metadata()))
-                        port->sanitize(off, to_process);
+                    if (port != NULL)
+                        port->sanitize_before(off, to_process);
                 }
                 // Process samples
                 pPlugin->process(to_process);
@@ -560,8 +558,8 @@ namespace lsp
                 for (size_t i=0; i<n_audio_ports; ++i)
                 {
                     lv2::AudioPort *port = vAudioPorts.uget(i);
-                    if (meta::is_audio_out_port(port->metadata()))
-                        port->sanitize(off, to_process);
+                    if (port != NULL)
+                        port->sanitize_after(off, to_process);
                 }
 
                 off += to_process;
@@ -581,14 +579,7 @@ namespace lsp
 
             // Transmit latency (if possible)
             if (pLatency != NULL)
-            {
-    //            lsp_trace("Reporting latency: %d", int(pPlugin->get_latency()));
                 *pLatency   = pPlugin->latency();
-            }
-            else
-            {
-                lsp_trace("Could not report latency, NULL latency binding");
-            }
         }
 
         void Wrapper::clear_midi_ports()

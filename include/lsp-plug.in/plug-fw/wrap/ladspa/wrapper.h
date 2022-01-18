@@ -319,8 +319,8 @@ namespace lsp
                 for (size_t i=0; i<n_in_ports; ++i)
                 {
                     ladspa::AudioPort *port = vAudioPorts.uget(i);
-                    if (meta::is_audio_in_port(port->metadata()))
-                        port->sanitize(off, to_process);
+                    if (port != NULL)
+                        port->sanitize_before(off, to_process);
                 }
                 // Process samples
                 pPlugin->process(to_process);
@@ -328,8 +328,8 @@ namespace lsp
                 for (size_t i=0; i<n_in_ports; ++i)
                 {
                     ladspa::AudioPort *port = vAudioPorts.uget(i);
-                    if (meta::is_audio_out_port(port->metadata()))
-                        port->sanitize(off, to_process);
+                    if (port != NULL)
+                        port->sanitize_after(off, to_process);
                 }
 
                 off += to_process;

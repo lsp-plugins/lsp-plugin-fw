@@ -290,22 +290,28 @@ namespace lsp
                     pBuffer     = data;
                 }
 
-                void sanitize(size_t samples)
+                void sanitize_before(size_t samples)
                 {
+                    if (pSanitized == NULL)
+                        return;
+
                     // Perform sanitize() if possible
                     if (samples > nBufSize)
                     {
                         lsp_warn("Could not sanitize buffer data for port %s, not enough buffer size (required: %d, actual: %d)",
                                 pMetadata->id, int(samples), int(nBufSize));
-                        samples = nBufSize;
+                        return;
                     }
 
-                    if (pSanitized != NULL)
-                    {
-                        dsp::sanitize2(pSanitized, reinterpret_cast<float *>(pBuffer), samples);
-                        pBuffer = pSanitized;
-                    }
-                    else
+                    // Santize input data and update buffer pointer
+                    dsp::sanitize2(pSanitized, pBuffer, samples);
+                    pBuffer     = pSanitized;
+                };
+
+                void sanitize_after(size_t samples)
+                {
+                    // Sanitize output data
+                    if ((pBuffer != NULL) && (meta::is_out_port(pMetadata)))
                         dsp::sanitize1(pBuffer, samples);
                 };
 

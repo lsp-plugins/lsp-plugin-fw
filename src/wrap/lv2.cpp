@@ -59,7 +59,7 @@ namespace lsp
             uint32_t   port,
             void      *data_location)
         {
-    //        lsp_trace("port = %d, data_location=%p", int(port), data_location);
+            // lsp_trace("instance = %p, port = %d, data_location=%p", instance, int(port), data_location);
             lv2::Wrapper *w = reinterpret_cast<lv2::Wrapper *>(instance);
             w->connect(port, data_location);
         }
@@ -121,7 +121,7 @@ namespace lsp
                 return NULL;
             }
 
-            lsp_trace("lv2_instantiate uri=%s, sample_rate=%f", meta->lv2_uri, sample_rate);
+            lsp_trace("uri=%s, sample_rate=%f", meta->lv2_uri, sample_rate);
 
             // Create resource loader
             resource::ILoader *loader = core::create_resource_loader();
@@ -167,6 +167,8 @@ namespace lsp
 
         void run(LV2_Handle instance, uint32_t sample_count)
         {
+            // lsp_trace("instance = %p, sample_count=%d", instance, int(sample_count));
+
             dsp::context_t ctx;
             lv2::Wrapper *w = reinterpret_cast<lv2::Wrapper *>(instance);
 
@@ -183,7 +185,7 @@ namespace lsp
             uint32_t                   flags,
             const LV2_Feature *const * features)
         {
-            lsp_trace("handle = %p", instance);
+            lsp_trace("instance = %p", instance);
             lv2::Wrapper *w = reinterpret_cast<lv2::Wrapper *>(instance);
             w->save_state(store, handle, flags, features);
 
@@ -197,7 +199,7 @@ namespace lsp
             uint32_t                    flags,
             const LV2_Feature *const *  features)
         {
-            lsp_trace("handle = %p", instance);
+            lsp_trace("instance = %p", instance);
             lv2::Wrapper *w = reinterpret_cast<lv2::Wrapper *>(instance);
             w->restore_state(retrieve, handle, flags, features);
 
@@ -208,7 +210,7 @@ namespace lsp
                                            LV2_Handle instance,
                                            uint32_t w, uint32_t h)
         {
-    //        lsp_trace("handle = %p", instance);
+            // lsp_trace("instance = %p", instance);
 
             dsp::context_t ctx;
             LV2_Inline_Display_Image_Surface *result;
@@ -229,7 +231,7 @@ namespace lsp
             uint32_t                    size,
             const void*                 data)
         {
-    //        lsp_trace("handle = %p", instance);
+            // lsp_trace("instance = %p", instance);
             lv2::Wrapper *w = reinterpret_cast<lv2::Wrapper *>(instance);
             w->job_run(handle, respond, size, data);
             return LV2_WORKER_SUCCESS;
@@ -240,7 +242,7 @@ namespace lsp
             uint32_t    size,
             const void* body)
         {
-    //        lsp_trace("handle = %p", instance);
+            // lsp_trace("instance = %p", instance);
             lv2::Wrapper *w = reinterpret_cast<lv2::Wrapper *>(instance);
             w->job_response(size, body);
             return LV2_WORKER_SUCCESS;
@@ -248,7 +250,7 @@ namespace lsp
 
         LV2_Worker_Status job_end(LV2_Handle instance)
         {
-    //        lsp_trace("handle = %p", instance);
+            // lsp_trace("instance = %p", instance);
             lv2::Wrapper *w = reinterpret_cast<lv2::Wrapper *>(instance);
             w->job_end();
             return LV2_WORKER_SUCCESS;

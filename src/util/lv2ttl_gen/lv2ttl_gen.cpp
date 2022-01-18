@@ -612,7 +612,7 @@ namespace lsp
             if (manifest->lv2_license != NULL)
                 fprintf(out, "\tdoap:license <%s> ;\n", manifest->lv2_license);
             fprintf(out, "\tlv2:binary <%s> ;\n", cmd->lv2_binary);
-            if (requirements & REQ_LV2UI)
+            if ((requirements & REQ_LV2UI) && (cmd->lv2ui_binary))
                 fprintf(out, "\tui:ui %s:%s ;\n", LV2TTL_PLUGIN_UI_PREFIX, get_module_uid(m.lv2ui_uri));
 
             // Emit required features

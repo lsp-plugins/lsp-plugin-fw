@@ -91,7 +91,7 @@ namespace lsp
                  */
                 template <class T> inline T *buffer()
                 {
-                    return reinterpret_cast<T *>(buffer());
+                    return static_cast<T *>(buffer());
                 }
         };
     }

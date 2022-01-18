@@ -167,7 +167,7 @@ namespace lsp
                      return nCurrRow;
                  }
 
-                 virtual void setValue(float value)
+                 virtual void set_value(float value)
                  {
                      nCurrRow            = value;
                  }
@@ -223,40 +223,24 @@ namespace lsp
                  inline size_t cols() const  { return nCols; }
          };
 
-         class RawPort: public Port
+         class AudioPort: public Port
          {
              protected:
-                 void       *pBuffer;
-
-             public:
-                 explicit RawPort(const meta::port_t *meta, lv2::Extensions *ext, bool virt) : Port(meta, ext, virt), pBuffer(NULL) { }
-                 virtual ~RawPort() { pBuffer = NULL; };
-
-             public:
-                 virtual void *buffer() { return pBuffer; };
-
-                 virtual void bind(void *data)
-                 {
-                     pBuffer = data;
-                 };
-         };
-
-         class AudioPort: public RawPort
-         {
-             protected:
+                 float      *pBuffer;
+                 float      *pData;
                  float      *pSanitized;
-                 float      *pFrame;
 
              public:
-                 explicit AudioPort(const meta::port_t *meta, lv2::Extensions *ext) : RawPort(meta, ext, false)
+                 explicit AudioPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext, false)
                  {
-                     pSanitized  = NULL;
-                     pFrame      = NULL;
+                     pBuffer        = NULL;
+                     pData          = NULL;
+                     pSanitized     = NULL;
 
                      if (meta::is_in_port(pMetadata))
                      {
-                         size_t length = pExt->nMaxBlockLength;
-                         pSanitized = reinterpret_cast<float *>(::malloc(sizeof(float) * length));
+                         size_t length  = pExt->nMaxBlockLength;
+                         pSanitized     = static_cast<float *>(::malloc(sizeof(float) * length));
                          if (pSanitized != NULL)
                              dsp::fill_zero(pSanitized, length);
                          else
@@ -266,6 +250,8 @@ namespace lsp
 
                  virtual ~AudioPort()
                  {
+                     pBuffer    = NULL;
+                     pData      = NULL;
                      if (pSanitized != NULL)
                      {
                          ::free(pSanitized);
@@ -273,22 +259,36 @@ namespace lsp
                      }
                  };
 
-                 virtual void *buffer() { return pFrame; };
-
-                 // Should be always called at least once after bind() and before processing
-                 void sanitize(size_t off, size_t samples)
+                 virtual void bind(void *data)
                  {
-                     pFrame  = reinterpret_cast<float *>(pBuffer) + off;
+                     pData      = static_cast<float *>(data);
+                 };
+
+                 virtual void *buffer() { return pBuffer; };
+
+                 // Should be always called at least once after bind() and before process() call
+                 void sanitize_before(size_t off, size_t samples)
+                 {
+                     pBuffer  = &pData[off];
 
                      // Sanitize plugin's input if possible
                      if (pSanitized != NULL)
                      {
-                         dsp::sanitize2(pSanitized, pFrame, samples);
-                         pFrame      = pSanitized;
+                         dsp::sanitize2(pSanitized, pBuffer, samples);
+                         pBuffer      = pSanitized;
                      }
-                     else if (meta::is_out_port(pMetadata))
-                         dsp::sanitize1(pFrame, samples); // Sanitize plugin's output
                  }
+
+                 // Should be always called at least once after bind() and after process() call
+                  void sanitize_after(size_t off, size_t samples)
+                  {
+                      // Sanitize plugin's output
+                      if ((pBuffer != NULL) && (meta::is_out_port(pMetadata)))
+                          dsp::sanitize1(pBuffer, samples);
+
+                      // Clear the buffer pointer
+                      pBuffer    = NULL;
+                  }
          };
 
          class InputPort: public Port
@@ -319,7 +319,7 @@ namespace lsp
                      return fValue;
                  }
 
-                 virtual void setValue(float value)
+                 virtual void set_value(float value)
                  {
                      fValue      = value;
                  }
@@ -397,7 +397,7 @@ namespace lsp
                      return pMetadata->max - fValue;
                  }
 
-                 virtual void setValue(float value)
+                 virtual void set_value(float value)
                  {
                      fValue      = pMetadata->max - value;
                  }
@@ -460,7 +460,7 @@ namespace lsp
                      return fValue;
                  }
 
-                 virtual void setValue(float value)
+                 virtual void set_value(float value)
                  {
                      value       = limit_value(pMetadata, value);
                      if (pMetadata->flags & meta::F_PEAK)

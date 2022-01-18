@@ -88,17 +88,28 @@ namespace lsp
             public:
                 virtual void *buffer()      { return pBuffer; };
 
-                // Should be always called at least once after bind() and before processing
-                void sanitize(size_t off, size_t samples)
+                // Should be always called at least once after bind() and before process() call
+                void sanitize_before(size_t off, size_t samples)
                 {
                     pBuffer     = &pData[off];
+
+                    // Sanitize plugin's input if possible
                     if (pSanitized != NULL)
                     {
                         dsp::sanitize2(pSanitized, pBuffer, samples);
                         pBuffer     = pSanitized;
                     }
-                    else if (meta::is_out_port(pMetadata))
+                }
+
+                // Should be always called at least once after bind() and after process() call
+                void sanitize_after(size_t off, size_t samples)
+                {
+                    // Sanitize plugin's output
+                    if ((pBuffer != NULL) && (meta::is_out_port(pMetadata)))
                         dsp::sanitize1(pBuffer, samples); // Sanitize output of plugin
+
+                    // Clear the buffer pointer
+                    pBuffer    = NULL;
                 }
         };
 
@@ -158,7 +169,7 @@ namespace lsp
                     return      fValue;
                 }
 
-                virtual void setValue(float value)
+                virtual void set_value(float value)
                 {
                     value       = limit_value(pMetadata, value);
                     if (pMetadata->flags & meta::F_PEAK)
