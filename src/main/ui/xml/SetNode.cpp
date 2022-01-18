@@ -76,7 +76,7 @@ namespace lsp
                         {
                             lsp_error("Duplicate attributes '%s': %s", name->get_native(), value->get_native());
                             expr::destroy_value(&v_value);
-                            return res;
+                            return STATUS_BAD_FORMAT;
                         }
                         flags      |= F_ID_SET;
                         if ((res = pContext->eval_string(&v_name, value)) != STATUS_OK)
@@ -92,7 +92,7 @@ namespace lsp
                         {
                             lsp_error("Duplicate attributes '%s': %s", name->get_native(), value->get_native());
                             expr::destroy_value(&v_value);
-                            return res;
+                            return STATUS_BAD_FORMAT;
                         }
                         flags      |= F_VALUE_SET;
                         if ((res = pContext->evaluate(&v_value, value, nFlags)) != STATUS_OK)
