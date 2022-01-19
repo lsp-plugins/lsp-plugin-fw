@@ -157,7 +157,7 @@ namespace lsp
 
                 virtual void set_value(float value)
                 {
-                    fValue      = limit_value(pMetadata, value);
+                    fValue      = meta::limit_value(pMetadata, value);
                     if (nID >= 0)
                     {
                         // Use standard mechanism to access port
@@ -181,13 +181,13 @@ namespace lsp
                 virtual void deserialize(const void *data)
                 {
                     const LV2_Atom_Float *atom = reinterpret_cast<const LV2_Atom_Float *>(data);
-                    fValue      = limit_value(pMetadata, atom->body);
+                    fValue      = meta::limit_value(pMetadata, atom->body);
                 }
 
                 virtual void notify(const void *buffer, size_t protocol, size_t size)
                 {
                     if (size == sizeof(float))
-                        fValue = limit_value(pMetadata, *(reinterpret_cast<const float *>(buffer)));
+                        fValue = meta::limit_value(pMetadata, *(reinterpret_cast<const float *>(buffer)));
                 }
 
                 virtual bool sync()
@@ -196,15 +196,15 @@ namespace lsp
                         return false;
 
                     float old   = fValue;
-                    fValue      = limit_value(pMetadata, pPort->value());
+                    fValue      = meta::limit_value(pMetadata, pPort->value());
                     bool synced = (fValue != old) || bForce;
                     bForce      = false;
 
-                    #ifdef LSP_TRACE
-                        if (synced)
-                            lsp_trace("Directly received float port id=%s, value=%f",
-                                pPort->metadata()->id, fValue);
-                    #endif
+                #ifdef LSP_TRACE
+                    if (synced)
+                        lsp_trace("Directly received float port id=%s, value=%f",
+                            pPort->metadata()->id, fValue);
+                #endif
                     return synced;
                 }
         };
@@ -222,7 +222,7 @@ namespace lsp
             public:
                 virtual void set_value(float value)
                 {
-                    fValue      = limit_value(pMetadata, value);
+                    fValue      = meta::limit_value(pMetadata, value);
                     if (nID >= 0)
                     {
                         // Use standard mechanism to access port
@@ -245,13 +245,13 @@ namespace lsp
                 virtual void deserialize(const void *data)
                 {
                     const LV2_Atom_Float *atom = reinterpret_cast<const LV2_Atom_Float *>(data);
-                    fValue      = limit_value(pMetadata, pMetadata->max - atom->body);
+                    fValue      = meta::limit_value(pMetadata, pMetadata->max - atom->body);
                 }
 
                 virtual void notify(const void *buffer, size_t protocol, size_t size)
                 {
                     if (size == sizeof(float))
-                        fValue = limit_value(pMetadata, pMetadata->max - *(reinterpret_cast<const float *>(buffer)));
+                        fValue = meta::limit_value(pMetadata, pMetadata->max - *(reinterpret_cast<const float *>(buffer)));
                     lsp_trace("set value of port %s = %f", pMetadata->id, fValue);
                 }
         };
@@ -268,7 +268,7 @@ namespace lsp
                 {
                     if (size == sizeof(LV2UI_Peak_Data))
                     {
-                        fValue = limit_value(pMetadata, (reinterpret_cast<const LV2UI_Peak_Data *>(buffer))->peak);
+                        fValue = meta::limit_value(pMetadata, (reinterpret_cast<const LV2UI_Peak_Data *>(buffer))->peak);
                         return;
                     }
                     UIFloatPort::notify(buffer, protocol, size);

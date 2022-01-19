@@ -33,7 +33,7 @@ namespace lsp
             fSampleRate     = -1;
             nLatency        = 0;
             bActivated      = false;
-            bUIActive       = true;
+            bUIActive       = false;
         }
 
         Module::~Module()

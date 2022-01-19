@@ -118,10 +118,10 @@ namespace lsp
                         {
                             tk::Window *root = wrapper->window();
                             *widget  = reinterpret_cast<LV2UI_Widget>((root != NULL) ? root->handle() : NULL);
-                            lsp_trace("returned widget handle = %p", *widget);
+                            lsp_trace("returned window handle = %p", *widget);
                         }
 
-                        return reinterpret_cast<LV2UI_Handle>(NULL);
+                        return reinterpret_cast<LV2UI_Handle>(wrapper);
                     }
                     else
                         lsp_error("Error allocating plugin wrapper");
@@ -141,7 +141,7 @@ namespace lsp
 
         void ui_cleanup(LV2UI_Handle ui)
         {
-            lsp_trace("cleanup");
+            lsp_trace("this = %p", ui);
             UIWrapper *w = reinterpret_cast<UIWrapper *>(ui);
             w->destroy();
         }
@@ -153,9 +153,11 @@ namespace lsp
             uint32_t     format,
             const void*  buffer)
         {
+            lsp_trace("this = %p, idx=%d, size=%d, format=%d, buffer=%p",
+                    ui, int(port_index), int(buffer_size), int(format), buffer);
             if ((buffer_size == 0) || (buffer == NULL))
                 return;
-            UIWrapper *w = reinterpret_cast<UIWrapper *>(ui);
+            lv2::UIWrapper *w       = reinterpret_cast<lv2::UIWrapper *>(ui);
             w->notify(port_index, buffer_size, format, buffer);
         }
 
@@ -163,7 +165,8 @@ namespace lsp
         // LV2UI IdleInterface extension
         int ui_idle(LV2UI_Handle ui)
         {
-            UIWrapper *w    = reinterpret_cast<UIWrapper *>(ui);
+            lv2::UIWrapper *w       = reinterpret_cast<lv2::UIWrapper *>(ui);
+//            lsp_trace("instance = %p", ui);
             return w->idle();
         }
 
@@ -176,7 +179,7 @@ namespace lsp
         // LV2UI Resize extension
         int ui_resize(LV2UI_Feature_Handle ui, int width, int height)
         {
-            UIWrapper *w = reinterpret_cast<UIWrapper *>(ui);
+            lv2::UIWrapper *w       = reinterpret_cast<lv2::UIWrapper *>(ui);
             return w->resize_ui(width, height);
         }
 
@@ -245,10 +248,9 @@ namespace lsp
                     }
 
                     // Initialize descriptor
-                    d->URI                  = meta->lv2_uri;
+                    d->URI                  = meta->lv2ui_uri;
                     d->instantiate          = ui_instantiate;
                     d->cleanup              = ui_cleanup;
-                    d->port_event           = ui_port_event;
                     d->port_event           = ui_port_event;
                     d->extension_data       = ui_extension_data;
                 }
@@ -263,6 +265,7 @@ namespace lsp
 
         void ui_drop_descriptors()
         {
+            lsp_trace("dropping %d UI descriptors", ui_descriptors.size());
             ui_descriptors.flush();
         };
 

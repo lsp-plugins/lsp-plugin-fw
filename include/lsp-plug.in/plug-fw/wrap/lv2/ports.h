@@ -326,20 +326,22 @@ namespace lsp
 
                  virtual void bind(void *data)
                  {
-                     pData = reinterpret_cast<const float *>(data);
+                     pData = static_cast<const float *>(data);
                  };
 
                  virtual bool pre_process(size_t samples)
                  {
                      if ((nID >= 0) && (pData != NULL))
-                         fValue      = limit_value(pMetadata, *pData);
-                     float old       = fPrev;
+                         fValue      = meta::limit_value(pMetadata, *pData);
+//                     lsp_trace("nID=%d, pData=%x, fPrev=%f, fValue=%f", int(nID), pData, fPrev, fValue);
+
+                     const float old = fPrev;
                      fPrev           = fValue;
                      #ifdef LSP_TRACE
-                     if (fPrev != old)
-                         lsp_trace("Port %s has been changed, value=%f", pMetadata->id, fValue);
+                     if (old != fPrev)
+                         lsp_trace("Port %s has been changed, old=%d, new=%f", pMetadata->id, fPrev, fValue);
                      #endif
-                     return fPrev != old; // Value has changed?
+                     return (old != fPrev); // Value has changed?
                  }
 
                  virtual void save()
@@ -358,7 +360,7 @@ namespace lsp
                      size_t count            = 0;
                      const void *data        = pExt->restore_value(urid, pExt->forge.Float, &count);
                      if ((count == sizeof(float)) && (data != NULL))
-                         fValue      = limit_value(pMetadata, *(reinterpret_cast<const float *>(data)));
+                         fValue      = meta::limit_value(pMetadata, *(reinterpret_cast<const float *>(data)));
                  }
 
                  virtual bool deserialize(const void *data, size_t flags)
@@ -419,7 +421,7 @@ namespace lsp
                      size_t count            = 0;
                      const void *data        = pExt->restore_value(urid, pExt->forge.Float, &count);
                      if ((count == sizeof(float)) && (data != NULL))
-                         fValue      = limit_value(pMetadata, pMetadata->max - *(reinterpret_cast<const float *>(data)));
+                         fValue      = meta::limit_value(pMetadata, pMetadata->max - *(reinterpret_cast<const float *>(data)));
                  }
 
                  virtual bool deserialize(const void *data, size_t flags)
@@ -462,7 +464,7 @@ namespace lsp
 
                  virtual void set_value(float value)
                  {
-                     value       = limit_value(pMetadata, value);
+                     value       = meta::limit_value(pMetadata, value);
                      if (pMetadata->flags & meta::F_PEAK)
                      {
                          if (fabs(fValue) < fabs(value))
@@ -470,11 +472,13 @@ namespace lsp
                      }
                      else
                          fValue = value;
+
+                     lsp_trace("id=%s, value = %f, ovalue=%f", pMetadata->id, fValue, value);
                  }
 
                  virtual void bind(void *data)
                  {
-                     pData       = reinterpret_cast<float *>(data);
+                     pData       = static_cast<float *>(data);
                  };
 
                  virtual bool pre_process(size_t samples)
@@ -490,12 +494,13 @@ namespace lsp
                      if (pData != NULL)
                          *pData      = fValue;
 
+                #ifdef LSP_TRACE
+                     if (fPrev != fValue)
+                         lsp_trace("id=%s, prev=%f, value = %f", pMetadata->id, fPrev, fValue);
+                #endif /* LSP_TRACE */
+
                      // Serialize data and reset tx_pending flag
                      fPrev       = fValue;
-
-     //                // Update data according to peak protocol, only for direct-mapped ports
-     //                if ((nID >= 0) && (pMetadata->flags & F_PEAK))
-     //                    fValue      = 0.0f;
                  }
 
                  virtual bool tx_pending()

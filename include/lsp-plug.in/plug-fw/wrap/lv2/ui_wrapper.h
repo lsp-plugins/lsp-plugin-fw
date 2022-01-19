@@ -49,12 +49,10 @@ namespace lsp
         class UIWrapper: public ui::IWrapper
         {
             private:
-                lltl::parray<lv2::UIPort>   vAllPorts;      // List of all created ports, for garbage collection
                 lltl::parray<lv2::UIPort>   vExtPorts;
                 lltl::parray<lv2::UIPort>   vMeshPorts;
                 lltl::parray<lv2::UIPort>   vStreamPorts;
                 lltl::parray<lv2::UIPort>   vFrameBufferPorts;
-                lltl::parray<lv2::UIPort>   vUIPorts;
                 lltl::parray<lv2::UIPort>   vOscInPorts;
                 lltl::parray<lv2::UIPort>   vOscOutPorts;
                 lltl::parray<meta::port_t>  vGenMetadata;   // Generated metadata
@@ -76,7 +74,9 @@ namespace lsp
                 void                        receive_atom(const LV2_Atom_Object * atom);
                 void                        receive_raw_osc_packet(const void *data, size_t size);
                 static ssize_t              compare_ports_by_urid(const lv2::UIPort *a, const lv2::UIPort *b);
+                static ssize_t              compare_abstract_ports_by_urid(const ui::IPort *a, const ui::IPort *b);
                 static lv2::UIPort         *find_by_urid(lltl::parray<lv2::UIPort> &v, LV2_URID urid);
+                static lv2::UIPort         *find_by_urid(lltl::parray<ui::IPort> &v, LV2_URID urid);
 
             protected:
                 static status_t             slot_ui_hide(tk::Widget *sender, void *ptr, void *data);

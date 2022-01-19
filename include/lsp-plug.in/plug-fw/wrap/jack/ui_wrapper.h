@@ -74,9 +74,6 @@ namespace lsp
 
                 virtual void                dump_state_request();
 
-                virtual ui::IPort          *port(const char *id);
-                virtual ui::IPort          *port(size_t idx);
-                virtual size_t              ports() const;
                 virtual const meta::package_t      *package() const;
 
             public:
@@ -199,36 +196,6 @@ namespace lsp
                 delete pDisplay;
                 pDisplay    = NULL;
             }
-        }
-
-        ui::IPort *UIWrapper::port(const char *id)
-        {
-            ssize_t first=0, last = vPorts.size() - 1;
-            while (first <= last)
-            {
-                ssize_t mid             = (first + last) >> 1;
-                ui::IPort *p            = vPorts.uget(mid);
-                int cmp                 = strcmp(id, p->metadata()->id);
-
-                if (cmp < 0)
-                    last                    = mid - 1;
-                else if (cmp > 0)
-                    first                   = mid + 1;
-                else
-                    return p;
-            }
-
-            return NULL;
-        }
-
-        ui::IPort *UIWrapper::port(size_t idx)
-        {
-            return vPorts.get(idx);
-        }
-
-        size_t UIWrapper::ports() const
-        {
-            return vPorts.size();
         }
 
         core::KVTStorage *UIWrapper::kvt_lock()

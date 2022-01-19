@@ -415,7 +415,7 @@ namespace lsp
 
                 virtual void update_value(float value)
                 {
-                    fNewValue   = limit_value(pMetadata, value);
+                    fNewValue   = meta::limit_value(pMetadata, value);
                 }
         };
 

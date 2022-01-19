@@ -396,9 +396,15 @@ namespace lsp
                             {
                                 ssize_t blk_len = nMaxBlockLength;
                                 if ((opts->type == forge.Int) && (opts->size == sizeof(int32_t)))
+                                {
                                     blk_len = *reinterpret_cast<const int32_t *>(opts->value);
+                                    lsp_trace("blk_len = %d", int(blk_len));
+                                }
                                 else if ((opts->type == forge.Long) && (opts->size == sizeof(int64_t)))
+                                {
                                     blk_len = *reinterpret_cast<const int64_t *>(opts->value);
+                                    lsp_trace("blk_len = %d", int(blk_len));
+                                }
                                 if (blk_len > 0)
                                     nMaxBlockLength = blk_len;
                                 lsp_trace("MaxBlockLength has been set to %d", int(nMaxBlockLength));
@@ -454,7 +460,10 @@ namespace lsp
                         const void*      buffer)
                 {
                     if ((ctl == NULL) || (wf == NULL))
+                    {
+                        lsp_error("ctl=%p, wf=%p", ctl, wf);
                         return;
+                    }
                     wf(ctl, port_index, buffer_size, port_protocol, buffer);
                 }
 

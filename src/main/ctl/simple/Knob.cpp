@@ -217,8 +217,11 @@ namespace lsp
                     value           = 0.0f;
             }
 
-            pPort->set_value(value);
-            pPort->notify_all();
+            if (pPort != NULL)
+            {
+                pPort->set_value(value);
+                pPort->notify_all();
+            }
         }
 
         void Knob::set_default_value()
@@ -251,8 +254,11 @@ namespace lsp
             }
 
             knob->value()->set(value);
-            pPort->set_value(dfl);
-            pPort->notify_all();
+            if (pPort != NULL)
+            {
+                pPort->set_value(dfl);
+                pPort->notify_all();
+            }
         }
 
         void Knob::commit_value(float value)

@@ -499,13 +499,11 @@ namespace lsp
             receive_atoms(samples);
 
             // Pre-rocess regular ports
-            size_t n_all_ports      = vAllPorts.size();
-            lv2::Port **v_all_ports = vAllPorts.array();
             size_t smode            = nStateMode;
-            for (size_t i=0; i<n_all_ports; ++i)
+            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
             {
                 // Get port
-                lv2::Port *port = v_all_ports[i];
+                lv2::Port *port = vAllPorts.uget(i);
                 if (port == NULL)
                     continue;
 
@@ -526,7 +524,7 @@ namespace lsp
             // Check that input parameters have changed
             if (bUpdateSettings)
             {
-                lsp_trace("updating settings");
+                lsp_trace("updating plugin settings");
                 pPlugin->update_settings();
                 bUpdateSettings     = false;
             }
@@ -570,9 +568,12 @@ namespace lsp
             clear_midi_ports();
 
             // Post-process regular ports for changes
-            for (size_t i=0; i<n_all_ports; ++i)
+            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
             {
-                lv2::Port *port = v_all_ports[i];
+                // Get port
+                lv2::Port *port = vAllPorts.uget(i);
+                if (port == NULL)
+                    continue;
                 if (port != NULL)
                     port->post_process(samples);
             }

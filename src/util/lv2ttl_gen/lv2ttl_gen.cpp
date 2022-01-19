@@ -359,7 +359,7 @@ namespace lsp
                         break;
                 }
 
-                fprintf(out, "%s [\n", (ports == 0) ? "\tui:portNotification" : ",");
+                fprintf(out, "%s [\n", (ports == 0) ? "\tui:portNotification" : " ,");
                 fprintf(out, "\t\tui:plugin %s:%s ;\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.lv2_uri));
                 fprintf(out, "\t\tui:portIndex %d ;\n", int(port_id));
 
@@ -376,7 +376,7 @@ namespace lsp
                         break;
                 }
 
-                fprintf(out, "\t] ");
+                fprintf(out, "\t]");
 
                 ports++;
                 port_id++;
@@ -959,7 +959,7 @@ namespace lsp
                 emit_prefix(out, "lv2ext", "http://lv2plug.in/ns/ext/");
             emit_prefix(out, "pp", LV2_PORT_PROPS_PREFIX);
             if (requirements & REQ_PORT_GROUPS)
-                emit_prefix(out, "pg", "LV2_PORT_GROUPS_PREFIX");
+                emit_prefix(out, "pg", LV2_PORT_GROUPS_PREFIX);
             if (requirements & REQ_LV2UI)
                 emit_prefix(out, "ui", LV2_UI_PREFIX);
             emit_prefix(out, "units", LV2_UNITS_PREFIX);
@@ -1039,7 +1039,7 @@ namespace lsp
             const cmdline_t *cmd)
         {
             char fname[PATH_MAX];
-            char prefix[PATH_MAX], ui_prefix[PATH_MAX];
+            char prefix[PATH_MAX]; //, ui_prefix[PATH_MAX];
 
             snprintf(fname, sizeof(fname)-1, "%s/manifest.ttl", cmd->out_dir);
             FILE *out = NULL;
@@ -1051,11 +1051,11 @@ namespace lsp
 
             emit_prefix(out, "lv2", LV2_CORE_PREFIX);
             emit_prefix(out, "rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-            emit_prefix(out, "ui", LV2_UI_PREFIX);
+//            emit_prefix(out, "ui", LV2_UI_PREFIX);
 
             // Generate and emit prefixes for plugin and plugin UI
             prefix[0] = '\0';
-            ui_prefix[0] = '\0';
+//            ui_prefix[0] = '\0';
 
             // Find first prefix for UI and DSP module and emit it as short symbolic name
             if (cmd->lv2_binary != NULL)
@@ -1071,19 +1071,19 @@ namespace lsp
                     }
                 }
             }
-            if (cmd->lv2ui_binary != NULL)
-            {
-                for (size_t i=0, n=plugins.size(); i<n; ++i)
-                {
-                    const meta::plugin_t *m = plugins.uget(i);
-                    if (m->lv2ui_uri)
-                    {
-                        get_module_prefix(ui_prefix, sizeof(ui_prefix), m->lv2ui_uri);
-                        emit_prefix(out, LV2TTL_PLUGIN_UI_PREFIX, ui_prefix);
-                        break;
-                    }
-                }
-            }
+//            if (cmd->lv2ui_binary != NULL)
+//            {
+//                for (size_t i=0, n=plugins.size(); i<n; ++i)
+//                {
+//                    const meta::plugin_t *m = plugins.uget(i);
+//                    if (m->lv2ui_uri)
+//                    {
+//                        get_module_prefix(ui_prefix, sizeof(ui_prefix), m->lv2ui_uri);
+//                        emit_prefix(out, LV2TTL_PLUGIN_UI_PREFIX, ui_prefix);
+//                        break;
+//                    }
+//                }
+//            }
 
             // Emit information about plugins
             if (cmd->lv2_binary != NULL)
@@ -1107,25 +1107,25 @@ namespace lsp
             }
 
             // Emit information about plugin UIs
-            if (cmd->lv2ui_binary != NULL)
-            {
-                size_t ui_prefix_len = strlen(ui_prefix);
-                fprintf(out, "\n\n");
-                for (size_t i=0, n=plugins.size(); i<n; ++i)
-                {
-                    const meta::plugin_t *m = plugins.uget(i);
-                    if ((m->lv2_uri != NULL) && (m->lv2ui_uri != NULL))
-                    {
-                        if (strncmp(ui_prefix, m->lv2ui_uri, ui_prefix_len) == 0)
-                            fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_UI_PREFIX, &m->lv2ui_uri[ui_prefix_len]);
-                        else
-                            fprintf(out, "<%s>\n", m->lv2ui_uri);
-                        fprintf(out, "\ta ui:" LV2TTL_UI_CLASS " ;\n");
-                        fprintf(out, "\tlv2:binary <%s> ;\n", cmd->lv2ui_binary);
-                        fprintf(out, "\trdfs:seeAlso <%s.ttl> .\n\n", get_module_uid(m->lv2_uri));
-                    }
-                }
-            }
+//            if (cmd->lv2ui_binary != NULL)
+//            {
+//                size_t ui_prefix_len = strlen(ui_prefix);
+//                fprintf(out, "\n\n");
+//                for (size_t i=0, n=plugins.size(); i<n; ++i)
+//                {
+//                    const meta::plugin_t *m = plugins.uget(i);
+//                    if ((m->lv2_uri != NULL) && (m->lv2ui_uri != NULL))
+//                    {
+//                        if (strncmp(ui_prefix, m->lv2ui_uri, ui_prefix_len) == 0)
+//                            fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_UI_PREFIX, &m->lv2ui_uri[ui_prefix_len]);
+//                        else
+//                            fprintf(out, "<%s>\n", m->lv2ui_uri);
+//                        fprintf(out, "\ta ui:" LV2TTL_UI_CLASS " ;\n");
+//                        fprintf(out, "\tlv2:binary <%s> ;\n", cmd->lv2ui_binary);
+//                        fprintf(out, "\trdfs:seeAlso <%s.ttl> .\n\n", get_module_uid(m->lv2_uri));
+//                    }
+//                }
+//            }
 
             fclose(out);
         }

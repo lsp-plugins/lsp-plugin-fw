@@ -359,6 +359,7 @@ namespace lsp
 
         void drop_descriptors()
         {
+            lsp_trace("dropping %d descriptors", descriptors.size());
             descriptors.flush();
         };
 

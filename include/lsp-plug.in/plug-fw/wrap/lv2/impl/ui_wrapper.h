@@ -36,6 +36,14 @@ namespace lsp
             return ssize_t(a->get_urid()) - ssize_t(b->get_urid());
         }
 
+        ssize_t UIWrapper::compare_abstract_ports_by_urid(const ui::IPort *a, const ui::IPort *b)
+        {
+            return compare_ports_by_urid(
+                static_cast<const lv2::UIPort *>(a),
+                static_cast<const lv2::UIPort *>(b)
+            );
+        }
+
         lv2::UIPort *UIWrapper::find_by_urid(lltl::parray<lv2::UIPort> &v, LV2_URID urid)
         {
             // Try to find the corresponding port
@@ -44,6 +52,24 @@ namespace lsp
             {
                 size_t center   = (first + last) >> 1;
                 lv2::UIPort *p  = v[center];
+                if (urid == p->get_urid())
+                    return p;
+                else if (urid < p->get_urid())
+                    last    = center - 1;
+                else
+                    first   = center + 1;
+            }
+            return NULL;
+        }
+
+        lv2::UIPort *UIWrapper::find_by_urid(lltl::parray<ui::IPort> &v, LV2_URID urid)
+        {
+            // Try to find the corresponding port
+            ssize_t first = 0, last = v.size() - 1;
+            while (first <= last)
+            {
+                size_t center   = (first + last) >> 1;
+                lv2::UIPort *p  = static_cast<lv2::UIPort *>(v[center]);
                 if (urid == p->get_urid())
                     return p;
                 else if (urid < p->get_urid())
@@ -95,11 +121,6 @@ namespace lsp
             IWrapper::destroy();
 
             // Cleanup ports
-            for (size_t i=0; i<vAllPorts.size(); ++i)
-            {
-                lsp_trace("destroy ui port %s", vAllPorts[i]->metadata()->id);
-                delete vAllPorts[i];
-            }
             pLatency        = NULL;
 
             // Cleanup generated metadata
@@ -109,7 +130,6 @@ namespace lsp
                 drop_port_metadata(vGenMetadata[i]);
             }
 
-            vAllPorts.flush();
             vExtPorts.flush();
             vMeshPorts.flush();
             vStreamPorts.flush();
@@ -148,6 +168,9 @@ namespace lsp
         {
             // Get plugin metadata
             const meta::plugin_t *meta  = pUI->metadata();
+            if (meta == NULL)
+                lsp_warn("NO PLUGIN METADATA FOUND");
+
             status_t res;
 
             // Load package information
@@ -172,14 +195,11 @@ namespace lsp
             pOscBuffer      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX + sizeof(LV2_Atom)));
 
             // Perform all port bindings
-            for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
-                create_port(port, NULL);
-
-            // Sort plugin ports
-            vUIPorts.qsort(compare_ports_by_urid);
-            vMeshPorts.qsort(compare_ports_by_urid);
-            vStreamPorts.qsort(compare_ports_by_urid);
-            vFrameBufferPorts.qsort(compare_ports_by_urid);
+            if (meta != NULL)
+            {
+                for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
+                    create_port(port, NULL);
+            }
 
             // Create atom transport
             if (pExt->atom_supported())
@@ -191,12 +211,18 @@ namespace lsp
                 if ((port->id != NULL) && (port->name != NULL))
                 {
                     pLatency = new lv2::UIFloatPort(port, pExt, NULL);
-                    vAllPorts.add(pLatency);
+                    vPorts.add(pLatency);
                     nLatencyID  = vExtPorts.size();
                     if (pExt->atom_supported())
                         nLatencyID  += 2;           // Skip AtomIn, AtomOut
                 }
             }
+
+            // Sort plugin ports
+            vPorts.qsort(compare_abstract_ports_by_urid);
+            vMeshPorts.qsort(compare_ports_by_urid);
+            vStreamPorts.qsort(compare_ports_by_urid);
+            vFrameBufferPorts.qsort(compare_ports_by_urid);
 
             // Initialize wrapper
             if ((res = IWrapper::init()) != STATUS_OK)
@@ -233,6 +259,7 @@ namespace lsp
             // Build the UI
             if (meta->ui_resource != NULL)
             {
+                lsp_info("Building UI from %s", meta->ui_resource);
                 if ((res = build_ui(meta->ui_resource)) != STATUS_OK)
                 {
                     lsp_error("Error building UI for resource %s: code=%d", meta->ui_resource, int(res));
@@ -248,16 +275,19 @@ namespace lsp
             ws::size_limit_t sr;
             tk::Window *root    = window();
             if (root == NULL)
+            {
+                lsp_error("No root window present!\n");
                 return STATUS_BAD_STATE;
+            }
 
             root->slot(tk::SLOT_SHOW)->bind(slot_ui_show, this);
             root->slot(tk::SLOT_HIDE)->bind(slot_ui_hide, this);
             root->slot(tk::SLOT_RESIZE)->bind(slot_ui_resize, this);
 
             // Sync state of UI ports with the UI
-            for (size_t i=0, n=vUIPorts.size(); i<n; ++i)
+            for (size_t i=0, n=vPorts.size(); i<n; ++i)
             {
-                lv2::UIPort *p = vUIPorts.uget(i);
+                ui::IPort *p = vPorts.uget(i);
                 if (p != NULL)
                     p->notify_all();
             }
@@ -281,7 +311,6 @@ namespace lsp
                     break;
                 case meta::R_AUDIO: // Stub ports
                     result = new lv2::UIPort(p, pExt);
-                    vUIPorts.add(result);
                     if (postfix == NULL)
                     {
                         result->set_id(vExtPorts.size());
@@ -291,7 +320,6 @@ namespace lsp
                     break;
                 case meta::R_CONTROL:
                     result = new lv2::UIFloatPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
-                    vUIPorts.add(result);
                     if (postfix == NULL)
                     {
                         result->set_id(vExtPorts.size());
@@ -301,7 +329,6 @@ namespace lsp
                     break;
                 case meta::R_BYPASS:
                     result = new lv2::UIBypassPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
-                    vUIPorts.add(result);
                     if (postfix == NULL)
                     {
                         result->set_id(vExtPorts.size());
@@ -311,7 +338,6 @@ namespace lsp
                     break;
                 case meta::R_METER:
                     result = new lv2::UIPeakPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
-                    vUIPorts.add(result);
                     if (postfix == NULL)
                     {
                         result->set_id(vExtPorts.size());
@@ -324,7 +350,7 @@ namespace lsp
                         result = new lv2::UIPathPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
                     else
                         result = new lv2::UIPort(p, pExt); // Stub port
-                    vUIPorts.add(result);
+                    lsp_trace("Added path port id=%", p->id);
                     break;
                 case meta::R_MESH:
                     if (pExt->atom_supported())
@@ -334,7 +360,7 @@ namespace lsp
                     }
                     else // Stub port
                         result = new lv2::UIPort(p, pExt);
-                    vUIPorts.add(result);
+                    lsp_trace("Added mesh port id=%", p->id);
                     break;
                 case meta::R_STREAM:
                     if (pExt->atom_supported())
@@ -344,7 +370,7 @@ namespace lsp
                     }
                     else // Stub port
                         result = new lv2::UIPort(p, pExt);
-                    vUIPorts.add(result);
+                    lsp_trace("Added stream port id=%", p->id);
                     break;
                 case meta::R_FBUFFER:
                     if (pExt->atom_supported())
@@ -354,13 +380,12 @@ namespace lsp
                     }
                     else // Stub port
                         result = new lv2::UIPort(p, pExt);
-                    vUIPorts.add(result);
+                    lsp_trace("Added framebuffer port id=%", p->id);
                     break;
                 case meta::R_PORT_SET:
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES];
                     lv2::UIPortGroup *pg    = new lv2::UIPortGroup(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
-                    vUIPorts.add(pg);
 
                     for (size_t row=0; row<pg->rows(); ++row)
                     {
@@ -388,6 +413,7 @@ namespace lsp
                     }
 
                     result = pg;
+                    lsp_trace("Added port set port id=%", p->id);
                     break;
                 }
 
@@ -396,7 +422,7 @@ namespace lsp
             }
 
             if (result != NULL)
-                vAllPorts.add(result);
+                vPorts.add(result);
 
             return result;
         }
@@ -558,7 +584,7 @@ namespace lsp
 
                     if ((key != NULL) && (value != NULL))
                     {
-                        lv2::UIPort *p      = find_by_urid(vUIPorts, key->body);
+                        lv2::UIPort *p      = find_by_urid(vPorts, key->body);
                         if ((p != NULL) && (value->type == p->get_type_urid()))
                         {
                             p->deserialize(value);
@@ -652,11 +678,11 @@ namespace lsp
             if (id < vExtPorts.size())
             {
                 lv2::UIPort *p = vExtPorts[id];
-//                lsp_trace("id=%d, size=%d, format=%d, buf=%p, port_id=%s", int(id), int(size), int(format), buf, p->metadata()->id);
+                lsp_trace("id=%d, size=%d, format=%d, buf=%p, port_id=%s", int(id), int(size), int(format), buf, p->metadata()->id);
                 if (p != NULL)
                 {
-//                        lsp_trace("notify id=%d, size=%d, format=%d, buf=%p value=%f",
-//                            int(id), int(size), int(format), buf, *(reinterpret_cast<const float *>(buf)));
+                    lsp_trace("notify id=%d, size=%d, format=%d, buf=%p value=%f",
+                        int(id), int(size), int(format), buf, *(reinterpret_cast<const float *>(buf)));
 
                     p->notify(buf, format, size);
                     p->notify_all();
@@ -669,7 +695,7 @@ namespace lsp
 
                 // Check that event is an object
                 const LV2_Atom* atom = reinterpret_cast<const LV2_Atom*>(buf);
-//                    lsp_trace("atom.type = %d (%s)", int(atom->type), pExt->unmap_urid(atom->type));
+                lsp_trace("atom.type = %d (%s)", int(atom->type), pExt->unmap_urid(atom->type));
 
                 if ((atom->type == pExt->uridObject) || (atom->type == pExt->uridBlank))
                     receive_atom(reinterpret_cast<const LV2_Atom_Object *>(atom));
@@ -861,9 +887,9 @@ namespace lsp
             Wrapper *w = pExt->wrapper();
             if (w != NULL)
             {
-                for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+                for (size_t i=0, n=vPorts.size(); i<n; ++i)
                 {
-                    UIPort *p = vAllPorts.uget(i);
+                    lv2::UIPort *p = static_cast<lv2::UIPort *>(vPorts.uget(i));
                     if (p == NULL)
                         continue;
                     if (p->sync())

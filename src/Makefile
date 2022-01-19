@@ -851,7 +851,8 @@ install_vst2:
 	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)/$(VST2_LIBDIR)/"
 	make -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(DESTDIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
-install: $(BIN_INSTALL) install_jack install_ladspa install_lv2 install_vst2
+#install: $(BIN_INSTALL) install_jack install_ladspa install_lv2 install_vst2
+install: install_lv2
 	@echo "Install OK"
 
 #------------------------------------------------------------------------------

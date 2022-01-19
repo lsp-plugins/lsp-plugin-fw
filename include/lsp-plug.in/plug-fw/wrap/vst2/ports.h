@@ -470,7 +470,7 @@ namespace lsp
 
                 virtual void set_value(float value)
                 {
-                    value       = limit_value(pMetadata, value);
+                    value       = meta::limit_value(pMetadata, value);
 
                     if (pMetadata->flags & meta::F_PEAK)
                     {

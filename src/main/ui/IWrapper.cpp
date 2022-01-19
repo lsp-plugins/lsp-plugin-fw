@@ -332,8 +332,6 @@ namespace lsp
                 if (!key.set(name))
                     return NULL;
             }
-            if ((id = key.get_utf8()) == NULL)
-                return NULL;
 
             // Check that port name contains index
             if (strchr(id, '[') != NULL)
