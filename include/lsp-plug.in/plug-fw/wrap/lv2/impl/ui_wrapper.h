@@ -259,8 +259,9 @@ namespace lsp
             // Build the UI
             if (meta->ui_resource != NULL)
             {
-                lsp_info("Building UI from %s", meta->ui_resource);
-                if ((res = build_ui(meta->ui_resource)) != STATUS_OK)
+                void *parent_wnd = pExt->parent_window();
+                lsp_info("Building UI from %s, parent window=%p", meta->ui_resource, parent_wnd);
+                if ((res = build_ui(meta->ui_resource, parent_wnd)) != STATUS_OK)
                 {
                     lsp_error("Error building UI for resource %s: code=%d", meta->ui_resource, int(res));
                     return res;
