@@ -247,12 +247,15 @@ namespace lsp
             io::Path gconfig;
             if ((res = system::get_user_config_path(&gconfig)) == STATUS_OK)
             {
+                lsp_trace("User config path: %s", gconfig.as_utf8());
                 res = gconfig.append_child("lsp-plugins");
                 if (res == STATUS_OK)
                     res = gconfig.append_child("lsp-plugins.cfg");
                 if (res == STATUS_OK)
                     res = load_global_config(&gconfig);
             }
+            else
+                lsp_warn("Failed to obtain plugin configuration: error=%d", int(res));
 
             return STATUS_OK;
         }
@@ -530,10 +533,21 @@ namespace lsp
         {
             if ((nFlags & (F_CONFIG_LOCK | F_CONFIG_DIRTY)) == 0)
                 nFlags     |= F_CONFIG_DIRTY;
+            else
+            {
+                if (nFlags & F_CONFIG_LOCK)
+                    lsp_trace("CONFIG IS LOCKED");
+            }
+            if (nFlags & F_CONFIG_DIRTY)
+                lsp_trace("CONFIG IS MARKED AS DIRTY");
         }
 
         void IWrapper::main_iteration()
         {
+            // Call main iteration for the underlying display
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
+
             if ((nFlags & (F_CONFIG_LOCK | F_CONFIG_DIRTY)) == F_CONFIG_DIRTY)
             {
                 // Save global configuration
@@ -547,6 +561,8 @@ namespace lsp
                     res = path.append_child("lsp-plugins.cfg");
                 if (res == STATUS_OK)
                     res = save_global_config(&path);
+
+                lsp_trace("Save global configuration to %s: result=%d", path.as_native(), int(res));
 
                 // Reset flags
                 nFlags     &= ~F_CONFIG_DIRTY;
@@ -1249,6 +1265,8 @@ namespace lsp
                 case meta::R_PORT_SET:
                 case meta::R_CONTROL:
                 {
+                    lsp_trace("  param = %s, value = %f", param->name.get_utf8(), param->to_float());
+
                     if (meta::is_discrete_unit(p->unit))
                     {
                         if (meta::is_bool_unit(p->unit))
@@ -1283,6 +1301,8 @@ namespace lsp
                     // Check type of argument
                     if (!param->is_string())
                         return false;
+
+                    lsp_trace("  param = %s, value = %s", param->name.get_utf8(), param->v.str);
 
                     const char *value = param->v.str;
                     size_t len      = ::strlen(value);

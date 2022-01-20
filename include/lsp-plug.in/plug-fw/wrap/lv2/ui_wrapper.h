@@ -113,7 +113,7 @@ namespace lsp
 
                 void                        sync_kvt_state();
 
-                int                         idle();
+                virtual void                main_iteration();
 
                 void                        dump_state_request();
 

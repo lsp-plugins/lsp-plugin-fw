@@ -78,11 +78,6 @@ namespace lsp
 
             public:
                 /**
-                 * Perform single iteration of main event loop of the plugin
-                 */
-                virtual void            main_iteration();
-
-                /**
                  * Transfer all desired data from DSP to UI
                  * @param ts current execution timestamp
                  */
@@ -321,16 +316,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void UIWrapper::main_iteration()
-        {
-            // Call main iteration for the underlying display
-            if (pDisplay != NULL)
-                pDisplay->main_iteration();
-
-            // Call wrapper for main iteration
-            IWrapper::main_iteration();
-        }
-
         void UIWrapper::sync_kvt(core::KVTStorage *kvt)
         {
             // Synchronize DSP -> UI transfer
@@ -409,8 +394,8 @@ namespace lsp
                 } while (jup->sync_again());
             }
 
-            // TODO: Transfer data for meta ports
-            // pUI->sync_meta_ports();
+            // Transfer data for meta ports
+            pUI->sync_meta_ports();
 
             // Synchronize KVT state
             core::KVTStorage *kvt = pWrapper->kvt_trylock();

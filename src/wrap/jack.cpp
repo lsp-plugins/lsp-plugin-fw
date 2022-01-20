@@ -528,9 +528,14 @@ namespace lsp
                 // Perform main event loop for the UI
                 if (w->pUIWrapper != NULL)
                 {
+                    dsp::context_t ctx;
+                    dsp::start(&ctx);
+
                     w->pUIWrapper->main_iteration();
                     if (!w->bInterrupt)
                         w->bInterrupt   = w->pUIWrapper->main_loop_interrupted();
+
+                    dsp::finish(&ctx);
                 }
 
                 // Perform a small sleep before new iteration

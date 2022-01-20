@@ -1717,6 +1717,8 @@ namespace lsp
                     return STATUS_OK;
 
                 const char *vstring = pkgver.get_utf8();
+                lsp_trace("Updating last version from %s to %s", v, vstring);
+
                 pPVersion->write(vstring, strlen(vstring));
                 pPVersion->notify_all();
             }

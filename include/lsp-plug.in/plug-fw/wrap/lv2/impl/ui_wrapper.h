@@ -876,14 +876,8 @@ namespace lsp
             #endif
         }
 
-        int UIWrapper::idle()
+        void UIWrapper::main_iteration()
         {
-            if (pUI == NULL)
-                return -1;
-
-            dsp::context_t ctx;
-            dsp::start(&ctx);
-
             // Synchronize port states avoiding LV2 Atom transport
             Wrapper *w = pExt->wrapper();
             if (w != NULL)
@@ -915,10 +909,8 @@ namespace lsp
 
             // Call UI to process events
             pUI->sync_meta_ports();
-            pDisplay->main_iteration();
-            dsp::finish(&ctx);
 
-            return 0;
+            IWrapper::main_iteration();
         }
 
         void UIWrapper::dump_state_request()

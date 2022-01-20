@@ -166,8 +166,15 @@ namespace lsp
         int ui_idle(LV2UI_Handle ui)
         {
             lv2::UIWrapper *w       = reinterpret_cast<lv2::UIWrapper *>(ui);
-//            lsp_trace("instance = %p", ui);
-            return w->idle();
+            if (w->ui() == NULL)
+                return -1;
+
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            w->main_iteration();
+            dsp::finish(&ctx);
+
+            return 0;
         }
 
         static LV2UI_Idle_Interface idle_iface =
