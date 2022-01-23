@@ -737,28 +737,27 @@ namespace lsp
             dsp::init();
 
             // Instantiate plugin
-            const meta::plugin_t *m     = NULL;
             plug::Module *p             = NULL;
 
             // Lookup plugin identifier among all registered plugin factories
             plug::Module *plugin = NULL;
-            const meta::plugin_t *meta = NULL;
 
             for (plug::Factory *f = plug::Factory::root(); (plugin == NULL) && (f != NULL); f = f->next())
             {
                 for (size_t i=0; plugin == NULL; ++i)
                 {
                     // Enumerate next element
-                    if ((meta = f->enumerate(i)) == NULL)
+                    const meta::plugin_t *plug_meta = f->enumerate(i);
+                    if (plug_meta == NULL)
                         break;
 
                     // Check plugin identifier
-                    if (!strcmp(meta->vst2_uid, uid))
+                    if (!strcmp(plug_meta->vst2_uid, uid))
                     {
                         // Instantiate the plugin and return
-                        if ((plugin = f->create(meta)) == NULL)
+                        if ((plugin = f->create(plug_meta)) == NULL)
                         {
-                            lsp_error("Plugin instantiation error: %s", meta->vst2_uid);
+                            lsp_error("Plugin instantiation error: %s", plug_meta->vst2_uid);
                             return NULL;
                         }
                     }
@@ -776,7 +775,8 @@ namespace lsp
             if (p == NULL)
                 return NULL;
 
-            lsp_trace("Instantiated plugin %s - %s", m->name, m->description);
+            const meta::plugin_t *meta = plugin->metadata();
+            lsp_trace("Instantiated plugin %s - %s", meta->name, meta->description);
 
             // Create effect descriptor
             AEffect *e                  = new AEffect;
@@ -810,13 +810,13 @@ namespace lsp
                     e->initialDelay                     = 0;
                     e->object                           = wrapper;
                     e->user                             = NULL;
-                    e->uniqueID                         = vst2::cconst(m->vst2_uid);
-                    e->version                          = vst2::version(m->version);
+                    e->uniqueID                         = vst2::cconst(meta->vst2_uid);
+                    e->version                          = vst2::version(meta->version);
                     e->processReplacing                 = vst2::process_replacing;
                     e->processDoubleReplacing           = NULL; // Currently no double-replacing
 
                     // Additional flags
-                    if (m->ui_resource != NULL)
+                    if (meta->ui_resource != NULL)
                         e->flags                        |= effFlagsHasEditor; // Has custom UI
 
                     status_t res = wrapper->init();

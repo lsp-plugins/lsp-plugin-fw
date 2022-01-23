@@ -337,10 +337,6 @@ namespace lsp
 
                      const float old = fPrev;
                      fPrev           = fValue;
-                     #ifdef LSP_TRACE
-                     if (old != fPrev)
-                         lsp_trace("Port %s has been changed, old=%d, new=%f", pMetadata->id, fPrev, fValue);
-                     #endif
                      return (old != fPrev); // Value has changed?
                  }
 
@@ -472,8 +468,6 @@ namespace lsp
                      }
                      else
                          fValue = value;
-
-                     lsp_trace("id=%s, value = %f, ovalue=%f", pMetadata->id, fValue, value);
                  }
 
                  virtual void bind(void *data)
@@ -493,11 +487,6 @@ namespace lsp
                      // Store data i the port
                      if (pData != NULL)
                          *pData      = fValue;
-
-                #ifdef LSP_TRACE
-                     if (fPrev != fValue)
-                         lsp_trace("id=%s, prev=%f, value = %f", pMetadata->id, fPrev, fValue);
-                #endif /* LSP_TRACE */
 
                      // Serialize data and reset tx_pending flag
                      fPrev       = fValue;

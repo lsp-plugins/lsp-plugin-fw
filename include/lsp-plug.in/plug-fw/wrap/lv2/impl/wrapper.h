@@ -513,7 +513,6 @@ namespace lsp
             // Check that input parameters have changed
             if (bUpdateSettings)
             {
-                lsp_trace("updating plugin settings");
                 pPlugin->update_settings();
                 bUpdateSettings     = false;
             }

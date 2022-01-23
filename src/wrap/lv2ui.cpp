@@ -58,23 +58,23 @@ namespace lsp
             // Initialize dsp (if possible)
             dsp::init();
 
-            const meta::plugin_t *meta = NULL;
-            ui::Module *ui= NULL;
+            ui::Module *ui = NULL;
 
             // Lookup plugin identifier among all registered plugin factories
-            for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
+            for (ui::Factory *f = ui::Factory::root(); (f != NULL) && (ui == NULL); f = f->next())
             {
                 for (size_t i=0; ; ++i)
                 {
                     // Enumerate next element
-                    if ((meta = f->enumerate(i)) == NULL)
+                    const meta::plugin_t *plug_meta = f->enumerate(i);
+                    if (plug_meta == NULL)
                         break;
 
                     // Check plugin identifier
-                    if (!(::strcmp(meta->lv2_uri, plugin_uri) || ::strcmp(meta->lv2ui_uri, descriptor->URI)))
+                    if (!(::strcmp(plug_meta->lv2_uri, plugin_uri) || ::strcmp(plug_meta->lv2ui_uri, descriptor->URI)))
                     {
                         // Instantiate the plugin UI and return
-                        if ((ui = f->create(meta)) != NULL)
+                        if ((ui = f->create(plug_meta)) != NULL)
                             break;
 
                         fprintf(stderr, "Plugin UI instantiation error: %s\n", descriptor->URI);
@@ -96,7 +96,7 @@ namespace lsp
             {
                 // Create LV2 extension handler
                 lv2::Extensions *ext = new lv2::Extensions(features,
-                        meta->lv2_uri, LSP_LV2_TYPES_URI, LSP_LV2_UI_URI,
+                        ui->metadata()->lv2_uri, LSP_LV2_TYPES_URI, LSP_LV2_UI_URI,
                         controller, write_function);
                 if (ext != NULL)
                 {
@@ -153,8 +153,8 @@ namespace lsp
             uint32_t     format,
             const void*  buffer)
         {
-            lsp_trace("this = %p, idx=%d, size=%d, format=%d, buffer=%p",
-                    ui, int(port_index), int(buffer_size), int(format), buffer);
+//            lsp_trace("this = %p, idx=%d, size=%d, format=%d, buffer=%p",
+//                    ui, int(port_index), int(buffer_size), int(format), buffer);
             if ((buffer_size == 0) || (buffer == NULL))
                 return;
             lv2::UIWrapper *w       = reinterpret_cast<lv2::UIWrapper *>(ui);

@@ -161,7 +161,7 @@ namespace lsp
                     if (nID >= 0)
                     {
                         // Use standard mechanism to access port
-                        lsp_trace("write(%d, %d, %d, %f)", int(nID), int(sizeof(float)), int(0), fValue);
+                        //lsp_trace("write(%d, %d, %d, %f)", int(nID), int(sizeof(float)), int(0), fValue);
                         pExt->write_data(nID, sizeof(float), 0, &fValue);
                     }
                     else
