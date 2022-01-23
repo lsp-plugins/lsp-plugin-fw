@@ -68,7 +68,6 @@ namespace lsp
             nSyncSamples    = 0;
             nClients        = 0;
             nDirectClients  = 0;
-            pCanvas         = NULL;
             sSurface.data   = NULL;
             sSurface.width  = 0;
             sSurface.height = 0;
@@ -101,7 +100,6 @@ namespace lsp
             nSyncSamples    = 0;
             nClients        = 0;
             nDirectClients  = 0;
-            pCanvas         = NULL;
             sSurface.data   = NULL;
             sSurface.width  = 0;
             sSurface.height = 0;
@@ -225,15 +223,6 @@ namespace lsp
             sSurface.width          = 0;
             sSurface.height         = 0;
             sSurface.stride         = 0;
-
-            // Drop canvas
-            lsp_trace("canvas = %p", pCanvas);
-            if (pCanvas != NULL)
-            {
-                pCanvas->destroy();
-                delete pCanvas;
-                pCanvas     = NULL;
-            }
 
             // Shutdown and delete executor if exists
             if (pExecutor != NULL)
@@ -1828,7 +1817,7 @@ namespace lsp
             canvas->sync();
 
             // Obtain canvas data
-            plug::canvas_data_t *data   = pCanvas->data();
+            plug::canvas_data_t *data   = canvas->data();
             if ((!res) || (data == NULL) || (data->pData == NULL))
                 return NULL;
 

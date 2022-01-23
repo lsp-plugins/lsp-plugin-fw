@@ -105,7 +105,6 @@ namespace lsp
                 ipc::Mutex              sKVTMutex;
                 core::KVTDispatcher    *pKVTDispatcher;
 
-                plug::ICanvas          *pCanvas;        // Canvas for drawing inline display
                 LV2_Inline_Display_Image_Surface sSurface; // Canvas surface
 
             protected:
