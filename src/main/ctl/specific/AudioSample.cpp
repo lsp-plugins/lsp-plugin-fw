@@ -645,8 +645,6 @@ namespace lsp
             float fade_in  = (length > 0) ? samples * (sFadeIn.evaluate_float() / length) : 0.0f;
             float fade_out = (length > 0) ? samples * (sFadeOut.evaluate_float() / length) : 0.0f;
 
-            lsp_trace("length=%f, fade_in=%f, fade_out=%f", length, fade_in, fade_out);
-
             for (size_t i=0; i<allocate; ++i)
             {
                 size_t src_idx = lsp_min(i, mesh->nBuffers-1);
