@@ -19,9 +19,9 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/static.h>
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/darray.h>
-#include <lsp-plug.in/common/static.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
@@ -321,14 +321,10 @@ namespace lsp
             {
                 for (size_t i=0; ; ++i)
                 {
-                    // Enumerate next element
+                    // Skip plugins not compatible with LV2
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
+                    if ((meta == NULL) || (meta->lv2_uri == NULL))
                         break;
-
-                    // Skip plugins not compatible with LADSPA
-                    if (meta->lv2_uri == NULL)
-                        continue;
 
                     // Allocate new descriptor
                     LV2_Descriptor *d = descriptors.add();

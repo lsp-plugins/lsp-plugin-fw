@@ -22,6 +22,7 @@
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/common/static.h>
+#include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
@@ -242,8 +243,8 @@ namespace lsp
                     if (meta == NULL)
                         break;
 
-                    // Skip plugins not compatible with LADSPA
-                    if (meta->lv2_uri == NULL)
+                    // Skip plugins not compatible with LV2
+                    if ((meta->lv2_uri == NULL) || (meta->lv2ui_uri == NULL))
                         continue;
 
                     // Allocate new descriptor
@@ -266,13 +267,19 @@ namespace lsp
             // Sort descriptors
             ui_descriptors.qsort(ui_cmp_descriptors);
 
+        #ifdef LSP_TRACE
+            lsp_trace("allocated %d UI descriptors:", ui_descriptors.size());
+            for (size_t i=0, n=ui_descriptors.size(); i<n; ++i)
+                lsp_trace("  %s", ui_descriptors.uget(i)->URI);
+        #endif /* LSP_TRACE */
+
             // Unlock descriptor mutex
             ui_descriptors_mutex.unlock();
         };
 
         void ui_drop_descriptors()
         {
-            lsp_trace("dropping %d UI descriptors", ui_descriptors.size());
+            lsp_trace("freeing %d UI descriptors", ui_descriptors.size());
             ui_descriptors.flush();
         };
 
@@ -291,7 +298,9 @@ extern "C"
     {
         // lsp_debug_init("lv2"); // TODO
         lsp::lv2::ui_gen_descriptors();
-        return lsp::lv2::ui_descriptors.get(index);
+        const LV2UI_Descriptor *descr = lsp::lv2::ui_descriptors.get(index);
+        lsp_trace("Returning descr=%p, uri=%s", descr, descr->URI);
+        return descr;
     }
 
 #ifdef __cplusplus
