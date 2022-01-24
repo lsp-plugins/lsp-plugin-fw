@@ -495,6 +495,11 @@ namespace lsp
             }
         }
 
+        float UIWrapper::ui_scaling_factor(float scaling)
+        {
+            return (pExt != NULL) ? pExt->fUIScaleFactor * 100.0f : scaling;
+        }
+
         void UIWrapper::parse_raw_osc_event(osc::parse_frame_t *frame)
         {
             osc::parse_token_t token;

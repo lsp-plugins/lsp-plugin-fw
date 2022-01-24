@@ -105,6 +105,8 @@ namespace lsp
 
                 void                        ui_deactivated();
 
+                virtual float               ui_scaling_factor(float scaling);
+
                 void                        notify(size_t id, size_t size, size_t format, const void *buf);
 
                 void                        send_kvt_state();

@@ -153,6 +153,7 @@ namespace lsp
                 LV2_URID                uridTimeBeatsPerMinute;
 
                 LV2_URID                uridMaxBlockLength;
+                LV2_URID                uridScaleFactor;
 
                 // OSC-related URIDs
                 LV2_URID                uridOscBundle;
@@ -194,6 +195,7 @@ namespace lsp
                 ssize_t                 nAtomIn;            // Atom input port identifier
                 ssize_t                 nAtomOut;           // Atom output port identifier
                 size_t                  nMaxBlockLength;    // Maximum size of audio block passed to plugin
+                float                   fUIScaleFactor;     // UI scale factor
                 uint8_t                *pBuffer;            // Atom serialization buffer
                 size_t                  nBufSize;           // Atom serialization buffer size
                 float                   fUIRefreshRate;     // UI refresh rate
@@ -315,6 +317,7 @@ namespace lsp
                     uridTimeBeatsPerMinute      = map_uri(LV2_TIME__beatsPerMinute);
 
                     uridMaxBlockLength          = map_uri(LV2_BUF_SIZE__maxBlockLength);
+                    uridScaleFactor             = map_uri(LV2_UI__scaleFactor);
 
                     // OSC-related URIDs
                     uridOscBundle               = map_uri(LV2_OSC__Bundle);
@@ -390,6 +393,24 @@ namespace lsp
                                 lsp_trace("UI refresh rate has been set to %f", fUIRefreshRate);
                             }
 
+                            if ((opts->context == LV2_OPTIONS_INSTANCE) && (opts->value != NULL))
+                            {
+                                if (opts->key == uridMaxBlockLength)
+                                {
+                                    ssize_t blk_len = read_option_int(opts, uridMaxBlockLength, nMaxBlockLength);
+                                    if (blk_len > 0)
+                                        nMaxBlockLength = blk_len;
+                                    lsp_trace("MaxBlockLength has been set to %d", int(nMaxBlockLength));
+                                }
+                                else if (opts->key == uridScaleFactor)
+                                {
+                                    float scale = read_option_float(opts, uridScaleFactor, 1.0f);
+                                    if (scale > 0.0f)
+                                        fUIScaleFactor  = scale;
+                                    lsp_trace("UIScaleFactor has been set to %f", fUIScaleFactor);
+                                }
+                            }
+
                             if ((opts->context == LV2_OPTIONS_INSTANCE) &&
                                 (opts->key == uridMaxBlockLength) &&
                                 (opts->value != NULL))
@@ -407,7 +428,7 @@ namespace lsp
                                 }
                                 if (blk_len > 0)
                                     nMaxBlockLength = blk_len;
-                                lsp_trace("MaxBlockLength has been set to %d", int(nMaxBlockLength));
+
                             }
 
                             opts++;
@@ -451,6 +472,24 @@ namespace lsp
                 inline lv2::Wrapper *wrapper()
                 {
                     return pWrapper;
+                }
+
+                inline ssize_t read_option_int(const LV2_Options_Option *opts, LV2_URID urid, ssize_t dfl)
+                {
+                    if ((opts->type == forge.Int) && (opts->size == sizeof(int32_t)))
+                        return *static_cast<const int32_t *>(opts->value);
+                    else if ((opts->type == forge.Long) && (opts->size == sizeof(int64_t)))
+                        return *static_cast<const int64_t *>(opts->value);
+                    return dfl;
+                }
+
+                inline float read_option_float(const LV2_Options_Option *opts, LV2_URID urid, float dfl)
+                {
+                    if ((opts->type == forge.Float) && (opts->size == sizeof(float)))
+                        return *static_cast<const float *>(opts->value);
+                    else if ((opts->type == forge.Double) && (opts->size == sizeof(double)))
+                        return *static_cast<const double *>(opts->value);
+                    return dfl;
                 }
 
                 inline void write_data(

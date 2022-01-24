@@ -204,7 +204,7 @@ namespace lsp
                 /**
                  * Get UI scaling factor
                  * @param scaling the default value for scaling factor if scaling factor is not supported
-                 * @return actual scaling factor or default value if scaling factor is not supported
+                 * @return actual scaling factor (in percent) or default value if scaling factor is not supported
                  */
                 virtual float               ui_scaling_factor(float scaling);
 

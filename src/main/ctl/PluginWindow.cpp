@@ -1096,8 +1096,11 @@ namespace lsp
             if (dpy == NULL)
                 return;
 
-            bool sync_host      = (pUIScalingHost->value() >= 0);
+            bool sync_host      = (pUIScalingHost->value() >= 0.5f);
             float scaling       = (pUIScaling != NULL) ? pUIScaling->value() : 100.0f;
+
+            lsp_trace("sync_host = %s, scaling=%f", (sync_host) ? "true" : "false", scaling);
+
             if (sync_host)
                 scaling             = pWrapper->ui_scaling_factor(scaling);
 
@@ -1113,7 +1116,7 @@ namespace lsp
             {
                 scaling_sel_t *xsel = vScalingSel.uget(i);
                 if (xsel->item != NULL)
-                    xsel->item->checked()->set(fabs(xsel->scaling - scaling) < 1e-4);
+                    xsel->item->checked()->set(fabs(xsel->scaling - scaling) < 1e-4f);
             }
         }
 
@@ -1812,8 +1815,17 @@ namespace lsp
             if (_this == NULL)
                 return STATUS_OK;
 
-            float value = (_this->pUIScalingHost->value() >= 0.5f) ? 1.0f : 0.0f;
-            _this->pUIScalingHost->set_value(value);
+            float prefer    = (_this->pUIScalingHost->value() >= 0.5f) ? 0.0f : 1.0f;
+            _this->pUIScalingHost->set_value(prefer);
+
+            if (prefer >= 0.5f)
+            {
+                ssize_t value       = _this->pUIScaling->value();
+                ssize_t new_value   = _this->pWrapper->ui_scaling_factor(value);
+
+                _this->pUIScaling->set_value(new_value);
+                _this->pUIScaling->notify_all();
+            }
             _this->pUIScalingHost->notify_all();
 
             return STATUS_OK;
@@ -1825,10 +1837,14 @@ namespace lsp
             if ((_this == NULL) || (_this->pUIScaling == NULL))
                 return STATUS_OK;
 
-            ssize_t value   = _this->pUIScaling->value();
-            value           = lsp_limit(value + SCALING_FACTOR_STEP, SCALING_FACTOR_BEGIN, SCALING_FACTOR_END);
+            ssize_t value       = _this->pUIScaling->value();
+            ssize_t new_value   = ((value / SCALING_FACTOR_STEP) + 1) * SCALING_FACTOR_STEP;
+            value               = lsp_limit(new_value , SCALING_FACTOR_BEGIN, SCALING_FACTOR_END);
 
+            _this->pUIScalingHost->set_value(0.0f);
             _this->pUIScaling->set_value(value);
+
+            _this->pUIScalingHost->notify_all();
             _this->pUIScaling->notify_all();
 
             return STATUS_OK;
@@ -1841,9 +1857,13 @@ namespace lsp
                 return STATUS_OK;
 
             ssize_t value   = _this->pUIScaling->value();
-            value           = lsp_limit(value - SCALING_FACTOR_STEP, SCALING_FACTOR_BEGIN, SCALING_FACTOR_END);
+            ssize_t new_value   = ((value / SCALING_FACTOR_STEP) - 1) * SCALING_FACTOR_STEP;
+            value           = lsp_limit(new_value, SCALING_FACTOR_BEGIN, SCALING_FACTOR_END);
 
+            _this->pUIScalingHost->set_value(0.0f);
             _this->pUIScaling->set_value(value);
+
+            _this->pUIScalingHost->notify_all();
             _this->pUIScaling->notify_all();
 
             return STATUS_OK;
@@ -1858,7 +1878,10 @@ namespace lsp
             PluginWindow *_this = sel->ctl;
             if ((_this != NULL) && (_this->pUIScaling != NULL))
             {
+                _this->pUIScalingHost->set_value(0.0f);
                 _this->pUIScaling->set_value(sel->scaling);
+
+                _this->pUIScalingHost->notify_all();
                 _this->pUIScaling->notify_all();
             }
 
