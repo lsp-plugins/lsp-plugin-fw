@@ -252,8 +252,7 @@ namespace lsp
         void UIWrapper::transfer_dsp_to_ui()
         {
             // Try to sync position
-            pUI->position_updated(pWrapper->position());
-            pUI->sync_meta_ports();
+            IWrapper::position_updated(pWrapper->position());
 
             // DSP -> UI communication
             for (size_t i=0, nports=vUIPorts.size(); i < nports; ++i)

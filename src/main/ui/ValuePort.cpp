@@ -35,7 +35,7 @@ namespace lsp
         {
         }
 
-        void ValuePort::commitValue(float value)
+        void ValuePort::commit_value(float value)
         {
             fPending = value;
         }

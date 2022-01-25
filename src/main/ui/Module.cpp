@@ -70,10 +70,6 @@ namespace lsp
         void Module::position_updated(const plug::position_t *pos)
         {
         }
-
-        void Module::sync_meta_ports()
-        {
-        }
     }
 }
 

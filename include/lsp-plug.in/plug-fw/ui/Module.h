@@ -99,11 +99,6 @@ namespace lsp
                  *
                  */
                 void                            position_updated(const plug::position_t *pos);
-
-                /**
-                 * Synchronize state of meta ports
-                 */
-                void                            sync_meta_ports();
         };
     }
 }

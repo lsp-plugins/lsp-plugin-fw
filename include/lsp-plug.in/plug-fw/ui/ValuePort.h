@@ -37,7 +37,7 @@ namespace lsp
                 virtual ~ValuePort();
 
             public:
-                void commitValue(float value);
+                void commit_value(float value);
 
                 void sync();
 

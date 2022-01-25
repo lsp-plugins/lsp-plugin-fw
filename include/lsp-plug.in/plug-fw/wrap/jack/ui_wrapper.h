@@ -49,7 +49,6 @@ namespace lsp
                 jack::Wrapper                  *pWrapper;
 
                 atomic_t                        nPosition;          // Position counter
-                plug::position_t                sPosition;          // Actual time position
 
                 lltl::parray<jack::UIPort>      vSyncPorts;         // Ports for synchronization
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
@@ -95,8 +94,6 @@ namespace lsp
             pPlugin     = wrapper->pPlugin;
             pWrapper    = wrapper;
             nPosition   = 0;
-
-            plug::position_t::init(&sPosition);
         }
 
         UIWrapper::~UIWrapper()
@@ -378,8 +375,7 @@ namespace lsp
             atomic_t pos    = pWrapper->nPosition;
             if (nPosition != pos)
             {
-                sPosition       = pWrapper->sPosition;
-                pUI->position_updated(&sPosition);
+                position_updated(pWrapper->position());
                 nPosition       = pos;
             }
 
@@ -393,9 +389,6 @@ namespace lsp
                         jup->notify_all();
                 } while (jup->sync_again());
             }
-
-            // Transfer data for meta ports
-            pUI->sync_meta_ports();
 
             // Synchronize KVT state
             core::KVTStorage *kvt = pWrapper->kvt_trylock();

@@ -89,8 +89,6 @@ namespace lsp
             bConnected  = false;
             pOscBuffer  = NULL;
             pPackage    = NULL;
-
-            plug::position_t::init(&sPosition);
         }
 
         UIWrapper::~UIWrapper()
@@ -638,9 +636,7 @@ namespace lsp
                 }
 
                 // Call plugin callback and update position
-                if (pUI != NULL)
-                    pUI->position_updated(&pos);
-                sPosition = pos;
+                IWrapper::position_updated(&pos);
             }
             else if (obj->body.otype == pExt->uridMeshType)
             {
@@ -893,9 +889,7 @@ namespace lsp
                 }
 
                 // Check that sample rate has changed
-                plug::position_t pos    = *(w->position());
-                pUI->position_updated(&pos);
-                sPosition               = pos;
+                position_updated(w->position());
             }
 
             // Transmit KVT state
@@ -908,9 +902,7 @@ namespace lsp
                 sKVTMutex.unlock();
             }
 
-            // Call UI to process events
-            pUI->sync_meta_ports();
-
+            // Call the parent wrapper code
             IWrapper::main_iteration();
         }
 

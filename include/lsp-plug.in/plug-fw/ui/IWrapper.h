@@ -40,6 +40,7 @@
 #include <lsp-plug.in/plug-fw/ui/IPort.h>
 #include <lsp-plug.in/plug-fw/ui/Module.h>
 #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
+#include <lsp-plug.in/plug-fw/ui/ValuePort.h>
 #include <lsp-plug.in/plug-fw/ui/IKVTListener.h>
 #include <lsp-plug.in/fmt/config/PullParser.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
@@ -85,12 +86,13 @@ namespace lsp
                 resource::ILoader              *pLoader;            // Prefix-based resource loader
                 size_t                          nFlags;             // Flags
                 expr::Variables                 sGlobalVars;        // Global variables
+                plug::position_t                sPosition;
 
                 lltl::parray<IPort>             vPorts;             // All possible ports
                 lltl::parray<IPort>             vSortedPorts;       // Alphabetically-sorted ports
                 lltl::parray<SwitchedPort>      vSwitchedPorts;     // Switched ports
                 lltl::parray<IPort>             vConfigPorts;       // Configuration ports
-                lltl::parray<IPort>             vTimePorts;         // Time-related ports
+                lltl::parray<ValuePort>         vTimePorts;         // Time-related ports
                 lltl::parray<IPort>             vCustomPorts;       // Custom-defined ports
                 lltl::pphash<LSPString, LSPString> vAliases;        // Port aliases
                 lltl::parray<IKVTListener>      vKvtListeners;      // KVT listeners
@@ -114,6 +116,7 @@ namespace lsp
 
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
+                void            position_updated(const plug::position_t *pos);
 
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
@@ -212,6 +215,8 @@ namespace lsp
                  * Notify all ports for estimated connection
                  */
                 virtual void                notify_all();
+
+                inline const plug::position_t *position() const     { return &sPosition;    }
 
                 /**
                  * Lock KVT storage and return pointer to the storage,

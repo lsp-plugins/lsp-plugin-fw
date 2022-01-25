@@ -57,8 +57,6 @@ namespace lsp
                 lltl::parray<lv2::UIPort>   vOscOutPorts;
                 lltl::parray<meta::port_t>  vGenMetadata;   // Generated metadata
 
-                plug::position_t            sPosition;      // Time position of plugin
-
                 lv2::Extensions            *pExt;           // LV2 extensions holder
                 size_t                      nLatencyID;     // ID of latency port
                 lv2::UIPort                *pLatency;       // Latency report port

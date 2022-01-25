@@ -89,6 +89,8 @@ namespace lsp
             pUI         = ui;
             pLoader     = loader;
             nFlags      = 0;
+
+            plug::position_t::init(&sPosition);
         }
 
         IWrapper::~IWrapper()
@@ -544,6 +546,14 @@ namespace lsp
 
         void IWrapper::main_iteration()
         {
+            // Synchronize meta ports
+            for (size_t i=0, count=vTimePorts.size(); i < count; ++i)
+            {
+                ValuePort *vp = vTimePorts.uget(i);
+                if (vp != NULL)
+                    vp->sync();
+            }
+
             // Call main iteration for the underlying display
             if (pDisplay != NULL)
                 pDisplay->main_iteration();
@@ -1246,6 +1256,27 @@ namespace lsp
                 res = s.write_comment(config_separator);
 
             return res;
+        }
+
+        void IWrapper::position_updated(const plug::position_t *pos)
+        {
+            size_t i = 0;
+
+            // Actual time position
+            sPosition       = *pos;
+
+            vTimePorts[i++]->commit_value(pos->sampleRate);
+            vTimePorts[i++]->commit_value(pos->speed);
+            vTimePorts[i++]->commit_value(pos->frame);
+            vTimePorts[i++]->commit_value(pos->numerator);
+            vTimePorts[i++]->commit_value(pos->denominator);
+            vTimePorts[i++]->commit_value(pos->beatsPerMinute);
+            vTimePorts[i++]->commit_value(pos->tick);
+            vTimePorts[i++]->commit_value(pos->ticksPerBeat);
+
+            // Issue callback
+            if (pUI != NULL)
+                pUI->position_updated(pos);
         }
 
         bool IWrapper::set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base)
