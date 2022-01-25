@@ -62,14 +62,26 @@ namespace lsp
                 ::memcpy(&_this->buf[offset], buf, size);
                 _this->size    += size;
 
-                return offset;
+                // From LV2 spec:
+                // Note that 0 is an invalid reference, so if you are using a buffer offset be
+                // sure to offset it such that 0 is never a valid reference.  You will get
+                // confusing errors otherwise.
+                // So we will add the sizeof(LV2_Atom) for this case
+                return offset + sizeof(LV2_Atom);
             }
 
             static LV2_Atom *deref(LV2_Atom_Forge_Sink_Handle handle, LV2_Atom_Forge_Ref ref)
             {
                 lv2_sink *_this = reinterpret_cast<lv2_sink *>(handle);
                 if (_this->res == STATUS_OK)
-                    return reinterpret_cast<LV2_Atom *>(&_this->buf[ref]);
+                {
+                    // From LV2 spec:
+                    // Note that 0 is an invalid reference, so if you are using a buffer offset be
+                    // sure to offset it such that 0 is never a valid reference.  You will get
+                    // confusing errors otherwise.
+                    // So we will subtract the sizeof(LV2_Atom) for this case
+                    return reinterpret_cast<LV2_Atom *>(&_this->buf[ref - sizeof(LV2_Atom)]);
+                }
 
                 return &_this->stub;
             }

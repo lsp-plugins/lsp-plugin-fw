@@ -1444,43 +1444,46 @@ namespace lsp
                     break;
             } // while
 
-            if ((res == STATUS_OK) && (sink.res == STATUS_OK))
+            if ((res != STATUS_OK) ||(sink.res != STATUS_OK))
             {
-                // TEST
-                /*{
-                    kvt_param_t xp;
-                    xp.blob.ctype   = "text/plain";
-                    xp.blob.data    = "Test text";
-                    xp.blob.size    = strlen("Test text") + 1;
-                    p = &xp;
-
-                    LV2_Atom_Forge_Frame obj;
-                    LV2_URID key        =  pExt->map_kvt("/TEST_BLOB");
-
-                    lv2_atom_forge_key(&forge, key);
-                    lv2_atom_forge_object(&forge, &obj, 0, pExt->uridBlobType);
-                    {
-                        if (p->blob.ctype != NULL)
-                        {
-                            lv2_atom_forge_key(&forge, pExt->uridContentType);
-                            lv2_atom_forge_typed_string(&forge, forge.String, p->blob.ctype, ::strlen(p->blob.ctype));
-                        }
-
-                        uint32_t size = ((p->blob.size > 0) && (p->blob.data != NULL)) ? p->blob.size : 0;
-                        lv2_atom_forge_key(&forge, pExt->uridContent);
-                        lv2_atom_forge_atom(&forge, size, forge.Chunk);
-                        if (size > 0)
-                            lv2_atom_forge_write(&forge, p->blob.data, size);
-                    }
-                    lv2_atom_forge_pop(&forge, &obj);
-                }*/
-
-                lv2_atom_forge_pop(&forge, &frame);
-                LV2_Atom *msg = reinterpret_cast<LV2_Atom *>(sink.buf);
-                pExt->store_value(pExt->uridKvtObject, msg->type, &msg[1], msg->size);
-            }
-            else
                 lsp_trace("Failed execution, result=%d, sink state=%d", int(res), int(sink.res));
+                return;
+            }
+
+            lsp_trace("Generated memory chunk of %d bytes, capacity is %d bytes", int(sink.size), int(sink.cap));
+
+            // TEST
+            /*{
+                kvt_param_t xp;
+                xp.blob.ctype   = "text/plain";
+                xp.blob.data    = "Test text";
+                xp.blob.size    = strlen("Test text") + 1;
+                p = &xp;
+
+                LV2_Atom_Forge_Frame obj;
+                LV2_URID key        =  pExt->map_kvt("/TEST_BLOB");
+
+                lv2_atom_forge_key(&forge, key);
+                lv2_atom_forge_object(&forge, &obj, 0, pExt->uridBlobType);
+                {
+                    if (p->blob.ctype != NULL)
+                    {
+                        lv2_atom_forge_key(&forge, pExt->uridContentType);
+                        lv2_atom_forge_typed_string(&forge, forge.String, p->blob.ctype, ::strlen(p->blob.ctype));
+                    }
+
+                    uint32_t size = ((p->blob.size > 0) && (p->blob.data != NULL)) ? p->blob.size : 0;
+                    lv2_atom_forge_key(&forge, pExt->uridContent);
+                    lv2_atom_forge_atom(&forge, size, forge.Chunk);
+                    if (size > 0)
+                        lv2_atom_forge_write(&forge, p->blob.data, size);
+                }
+                lv2_atom_forge_pop(&forge, &obj);
+            }*/
+
+            lv2_atom_forge_pop(&forge, &frame);
+            LV2_Atom *msg = reinterpret_cast<LV2_Atom *>(sink.buf);
+            pExt->store_value(pExt->uridKvtObject, msg->type, &msg[1], msg->size);
         }
 
         void Wrapper::save_state(

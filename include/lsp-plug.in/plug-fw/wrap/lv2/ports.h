@@ -280,15 +280,15 @@ namespace lsp
                  }
 
                  // Should be always called at least once after bind() and after process() call
-                  void sanitize_after(size_t off, size_t samples)
-                  {
-                      // Sanitize plugin's output
-                      if ((pBuffer != NULL) && (meta::is_out_port(pMetadata)))
-                          dsp::sanitize1(pBuffer, samples);
+                 void sanitize_after(size_t off, size_t samples)
+                 {
+                     // Sanitize plugin's output
+                     if ((pBuffer != NULL) && (meta::is_out_port(pMetadata)))
+                         dsp::sanitize1(pBuffer, samples);
 
-                      // Clear the buffer pointer
-                      pBuffer    = NULL;
-                  }
+                     // Clear the buffer pointer
+                     pBuffer    = NULL;
+                 }
          };
 
          class InputPort: public Port
