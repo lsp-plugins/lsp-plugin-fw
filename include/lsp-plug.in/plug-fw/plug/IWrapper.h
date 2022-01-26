@@ -51,6 +51,7 @@ namespace lsp
                 plug::Module               *pPlugin;
                 resource::ILoader          *pLoader;
                 plug::ICanvas              *pCanvas;            // Inline display featured canvas
+                plug::position_t            sPosition;          // Actual time position
 
             protected:
                 plug::ICanvas              *create_canvas(size_t width, size_t height);
@@ -87,7 +88,7 @@ namespace lsp
                  *
                  * @return current time position
                  */
-                virtual const position_t       *position();
+                const position_t               *position();
 
                 /**
                  * Lock KVT storage and return pointer to the storage,

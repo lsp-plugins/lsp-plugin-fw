@@ -34,6 +34,8 @@ namespace lsp
             pPlugin         = plugin;
             pLoader         = loader;
             pCanvas         = NULL;
+
+            position_t::init(&sPosition);
         }
 
         IWrapper::~IWrapper()
@@ -62,7 +64,7 @@ namespace lsp
 
         const position_t *IWrapper::position()
         {
-            return NULL;
+            return &sPosition;
         }
 
         core::KVTStorage *IWrapper::kvt_lock()

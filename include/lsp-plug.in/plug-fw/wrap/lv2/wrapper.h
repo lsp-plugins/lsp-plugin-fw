@@ -99,7 +99,6 @@ namespace lsp
                 uatomic_t               nDumpResp;
                 meta::package_t        *pPackage;
 
-                plug::position_t        sPosition;
                 core::KVTStorage        sKVT;
                 LV2KVTListener          sKVTListener;
                 ipc::Mutex              sKVTMutex;
@@ -174,8 +173,6 @@ namespace lsp
                 LV2_Inline_Display_Image_Surface *render_inline_display(size_t width, size_t height);
 
                 inline void                     query_display_draw()    { bQueueDraw = true; }
-
-                virtual const plug::position_t *position()              { return &sPosition; }
 
                 lv2::Port                      *port(const char *id);
                 lv2::Port                      *port_by_urid(LV2_URID urid);

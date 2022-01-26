@@ -68,8 +68,6 @@ namespace lsp
                 lltl::parray<vst2::Port>            vProxyPorts;    // List of all created VST proxy ports
                 lltl::parray<meta::port_t>          vGenMetadata;   // Generated metadata
 
-                plug::position_t                    sPosition;
-
                 core::KVTStorage                    sKVT;
                 ipc::Mutex                          sKVTMutex;
 
@@ -125,8 +123,6 @@ namespace lsp
 
             public:
                 virtual ipc::IExecutor         *executor();
-
-                virtual const plug::position_t *position();
 
                 virtual core::KVTStorage       *kvt_lock();
 

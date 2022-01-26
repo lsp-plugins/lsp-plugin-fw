@@ -77,7 +77,6 @@ namespace lsp
                 ipc::Mutex                      sKVTMutex;          // Key-value tree mutex
 
                 volatile uatomic_t              nPosition;          // Position counter
-                plug::position_t                sPosition;          // Actual time position
 
                 volatile uatomic_t              nQueryDrawReq;      // QueryDraw request
                 uatomic_t                       nQueryDrawResp;     // QueryDraw response
@@ -119,8 +118,6 @@ namespace lsp
                 virtual ipc::IExecutor             *executor();
 
                 virtual void                        query_display_draw()    { atomic_add(&nQueryDrawReq, 1);    }
-
-                virtual const plug::position_t     *position()  { return &sPosition;                }
 
                 virtual core::KVTStorage           *kvt_lock();
 
@@ -177,7 +174,6 @@ namespace lsp
             pExecutor       = NULL;
 
             nPosition       = 0;
-            plug::position_t::init(&sPosition);
 
             nQueryDrawReq   = 0;
             nQueryDrawResp  = 0;

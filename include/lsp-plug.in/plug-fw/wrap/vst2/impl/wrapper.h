@@ -57,8 +57,6 @@ namespace lsp
             bUpdateSettings = true;
             pUIWrapper             = NULL;
             pPackage        = NULL;
-
-            plug::position_t::init(&sPosition);
         }
 
         Wrapper::~Wrapper()
@@ -364,11 +362,6 @@ namespace lsp
                 return NULL;
             }
             return pExecutor = exec;
-        }
-
-        const plug::position_t *Wrapper::position()
-        {
-            return &sPosition;
         }
 
         vst2::ParameterPort *Wrapper::parameter_port(size_t index)

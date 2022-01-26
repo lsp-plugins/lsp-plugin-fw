@@ -40,6 +40,7 @@
 
 #include <lsp-plug.in/plug-fw/wrap/ladspa/ports.h>
 #include <lsp-plug.in/plug-fw/wrap/ladspa/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/ladspa/impl/wrapper.h>
 
 namespace lsp
 {

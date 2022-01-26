@@ -82,8 +82,6 @@ namespace lsp
             nDumpResp       = 0;
             pPackage        = NULL;
             pKVTDispatcher  = NULL;
-
-            plug::position_t::init(&sPosition);
         }
 
         Wrapper::~Wrapper()
