@@ -192,14 +192,14 @@ namespace lsp
 
         const char *add_units(const char *s, size_t units)
         {
-            char buf[64];
             const char *unit = meta::get_unit_name(units);
             if (unit == NULL)
-            {
-                snprintf(buf, sizeof(buf) - 1, "%s (%s)", s, unit);
-                unit = buf;
-            }
-            return strdup(unit);
+                return strdup(s);
+
+            char *ptr = NULL;
+            int res = asprintf(&ptr, "%s (%s)", s, unit);
+
+            return ((res < 0) || (ptr == NULL)) ? strdup(s) : ptr;
         }
 
         char *make_plugin_name(const meta::plugin_t *m)
@@ -501,7 +501,7 @@ namespace lsp
 }
 
 //---------------------------------------------------------------------
-LSP_PLUGIN_FW_CEXPORT
+LSP_CSYMBOL_EXPORT
 const LADSPA_Descriptor *ladspa_descriptor(unsigned long index)
 {
     lsp::ladspa::gen_descriptors();
