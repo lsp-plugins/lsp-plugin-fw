@@ -43,6 +43,8 @@
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/ui_wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/jack/impl/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/jack/impl/ui_wrapper.h>
 
 #ifdef PLATFORM_POSIX
     #include <signal.h>
