@@ -365,22 +365,11 @@ namespace lsp
     } /* namespace lv2 */
 } /* namespace lsp */
 
-#ifdef __cplusplus
-extern "C"
+LV2_SYMBOL_EXPORT
+const LV2_Descriptor *lv2_descriptor(uint32_t index)
 {
-#endif /* __cplusplus */
+    IF_DEBUG( lsp::debug::redirect("lsp-lv2.log"); );
 
-    LV2_SYMBOL_EXPORT
-    const LV2_Descriptor *lv2_descriptor(uint32_t index)
-    {
-        // lsp_debug_init("lv2"); // TODO
-
-        lsp::lv2::gen_descriptors();
-        return lsp::lv2::descriptors.get(index);
-    }
-
-    #ifdef __cplusplus
+    lsp::lv2::gen_descriptors();
+    return lsp::lv2::descriptors.get(index);
 }
-#endif /* __cplusplus */
-
-

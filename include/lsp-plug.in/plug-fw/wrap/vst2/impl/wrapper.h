@@ -244,6 +244,7 @@ namespace lsp
                 case meta::R_AUDIO:
                     vp = new vst2::AudioPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
+                    vAudioPorts.add(static_cast<vst2::AudioPort *>(vp));
                     break;
 
                 case meta::R_CONTROL:
@@ -253,7 +254,11 @@ namespace lsp
                     if (meta::is_out_port(port))
                         vp      = new vst2::MeterPort(port, pEffect, pMaster);
                     else
+                    {
                         vp      = new vst2::ParameterPort(port, pEffect, pMaster);
+                        if (postfix == NULL)
+                            vParams.add(static_cast<vst2::ParameterPort *>(vp));
+                    }
                     if (port->role == meta::R_BYPASS)
                         pBypass     = vp;
 

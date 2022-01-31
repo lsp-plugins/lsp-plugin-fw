@@ -227,6 +227,8 @@ namespace lsp
                         continue;
                     }
 
+                    lsp_trace("  obtained the library instance: %p, factory function: %p", inst, f);
+
                     *hInstance = inst;
                     free(ptr);
                     closedir(d);
@@ -396,6 +398,8 @@ namespace lsp
 // The main function
 VST_MAIN(callback)
 {
+    IF_DEBUG( lsp::debug::redirect("lsp-vst2-loader.log"); );
+
     // Get VST Version of the Host
     if (!callback (NULL, audioMasterVersion, 0, 0, NULL, 0.0f))
     {
@@ -404,7 +408,7 @@ VST_MAIN(callback)
     }
 
     // Check that we need to instantiate the factory
-    lsp_trace("Getting factory");
+    lsp_trace("Getting factory for plugin %s", VST2_PLUGIN_UID);
 
     static const lsp::version_t version =
     {

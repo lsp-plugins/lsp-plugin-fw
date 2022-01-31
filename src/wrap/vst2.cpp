@@ -28,6 +28,7 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
 #include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/common/debug.h>
 
 namespace lsp
 {
@@ -731,13 +732,11 @@ namespace lsp
         AEffect *instantiate(const char *uid, audioMasterCallback callback)
         {
             // Initialize debug
-            // lsp_debug_init("lxvst"); // TODO
+            IF_DEBUG( debug::redirect("lsp-vst2-aeffect.log"); );
+            lsp_trace("uid=%s, callback=%p", uid, callback);
 
             // Initialize DSP
             dsp::init();
-
-            // Instantiate plugin
-            plug::Module *p             = NULL;
 
             // Lookup plugin identifier among all registered plugin factories
             plug::Module *plugin = NULL;
@@ -772,7 +771,7 @@ namespace lsp
             }
 
             // Check that plugin instance is available
-            if (p == NULL)
+            if (plugin == NULL)
                 return NULL;
 
             const meta::plugin_t *meta = plugin->metadata();
@@ -782,7 +781,7 @@ namespace lsp
             AEffect *e                  = new AEffect;
             if (e == NULL)
             {
-                delete p;
+                delete plugin;
                 return NULL;
             }
 
@@ -790,7 +789,7 @@ namespace lsp
             resource::ILoader *loader = core::create_resource_loader();
             if (loader != NULL)
             {
-                vst2::Wrapper *wrapper  = new vst2::Wrapper(p, loader, e, callback);
+                vst2::Wrapper *wrapper  = new vst2::Wrapper(plugin, loader, e, callback);
                 if (wrapper != NULL)
                 {
                     // Initialize effect structure
@@ -843,17 +842,8 @@ namespace lsp
     } /* namespace vst2 */
 } /* namespace lsp */
 
-#ifdef __cplusplus
-extern "C"
+LSP_CSYMBOL_EXPORT
+AEffect *VST_MAIN_FUNCTION(const char *plugin_vst2_id, audioMasterCallback callback)
 {
-#endif /* __cplusplus */
-
-    LSP_CSYMBOL_EXPORT
-    AEffect *VST_MAIN_FUNCTION(const char *plugin_vst2_id, audioMasterCallback callback)
-    {
-        return lsp::vst2::instantiate(plugin_vst2_id, callback);
-    }
-
-#ifdef __cplusplus
+    return lsp::vst2::instantiate(plugin_vst2_id, callback);
 }
-#endif /* __cplusplus */

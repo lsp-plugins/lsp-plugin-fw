@@ -288,23 +288,12 @@ namespace lsp
     } /* namespace lv2 */
 } /* namespace lsp */
 
-#ifdef __cplusplus
-extern "C"
+LV2_SYMBOL_EXPORT
+const LV2UI_Descriptor *lv2ui_descriptor(uint32_t index)
 {
-#endif /* __cplusplus */
-
-    LV2_SYMBOL_EXPORT
-    const LV2UI_Descriptor *lv2ui_descriptor(uint32_t index)
-    {
-        // lsp_debug_init("lv2"); // TODO
-        lsp::lv2::ui_gen_descriptors();
-        const LV2UI_Descriptor *descr = lsp::lv2::ui_descriptors.get(index);
-        lsp_trace("Returning descr=%p, uri=%s", descr, descr->URI);
-        return descr;
-    }
-
-#ifdef __cplusplus
+    IF_DEBUG( lsp::debug::redirect("lsp-lv2ui.log"); );
+    lsp::lv2::ui_gen_descriptors();
+    const LV2UI_Descriptor *descr = lsp::lv2::ui_descriptors.get(index);
+    lsp_trace("Returning descr=%p, uri=%s", descr, descr->URI);
+    return descr;
 }
-#endif /* __cplusplus */
-
-

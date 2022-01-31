@@ -531,12 +531,12 @@ HOST_CXX_FILE               = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.o,%.cpp, $(
 WRAP_JACK_CFLAGS           := $(VERSION_CFLAGS)
 WRAP_JACK_LDFLAGS          := $(call query,LDFLAGS,$(DEPENDENCIES_JACK_WRAP))
 WRAP_JACK_OBJS             := $(call query,OBJ,$(DEPENDENCIES_JACK_WRAP))
-WRAP_JACK_INC              := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_JACK_WRAP) LSP_PLUGIN_FW))
+WRAP_JACK_INC              := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_JACK_WRAP) $(ARTIFACT_ID)))
 
 WRAP_VST2_CFLAGS           := $(VERSION_CFLAGS)
 WRAP_VST2_LDFLAGS          := $(call query,LDFLAGS,$(DEPENDENCIES_VST2_WRAP))
 WRAP_VST2_OBJS             := $(call query,OBJ,$(DEPENDENCIES_VST2_WRAP))
-WRAP_VST2_INC              := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_VST2_WRAP) LSP_PLUGIN_FW))
+WRAP_VST2_INC              := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_VST2_WRAP) $(ARTIFACT_ID)))
 
 OBJ_EXPORT_CFLAGS          := $(VERSION_CFLAGS)
 HOST_OBJ_EXPORT_CFLAGS     := $(VERSION_CFLAGS)
@@ -851,8 +851,7 @@ install_vst2:
 	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)/$(VST2_LIBDIR)/"
 	make -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(DESTDIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
-#install: $(BIN_INSTALL) install_jack install_ladspa install_lv2 install_vst2
-install: $(BIN_INSTALL) install_lv2 install_ladspa
+install: $(BIN_INSTALL) install_jack install_ladspa install_lv2 install_vst2
 	@echo "Install OK"
 
 #------------------------------------------------------------------------------

@@ -580,8 +580,7 @@ extern "C"
         w->bInterrupt           = false;
         w->nLastReconnect       = 0;
 
-//        lsp_debug_init("jack");
-//        init_locale();
+        IF_DEBUG( lsp::debug::redirect("lsp-jack-lib.log"); );
         
         // Parse command-line arguments
         jack::cmdline_t cmdline;

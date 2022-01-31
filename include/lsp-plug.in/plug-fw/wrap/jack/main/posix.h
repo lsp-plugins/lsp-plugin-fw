@@ -383,6 +383,8 @@ namespace lsp
 //------------------------------------------------------------------------
 int main(int argc, const char **argv)
 {
+    IF_DEBUG( lsp::debug::redirect("lsp-jack-loader.log"); );
+
     void *hInstance;
     static const lsp::version_t version =
     {
