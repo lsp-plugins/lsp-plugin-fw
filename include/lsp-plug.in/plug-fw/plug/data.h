@@ -516,13 +516,13 @@ namespace lsp
              *
              * @return actual path
              */
-            virtual const char *get_path();
+            virtual const char *path() const;
 
             /**
              * Get current flags
              * @return current flags
              */
-            virtual size_t get_flags();
+            virtual size_t flags() const;
 
             /** Check if there is pending request
              *

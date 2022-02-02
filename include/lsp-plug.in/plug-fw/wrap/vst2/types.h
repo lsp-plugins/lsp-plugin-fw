@@ -77,12 +77,12 @@ namespace lsp
                 sUiPath[0]      = '\0';
             }
 
-            virtual const char *path()
+            virtual const char *path() const
             {
                 return sPath;
             }
 
-            virtual size_t flags()
+            virtual size_t flags() const
             {
                 return nXFlags;
             }
@@ -106,24 +106,28 @@ namespace lsp
                     return !(nFlags & F_ACCEPTED);
 
                 // Check for pending request
-                if (atomic_trylock(nDspRequest))
+                if (!atomic_trylock(nDspRequest))
+                    return false;
+
+                // Update state of the DSP
+                if (nDspSerial != nDspCommit)
                 {
-                    // Update state of the DSP
-                    if (nDspSerial != nDspCommit)
-                    {
-                        // Copy the data
-                        nXFlags         = nXFlagsReq;
-                        nXFlagsReq      = 0;
-                        ::strcpy(sPath, sDspRequest);
-                        nFlags          = F_PENDING;
+                    // Copy the data
+                    nXFlags             = nXFlagsReq;
+                    nXFlagsReq          = 0;
+                    ::strncpy(sPath, sDspRequest, PATH_MAX-1);
+                    sPath[PATH_MAX-1]   = '\0';
+                    nFlags              = F_PENDING;
 
-                        // Update serial(s)
-                        nUiSerial       ++;
-                        nDspCommit      ++;
-                    }
+                    lsp_trace("  DSP Request: %s", sDspRequest);
+                    lsp_trace("  saved path: %s", sPath);
 
-                    atomic_unlock(nDspRequest);
+                    // Update serial(s)
+                    atomic_add(&nUiSerial, 1);
+                    atomic_add(&nDspCommit, 1);
                 }
+
+                atomic_unlock(nDspRequest);
 
                 return (nFlags & F_PENDING);
             }
@@ -136,7 +140,10 @@ namespace lsp
             void submit(const char *path, size_t len, bool ui, size_t flags)
             {
                 // Determine size of path
-                size_t count = (len >= PATH_MAX) ? PATH_MAX - 1 : len;
+                size_t count = lsp_min(len, size_t(PATH_MAX-1));
+
+                lsp_trace("submit %s, len=%d, ui=%s, flags=%x",
+                        path, int(len), (ui) ?  "true" : "false", int(flags));
 
                 // Wait until the queue is empty
                 if (ui)
@@ -150,7 +157,7 @@ namespace lsp
                             ::memcpy(sDspRequest, path, count);
                             nXFlagsReq          = flags;
                             sDspRequest[count]  = '\0';
-                            nDspSerial          ++;
+                            atomic_add(&nDspSerial, 1);
 
                             // Release critical section and leave
                             atomic_unlock(nDspRequest);
@@ -167,7 +174,7 @@ namespace lsp
                     ::memcpy(sDspRequest, path, count);
                     nXFlagsReq          = flags;
                     sDspRequest[count]  = '\0';
-                    nDspSerial          ++;
+                    atomic_add(&nDspSerial, 1);
                 }
             }
 
@@ -178,8 +185,10 @@ namespace lsp
                 bool sync = (nUiSerial != nUiCommit);
                 if (sync)
                 {
-                    ::strcpy(sUiPath, sPath);
-                    nUiCommit++;
+                    ::strncpy(sUiPath, sPath, PATH_MAX-1);
+                    sUiPath[PATH_MAX-1] = '\0';
+
+                    atomic_add(&nUiCommit, 1);
                 }
                 atomic_unlock(nDspRequest);
 

@@ -833,7 +833,7 @@ namespace lsp
                     pPort->reset_tx_pending();
 
                     plug::path_t *path  = static_cast<plug::path_t *>(pPort->buffer());
-                    ::strncpy(sPath, path->get_path(), PATH_MAX); // Copy current contents
+                    ::strncpy(sPath, path->path(), PATH_MAX-1); // Copy current contents
                     sPath[PATH_MAX-1]   = '\0';
 
                     lsp_trace("Directly received path port id=%s, path=%s",

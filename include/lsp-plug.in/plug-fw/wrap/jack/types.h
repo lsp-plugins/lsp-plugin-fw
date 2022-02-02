@@ -66,12 +66,12 @@ namespace lsp
                 sRequest[0]     = '\0';
             }
 
-            virtual const char *get_path()
+            virtual const char *path() const
             {
                 return sPath;
             }
 
-            virtual size_t get_flags()
+            virtual size_t flags() const
             {
                 return nXFlags;
             }

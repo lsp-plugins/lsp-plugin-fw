@@ -43,12 +43,12 @@ namespace lsp
         {
         }
 
-        const char *path_t::get_path()
+        const char *path_t::path() const
         {
             return "";
         }
 
-        size_t path_t::get_flags()
+        size_t path_t::flags() const
         {
             return 0;
         }

@@ -872,7 +872,7 @@ namespace lsp
 
                  virtual void serialize()
                  {
-                     pExt->forge_path(sPath.get_path());
+                     pExt->forge_path(sPath.path());
                      reset_tx_pending();
                  }
 
