@@ -42,6 +42,7 @@ namespace lsp
             protected:
                 static status_t slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_ui_show(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_ui_realize(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                            transfer_dsp_to_ui();
@@ -67,7 +68,7 @@ namespace lsp
             public:
                 bool                            show_ui();
                 void                            hide_ui();
-                void                            resize_ui(const ws::rectangle_t *r);
+                void                            resize_ui();
                 ERect                          *ui_rect();
 
             public:

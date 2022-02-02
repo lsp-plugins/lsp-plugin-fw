@@ -186,6 +186,7 @@ namespace lsp
             {
                 wnd->slots()->bind(tk::SLOT_RESIZE, slot_ui_resize, this);
                 wnd->slots()->bind(tk::SLOT_SHOW, slot_ui_show, this);
+                wnd->slots()->bind(tk::SLOT_REALIZED, slot_ui_realize, this);
             }
 
             // Call the post-initialization routine
@@ -346,34 +347,25 @@ namespace lsp
                 wnd->hide();
         }
 
-        void UIWrapper::resize_ui(const ws::rectangle_t *r)
+        void UIWrapper::resize_ui()
         {
             tk::Window *wnd     = window();
-            if (wnd == NULL)
+            if ((wnd == NULL) || (!wnd->visibility()->get()))
                 return;
 
-            sRect.top           = 0;
-            sRect.left          = 0;
-            sRect.right         = r->nWidth;
-            sRect.bottom        = r->nHeight;
-
             ws::rectangle_t rr;
-            wnd->get_rectangle(&rr);
+            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
+                return;
+
             lsp_trace("Get geometry: width=%d, height=%d", int(rr.nWidth), int(rr.nHeight));
-
-            if ((rr.nWidth <= 0) || (rr.nHeight <= 0))
-            {
-                ws::size_limit_t sr;
-                wnd->get_padded_size_limits(&sr);
-                lsp_trace("Size request: width=%d, height=%d", int(sr.nMinWidth), int(sr.nMinHeight));
-                rr.nWidth   = sr.nMinWidth;
-                rr.nHeight  = sr.nMinHeight;
-            }
-
             lsp_trace("audioMasterSizeWindow width=%d, height=%d", int(rr.nWidth), int(rr.nHeight));
             if (((sRect.right - sRect.left) != rr.nWidth) ||
                   ((sRect.bottom - sRect.top) != rr.nHeight))
+            {
                 pWrapper->pMaster(pWrapper->pEffect, audioMasterSizeWindow, rr.nWidth, rr.nHeight, 0, 0);
+                sRect.right     = rr.nWidth;
+                sRect.bottom    = rr.nHeight;
+            }
         }
 
         ERect *UIWrapper::ui_rect()
@@ -387,17 +379,21 @@ namespace lsp
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
             UIWrapper *wrapper = static_cast<UIWrapper *>(ptr);
-            ws::rectangle_t *rect = static_cast<ws::rectangle_t *>(data);
-            wrapper->resize_ui(rect);
+            wrapper->resize_ui();
             return STATUS_OK;
         }
 
         status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
         {
             UIWrapper *wrapper = static_cast<UIWrapper *>(ptr);
-            ws::rectangle_t rect;
-            wrapper->window()->get_screen_rectangle(&rect);
-            wrapper->resize_ui(&rect);
+            wrapper->resize_ui();
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::slot_ui_realize(tk::Widget *sender, void *ptr, void *data)
+        {
+            UIWrapper *wrapper = static_cast<UIWrapper *>(ptr);
+            wrapper->resize_ui();
             return STATUS_OK;
         }
 
