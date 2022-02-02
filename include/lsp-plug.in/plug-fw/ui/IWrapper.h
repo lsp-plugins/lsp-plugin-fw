@@ -88,12 +88,12 @@ namespace lsp
                 expr::Variables                 sGlobalVars;        // Global variables
                 plug::position_t                sPosition;
 
-                lltl::parray<IPort>             vPorts;             // All possible ports
-                lltl::parray<IPort>             vSortedPorts;       // Alphabetically-sorted ports
-                lltl::parray<SwitchedPort>      vSwitchedPorts;     // Switched ports
-                lltl::parray<IPort>             vConfigPorts;       // Configuration ports
-                lltl::parray<ValuePort>         vTimePorts;         // Time-related ports
-                lltl::parray<IPort>             vCustomPorts;       // Custom-defined ports
+                lltl::parray<ui::IPort>         vPorts;             // All possible ports
+                lltl::parray<ui::IPort>         vSortedPorts;       // Alphabetically-sorted ports
+                lltl::parray<ui::SwitchedPort>  vSwitchedPorts;     // Switched ports
+                lltl::parray<ui::IPort>         vConfigPorts;       // Configuration ports
+                lltl::parray<ui::ValuePort>     vTimePorts;         // Time-related ports
+                lltl::parray<ui::IPort>         vCustomPorts;       // Custom-defined ports
                 lltl::pphash<LSPString, LSPString> vAliases;        // Port aliases
                 lltl::parray<IKVTListener>      vKvtListeners;      // KVT listeners
                 lltl::parray<ISchemaListener>   vSchemaListeners;   // Schema change listeners

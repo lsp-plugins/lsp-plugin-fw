@@ -38,10 +38,10 @@ namespace lsp
             private:
                 vst2::Wrapper                      *pWrapper;       // VST Wrapper
                 ERect                               sRect;
-                lltl::parray<vst2::UIPort>          vUIPorts;       // List of all created UI ports
 
             protected:
                 static status_t slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_ui_show(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                            transfer_dsp_to_ui();

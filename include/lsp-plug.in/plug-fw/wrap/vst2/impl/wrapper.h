@@ -55,7 +55,7 @@ namespace lsp
             nDumpResp       = 0;
             pBypass         = NULL;
             bUpdateSettings = true;
-            pUIWrapper             = NULL;
+            pUIWrapper      = NULL;
             pPackage        = NULL;
         }
 

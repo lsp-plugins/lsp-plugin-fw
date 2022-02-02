@@ -122,10 +122,7 @@ namespace lsp
 
             // Add port to the list of UI ports
             if (vup != NULL)
-            {
-                vUIPorts.add(vup);
                 vPorts.add(vup);
-            }
 
             return vup;
         }
@@ -186,7 +183,10 @@ namespace lsp
             // Bind resize slot
             tk::Window *wnd  = window();
             if (wnd != NULL)
+            {
                 wnd->slots()->bind(tk::SLOT_RESIZE, slot_ui_resize, this);
+                wnd->slots()->bind(tk::SLOT_SHOW, slot_ui_show, this);
+            }
 
             // Call the post-initialization routine
             if (res == STATUS_OK)
@@ -197,15 +197,6 @@ namespace lsp
 
         void UIWrapper::destroy()
         {
-            // Unbind all UI ports
-            for (size_t i=0, n=vUIPorts.size(); i < n; ++i)
-            {
-                ui::IPort *port = vUIPorts.uget(i);
-                port->unbind_all();
-                delete port;
-            }
-            vUIPorts.flush();
-
             // Call parent instance
             IWrapper::destroy();
 
@@ -255,10 +246,10 @@ namespace lsp
             IWrapper::position_updated(pWrapper->position());
 
             // DSP -> UI communication
-            for (size_t i=0, nports=vUIPorts.size(); i < nports; ++i)
+            for (size_t i=0, nports=vPorts.size(); i < nports; ++i)
             {
                 // Get UI port
-                vst2::UIPort *vup   = vUIPorts.uget(i);
+                vst2::UIPort *vup   = static_cast<vst2::UIPort *>(vPorts.uget(i));
                 do {
                     if (vup->sync())
                         vup->notify_all();
@@ -327,9 +318,9 @@ namespace lsp
         bool UIWrapper::show_ui()
         {
             // Force all parameters to be re-shipped to the UI
-            for (size_t i=0; i<vUIPorts.size(); ++i)
+            for (size_t i=0; i<vPorts.size(); ++i)
             {
-                vst2::UIPort  *vp   = vUIPorts.uget(i);
+                vst2::UIPort  *vp   = static_cast<vst2::UIPort *>(vPorts.uget(i));
                 if (vp != NULL)
                     vp->notify_all();
             }
@@ -343,26 +334,7 @@ namespace lsp
             transfer_dsp_to_ui();
 
             // Show the UI window
-            tk::Window *wnd     = window();
-
-            // TODO
-//            ws::size_limit_t sr;
-//            wnd->get_padded_size_limits(&sr);
-//            wnd->size_request(&sr);
-//
-//            sRect.top           = 0;
-//            sRect.left          = 0;
-//            sRect.right         = sr.nMinWidth;
-//            sRect.bottom        = sr.nMinHeight;
-//
-//            ws::rectangle_t r;
-//            r.nLeft             = 0;
-//            r.nTop              = 0;
-//            r.nWidth            = sr.nMinWidth;
-//            r.nHeight           = sr.nMinHeight;
-//            resize_ui(&r);
-//
-            wnd->show();
+            window()->show();
 
             return true;
         }
@@ -417,6 +389,15 @@ namespace lsp
             UIWrapper *wrapper = static_cast<UIWrapper *>(ptr);
             ws::rectangle_t *rect = static_cast<ws::rectangle_t *>(data);
             wrapper->resize_ui(rect);
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
+        {
+            UIWrapper *wrapper = static_cast<UIWrapper *>(ptr);
+            ws::rectangle_t rect;
+            wrapper->window()->get_screen_rectangle(&rect);
+            wrapper->resize_ui(&rect);
             return STATUS_OK;
         }
 

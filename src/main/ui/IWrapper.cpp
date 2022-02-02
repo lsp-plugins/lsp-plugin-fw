@@ -189,7 +189,8 @@ namespace lsp
             // Destroy ports
             for (size_t i=0, n=vPorts.size(); i<n; ++i)
             {
-                IPort *p = vPorts.uget(i);
+                ui::IPort *p = vPorts.uget(i);
+                p->unbind_all();
                 lsp_trace("destroy UI port id=%s", p->metadata()->id);
                 delete p;
             }
