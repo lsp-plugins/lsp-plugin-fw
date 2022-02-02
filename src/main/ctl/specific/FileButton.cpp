@@ -226,6 +226,8 @@ namespace lsp
                 bind_port(&pCommand, "command.id", name, value);
                 bind_port(&pProgress, "progress_id", name, value);
                 bind_port(&pProgress, "progress.id", name, value);
+                bind_port(&pPathPort, "path.id", name, value);
+                bind_port(&pPathPort, "path_id", name, value);
 
                 set_expr(&sProgress, "progress", name, value);
                 set_expr(&sStatus, "status", name, value);
