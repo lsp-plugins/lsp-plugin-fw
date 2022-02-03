@@ -1577,6 +1577,13 @@ namespace lsp
         {
             return &sGlobalVars;
         }
+
+        status_t IWrapper::reset_settings()
+        {
+            lsp_trace("Resetting plugin settings");
+            // TODO: implement reset code here
+            return STATUS_OK;
+        }
     }
 } /* namespace lsp */
 

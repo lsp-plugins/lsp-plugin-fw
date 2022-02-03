@@ -53,6 +53,11 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t Module::reset_settings()
+        {
+            return pWrapper->reset_settings();
+        }
+
         void Module::do_destroy()
         {
             // Forget the root widget

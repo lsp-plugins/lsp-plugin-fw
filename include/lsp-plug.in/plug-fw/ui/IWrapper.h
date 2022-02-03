@@ -356,6 +356,12 @@ namespace lsp
                  * @return global variables
                  */
                 virtual expr::Variables    *global_variables();
+
+                /**
+                 * Reset the plugin settings
+                 * @return status of operation
+                 */
+                virtual status_t            reset_settings();
         };
     }
 

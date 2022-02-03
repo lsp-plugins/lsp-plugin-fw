@@ -68,6 +68,7 @@
 #define WUID_EXPORT_MENU                    "export_menu"
 #define WUID_IMPORT_MENU                    "import_menu"
 #define WUID_LANGUAGE_MENU                  "language_menu"
+#define WUID_RESET_SETTINGS_MENU            "reset_settings_menu"
 
 // Special ports for handling current time
 #define TIME_PORT_PREFIX                    "_time_"

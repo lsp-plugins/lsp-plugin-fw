@@ -86,6 +86,11 @@ namespace lsp
                  */
                 virtual status_t                pre_destroy();
 
+                /**
+                 * Reset the settings of the plugin.
+                 */
+                virtual status_t                reset_settings();
+
             public:
                 inline const meta::plugin_t    *metadata() const        { return pMetadata;         }
                 inline IWrapper                *wrapper()               { return pWrapper;          }

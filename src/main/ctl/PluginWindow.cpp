@@ -92,6 +92,7 @@ namespace lsp
             wMenu           = NULL;
             wUIScaling      = NULL;
             wFontScaling    = NULL;
+            wResetSettings  = NULL;
             wExport         = NULL;
             wImport         = NULL;
             wPreferHost     = NULL;
@@ -188,6 +189,7 @@ namespace lsp
             wGreeting       = NULL;
             wAbout          = NULL;
             wMenu           = NULL;
+            wResetSettings  = NULL;
             wExport         = NULL;
             wImport         = NULL;
             wPreferHost     = NULL;
@@ -255,6 +257,7 @@ namespace lsp
                 wnd->actions()->deny(ws::WA_RESIZE);
 
             LSP_STATUS_ASSERT(create_main_menu());
+            LSP_STATUS_ASSERT(create_reset_settings_menu());
 
             // Bind event handlers
             wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
@@ -405,6 +408,32 @@ namespace lsp
                     init_r3d_support(wMenu);
 
                 init_presets(wMenu);
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::create_reset_settings_menu()
+        {
+            tk::Window *wnd             = tk::widget_cast<tk::Window>(wWidget);
+            tk::Display *dpy            = wnd->display();
+
+            // Initialize menu
+            wResetSettings              = new tk::Menu(dpy);
+            widgets()->add(WUID_RESET_SETTINGS_MENU, wResetSettings);
+            wResetSettings->init();
+            inject_style(wResetSettings, "PluginWindow::ResetMenu");
+
+            // Initialize menu items
+            {
+                // Add 'Reset' menu item
+                tk::MenuItem *itm       = new tk::MenuItem(dpy);
+                widgets()->add(itm);
+                itm->init();
+                itm->text()->set("actions.reset");
+                inject_style(itm, "PluginWindow::ResetMenu::Reset");
+                itm->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
+                wResetSettings->add(itm);
             }
 
             return STATUS_OK;
@@ -1416,7 +1445,14 @@ namespace lsp
 
         status_t PluginWindow::slot_reset_settings(tk::Widget *sender, void *ptr, void *data)
         {
-            return STATUS_OK;
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            return __this->show_menu(__this->wResetSettings, sender, data);
+        }
+
+        status_t PluginWindow::slot_confirm_reset_settings(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            return __this->pWrapper->ui()->reset_settings();
         }
 
         static const char * manual_prefixes[] =
