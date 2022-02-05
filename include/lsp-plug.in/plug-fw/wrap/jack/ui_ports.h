@@ -164,36 +164,6 @@ namespace lsp
                 }
         };
 
-        class UIInPort: public UIPort
-        {
-            private:
-                float   fValue;
-
-            public:
-                explicit UIInPort(jack::Port *port): UIPort(port)
-                {
-                    fValue      = port->value();
-                }
-
-                virtual ~UIInPort()
-                {
-                    fValue      = pMetadata->start;
-                }
-
-            public:
-                virtual float value()
-                {
-                    return fValue;
-                }
-
-                virtual bool sync()
-                {
-                    float value = fValue;
-                    fValue      = pPort->value();
-                    return fValue != value;
-                }
-        };
-
         class UIMeshPort: public UIPort
         {
             private:
@@ -432,6 +402,11 @@ namespace lsp
                     // Submit path string to DSP
                     if (pPath != NULL)
                         pPath->submit(sPath, flags);
+                }
+
+                virtual void set_default()
+                {
+                    write("", 0, plug::PF_PRESET_IMPORT);
                 }
         };
     }

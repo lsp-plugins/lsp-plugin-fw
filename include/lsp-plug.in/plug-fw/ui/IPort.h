@@ -100,6 +100,11 @@ namespace lsp
                  */
                 virtual float       default_value();
 
+                /**
+                 * Set the value to the default
+                 */
+                virtual void        set_default();
+
                 /** Set single float value
                  *
                  * @param value value to set

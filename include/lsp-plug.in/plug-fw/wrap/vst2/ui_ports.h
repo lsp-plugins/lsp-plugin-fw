@@ -349,6 +349,11 @@ namespace lsp
                     if (pPath != NULL)
                         pPath->submit(static_cast<const char *>(buffer), size, true, flags);
                 }
+
+                virtual void set_default()
+                {
+                    write("", 0, plug::PF_PRESET_IMPORT);
+                }
         };
 
         class UIOscPortIn: public UIPort

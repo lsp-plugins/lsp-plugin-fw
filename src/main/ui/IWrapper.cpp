@@ -1581,7 +1581,23 @@ namespace lsp
         status_t IWrapper::reset_settings()
         {
             lsp_trace("Resetting plugin settings");
-            // TODO: implement reset code here
+
+            for (size_t i=0, n=vPorts.size(); i<n; ++i)
+            {
+                // Get the port
+                ui::IPort *p = vPorts.uget(i);
+                if (p == NULL)
+                    continue;
+
+                // Skip output ports
+                if (meta::is_out_port(p->metadata()))
+                    continue;
+
+                // Reset port value to default
+                p->set_default();
+                p->notify_all();
+            }
+
             return STATUS_OK;
         }
     }

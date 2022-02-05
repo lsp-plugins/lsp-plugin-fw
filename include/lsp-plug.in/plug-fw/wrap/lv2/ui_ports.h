@@ -846,6 +846,11 @@ namespace lsp
                 {
                     return sPath;
                 }
+
+                virtual void set_default()
+                {
+                    write("", 0, plug::PF_PRESET_IMPORT);
+                }
         };
     } /* namespace lv2 */
 } /* namespace lsp */
