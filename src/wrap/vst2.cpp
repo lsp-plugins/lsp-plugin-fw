@@ -792,6 +792,10 @@ namespace lsp
                 vst2::Wrapper *wrapper  = new vst2::Wrapper(plugin, loader, e, callback);
                 if (wrapper != NULL)
                 {
+                    // These objects will be automatically destroyed by the wrapper->destroy()
+                    plugin = NULL;
+                    loader = NULL;
+
                     // Initialize effect structure
                     ::bzero(e, sizeof(AEffect));
 
@@ -823,17 +827,19 @@ namespace lsp
                         return e;
 
                     lsp_error("Error initializing plugin wrapper, code: %d", int(res));
-                    delete wrapper;
                 }
                 else
                     lsp_error("Error allocating plugin wrapper");
-                delete loader;
+
+                if (loader != NULL)
+                    delete loader;
             }
             else
                 lsp_error("No resource loader available");
 
-            delete plugin;
-            finalize(e);
+            if (plugin != NULL)
+                delete plugin;
+            vst2::finalize(e);
 
             // Plugin could not be instantiated
             return NULL;

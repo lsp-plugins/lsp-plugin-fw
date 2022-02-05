@@ -77,8 +77,6 @@ namespace lsp
             const char *                   bundle_path,
             const LV2_Feature *const *     features)
         {
-            //lsp_debug_init("lv2"); // TODO
-
             // Check sample rate
             if (sample_rate > MAX_SAMPLE_RATE)
             {

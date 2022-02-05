@@ -69,8 +69,6 @@ namespace lsp
 
         LADSPA_Handle instantiate(const LADSPA_Descriptor *descriptor, unsigned long sample_rate)
         {
-            IF_DEBUG( lsp::debug::redirect("lsp-ladspa.log"); );
-
             // Check sample rate
             if (sample_rate > MAX_SAMPLE_RATE)
             {
@@ -504,6 +502,8 @@ namespace lsp
 LSP_CSYMBOL_EXPORT
 const LADSPA_Descriptor *ladspa_descriptor(unsigned long index)
 {
+    IF_DEBUG( lsp::debug::redirect("lsp-ladspa.log"); );
+
     lsp::ladspa::gen_descriptors();
     return lsp::ladspa::descriptors.get(index);
 }

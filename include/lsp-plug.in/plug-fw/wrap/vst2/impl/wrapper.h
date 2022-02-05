@@ -190,6 +190,13 @@ namespace lsp
                 pPackage        = NULL;
             }
 
+            // Delete the loader
+            if (pLoader != NULL)
+            {
+                delete pLoader;
+                pLoader = NULL;
+            }
+
             // Clear all port lists
             vAudioPorts.clear();
             vParams.clear();
