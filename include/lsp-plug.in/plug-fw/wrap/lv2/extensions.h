@@ -230,7 +230,7 @@ namespace lsp
                         {
                             const LV2_Feature *f = feat[i];
 
-                            lsp_trace("Host reported extension uri=%s, data=%p", f->URI, f->data);
+                            lsp_trace("Host reported extension uri=%sp", f->URI);
 
                             if (!strcmp(f->URI, LV2_URID__map))
                                 map = reinterpret_cast<LV2_URID_Map *>(f->data);
