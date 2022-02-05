@@ -84,6 +84,7 @@ namespace lsp
             params->set_cstring("meta_pkg_artifact", package->artifact);
             params->set_cstring("meta_pkg_artifact_name", package->artifact_name);
             params->set_cstring("meta_pkg_brand", package->brand);
+            params->set_cstring("meta_pkg_copyright", package->copyright);
             params->set_cstring("meta_pkg_short_name", package->short_name);
             params->set_cstring("meta_pkg_full_name", package->full_name);
             params->set_cstring("meta_pkg_site", package->site);
