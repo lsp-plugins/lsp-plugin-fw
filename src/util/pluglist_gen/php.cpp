@@ -41,7 +41,7 @@ namespace lsp
             while (true)
             {
                 char ch = *(value++);
-                if (ch == '0')
+                if (ch == '\0')
                     break;
                 else if ((ch == '\'') || (ch == '\\'))
                     buf.append('\\');
@@ -171,7 +171,7 @@ namespace lsp
             fprintf(out, "\n");
             fprintf(out, "\t$PACKAGE = array(\n");
             php_write_package_info(out, package);
-            fprintf(out, "\n\t);\n\n");
+            fprintf(out, "\t);\n\n");
             fprintf(out, "\t$PLUGINS = array(\n");
 
             // Output plugins

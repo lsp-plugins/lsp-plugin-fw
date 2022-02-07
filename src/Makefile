@@ -375,7 +375,7 @@ HOST_UTL_RESPACK_OBJS           = \
 
 HOST_UTL_PLUGLIST_GEN           = $(HOST_UTL_BIN_PATH)/pluglist_gen$(EXECUTABLE_EXT)
 HOST_UTL_PLUGLIST_GEN_OBJ       = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/pluglist_gen, *.cpp))
-HOST_UTL_PLUGLIST_GEN_MAIN_OBJ  = $(HOST_LSP_PLUGIN_FW_BIN)/util/lv2ttl_gen.o
+HOST_UTL_PLUGLIST_GEN_MAIN_OBJ  = $(HOST_LSP_PLUGIN_FW_BIN)/util/pluglist_gen.o
 HOST_UTL_PLUGLIST_GEN_DEPS_ALL  = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
 HOST_UTL_PLUGLIST_GEN_DEPS      = $(foreach dep, $(HOST_UTL_PLUGLIST_GEN_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
 HOST_UTL_PLUGLIST_GEN_LIBS      = $(foreach dep, $(HOST_UTL_PLUGLIST_GEN_DEPS_ALL), $($(dep)_OBJ))
@@ -387,8 +387,8 @@ HOST_UTL_PLUGLIST_GEN_OBJS      = \
   $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
   $(HOST_OBJ_PLUG_META) \
   $(HOST_OBJ_PLUG_DSP) \
-  $(HOST_UTL_LV2TTL_GEN_OBJ) \
-  $(HOST_UTL_LV2TTL_GEN_MAIN_OBJ)
+  $(HOST_UTL_PLUGLIST_GEN_OBJ) \
+  $(HOST_UTL_PLUGLIST_GEN_MAIN_OBJ)
 
 #------------------------------------------------------------------------------
 # Plugins
@@ -840,7 +840,7 @@ vst2: $(HOST_UTL_VST2_MAKE) $(ARTIFACT_LIB_VST2)
 
 meta: $(HOST_UTL_PLUGLIST_GEN)
 	echo "  $(notdir $(HOST_UTL_PLUGLIST_GEN)) [$(ARTIFACT_NAME)]"
-	$(HOST_UTL_PLUGLIST_GEN) --php "$(ARTIFACT_PLUG_FW_BIN)/plugins.php" --json "$(ARTIFACT_PLUG_FW_BIN)/plugins.json"
+	$(HOST_UTL_PLUGLIST_GEN) --php "$(LSP_PLUGIN_FW_BIN)/plugins.php" --json "$(LSP_PLUGIN_FW_BIN)/plugins.json"
 
 test: $(ARTIFACT_BIN_TEST)
 

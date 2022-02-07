@@ -155,6 +155,8 @@ namespace lsp
                     res = loader->last_error();
                 delete loader;
             }
+            else
+                res = STATUS_NOT_FOUND;
 
             if (res != STATUS_OK)
                 fprintf(stderr, "Error loading manifest file, error=%d", int(res));
