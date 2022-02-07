@@ -373,6 +373,23 @@ HOST_UTL_RESPACK_OBJS           = \
   $(HOST_UTL_RESPACK_OBJ) \
   $(HOST_UTL_RESPACK_MAIN_OBJ)
 
+HOST_UTL_PLUGLIST_GEN           = $(HOST_UTL_BIN_PATH)/pluglist_gen$(EXECUTABLE_EXT)
+HOST_UTL_PLUGLIST_GEN_OBJ       = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/pluglist_gen, *.cpp))
+HOST_UTL_PLUGLIST_GEN_MAIN_OBJ  = $(HOST_LSP_PLUGIN_FW_BIN)/util/lv2ttl_gen.o
+HOST_UTL_PLUGLIST_GEN_DEPS_ALL  = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
+HOST_UTL_PLUGLIST_GEN_DEPS      = $(foreach dep, $(HOST_UTL_PLUGLIST_GEN_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
+HOST_UTL_PLUGLIST_GEN_LIBS      = $(foreach dep, $(HOST_UTL_PLUGLIST_GEN_DEPS_ALL), $($(dep)_OBJ))
+HOST_UTL_PLUGLIST_GEN_LDFLAGS   = $(foreach dep, $(HOST_UTL_PLUGLIST_GEN_DEPS_ALL), $($(dep)_LDFLAGS))
+HOST_UTL_PLUGLIST_GEN_OBJS      = \
+  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
+  $(HOST_OBJ_PLUG_META) \
+  $(HOST_OBJ_PLUG_DSP) \
+  $(HOST_UTL_LV2TTL_GEN_OBJ) \
+  $(HOST_UTL_LV2TTL_GEN_MAIN_OBJ)
+
 #------------------------------------------------------------------------------
 # Plugins
 OBJ_PLUG_META               = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_META))
@@ -505,7 +522,8 @@ ifeq ($(TEST),1)
     $(HOST_UTL_VST2_MAKE_OBJ) \
     $(HOST_UTL_LV2TTL_GEN_OBJ) \
     $(HOST_UTL_REPOSITORY_OBJ) \
-    $(HOST_UTL_RESPACK_OBJ)
+    $(HOST_UTL_RESPACK_OBJ) \
+    $(HOST_UTL_PLUGLIST_GEN_OBJ)
 endif
 
 BIN_INSTALL                 = $(foreach dep, $(DEPENDENCIES_BIN), install_$(dep))
@@ -554,7 +572,7 @@ HOST_DEP_DEP_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
 
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
-.PHONY: jack ladspa dssi lv2 vst2 test
+.PHONY: jack ladspa dssi lv2 vst2 test meta
 .PHONY: resources
 .PHONY: install_jack install_ladspa install_lv2 install_vst2
 .PHONY: uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2
@@ -743,6 +761,11 @@ $(HOST_UTL_RESPACK): $(HOST_UTL_RESPACK_DEPS) $(HOST_UTL_RESPACK_OBJS) $(HOST_PL
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
 	$(HOST_CXX) -o $(@) $(HOST_UTL_RESPACK_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_RESPACK_LIBS) $(HOST_EXE_FLAGS) $(HOST_UTL_RESPACK_LDFLAGS)
+	
+$(HOST_UTL_PLUGLIST_GEN): $(HOST_UTL_PLUGLIST_GEN_DEPS) $(HOST_UTL_PLUGLIST_GEN_OBJS) $(HOST_PLUG_DEPS)
+	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+	mkdir -p $(dir $(@))
+	$(HOST_CXX) -o $(@) $(HOST_UTL_PLUGLIST_GEN_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_PLUGLIST_GEN_LIBS) $(HOST_EXE_FLAGS) $(HOST_UTL_PLUGLIST_GEN_LDFLAGS)
 
 #------------------------------------------------------------------------------
 # Binaries
@@ -815,9 +838,13 @@ vst2: $(HOST_UTL_VST2_MAKE) $(ARTIFACT_LIB_VST2)
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
+meta: $(HOST_UTL_PLUGLIST_GEN)
+	echo "  $(notdir $(HOST_UTL_PLUGLIST_GEN)) [$(ARTIFACT_NAME)]"
+	$(HOST_UTL_PLUGLIST_GEN) --php "$(ARTIFACT_PLUG_FW_BIN)/plugins.php" --json "$(ARTIFACT_PLUG_FW_BIN)/plugins.json"
+
 test: $(ARTIFACT_BIN_TEST)
 
-all: $(DEPENDENCIES_BIN) test jack ladspa lv2 vst2
+all: $(DEPENDENCIES_BIN) test jack ladspa lv2 vst2 meta
 
 #------------------------------------------------------------------------------
 # Installation
