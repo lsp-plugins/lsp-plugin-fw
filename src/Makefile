@@ -78,6 +78,15 @@ HOST_DEPENDENCIES               = $(filter-out $(HOST_UNIQ_DEPENDENCIES_BIN), $(
 HOST_DEPENDENCIES_BIN           = $(HOST_UNIQ_DEPENDENCIES_BIN)
 HOST_PLUGIN_DEPENDENCIES        = $(HOST_UNIQ_PLUGIN_DEPENDENCIES)
 
+#------------------------------------------------------------------------------
+# Nested variables
+SRC_DEPS                    = $(foreach dep, $(DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
+PLUG_DEPS                   = $(foreach dep, $(DEPENDENCIES) $(PLUGIN_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
+
+HOST_SRC_DEPS               = $(foreach dep, $(HOST_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
+HOST_PLUG_DEPS              = $(foreach dep, $(HOST_DEPENDENCIES) $(HOST_PLUGIN_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
+
+#------------------------------------------------------------------------------
 # Miscellaneous names and paths
 PLUGIN_ARTIFACT_ID     := $(ROOT_ARTIFACT_ID)
 PLUGIN_ARTIFACT_NAME   := $(if $(PLUGIN_PACKAGE_NAME),$(PLUGIN_PACKAGE_NAME),$($(ROOT_ARTIFACT_ID)_NAME))
@@ -526,18 +535,19 @@ ifeq ($(TEST),1)
     $(HOST_UTL_PLUGLIST_GEN_OBJ)
 endif
 
+ARTIFACT_DOC_BLD_PATH       = $(LSP_PLUGIN_FW_BIN)/doc
+ARTIFACT_DOC_PATH           = $(LSP_PLUGIN_FW_BIN)/html
+ARTIFACT_DOC_DEPS_ALL       = $(foreach dep, $(call uniq,$(SRC_DEPS) $(PLUG_DEPS)), $(if $(wildcard $($(dep)_SRC)/doc/*),$(dep)))
+ARTIFACT_DOC_SRC_ALL        = $(foreach dep, $(ARTIFACT_DOC_DEPS_ALL), $($(dep)_SRC)/doc/*)
+
+$(info SRC_DEPS=SRC_DEPS)
+$(info ARTIFACT_DOC_DEPS_ALL=$(ARTIFACT_DOC_DEPS_ALL))
+$(info ARTIFACT_DOC_SRC_ALL=$(ARTIFACT_DOC_SRC_ALL))
+
 BIN_INSTALL                 = $(foreach dep, $(DEPENDENCIES_BIN), install_$(dep))
 BIN_UNINSTALL               = $(foreach dep, $(DEPENDENCIES_BIN), uninstall_$(dep))
 BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
 BIN_UNINST_ARTIFACT_ID      = $(patsubst uninstall_%,%,$(@))
-
-#------------------------------------------------------------------------------
-# Nested variables
-SRC_DEPS                    = $(foreach dep, $(DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
-PLUG_DEPS                   = $(foreach dep, $(DEPENDENCIES) $(PLUGIN_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
-
-HOST_SRC_DEPS               = $(foreach dep, $(HOST_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
-HOST_PLUG_DEPS              = $(foreach dep, $(HOST_DEPENDENCIES) $(HOST_PLUGIN_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
 
 #------------------------------------------------------------------------------
 # Functional variables
@@ -572,10 +582,10 @@ HOST_DEP_DEP_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
 
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
-.PHONY: jack ladspa dssi lv2 vst2 test meta
+.PHONY: jack ladspa dssi lv2 vst2 test meta doc
 .PHONY: resources
-.PHONY: install_jack install_ladspa install_lv2 install_vst2
-.PHONY: uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2
+.PHONY: install_jack install_ladspa install_lv2 install_vst2 install_doc
+.PHONY: uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2 uninstall_doc
 .PHONY: $(DEPENDENCIES) $(DEPENDENCIES_BIN)
 .PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL)
 
@@ -842,9 +852,20 @@ meta: $(HOST_UTL_PLUGLIST_GEN)
 	echo "  $(notdir $(HOST_UTL_PLUGLIST_GEN)) [$(ARTIFACT_NAME)]"
 	$(HOST_UTL_PLUGLIST_GEN) --php "$(LSP_PLUGIN_FW_BIN)/plugins.php" --json "$(LSP_PLUGIN_FW_BIN)/plugins.json"
 
+doc: meta
+	mkdir -p $(ARTIFACT_DOC_BLD_PATH)
+	mkdir -p $(ARTIFACT_DOC_PATH)
+	cp -R $(ARTIFACT_DOC_SRC_ALL) $(ARTIFACT_DOC_BLD_PATH)/
+	cp "$(ROOTDIR)/README.md" $(ARTIFACT_DOC_BLD_PATH)/
+	cp $(wildcard $(ROOTDIR)/COPYING*) $(wildcard $(ROOTDIR)/LICENSE*) $(ARTIFACT_DOC_BLD_PATH)/
+	cp -R "$(LSP_PLUGIN_FW_BIN)/plugins.php" $(ARTIFACT_DOC_BLD_PATH)/config
+	echo $(PHP) makefile.php
+	$(PHP) $(ARTIFACT_DOC_BLD_PATH)/makefile.php "$(ARTIFACT_DOC_BLD_PATH)" > $(ARTIFACT_DOC_BLD_PATH)/Makefile
+	$(MAKE) -C "$(ARTIFACT_DOC_BLD_PATH)" PHP=$(PHP) HTMLDIR=$(ARTIFACT_DOC_PATH) VERBOSE=$(VERBOSE)
+
 test: $(ARTIFACT_BIN_TEST)
 
-all: $(DEPENDENCIES_BIN) test jack ladspa lv2 vst2 meta
+all: $(DEPENDENCIES_BIN) test jack ladspa lv2 vst2 meta doc
 
 #------------------------------------------------------------------------------
 # Installation
