@@ -32,25 +32,6 @@ namespace lsp
 {
     namespace pluglist_gen
     {
-        static const char *php_escape(LSPString &buf, const char *value)
-        {
-            if (value == NULL)
-                return "null";
-
-            buf.clear();
-            while (true)
-            {
-                char ch = *(value++);
-                if (ch == '\0')
-                    break;
-                else if ((ch == '\'') || (ch == '\\'))
-                    buf.append('\\');
-                buf.append(ch);
-            }
-
-            return buf.get_utf8();
-        }
-
         static const char *php_escape(LSPString &buf, const LSPString *value)
         {
             if (value == NULL)
@@ -66,6 +47,18 @@ namespace lsp
             }
 
             return buf.get_utf8();
+        }
+
+        static const char *php_escape(LSPString &buf, const char *value)
+        {
+            if (value == NULL)
+                return "null";
+
+            LSPString tmp;
+            if (!tmp.set_utf8(value))
+                return NULL;
+
+            return php_escape(buf, &tmp);
         }
 
         void php_print_plugin_groups(FILE *out, const int *c)
