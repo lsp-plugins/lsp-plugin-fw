@@ -22,6 +22,9 @@
 # List of all plugin dependencies
 PLUGIN_PACKAGE_NAME     = lsp-plugins
 
+PLUGIN_SHARED = \
+  LSP_PLUGINS_SHARED
+
 PLUGIN_DEPENDENCIES     = \
   LSP_PLUGINS_COMP_DELAY \
   LSP_PLUGINS_PHASE_DETECTOR \

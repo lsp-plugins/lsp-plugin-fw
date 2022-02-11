@@ -24,7 +24,7 @@ endif
 # Definitions
 PREFIX                     := /usr/local
 LIBDIR                     := $(PREFIX)/lib
-BINDIR                     := $(PREFIX)/binARTIFACT_ID
+BINDIR                     := $(PREFIX)/bin
 INCDIR                     := $(PREFIX)/include
 BASEDIR                    := $(CURDIR)
 ROOTDIR                    := $(CURDIR)
@@ -59,7 +59,8 @@ MERGED_DEPENDENCIES        := \
   $(DEPENDENCIES_BIN) \
   $(TEST_DEPENDENCIES) \
   $(TEST_DEPENDENCIES_UI) \
-  $(PLUGIN_DEPENDENCIES)
+  $(PLUGIN_DEPENDENCIES) \
+  $(PLUGIN_SHARED)
 UNIQ_MERGED_DEPENDENCIES   := $(call uniq, $(MERGED_DEPENDENCIES))
 DEPENDENCIES                = $(UNIQ_MERGED_DEPENDENCIES)
 
@@ -70,6 +71,7 @@ ifeq ($(findstring -devel,$(ARTIFACT_VERSION)),-devel)
   )
   # Strip '-devel' from version
   tmp_version :=$(shell echo "$(ARTIFACT_VERSION)" | sed s/-devel//g)
+  ARTIFACT_VERSION=$(tmp_version)
 else
   $(foreach dep,$(DEPENDENCIES),\
     $(eval $(dep)_BRANCH="$($(dep)_VERSION)") \
@@ -226,8 +228,15 @@ define vardef =
 endef
 
 # Define predefined variables
+ifndef ARTIFACT_TYPE
+  ARTIFACT_TYPE              := src
+endif
+
 ifndef $(ARTIFACT_ID)_NAME
   $(ARTIFACT_ID)_NAME        := $(ARTIFACT_NAME)
+endif
+ifndef $(ARTIFACT_ID)_TYPE
+  $(ARTIFACT_ID)_TYPE        := $(ARTIFACT_TYPE)
 endif
 ifndef $(ARTIFACT_ID)_DESC
   $(ARTIFACT_ID)_DESC        := $(ARTIFACT_DESC)
@@ -244,7 +253,6 @@ endif
 
 ROOT_ARTIFACT_ID           := $(ARTIFACT_ID)
 $(ARTIFACT_ID)_TESTING      = $(TEST)
-$(ARTIFACT_ID)_TYPE        := src
 
 OVERALL_DEPS := $(call uniq,$(DEPENDENCIES) $(ARTIFACT_ID))
 __tmp := $(foreach dep,$(OVERALL_DEPS),$(call vardef, $(dep)))
