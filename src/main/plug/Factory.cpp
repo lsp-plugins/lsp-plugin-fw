@@ -45,6 +45,18 @@ namespace lsp
             nItems      = items;
         }
 
+        Factory::Factory(factory_func_t func, const meta::plugin_t **list)
+        {
+            pNext       = pRoot;
+            pRoot       = this;
+            pFunc       = func;
+            vList       = list;
+            nItems      = 0;
+
+            for (; *list != NULL; ++list)
+                ++nItems;
+        }
+
         Factory::~Factory()
         {
             pNext       = NULL;

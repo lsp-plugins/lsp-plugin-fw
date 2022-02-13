@@ -63,6 +63,7 @@ namespace lsp
             public:
                 explicit Factory();
                 explicit Factory(factory_func_t func, const meta::plugin_t **list, size_t items);
+                explicit Factory(factory_func_t func, const meta::plugin_t **list);
                 virtual ~Factory();
 
             public:
