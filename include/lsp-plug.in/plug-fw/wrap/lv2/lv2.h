@@ -47,7 +47,7 @@
 #include <lsp-plug.in/3rdparty/ardour/inline-display.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ext/osc.h>
 
-// Some definitions that may be lacking in LV2
+// Some definitions that may be lacking in older LV2 headers
 #ifndef LV2_ATOM__Object
     #define LV2_ATOM__Object            LV2_ATOM_PREFIX "Object"
 #endif /* LV2_ATOM__Object */
@@ -56,5 +56,8 @@
     #define LV2_STATE__StateChanged     LV2_STATE_PREFIX "StateChanged"
 #endif /* LV2_STATE__StateChanged */
 
+#ifndef LV2_UI__scaleFactor
+    #define LV2_UI__scaleFactor         LV2_UI_PREFIX "scaleFactor"
+#endif /* LV2_UI__scaleFactor */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_LV2_LV2_H_ */
