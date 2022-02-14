@@ -214,6 +214,8 @@ namespace lsp
                 void                sync_visual_schemas();
                 void                bind_trigger(const char *uid, tk::event_handler_t handler);
 
+                status_t            init_context(ui::UIContext *ctx);
+
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);
                 virtual ~PluginWindow();

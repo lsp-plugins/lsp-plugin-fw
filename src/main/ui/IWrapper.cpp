@@ -1361,6 +1361,11 @@ namespace lsp
             return NULL;
         }
 
+        const meta::plugin_t *IWrapper::metadata() const
+        {
+            return (pUI != NULL) ? pUI->metadata() : NULL;
+        }
+
         float IWrapper::ui_scaling_factor(float scaling)
         {
             return scaling;

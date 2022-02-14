@@ -1188,11 +1188,11 @@ namespace lsp
         void PluginWindow::begin(ui::UIContext *ctx)
         {
             Window::begin(ctx);
+            status_t res;
 
             // Create context
-            ui::UIContext xctx(pWrapper, controllers(), widgets());
-            status_t res = xctx.init();
-            if (res != STATUS_OK)
+            ui::UIContext uctx(pWrapper, controllers(), widgets());
+            if ((res = init_context(&uctx)) != STATUS_OK)
                 return;
 
             // Parse the XML document
@@ -1200,7 +1200,7 @@ namespace lsp
             if (wnd.init() != STATUS_OK)
                 return;
 
-            ui::xml::RootNode root(&xctx, "window", &wnd);
+            ui::xml::RootNode root(&uctx, "window", &wnd);
             ui::xml::Handler handler(pWrapper->resources());
             res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/window.xml", &root);
             if (res != STATUS_OK)
@@ -1782,6 +1782,28 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::init_context(ui::UIContext *uctx)
+        {
+            status_t res;
+            if ((res = uctx->init()) != STATUS_OK)
+                return res;
+
+            const meta::package_t *pkg = pWrapper->package();
+            if (pkg != NULL)
+                uctx->root()->set_string("package_id", pkg->artifact);
+
+            const meta::plugin_t *plug = pWrapper->metadata();
+            if (plug != NULL)
+            {
+                uctx->root()->set_string("plugin_id", plug->uid);
+                const meta::bundle_t *bundle = plug->bundle;
+                if (bundle != NULL)
+                    uctx->root()->set_string("bundle_id", bundle->uid);
+            }
+
+            return res;
+        }
+
         status_t PluginWindow::show_about_window()
         {
             lsp_trace("Showing about dialog");
@@ -1828,7 +1850,7 @@ namespace lsp
             wc->init();
 
             ui::UIContext uctx(pWrapper, wc->controllers(), wc->widgets());
-            if ((res = uctx.init()) != STATUS_OK)
+            if ((res = init_context(&uctx)) != STATUS_OK)
                 return res;
 
             // Parse the XML document

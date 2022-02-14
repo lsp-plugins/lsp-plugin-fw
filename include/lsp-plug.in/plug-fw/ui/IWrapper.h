@@ -352,6 +352,12 @@ namespace lsp
                 virtual const meta::package_t  *package() const;
 
                 /**
+                 * Get plugin metadata
+                 * @return plugin metadata
+                 */
+                const meta::plugin_t           *metadata() const;
+
+                /**
                  * Get global variables
                  * @return global variables
                  */

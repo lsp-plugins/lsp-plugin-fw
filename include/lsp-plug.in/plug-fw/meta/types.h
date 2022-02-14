@@ -327,7 +327,7 @@ namespace lsp
             const char             *name;           // Bundle name
             bundle_group_t          group;          // Bundle group
             const char             *video_id;       // Bundle video identifier
-            const char             *descriptoin;    // Bundle description
+            const char             *description;    // Bundle description
         } bundle_t;
 
         /**
