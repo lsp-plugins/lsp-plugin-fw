@@ -168,6 +168,22 @@ namespace lsp
                 C_MIXER
         };
 
+        /**
+         * Different bundle groups
+         */
+        enum bundle_group_t
+        {
+            B_ANALYZERS,
+            B_CONVOLUTION,
+            B_DELAYS,
+            B_DYNAMICS,
+            B_EQUALIZERS,
+            B_MB_DYNAMICS,
+            B_MB_PROCESSING,
+            B_SAMPLERS,
+            B_UTILITIES
+        };
+
         enum plugin_extension_t
         {
             E_NONE                  = 0,        // No extensions
@@ -303,6 +319,18 @@ namespace lsp
         } package_t;
 
         /**
+         * Plugin bundle
+         */
+        typedef struct bundle_t
+        {
+            const char             *uid;            // Unique bundle identifier
+            const char             *name;           // Bundle name
+            bundle_group_t          group;          // Bundle group
+            const char             *video_id;       // Bundle video identifier
+            const char             *descriptoin;    // Bundle description
+        } bundle_t;
+
+        /**
          * Metadata for plugin instance classs
          */
         typedef struct plugin_t
@@ -324,6 +352,7 @@ namespace lsp
             const char             *ui_resource;    // Location of the UI file resource
             const char             *ui_presets;     // Prefix of the preset location
             const port_group_t     *port_groups;    // List of all port groups
+            const bundle_t         *bundle;         // Bundle associated with plugin
         } plugin_t;
     }
 }
