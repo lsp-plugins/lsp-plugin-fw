@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
@@ -34,7 +35,7 @@ namespace lsp
 {
     namespace pluglist_gen
     {
-        const php_plugin_group_t php_plugin_groups[] =
+        const enumeration_t plugin_groups[] =
         {
             { meta::C_DELAY,        "Delay" },
             { meta::C_REVERB,       "Reverb" },
@@ -75,6 +76,28 @@ namespace lsp
             { meta::C_MIXER,        "Mixer" },
             { -1, NULL }
         };
+
+        const enumeration_t bundle_groups[] =
+        {
+            { meta::B_ANALYZERS,        "analyzers" },
+            { meta::B_CONVOLUTION,      "convolution" },
+            { meta::B_DELAYS,           "delays" },
+            { meta::B_DYNAMICS,         "dynamics" },
+            { meta::B_EQUALIZERS,       "equalizers" },
+            { meta::B_MB_DYNAMICS,      "mb_dynamics" },
+            { meta::B_MB_PROCESSING,    "mb_processing" },
+            { meta::B_SAMPLERS,         "samplers" },
+            { meta::B_UTILITIES,        "utilities" },
+            { -1, NULL }
+        };
+
+        const char *get_enumeration(int id, const enumeration_t *list)
+        {
+            for(; list->id >= 0; ++list)
+                if (list->id == id)
+                    return list->name;
+            return NULL;
+        }
 
         status_t parse_cmdline(cmdline_t *cfg, int argc, const char **argv)
         {
@@ -169,7 +192,12 @@ namespace lsp
             return strcmp(p1->uid, p2->uid);
         }
 
-        static status_t scan_plugins(lltl::parray<meta::plugin_t> *plugins)
+        static ssize_t cmp_bundles(const meta::bundle_t *b1, const meta::bundle_t *b2)
+        {
+            return strcmp(b1->uid, b2->uid);
+        }
+
+        status_t scan_plugins(lltl::parray<meta::plugin_t> *plugins)
         {
             // Generate descriptors
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
@@ -193,11 +221,55 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t enum_bundles(
+            lltl::parray<meta::bundle_t> *bundles,
+            const meta::plugin_t * const *plugins,
+            size_t num_plugins)
+        {
+            lltl::pphash<char, meta::bundle_t> map;
+
+            // Output plugins
+            for (size_t i=0; i<num_plugins; ++i)
+            {
+                const meta::bundle_t *bundle = plugins[i]->bundle;
+                if ((bundle == NULL) || (bundle->uid == NULL))
+                    continue;
+
+                const meta::bundle_t *xbundle = map.get(bundle->uid);
+                if (xbundle == NULL)
+                {
+                    if (!map.create(bundle->uid, const_cast<meta::bundle_t *>(bundle)))
+                        return STATUS_NO_MEM;
+                }
+                else if (xbundle != bundle)
+                {
+                    if ((xbundle->group != bundle->group) ||
+                        (strcmp(xbundle->name, bundle->name)) ||
+                        (strcmp(xbundle->description, bundle->description)) ||
+                        (strcmp(xbundle->video_id, bundle->video_id)))
+                    {
+                        fprintf(stderr, "Conflicting bundles with id=%s detected\n", xbundle->uid);
+                        return STATUS_CORRUPTED;
+                    }
+                }
+            }
+
+            // Now we are ready to fetch all the list of bundles
+            if (!map.values(bundles))
+                return STATUS_NO_MEM;
+            bundles->qsort(cmp_bundles);
+            map.flush();
+
+            return STATUS_OK;
+        }
+
         status_t generate(const cmdline_t *cmd)
         {
             status_t res = STATUS_OK;
             meta::package_t *pkg = NULL;
             lltl::parray<meta::plugin_t> plugins;
+            lltl::parray<meta::bundle_t> bundles;
+
             const meta::plugin_t *const *pluglist;
 
             // Read the manifest file and obtain plugin list

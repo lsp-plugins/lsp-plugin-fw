@@ -41,8 +41,27 @@ namespace lsp
             for (size_t i=0, n=value->length(); i<n; ++i)
             {
                 lsp_wchar_t ch = value->at(i);
-                if ((ch == '\'') || (ch == '\\'))
-                    buf.append('\\');
+                switch (ch)
+                {
+                    case '\n':
+                        buf.append('\\');
+                        ch = 'n';
+                        break;
+                    case '\r':
+                        buf.append('\\');
+                        ch = 'r';
+                        break;
+                    case '\t':
+                        buf.append('\\');
+                        ch = 't';
+                        break;
+
+                    case '\'':
+                    case '\"':
+                    case '\\':
+                        buf.append('\\');
+                        break;
+                }
                 buf.append(ch);
             }
 
@@ -66,29 +85,21 @@ namespace lsp
             fprintf(out, "array(");
             size_t items = 0;
 
-            while ((c != NULL) && ((*c) >= 0))
+            for ( ; (c != NULL) && ((*c) >= 0) ; ++c)
             {
-                const php_plugin_group_t *grp = php_plugin_groups;
-
-                while ((grp != NULL) && (grp->id >= 0))
+                const char *grp = get_enumeration(*c, plugin_groups);
+                if (grp != NULL)
                 {
-                    if (grp->id == *c)
-                    {
-                        if ((items++) > 0)
-                            fprintf(out, ", ");
-                        fprintf(out, "'%s'", grp->name);
-                        break;
-                    }
-                    grp++;
+                    if ((items++) > 0)
+                        fprintf(out, ", ");
+                    fprintf(out, "'%s'", grp);
                 }
-
-                c++;
             }
 
             fprintf(out, ")");
         }
 
-        void php_gen_plugin_descriptor(FILE *out, const meta::plugin_t *m)
+        void php_write_plugin_descriptor(FILE *out, const meta::plugin_t *m)
         {
             LSPString tmp, buf;
 
@@ -102,6 +113,10 @@ namespace lsp
             fprintf(out, "\t\t\t'name' => '%s',\n", php_escape(buf, m->name));
             fprintf(out, "\t\t\t'author' => '%s',\n", php_escape(buf, m->developer->name));
             fprintf(out, "\t\t\t'version' => '%s',\n", php_escape(buf, &tmp));
+            if ((m->bundle) && (m->bundle->uid))
+                fprintf(out, "\t\t\t'bundle' => '%s',\n", php_escape(buf, m->bundle->uid));
+            else
+                fprintf(out, "\t\t\t'bundle' => null,\n");
             fprintf(out, "\t\t\t'description' => '%s',\n", php_escape(buf, m->description));
             fprintf(out, "\t\t\t'acronym' => '%s',\n", php_escape(buf, m->acronym));
 
@@ -123,6 +138,16 @@ namespace lsp
             fprintf(out, "\t\t\t'groups' => ");
             php_print_plugin_groups(out, m->classes);
             fprintf(out, "\n");
+        }
+
+        static void php_write_bundle(FILE *out, const meta::bundle_t *bundle)
+        {
+            LSPString buf;
+            fprintf(out, "\t\t\t'id' => '%s',\n", php_escape(buf, bundle->uid));
+            fprintf(out, "\t\t\t'name' => '%s',\n", php_escape(buf, bundle->name));
+            fprintf(out, "\t\t\t'group' => '%s',\n", get_enumeration(bundle->group, bundle_groups));
+            fprintf(out, "\t\t\t'video' => '%s',\n", php_escape(buf, bundle->video_id));
+            fprintf(out, "\t\t\t'description' => '%s'\n", php_escape(buf, bundle->description));
         }
 
         static void php_write_package_info(FILE *out, const meta::package_t *package)
@@ -153,6 +178,8 @@ namespace lsp
             const meta::plugin_t * const *plugins,
             size_t count)
         {
+            status_t res;
+
             // Generate PHP file
             FILE *out;
             if (!(out = fopen(file, "w+")))
@@ -162,22 +189,45 @@ namespace lsp
             // Write PHP header
             fprintf(out, "<?php\n");
             fprintf(out, "\n");
+
+            // Write package information
             fprintf(out, "\t$PACKAGE = array(\n");
             php_write_package_info(out, package);
             fprintf(out, "\t);\n\n");
-            fprintf(out, "\t$PLUGINS = array(\n");
+
+            // Write bundle information
+            fprintf(out, "\t$BUNDLES = array(\n");
+            lltl::parray<meta::bundle_t> bundles;
+            if ((res = enum_bundles(&bundles, plugins, count)) != STATUS_OK)
+            {
+                fclose(out);
+                return res;
+            }
+            for (size_t i=0; i<bundles.size(); ++i)
+            {
+                if (i > 0)
+                    fprintf(out, ",\n");
+                fprintf(out, "\t\tarray(\n");
+                php_write_bundle(out, bundles.uget(i));
+                fprintf(out, "\t\t)");
+            }
+
+            fprintf(out, "\t);\n\n");
 
             // Output plugins
+            fprintf(out, "\t$PLUGINS = array(\n");
             for (size_t i=0; i<count; ++i)
             {
                 if (i > 0)
                     fprintf(out, ",\n");
                 fprintf(out, "\t\tarray(\n");
-                php_gen_plugin_descriptor(out, plugins[i]);
+                php_write_plugin_descriptor(out, plugins[i]);
                 fprintf(out, "\t\t)");
             }
 
             fprintf(out, "\n\t);\n");
+
+            // Write PHP footer
             fprintf(out, "?>\n");
 
             fclose(out);

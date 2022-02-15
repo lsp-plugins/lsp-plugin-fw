@@ -27,6 +27,7 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
+#include <lsp-plug.in/lltl/parray.h>
 
 namespace lsp
 {
@@ -38,13 +39,22 @@ namespace lsp
             const char     *json_out;   // JSON file to generate
         } cmdline_t;
 
-        typedef struct php_plugin_group_t
+        typedef struct enumeration_t
         {
             int            id;
             const char    *name;
-        } php_plugin_group_t;
+        } enumeration_t;
 
-        extern const php_plugin_group_t php_plugin_groups[];
+        extern const enumeration_t plugin_groups[];
+        extern const enumeration_t bundle_groups[];
+
+        /**
+         * Get enumeration key by the enumeration index
+         * @param id enumeration index
+         * @param list list of enumeration keys
+         * @return enumeration key or NULL if not found
+         */
+        const char *get_enumeration(int id, const enumeration_t *list);
 
         /**
          * Parse command-line arguments
@@ -60,7 +70,7 @@ namespace lsp
          * @param file name of output PHP file
          * @param package package descriptor
          * @param plugins list of plugin metadata
-         * @param count number of plugins in list
+         * @param num_plugins number of plugins in list
          * @return status of operation
          */
         status_t generate_php(
@@ -82,6 +92,26 @@ namespace lsp
             const meta::package_t *package,
             const meta::plugin_t * const *plugins,
             size_t count);
+
+
+        /**
+         * Scan for plugins
+         * @param plugins list to store plugin metadata
+         * @return status of operation
+         */
+        status_t scan_plugins(lltl::parray<meta::plugin_t> *plugins);
+
+        /**
+         * Generate list of bundles provided by plugins
+         * @param bundles list of bundles to generate
+         * @param plugins list of plugins
+         * @param num_plugins number of plugins in list
+         * @return status of operation
+         */
+        status_t enum_bundles(
+            lltl::parray<meta::bundle_t> *bundles,
+            const meta::plugin_t * const *plugins,
+            size_t num_plugins);
 
         /**
          * Generate data

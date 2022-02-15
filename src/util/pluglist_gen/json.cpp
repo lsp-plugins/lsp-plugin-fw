@@ -57,7 +57,7 @@ namespace lsp
 
             while ((c != NULL) && ((*c) >= 0))
             {
-                const php_plugin_group_t *grp = php_plugin_groups;
+                const enumeration_t *grp = plugin_groups;
 
                 while ((grp != NULL) && (grp->id >= 0))
                 {
