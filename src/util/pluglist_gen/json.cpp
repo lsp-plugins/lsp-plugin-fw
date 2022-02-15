@@ -48,28 +48,21 @@ namespace lsp
             return s->write_string(value);
         }
 
-        status_t jack_write_plugin_groups(json::Serializer *s, const int *c)
+        status_t json_write_plugin_groups(json::Serializer *s, const int *c)
         {
             status_t res;
 
             if ((res = s->start_array()) != STATUS_OK)
                 return res;
 
-            while ((c != NULL) && ((*c) >= 0))
+            for (; (c != NULL) && ((*c) >= 0); ++c)
             {
-                const enumeration_t *grp = plugin_groups;
-
-                while ((grp != NULL) && (grp->id >= 0))
+                const char *grp = get_enumeration(*c, plugin_groups);
+                if (grp != NULL)
                 {
-                    if (grp->id == *c)
-                    {
-                        if ((res = s->write_string(grp->name)) != STATUS_OK)
-                            return res;
-                    }
-                    grp++;
+                    if ((res = s->write_string(grp)) != STATUS_OK)
+                        return res;
                 }
-
-                c++;
             }
 
             if ((res = s->end_array()) != STATUS_OK)
@@ -113,6 +106,25 @@ namespace lsp
             return STATUS_OK;
         }
 
+        static status_t json_write_bundle(json::Serializer *s, const meta::bundle_t *bundle)
+        {
+            status_t res;
+
+            // artifact
+            if ((res = json_out_property(s, "id", bundle->uid)) != STATUS_OK)
+                return res;
+            if ((res = json_out_property(s, "name", bundle->name)) != STATUS_OK)
+                return res;
+            if ((res = json_out_property(s, "group", get_enumeration(bundle->group, bundle_groups))) != STATUS_OK)
+                return res;
+            if ((res = json_out_property(s, "video", bundle->video_id)) != STATUS_OK)
+                return res;
+            if ((res = json_out_property(s, "description", bundle->description)) != STATUS_OK)
+                return res;
+
+            return STATUS_OK;
+        }
+
         status_t json_write_plugin(json::Serializer *s, const meta::plugin_t *m)
         {
             status_t res;
@@ -131,6 +143,8 @@ namespace lsp
             if ((res = json_out_property(s, "author", m->developer->name)) != STATUS_OK)
                 return res;
             if ((res = json_out_property(s, "version", &tmp)) != STATUS_OK)
+                return res;
+            if ((res = json_out_property(s, "bundle", (m->bundle) ? m->bundle->uid : NULL)) != STATUS_OK)
                 return res;
             if ((res = json_out_property(s, "description", m->description)) != STATUS_OK)
                 return res;
@@ -164,7 +178,7 @@ namespace lsp
                 return res;
             if ((res = s->write_property("groups")) != STATUS_OK)
                 return res;
-            if ((res = jack_write_plugin_groups(s, m->classes)) != STATUS_OK)
+            if ((res = json_write_plugin_groups(s, m->classes)) != STATUS_OK)
                 return res;
 
 
@@ -191,6 +205,31 @@ namespace lsp
                         return res;
                 }
                 if ((res = s->end_object()) != STATUS_OK)
+                    return res;
+
+                // Emit bundle list
+                if ((res = s->write_property("bundles")) != STATUS_OK)
+                    return res;
+                if ((res = s->start_array()) != STATUS_OK)
+                    return res;
+                {
+                    lltl::parray<meta::bundle_t> bundles;
+                    if ((res = enum_bundles(&bundles, plugins, count)) != STATUS_OK)
+                        return res;
+
+                    for (size_t i=0; i<bundles.size(); ++i)
+                    {
+                        if ((res = s->start_object()) != STATUS_OK)
+                            return res;
+                        {
+                            if ((res = json_write_bundle(s, bundles.uget(i))) != STATUS_OK)
+                                return res;
+                        }
+                        if ((res = s->end_object()) != STATUS_OK)
+                            return res;
+                    }
+                }
+                if ((res = s->end_array()) != STATUS_OK)
                     return res;
 
                 // Emit plugin list
