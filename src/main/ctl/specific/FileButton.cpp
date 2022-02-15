@@ -282,6 +282,7 @@ namespace lsp
             {
                 case STATUS_UNSPECIFIED:    state = FB_SELECT_FILE; break;
                 case STATUS_IN_PROCESS:     state = FB_PROGRESS;    break;
+                case STATUS_LOADING:        state = FB_PROGRESS;    break;
                 case STATUS_OK:             state = FB_SUCCESS;     break;
                 default:                    state = FB_ERROR;       break;
             }
