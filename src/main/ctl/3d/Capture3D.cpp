@@ -28,6 +28,11 @@ namespace lsp
 {
     namespace ctl
     {
+        static const r3d::mat4_t &to_mat4(const dsp::matrix3d_t *matrix)
+        {
+            return *reinterpret_cast<const r3d::mat4_t *>(matrix);
+        }
+
         //---------------------------------------------------------------------
         #define V3(x, y, z) { x, y, z, 1.0f }
 
@@ -218,8 +223,8 @@ namespace lsp
             // Update mesh properties
             for (size_t i=0; i<num_settings; ++i)
             {
-                sShapes[i].model    = *reinterpret_cast<r3d::mat4_t *>(&settings[i].pos);
-                sLines[i].model     = *reinterpret_cast<r3d::mat4_t *>(&settings[i].pos);
+                sShapes[i].model    = to_mat4(&settings[i].pos);
+                sLines[i].model     = to_mat4(&settings[i].pos);
             }
         }
 
@@ -271,7 +276,7 @@ namespace lsp
                 const dsp::point3d_t *vv    = vVertices.array();
                 const dsp::vector3d_t *vn   = vNormals.array();
 
-                buf->model                  = *reinterpret_cast<r3d::mat4_t *>(&settings[i].pos);
+                buf->model                  = to_mat4(&settings[i].pos);
                 buf->type                   = r3d::PRIMITIVE_TRIANGLES;
                 buf->flags                  = r3d::BUFFER_LIGHTING;
                 buf->width                  = 0.0f;
@@ -292,7 +297,7 @@ namespace lsp
                 r3d::buffer_t *buf          = &sLines[i];
                 const dsp::point3d_t *vl    = vLines.array();
 
-                buf->model                  = *reinterpret_cast<r3d::mat4_t *>(&settings[i].pos);
+                buf->model                  = to_mat4(&settings[i].pos);
                 buf->type                   = r3d::PRIMITIVE_LINES;
                 buf->flags                  = 0;
                 buf->width                  = sArrowWidth.get();

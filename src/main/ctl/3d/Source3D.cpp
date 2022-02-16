@@ -29,6 +29,11 @@ namespace lsp
 {
     namespace ctl
     {
+        static const r3d::mat4_t &to_mat4(const dsp::matrix3d_t *matrix)
+        {
+            return *reinterpret_cast<const r3d::mat4_t *>(matrix);
+        }
+
         //---------------------------------------------------------------------
         static dspu::rt_audio_source_t decode_source_type(ssize_t type)
         {
@@ -203,8 +208,8 @@ namespace lsp
                 return;
 
             // Update mesh properties
-            sShape.model    = *reinterpret_cast<r3d::mat4_t *>(&settings.pos);
-            sRays.model     = *reinterpret_cast<r3d::mat4_t *>(&settings.pos);
+            sShape.model    = to_mat4(&settings.pos);
+            sRays.model     = to_mat4(&settings.pos);
         }
 
         void Source3D::process_data_change(lltl::parray<r3d::buffer_t> *dst)
@@ -233,7 +238,7 @@ namespace lsp
             // Initialize shape buffer
             r3d::init_buffer(&sShape);
 
-            sShape.model            = *reinterpret_cast<r3d::mat4_t *>(&settings.pos);
+            sShape.model            = to_mat4(&settings.pos);
             sShape.type             = r3d::PRIMITIVE_TRIANGLES;
             sShape.flags            = r3d::BUFFER_LIGHTING;
             sShape.width            = 0.0f;
@@ -250,7 +255,7 @@ namespace lsp
             // Initialize ray buffer
             r3d::init_buffer(&sRays);
 
-            sRays.model             = *reinterpret_cast<r3d::mat4_t *>(&settings.pos);
+            sRays.model             = to_mat4(&settings.pos);
             sRays.type              = r3d::PRIMITIVE_LINES;
             sRays.flags             = 0;
             sRays.width             = sRayWidth.get();

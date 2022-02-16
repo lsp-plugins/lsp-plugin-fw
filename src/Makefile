@@ -546,15 +546,6 @@ ARTIFACT_DOC_SRC_ALL        = $(foreach dep, $(ARTIFACT_DOC_DEPS_ALL), $($(dep)_
 ARTIFACT_DOC_SRC_RES        = $(foreach dep, $(ARTIFACT_DOC_DEPS_SRC_RES), $($(dep)_PATH)/res/doc/*)
 ARTIFACT_DOC_PLUG_RES       = $(foreach dep, $(ARTIFACT_DOC_DEPS_PLUG_RES), $($(dep)_PATH)/res/doc/screenshots/*)
 
-$(info ARTIFACT_DOC_SHARED=$(ARTIFACT_DOC_SHARED))
-$(info ARTIFACT_DOC_PLUG=$(ARTIFACT_DOC_PLUG))
-
-$(info SRC_DEPS=SRC_DEPS)
-$(info ARTIFACT_DOC_DEPS_ALL=$(ARTIFACT_DOC_DEPS_ALL))
-$(info ARTIFACT_DOC_SRC_ALL=$(ARTIFACT_DOC_SRC_ALL))
-$(info ARTIFACT_DOC_SRC_RES=$(ARTIFACT_DOC_SRC_RES))
-$(info ARTIFACT_DOC_PLUG_RES=$(ARTIFACT_DOC_PLUG_RES))
-
 BIN_INSTALL                 = $(foreach dep, $(DEPENDENCIES_BIN), install_$(dep))
 BIN_UNINSTALL               = $(foreach dep, $(DEPENDENCIES_BIN), uninstall_$(dep))
 BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
