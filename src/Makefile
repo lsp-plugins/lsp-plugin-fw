@@ -99,6 +99,7 @@ JACK_LIBDIR            := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 LADSPA_LIBDIR          := $(LIBDIR)/ladspa
 LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
 VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_GROUP_LIBDIR)
+DOC_SHAREDDIR          := $(SHAREDDIR)/doc/$(ROOT_ARTIFACT_ID)
 
 # Versioning
 PLUGIN_PACKAGE_VERSION     := $($(ROOT_ARTIFACT_ID)_VERSION)
@@ -551,6 +552,12 @@ BIN_UNINSTALL               = $(foreach dep, $(DEPENDENCIES_BIN), uninstall_$(de
 BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
 BIN_UNINST_ARTIFACT_ID      = $(patsubst uninstall_%,%,$(@))
 
+ALLOWED_FEATURES            = doc jack ladspa lv2 vst2 xdg
+ENABLED_FEATURES            = $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
+BUILD_TARGETS               = $(foreach feature,$(ENABLED_FEATURES),$(feature))
+INSTALL_TARGETS             = $(foreach feature,$(ENABLED_FEATURES),install_$(feature))
+UNINSTALL_TARGETS           = $(foreach feature,$(ENABLED_FEATURES),uninstall_$(feature))
+
 #------------------------------------------------------------------------------
 # Functional variables
 CXX_FILE                    = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.o,%.cpp, $(@))
@@ -870,7 +877,7 @@ doc: meta
 
 test: $(ARTIFACT_BIN_TEST)
 
-all: $(DEPENDENCIES_BIN) test jack ladspa lv2 vst2 meta doc
+all: $(DEPENDENCIES_BIN) test $(BUILD_TARGETS)
 
 #------------------------------------------------------------------------------
 # Installation
@@ -904,7 +911,12 @@ install_vst2: vst2
 	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)/$(VST2_LIBDIR)/"
 	make -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(DESTDIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
-install: $(BIN_INSTALL) install_jack install_ladspa install_lv2 install_vst2
+install_doc: doc
+	echo "Install doc"
+	mkdir -p "$(DESTDIR)/$(DOC_SHAREDDIR)"
+	cp -R $(ARTIFACT_DOC_BLD_PATH)/* "$(DESTDIR)/$(DOC_SHAREDDIR)"
+
+install: $(BIN_INSTALL) $(INSTALL_TARGETS)
 	@echo "Install OK"
 
 #------------------------------------------------------------------------------
@@ -931,7 +943,11 @@ uninstall_vst2:
 	echo "Uninstall vst2"
 	-rm -rf "$(DESTDIR)/$(VST2_LIBDIR)"
 
-uninstall: $(BIN_UNINSTALL) uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2
+uninstall_doc:
+	echo "Uninstall doc"
+	-rm -rf "$(DESTDIR)/$(DOC_SHAREDDIR)"
+
+uninstall: $(BIN_UNINSTALL) $(UNINSTALL_TARGETS)
 	@echo "Uninstall OK"
 
 # Dependencies

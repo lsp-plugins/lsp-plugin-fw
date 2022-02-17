@@ -37,6 +37,8 @@ DEPENDENCIES_COMMON_UI = \
   LSP_TK_LIB \
   LSP_R3D_BASE_LIB
 
+DEFAULT_FEATURES = doc ladspa lv2 vst2
+
 ifeq ($(PLATFORM),Windows)
 endif
 
