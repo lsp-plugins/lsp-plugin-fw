@@ -46,6 +46,10 @@ include $(BASEDIR)/project.mk
 CHK_CONFIG                  = test -f "$(CONFIG)" || (echo "System not properly configured. Please launch 'make config' first" && exit 1)
 DISTSRC_PATH                = $(BUILDDIR)/distsrc
 DISTSRC                     = $(DISTSRC_PATH)/$(ARTIFACT_NAME)
+DISTSRC_DIRS                = \
+  $(if $(wildcard $(BASEDIR)/include/*), $(BASEDIR)/include) \
+  $(if $(wildcard $(BASEDIR)/src/*), $(BASEDIR)/src) \
+  $(if $(wildcard $(BASEDIR)/make/*), $(BASEDIR)/make)
 
 .DEFAULT_GOAL              := all
 .PHONY: all compile install uninstall depend clean
@@ -64,43 +68,44 @@ clean:
 fetch:
 	$(CHK_CONFIG)
 	echo "Fetching desired source code dependencies"
-	$(MAKE) -f "$(BASEDIR)/make/modules.mk" $(@) VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" CONFIG="$(CONFIG)" MODULES="$(MODULES)"
+	$(MAKE) -f "make/modules.mk" $(@) VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" CONFIG="$(CONFIG)"
 	echo "Fetch OK"
 	
 tree:
 	echo "Fetching all possible source code dependencies"
-	$(MAKE) -f "$(BASEDIR)/make/modules.mk" $(@) VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" TREE="1"
+	$(MAKE) -f "make/modules.mk" $(@) VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" TREE="1"
 	echo "Fetch OK"
 
 prune: clean
 	echo "Pruning the whole project tree"
-	$(MAKE) -f "$(BASEDIR)/make/modules.mk" prune VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" CONFIG="$(CONFIG)"
-	$(MAKE) -f "$(BASEDIR)/make/modules.mk" prune VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" TREE="1"
+	$(MAKE) -f "make/modules.mk" prune VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" CONFIG="$(CONFIG)"
+	$(MAKE) -f "make/modules.mk" prune VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" TREE="1"
 	-rm -rf "$(CONFIG)"
 	echo "Prune OK"
 
 # Configuration-related targets
-.PHONY: config help chkconfig
+.PHONY: config testconfig devel help chkconfig
 
-testconfig:
-	$(MAKE) -f "$(BASEDIR)/make/configure.mk" $(@) VERBOSE="$(VERBOSE)" -$(MAKEFLAGS) CONFIG="$(CONFIG)" PLUGINS="$(PLUGINS)" TEST="1" 
+config: CONFIG_FLAGS=
+testconfig: CONFIG_FLAGS=TEST=1
+devel: CONFIG_FLAGS=TEST=1 DEVEL=1
 
-config:
-	$(MAKE) -f "$(BASEDIR)/make/configure.mk" $(@) VERBOSE="$(VERBOSE)" -$(MAKEFLAGS) CONFIG="$(CONFIG)" PLUGINS="$(PLUGINS)" 
+config testconfig devel:
+	$(MAKE) -f "$(BASEDIR)/make/configure.mk" config VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" -$(MAKEFLAGS)
 
 # Release-related targets
 .PHONY: distsrc
 distsrc:
 	echo "Building source code archive"
 	mkdir -p "$(DISTSRC)/modules"
-	$(MAKE) -f "$(BASEDIR)/make/modules.mk" tree VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" MODULES="$(DISTSRC)/modules" TREE="1"
-	cp -R $(BASEDIR)/include $(BASEDIR)/make $(BASEDIR)/src "$(DISTSRC)/"
-	cp $(BASEDIR)/CHANGELOG $(BASEDIR)/COPYING* $(BASEDIR)/Makefile $(BASEDIR)/*.mk "$(DISTSRC)/"
+	$(MAKE) -f "make/modules.mk" tree VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" MODULES="$(DISTSRC)/modules" TREE="1"
+	$(if $(DISTSRC_DIRS), cp -R $(DISTSRC_DIRS) "$(DISTSRC)/")
+	cp $(BASEDIR)/CHANGELOG $(BASEDIR)/COPYING* $(BASEDIR)/Makefile $(BASEDIR)/*.mk $(BASEDIR)/*.md $(BASEDIR)/*.txt "$(DISTSRC)/"
 	find "$(DISTSRC)" -iname '.git' | xargs -exec rm -rf {}
 	find "$(DISTSRC)" -iname '.gitignore' | xargs -exec rm -rf {}
 	tar -C $(DISTSRC_PATH) -czf "$(BUILDDIR)/$(ARTIFACT_NAME)-$(ARTIFACT_VERSION)-src.tar.gz" "$(ARTIFACT_NAME)"
-	echo "Created archive: $(BUILDDIR)/$(ARTIFACT_NAME)-$(ARTIFACT_VERSION)-src.tar.gz"
-	ln -sf "$(ARTIFACT_NAME)-$(ARTIFACT_VERSION)-src.tar.gz" "$(BUILDDIR)/$(ARTIFACT_NAME)-src.tar.gz"
+	echo "Created archive: $(BUILDDIR)/$(ARTIFACT_NAME)-src-$(ARTIFACT_VERSION).tar.gz"
+	ln -sf "$(ARTIFACT_NAME)-src-$(ARTIFACT_VERSION).tar.gz" "$(BUILDDIR)/$(ARTIFACT_NAME)-src.tar.gz"
 	echo "Created symlink: $(BUILDDIR)/$(ARTIFACT_NAME)-src.tar.gz"
 	rm -rf $(DISTSRC_PATH)
 	echo "Build OK"
@@ -112,12 +117,14 @@ help:
 	echo "  clean                     Clean all build files and configuration file"
 	echo "  config                    Configure build"
 	echo "  depend                    Update build dependencies for current project"
+	echo "  devel                     Configure build as development build"
 	echo "  distsrc                   Make tarball with source code for packagers"
 	echo "  fetch                     Fetch all desired source code dependencies from git"
 	echo "  help                      Print this help message"
 	echo "  info                      Output build configuration"
 	echo "  install                   Install all binaries into the system"
 	echo "  prune                     Cleanup build and all fetched dependencies from git"
+	echo "  testconfig                Configure test build"
 	echo "  tree                      Fetch all possible source code dependencies from git"
 	echo "                            to make source code portable between machines"
 	echo "  uninstall                 Uninstall binaries"
@@ -131,3 +138,5 @@ help:
 	echo "  lv2                       LV2 plugins"
 	echo "  vst2                      VST 2.x plugin binaries"
 	echo "  xdg                       Desktop integration icons"
+
+	
