@@ -99,7 +99,7 @@ JACK_LIBDIR            := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 LADSPA_LIBDIR          := $(LIBDIR)/ladspa
 LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
 VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_GROUP_LIBDIR)
-DOC_SHAREDDIR          := $(SHAREDDIR)/doc/$(ROOT_ARTIFACT_ID)
+DOC_SHAREDDIR          := $(SHAREDDIR)/doc/$($(ROOT_ARTIFACT_ID)_NAME)
 
 # Versioning
 PLUGIN_PACKAGE_VERSION     := $($(ROOT_ARTIFACT_ID)_VERSION)
@@ -547,6 +547,14 @@ ARTIFACT_DOC_SRC_ALL        = $(foreach dep, $(ARTIFACT_DOC_DEPS_ALL), $($(dep)_
 ARTIFACT_DOC_SRC_RES        = $(foreach dep, $(ARTIFACT_DOC_DEPS_SRC_RES), $($(dep)_PATH)/res/doc/*)
 ARTIFACT_DOC_PLUG_RES       = $(foreach dep, $(ARTIFACT_DOC_DEPS_PLUG_RES), $($(dep)_PATH)/res/doc/screenshots/*)
 
+ARTIFACT_XDG_SRC_DEPS       = $(foreach dep, $(call uniq,$(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(wildcard $($(dep)_PATH)/res/main/xdg/*),$(dep)))
+ARTIFACT_XDG_FILES          = $(foreach dep, $(ARTIFACT_XDG_SRC_DEPS), $(call rwildcard,$($(dep)_PATH)/res/main/xdg/apps,*.desktop))
+ARTIFACT_XDG_MAKEFILES      = $(foreach dep, $(ARTIFACT_XDG_SRC_DEPS), $(if $(wildcard $($(dep)_PATH)/res/main/xdg/Makefile),$(dep)))
+ARTIFACT_XDG_INST           = $(foreach dep, $(ARTIFACT_XDG_MAKEFILES), xdg_install_$(dep))
+ARTIFACT_XDG_UNINST         = $(foreach dep, $(ARTIFACT_XDG_MAKEFILES), xdg_uninstall_$(dep))
+ARTIFACT_XDG_INST_ID        = $(patsubst xdg_install_%,%,$(@))
+ARTIFACT_XDG_UNINST_ID      = $(patsubst xdg_uninstall_%,%,$(@))
+
 BIN_INSTALL                 = $(foreach dep, $(DEPENDENCIES_BIN), install_$(dep))
 BIN_UNINSTALL               = $(foreach dep, $(DEPENDENCIES_BIN), uninstall_$(dep))
 BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
@@ -593,10 +601,12 @@ HOST_DEP_DEP_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
 .PHONY: compile depend dep_clean all install uninstall
 .PHONY: jack ladspa dssi lv2 vst2 test meta doc
 .PHONY: resources
-.PHONY: install_jack install_ladspa install_lv2 install_vst2 install_doc
-.PHONY: uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2 uninstall_doc
+.PHONY: install_jack install_ladspa install_lv2 install_vst2 install_doc install_xdg
+.PHONY: uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2 uninstall_doc uninstall_xdg
+.PHONY: install_xdg_msg uninstall_xdg_msg
 .PHONY: $(DEPENDENCIES) $(DEPENDENCIES_BIN)
 .PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL)
+.PHONY: $(ARTIFACT_XDG_INSTALL_DEPS) $(ARTIFACT_XDG_UNINSTALL_DEPS)
 
 #------------------------------------------------------------------------------
 # Dependencies
@@ -817,7 +827,7 @@ resources: $(HOST_UTL_REPOSITORY)
 	echo "  $(HOST_UTL_REPOSITORY)"
 	$(HOST_UTL_REPOSITORY) -o "$(HOST_UTL_RES_PATH)" $(LSP_PLUGIN_FW_OBJ_VARS) -m "$(ROOTDIR)/res/manifest.json" "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
 
-jack: $(HOST_UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
+jack: $(HOST_UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK) $(DEPENDENCIES_BIN)
 	echo "  $(notdir $(HOST_UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_JACK_PATH))"
 	mkdir -p "$(ARTIFACT_LIB_JACK_PATH)"
 	$(HOST_UTL_JACK_MAKE) "$(ARTIFACT_LIB_JACK_PATH)"
@@ -835,11 +845,11 @@ jack: $(HOST_UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK)
 	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
-ladspa: $(ARTIFACT_LIB_LADSPA) 
+ladspa: $(ARTIFACT_LIB_LADSPA) $(DEPENDENCIES_BIN) 
 
-lv2: $(HOST_UTL_LV2TTL_GEN) $(ARTIFACT_LIB_LV2) $(ARTIFACT_LIB_LV2_UI)
+lv2: $(HOST_UTL_LV2TTL_GEN) $(ARTIFACT_LIB_LV2) $(ARTIFACT_LIB_LV2_UI) $(DEPENDENCIES_BIN)
 
-vst2: $(HOST_UTL_VST2_MAKE) $(ARTIFACT_LIB_VST2) 
+vst2: $(HOST_UTL_VST2_MAKE) $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_BIN)
 	echo "  $(notdir $(HOST_UTL_VST2_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_VST2_PATH))"
 	mkdir -p "$(ARTIFACT_LIB_VST2_PATH)"
 	$(HOST_UTL_VST2_MAKE) "$(ARTIFACT_LIB_VST2_PATH)"
@@ -858,10 +868,10 @@ vst2: $(HOST_UTL_VST2_MAKE) $(ARTIFACT_LIB_VST2)
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
 meta: $(HOST_UTL_PLUGLIST_GEN)
-	echo "  $(notdir $(HOST_UTL_PLUGLIST_GEN)) [$(ARTIFACT_NAME)]"
 	$(HOST_UTL_PLUGLIST_GEN) --php "$(LSP_PLUGIN_FW_BIN)/plugins.php" --json "$(LSP_PLUGIN_FW_BIN)/plugins.json"
 
 doc: meta
+	echo "  make DOC"
 	mkdir -p $(ARTIFACT_DOC_BLD_PATH)
 	mkdir -p $(ARTIFACT_DOC_PATH)
 	cp -R $(ARTIFACT_DOC_SRC_ALL) $(ARTIFACT_DOC_BLD_PATH)/
@@ -875,16 +885,20 @@ doc: meta
 	$(if $(ARTIFACT_DOC_PLUG_RES),cp -R $(ARTIFACT_DOC_PLUG_RES) $(ARTIFACT_DOC_PATH)/img/plugins)
 	$(MAKE) -C "$(ARTIFACT_DOC_BLD_PATH)" PHP=$(PHP) HTMLDIR=$(ARTIFACT_DOC_PATH) VERBOSE=$(VERBOSE)
 
+xdg:
+
 test: $(ARTIFACT_BIN_TEST)
 
-all: $(DEPENDENCIES_BIN) test $(BUILD_TARGETS)
+all: test $(BUILD_TARGETS)
 
 #------------------------------------------------------------------------------
 # Installation
 $(BIN_INSTALL): $(DEPENDENCIES_BIN)
 	echo "Install $(notdir $($(BIN_INST_ARTIFACT_ID)_PATH))"
-	echo make -C "$($(BIN_INST_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 	make -C "$($(BIN_INST_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
+
+$(ARTIFACT_XDG_INST): install_xdg_msg
+	make -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/main/xdg" install_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)"
 
 install_jack: jack
 	echo "Install jack"
@@ -914,7 +928,12 @@ install_vst2: vst2
 install_doc: doc
 	echo "Install doc"
 	mkdir -p "$(DESTDIR)/$(DOC_SHAREDDIR)"
-	cp -R $(ARTIFACT_DOC_BLD_PATH)/* "$(DESTDIR)/$(DOC_SHAREDDIR)"
+	cp -R $(ARTIFACT_DOC_PATH)/* "$(DESTDIR)/$(DOC_SHAREDDIR)"
+
+install_xdg_msg:
+	echo "Install xdg"
+
+install_xdg: install_xdg_msg $(ARTIFACT_XDG_INST)
 
 install: $(BIN_INSTALL) $(INSTALL_TARGETS)
 	@echo "Install OK"
@@ -924,6 +943,9 @@ install: $(BIN_INSTALL) $(INSTALL_TARGETS)
 $(BIN_UNINSTALL):
 	echo "Uninstall $(notdir $($(BIN_UNINST_ARTIFACT_ID)_PATH))"
 	make -C "$($(BIN_UNINST_ARTIFACT_ID)_PATH)" uninstall DESTDIR="$(DESTDIR)"
+
+$(ARTIFACT_XDG_UNINST): uninstall_xdg_msg
+	make -C "$($(ARTIFACT_XDG_UNINST_ID)_PATH)/res/main/xdg" uninstall_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)"
 
 uninstall_jack:
 	echo "Uninstall jack"
@@ -946,6 +968,11 @@ uninstall_vst2:
 uninstall_doc:
 	echo "Uninstall doc"
 	-rm -rf "$(DESTDIR)/$(DOC_SHAREDDIR)"
+
+uninstall_xdg_msg:
+	echo "Unnstall xdg"
+
+uninstall_xdg: uninstall_xdg_msg $(ARTIFACT_XDG_UNINST)
 
 uninstall: $(BIN_UNINSTALL) $(UNINSTALL_TARGETS)
 	@echo "Uninstall OK"
