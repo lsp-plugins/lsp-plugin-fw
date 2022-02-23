@@ -22,8 +22,8 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_VERSION_H_
 #define LSP_PLUG_IN_PLUG_FW_VERSION_H_
 
-#define LSP_PLUGIN_FW_MAJOR         0
-#define LSP_PLUGIN_FW_MINOR         5
+#define LSP_PLUGIN_FW_MAJOR         1
+#define LSP_PLUGIN_FW_MINOR         0
 #define LSP_PLUGIN_FW_MICRO         0
 
 #ifdef LSP_LLTL_LIB_BUILTIN
