@@ -561,7 +561,7 @@ BIN_PACKAGE                 = $(foreach dep, $(DEPENDENCIES_BIN), package_$(dep)
 BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
 BIN_UNINST_ARTIFACT_ID      = $(patsubst uninstall_%,%,$(@))
 BIN_PKG_ARTIFACT_ID         = $(patsubst package_%,%,$(@))
-BIN_PKG_DIR                 = $(ARTIFACT_NAME)-$(ARTIFACT_VERSION)-$(patsubst package_%,%,$(@))-$(PLATFORM)-$(ARCHITECTURE)
+BIN_PKG_DIR                 = $(PLUGIN_SHARED_NAME)-$(PLUGIN_PACKAGE_VERSION)-$(patsubst package_%,%,$(@))-$(PLATFORM)-$(ARCHITECTURE)
 
 ALLOWED_FEATURES            = doc jack ladspa lv2 vst2 xdg
 ENABLED_FEATURES            = $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
@@ -969,27 +969,40 @@ package_jack: jack $(BIN_PACKAGE)
 
 package_ladspa: ladspa $(BIN_PACKAGE)
 	echo "Package ladspa"
-	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/lib"
-	tar -C "$(BUILDDIR)" -czf "$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)/"
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
 package_lv2: lv2 $(BIN_PACKAGE)
 	echo "Package lv2"
-	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/lib"
-	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/bin"
-	tar -C "$(BUILDDIR)" -czf "$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_LV2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/"
+	$(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/"
+	$(HOST_UTL_LV2TTL_GEN) -o "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" -ui $(ARTIFACT_LIB_LV2_UI)
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
 package_vst2: vst2 $(BIN_PACKAGE)
 	echo "Package vst2"
-	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/lib"
-	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/bin"
-	tar -C "$(BUILDDIR)" -czf "$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/"
+	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
 package_doc: doc
 	echo "Package doc"
-	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)"
-	tar -C "$(BUILDDIR)" -czf "$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(DOC_SHAREDDIR)"
+	cp -R $(ARTIFACT_DOC_PATH)/* "$(BUILDDIR)/$(BIN_PKG_DIR)/$(DOC_SHAREDDIR)"
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
-package: package_jack #$(PACKAGE_TARGETS)
+package: package_jack package_ladspa package_lv2 package_vst2 package_doc #$(PACKAGE_TARGETS)
 	echo "Package OK"
 
 #------------------------------------------------------------------------------
