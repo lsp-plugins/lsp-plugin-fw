@@ -92,6 +92,10 @@ namespace lsp
                     char postfix_buf[MAX_PARAM_ID_BYTES], param_name[MAX_PARAM_ID_BYTES];
                     UIPortGroup     *upg     = new vst2::UIPortGroup(static_cast<vst2::PortGroup *>(vp));
 
+                    // Add immediately port group to list
+                    vPorts.add(upg);
+
+                    // Add nested ports
                     for (size_t row=0; row<upg->rows(); ++row)
                     {
                         // Generate postfix
@@ -112,7 +116,6 @@ namespace lsp
                         }
                     }
 
-                    vup     = upg;
                     break;
                 }
 

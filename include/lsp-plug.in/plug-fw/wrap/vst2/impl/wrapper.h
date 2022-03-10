@@ -103,14 +103,8 @@ namespace lsp
             lsp_trace("Creating ports");
             lltl::parray<plug::IPort> plugin_ports;
             for (const meta::port_t *port = m->ports ; port->id != NULL; ++port)
-            {
-                vst2::Port *vp = create_port(&plugin_ports, port, NULL);
-                if (vp == NULL)
-                {
-                    lsp_error("Error while instantiating port");
-                    return STATUS_NO_MEM;
-                }
-            }
+                create_port(&plugin_ports, port, NULL);
+
             if (!vSortedPorts.add(&vPorts))
                 return STATUS_NO_MEM;
             vSortedPorts.qsort(cmp_port_identifiers);
@@ -276,8 +270,12 @@ namespace lsp
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES];
                     vst2::PortGroup *pg         = new vst2::PortGroup(port, pEffect, pMaster);
-                    plugin_ports->add(vp);
 
+                    // Add immediately to port list
+                    plugin_ports->add(pg);
+                    vPorts.add(pg);
+
+                    // Add nested ports
                     for (size_t row=0; row<pg->rows(); ++row)
                     {
                         // Generate postfix
@@ -302,7 +300,6 @@ namespace lsp
                         }
                     }
 
-                    vp      = pg;
                     break;
                 }
 

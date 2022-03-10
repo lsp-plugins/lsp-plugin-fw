@@ -385,7 +385,9 @@ namespace lsp
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES];
                     lv2::UIPortGroup *pg    = new lv2::UIPortGroup(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
+                    vPorts.add(pg);
 
+                    // Add nested ports
                     for (size_t row=0; row<pg->rows(); ++row)
                     {
                         // Generate postfix
@@ -411,7 +413,6 @@ namespace lsp
                         }
                     }
 
-                    result = pg;
                     lsp_trace("Added port set port id=%", p->id);
                     break;
                 }
