@@ -78,6 +78,7 @@ namespace lsp
                     break;
 
                 case meta::R_PATH:
+                    lsp_trace("creating path port %s", port->id);
                     vup = new vst2::UIPathPort(port, vp);
                     break;
 
@@ -96,12 +97,13 @@ namespace lsp
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES], param_name[MAX_PARAM_ID_BYTES];
                     lsp_trace("creating port group %s", port->id);
-                    UIPortGroup     *upg     = new vst2::UIPortGroup(static_cast<vst2::PortGroup *>(vp));
+                    UIPortGroup *upg = new vst2::UIPortGroup(static_cast<vst2::PortGroup *>(vp));
 
                     // Add immediately port group to list
                     vPorts.add(upg);
 
                     // Add nested ports
+                    lsp_trace("  rows = %d", int(upg->rows()));
                     for (size_t row=0; row < upg->rows(); ++row)
                     {
                         // Generate postfix
@@ -116,7 +118,8 @@ namespace lsp
                             param_name[sizeof(param_name) - 1] = '\0';
 
                             // Obtain backend port and create UI port for it
-                            vp    = pWrapper->find_by_id(p->id);
+                            vp    = pWrapper->find_by_id(param_name);
+                            lsp_trace("find_by_id %s -> %p", param_name, vp);
                             if (vp != NULL)
                                 create_port(vp->metadata(), postfix_buf);
                         }
@@ -146,6 +149,7 @@ namespace lsp
                 return STATUS_BAD_STATE;
 
             // Create list of ports and sort it in ascending order by the identifier
+            lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(port, NULL);
 
