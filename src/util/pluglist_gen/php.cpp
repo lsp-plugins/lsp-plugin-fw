@@ -183,8 +183,10 @@ namespace lsp
 
             // Generate PHP file
             FILE *out;
-            if (!(out = fopen(file, "w+")))
+            if (!(out = fopen(file, "w+"))) {
+                fprintf(stderr, "Error writing file %s\n", file);
                 return STATUS_IO_ERROR;
+            }
             printf("Writing file %s\n", file);
 
             // Write PHP header

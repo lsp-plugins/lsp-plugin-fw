@@ -100,17 +100,11 @@ namespace lsp
             }
 
             // Create ports
-            lsp_trace("Creating ports");
+            lsp_trace("Creating ports for %s - %s", m->name, m->description);
             lltl::parray<plug::IPort> plugin_ports;
             for (const meta::port_t *port = m->ports ; port->id != NULL; ++port)
-            {
-                vst2::Port *vp = create_port(&plugin_ports, port, NULL);
-                if (vp == NULL)
-                {
-                    lsp_error("Error while instantiating port");
-                    return STATUS_NO_MEM;
-                }
-            }
+                create_port(&plugin_ports, port, NULL);
+
             if (!vSortedPorts.add(&vPorts))
                 return STATUS_NO_MEM;
             vSortedPorts.qsort(cmp_port_identifiers);
@@ -214,21 +208,25 @@ namespace lsp
             switch (port->role)
             {
                 case meta::R_MESH:
+                    lsp_trace("creating mesh port %s", port->id);
                     vp  = new vst2::MeshPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     break;
 
                 case meta::R_STREAM:
+                    lsp_trace("creating stream port %s", port->id);
                     vp  = new vst2::StreamPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     break;
 
                 case meta::R_FBUFFER:
+                    lsp_trace("creating fbuffer port %s", port->id);
                     vp  = new vst2::FrameBufferPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     break;
 
                 case meta::R_MIDI:
+                    lsp_trace("creating midi port %s", port->id);
                     if (meta::is_out_port(port))
                         vp = new vst2::MidiOutputPort(port, pEffect, pMaster);
                     else
@@ -240,15 +238,18 @@ namespace lsp
                     break;
 
                 case meta::R_OSC:
+                    lsp_trace("creating osc port %s", port->id);
                     vp      = new vst2::OscPort(port, pEffect, pMaster);
                     break;
 
                 case meta::R_PATH:
+                    lsp_trace("creating path port %s", port->id);
                     vp  = new vst2::PathPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     break;
 
                 case meta::R_AUDIO:
+                    lsp_trace("creating audio port %s", port->id);
                     vp = new vst2::AudioPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     vAudioPorts.add(static_cast<vst2::AudioPort *>(vp));
@@ -257,6 +258,7 @@ namespace lsp
                 case meta::R_CONTROL:
                 case meta::R_METER:
                 case meta::R_BYPASS:
+                    lsp_trace("creating regular port %s", port->id);
                     // VST specifies only INPUT parameters, output should be read in different way
                     if (meta::is_out_port(port))
                         vp      = new vst2::MeterPort(port, pEffect, pMaster);
@@ -276,8 +278,13 @@ namespace lsp
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES];
                     vst2::PortGroup *pg         = new vst2::PortGroup(port, pEffect, pMaster);
-                    plugin_ports->add(vp);
 
+                    // Add immediately to port list
+                    lsp_trace("creating port_set port %s", port->id);
+                    plugin_ports->add(pg);
+                    vPorts.add(pg);
+
+                    // Add nested ports
                     for (size_t row=0; row<pg->rows(); ++row)
                     {
                         // Generate postfix
@@ -302,7 +309,6 @@ namespace lsp
                         }
                     }
 
-                    vp      = pg;
                     break;
                 }
 

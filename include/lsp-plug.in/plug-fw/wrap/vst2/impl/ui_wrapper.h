@@ -55,18 +55,22 @@ namespace lsp
             switch (port->role)
             {
                 case meta::R_MESH:
+                    lsp_trace("creating mesh port %s", port->id);
                     vup = new vst2::UIMeshPort(port, vp);
                     break;
 
                 case meta::R_STREAM:
+                    lsp_trace("creating stream port %s", port->id);
                     vup = new vst2::UIStreamPort(port, vp);
                     break;
 
                 case meta::R_FBUFFER:
+                    lsp_trace("creating fbuffer port %s", port->id);
                     vup = new vst2::UIFrameBufferPort(port, vp);
                     break;
 
                 case meta::R_OSC:
+                    lsp_trace("creating osc port %s", port->id);
                     if (meta::is_out_port(port))
                         vup     = new vst2::UIOscPortIn(port, vp);
                     else
@@ -74,12 +78,14 @@ namespace lsp
                     break;
 
                 case meta::R_PATH:
+                    lsp_trace("creating path port %s", port->id);
                     vup = new vst2::UIPathPort(port, vp);
                     break;
 
                 case meta::R_CONTROL:
                 case meta::R_METER:
                 case meta::R_BYPASS:
+                    lsp_trace("creating regular port %s", port->id);
                     // VST specifies only INPUT parameters, output should be read in different way
                     if (meta::is_out_port(port))
                         vup     = new vst2::UIMeterPort(port, vp);
@@ -90,15 +96,21 @@ namespace lsp
                 case meta::R_PORT_SET:
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES], param_name[MAX_PARAM_ID_BYTES];
-                    UIPortGroup     *upg     = new vst2::UIPortGroup(static_cast<vst2::PortGroup *>(vp));
+                    lsp_trace("creating port group %s", port->id);
+                    UIPortGroup *upg = new vst2::UIPortGroup(static_cast<vst2::PortGroup *>(vp));
 
-                    for (size_t row=0; row<upg->rows(); ++row)
+                    // Add immediately port group to list
+                    vPorts.add(upg);
+
+                    // Add nested ports
+                    lsp_trace("  rows = %d", int(upg->rows()));
+                    for (size_t row=0; row < upg->rows(); ++row)
                     {
                         // Generate postfix
                         snprintf(postfix_buf, sizeof(postfix_buf)-1, "%s_%d", (postfix != NULL) ? postfix : "", int(row));
 
                         // Obtain the related port for backend
-                        for (const meta::port_t *p=port->members; p->id != NULL; ++p)
+                        for (const meta::port_t *p = port->members; p->id != NULL; ++p)
                         {
                             // Initialize port name
                             strncpy(param_name, p->id, sizeof(param_name)-1);
@@ -106,13 +118,13 @@ namespace lsp
                             param_name[sizeof(param_name) - 1] = '\0';
 
                             // Obtain backend port and create UI port for it
-                            vp    = pWrapper->find_by_id(port->id);
+                            vp    = pWrapper->find_by_id(param_name);
+                            lsp_trace("find_by_id %s -> %p", param_name, vp);
                             if (vp != NULL)
                                 create_port(vp->metadata(), postfix_buf);
                         }
                     }
 
-                    vup     = upg;
                     break;
                 }
 
@@ -137,6 +149,7 @@ namespace lsp
                 return STATUS_BAD_STATE;
 
             // Create list of ports and sort it in ascending order by the identifier
+            lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(port, NULL);
 

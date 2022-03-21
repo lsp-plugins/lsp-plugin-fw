@@ -95,6 +95,7 @@ namespace lsp
                 return STATUS_BAD_STATE;
 
             // Create ports
+            lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
             lltl::parray<plug::IPort> plugin_ports;
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(&plugin_ports, port, NULL);

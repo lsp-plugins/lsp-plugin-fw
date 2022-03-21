@@ -276,7 +276,10 @@ namespace lsp
 
             // Generate PHP file
             if ((res = s.open(file, &flags, "UTF-8")) != STATUS_OK)
+            {
+                fprintf(stderr, "Error writing file: %s\n", file);
                 return res;
+            }
 
             printf("Writing file %s\n", file);
 

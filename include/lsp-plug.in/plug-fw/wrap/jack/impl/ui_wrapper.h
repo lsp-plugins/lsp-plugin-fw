@@ -53,6 +53,7 @@ namespace lsp
                 return STATUS_BAD_STATE;
 
             // Create list of ports and sort it in ascending order by the identifier
+            lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port) {
                 if ((res = create_port(port, NULL)) != STATUS_OK)
                     return res;

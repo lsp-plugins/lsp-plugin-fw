@@ -546,6 +546,7 @@ ARTIFACT_DOC_DEPS_PLUG_RES  = $(foreach dep, $(call uniq,$(ARTIFACT_DOC_PLUG)), 
 ARTIFACT_DOC_SRC_ALL        = $(foreach dep, $(ARTIFACT_DOC_DEPS_ALL), $($(dep)_SRC)/doc/*)
 ARTIFACT_DOC_SRC_RES        = $(foreach dep, $(ARTIFACT_DOC_DEPS_SRC_RES), $($(dep)_PATH)/res/doc/*)
 ARTIFACT_DOC_PLUG_RES       = $(foreach dep, $(ARTIFACT_DOC_DEPS_PLUG_RES), $($(dep)_PATH)/res/doc/screenshots/*)
+ARTIFACT_DOC_PKG_DIR        = $(PLUGIN_SHARED_NAME)-doc-$(PLUGIN_PACKAGE_VERSION)
 
 ARTIFACT_XDG_SRC_DEPS       = $(foreach dep, $(call uniq,$(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(wildcard $($(dep)_PATH)/res/main/xdg/*),$(dep)))
 ARTIFACT_XDG_FILES          = $(foreach dep, $(ARTIFACT_XDG_SRC_DEPS), $(call rwildcard,$($(dep)_PATH)/res/main/xdg/apps,*.desktop))
@@ -557,14 +558,30 @@ ARTIFACT_XDG_UNINST_ID      = $(patsubst xdg_uninstall_%,%,$(@))
 
 BIN_INSTALL                 = $(foreach dep, $(DEPENDENCIES_BIN), install_$(dep))
 BIN_UNINSTALL               = $(foreach dep, $(DEPENDENCIES_BIN), uninstall_$(dep))
+BIN_PACKAGE                 = $(foreach dep, $(DEPENDENCIES_BIN), package_$(dep))
 BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
 BIN_UNINST_ARTIFACT_ID      = $(patsubst uninstall_%,%,$(@))
+BIN_PKG_ARTIFACT_ID         = $(patsubst package_%,%,$(@))
+BIN_PKG_DIR                 = $(PLUGIN_SHARED_NAME)-$(patsubst package_%,%,$(@))-$(PLUGIN_PACKAGE_VERSION)-$(PLATFORM)-$(ARCHITECTURE)
+BIN_PKG_FILES               = \
+  $(wildcard $(ROOTDIR)/CHANGELOG*) \
+  $(wildcard $(ROOTDIR)/COPYING*) \
+  $(wildcard $(ROOTDIR)/*LICENSE*) \
+  $(wildcard $(ROOTDIR)/*.md) \
+  $(wildcard $(ROOTDIR)/*.txt)
+BIN_EXTRA_SHARED            = $(foreach dep, $(call uniq,$(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
+BIN_EXTRA_PLUG              = $(foreach dep, $(call uniq,$(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
+BIN_EXTRA_FILES             = $(foreach dep, $(BIN_EXTRA_SHARED) $(BIN_EXTRA_PLUG),\
+  $(wildcard $($(dep)_PATH)/COPYING*) \
+  $(wildcard $($(dep)_PATH)/*LICENSE*) \
+)
 
 ALLOWED_FEATURES            = doc jack ladspa lv2 vst2 xdg
 ENABLED_FEATURES            = $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
 BUILD_TARGETS               = $(foreach feature,$(ENABLED_FEATURES),$(feature))
 INSTALL_TARGETS             = $(foreach feature,$(ENABLED_FEATURES),install_$(feature))
 UNINSTALL_TARGETS           = $(foreach feature,$(ENABLED_FEATURES),uninstall_$(feature))
+PACKAGE_TARGETS             = $(foreach feature,$(filter-out xdg,$(ENABLED_FEATURES)),package_$(feature))
 
 #------------------------------------------------------------------------------
 # Functional variables
@@ -603,9 +620,10 @@ HOST_DEP_DEP_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
 .PHONY: resources
 .PHONY: install_jack install_ladspa install_lv2 install_vst2 install_doc install_xdg
 .PHONY: uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2 uninstall_doc uninstall_xdg
+.PHONY: package_jack package_ladspa package_lv2 package_vst2 package_doc
 .PHONY: install_xdg_msg uninstall_xdg_msg
 .PHONY: $(DEPENDENCIES) $(DEPENDENCIES_BIN)
-.PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL)
+.PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL) $(BIN_PACKAGE)
 .PHONY: $(ARTIFACT_XDG_INSTALL_DEPS) $(ARTIFACT_XDG_UNINSTALL_DEPS)
 
 #------------------------------------------------------------------------------
@@ -700,31 +718,31 @@ $(HOST_OBJ_EXPORT): EXT_FLAGS=$(HOST_OBJ_EXPORT_CFLAGS)
 # Linking targets
 $(LSP_PLUGIN_FW_OBJ_CORE): $(OBJ_CORE)
 	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_CORE))"
-	$(LD) -o $(LSP_PLUGIN_FW_OBJ_CORE) -r $(OBJ_CORE)
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_CORE) $(LDFLAGS) $(OBJ_CORE)
 	
 $(LSP_PLUGIN_FW_OBJ_META): $(OBJ_META)
 	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_META))"
-	$(LD) -o $(LSP_PLUGIN_FW_OBJ_META) -r $(OBJ_META)
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_META) $(LDFLAGS) $(OBJ_META)
 
 $(LSP_PLUGIN_FW_OBJ_DSP): $(OBJ_DSP)
 	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_DSP))"
-	$(LD) -o $(LSP_PLUGIN_FW_OBJ_DSP) -r $(OBJ_DSP)
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_DSP) $(LDFLAGS) $(OBJ_DSP)
 	
 $(LSP_PLUGIN_FW_OBJ_UI): $(OBJ_UI)
 	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_UI))"
-	$(LD) -o $(LSP_PLUGIN_FW_OBJ_UI) -r $(OBJ_UI)
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_UI) $(LDFLAGS) $(OBJ_UI)
 	
 $(LSP_PLUGIN_FW_OBJ_CTL): $(OBJ_CTL)
 	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_CTL))"
-	$(LD) -o $(LSP_PLUGIN_FW_OBJ_CTL) -r $(OBJ_CTL)
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_CTL) $(LDFLAGS) $(OBJ_CTL)
 	
 $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO): $(OBJ_WRAP_CAIRO)
 	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO))"
-	$(LD) -o $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) -r $(OBJ_WRAP_CAIRO)
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) $(LDFLAGS) $(OBJ_WRAP_CAIRO)
 	
 $(LSP_PLUGIN_FW_OBJ_TEST): $(OBJ_TEST)
 	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_TEST))"
-	$(LD) -o $(LSP_PLUGIN_FW_OBJ_TEST) -r $(OBJ_TEST)
+	$(LD) -o $(LSP_PLUGIN_FW_OBJ_TEST) $(LDFLAGS) $(OBJ_TEST)
 	
 $(LSP_PLUGIN_FW_OBJ_RES): $(HOST_UTL_RESPACK) resources
 	echo "$(notdir $(HOST_UTL_RESPACK)) $(notdir $(LSP_PLUGIN_FW_SRC_RES))"
@@ -733,31 +751,31 @@ $(LSP_PLUGIN_FW_OBJ_RES): $(HOST_UTL_RESPACK) resources
 
 $(HOST_LSP_PLUGIN_FW_OBJ_CORE): $(HOST_OBJ_CORE)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_CORE))"
-	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_CORE) -r $(HOST_OBJ_CORE)
+	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_CORE) $(HOST_LDFLAGS) $(HOST_OBJ_CORE)
 	
 $(HOST_LSP_PLUGIN_FW_OBJ_META): $(HOST_OBJ_META)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_META))"
-	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_META) -r $(HOST_OBJ_META)
+	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_META) $(HOST_LDFLAGS) $(HOST_OBJ_META)
 	
 $(HOST_LSP_PLUGIN_FW_OBJ_DSP): $(HOST_OBJ_DSP)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_DSP))"
-	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_DSP) -r $(HOST_OBJ_DSP)
+	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_DSP) $(HOST_LDFLAGS) $(HOST_OBJ_DSP)
 	
 $(HOST_LSP_PLUGIN_FW_OBJ_UI): $(HOST_OBJ_UI)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_UI))"
-	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_UI) -r $(HOST_OBJ_UI)
+	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_UI) $(HOST_LDFLAGS) $(HOST_OBJ_UI)
 	
 $(HOST_LSP_PLUGIN_FW_OBJ_CTL): $(HOST_OBJ_CTL)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_CTL))"
-	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_CTL) -r $(HOST_OBJ_CTL)
+	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_CTL) $(HOST_LDFLAGS) $(HOST_OBJ_CTL)
 	
 $(HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO): $(HOST_OBJ_WRAP_CAIRO)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO))"
-	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) -r $(HOST_OBJ_WRAP_CAIRO)
+	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO) $(HOST_LDFLAGS) $(HOST_OBJ_WRAP_CAIRO)
 	
 $(HOST_LSP_PLUGIN_FW_OBJ_TEST): $(HOST_OBJ_TEST)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_TEST))"
-	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_TEST) -r $(HOST_OBJ_TEST)
+	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_TEST) $(HOST_LDFLAGS) $(HOST_OBJ_TEST)
 	
 $(HOST_LSP_PLUGIN_FW_OBJ_RES): $(HOST_UTL_RESPACK) resources
 	echo "$(notdir $(HOST_UTL_RESPACK)) $(notdir $(HOST_LSP_PLUGIN_FW_SRC_RES))"
@@ -868,6 +886,7 @@ vst2: $(HOST_UTL_VST2_MAKE) $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_BIN)
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
 meta: $(HOST_UTL_PLUGLIST_GEN)
+	mkdir -p "$(LSP_PLUGIN_FW_BIN)"
 	$(HOST_UTL_PLUGLIST_GEN) --php "$(LSP_PLUGIN_FW_BIN)/plugins.php" --json "$(LSP_PLUGIN_FW_BIN)/plugins.json"
 
 doc: meta
@@ -895,17 +914,17 @@ all: test $(BUILD_TARGETS)
 # Installation
 $(BIN_INSTALL): $(DEPENDENCIES_BIN)
 	echo "Install $(notdir $($(BIN_INST_ARTIFACT_ID)_PATH))"
-	make -C "$($(BIN_INST_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
+	$(MAKE) -C "$($(BIN_INST_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 
 $(ARTIFACT_XDG_INST): install_xdg_msg
-	make -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/main/xdg" install_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)"
+	$(MAKE) -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/main/xdg" install_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)"
 
 install_jack: jack
 	echo "Install jack"
 	mkdir -p "$(DESTDIR)/$(JACK_LIBDIR)"
 	mkdir -p "$(DESTDIR)/$(BINDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_JACK) "$(DESTDIR)$(JACK_LIBDIR)/"
-	make -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
+	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 install_ladspa: ladspa
 	echo "Install ladspa"
@@ -923,7 +942,7 @@ install_vst2: vst2
 	echo "Install vst2"
 	mkdir -p "$(DESTDIR)/$(VST2_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)/$(VST2_LIBDIR)/"
-	make -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(DESTDIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
+	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(DESTDIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
 install_doc: doc
 	echo "Install doc"
@@ -936,21 +955,102 @@ install_xdg_msg:
 install_xdg: install_xdg_msg $(ARTIFACT_XDG_INST)
 
 install: $(BIN_INSTALL) $(INSTALL_TARGETS)
-	@echo "Install OK"
+	echo "Install OK"
+
+#------------------------------------------------------------------------------
+# Packaging
+$(BIN_PACKAGE): $(DEPENDENCIES_BIN)
+
+package_jack: jack $(BIN_PACKAGE)
+	echo "Package jack"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(JACK_LIBDIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(BINDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_JACK) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(JACK_LIBDIR)/"
+	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
+	$(foreach target,$(BIN_PACKAGE), \
+	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	)
+	$(if $(findstring xdg,$(ENABLED_FEATURES)), \
+		$(foreach target,$(ARTIFACT_XDG_INST), \
+	        $(MAKE) -C "$($(patsubst xdg_install_%,%,$(target))_PATH)/res/main/xdg" \
+	            install_xdg DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" FILES="$(ARTIFACT_XDG_FILES)"; \
+	    ) \
+	)
+	$(foreach file,$(BIN_EXTRA_FILES), \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+    )
+	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+
+package_ladspa: ladspa $(BIN_PACKAGE)
+	echo "Package ladspa"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)/"
+	$(foreach file,$(BIN_EXTRA_FILES), \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+    )
+	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+
+package_lv2: lv2 $(BIN_PACKAGE)
+	echo "Package lv2"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_LV2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/"
+	$(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/"
+	$(HOST_UTL_LV2TTL_GEN) -o "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" -ui $(ARTIFACT_LIB_LV2_UI)
+	$(foreach file,$(BIN_EXTRA_FILES), \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+    )
+	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+
+package_vst2: vst2 $(BIN_PACKAGE)
+	echo "Package vst2"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/"
+	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
+	$(foreach file,$(BIN_EXTRA_FILES), \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+    )
+	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+
+package_doc: doc
+	echo "Package doc"
+	-rm -rf "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/$(DOC_SHAREDDIR)"
+	cp -R $(ARTIFACT_DOC_PATH)/* "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/$(DOC_SHAREDDIR)"
+	$(foreach file,$(BIN_EXTRA_FILES), \
+	    cp -f $(file) "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/"; \
+    )
+	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/"
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR).tar.gz" "$(ARTIFACT_DOC_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)"
+
+package: $(PACKAGE_TARGETS)
+	echo "Package OK"
 
 #------------------------------------------------------------------------------
 # Deinstallation
 $(BIN_UNINSTALL):
 	echo "Uninstall $(notdir $($(BIN_UNINST_ARTIFACT_ID)_PATH))"
-	make -C "$($(BIN_UNINST_ARTIFACT_ID)_PATH)" uninstall DESTDIR="$(DESTDIR)"
+	$(MAKE) -C "$($(BIN_UNINST_ARTIFACT_ID)_PATH)" uninstall DESTDIR="$(DESTDIR)"
 
 $(ARTIFACT_XDG_UNINST): uninstall_xdg_msg
-	make -C "$($(ARTIFACT_XDG_UNINST_ID)_PATH)/res/main/xdg" uninstall_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)"
+	$(MAKE) -C "$($(ARTIFACT_XDG_UNINST_ID)_PATH)/res/main/xdg" uninstall_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)"
 
 uninstall_jack:
 	echo "Uninstall jack"
 	-rm -rf "$(DESTDIR)$(JACK_LIBDIR)"
-	make -C "$(ARTIFACT_LIB_JACK_PATH)" uninstall DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
+	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" uninstall DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 uninstall_ladspa:
 	echo "Uninstall ladspa"

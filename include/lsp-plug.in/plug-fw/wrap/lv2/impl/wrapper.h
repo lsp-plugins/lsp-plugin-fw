@@ -369,9 +369,13 @@ namespace lsp
                     result->set_id(vPluginPorts.size());
                     vPluginPorts.add(result);
                     vAudioPorts.add(static_cast<lv2::AudioPort *>(result));
-                    vExtPorts.add(result);
                     plugin_ports->add(result);
-                    lsp_trace("Added external port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+
+                    if (postfix == NULL)
+                    {
+                        vExtPorts.add(result);
+                        lsp_trace("Added external port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                    }
                     break;
                 case meta::R_CONTROL:
                 case meta::R_METER:
@@ -382,9 +386,13 @@ namespace lsp
 
                     result->set_id(vPluginPorts.size());
                     vPluginPorts.add(result);
-                    vExtPorts.add(result);
                     plugin_ports->add(result);
-                    lsp_trace("Added external port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+
+                    if (postfix == NULL)
+                    {
+                        vExtPorts.add(result);
+                        lsp_trace("Added external port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                    }
                     break;
 
                 case meta::R_BYPASS:
@@ -395,17 +403,26 @@ namespace lsp
 
                     result->set_id(vPluginPorts.size());
                     vPluginPorts.add(result);
-                    vExtPorts.add(result);
                     plugin_ports->add(result);
-                    lsp_trace("Added bypass port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+
+                    if (postfix == NULL)
+                    {
+                        vExtPorts.add(result);
+                        lsp_trace("Added bypass port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                    }
                     break;
 
                 case meta::R_PORT_SET:
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES];
                     lv2::PortGroup   *pg    = new lv2::PortGroup(p, pExt, virt);
-                    vPluginPorts.add(pg);
 
+                    // Add Port Set immediately
+                    vPluginPorts.add(pg);
+                    vAllPorts.add(pg);
+                    plugin_ports->add(pg);
+
+                    // Generate nested ports
                     for (size_t row=0; row<pg->rows(); ++row)
                     {
                         // Generate postfix
@@ -431,7 +448,6 @@ namespace lsp
                         }
                     }
 
-                    result  = pg;
                     break;
                 }
 
