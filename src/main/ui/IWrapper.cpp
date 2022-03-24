@@ -750,7 +750,7 @@ namespace lsp
                 c->fmt_append_utf8   ("  VST identifier:      %s\n", meta->vst2_uid);
             if (meta->ladspa_id > 0)
                 c->fmt_append_utf8   ("  LADSPA identifier:   %d\n", meta->ladspa_id);
-            if (meta->ladspa_lbl > 0)
+            if (meta->ladspa_lbl != NULL)
                 c->fmt_append_utf8   ("  LADSPA label:        %s\n", meta->ladspa_lbl);
             c->append           ('\n');
             c->fmt_append_utf8  ("(C) %s\n", pkg->full_name);
