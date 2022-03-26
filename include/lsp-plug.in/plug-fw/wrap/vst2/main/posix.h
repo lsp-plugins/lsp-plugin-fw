@@ -55,10 +55,10 @@ namespace lsp
         static const char *core_library_paths[] =
         {
         #ifdef LSP_INSTALL_PREFIX
-            LSP_INSTALL_PREFIX "/lib"
-            LSP_INSTALL_PREFIX "/lib32"
-            LSP_INSTALL_PREFIX "/bin"
-            LSP_INSTALL_PREFIX "/sbin"
+            LSP_INSTALL_PREFIX "/lib",
+            LSP_INSTALL_PREFIX "/lib32",
+            LSP_INSTALL_PREFIX "/bin",
+            LSP_INSTALL_PREFIX "/sbin",
         #endif /* LSP_INSTALL_PREFIX */
 
             "/usr/local/lib32",
@@ -75,10 +75,10 @@ namespace lsp
         static const char *core_library_paths[] =
         {
         #ifdef LSP_INSTALL_PREFIX
-            LSP_INSTALL_PREFIX "/lib"
-            LSP_INSTALL_PREFIX "/lib64"
-            LSP_INSTALL_PREFIX "/bin"
-            LSP_INSTALL_PREFIX "/sbin"
+            LSP_INSTALL_PREFIX "/lib",
+            LSP_INSTALL_PREFIX "/lib64",
+            LSP_INSTALL_PREFIX "/bin",
+            LSP_INSTALL_PREFIX "/sbin",
         #endif /* LSP_INSTALL_PREFIX */
 
             "/usr/local/lib64",

@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.3 ===
-
+* Fixed bugs related to usage of custom installation prefix.
 
 === 1.0.2 ===
 * Fixed compiler issue.

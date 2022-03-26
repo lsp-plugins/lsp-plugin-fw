@@ -112,7 +112,8 @@ VERSION_CFLAGS             := \
   -DLSP_PLUGIN_PACKAGE_MAJOR=$(PLUGIN_PACKAGE_MAJOR) \
   -DLSP_PLUGIN_PACKAGE_MINOR=$(PLUGIN_PACKAGE_MINOR) \
   -DLSP_PLUGIN_PACKAGE_MICRO=$(PLUGIN_PACKAGE_MICRO) \
-  -DLSP_PLUGIN_PACKAGE_BRANCH=\"$(PLUGIN_PACKAGE_BRANCH)\"
+  -DLSP_PLUGIN_PACKAGE_BRANCH=\"$(PLUGIN_PACKAGE_BRANCH)\" \
+  -DLSP_INSTALL_PREFIX=\"$(PREFIX)\"
 
 #------------------------------------------------------------------------------
 # Framework settings for (cross) build
