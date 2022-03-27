@@ -734,7 +734,7 @@ namespace lsp
             c->append_ascii     (config_separator);
             c->append           ('\n');
             c->append_utf8      ("This file contains configuration of the audio plugin.\n");
-            c->fmt_append_utf8  ("  Package:             %s (%s)\n", pkg->artifact);
+            c->fmt_append_utf8  ("  Package:             %s (%s)\n", pkg->artifact, pkg->artifact_name);
             c->fmt_append_utf8  ("  Package version:     %s\n", pkv.get_utf8());
             c->fmt_append_utf8  ("  Plugin name:         %s (%s)\n", meta->name, meta->description);
             c->fmt_append_utf8  ("  Plugin version:      %d.%d.%d\n",

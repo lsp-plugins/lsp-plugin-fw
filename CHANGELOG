@@ -8,6 +8,7 @@
   that could cause problems with missing some graphical content in the UI.
 * Fixed the XDG data installation script that forced to use '/usr/local/share'
   location for shared icons.
+* Fixed invalid pointer dereference when exporting configuration file.
 
 === 1.0.2 ===
 * Fixed compiler issue.
