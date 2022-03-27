@@ -103,6 +103,17 @@ namespace lsp
             if (res == STATUS_OK)
                 res = pUI->post_init();
 
+            tk::Window *root    = window();
+            if (root == NULL)
+            {
+                lsp_error("No root window present!\n");
+                return STATUS_BAD_STATE;
+            }
+
+            // Bind events to the root window
+            root->slot(tk::SLOT_SHOW)->bind(slot_ui_show, this);
+            root->slot(tk::SLOT_HIDE)->bind(slot_ui_hide, this);
+
             return res;
         }
 
@@ -383,6 +394,23 @@ namespace lsp
 
             dsp::finish(&ctx);
         }
+
+        status_t UIWrapper::slot_ui_hide(tk::Widget *sender, void *ptr, void *data)
+        {
+            UIWrapper *_this = static_cast<UIWrapper *>(ptr);
+            if (_this->pWrapper != NULL)
+                _this->pWrapper->set_ui_active(false);
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
+        {
+            UIWrapper *_this = static_cast<UIWrapper *>(ptr);
+            if (_this->pWrapper != NULL)
+                _this->pWrapper->set_ui_active(true);
+            return STATUS_OK;
+        }
+
     } /* namespace jack */
 } /* namespace lsp */
 

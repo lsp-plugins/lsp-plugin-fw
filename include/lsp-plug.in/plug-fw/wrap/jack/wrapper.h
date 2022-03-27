@@ -77,6 +77,7 @@ namespace lsp
                 ipc::Mutex                      sKVTMutex;          // Key-value tree mutex
 
                 volatile uatomic_t              nPosition;          // Position counter
+                volatile bool                   bUIActive;          // UI activity flag
 
                 volatile uatomic_t              nQueryDrawReq;      // QueryDraw request
                 uatomic_t                       nQueryDrawResp;     // QueryDraw response
@@ -144,6 +145,8 @@ namespace lsp
                 status_t                            import_settings(const LSPString *path);
                 status_t                            import_settings(const io::Path *path);
                 status_t                            import_settings(io::IInSequence *is);
+
+                bool                                set_ui_active(bool active);
 
                 // Inline display interface
                 plug::canvas_data_t                *render_inline_display(size_t width, size_t height);

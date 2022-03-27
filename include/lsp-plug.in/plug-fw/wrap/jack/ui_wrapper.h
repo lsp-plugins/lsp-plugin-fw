@@ -65,6 +65,12 @@ namespace lsp
                 static ssize_t  compare_ports(const jack::UIPort *a, const jack::UIPort *b);
                 size_t          rebuild_sorted_ports();
                 void            sync_kvt(core::KVTStorage *kvt);
+                void            ui_activated();
+                void            ui_deactivated();
+
+            protected:
+                static status_t             slot_ui_hide(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_ui_show(tk::Widget *sender, void *ptr, void *data);
 
             public:
                 virtual core::KVTStorage   *kvt_lock();

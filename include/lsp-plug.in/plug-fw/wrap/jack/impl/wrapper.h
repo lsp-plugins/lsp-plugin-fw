@@ -39,6 +39,7 @@ namespace lsp
             pExecutor       = NULL;
 
             nPosition       = 0;
+            bUIActive       = false;
 
             nQueryDrawReq   = 0;
             nQueryDrawResp  = 0;
@@ -233,6 +234,17 @@ namespace lsp
 
         int Wrapper::run(size_t samples)
         {
+            // Activate UI if present
+            bool ui_active = bUIActive;
+            if (ui_active != pPlugin->ui_active())
+            {
+                lsp_trace("UI ACTIVE: %s", (ui_active) ? "true" : "false");
+                if (ui_active)
+                    pPlugin->activate_ui();
+                else
+                    pPlugin->deactivate_ui();
+            }
+
             // Prepare ports
             for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
             {
@@ -938,6 +950,13 @@ namespace lsp
         void Wrapper::query_display_draw()
         {
             atomic_add(&nQueryDrawReq, 1);
+        }
+
+        bool Wrapper::set_ui_active(bool active)
+        {
+            bool prev = bUIActive;
+            bUIActive = active;
+            return prev;
         }
     } /* namespace jack */
 } /* namespace lsp */
