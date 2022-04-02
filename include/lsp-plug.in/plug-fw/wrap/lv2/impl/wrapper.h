@@ -366,13 +366,13 @@ namespace lsp
                 case meta::R_AUDIO:
                     result = new lv2::AudioPort(p, pExt);
 
-                    result->set_id(vPluginPorts.size());
                     vPluginPorts.add(result);
                     vAudioPorts.add(static_cast<lv2::AudioPort *>(result));
                     plugin_ports->add(result);
 
                     if (postfix == NULL)
                     {
+                        result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
                         lsp_trace("Added external port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
@@ -384,12 +384,12 @@ namespace lsp
                     else
                         result      = new lv2::InputPort(p, pExt, virt);
 
-                    result->set_id(vPluginPorts.size());
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
 
                     if (postfix == NULL)
                     {
+                        result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
                         lsp_trace("Added external port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
@@ -401,12 +401,12 @@ namespace lsp
                     else
                         result      = new lv2::BypassPort(p, pExt);
 
-                    result->set_id(vPluginPorts.size());
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
 
                     if (postfix == NULL)
                     {
+                        result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
                         lsp_trace("Added bypass port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
