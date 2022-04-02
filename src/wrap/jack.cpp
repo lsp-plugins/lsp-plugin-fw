@@ -508,8 +508,8 @@ namespace lsp
 
         status_t plugin_main(wrapper_t *w)
         {
-            status_t res        = STATUS_OK;
-            ssize_t period      = 40; // 40 ms period (25 frames per second)
+            status_t res            = STATUS_OK;
+            ws::timestamp_t period  = 40; // 40 ms period (25 frames per second)
 
             system::time_t  ctime;
             ws::timestamp_t ts1, ts2;
@@ -544,9 +544,14 @@ namespace lsp
                 system::get_time(&ctime);
                 ts2     = ws::timestamp_t(ctime.seconds) * 1000 + ctime.nanos / 1000000;
 
-                wssize_t delay   = ts1 + period - ts2;
+                wssize_t delay   = lsp_max(ts1 + period - ts2, period);
                 if (delay > 0)
-                    w->pUIWrapper->display()->wait_events(lsp_max(delay, period));
+                {
+                    if (!w->pUIWrapper)
+                        system::sleep_msec(delay);
+                    else
+                        w->pUIWrapper->display()->wait_events(delay);
+                }
             }
 
             fprintf(stderr, "\nPlugin execution interrupted\n");

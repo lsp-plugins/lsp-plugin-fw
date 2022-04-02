@@ -9,6 +9,7 @@
 * Fixed the XDG data installation script that forced to use '/usr/local/share'
   location for shared icons.
 * Fixed invalid pointer dereference when exporting configuration file.
+* Fixed bugs of working in headless mode.
 
 === 1.0.2 ===
 * Fixed compiler issue.
