@@ -139,7 +139,7 @@ namespace lsp
                             LSP_STATUS_ASSERT(s->write_i32(meta->id, int(v), flags));
                         }
                     }
-                    else if (!(meta->flags & meta::F_EXT))
+                    else
                     {
                         if (meta->flags & meta::F_EXT)
                             flags  |= config::SF_PREC_LONG;
