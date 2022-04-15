@@ -58,6 +58,14 @@ namespace lsp
             return pWrapper->reset_settings();
         }
 
+        void Module::idle()
+        {
+        }
+
+        void Module::kvt_changed(core::KVTStorage *kvt, const char *id, const core::kvt_param_t *value)
+        {
+        }
+
         void Module::do_destroy()
         {
             // Forget the root widget

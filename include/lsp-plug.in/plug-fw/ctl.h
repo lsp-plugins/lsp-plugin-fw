@@ -50,6 +50,7 @@
 
     #include <lsp-plug.in/plug-fw/ctl/simple/Void.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Bevel.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/Edit.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Label.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Knob.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Button.h>

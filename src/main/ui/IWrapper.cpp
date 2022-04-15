@@ -291,6 +291,8 @@ namespace lsp
                 if (l != NULL)
                     l->changed(storage, id, value);
             }
+            if (pUI != NULL)
+                pUI->kvt_changed(storage, id, value);
         }
 
         status_t IWrapper::kvt_subscribe(ui::IKVTListener *listener)
@@ -554,6 +556,10 @@ namespace lsp
                 if (vp != NULL)
                     vp->sync();
             }
+
+            // Call the nested UI (deliver idle signal)
+            if (pUI != NULL)
+                pUI->idle();
 
             // Call main iteration for the underlying display
             if (pDisplay != NULL)

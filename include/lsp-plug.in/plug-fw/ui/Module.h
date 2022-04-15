@@ -91,6 +91,19 @@ namespace lsp
                  */
                 virtual status_t                reset_settings();
 
+                /**
+                 * This method is called on each UI iteration.
+                 */
+                virtual void                    idle();
+
+                /**
+                 * Triggers when any KVT parameter change occurs
+                 * @param kvt KVT storage
+                 * @param id KVT parameter identifier
+                 * @param value KVT parameter value
+                 */
+                virtual void                    kvt_changed(core::KVTStorage *kvt, const char *id, const core::kvt_param_t *value);
+
             public:
                 inline const meta::plugin_t    *metadata() const        { return pMetadata;         }
                 inline IWrapper                *wrapper()               { return pWrapper;          }
