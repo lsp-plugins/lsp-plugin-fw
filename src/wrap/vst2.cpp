@@ -30,10 +30,43 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/debug.h>
 
+#ifdef USE_LIBX11
+    #include <X11/Xlib.h>
+#endif /* USE_LIBX11 */
+
 namespace lsp
 {
     namespace vst2
     {
+    #ifdef USE_LIBX11
+        size_t x11_decode_state(size_t code)
+        {
+            size_t result = 0;
+            #define DC(mask, flag)  \
+                if (code & mask) \
+                    result |= flag; \
+
+            DC(ShiftMask, ws::MCF_SHIFT);
+            DC(LockMask, ws::MCF_LOCK);
+            DC(ControlMask, ws::MCF_CONTROL);
+            DC(Mod1Mask, ws::MCF_ALT);
+            DC(Mod2Mask, ws::MCF_MOD2);
+            DC(Mod3Mask, ws::MCF_MOD3);
+            DC(Mod4Mask, ws::MCF_MOD4);
+            DC(Mod5Mask, ws::MCF_MOD5);
+
+            DC(Button1Mask, ws::MCF_LEFT);
+            DC(Button2Mask, ws::MCF_MIDDLE);
+            DC(Button3Mask, ws::MCF_RIGHT);
+            DC(Button4Mask, ws::MCF_BUTTON4);
+            DC(Button5Mask, ws::MCF_BUTTON5);
+
+            #undef DC
+
+            return result;
+        }
+    #endif /* USE_LIBX11 */
+
         void finalize(AEffect *e)
         {
             lsp_trace("effect=%p", e);
@@ -541,7 +574,34 @@ namespace lsp
                     v = 1;
                     break;
                 }
-            #endif
+
+                case effEditKeyDown:
+                case effEditKeyUp:
+                {
+                    UIWrapper *uiw = w->ui_wrapper();
+                    if (uiw == NULL)
+                        break;
+                    tk::Window *wnd = uiw->window();
+                    if (wnd == NULL)
+                        break;
+
+                /* This is a hack of catching up events for X11-based windows */
+                #ifdef USE_LIBX11
+                    ws::event_t ue;
+                    ue.nType        = (opcode == effEditKeyDown) ? ws::UIE_KEY_DOWN : ws::UIE_KEY_UP;
+                    ue.nLeft        = 0;
+                    ue.nTop         = 0;
+                    ue.nCode        = index;
+                    ue.nRawCode     = index;
+                    ue.nState       = x11_decode_state(opt);
+                    ue.nTime        = 0;
+
+                    wnd->handle_event(&ue);
+                    v = 1;
+                #endif /* USE_LIBX11 */
+                    break;
+                }
+            #endif /* LSP_NO_VST_UI */
 
                 case effSetProgram:
                 case effGetProgram:
@@ -613,8 +673,6 @@ namespace lsp
                     break;
                 }
 
-                case effEditKeyDown:
-                case effEditKeyUp:
                 case effSetEditKnobMode:
 
                 case effGetMidiProgramName:
@@ -673,6 +731,17 @@ namespace lsp
                 default:
                     break;
             }
+
+        #ifdef LSP_TRACE
+            switch (opcode)
+            {
+                case effEditKeyDown:
+                case effEditKeyUp:
+                    lsp_trace("vst_dispatcher return v=%d", int(v));
+                    break;
+            }
+        #endif /* LSP_TRACE */
+
             return v;
         }
 
