@@ -29,43 +29,139 @@
 
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/ws/keycodes.h>
 
 #ifdef USE_LIBX11
-    #include <X11/Xlib.h>
+    #include <lsp-plug.in/ws/x11/decode.h>
 #endif /* USE_LIBX11 */
 
 namespace lsp
 {
     namespace vst2
     {
-    #ifdef USE_LIBX11
-        size_t x11_decode_state(size_t code)
+        typedef struct key_code_t
         {
-            size_t result = 0;
-            #define DC(mask, flag)  \
-                if (code & mask) \
-                    result |= flag; \
+            uint8_t     vst;
+            ws::code_t  ws;
+        } key_code_t;
 
-            DC(ShiftMask, ws::MCF_SHIFT);
-            DC(LockMask, ws::MCF_LOCK);
-            DC(ControlMask, ws::MCF_CONTROL);
-            DC(Mod1Mask, ws::MCF_ALT);
-            DC(Mod2Mask, ws::MCF_MOD2);
-            DC(Mod3Mask, ws::MCF_MOD3);
-            DC(Mod4Mask, ws::MCF_MOD4);
-            DC(Mod5Mask, ws::MCF_MOD5);
+        static key_code_t key_table[] =
+        {
+            { VKEY_BACK,      ws::WSK_BACKSPACE         },
+            { VKEY_TAB,       ws::WSK_TAB               },
+            { VKEY_RETURN,    ws::WSK_RETURN            },
+            { VKEY_PAUSE,     ws::WSK_PAUSE             },
+            { VKEY_ESCAPE,    ws::WSK_ESCAPE            },
+            { VKEY_SPACE,     ' '                       },
+            { VKEY_END,       ws::WSK_END               },
+            { VKEY_HOME,      ws::WSK_HOME              },
+            { VKEY_LEFT,      ws::WSK_LEFT              },
+            { VKEY_UP,        ws::WSK_UP                },
+            { VKEY_RIGHT,     ws::WSK_RIGHT             },
+            { VKEY_DOWN,      ws::WSK_DOWN              },
+            { VKEY_PAGEUP,    ws::WSK_PAGE_UP           },
+            { VKEY_PAGEDOWN,  ws::WSK_PAGE_DOWN         },
+            { VKEY_PRINT,     ws::WSK_PRINT             },
+            { VKEY_ENTER,     ws::WSK_KEYPAD_ENTER      },
+            { VKEY_HELP,      ws::WSK_HELP              },
+            { VKEY_DELETE,    ws::WSK_DELETE            },
+            { VKEY_NUMPAD0,   ws::WSK_KEYPAD_0          },
+            { VKEY_NUMPAD1,   ws::WSK_KEYPAD_1          },
+            { VKEY_NUMPAD2,   ws::WSK_KEYPAD_2          },
+            { VKEY_NUMPAD3,   ws::WSK_KEYPAD_3          },
+            { VKEY_NUMPAD4,   ws::WSK_KEYPAD_4          },
+            { VKEY_NUMPAD5,   ws::WSK_KEYPAD_5          },
+            { VKEY_NUMPAD6,   ws::WSK_KEYPAD_6          },
+            { VKEY_NUMPAD7,   ws::WSK_KEYPAD_7          },
+            { VKEY_NUMPAD8,   ws::WSK_KEYPAD_8          },
+            { VKEY_NUMPAD9,   ws::WSK_KEYPAD_9          },
+            { VKEY_MULTIPLY,  ws::WSK_KEYPAD_MULTIPLY   },
+            { VKEY_ADD,       ws::WSK_KEYPAD_ADD        },
+            { VKEY_SUBTRACT,  ws::WSK_KEYPAD_SUBTRACT   },
+            { VKEY_DECIMAL,   ws::WSK_KEYPAD_DECIMAL    },
+            { VKEY_DIVIDE,    ws::WSK_KEYPAD_DIVIDE     },
+            { VKEY_F1,        ws::WSK_F1                },
+            { VKEY_F2,        ws::WSK_F2                },
+            { VKEY_F3,        ws::WSK_F3                },
+            { VKEY_F4,        ws::WSK_F4                },
+            { VKEY_F5,        ws::WSK_F5                },
+            { VKEY_F6,        ws::WSK_F6                },
+            { VKEY_F7,        ws::WSK_F7                },
+            { VKEY_F8,        ws::WSK_F8                },
+            { VKEY_F9,        ws::WSK_F9                },
+            { VKEY_F10,       ws::WSK_F10               },
+            { VKEY_F11,       ws::WSK_F11               },
+            { VKEY_F12,       ws::WSK_F12               },
+            { VKEY_NUMLOCK,   ws::WSK_NUM_LOCK          },
+            { VKEY_SCROLL,    ws::WSK_SCROLL_LOCK       },
+            { VKEY_SHIFT,     ws::WSK_SHIFT_L           },
+            { VKEY_CONTROL,   ws::WSK_CONTROL_L         },
+            { VKEY_ALT,       ws::WSK_ALT_L             },
+            { VKEY_EQUALS,    ws::WSK_KEYPAD_EQUAL      },
+        };
 
-            DC(Button1Mask, ws::MCF_LEFT);
-            DC(Button2Mask, ws::MCF_MIDDLE);
-            DC(Button3Mask, ws::MCF_RIGHT);
-            DC(Button4Mask, ws::MCF_BUTTON4);
-            DC(Button5Mask, ws::MCF_BUTTON5);
+        int process_key_event(vst2::UIWrapper *w, VstInt32 opcode, VstInt32 index, VstIntPtr value)
+        {
+            int v = 0;
+            tk::Window *wnd = w->window();
+            if (wnd == NULL)
+                return v;
 
-            #undef DC
+            // Generate user event
+            ws::event_t ue;
+            ws::init_event(&ue);
+            ue.nType        = (opcode == effEditKeyDown) ? ws::UIE_KEY_DOWN : ws::UIE_KEY_UP;
 
-            return result;
+            // Process value first
+            if (value > 0)
+            {
+                // Translate the code
+                ws::code_t code = ws::WSK_UNKNOWN;
+                for (size_t i=0, n=sizeof(key_table)/sizeof(key_code_t); i<n; ++i)
+                {
+                    if (value == key_table[i].vst)
+                    {
+                        code = key_table[i].ws;
+                        break;
+                    }
+                }
+
+                // Post-process the code
+                if (code != ws::WSK_UNKNOWN)
+                {
+                    ue.nCode    = code;
+                    ue.nState   = w->key_state();
+                    wnd->handle_event(&ue);
+                    v = 1;
+                }
+
+                // Update state of the keyboard
+                bool down = (ue.nType == ws::UIE_KEY_DOWN);
+                if ((code == ws::WSK_SHIFT_L) || (code == ws::WSK_SHIFT_R))
+                    w->set_key_state(lsp_setflag(w->key_state(), ws::MCF_SHIFT, down));
+                else if ((code == ws::WSK_ALT_L) || (code == ws::WSK_ALT_R))
+                    w->set_key_state(lsp_setflag(w->key_state(), ws::MCF_ALT, down));
+                else if ((code == ws::WSK_CONTROL_L) || (code == ws::WSK_CONTROL_R))
+                    w->set_key_state(lsp_setflag(w->key_state(), ws::MCF_CONTROL, down));
+            }
+
+            // Process index second
+            if (index > 0)
+            {
+            #ifdef USE_LIBX11
+                ws::code_t code = ws::x11::decode_keycode(index);
+            #else
+                ws::code_t code = index;
+            #endif /* USE_LIBX11 */
+
+                ue.nCode    = code;
+                ue.nState   = w->key_state();
+                wnd->handle_event(&ue);
+                v = 1;
+            }
+
+            return v;
         }
-    #endif /* USE_LIBX11 */
 
         void finalize(AEffect *e)
         {
@@ -581,24 +677,9 @@ namespace lsp
                     UIWrapper *uiw = w->ui_wrapper();
                     if (uiw == NULL)
                         break;
-                    tk::Window *wnd = uiw->window();
-                    if (wnd == NULL)
-                        break;
 
-                /* This is a hack of catching up events for X11-based windows */
-                #ifdef USE_LIBX11
-                    ws::event_t ue;
-                    ue.nType        = (opcode == effEditKeyDown) ? ws::UIE_KEY_DOWN : ws::UIE_KEY_UP;
-                    ue.nLeft        = 0;
-                    ue.nTop         = 0;
-                    ue.nCode        = index;
-                    ue.nRawCode     = index;
-                    ue.nState       = x11_decode_state(opt);
-                    ue.nTime        = 0;
-
-                    wnd->handle_event(&ue);
-                    v = 1;
-                #endif /* USE_LIBX11 */
+                    // Generate key event handler and pass it to the plugin
+                    v = process_key_event(uiw, opcode, index, value);
                     break;
                 }
             #endif /* LSP_NO_VST_UI */
