@@ -1452,7 +1452,7 @@ namespace lsp
         status_t PluginWindow::slot_confirm_reset_settings(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            return __this->pWrapper->ui()->reset_settings();
+            return __this->pWrapper->reset_settings();
         }
 
         static const char * manual_prefixes[] =

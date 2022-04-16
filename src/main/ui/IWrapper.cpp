@@ -1609,6 +1609,9 @@ namespace lsp
                 p->notify_all();
             }
 
+            if (pUI != NULL)
+                pUI->reset_settings();
+
             return STATUS_OK;
         }
     }

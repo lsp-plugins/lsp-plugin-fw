@@ -55,7 +55,7 @@ namespace lsp
 
         status_t Module::reset_settings()
         {
-            return pWrapper->reset_settings();
+            return STATUS_OK;
         }
 
         void Module::idle()

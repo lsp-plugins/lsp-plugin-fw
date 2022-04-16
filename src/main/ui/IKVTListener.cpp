@@ -33,17 +33,7 @@ namespace lsp
         {
         }
 
-        const char *IKVTListener::name()
-        {
-            return NULL;
-        }
-
         bool IKVTListener::changed(core::KVTStorage *kvt, const char *id, const core::kvt_param_t *value)
-        {
-            return false;
-        }
-
-        bool IKVTListener::match(const char *id)
         {
             return false;
         }

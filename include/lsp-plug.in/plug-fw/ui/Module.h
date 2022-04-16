@@ -87,7 +87,10 @@ namespace lsp
                 virtual status_t                pre_destroy();
 
                 /**
-                 * Reset the settings of the plugin.
+                 * Method is called when the plugin wrapper triggers the plugin reset event.
+                 * This method can apply additional plugin state updates, for example, change
+                 * the contents of the KVT storage.
+                 * @return status of operation
                  */
                 virtual status_t                reset_settings();
 

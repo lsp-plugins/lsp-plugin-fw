@@ -14,6 +14,7 @@
 * Fixed missing serialization for high-precision parameters in the configuration file.
 * Added widget controller for text edit.
 * Added methods idle() and kvt_changed() to ui::Module class.
+* Changed the behaviour and contract of ui::Module::reset_settings() method.
 
 === 1.0.2 ===
 * Fixed compiler issue.
