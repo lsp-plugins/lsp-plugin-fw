@@ -17,6 +17,7 @@
 * Changed the behaviour and contract of ui::Module::reset_settings() method.
 * Introduced effEditKeyDown and effEditKeyUp VST2 event handling if the host prevents
   plugins of receiving X11 events.
+* Fixed bugs of KVT state restoration related to string-typed parameters.
 
 === 1.0.2 ===
 * Fixed compiler issue.

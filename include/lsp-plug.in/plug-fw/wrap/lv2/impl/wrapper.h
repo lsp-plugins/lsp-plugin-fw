@@ -1651,7 +1651,7 @@ namespace lsp
                             else if (p_type == pExt->forge.String)
                             {
                                 p.type  = core::KVT_STRING;
-                                p.str   = reinterpret_cast<const char *>(&body[1]);
+                                p.str   = reinterpret_cast<const char *>(&xbody[1]);
                             }
                             else if ((p_type == pExt->uridObject) || (p_type == pExt->uridBlank))
                             {
