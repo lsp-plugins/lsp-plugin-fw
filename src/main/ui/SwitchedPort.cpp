@@ -177,9 +177,6 @@ namespace lsp
         {
             destroy();
 
-            if (!strcmp(id, "rs[inst][ssel]"))
-                lsp_trace("debug");
-
             sTokens = tokenize(id);
             if (sTokens != NULL)
             {

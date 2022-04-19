@@ -323,7 +323,7 @@ namespace lsp
 
         IPort *IWrapper::port(const char *id)
         {
-            // Check for alias
+            // Check for alias: perform recursive search until alias will be translated into expression
             lltl::phashset<LSPString> path;
             LSPString key, *name;
             if (!key.set_utf8(id))
@@ -340,6 +340,7 @@ namespace lsp
                 if (!key.set(name))
                     return NULL;
             }
+            id = key.get_utf8(); // Finally, translate alias value back into port identifier
 
             // Check that port name contains index
             if (strchr(id, '[') != NULL)
