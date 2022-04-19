@@ -12,6 +12,13 @@
 * Fixed bug that caused plugins working in headless mode to crash.
 * Fixed regression related to saving state of some controls using lv2:State interface.
 * Fixed missing serialization for high-precision parameters in the configuration file.
+* Added widget controller for text edit.
+* Added methods idle() and kvt_changed() to ui::Module class.
+* Changed the behaviour and contract of ui::Module::reset_settings() method.
+* Introduced effEditKeyDown and effEditKeyUp VST2 event handling if the host prevents
+  plugins of receiving X11 events.
+* Fixed bugs of KVT state restoration related to string-typed parameters.
+* Fixed bug related to improper parsing of port name aliases in the UI.
 
 === 1.0.2 ===
 * Fixed compiler issue.

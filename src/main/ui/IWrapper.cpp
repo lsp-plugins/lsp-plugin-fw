@@ -291,6 +291,8 @@ namespace lsp
                 if (l != NULL)
                     l->changed(storage, id, value);
             }
+            if (pUI != NULL)
+                pUI->kvt_changed(storage, id, value);
         }
 
         status_t IWrapper::kvt_subscribe(ui::IKVTListener *listener)
@@ -321,7 +323,7 @@ namespace lsp
 
         IPort *IWrapper::port(const char *id)
         {
-            // Check for alias
+            // Check for alias: perform recursive search until alias will be translated into expression
             lltl::phashset<LSPString> path;
             LSPString key, *name;
             if (!key.set_utf8(id))
@@ -338,6 +340,7 @@ namespace lsp
                 if (!key.set(name))
                     return NULL;
             }
+            id = key.get_utf8(); // Finally, translate alias value back into port identifier
 
             // Check that port name contains index
             if (strchr(id, '[') != NULL)
@@ -554,6 +557,10 @@ namespace lsp
                 if (vp != NULL)
                     vp->sync();
             }
+
+            // Call the nested UI (deliver idle signal)
+            if (pUI != NULL)
+                pUI->idle();
 
             // Call main iteration for the underlying display
             if (pDisplay != NULL)
@@ -1602,6 +1609,9 @@ namespace lsp
                 p->set_default();
                 p->notify_all();
             }
+
+            if (pUI != NULL)
+                pUI->reset_settings();
 
             return STATUS_OK;
         }
