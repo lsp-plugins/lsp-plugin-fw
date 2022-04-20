@@ -167,24 +167,24 @@ namespace lsp
         class UIMeshPort: public UIPort
         {
             private:
-                jack::mesh_t   *pMesh;
+                plug::mesh_t   *pMesh;
 
             public:
                 explicit UIMeshPort(jack::Port *port): UIPort(port)
                 {
-                    pMesh       = jack::mesh_t::create(port->metadata());
+                    pMesh       = jack::create_mesh(port->metadata());
                 }
 
                 virtual ~UIMeshPort()
                 {
-                    jack::mesh_t::destroy(pMesh);
+                    jack::destroy_mesh(pMesh);
                     pMesh = NULL;
                 }
 
             public:
                 virtual bool sync()
                 {
-                    mesh_t *mesh = pPort->buffer<mesh_t>();
+                    plug::mesh_t *mesh = pPort->buffer<plug::mesh_t>();
                     if ((mesh == NULL) || (!mesh->containsData()))
                         return false;
 
