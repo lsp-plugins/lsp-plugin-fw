@@ -1578,7 +1578,12 @@ namespace lsp
 
                     // Remove prefix for the KVT parameter
                     const char *uri = pExt->unmap_urid(body->key);
-                    if (::strncmp(uri, pExt->uriKvt, prefix_len) != 0)
+                    if (uri == NULL)
+                    {
+                        lsp_warn("Failed to unmap atom %d to URID value, skipping", int(body->key));
+                        continue;
+                    }
+                    else if (::strncmp(uri, pExt->uriKvt, prefix_len) != 0)
                     {
                         lsp_warn("Invalid property: urid=%d, uri=%s", body->key, uri);
                         continue;
