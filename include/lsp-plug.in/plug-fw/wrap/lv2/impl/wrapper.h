@@ -25,6 +25,9 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
+
+#define LSP_LEGACY_KVT_URI          LSP_LV2_BASE_URI "ui/lv2"
 
 namespace lsp
 {
@@ -1543,7 +1546,8 @@ namespace lsp
             uint32_t p_type;
             size_t p_size;
             const void *ptr = pExt->retrieve_value(pExt->uridKvtObject, &p_type, &p_size);
-            size_t prefix_len = ::strlen(pExt->uriKvt);
+            const size_t prefix_len = ::strlen(LSP_LEGACY_KVT_URI);
+            const size_t prefix_len2 = ::strlen(pExt->uriKvt);
             if (ptr == NULL)
                 return;
 
@@ -1583,18 +1587,21 @@ namespace lsp
                         lsp_warn("Failed to unmap atom %d to URID value, skipping", int(body->key));
                         continue;
                     }
-                    else if (::strncmp(uri, pExt->uriKvt, prefix_len) != 0)
-                    {
-                        lsp_warn("Invalid property: urid=%d, uri=%s", body->key, uri);
-                        continue;
-                    }
-                    else if (uri[prefix_len] != '/')
+
+                    // Obtain the name of the property
+                    const char *name = uri;
+                    if (::strncmp(uri, LSP_LEGACY_KVT_URI, prefix_len) == 0)
+                        name = (uri[prefix_len] == '/') ? &uri[prefix_len + 1] : NULL;
+                    else if (::strncmp(uri, pExt->uriKvt, prefix_len2) == 0)
+                        name = (uri[prefix_len2] == '/') ? &uri[prefix_len2 + 1] : NULL;
+
+                    // Check that we have obtained the right name
+                    if (name == NULL)
                     {
                         lsp_warn("Invalid property: urid=%d, uri=%s", body->key, uri);
                         continue;
                     }
 
-                    const char *name = &uri[prefix_len + 1];
                     core::kvt_param_t p;
                     size_t flags    = core::KVT_TX;
                     p.type          = core::KVT_ANY;

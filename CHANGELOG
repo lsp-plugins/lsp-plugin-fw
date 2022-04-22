@@ -19,6 +19,7 @@
   plugins of receiving X11 events.
 * Fixed bugs of KVT state restoration related to string-typed parameters.
 * Fixed bug related to improper parsing of port name aliases in the UI.
+* Updated parameter mapping for KVT.
 
 === 1.0.2 ===
 * Fixed compiler issue.
