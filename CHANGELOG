@@ -20,6 +20,7 @@
 * Fixed bugs of KVT state restoration related to string-typed parameters.
 * Fixed bug related to improper parsing of port name aliases in the UI.
 * Updated parameter mapping for KVT.
+* Fixed typo in Wavefront Object File Format name.
 
 === 1.0.2 ===
 * Fixed compiler issue.
