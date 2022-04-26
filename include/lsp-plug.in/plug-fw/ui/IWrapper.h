@@ -122,7 +122,7 @@ namespace lsp
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
                 virtual ~IWrapper();
 
-                virtual status_t    init();
+                virtual status_t    init(void *root_widget);
                 virtual void        destroy();
 
             public:

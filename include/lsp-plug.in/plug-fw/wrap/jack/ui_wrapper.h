@@ -57,7 +57,7 @@ namespace lsp
                 explicit UIWrapper(jack::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui);
                 virtual ~UIWrapper();
 
-                virtual status_t            init();
+                virtual status_t            init(void *root_widget);
                 virtual void                destroy();
 
             protected:

@@ -85,7 +85,7 @@ namespace lsp
                 explicit UIWrapper(ui::Module *ui, resource::ILoader *loader, lv2::Extensions *ext);
                 virtual ~UIWrapper();
 
-                virtual status_t            init();
+                virtual status_t            init(void *root_widget);
                 virtual void                destroy();
 
             public:

@@ -49,7 +49,7 @@ namespace lsp
             pJackStatus     = NULL;
         }
 
-        status_t UIWrapper::init()
+        status_t UIWrapper::init(void *root_widget)
         {
             status_t res = STATUS_OK;
 
@@ -67,7 +67,7 @@ namespace lsp
             }
 
             // Initialize parent
-            if ((res = IWrapper::init()) != STATUS_OK)
+            if ((res = IWrapper::init(root_widget)) != STATUS_OK)
                 return res;
 
             // Initialize display settings

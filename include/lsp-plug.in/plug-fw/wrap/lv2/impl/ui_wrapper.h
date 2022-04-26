@@ -162,7 +162,7 @@ namespace lsp
             }
         }
 
-        status_t UIWrapper::init()
+        status_t UIWrapper::init(void *root_widget)
         {
             // Get plugin metadata
             const meta::plugin_t *meta  = pUI->metadata();
@@ -223,7 +223,7 @@ namespace lsp
             vFrameBufferPorts.qsort(compare_ports_by_urid);
 
             // Initialize wrapper
-            if ((res = IWrapper::init()) != STATUS_OK)
+            if ((res = IWrapper::init(root_widget)) != STATUS_OK)
                 return res;
 
             // Initialize display settings

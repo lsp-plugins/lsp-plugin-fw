@@ -105,7 +105,7 @@ namespace lsp
                     if (wrapper != NULL)
                     {
                         // Initialize LV2 plugin wrapper
-                        status_t res = wrapper->init();
+                        status_t res = wrapper->init(NULL);
                         if (res != STATUS_OK)
                         {
                             lsp_error("Error initializing plugin wrapper, code: %d", int(res));

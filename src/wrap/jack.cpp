@@ -415,7 +415,7 @@ namespace lsp
                 }
 
                 // Initialize wrapper
-                if ((res = w->pUIWrapper->init()) != STATUS_OK)
+                if ((res = w->pUIWrapper->init(NULL)) != STATUS_OK)
                 {
                     destroy_wrapper(w);
                     return res;

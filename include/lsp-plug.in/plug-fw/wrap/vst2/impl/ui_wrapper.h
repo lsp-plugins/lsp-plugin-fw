@@ -155,7 +155,7 @@ namespace lsp
                 create_port(port, NULL);
 
             // Initialize parent
-            if ((res = IWrapper::init()) != STATUS_OK)
+            if ((res = IWrapper::init(root_widget)) != STATUS_OK)
                 return res;
 
             // Initialize display settings

@@ -197,7 +197,7 @@ namespace lsp
             vPorts.flush();
         }
 
-        status_t IWrapper::init()
+        status_t IWrapper::init(void *root_widget)
         {
             status_t res;
 
