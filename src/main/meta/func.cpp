@@ -88,14 +88,14 @@ namespace lsp
             { "GB",     "units.gbytes" },
             { "TB",     "units.tbytes" },
 
-            NULL
+            { NULL,     NULL }
         };
 
         static const port_item_t default_bool[] =
         {
             { "off",    "bool.off" },
             { "on",     "bool.on" },
-            { NULL, NULL }
+            { NULL,     NULL }
         };
 
         const char *get_unit_name(size_t unit)
