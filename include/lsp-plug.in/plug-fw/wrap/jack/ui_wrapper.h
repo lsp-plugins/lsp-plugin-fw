@@ -33,8 +33,6 @@
 
 #include <lsp-plug.in/tk/tk.h>
 
-#define JACK_INLINE_DISPLAY_SIZE        128
-
 namespace lsp
 {
     namespace jack
@@ -49,6 +47,8 @@ namespace lsp
                 jack::Wrapper                  *pWrapper;
 
                 atomic_t                        nPosition;          // Position counter
+                tk::Label                      *pJackStatus;        // Jack status
+                bool                            bJackConnected;     // Jack is connected
 
                 lltl::parray<jack::UIPort>      vSyncPorts;         // Ports for synchronization
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
@@ -57,8 +57,8 @@ namespace lsp
                 explicit UIWrapper(jack::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui);
                 virtual ~UIWrapper();
 
-                virtual status_t init();
-                virtual void destroy();
+                virtual status_t            init();
+                virtual void                destroy();
 
             protected:
                 status_t        create_port(const meta::port_t *port, const char *postfix);
@@ -67,6 +67,7 @@ namespace lsp
                 void            sync_kvt(core::KVTStorage *kvt);
                 void            ui_activated();
                 void            ui_deactivated();
+                void            set_connection_status(bool connected);
 
             protected:
                 static status_t             slot_ui_hide(tk::Widget *sender, void *ptr, void *data);
@@ -92,6 +93,11 @@ namespace lsp
                  * Synchronize application icon
                  */
                 void                    sync_inline_display();
+
+                /**
+                 * The JACK connection has been lost
+                 */
+                void                    connection_lost();
         };
 
     } /* namespace jack */

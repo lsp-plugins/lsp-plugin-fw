@@ -27,6 +27,7 @@
 #define LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #include <lsp-plug.in/plug-fw/ctl/types.h>
     #include <lsp-plug.in/plug-fw/ctl/parse.h>
+    #include <lsp-plug.in/plug-fw/ctl/helpers.h>
 
     // Utilitary classes
     #include <lsp-plug.in/plug-fw/ctl/util/Property.h>

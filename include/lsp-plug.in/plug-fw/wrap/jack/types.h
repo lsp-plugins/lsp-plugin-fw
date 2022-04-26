@@ -29,6 +29,8 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/alloc.h>
 
+#define JACK_INLINE_DISPLAY_SIZE        128
+
 namespace lsp
 {
     namespace jack
