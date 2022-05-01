@@ -1050,7 +1050,8 @@ $(ARTIFACT_XDG_UNINST): uninstall_xdg_msg
 
 uninstall_jack:
 	echo "Uninstall jack"
-	-rm -rf "$(DESTDIR)$(JACK_LIBDIR)"
+	-rm -f $(INSTALL) $(DESTDIR)$(JACK_LIBDIR)/$(notdir $(ARTIFACT_LIB_JACK))
+	-rmdir "$(DESTDIR)$(JACK_LIBDIR)" >/dev/null 2>&1
 	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" uninstall DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 uninstall_ladspa:
