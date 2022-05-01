@@ -21,6 +21,8 @@
 * Fixed bug related to improper parsing of port name aliases in the UI.
 * Updated parameter mapping for KVT.
 * Fixed typo in Wavefront Object File Format name.
+* Updated version handling in the UI wrapper that allows to control multiple bundle
+  versions in one global configuration file.
 
 === 1.0.2 ===
 * Fixed compiler issue.
