@@ -925,8 +925,16 @@ namespace lsp
 
         status_t IWrapper::export_bundle_versions(config::Serializer *s, const lltl::pphash<LSPString, LSPString> *versions)
         {
+            // Perform export, replace the bundle version by the actual version parameter
+            status_t res;
+            lltl::parray<LSPString> kv, vv;
+            if (!versions->items(&kv, &vv))
+                return STATUS_NO_MEM;
+
             // Get the actual version of the bundle
-            const char *version = "";
+            LSPString version_key, version_value;
+            get_bundle_version_key(&version_key);
+
             for (size_t i=0, n=vConfigPorts.size(); i<n; ++i)
             {
                 ui::IPort *port = vConfigPorts.get(i);
@@ -938,18 +946,20 @@ namespace lsp
                     continue;
                 const char *value = static_cast<const char *>(port->buffer());
                 if (value != NULL)
-                    version = value;
+                    version_value.set_utf8(value);
                 break;
             }
 
-            // Perform export, replace the bundle version by the actual version parameter
-            status_t res;
-            LSPString version_key;
-            lltl::parray<LSPString> kv, vv;
-            if (!versions->items(&kv, &vv))
-                return STATUS_NO_MEM;
+            // Add the version to the list if it is missing
+            if (!versions->contains(&version_key))
+            {
+                if (!kv.add(&version_key))
+                    return STATUS_NO_MEM;
+                if (!vv.add(&version_value))
+                    return STATUS_NO_MEM;
+            }
 
-            get_bundle_version_key(&version_key);
+            // Export all available bundle versions
             for (size_t i=0, n=kv.size(); i<n; ++i)
             {
                 const LSPString *name = kv.uget(i);
@@ -958,16 +968,8 @@ namespace lsp
                     return STATUS_UNKNOWN_ERR;
 
                 // The bundle version should be replaced by the actual one in the output configuration
-                if (name->equals(&version_key))
-                {
-                    if ((res = s->write_string(name, version, config::SF_QUOTED)) != STATUS_OK)
-                        return res;
-                }
-                else
-                {
-                    if ((res = s->write_string(name, value, config::SF_QUOTED)) != STATUS_OK)
-                        return res;
-                }
+                if ((res = s->write_string(name, value, config::SF_QUOTED)) != STATUS_OK)
+                    return res;
             }
 
             return STATUS_OK;
