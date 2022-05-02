@@ -123,6 +123,10 @@ namespace lsp
                 LV2_URID                uridKvtKeys;
                 LV2_URID                uridKvtObject;
                 LV2_URID                uridKvtType;
+                LV2_URID                uridKvtEntryType;
+                LV2_URID                uridKvtEntryKey;
+                LV2_URID                uridKvtEntryValue;
+                LV2_URID                uridKvtEntryFlags;
                 LV2_URID                uridKvtPropertyType;
                 LV2_URID                uridKvtPropertyValue;
                 LV2_URID                uridKvtPropertyFlags;
@@ -287,6 +291,10 @@ namespace lsp
                     uridMidiEventType           = map_uri(LV2_MIDI__MidiEvent);
                     uridKvtObject               = map_primitive("KVT");
                     uridKvtType                 = map_type_legacy("KVT");
+                    uridKvtEntryType            = map_type("KVTEntry");
+                    uridKvtEntryKey             = map_field("KVTEntry", "key");
+                    uridKvtEntryValue           = map_field("KVTEntry", "value");
+                    uridKvtEntryFlags           = map_field("KVTEntry", "flags");
                     uridKvtPropertyType         = map_type_legacy("KVTProperty");
                     uridKvtPropertyValue        = map_field("KVTProperty", "value");
                     uridKvtPropertyFlags        = map_field("KVTProperty", "flags");

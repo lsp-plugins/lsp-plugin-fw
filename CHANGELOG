@@ -23,6 +23,7 @@
 * Fixed typo in Wavefront Object File Format name.
 * Updated version handling in the UI wrapper that allows to control multiple bundle
   versions in one global configuration file.
+* Updated serialization format of the KVT (Key-Value Tree) for the LV2 plugin format.
 
 === 1.0.2 ===
 * Fixed compiler issue.
