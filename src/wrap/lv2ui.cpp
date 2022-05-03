@@ -96,7 +96,7 @@ namespace lsp
             {
                 // Create LV2 extension handler
                 lv2::Extensions *ext = new lv2::Extensions(features,
-                        ui->metadata()->lv2_uri, LSP_LV2_TYPES_URI, LSP_LV2_UI_URI,
+                        ui->metadata()->lv2_uri, LSP_LV2_TYPES_URI, LSP_LV2_KVT_URI,
                         controller, write_function);
                 if (ext != NULL)
                 {
@@ -105,7 +105,7 @@ namespace lsp
                     if (wrapper != NULL)
                     {
                         // Initialize LV2 plugin wrapper
-                        status_t res = wrapper->init();
+                        status_t res = wrapper->init(NULL);
                         if (res != STATUS_OK)
                         {
                             lsp_error("Error initializing plugin wrapper, code: %d", int(res));

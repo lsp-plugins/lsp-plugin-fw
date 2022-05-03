@@ -253,11 +253,11 @@ namespace lsp
                     stream->read(nYIndex, data->y(), off, dots);
                     if (bStrobe)
                         stream->read(nSIndex, data->s(), off, dots);
-
-                    data->touch();
                 }
                 else
                     data->set_size(0);
+
+                data->touch();
             }
             else
             {
@@ -289,6 +289,8 @@ namespace lsp
                 }
                 else
                     data->set_size(0);
+
+                data->touch();
             }
         }
 

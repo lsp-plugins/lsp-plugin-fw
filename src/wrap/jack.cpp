@@ -415,7 +415,7 @@ namespace lsp
                 }
 
                 // Initialize wrapper
-                if ((res = w->pUIWrapper->init()) != STATUS_OK)
+                if ((res = w->pUIWrapper->init(NULL)) != STATUS_OK)
                 {
                     destroy_wrapper(w);
                     return res;
@@ -451,8 +451,9 @@ namespace lsp
             if (arg == NULL)
                 return STATUS_BAD_STATE;
 
-            wrapper_t *w       = static_cast<wrapper_t *>(arg);
+            wrapper_t *w            = static_cast<wrapper_t *>(arg);
             jack::Wrapper *jw       = w->pWrapper;
+            jack::UIWrapper *uw     = w->pUIWrapper;
 
             // If connection to JACK was lost - notify
             if (jw->connection_lost())
@@ -460,6 +461,7 @@ namespace lsp
                 // Disconnect wrapper and remember last connection time
                 fprintf(stderr, "Connection to JACK has been lost\n");
                 jw->disconnect();
+                uw->connection_lost();
                 w->nLastReconnect       = ctime;
             }
 
@@ -484,20 +486,20 @@ namespace lsp
             if (jw->connected())
             {
                 // Sync state (transfer DSP to UI)
-                if (w->pUIWrapper != NULL)
+                if (uw != NULL)
                 {
                     // Transfer changes from DSP to UI
-                    w->pUIWrapper->sync(sched);
+                    uw->sync(sched);
                     if (w->bNotify)
                     {
-                        w->pUIWrapper->notify_all();
+                        uw->notify_all();
                         w->bNotify      = false;
                     }
 
                     // Update icon
                     if ((ctime - w->nLastIconSync) > ICON_SYNC_INTERVAL)
                     {
-                        w->pUIWrapper->sync_inline_display();
+                        uw->sync_inline_display();
                         w->nLastIconSync = ctime;
                     }
                 }
@@ -508,8 +510,8 @@ namespace lsp
 
         status_t plugin_main(wrapper_t *w)
         {
-            status_t res        = STATUS_OK;
-            ssize_t period      = 40; // 40 ms period (25 frames per second)
+            status_t res            = STATUS_OK;
+            ws::timestamp_t period  = 40; // 40 ms period (25 frames per second)
 
             system::time_t  ctime;
             ws::timestamp_t ts1, ts2;
@@ -544,9 +546,14 @@ namespace lsp
                 system::get_time(&ctime);
                 ts2     = ws::timestamp_t(ctime.seconds) * 1000 + ctime.nanos / 1000000;
 
-                wssize_t delay   = ts1 + period - ts2;
+                wssize_t delay   = lsp_max(ts1 + period - ts2, period);
                 if (delay > 0)
-                    w->pUIWrapper->display()->wait_events(lsp_max(delay, period));
+                {
+                    if (!w->pUIWrapper)
+                        system::sleep_msec(delay);
+                    else
+                        w->pUIWrapper->display()->wait_events(delay);
+                }
             }
 
             fprintf(stderr, "\nPlugin execution interrupted\n");

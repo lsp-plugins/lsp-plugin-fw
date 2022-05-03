@@ -470,7 +470,7 @@ namespace lsp
         class MeshPort: public Port
         {
             private:
-                jack::mesh_t       *pMesh;
+                plug::mesh_t       *pMesh;
 
             public:
                 explicit MeshPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
@@ -485,7 +485,7 @@ namespace lsp
 
                 virtual int init()
                 {
-                    pMesh   = jack::mesh_t::create(pMetadata);
+                    pMesh   = jack::create_mesh(pMetadata);
                     return (pMesh == NULL) ? STATUS_NO_MEM : STATUS_OK;
                 }
 
@@ -494,7 +494,7 @@ namespace lsp
                     if (pMesh == NULL)
                         return;
 
-                    jack::mesh_t::destroy(pMesh);
+                    jack::destroy_mesh(pMesh);
                     pMesh = NULL;
                 }
 

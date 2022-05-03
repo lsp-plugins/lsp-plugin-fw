@@ -446,27 +446,6 @@ namespace lsp
             return true;
         }
 
-        void Widget::inject_style(tk::Widget *widget, const char *style_name)
-        {
-            tk::Style *style = widget->display()->schema()->get(style_name);
-            if (style != NULL)
-                widget->style()->inject_parent(style);
-        }
-
-        void Widget::add_parent_style(tk::Widget *widget, const char *style_name)
-        {
-            tk::Style *style = widget->display()->schema()->get(style_name);
-            if (style != NULL)
-                widget->style()->add_parent(style);
-        }
-
-        void Widget::revoke_style(tk::Widget *widget, const char *style_name)
-        {
-            tk::Style *style = widget->display()->schema()->get(style_name);
-            if (style != NULL)
-                widget->style()->remove_parent(style);
-        }
-
         status_t Widget::add(ui::UIContext *ctx, ctl::Widget *child)
         {
             return STATUS_NOT_IMPLEMENTED;
@@ -531,52 +510,6 @@ namespace lsp
             }
             sBgInherit.set("bg.inherit", name, value);
             sBgInherit.set("ibg", name, value);
-        }
-
-        bool Widget::assign_styles(tk::Widget *widget, const char *style_list, bool remove_parents)
-        {
-            if (widget == NULL)
-                return false;
-
-            tk::Style *s = widget->style();
-            if (s == NULL)
-                return false;
-
-            LSPString cname, text;
-            if (!text.set_utf8(style_list))
-                return false;
-
-            if (remove_parents)
-                s->remove_all_parents();
-
-            // Parse list of
-            ssize_t first = 0, last = -1, len = text.length();
-
-            while (true)
-            {
-                last = text.index_of(first, ',');
-                if (last < 0)
-                {
-                    last = len;
-                    break;
-                }
-
-                if (!cname.set(&text, first, last))
-                    return false;
-
-                add_parent_style(widget, cname.get_utf8());
-                first = last + 1;
-            }
-
-            // Last token pending?
-            if (last > first)
-            {
-                if (!cname.set(&text, first, last))
-                    return false;
-                add_parent_style(widget, cname.get_utf8());
-            }
-
-            return true;
         }
 
         void Widget::begin(ui::UIContext *ctx)

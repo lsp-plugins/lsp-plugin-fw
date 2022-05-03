@@ -55,7 +55,15 @@ namespace lsp
 
         status_t Module::reset_settings()
         {
-            return pWrapper->reset_settings();
+            return STATUS_OK;
+        }
+
+        void Module::idle()
+        {
+        }
+
+        void Module::kvt_changed(core::KVTStorage *kvt, const char *id, const core::kvt_param_t *value)
+        {
         }
 
         void Module::do_destroy()

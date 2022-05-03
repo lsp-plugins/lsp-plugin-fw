@@ -37,6 +37,7 @@ namespace lsp
         {
             private:
                 vst2::Wrapper                      *pWrapper;       // VST Wrapper
+                size_t                              nKeyState;      // State of the keys
                 ERect                               sRect;
 
             protected:
@@ -70,6 +71,8 @@ namespace lsp
                 void                            hide_ui();
                 void                            resize_ui();
                 ERect                          *ui_rect();
+                size_t                          key_state() const;
+                size_t                          set_key_state(size_t state);
 
             public:
                 static UIWrapper               *create(vst2::Wrapper *wrapper, void *root_widget);

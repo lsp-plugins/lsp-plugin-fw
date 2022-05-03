@@ -34,6 +34,7 @@ namespace lsp
             IWrapper(ui, wrapper->resources())
         {
             pWrapper        = wrapper;
+            nKeyState       = 0;
             sRect.top       = 0;
             sRect.left      = 0;
             sRect.bottom    = 0;
@@ -154,7 +155,7 @@ namespace lsp
                 create_port(port, NULL);
 
             // Initialize parent
-            if ((res = IWrapper::init()) != STATUS_OK)
+            if ((res = IWrapper::init(root_widget)) != STATUS_OK)
                 return res;
 
             // Initialize display settings
@@ -331,6 +332,9 @@ namespace lsp
 
         bool UIWrapper::show_ui()
         {
+            // Reset key state
+            nKeyState = 0;
+
             // Force all parameters to be re-shipped to the UI
             for (size_t i=0; i<vPorts.size(); ++i)
             {
@@ -408,6 +412,16 @@ namespace lsp
             UIWrapper *wrapper = static_cast<UIWrapper *>(ptr);
             wrapper->resize_ui();
             return STATUS_OK;
+        }
+
+        size_t UIWrapper::key_state() const
+        {
+            return nKeyState;
+        }
+
+        size_t UIWrapper::set_key_state(size_t state)
+        {
+            return nKeyState = state;
         }
 
         UIWrapper *UIWrapper::create(vst2::Wrapper *wrapper, void *root_widget)

@@ -113,6 +113,12 @@ namespace lsp
                 status_t        apply_visual_schema(const tk::StyleSheet *sheet);
                 status_t        export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *relative);
                 status_t        export_kvt(config::Serializer *s, core::KVTStorage *kvt, const io::Path *relative);
+                status_t        export_bundle_versions(config::Serializer *s, const lltl::pphash<LSPString, LSPString> *versions);
+
+                status_t        save_global_config(io::IOutSequence *os, const lltl::pphash<LSPString, LSPString> *versions);
+                status_t        read_bundle_versions(const io::Path *file, lltl::pphash<LSPString, LSPString> *versions);
+                static void     drop_bundle_versions(lltl::pphash<LSPString, LSPString> *versions);
+                void            get_bundle_version_key(LSPString *key);
 
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
@@ -122,7 +128,7 @@ namespace lsp
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
                 virtual ~IWrapper();
 
-                virtual status_t    init();
+                virtual status_t    init(void *root_widget);
                 virtual void        destroy();
 
             public:
@@ -329,7 +335,6 @@ namespace lsp
                 virtual status_t            save_global_config(const char *file);
                 virtual status_t            save_global_config(const io::Path *file);
                 virtual status_t            save_global_config(const LSPString *file);
-                virtual status_t            save_global_config(io::IOutSequence *os);
 
                 /**
                  * Add schema listener

@@ -29,6 +29,8 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/alloc.h>
 
+#define JACK_INLINE_DISPLAY_SIZE        128
+
 namespace lsp
 {
     namespace jack
@@ -147,45 +149,41 @@ namespace lsp
 
         } path_t;
 
-        typedef struct mesh_t: public plug::mesh_t
+        inline plug::mesh_t *create_mesh(const meta::port_t *meta)
         {
-            static mesh_t *create(const meta::port_t *meta)
+            size_t buffers      = meta->step;
+            size_t buf_size     = meta->start * sizeof(float);
+            size_t mesh_size    = sizeof(plug::mesh_t) + sizeof(float *) * buffers;
+
+            // Align values to 64-byte boundaries
+            buf_size            = align_size(buf_size, OPTIMAL_ALIGN);
+            mesh_size           = align_size(mesh_size, OPTIMAL_ALIGN);
+
+            // Allocate pointer
+            uint8_t *ptr        = static_cast<uint8_t *>(malloc(mesh_size + buf_size * buffers));
+            if (ptr == NULL)
+                return NULL;
+
+            // Initialize references
+            plug::mesh_t *mesh  = reinterpret_cast<plug::mesh_t *>(ptr);
+            mesh->nState        = plug::M_EMPTY;
+            mesh->nBuffers      = 0;
+            mesh->nItems        = 0;
+            ptr                += mesh_size;
+            for (size_t i=0; i<buffers; ++i)
             {
-                size_t buffers      = meta->step;
-                size_t buf_size     = meta->start * sizeof(float);
-                size_t mesh_size    = sizeof(mesh_t) + sizeof(float *) * buffers;
-
-                // Align values to 64-byte boundaries
-                buf_size            = align_size(buf_size, OPTIMAL_ALIGN);
-                mesh_size           = align_size(mesh_size, OPTIMAL_ALIGN);
-
-                // Allocate pointer
-                uint8_t *ptr        = static_cast<uint8_t *>(malloc(mesh_size + buf_size * buffers));
-                if (ptr == NULL)
-                    return NULL;
-
-                // Initialize references
-                mesh_t *mesh        = reinterpret_cast<mesh_t *>(ptr);
-                mesh->nState        = plug::M_EMPTY;
-                mesh->nBuffers      = 0;
-                mesh->nItems        = 0;
-                ptr                += mesh_size;
-                for (size_t i=0; i<buffers; ++i)
-                {
-                    mesh->pvData[i]    = reinterpret_cast<float *>(ptr);
-                    ptr                += buf_size;
-                }
-
-                return mesh;
+                mesh->pvData[i]    = reinterpret_cast<float *>(ptr);
+                ptr                += buf_size;
             }
 
-            static void destroy(mesh_t *mesh)
-            {
-                if (mesh != NULL)
-                    free(mesh);
-            }
-        } mesh_t;
+            return mesh;
+        }
 
+        inline void destroy_mesh(plug::mesh_t *mesh)
+        {
+            if (mesh != NULL)
+                free(mesh);
+        }
     }
 }
 

@@ -52,6 +52,13 @@ namespace lsp
                     SM_LOADING      // State has been loaded but still not committed
                 };
 
+                enum kvt_parse_flags_t
+                {
+                    KP_KEY      = 1 << 0,       // KVT key has been deserialized
+                    KP_VALUE    = 1 << 1,       // KVT value has been deserialized
+                    KP_FLAGS    = 1 << 2        // KVT flags have been deserialized
+                };
+
             private:
                 class LV2KVTListener: public core::KVTListener
                 {
@@ -111,6 +118,12 @@ namespace lsp
                 void                            clear_midi_ports();
                 void                            save_kvt_parameters();
                 void                            restore_kvt_parameters();
+
+                void                            parse_kvt_v1(const LV2_Atom_Object_Body *data, size_t size);
+                void                            parse_kvt_v2(const LV2_Atom *data, size_t size);
+                bool                            parse_kvt_key(char const **key, const LV2_Atom *value);
+                bool                            parse_kvt_flags(size_t *flags, const LV2_Atom *value);
+                bool                            parse_kvt_value(core::kvt_param_t *param, const LV2_Atom *value);
 
                 void                            transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req);
                 void                            transmit_time_position_to_clients();

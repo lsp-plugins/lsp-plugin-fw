@@ -51,7 +51,7 @@ namespace lsp
             { "cfg",        "*.cfg",        "files.config.lsp",         ".cfg",     io::PathPattern::NONE },
             { "audio",      "*.wav",        "files.audio.supported",    ".wav",     io::PathPattern::NONE },
             { "audio_lspc", "*.wav|*.lspc", "files.audio.audio_lspc",   ".wav",     io::PathPattern::NONE },
-            { "obj3d",      "*.obj",        "files.3d.wavefont",        ".obj",     io::PathPattern::NONE },
+            { "obj3d",      "*.obj",        "files.3d.wavefront",       ".obj",     io::PathPattern::NONE },
             { "all",        "*",            "files.all",                "",         io::PathPattern::NONE },
             { NULL, NULL, NULL, 0 }
         };

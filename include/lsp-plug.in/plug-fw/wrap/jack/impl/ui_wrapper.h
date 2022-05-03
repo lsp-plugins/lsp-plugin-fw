@@ -25,24 +25,31 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/ui_wrapper.h>
 
+#define JACK_STATUS_OFF         "PluginWindow::StatusBar::Label::FAIL"
+#define JACK_STATUS_ON          "PluginWindow::StatusBar::Label::OK"
+
 namespace lsp
 {
     namespace jack
     {
         UIWrapper::UIWrapper(jack::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui) : ui::IWrapper(ui, loader)
         {
-            pPlugin     = wrapper->pPlugin;
-            pWrapper    = wrapper;
-            nPosition   = 0;
+            pPlugin         = wrapper->pPlugin;
+            pWrapper        = wrapper;
+
+            nPosition       = 0;
+            pJackStatus     = NULL;
+            bJackConnected  = false;
         }
 
         UIWrapper::~UIWrapper()
         {
-            pPlugin     = NULL;
-            pWrapper    = NULL;
+            pPlugin         = NULL;
+            pWrapper        = NULL;
+            pJackStatus     = NULL;
         }
 
-        status_t UIWrapper::init()
+        status_t UIWrapper::init(void *root_widget)
         {
             status_t res = STATUS_OK;
 
@@ -60,7 +67,7 @@ namespace lsp
             }
 
             // Initialize parent
-            if ((res = IWrapper::init()) != STATUS_OK)
+            if ((res = IWrapper::init(root_widget)) != STATUS_OK)
                 return res;
 
             // Initialize display settings
@@ -102,12 +109,39 @@ namespace lsp
             // Call the post-initialization routine
             if (res == STATUS_OK)
                 res = pUI->post_init();
+            // Show the 'jack' state indicator
+            if (res == STATUS_OK)
+            {
+                pJackStatus = tk::widget_cast<tk::Label>(controller()->widgets()->find("jack_status"));
+                if (pJackStatus != NULL)
+                {
+                    tk::Widget *w = controller()->widgets()->find("jack_indicator");
+                    if (w != NULL)
+                    {
+                        w->visibility()->set(true);
+                        set_connection_status(bJackConnected);
+                    }
+                }
+            }
+
+            tk::Window *root    = window();
+            if (root == NULL)
+            {
+                lsp_error("No root window present!\n");
+                return STATUS_BAD_STATE;
+            }
+
+            // Bind events to the root window
+            root->slot(tk::SLOT_SHOW)->bind(slot_ui_show, this);
+            root->slot(tk::SLOT_HIDE)->bind(slot_ui_hide, this);
 
             return res;
         }
 
         void UIWrapper::destroy()
         {
+            pJackStatus = NULL;
+
             // Call the parent class for destroy
             IWrapper::destroy();
 
@@ -308,6 +342,10 @@ namespace lsp
 
         bool UIWrapper::sync(ws::timestamp_t ts)
         {
+            // Update the state of connection
+            if (!bJackConnected)
+                set_connection_status(bJackConnected = true);
+
             // Initialize DSP state
             dsp::context_t ctx;
             dsp::start(&ctx);
@@ -382,6 +420,39 @@ namespace lsp
             }
 
             dsp::finish(&ctx);
+        }
+
+        status_t UIWrapper::slot_ui_hide(tk::Widget *sender, void *ptr, void *data)
+        {
+            UIWrapper *_this = static_cast<UIWrapper *>(ptr);
+            if (_this->pWrapper != NULL)
+                _this->pWrapper->set_ui_active(false);
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
+        {
+            UIWrapper *_this = static_cast<UIWrapper *>(ptr);
+            if (_this->pWrapper != NULL)
+                _this->pWrapper->set_ui_active(true);
+            return STATUS_OK;
+        }
+
+        void UIWrapper::connection_lost()
+        {
+            if (bJackConnected)
+                set_connection_status(bJackConnected = false);
+        }
+
+        void UIWrapper::set_connection_status(bool connected)
+        {
+            if (!pJackStatus)
+                return;
+
+            ctl::revoke_style(pJackStatus, JACK_STATUS_OFF);
+            ctl::revoke_style(pJackStatus, JACK_STATUS_ON);
+            ctl::inject_style(pJackStatus, (connected) ? JACK_STATUS_ON : JACK_STATUS_OFF);
+            pJackStatus->text()->set((connected) ? "statuses.jack.on" : "statuses.jack.off");
         }
     } /* namespace jack */
 } /* namespace lsp */

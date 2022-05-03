@@ -105,11 +105,6 @@ namespace lsp
                 static bool         set_value(float *v, const char *param, const char *name, const char *value);
                 static bool         set_value(LSPString *v, const char *param, const char *name, const char *value);
 
-                static void         inject_style(tk::Widget *widget, const char *style_name);
-                static void         revoke_style(tk::Widget *widget, const char *style_name);
-                static void         add_parent_style(tk::Widget *widget, const char *style_name);
-                static bool         assign_styles(tk::Widget *widget, const char *style_list, bool remove_parents);
-
             protected:
                 bool                bind_port(ui::IPort **port, const char *param, const char *name, const char *value);
 

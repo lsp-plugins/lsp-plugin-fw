@@ -127,7 +127,7 @@ namespace lsp
             {
                 // Create LV2 extension handler
                 lv2::Extensions *ext = new lv2::Extensions(features,
-                        meta->lv2_uri, LSP_LV2_TYPES_URI, LSP_LV2_UI_URI,
+                        meta->lv2_uri, LSP_LV2_TYPES_URI, LSP_LV2_KVT_URI,
                         NULL, NULL);
                 if (ext != NULL)
                 {

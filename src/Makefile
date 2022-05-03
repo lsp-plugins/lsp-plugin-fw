@@ -112,7 +112,8 @@ VERSION_CFLAGS             := \
   -DLSP_PLUGIN_PACKAGE_MAJOR=$(PLUGIN_PACKAGE_MAJOR) \
   -DLSP_PLUGIN_PACKAGE_MINOR=$(PLUGIN_PACKAGE_MINOR) \
   -DLSP_PLUGIN_PACKAGE_MICRO=$(PLUGIN_PACKAGE_MICRO) \
-  -DLSP_PLUGIN_PACKAGE_BRANCH=\"$(PLUGIN_PACKAGE_BRANCH)\"
+  -DLSP_PLUGIN_PACKAGE_BRANCH=\"$(PLUGIN_PACKAGE_BRANCH)\" \
+  -DLSP_INSTALL_PREFIX=\"$(PREFIX)\"
 
 #------------------------------------------------------------------------------
 # Framework settings for (cross) build
@@ -548,9 +549,9 @@ ARTIFACT_DOC_SRC_RES        = $(foreach dep, $(ARTIFACT_DOC_DEPS_SRC_RES), $($(d
 ARTIFACT_DOC_PLUG_RES       = $(foreach dep, $(ARTIFACT_DOC_DEPS_PLUG_RES), $($(dep)_PATH)/res/doc/screenshots/*)
 ARTIFACT_DOC_PKG_DIR        = $(PLUGIN_SHARED_NAME)-doc-$(PLUGIN_PACKAGE_VERSION)
 
-ARTIFACT_XDG_SRC_DEPS       = $(foreach dep, $(call uniq,$(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(wildcard $($(dep)_PATH)/res/main/xdg/*),$(dep)))
-ARTIFACT_XDG_FILES          = $(foreach dep, $(ARTIFACT_XDG_SRC_DEPS), $(call rwildcard,$($(dep)_PATH)/res/main/xdg/apps,*.desktop))
-ARTIFACT_XDG_MAKEFILES      = $(foreach dep, $(ARTIFACT_XDG_SRC_DEPS), $(if $(wildcard $($(dep)_PATH)/res/main/xdg/Makefile),$(dep)))
+ARTIFACT_XDG_SRC_DEPS       = $(foreach dep, $(call uniq,$(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(wildcard $($(dep)_PATH)/res/xdg/*),$(dep)))
+ARTIFACT_XDG_FILES          = $(foreach dep, $(ARTIFACT_XDG_SRC_DEPS), $(call rwildcard,$($(dep)_PATH)/res/xdg/apps,*.desktop))
+ARTIFACT_XDG_MAKEFILES      = $(foreach dep, $(ARTIFACT_XDG_SRC_DEPS), $(if $(wildcard $($(dep)_PATH)/res/xdg/Makefile),$(dep)))
 ARTIFACT_XDG_INST           = $(foreach dep, $(ARTIFACT_XDG_MAKEFILES), xdg_install_$(dep))
 ARTIFACT_XDG_UNINST         = $(foreach dep, $(ARTIFACT_XDG_MAKEFILES), xdg_uninstall_$(dep))
 ARTIFACT_XDG_INST_ID        = $(patsubst xdg_install_%,%,$(@))
@@ -917,7 +918,7 @@ $(BIN_INSTALL): $(DEPENDENCIES_BIN)
 	$(MAKE) -C "$($(BIN_INST_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 
 $(ARTIFACT_XDG_INST): install_xdg_msg
-	$(MAKE) -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/main/xdg" install_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)"
+	$(MAKE) -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/xdg" install_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)" CONFIG=$(ROOTDIR)/.config.mk
 
 install_jack: jack
 	echo "Install jack"
@@ -973,7 +974,7 @@ package_jack: jack $(BIN_PACKAGE)
 	)
 	$(if $(findstring xdg,$(ENABLED_FEATURES)), \
 		$(foreach target,$(ARTIFACT_XDG_INST), \
-	        $(MAKE) -C "$($(patsubst xdg_install_%,%,$(target))_PATH)/res/main/xdg" \
+	        $(MAKE) -C "$($(patsubst xdg_install_%,%,$(target))_PATH)/res/xdg" \
 	            install_xdg DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" FILES="$(ARTIFACT_XDG_FILES)"; \
 	    ) \
 	)
@@ -1045,11 +1046,12 @@ $(BIN_UNINSTALL):
 	$(MAKE) -C "$($(BIN_UNINST_ARTIFACT_ID)_PATH)" uninstall DESTDIR="$(DESTDIR)"
 
 $(ARTIFACT_XDG_UNINST): uninstall_xdg_msg
-	$(MAKE) -C "$($(ARTIFACT_XDG_UNINST_ID)_PATH)/res/main/xdg" uninstall_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)"
+	$(MAKE) -C "$($(ARTIFACT_XDG_UNINST_ID)_PATH)/res/xdg" uninstall_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)"
 
 uninstall_jack:
 	echo "Uninstall jack"
-	-rm -rf "$(DESTDIR)$(JACK_LIBDIR)"
+	-rm -f $(INSTALL) $(DESTDIR)$(JACK_LIBDIR)/$(notdir $(ARTIFACT_LIB_JACK))
+	-rmdir "$(DESTDIR)$(JACK_LIBDIR)" >/dev/null 2>&1
 	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" uninstall DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 uninstall_ladspa:

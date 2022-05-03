@@ -242,6 +242,8 @@ namespace lsp
         extern const char PORT_NAME_OUTPUT[];
         extern const char PORT_NAME_MIDI_INPUT[];
         extern const char PORT_NAME_MIDI_OUTPUT[];
+        extern const char PORT_NAME_OSC_INPUT[];
+        extern const char PORT_NAME_OSC_OUTPUT[];
         extern const char PORT_NAME_SIDECHAIN[];
         extern const char PORT_NAME_INPUT_L[];
         extern const char PORT_NAME_INPUT_R[];
