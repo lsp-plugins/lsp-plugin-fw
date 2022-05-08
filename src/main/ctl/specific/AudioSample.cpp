@@ -260,6 +260,7 @@ namespace lsp
                 sIPadding.init(pWrapper, as->ipadding());
 
                 sStatus.init(pWrapper, this);
+                sSampleRate.init(pWrapper, this);
                 sHeadCut.init(pWrapper, this);
                 sTailCut.init(pWrapper, this);
                 sFadeIn.init(pWrapper, this);
@@ -373,6 +374,8 @@ namespace lsp
                 bind_port(&pPathPort, "path_id", name, value);
 
                 set_expr(&sStatus, "status", name, value);
+                set_expr(&sSampleRate, "sample_rate", name, value);
+                set_expr(&sSampleRate, "smpr", name, value);
                 set_expr(&sHeadCut, "head_cut", name, value);
                 set_expr(&sHeadCut, "hcut", name, value);
                 set_expr(&sTailCut, "tail_cut", name, value);
@@ -492,6 +495,7 @@ namespace lsp
                 (port == pPort) ||
                 (sFadeIn.depends(port)) ||
                 (sFadeOut.depends(port)) ||
+                (sSampleRate.depends(port)) ||
                 (sHeadCut.depends(port)) ||
                 (sTailCut.depends(port)) ||
                 (sLength.depends(port)))
@@ -575,12 +579,14 @@ namespace lsp
                 expr::Parameters *p = dst->params();
 
                 float length   = sLength.evaluate_float();
+                float sample_rate = sSampleRate.evaluate_float();
                 float head_cut = sHeadCut.evaluate_float();
                 float tail_cut = sTailCut.evaluate_float();
                 float fade_in  = sFadeIn.evaluate_float();
                 float fade_out = sFadeOut.evaluate_float();
 
                 p->set_float("length", length);
+                p->set_float("sample_rate", sample_rate);
                 p->set_float("head_cut", head_cut);
                 p->set_float("tail_cut", tail_cut);
                 p->set_float("length_cut", lsp_max(0.0f, length - head_cut - tail_cut));

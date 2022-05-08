@@ -110,6 +110,7 @@ namespace lsp
                 ctl::Boolean        sGlass;
 
                 ctl::Expression     sStatus;
+                ctl::Expression     sSampleRate;
                 ctl::Expression     sHeadCut;
                 ctl::Expression     sTailCut;
                 ctl::Expression     sFadeIn;
