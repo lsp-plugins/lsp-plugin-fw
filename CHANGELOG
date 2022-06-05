@@ -3,6 +3,8 @@
 *******************************************************************************
 
 === 1.0.4 ===
+- Fixed plugin version tracking which didn't save the updated version
+  to the configuration file. 
 
 === 1.0.3 ===
 * Introduced effEditKeyDown and effEditKeyUp VST2 event handling if the host prevents
