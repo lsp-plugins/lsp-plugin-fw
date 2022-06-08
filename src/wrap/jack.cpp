@@ -461,7 +461,8 @@ namespace lsp
                 // Disconnect wrapper and remember last connection time
                 fprintf(stderr, "Connection to JACK has been lost\n");
                 jw->disconnect();
-                uw->connection_lost();
+                if (uw != NULL)
+                    uw->connection_lost();
                 w->nLastReconnect       = ctime;
             }
 
