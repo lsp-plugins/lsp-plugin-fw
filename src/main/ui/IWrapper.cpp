@@ -1477,6 +1477,7 @@ namespace lsp
             {
                 case meta::R_PORT_SET:
                 case meta::R_CONTROL:
+                case meta::R_BYPASS:
                 {
                     lsp_trace("  param = %s, value = %f", param->name.get_utf8(), param->to_float());
 

@@ -856,6 +856,7 @@ namespace lsp
             {
                 case meta::R_PORT_SET:
                 case meta::R_CONTROL:
+                case meta::R_BYPASS:
                 {
                     if (meta::is_discrete_unit(p->unit))
                     {
@@ -882,7 +883,7 @@ namespace lsp
                             }
                         }
 
-                        port->set_value(v);
+                        port->update_value(v);
                     }
                     break;
                 }
