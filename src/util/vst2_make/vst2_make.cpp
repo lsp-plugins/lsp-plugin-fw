@@ -66,6 +66,35 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t verify_plugin_metadata(lltl::parray<meta::plugin_t> *list)
+        {
+            // Verify the UID and VST2 UID of all plugins
+            for (size_t i=0, n=list->size(); i<n; ++i)
+            {
+                const meta::plugin_t *prev = list->uget(i);
+                for (size_t j=i+1; j<n; ++j)
+                {
+                    const meta::plugin_t *curr = list->uget(j);
+
+                    if (strcmp(prev->uid, curr->uid) == 0)
+                    {
+                        fprintf(stderr, "Duplicate plugin unique identifier: '%s', conflicting plugin names: '%s' and '%s'\n",
+                                prev->uid, prev->name, curr->name);
+                        return STATUS_BAD_STATE;
+                    }
+
+                    if (strcmp(prev->vst2_uid, curr->vst2_uid) == 0)
+                    {
+                        fprintf(stderr, "Duplicate plugin VST2 unique identifier: '%s', conflicting plugin names: '%s' and '%s'\n",
+                                prev->vst2_uid, prev->name, curr->name);
+                        return STATUS_BAD_STATE;
+                    }
+                }
+            }
+
+            return STATUS_OK;
+        }
+
         status_t gen_cpp_file(const io::Path *file, const char *fname, const meta::plugin_t *meta)
         {
             // Generate file
@@ -306,6 +335,10 @@ namespace lsp
 
             printf("Enumerated %d plugins\n", int(list.size()));
 
+            // Verify metadata
+            if ((res = verify_plugin_metadata(&list)) != STATUS_OK)
+                return res;
+
             for (size_t i=0, n=list.size(); i<n; ++i)
             {
                 // Get plugin metadata
@@ -330,10 +363,10 @@ namespace lsp
         int main(int argc, const char **argv)
         {
             if (argc < 2)
-                fprintf(stderr, "required destination path");
+                fprintf(stderr, "required destination path\n");
             lsp::status_t res = generate_files(argv[1]);
             if (res != lsp::STATUS_OK)
-                fprintf(stderr, "Error while generating build files, code=%d", int(res));
+                fprintf(stderr, "Error while generating build files, code=%d\n", int(res));
 
             return res;
         }
