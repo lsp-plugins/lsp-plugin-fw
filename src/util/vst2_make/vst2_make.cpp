@@ -48,7 +48,9 @@ namespace lsp
                 {
                     // Enumerate next element
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
+                    if ((meta == NULL) ||
+                        (meta->uid == NULL) ||
+                        (meta->vst2_uid == NULL))
                         break;
 
                     // Add metadata to list
@@ -72,6 +74,7 @@ namespace lsp
             for (size_t i=0, n=list->size(); i<n; ++i)
             {
                 const meta::plugin_t *prev = list->uget(i);
+
                 for (size_t j=i+1; j<n; ++j)
                 {
                     const meta::plugin_t *curr = list->uget(j);

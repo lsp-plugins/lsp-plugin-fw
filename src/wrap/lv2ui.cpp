@@ -69,6 +69,10 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
+                    if ((plug_meta->uid == NULL) ||
+                        (plug_meta->lv2_uri == NULL) ||
+                        (plug_meta->lv2ui_uri == NULL))
+                        continue;
 
                     // Check plugin identifier
                     if (!(::strcmp(plug_meta->lv2_uri, plugin_uri) || ::strcmp(plug_meta->lv2ui_uri, descriptor->URI)))
