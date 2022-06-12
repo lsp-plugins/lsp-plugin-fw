@@ -8,6 +8,7 @@
 - Fixed improper configuration file import in JACK headless mode.
 - Fixed segmentation fault error in JACK headless mode when JACK connection was lost.
 - Better control over plugin identifiers in metadata.
+- Added window scaling button function.
 
 === 1.0.3 ===
 * Introduced effEditKeyDown and effEditKeyUp VST2 event handling if the host prevents

@@ -86,6 +86,15 @@ namespace lsp
                     LSPString           location;
                 } preset_sel_t;
 
+                typedef struct window_scale_t
+                {
+                    size_t              nMFlags;
+                    ws::rectangle_t     sSize;
+                    bool                bActive;
+                    ssize_t             nMouseX;
+                    ssize_t             nMouseY;
+                } window_scale_t;
+
                 class ConfigSink: public tk::TextDataSink
                 {
                     private:
@@ -127,6 +136,8 @@ namespace lsp
                 ui::IPort                  *pVisualSchema;
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
+
+                window_scale_t              sWndScale;
 
                 lltl::parray<backend_sel_t> vBackendSel;
                 lltl::parray<lang_sel_t>    vLangSel;
@@ -181,6 +192,10 @@ namespace lsp
 
                 static status_t slot_window_resize(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t slot_scale_mouse_down(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_scale_mouse_move(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_scale_mouse_up(tk::Widget *sender, void *ptr, void *data);
+
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
                 static tk::FileFilters     *create_config_filters(tk::FileDialog *dlg);
@@ -213,7 +228,7 @@ namespace lsp
                 void                sync_ui_scaling();
                 void                sync_font_scaling();
                 void                sync_visual_schemas();
-                void                bind_trigger(const char *uid, tk::event_handler_t handler);
+                void                bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler);
 
                 status_t            init_context(ui::UIContext *ctx);
 
