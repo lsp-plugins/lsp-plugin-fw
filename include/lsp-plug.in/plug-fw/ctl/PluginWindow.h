@@ -190,6 +190,7 @@ namespace lsp
                 void                do_destroy();
                 status_t            show_greeting_window();
                 status_t            show_about_window();
+                status_t            locate_window();
                 status_t            show_menu(tk::Widget *menu, tk::Widget *actor, void *data);
                 tk::Label          *create_label(tk::WidgetContainer *dst, const char *key, const char *style_name);
                 tk::Label          *create_plabel(tk::WidgetContainer *dst, const char *key, const expr::Parameters *params, const char *style_name);

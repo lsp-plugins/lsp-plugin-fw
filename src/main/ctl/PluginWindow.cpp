@@ -25,6 +25,7 @@
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/io/OutStringSequence.h>
 #include <lsp-plug.in/io/InStringSequence.h>
+#include <lsp-plug.in/tk/tk.h>
 
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <private/ui/xml/RootNode.h>
@@ -214,6 +215,7 @@ namespace lsp
         status_t PluginWindow::slot_window_show(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            __this->locate_window();
             __this->show_greeting_window();
             return STATUS_OK;
         }
@@ -2059,6 +2061,58 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::locate_window()
+        {
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
+            if ((wnd == NULL) || (wnd->has_parent()))
+                return STATUS_OK;
+
+            ws::rectangle_t r;
+
+            // Estimate the real window size if it is still not known
+            {
+                ws::size_limit_t sr;
+                wnd->get_padded_screen_rectangle(&r);
+                wnd->get_padded_size_limits(&sr);
+                if ((sr.nMinWidth >= 0) && (r.nWidth < sr.nMinWidth))
+                    r.nWidth = sr.nMinWidth;
+                if ((sr.nMinHeight >= 0) && (r.nHeight < sr.nMinHeight))
+                    r.nHeight = sr.nMinHeight;
+            }
+
+            // Find the matching monitor (if it is present) and align window to the center
+            bool aligned = false;
+            {
+                size_t num_monitors = 0;
+                const ws::MonitorInfo * x = wnd->display()->enum_monitors(&num_monitors);
+                if (x != NULL)
+                {
+                    for (size_t i=0; i<num_monitors; ++i)
+                    {
+                        if (tk::Position::inside(&x->rect, r.nLeft, r.nHeight))
+                        {
+                            r.nLeft = (x->rect.nWidth  - r.nWidth)  >> 1;
+                            r.nTop  = (x->rect.nHeight - r.nHeight) >> 1;
+                            aligned = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!aligned)
+            {
+                ssize_t sw = 0, sh = 0;
+                wnd->display()->screen_size(wnd->screen(), &sw, &sh);
+
+                r.nLeft = (sw - r.nWidth)  >> 1;
+                r.nTop  = (sh - r.nHeight) >> 1;
+            }
+
+            // Set the actual position of the window
+            wnd->position()->set(r.nLeft, r.nTop);
+
+            return STATUS_OK;
+        }
     }
 }
 
