@@ -9,6 +9,7 @@
 - Fixed segmentation fault error in JACK headless mode when JACK connection was lost.
 - Better control over plugin identifiers in metadata.
 - Added window scaling button function.
+- Added ipadding property to the Label controller.
 
 === 1.0.3 ===
 * Introduced effEditKeyDown and effEditKeyUp VST2 event handling if the host prevents

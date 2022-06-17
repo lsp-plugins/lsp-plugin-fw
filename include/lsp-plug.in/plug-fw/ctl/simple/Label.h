@@ -75,6 +75,7 @@ namespace lsp
 
                 ctl::Color          sColor;
                 ctl::Color          sHoverColor;
+                ctl::Padding        sIPadding;
 
                 ctl::LCString       sText;
                 ui::IPort          *pPort;

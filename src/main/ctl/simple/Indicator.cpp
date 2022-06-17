@@ -103,6 +103,7 @@ namespace lsp
             {
                 sColor.init(pWrapper, ind->color());
                 sTextColor.init(pWrapper, ind->text_color());
+                sIPadding.init(pWrapper, ind->ipadding());
 
                 parse_format();
 
