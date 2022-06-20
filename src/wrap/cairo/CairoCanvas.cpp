@@ -234,9 +234,9 @@ namespace lsp
             if ((count < 2) || (pCR == NULL))
                 return;
 
-            cairo_move_to(pCR, *(x++), *(y++));
+            cairo_move_to(pCR, *x, *y);
             for (size_t i=1; i < count; ++i)
-                cairo_line_to(pCR, *(x++), *(y++));
+                cairo_line_to(pCR, x[i], y[i]);
 
             cairo_set_source_rgba(pCR, fill.red(), fill.green(), fill.blue(), 1.0 - fill.alpha());
             cairo_fill_preserve(pCR);

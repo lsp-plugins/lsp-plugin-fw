@@ -98,6 +98,9 @@ namespace lsp
                     // Enumerate next element
                     if ((meta = f->enumerate(i)) == NULL)
                         break;
+                    if ((meta->uid == NULL) ||
+                        (meta->lv2_uri == NULL))
+                        continue;
 
                     // Check plugin identifier
                     if (!::strcmp(meta->lv2_uri, descriptor->URI))

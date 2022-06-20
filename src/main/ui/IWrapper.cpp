@@ -927,13 +927,15 @@ namespace lsp
         {
             // Perform export, replace the bundle version by the actual version parameter
             status_t res;
-            lltl::parray<LSPString> kv, vv;
-            if (!versions->items(&kv, &vv))
+            lltl::parray<LSPString> kv;
+            if (!versions->keys(&kv))
                 return STATUS_NO_MEM;
 
             // Get the actual version of the bundle
             LSPString version_key, version_value;
             get_bundle_version_key(&version_key);
+
+            lsp_trace("bundle version key=%s", version_key.get_native());
 
             for (size_t i=0, n=vConfigPorts.size(); i<n; ++i)
             {
@@ -949,13 +951,12 @@ namespace lsp
                     version_value.set_utf8(value);
                 break;
             }
+            lsp_trace("bundle version value=%s", version_value.get_native());
 
             // Add the version to the list if it is missing
             if (!versions->contains(&version_key))
             {
                 if (!kv.add(&version_key))
-                    return STATUS_NO_MEM;
-                if (!vv.add(&version_value))
                     return STATUS_NO_MEM;
             }
 
@@ -963,9 +964,11 @@ namespace lsp
             for (size_t i=0, n=kv.size(); i<n; ++i)
             {
                 const LSPString *name = kv.uget(i);
-                const LSPString *value = vv.uget(i);
+                const LSPString *value = (!version_key.equals(name)) ? versions->get(name) : &version_value;
                 if ((name == NULL) || (value == NULL))
                     return STATUS_UNKNOWN_ERR;
+
+                lsp_trace("Export version: %s=%s", name->get_native(), value->get_native());
 
                 // The bundle version should be replaced by the actual one in the output configuration
                 if ((res = s->write_string(name, value, config::SF_QUOTED)) != STATUS_OK)
@@ -1474,6 +1477,7 @@ namespace lsp
             {
                 case meta::R_PORT_SET:
                 case meta::R_CONTROL:
+                case meta::R_BYPASS:
                 {
                     lsp_trace("  param = %s, value = %f", param->name.get_utf8(), param->to_float());
 

@@ -168,7 +168,7 @@ namespace lsp
 
         void Button::commit_value(float value)
         {
-            lsp_trace("commit value=%f", value);
+            //lsp_trace("commit value=%f", value);
             tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
             if (btn == NULL)
                 return;
@@ -210,7 +210,7 @@ namespace lsp
             if (btn == NULL)
                 return;
 
-            lsp_trace("button is down=%s", (btn->down()->get()) ? "true" : "false");
+            //lsp_trace("button is down=%s", (btn->down()->get()) ? "true" : "false");
 
             float value     = next_value(btn->down()->get());
             if (value == fValue)
@@ -222,7 +222,7 @@ namespace lsp
 
             if (pPort != NULL)
             {
-                lsp_trace("Setting %s = %f", pPort->id(), value);
+                //lsp_trace("Setting %s = %f", pPort->id(), value);
                 pPort->set_value(value);
                 pPort->notify_all();
             }

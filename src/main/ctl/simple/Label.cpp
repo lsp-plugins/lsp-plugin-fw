@@ -181,6 +181,7 @@ namespace lsp
                 sColor.init(pWrapper, lbl->color());
                 sHoverColor.init(pWrapper, lbl->hover_color());
                 sText.init(pWrapper, lbl->text());
+                sIPadding.init(pWrapper, lbl->ipadding());
 
                 lbl->slot(tk::SLOT_MOUSE_DBL_CLICK)->bind(slot_dbl_click, this);
             }
@@ -346,6 +347,8 @@ namespace lsp
                 sColor.set("color", name, value);
                 sHoverColor.set("hover.color", name, value);
                 sHoverColor.set("hcolor", name, value);
+                sIPadding.set("ipadding", name, value);
+                sIPadding.set("ipad", name, value);
             }
 
             Widget::set(ctx, name, value);

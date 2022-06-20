@@ -63,6 +63,7 @@ ifeq ($(PLATFORM),Linux)
     LIBJACK \
     LIBSNDFILE \
     LIBX11 \
+    LIBXRANDR \
     LIBCAIRO \
     LIBFREETYPE
 endif
@@ -76,6 +77,7 @@ ifeq ($(PLATFORM),BSD)
     LIBJACK \
     LIBSNDFILE \
     LIBX11 \
+    LIBXRANDR \
     LIBCAIRO \
     LIBFREETYPE
 endif
@@ -135,6 +137,7 @@ ifeq ($(PLATFORM),Linux)
     LIBLV2 \
     LIBSNDFILE \
     LIBX11 \
+    LIBXRANDR \
     LIBCAIRO \
     LIBFREETYPE
 endif
@@ -149,6 +152,7 @@ ifeq ($(PLATFORM),BSD)
     LIBLV2 \
     LIBSNDFILE \
     LIBX11 \
+    LIBXRANDR \
     LIBCAIRO \
     LIBFREETYPE
 endif
@@ -180,6 +184,7 @@ ifeq ($(PLATFORM),Linux)
   DEPENDENCIES_VST2 += \
     LIBSNDFILE \
     LIBX11 \
+    LIBXRANDR \
     LIBCAIRO \
     LIBFREETYPE
 endif
@@ -188,6 +193,7 @@ ifeq ($(PLATFORM),BSD)
   DEPENDENCIES_VST2 += \
     LIBSNDFILE \
     LIBX11 \
+    LIBXRANDR \
     LIBCAIRO \
     LIBFREETYPE
 endif
@@ -263,6 +269,7 @@ ALL_DEPENDENCIES = \
   LIBGL \
   LIBSNDFILE \
   LIBX11 \
+  LIBXRANDR \
   LIBCAIRO \
   LIBDL \
   LIBICONV \

@@ -899,6 +899,9 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
+                    if ((plug_meta->uid == NULL) ||
+                        (plug_meta->vst2_uid == NULL))
+                        continue;
 
                     // Check plugin identifier
                     if (!strcmp(plug_meta->vst2_uid, uid))
@@ -906,7 +909,7 @@ namespace lsp
                         // Instantiate the plugin and return
                         if ((plugin = f->create(plug_meta)) == NULL)
                         {
-                            lsp_error("Plugin instantiation error: %s", plug_meta->vst2_uid);
+                            lsp_error("Plugin instantiation error: '%s' ('%s')", plug_meta->uid, plug_meta->vst2_uid);
                             return NULL;
                         }
                     }
@@ -916,7 +919,7 @@ namespace lsp
             // No plugin has been found?
             if (plugin == NULL)
             {
-                lsp_error("Unknown plugin identifier: %s", uid);
+                lsp_error("Unknown plugin identifier: '%s'", uid);
                 return NULL;
             }
 

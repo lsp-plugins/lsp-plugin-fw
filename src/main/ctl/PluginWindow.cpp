@@ -25,6 +25,7 @@
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/io/OutStringSequence.h>
 #include <lsp-plug.in/io/InStringSequence.h>
+#include <lsp-plug.in/tk/tk.h>
 
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <private/ui/xml/RootNode.h>
@@ -109,6 +110,15 @@ namespace lsp
             pVisualSchema   = NULL;
 
             pConfigSink     = NULL;
+
+            sWndScale.nMFlags           = 0;
+            sWndScale.sSize.nLeft       = 0;
+            sWndScale.sSize.nTop        = 0;
+            sWndScale.sSize.nWidth      = 0;
+            sWndScale.sSize.nHeight     = 0;
+            sWndScale.bActive           = false;
+            sWndScale.nMouseX           = 0;
+            sWndScale.nMouseY           = 0;
         }
 
         PluginWindow::~PluginWindow()
@@ -195,12 +205,12 @@ namespace lsp
             wPreferHost     = NULL;
         }
 
-        void PluginWindow::bind_trigger(const char *uid, tk::event_handler_t handler)
+        void PluginWindow::bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler)
         {
             tk::Widget *w = widgets()->find(uid);
             if (w == NULL)
                 return;
-            w->slots()->bind(tk::SLOT_SUBMIT, handler, this);
+            w->slots()->bind(ev, handler, this);
         }
 
         status_t PluginWindow::slot_window_close(tk::Widget *sender, void *ptr, void *data)
@@ -214,6 +224,7 @@ namespace lsp
         status_t PluginWindow::slot_window_show(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            __this->locate_window();
             __this->show_greeting_window();
             return STATUS_OK;
         }
@@ -1211,20 +1222,25 @@ namespace lsp
             wContent        = tk::widget_cast<tk::WidgetContainer>(widgets()->find("plugin_content"));
 
             // Header menu
-            bind_trigger("trg_main_menu", slot_show_main_menu);
-            bind_trigger("trg_export_settings", slot_export_settings_to_file);
-            bind_trigger("trg_import_settings", slot_import_settings_from_file);
-            bind_trigger("trg_reset_settings", slot_reset_settings);
-            bind_trigger("trg_about", slot_show_about);
+            bind_trigger("trg_main_menu", tk::SLOT_SUBMIT, slot_show_main_menu);
+            bind_trigger("trg_export_settings", tk::SLOT_SUBMIT, slot_export_settings_to_file);
+            bind_trigger("trg_import_settings", tk::SLOT_SUBMIT, slot_import_settings_from_file);
+            bind_trigger("trg_reset_settings", tk::SLOT_SUBMIT, slot_reset_settings);
+            bind_trigger("trg_about", tk::SLOT_SUBMIT, slot_show_about);
 
             // Footer
-            bind_trigger("trg_ui_scaling", slot_show_ui_scaling_menu);
-            bind_trigger("trg_font_scaling", slot_show_font_scaling_menu);
-            bind_trigger("trg_ui_zoom_in", slot_scaling_zoom_in);
-            bind_trigger("trg_ui_zoom_out", slot_scaling_zoom_out);
-            bind_trigger("trg_font_zoom_in", slot_font_scaling_zoom_in);
-            bind_trigger("trg_font_zoom_out", slot_font_scaling_zoom_out);
-            bind_trigger("trg_plugin_manual", slot_show_plugin_manual);
+            bind_trigger("trg_ui_scaling", tk::SLOT_SUBMIT, slot_show_ui_scaling_menu);
+            bind_trigger("trg_font_scaling", tk::SLOT_SUBMIT, slot_show_font_scaling_menu);
+            bind_trigger("trg_ui_zoom_in", tk::SLOT_SUBMIT, slot_scaling_zoom_in);
+            bind_trigger("trg_ui_zoom_out", tk::SLOT_SUBMIT, slot_scaling_zoom_out);
+            bind_trigger("trg_font_zoom_in", tk::SLOT_SUBMIT, slot_font_scaling_zoom_in);
+            bind_trigger("trg_font_zoom_out", tk::SLOT_SUBMIT, slot_font_scaling_zoom_out);
+            bind_trigger("trg_plugin_manual", tk::SLOT_SUBMIT, slot_show_plugin_manual);
+
+            // Window scaling
+            bind_trigger("trg_window_scale", tk::SLOT_MOUSE_DOWN, slot_scale_mouse_down);
+            bind_trigger("trg_window_scale", tk::SLOT_MOUSE_UP, slot_scale_mouse_up);
+            bind_trigger("trg_window_scale", tk::SLOT_MOUSE_MOVE, slot_scale_mouse_move);
         }
 
         void PluginWindow::end(ui::UIContext *ctx)
@@ -2038,7 +2054,7 @@ namespace lsp
 //            lsp_trace("Resize: x=%d, y=%d, w=%d, h=%d", int(r->nLeft), int(r->nTop), int(r->nWidth), int(r->nHeight));
 
             tk::Window *wnd = tk::widget_cast<tk::Window>(_this->wWidget);
-            if (wnd == NULL)
+            if ((wnd == NULL) || (wnd->has_parent()))
                 return STATUS_OK;
 
             ws::rectangle_t wp = *r;
@@ -2059,6 +2075,133 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::locate_window()
+        {
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
+            if ((wnd == NULL) || (wnd->has_parent()))
+                return STATUS_OK;
+
+            ws::rectangle_t r;
+
+            // Estimate the real window size if it is still not known
+            {
+                ws::size_limit_t sr;
+                wnd->get_padded_screen_rectangle(&r);
+                wnd->get_padded_size_limits(&sr);
+                if ((sr.nMinWidth >= 0) && (r.nWidth < sr.nMinWidth))
+                    r.nWidth = sr.nMinWidth;
+                if ((sr.nMinHeight >= 0) && (r.nHeight < sr.nMinHeight))
+                    r.nHeight = sr.nMinHeight;
+            }
+
+            // Find the matching monitor (if it is present) and align window to the center
+            bool aligned = false;
+            {
+                size_t num_monitors = 0;
+                const ws::MonitorInfo * x = wnd->display()->enum_monitors(&num_monitors);
+                if (x != NULL)
+                {
+                    for (size_t i=0; i<num_monitors; ++i)
+                    {
+                        if (tk::Position::inside(&x->rect, r.nLeft, r.nHeight))
+                        {
+                            r.nLeft = (x->rect.nWidth  - r.nWidth)  >> 1;
+                            r.nTop  = (x->rect.nHeight - r.nHeight) >> 1;
+                            aligned = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!aligned)
+            {
+                ssize_t sw = 0, sh = 0;
+                wnd->display()->screen_size(wnd->screen(), &sw, &sh);
+
+                r.nLeft = (sw - r.nWidth)  >> 1;
+                r.nTop  = (sh - r.nHeight) >> 1;
+            }
+
+            // Set the actual position of the window
+            wnd->position()->set(r.nLeft, r.nTop);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_scale_mouse_down(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            ws::event_t *ev = static_cast<ws::event_t *>(data);
+            if (ev == NULL)
+                return STATUS_OK;
+
+            size_t old = _this->sWndScale.nMFlags;
+            _this->sWndScale.nMFlags   |= 1 << ev->nCode;
+            if (old == 0)
+            {
+                _this->sWndScale.bActive    = ev->nCode == ws::MCB_LEFT;
+
+                if (_this->sWndScale.bActive)
+                {
+                    _this->wWidget->get_padded_screen_rectangle(&_this->sWndScale.sSize);
+                    _this->sWndScale.nMouseX    = ev->nLeft;
+                    _this->sWndScale.nMouseY    = ev->nTop;
+                }
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_scale_mouse_move(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            ws::event_t *ev = static_cast<ws::event_t *>(data);
+            if (ev == NULL)
+                return STATUS_OK;
+
+            if (_this->sWndScale.bActive)
+            {
+                tk::Window *wnd = tk::widget_cast<tk::Window>(_this->wWidget);
+                if (wnd == NULL)
+                    return STATUS_OK;
+
+                ws::size_limit_t sr;
+                ws::rectangle_t xr  = _this->sWndScale.sSize;
+                ssize_t width       = xr.nWidth  + ev->nLeft - _this->sWndScale.nMouseX;
+                ssize_t height      = xr.nHeight + ev->nTop  - _this->sWndScale.nMouseY;
+
+                _this->wWidget->get_padded_size_limits(&sr);
+                tk::SizeConstraints::apply(&xr, &sr);
+
+                if ((width != xr.nWidth) || (height != xr.nHeight))
+                    wnd->resize_window(width, height);
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_scale_mouse_up(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            ws::event_t *ev = static_cast<ws::event_t *>(data);
+            if (ev == NULL)
+                return STATUS_OK;
+
+            _this->sWndScale.nMFlags   &= ~(1 << ev->nCode);
+            if (_this->sWndScale.nMFlags == 0)
+                _this->sWndScale.bActive    = false;
+
+            return STATUS_OK;
+        }
     }
 }
 
