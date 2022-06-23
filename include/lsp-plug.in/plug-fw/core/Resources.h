@@ -75,7 +75,7 @@ namespace lsp
                  * Create resource loader
                  * @return instantiated resource loader
                  */
-                virtual resource::ILoader          *loader();
+                virtual resource::ILoader          *create_loader();
         };
 
 
