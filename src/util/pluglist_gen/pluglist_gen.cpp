@@ -206,7 +206,7 @@ namespace lsp
                 {
                     // Enumerate next element
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
+                    if ((meta == NULL) || (meta->uid == NULL))
                         break;
 
                     // Add the plugin to list
