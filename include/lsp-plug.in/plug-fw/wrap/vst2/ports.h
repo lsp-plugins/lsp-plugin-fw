@@ -694,6 +694,11 @@ namespace lsp
 
                 virtual ~MidiOutputPort()
                 {
+                    if (pEvents != NULL)
+                    {
+                        delete [] pEvents;
+                        pEvents = NULL;
+                    }
                 }
 
             public:
