@@ -688,6 +688,7 @@ namespace lsp
 
                  virtual ~FrameBufferPort()
                  {
+                     sFB.destroy();
                  };
 
              public:
