@@ -262,7 +262,9 @@ namespace lsp
             drop_string(&pkg->short_name);
             drop_string(&pkg->full_name);
             drop_string(&pkg->site);
+            drop_string(&pkg->email);
             drop_string(&pkg->license);
+            drop_string(&pkg->lv2_license);
             drop_string(&pkg->copyright);
             drop_string(&pkg->version.branch);
             free(pkg);
