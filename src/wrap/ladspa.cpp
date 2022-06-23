@@ -486,6 +486,8 @@ namespace lsp
 
                 if (d->Name)
                     free(const_cast<char *>(d->Name));
+                if (d->Copyright)
+                    free(const_cast<char *>(d->Copyright));
                 if (d->Maker)
                     free(const_cast<char *>(d->Maker));
             }
