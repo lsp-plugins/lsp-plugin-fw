@@ -255,7 +255,10 @@ ifeq ($(PLATFORM),Windows)
   DEPENDENCIES_COMMON += \
     LIBSHLWAPI \
     LIBWINMM \
-    LIBMSACM
+    LIBMSACM \
+    LIBD2D1 \
+    LIBOLE \
+    LIBWINCODEC
 endif
 
 #------------------------------------------------------------------------------
@@ -276,4 +279,7 @@ ALL_DEPENDENCIES = \
   LIBFREETYPE \
   LIBSHLWAPI \
   LIBWINMM \
-  LIBMSACM
+  LIBMSACM \
+  LIBD2D1 \
+  LIBOLE \
+  LIBWINCODEC
