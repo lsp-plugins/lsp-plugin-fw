@@ -5,6 +5,7 @@
 === 1.0.5 ===
 * Fixed several memory leaks in plugin wrapper implementation.
 * Migrated to support of C++ 11 standard and above.
+* Updated dependencies.
 
 === 1.0.4 ===
 * Fixed plugin version tracking which didn't save the updated version

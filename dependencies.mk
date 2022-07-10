@@ -22,7 +22,6 @@
 # Plugin dependencies
 DEPENDENCIES_COMMON = \
   LIBPTHREAD \
-  LIBDL \
   LSP_COMMON_LIB \
   LSP_DSP_LIB \
   LSP_DSP_UNITS \
@@ -39,9 +38,6 @@ DEPENDENCIES_COMMON_UI = \
 
 DEFAULT_FEATURES = doc ladspa lv2 vst2
 
-ifeq ($(PLATFORM),Windows)
-endif
-
 #------------------------------------------------------------------------------
 # Jack build dependencies
 DEPENDENCIES_JACK = \
@@ -56,10 +52,12 @@ DEPENDENCIES_JACK_WRAP = \
 
 ifeq ($(PLATFORM),Linux)
   DEPENDENCIES_JACK += \
+    LIBDL \
     LIBJACK \
     LIBSNDFILE
 
   DEPENDENCIES_JACK_UI += \
+    LIBDL \
     LIBJACK \
     LIBSNDFILE \
     LIBX11 \
@@ -70,10 +68,12 @@ endif
 
 ifeq ($(PLATFORM),BSD)
   DEPENDENCIES_JACK += \
+    LIBDL \
     LIBJACK \
     LIBSNDFILE
     
   DEPENDENCIES_JACK_UI += \
+    LIBDL \
     LIBJACK \
     LIBSNDFILE \
     LIBX11 \
@@ -86,7 +86,10 @@ ifeq ($(PLATFORM),Windows)
   DEPENDENCIES_JACK += \
     LIBSHLWAPI \
     LIBWINMM \
-    LIBMSACM
+    LIBMSACM \
+    LIBD2D1 \
+    LIBOLE \
+    LIBWINCODEC
 endif
 
 #------------------------------------------------------------------------------
@@ -96,12 +99,14 @@ DEPENDENCIES_LADSPA = \
 
 ifeq ($(PLATFORM),Linux)
   DEPENDENCIES_LADSPA += \
+    LIBDL \
     LIBLADSPA \
     LIBSNDFILE
 endif
 
 ifeq ($(PLATFORM),BSD)
   DEPENDENCIES_LADSPA += \
+    LIBDL \
     LIBLADSPA \
     LIBSNDFILE
 endif
@@ -110,7 +115,10 @@ ifeq ($(PLATFORM),Windows)
   DEPENDENCIES_LADSPA += \
     LIBSHLWAPI \
     LIBWINMM \
-    LIBMSACM
+    LIBMSACM \
+    LIBD2D1 \
+    LIBOLE \
+    LIBWINCODEC
 endif
 
 #------------------------------------------------------------------------------
@@ -129,11 +137,13 @@ DEPENDENCIES_LV2TTL_GEN = \
 
 ifeq ($(PLATFORM),Linux)
   DEPENDENCIES_LV2 += \
+    LIBDL \
     LIBLV2 \
     LIBSNDFILE \
     LIBCAIRO
     
   DEPENDENCIES_LV2_UI += \
+    LIBDL \
     LIBLV2 \
     LIBSNDFILE \
     LIBX11 \
@@ -144,11 +154,13 @@ endif
 
 ifeq ($(PLATFORM),BSD)
   DEPENDENCIES_LV2 += \
+    LIBDL \
     LIBLV2 \
     LIBSNDFILE \
     LIBCAIRO
     
   DEPENDENCIES_LV2_UI += \
+    LIBDL \
     LIBLV2 \
     LIBSNDFILE \
     LIBX11 \
@@ -161,12 +173,18 @@ ifeq ($(PLATFORM),Windows)
   DEPENDENCIES_LV2 += \
     LIBSHLWAPI \
     LIBWINMM \
-    LIBMSACM
+    LIBMSACM \
+    LIBD2D1 \
+    LIBOLE \
+    LIBWINCODEC
     
   DEPENDENCIES_LV2_UI += \
     LIBSHLWAPI \
     LIBWINMM \
-    LIBMSACM
+    LIBMSACM \
+    LIBD2D1 \
+    LIBOLE \
+    LIBWINCODEC
 endif
 
 #------------------------------------------------------------------------------
@@ -182,6 +200,7 @@ DEPENDENCIES_VST2_WRAP = \
 
 ifeq ($(PLATFORM),Linux)
   DEPENDENCIES_VST2 += \
+    LIBDL \
     LIBSNDFILE \
     LIBX11 \
     LIBXRANDR \
@@ -191,6 +210,7 @@ endif
 
 ifeq ($(PLATFORM),BSD)
   DEPENDENCIES_VST2 += \
+    LIBDL \
     LIBSNDFILE \
     LIBX11 \
     LIBXRANDR \
@@ -202,7 +222,10 @@ ifeq ($(PLATFORM),Windows)
   DEPENDENCIES_VST2 += \
     LIBSHLWAPI \
     LIBWINMM \
-    LIBMSACM
+    LIBMSACM \
+    LIBD2D1 \
+    LIBOLE \
+    LIBWINCODEC
 endif
 
 #------------------------------------------------------------------------------
