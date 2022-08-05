@@ -55,6 +55,11 @@ namespace lsp
 
             switch (port->role)
             {
+                case meta::R_AUDIO: // Stub port
+                    lsp_trace("creating stub audio port %s", port->id);
+                    vup = new vst2::UIPort(port, vp);
+                    break;
+
                 case meta::R_MESH:
                     lsp_trace("creating mesh port %s", port->id);
                     vup = new vst2::UIMeshPort(port, vp);
