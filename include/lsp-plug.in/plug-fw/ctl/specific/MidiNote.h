@@ -41,6 +41,9 @@ namespace lsp
             public:
                 static const ctl_class_t metadata;
 
+            private:
+                static const tk::tether_t   popup_tether[];
+
             protected:
                 class PopupWindow: public tk::PopupWindow
                 {

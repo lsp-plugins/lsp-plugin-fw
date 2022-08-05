@@ -2,10 +2,6 @@
 /.settings/*
 /.build/*
 /.test/*
-/Debug/*
-/Release/*
-/Debug/
-/Release
 *.log
 /gmon.out
 **/*.gmon
@@ -15,3 +11,6 @@
 /.cfg
 /.install
 /git
+/modules/
+/Release/
+/DebugLinux/

@@ -83,9 +83,9 @@ namespace lsp
          * Create resource loader for plugin
          * @return resource loader for plugin, should be deleted after use
          */
-        LSP_SYMBOL_HIDDEN
+        LSP_HIDDEN_MODIFIER
         resource::ILoader *create_resource_loader();
-    }
-}
+    } /* namespace core */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CORE_RESOURCES_H_ */

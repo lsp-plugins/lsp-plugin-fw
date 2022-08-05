@@ -1001,8 +1001,15 @@ namespace lsp
     } /* namespace vst2 */
 } /* namespace lsp */
 
-LSP_CSYMBOL_EXPORT
-AEffect *VST_MAIN_FUNCTION(const char *plugin_vst2_id, audioMasterCallback callback)
+#ifdef __cplusplus
+extern "C"
 {
-    return lsp::vst2::instantiate(plugin_vst2_id, callback);
+#endif /* __cplusplus */
+    LSP_EXPORT_MODIFIER
+    AEffect *VST_MAIN_FUNCTION(const char *plugin_vst2_id, audioMasterCallback callback)
+    {
+        return lsp::vst2::instantiate(plugin_vst2_id, callback);
+    }
+#ifdef __cplusplus
 }
+#endif /* __cplusplus */

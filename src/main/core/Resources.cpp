@@ -128,7 +128,7 @@ namespace lsp
             return dldr;
         }
 
-        LSP_SYMBOL_HIDDEN
+        LSP_HIDDEN_MODIFIER
         resource::ILoader *create_resource_loader()
         {
             // Get bultin resource loader.

@@ -138,6 +138,12 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t MidiNote::metadata     = { "MidiNote", &Widget::metadata };
 
+        const tk::tether_t MidiNote::popup_tether[] =
+        {
+            { tk::TF_RIGHT | tk::TF_TOP,    -1.0f,  1.0f    },
+            { tk::TF_RIGHT | tk::TF_BOTTOM, -1.0f, -1.0f    },
+        };
+
         MidiNote::MidiNote(ui::IWrapper *wrapper, tk::Indicator *widget): Widget(wrapper, widget)
         {
             nNote           = 0;
@@ -503,7 +509,7 @@ namespace lsp
             r.nWidth    = 0;
             popup->trigger_area()->set(&r);
             popup->trigger_widget()->set(_this->wWidget);
-            popup->add_arrangement(tk::A_RIGHT, 0.0f, false);
+            popup->set_tether(popup_tether, sizeof(popup_tether)/sizeof(tk::tether_t));
             popup->show(_this->wWidget);
             popup->grab_events(ws::GRAB_DROPDOWN);
             popup->sValue.take_focus();

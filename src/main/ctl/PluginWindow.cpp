@@ -69,16 +69,16 @@ namespace lsp
         // Plugin window
         const ctl_class_t PluginWindow::metadata = { "PluginWindow", &Window::metadata };
 
-        const tk::arrangement_t PluginWindow::top_arrangements[] =
+        const tk::tether_t PluginWindow::top_tether[] =
         {
-            { tk::A_BOTTOM, 0.0f, false },
-            { tk::A_TOP, 0.0f, false }
+            { tk::TF_BOTTOM | tk::TF_LEFT,      1.0f,  1.0f },
+            { tk::TF_TOP | tk::TF_LEFT,         1.0f, -1.0f },
         };
 
-        const tk::arrangement_t PluginWindow::bottom_arrangements[] =
+        const tk::tether_t PluginWindow::bottom_tether[] =
         {
-            { tk::A_TOP, 0.0f, false },
-            { tk::A_BOTTOM, 0.0f, false }
+            { tk::TF_TOP | tk::TF_LEFT,         1.0f, -1.0f },
+            { tk::TF_BOTTOM | tk::TF_LEFT,      1.0f,  1.0f },
         };
 
         PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget): Window(src, widget)
@@ -1603,9 +1603,9 @@ namespace lsp
                 actor->get_rectangle(&xr);
 
                 if (xr.nTop > (wr.nHeight >> 1))
-                    xmenu->set_arrangements(bottom_arrangements, 2);
+                    xmenu->set_tether(bottom_tether, sizeof(bottom_tether)/sizeof(tk::tether_t));
                 else
-                    xmenu->set_arrangements(top_arrangements, 2);
+                    xmenu->set_tether(top_tether, sizeof(top_tether)/sizeof(tk::tether_t));
                 xmenu->show(actor);
             }
             else

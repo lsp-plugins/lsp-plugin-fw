@@ -38,7 +38,7 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-    LSP_CSYMBOL_EXPORT
+    LSP_EXPORT_MODIFIER
     int JACK_MAIN_FUNCTION(const char *plugin_id, int argc, const char **argv);
 
 #ifdef __cplusplus

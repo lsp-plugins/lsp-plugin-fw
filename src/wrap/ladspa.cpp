@@ -501,11 +501,18 @@ namespace lsp
 }
 
 //---------------------------------------------------------------------
-LSP_CSYMBOL_EXPORT
-const LADSPA_Descriptor *ladspa_descriptor(unsigned long index)
+#ifdef __cplusplus
+extern "C"
 {
-    IF_DEBUG( lsp::debug::redirect("lsp-ladspa.log"); );
+#endif /* __cplusplus */
+    LSP_EXPORT_MODIFIER
+    const LADSPA_Descriptor *ladspa_descriptor(unsigned long index)
+    {
+        IF_DEBUG( lsp::debug::redirect("lsp-ladspa.log"); );
 
-    lsp::ladspa::gen_descriptors();
-    return lsp::ladspa::descriptors.get(index);
+        lsp::ladspa::gen_descriptors();
+        return lsp::ladspa::descriptors.get(index);
+    }
+#ifdef __cplusplus
 }
+#endif /* __cplusplus */

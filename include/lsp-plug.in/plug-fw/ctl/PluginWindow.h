@@ -47,8 +47,8 @@ namespace lsp
                 PluginWindow(const PluginWindow &);
 
             private:
-                static const tk::arrangement_t top_arrangements[];
-                static const tk::arrangement_t bottom_arrangements[];
+                static const tk::tether_t top_tether[];
+                static const tk::tether_t bottom_tether[];
 
             protected:
                 typedef struct backend_sel_t
