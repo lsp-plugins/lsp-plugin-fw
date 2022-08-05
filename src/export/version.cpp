@@ -33,7 +33,7 @@ namespace lsp
         LSP_PLUGIN_PACKAGE_BRANCH
     };
 
-    LSP_CSYMBOL_EXPORT
+    LSP_PLUGIN_FW_PUBLIC
     LSP_DEF_VERSION_FUNC_HEADER
     {
         return &module_version;
