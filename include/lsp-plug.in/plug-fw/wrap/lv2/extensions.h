@@ -22,14 +22,14 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_LV2_EXTENSIONS_H_
 #define LSP_PLUG_IN_PLUG_FW_WRAP_LV2_EXTENSIONS_H_
 
-#include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/lv2.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
-#include <lsp-plug.in/common/alloc.h>
-#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/stdlib.h>
 #include <lsp-plug.in/stdlib/string.h>
