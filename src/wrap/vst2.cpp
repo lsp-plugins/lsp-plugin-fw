@@ -450,12 +450,12 @@ namespace lsp
         #ifdef LSP_TRACE
             switch (opcode)
             {
-//                case effEditIdle:
-//                case effIdle:
-//                case effGetProgram:
-//                case effProcessEvents:
-//                case effGetTailSize:
-//                    break;
+                case effEditIdle:
+                case effIdle:
+                case effGetProgram:
+                case effProcessEvents:
+                case effGetTailSize:
+                    break;
                 default:
                     lsp_trace("vst_dispatcher effect=%p, opcode=%d (%s), index=%d, value=%llx, ptr=%p, opt = %.5f",
                         e, opcode, decode_opcode(opcode), index, (long long)(value), ptr, opt);
