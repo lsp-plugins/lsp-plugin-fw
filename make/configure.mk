@@ -47,11 +47,11 @@ else
   X_URL_SUFFIX                = _RO
 endif
 
-include $(BASEDIR)/modules.mk
 include $(BASEDIR)/project.mk
 include $(BASEDIR)/make/functions.mk
 include $(BASEDIR)/make/system.mk
 include $(BASEDIR)/make/tools.mk
+include $(BASEDIR)/modules.mk
 include $(BASEDIR)/dependencies.mk
 include $(PLUGINS)
 
@@ -160,6 +160,7 @@ endef
 
 define binconfig =
   $(eval name=$(1))
+  $(eval publisher=1)
   $(eval $(call _modconfig,$(1),$(1)))
 endef
 
@@ -185,7 +186,7 @@ endef
 
 define plugconfig =
   $(eval name=$(1))
-  $(eval builtin=$(patsubst $(ARTIFACT_NAME),,$($(name)_NAME)))
+  $(eval publisher=$(findstring $(ARTIFACT_NAME),$($(name)_NAME)))
   
   $(if $($(name)_DESC),,         $(eval $(name)_DESC         := $($(name)_DESC)))
   $(if $($(name)_URL),,          $(eval $(name)_URL          := $($(name)_URL$(X_URL_SUFFIX))))
@@ -196,26 +197,26 @@ define plugconfig =
   $(if $($(name)_SRC),,          $(eval $(name)_SRC          := $($(name)_PATH)/src))
   $(if $($(name)_TEST),,         $(eval $(name)_TEST         := $($(name)_PATH)/test))
   $(if $($(name)_BIN),,          $(eval $(name)_BIN          := $(TARGET_BUILDDIR)/$($(name)_NAME)))
-  $(if $($(name)_CFLAGS),,       $(eval $(name)_CFLAGS       := "-I\"$($(name)_INC)\"" $(if $(builtin),"-D$(name)_BUILTIN")))
+  $(if $($(name)_CFLAGS),,       $(eval $(name)_CFLAGS       := "-I\"$($(name)_INC)\"" -D$(name)_BUILTIN$(if $(publisher), -D$(name)_PUBLISHER)))
   $(if $($(name)_LDLAGS),,       $(eval $(name)_LDFLAGS      :=))
   $(if $($(name)_OBJ_META),,     $(eval $(name)_OBJ_META     := "$($(name)_BIN)/$($(name)_NAME)-meta.o"))
   $(if $($(name)_OBJ_DSP),,      $(eval $(name)_OBJ_DSP      := "$($(name)_BIN)/$($(name)_NAME)-dsp.o"))
   $(if $($(name)_OBJ_UI),,       $(eval $(name)_OBJ_UI       := "$($(name)_BIN)/$($(name)_NAME)-ui.o"))
   $(if $($(name)_OBJ_TEST),,     $(eval $(name)_OBJ_TEST     := "$($(name)_BIN)/$($(name)_NAME)-test.o"))
-  $(if $($(name)_MFLAGS),,       $(eval $(name)_MFLAGS       := $(if $(builtin),"-D$(name)_BUILTIN -fvisibility=hidden")))
+  $(if $($(name)_MFLAGS),,       $(eval $(name)_MFLAGS       := $(if $(publisher),,"-D$(name)_BUILTIN -fvisibility=hidden")))
   
   $(if $(HOST_$(name)_PATH),,    $(eval HOST_$(name)_PATH    := $(MODULES)/$($(name)_NAME)))
   $(if $(HOST_$(name)_INC),,     $(eval HOST_$(name)_INC     := $(HOST_$(name)_PATH)/include))
   $(if $(HOST_$(name)_SRC),,     $(eval HOST_$(name)_SRC     := $(HOST_$(name)_PATH)/src))
   $(if $(HOST_$(name)_TEST),,    $(eval HOST_$(name)_TEST    := $(HOST_$(name)_PATH)/test))
   $(if $(HOST_$(name)_BIN),,     $(eval HOST_$(name)_BIN     := $(HOST_BUILDDIR)/$($(name)_NAME)))
-  $(if $(HOST_$(name)_CFLAGS),,  $(eval HOST_$(name)_CFLAGS  := "-I\"$(HOST_$(name)_INC)\"" $(if $(builtin),"-D$(name)_BUILTIN")))
+  $(if $(HOST_$(name)_CFLAGS),,  $(eval HOST_$(name)_CFLAGS  := "-I\"$(HOST_$(name)_INC)\"" -D$(name)_BUILTIN$(if $(publisher), -D$(name)_PUBLISHER)))
   $(if $(HOST_$(name)_LDLAGS),,  $(eval HOST_$(name)_LDFLAGS :=))
   $(if $(HOST_$(name)_OBJ_META),,$(eval HOST_$(name)_OBJ_META:= "$(HOST_$(name)_BIN)/$($(name)_NAME)-meta.o"))
   $(if $(HOST_$(name)_OBJ_DSP),, $(eval HOST_$(name)_OBJ_DSP := "$(HOST_$(name)_BIN)/$($(name)_NAME)-dsp.o"))
   $(if $(HOST_$(name)_OBJ_UI),,  $(eval HOST_$(name)_OBJ_UI  := "$(HOST_$(name)_BIN)/$($(name)_NAME)-ui.o"))
   $(if $(HOST_$(name)_OBJ_TEST),,$(eval HOST_$(name)_OBJ_TEST:= "$(HOST_$(name)_BIN)/$($(name)_NAME)-test.o"))
-  $(if $(HOST_$(name)_MFLAGS),,  $(eval HOST_$(name)_MFLAGS  := $(if $(builtin),"-D$(name)_BUILTIN -fvisibility=hidden")))
+  $(if $(HOST_$(name)_MFLAGS),,  $(eval HOST_$(name)_MFLAGS  := $(if $(publisher),,"-D$(name)_BUILTIN -fvisibility=hidden")))
 endef
 
 define vardef =
