@@ -25,7 +25,6 @@ namespace lsp
 {
     namespace ui
     {
-        LSP_SYMBOL_HIDDEN
         BuiltinStyle *BuiltinStyle::pRoot    = NULL;
 
         BuiltinStyle::BuiltinStyle(tk::IStyleFactory *init)

@@ -571,7 +571,7 @@ extern "C"
 
     using namespace lsp;
 
-    LSP_CSYMBOL_EXPORT
+    LSP_EXPORT_MODIFIER
     int JACK_MAIN_FUNCTION(const char *plugin_id, int argc, const char **argv)
     {
         status_t res            = STATUS_OK;

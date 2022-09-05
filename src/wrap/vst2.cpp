@@ -447,7 +447,7 @@ namespace lsp
         {
             VstIntPtr v = 0;
 
-            #ifdef LSP_TRACE
+        #ifdef LSP_TRACE
             switch (opcode)
             {
                 case effEditIdle:
@@ -457,11 +457,11 @@ namespace lsp
                 case effGetTailSize:
                     break;
                 default:
-                    lsp_trace("vst_dispatcher effect=%p, opcode=%d (%s), index=%d, value=%llx, ptr=%p, opt = %.3f",
-                            e, opcode, decode_opcode(opcode), index, (long long)(value), ptr, opt);
+                    lsp_trace("vst_dispatcher effect=%p, opcode=%d (%s), index=%d, value=%llx, ptr=%p, opt = %.5f",
+                        e, opcode, decode_opcode(opcode), index, (long long)(value), ptr, opt);
                     break;
             }
-            #endif /* LSP_TRACE */
+        #endif /* LSP_TRACE */
 
             // Get VST object
             vst2::Wrapper *w    = reinterpret_cast<vst2::Wrapper *>(e->object);
@@ -653,7 +653,7 @@ namespace lsp
                     if (ui == NULL)
                         break;
 
-                    ui->main_iteration();
+                    ui->idle_ui();
                     v = 1;
                     break;
                 }
@@ -1001,8 +1001,15 @@ namespace lsp
     } /* namespace vst2 */
 } /* namespace lsp */
 
-LSP_CSYMBOL_EXPORT
-AEffect *VST_MAIN_FUNCTION(const char *plugin_vst2_id, audioMasterCallback callback)
+#ifdef __cplusplus
+extern "C"
 {
-    return lsp::vst2::instantiate(plugin_vst2_id, callback);
+#endif /* __cplusplus */
+    LSP_EXPORT_MODIFIER
+    AEffect *VST_MAIN_FUNCTION(const char *plugin_vst2_id, audioMasterCallback callback)
+    {
+        return lsp::vst2::instantiate(plugin_vst2_id, callback);
+    }
+#ifdef __cplusplus
 }
+#endif /* __cplusplus */

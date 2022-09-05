@@ -51,7 +51,7 @@ namespace lsp
             pNext       = NULL;
         }
 
-        resource::ILoader *Resources::loader()
+        resource::ILoader *Resources::create_loader()
         {
             // Create loader
             resource::BuiltinLoader *ldr = new resource::BuiltinLoader();
@@ -74,7 +74,7 @@ namespace lsp
             // Check that we have built-in resources
             core::Resources *r = core::Resources::root();
             if (r != NULL)
-                loader = r->loader();
+                loader = r->create_loader();
 
             if (loader != NULL)
                 lsp_trace("Using built-in resource loader");
@@ -128,7 +128,7 @@ namespace lsp
             return dldr;
         }
 
-        LSP_SYMBOL_HIDDEN
+        LSP_HIDDEN_MODIFIER
         resource::ILoader *create_resource_loader()
         {
             // Get bultin resource loader.
@@ -150,7 +150,7 @@ namespace lsp
             // Add loader to prefix loader with 'builtin://' prefix
             if (loader != NULL)
             {
-                if ((res = pldr->add_prefix(LSP_BUILTIN_PREFIX, loader)) != STATUS_OK)
+                if ((res = pldr->add_prefix(LSP_BUILTIN_PREFIX, loader, true)) != STATUS_OK)
                 {
                     lsp_warn("Error setting loader to prefix '%s', error=%d", LSP_BUILTIN_PREFIX, int(res));
                     delete loader;

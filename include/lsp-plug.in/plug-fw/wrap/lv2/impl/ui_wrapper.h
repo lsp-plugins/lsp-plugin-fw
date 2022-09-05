@@ -308,7 +308,7 @@ namespace lsp
             {
                 case meta::R_MIDI: // Skip all MIDI ports
                     break;
-                case meta::R_AUDIO: // Stub ports
+                case meta::R_AUDIO: // Stub port
                     result = new lv2::UIPort(p, pExt);
                     if (postfix == NULL)
                     {

@@ -45,7 +45,7 @@ namespace lsp
         /**
          * Factory for UI module
          */
-        class LSP_SYMBOL_HIDDEN Factory
+        class LSP_HIDDEN_MODIFIER Factory
         {
             private:
                 Factory & operator = (const Factory &);
@@ -92,7 +92,7 @@ namespace lsp
                  */
                 virtual Module                 *create(const meta::plugin_t *meta) const;
         };
-    }
-}
+    } /* namespace ui */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_UI_FACTORY_H_ */

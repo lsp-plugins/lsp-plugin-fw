@@ -206,7 +206,7 @@ namespace lsp
                 {
                     // Enumerate next element
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
+                    if ((meta == NULL) || (meta->uid == NULL))
                         break;
 
                     // Add the plugin to list
@@ -270,7 +270,7 @@ namespace lsp
             lltl::parray<meta::plugin_t> plugins;
             lltl::parray<meta::bundle_t> bundles;
 
-            const meta::plugin_t *const *pluglist;
+            const meta::plugin_t *const *pluglist = NULL;
 
             // Read the manifest file and obtain plugin list
             res = get_manifest(&pkg);

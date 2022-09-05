@@ -92,7 +92,7 @@ MTEST_BEGIN("", unpack)
             return;
         }
 
-        resource::ILoader *loader = r->loader();
+        resource::ILoader *loader = r->create_loader();
         MTEST_ASSERT(loader != NULL);
 
         io::Path path;

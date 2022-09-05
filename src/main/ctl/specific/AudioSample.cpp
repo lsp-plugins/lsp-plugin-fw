@@ -877,7 +877,7 @@ namespace lsp
             ssize_t idx = _this->pDragInSink->select_mime_type(ctype);
             if (idx >= 0)
             {
-                dpy->accept_drag(_this->pDragInSink, ws::DRAG_COPY, true, &r);
+                dpy->accept_drag(_this->pDragInSink, ws::DRAG_COPY, &r);
                 lsp_trace("Accepted drag");
             }
             else

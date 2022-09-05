@@ -909,7 +909,7 @@ xdg:
 
 test: $(ARTIFACT_BIN_TEST)
 
-all: test $(BUILD_TARGETS)
+all: test meta $(BUILD_TARGETS)
 
 #------------------------------------------------------------------------------
 # Installation

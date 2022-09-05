@@ -1102,7 +1102,7 @@ namespace lsp
 
             status_t res;
             LSPString fname;
-            io::Path src, dst;
+            io::Path src, dst, dir;
 
             // Initialize paths
             if ((res = src.set(cmd->manifest)) != STATUS_OK)
@@ -1131,6 +1131,13 @@ namespace lsp
 
             if (res == STATUS_OK)
             {
+                // Try to create target directory
+                if ((res = dst.get_parent(&dir)) != STATUS_OK)
+                    return res;
+                printf("  target dir: %s\n", dir.as_native());
+                dir.mkdir(true);
+
+                // Open manifest for writing
                 if ((res = ofs.open(&dst, io::File::FM_WRITE_NEW)) == STATUS_OK)
                     res = os.wrap(&ofs, WRAP_NONE, "utf-8");
 
@@ -1165,7 +1172,7 @@ namespace lsp
                     }
                 }
                 else
-                    fprintf(stderr, "Error writint manifest file %s: error code=%d\n", dst.as_native(), int(res));
+                    fprintf(stderr, "Error writing manifest file %s: error code=%d\n", dst.as_native(), int(res));
             }
             else
                 fprintf(stderr, "Error processing manifest template %s: error code=%d\n", cmd->manifest, int(res));

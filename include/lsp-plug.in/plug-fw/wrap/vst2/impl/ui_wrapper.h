@@ -34,6 +34,7 @@ namespace lsp
             IWrapper(ui, wrapper->resources())
         {
             pWrapper        = wrapper;
+            pIdleThread     = NULL;
             nKeyState       = 0;
             sRect.top       = 0;
             sRect.left      = 0;
@@ -55,6 +56,11 @@ namespace lsp
 
             switch (port->role)
             {
+                case meta::R_AUDIO: // Stub port
+                    lsp_trace("creating stub audio port %s", port->id);
+                    vup = new vst2::UIPort(port, vp);
+                    break;
+
                 case meta::R_MESH:
                     lsp_trace("creating mesh port %s", port->id);
                     vup = new vst2::UIMeshPort(port, vp);
@@ -212,6 +218,9 @@ namespace lsp
 
         void UIWrapper::destroy()
         {
+            // Terminate idle thread
+            terminate_idle_thread();
+
             // Call parent instance
             IWrapper::destroy();
 
@@ -222,6 +231,19 @@ namespace lsp
                 delete pUI;
                 pUI = NULL;
             }
+        }
+
+        void UIWrapper::terminate_idle_thread()
+        {
+            // Terminate idle thread if it is present
+            if (pIdleThread == NULL)
+                return;
+
+            pIdleThread->cancel();
+            pIdleThread->join();
+
+            delete pIdleThread;
+            pIdleThread     = NULL;
         }
 
         core::KVTStorage *UIWrapper::kvt_lock()
@@ -354,6 +376,12 @@ namespace lsp
             // Show the UI window
             window()->show();
 
+            // Launch the idle thread (workaround for some hosts)
+            pIdleThread = new ipc::Thread(eff_edit_idle, this);
+            if (pIdleThread == NULL)
+                return false;
+            pIdleThread->start();
+
             return true;
         }
 
@@ -362,6 +390,7 @@ namespace lsp
             tk::Window *wnd     = window();
             if (wnd != NULL)
                 wnd->hide();
+            terminate_idle_thread();
         }
 
         void UIWrapper::resize_ui()
@@ -383,6 +412,15 @@ namespace lsp
                 sRect.right     = rr.nWidth;
                 sRect.bottom    = rr.nHeight;
             }
+        }
+
+        void UIWrapper::idle_ui()
+        {
+            // Terminate the idle thread if it has been launched previously
+            terminate_idle_thread();
+
+            // Call the processing of main iteration
+            main_iteration();
         }
 
         ERect *UIWrapper::ui_rect()
@@ -422,6 +460,28 @@ namespace lsp
         size_t UIWrapper::set_key_state(size_t state)
         {
             return nKeyState = state;
+        }
+
+        status_t UIWrapper::eff_edit_idle(void *arg)
+        {
+            static constexpr size_t FRAME_PERIOD    = 40; // 25 FPS
+            UIWrapper *this_ = static_cast<UIWrapper *>(arg);
+
+            while (!ipc::Thread::is_cancelled())
+            {
+                // Measure the time of next frame to appear
+                system::time_millis_t ctime = system::get_time_millis() + FRAME_PERIOD;
+
+                // Perform main iteration
+                this_->main_iteration();
+
+                // Wait for the next frame to appear
+                system::time_millis_t ftime = system::get_time_millis();
+                if (ftime < ctime)
+                    this_->pDisplay->wait_events(ctime - ftime);
+            }
+
+            return STATUS_OK;
         }
 
         UIWrapper *UIWrapper::create(vst2::Wrapper *wrapper, void *root_widget)

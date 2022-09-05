@@ -22,26 +22,25 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_LV2_LV2_H_
 #define LSP_PLUG_IN_PLUG_FW_WRAP_LV2_LV2_H_
 
-
 // LV2 includes
-#include <lv2.h>
-#include <lv2/lv2plug.in/ns/ext/atom/atom.h>
-#include <lv2/lv2plug.in/ns/ext/atom/forge.h>
-#include <lv2/lv2plug.in/ns/ext/atom/util.h>
-#include <lv2/lv2plug.in/ns/ext/urid/urid.h>
-#include <lv2/lv2plug.in/ns/ext/state/state.h>
-#include <lv2/lv2plug.in/ns/ext/patch/patch.h>
-#include <lv2/lv2plug.in/ns/ext/midi/midi.h>
-#include <lv2/lv2plug.in/ns/ext/worker/worker.h>
-#include <lv2/lv2plug.in/ns/ext/time/time.h>
-#include <lv2/lv2plug.in/ns/ext/options/options.h>
-#include <lv2/lv2plug.in/ns/ext/port-props/port-props.h>
-#include <lv2/lv2plug.in/ns/ext/port-groups/port-groups.h>
-#include <lv2/lv2plug.in/ns/ext/resize-port/resize-port.h>
-#include <lv2/lv2plug.in/ns/ext/buf-size/buf-size.h>
-#include <lv2/lv2plug.in/ns/extensions/units/units.h>
-#include <lv2/lv2plug.in/ns/extensions/ui/ui.h>
-#include <lv2/lv2plug.in/ns/ext/instance-access/instance-access.h>
+#include <lv2/atom/atom.h>
+#include <lv2/atom/forge.h>
+#include <lv2/atom/util.h>
+#include <lv2/buf-size/buf-size.h>
+#include <lv2/core/lv2.h>
+#include <lv2/instance-access/instance-access.h>
+#include <lv2/midi/midi.h>
+#include <lv2/options/options.h>
+#include <lv2/patch/patch.h>
+#include <lv2/port-groups/port-groups.h>
+#include <lv2/port-props/port-props.h>
+#include <lv2/resize-port/resize-port.h>
+#include <lv2/state/state.h>
+#include <lv2/time/time.h>
+#include <lv2/ui/ui.h>
+#include <lv2/units/units.h>
+#include <lv2/urid/urid.h>
+#include <lv2/worker/worker.h>
 
 // Non-official features
 #include <lsp-plug.in/3rdparty/ardour/inline-display.h>

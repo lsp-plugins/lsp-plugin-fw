@@ -553,12 +553,12 @@ namespace lsp
                 hcap                <<= 1;
 
             // Estimate amount of data to allocate
-            size_t b_size       = hcap * cols * sizeof(float);
+            size_t b_size       = hcap * cols;
 
             // Allocate memory
-            uint8_t *ptr = NULL, *data = NULL;
-            ptr     = alloc_aligned<uint8_t>(data, b_size);
-            if (ptr == NULL)
+            pData               = NULL;
+            vData               = alloc_aligned<float>(pData, b_size);
+            if (vData == NULL)
                 return STATUS_NO_MEM;
 
             // Create object
@@ -566,8 +566,6 @@ namespace lsp
             nCols               = cols;
             nCapacity           = hcap;
             nRowID              = rows;
-            vData               = reinterpret_cast<float *>(ptr);
-            pData               = data;
 
             dsp::fill_zero(vData, rows * cols);
             return STATUS_OK;
@@ -575,17 +573,17 @@ namespace lsp
 
         void frame_buffer_t::destroy()
         {
-            void *ptr = pData;
-            vData = NULL;
-            pData = NULL;
+            void *ptr           = pData;
+            vData               = NULL;
+            pData               = NULL;
             free_aligned(ptr);
         }
 
         void frame_buffer_t::destroy(frame_buffer_t *buf)
         {
-            void *ptr = buf->pData;
-            buf->vData = NULL;
-            buf->pData = NULL;
+            void *ptr           = buf->pData;
+            buf->vData          = NULL;
+            buf->pData          = NULL;
             free_aligned(ptr);
         }
 

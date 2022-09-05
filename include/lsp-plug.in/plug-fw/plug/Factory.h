@@ -48,7 +48,7 @@ namespace lsp
         /**
          * Factory for plugin module
          */
-        class LSP_SYMBOL_HIDDEN Factory
+        class LSP_HIDDEN_MODIFIER Factory
         {
             private:
                 Factory & operator = (const Factory &);
@@ -95,7 +95,7 @@ namespace lsp
                  */
                 virtual Module                 *create(const meta::plugin_t *meta) const;
         };
-    }
-}
+    } /* namespace plug */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_PLUG_FACTORY_H_ */

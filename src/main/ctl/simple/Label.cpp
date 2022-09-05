@@ -70,7 +70,6 @@ namespace lsp
             return STATUS_OK;
         CTL_FACTORY_IMPL_END(Label)
 
-
         //-----------------------------------------------------------------
         Label::PopupWindow::PopupWindow(Label *label, tk::Display *dpy):
             tk::PopupWindow(dpy),
@@ -149,6 +148,12 @@ namespace lsp
 
         //-----------------------------------------------------------------
         const ctl_class_t Label::metadata     = { "Label", &Widget::metadata };
+
+        const tk::tether_t Label::label_tether[] =
+        {
+            { tk::TF_RIGHT | tk::TF_TOP,    -1.0f,  1.0f },
+            { tk::TF_RIGHT | tk::TF_BOTTOM, -1.0f, -1.0f },
+        };
 
         Label::Label(ui::IWrapper *wrapper, tk::Label *widget, label_type_t type):
             Widget(wrapper, widget)
@@ -428,7 +433,7 @@ namespace lsp
             r.nWidth    = 0;
             popup->trigger_area()->set(&r);
             popup->trigger_widget()->set(_this->wWidget);
-            popup->add_arrangement(tk::A_RIGHT, 0.0f, false);
+            popup->set_tether(label_tether, sizeof(label_tether)/sizeof(tk::tether_t));
             popup->show(_this->wWidget);
             popup->grab_events(ws::GRAB_DROPDOWN);
             popup->sValue.take_focus();

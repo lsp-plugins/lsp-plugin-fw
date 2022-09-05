@@ -202,6 +202,10 @@ namespace lsp
 
             switch (port->role)
             {
+                case meta::R_AUDIO: // Stub port
+                    jup     = new jack::UIPort(jp);
+                    break;
+
                 case meta::R_MESH:
                     jup     = new jack::UIMeshPort(jp);
                     if (meta::is_out_port(port))
