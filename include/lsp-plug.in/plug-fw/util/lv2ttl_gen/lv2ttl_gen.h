@@ -48,7 +48,7 @@
 #elif defined(PLATFORM_UNIX_COMPATIBLE)
     #define LV2TTL_UI_CLASS                             "X11UI"
 #else
-    #error "Could not determine LV2 UI class for target platform"
+    #define LV2TTL_UI_CLASS                             "X11UI"
 #endif
 
 namespace lsp
