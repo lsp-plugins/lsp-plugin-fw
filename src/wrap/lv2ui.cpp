@@ -140,7 +140,7 @@ namespace lsp
 
             ui->destroy();
             delete ui;
-            return reinterpret_cast<LV2UI_Handle>(NULL);
+            return static_cast<LV2UI_Handle>(NULL);
         }
 
         void ui_cleanup(LV2UI_Handle ui)
