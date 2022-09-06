@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.6 ===
+* Fixed Clang warnings and errors.
+
 === 1.0.5 ===
 * Fixed several memory leaks in plugin wrapper implementation.
 * Migrated to support of C++ 11 standard and above.
