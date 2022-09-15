@@ -76,6 +76,7 @@ namespace lsp
             U_DB,                   // Decibels
             U_GAIN_AMP,             // Gain (amplitude amplification)
             U_GAIN_POW,             // Gain (power amplification)
+            U_NEPER,                // Nepers
 
             // Degrees
             U_DEG,                  // Degrees

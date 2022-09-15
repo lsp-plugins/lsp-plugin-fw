@@ -92,6 +92,7 @@ namespace lsp
             { meta::U_SEC,          "s",                NULL,                   NULL        },
             { meta::U_MSEC,         "ms",               NULL,                   NULL        },
             { meta::U_DB,           "db",               NULL,                   NULL        },
+            { meta::U_NEPER,        "np",               NULL,                   NULL        },
             { meta::U_MIN,          "min",              NULL,                   NULL        },
             { meta::U_DEG,          "degree",           NULL,                   NULL        },
             { meta::U_OCTAVES,      "oct",              NULL,                   NULL        },
