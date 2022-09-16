@@ -99,6 +99,14 @@ namespace lsp
                 return (bPass) ? sHandler.end_element(name) : STATUS_OK;
             }
 
+            status_t IfNode::lookup(Node **child, const LSPString *name)
+            {
+                if (bPass)
+                    return Node::lookup(child, name);
+                *child = NULL;
+                return STATUS_OK;
+            }
+
             status_t IfNode::leave()
             {
                 // Do not call parent's leave()

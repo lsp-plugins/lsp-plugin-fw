@@ -52,13 +52,15 @@ namespace lsp
                     virtual ~IfNode();
 
                 public:
-                    virtual status_t enter(const LSPString * const *atts);
+                    virtual status_t lookup(Node **child, const LSPString *name) override;
 
-                    virtual status_t start_element(const LSPString *name, const LSPString * const *atts);
+                    virtual status_t enter(const LSPString * const *atts) override;
 
-                    virtual status_t end_element(const LSPString *name);
+                    virtual status_t start_element(const LSPString *name, const LSPString * const *atts) override;
 
-                    virtual status_t leave();
+                    virtual status_t end_element(const LSPString *name) override;
+
+                    virtual status_t leave() override;
             };
 
         }
