@@ -241,7 +241,7 @@ namespace lsp
         // Open file for reading
         FILE *fd = fopen("/proc/self/maps", "r");
         if (fd == NULL)
-            return NULL;
+            return false;
 
         char *line      = NULL;
         ssize_t len     = 0;
