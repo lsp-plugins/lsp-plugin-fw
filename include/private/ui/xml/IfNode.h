@@ -49,7 +49,7 @@ namespace lsp
                 public:
                     explicit IfNode(UIContext *ctx, Node *parent);
 
-                    virtual ~IfNode();
+                    virtual ~IfNode() override;
 
                 public:
                     virtual status_t lookup(Node **child, const LSPString *name) override;
@@ -63,9 +63,9 @@ namespace lsp
                     virtual status_t leave() override;
             };
 
-        }
-    }
-}
+        } /* namespace xml */
+    } /* namespace ui */
+} /* namespace lsp */
 
 
 #endif /* PRIVATE_UI_XML_IFNODE_H_ */
