@@ -1069,6 +1069,17 @@ namespace lsp
             config::param_t param;
             core::KVTStorage *kvt = kvt_lock();
 
+            // Reset all ports to default values
+            for (size_t i=0, n=vPorts.size(); i<n; ++i)
+            {
+                ui::IPort *p = vPorts.uget(i);
+                if (p == NULL)
+                    continue;
+
+                p->set_default();
+                p->notify_all();
+            }
+
             while ((res = parser->next(&param)) == STATUS_OK)
             {
                 if ((param.name.starts_with('/')) && (kvt != NULL)) // KVT

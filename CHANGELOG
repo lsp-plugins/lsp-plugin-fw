@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.7 ===
+* Improved preset loading for incomplete presets that are missing some plugin parameters.
 
 === 1.0.6 ===
 * Fixed Clang warnings and errors.

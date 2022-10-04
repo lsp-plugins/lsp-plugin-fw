@@ -730,6 +730,16 @@ namespace lsp
             config::param_t param;
             core::KVTStorage *kvt = kvt_lock();
 
+            // Reset all ports to default values
+            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+            {
+                jack::Port *p = vAllPorts.uget(i);
+                if (p == NULL)
+                    continue;
+                p->set_default();
+            }
+
+            // Process the configuration file
             while ((res = parser->next(&param)) == STATUS_OK)
             {
                 if ((param.name.starts_with('/')) && (kvt != NULL)) // KVT

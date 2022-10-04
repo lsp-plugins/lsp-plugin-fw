@@ -38,9 +38,19 @@ namespace lsp
         {
             return (pMetadata != NULL) ? pMetadata->start : 0.0f;
         }
+
+        float IPort::default_value() const
+        {
+            return (pMetadata != NULL) ? pMetadata->start : 0.0f;
+        }
     
         void IPort::set_value(float value)
         {
+        }
+
+        void IPort::set_default()
+        {
+            set_value(default_value());
         }
 
         void *IPort::buffer()
