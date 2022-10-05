@@ -308,6 +308,9 @@ namespace lsp
 
         void Fader::submit_value()
         {
+            if (pPort == NULL)
+                return;
+
             tk::Fader *fdr = tk::widget_cast<tk::Fader>(wWidget);
             if (fdr == NULL)
                 return;
