@@ -177,7 +177,7 @@ namespace lsp
                 v.write("version", tmp.get_utf8());
 
                 // Write plugin identifiers
-                v.write("lv2_uri", tmp.get_utf8());
+                v.write("lv2_uri", meta->lv2_uri);
                 v.write("vst_id", meta->vst2_uid);
                 v.write("ladspa_id", meta->ladspa_id);
                 v.write("ladspa_label", meta->ladspa_lbl);
