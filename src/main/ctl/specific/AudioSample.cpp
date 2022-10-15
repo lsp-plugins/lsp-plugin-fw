@@ -246,6 +246,8 @@ namespace lsp
                 sWaveBorder.init(pWrapper, as->wave_border());
                 sFadeInBorder.init(pWrapper, as->fade_in_border());
                 sFadeOutBorder.init(pWrapper, as->fade_out_border());
+                sStretchBorder.init(pWrapper, as->stretch_border());
+                sLoopBorder.init(pWrapper, as->loop_border());
                 sLineWidth.init(pWrapper, as->line_width());
                 sMainText.init(pWrapper, as->main_text());
                 sLabelRadius.init(pWrapper, as->label_radius());
@@ -264,6 +266,10 @@ namespace lsp
                 sTailCut.init(pWrapper, this);
                 sFadeIn.init(pWrapper, this);
                 sFadeOut.init(pWrapper, this);
+                sStretchBegin.init(pWrapper, this);
+                sStretchEnd.init(pWrapper, this);
+                sLoopBegin.init(pWrapper, this);
+                sLoopEnd.init(pWrapper, this);
                 sLength.init(pWrapper, this);
 
                 sColor.init(pWrapper, as->color());
@@ -379,8 +385,14 @@ namespace lsp
                 set_expr(&sTailCut, "tcut", name, value);
                 set_expr(&sFadeIn, "fade_in", name, value);
                 set_expr(&sFadeIn, "fadein", name, value);
+                set_expr(&sFadeIn, "fade.in", name, value);
                 set_expr(&sFadeOut, "fade_out", name, value);
                 set_expr(&sFadeOut, "fadeout", name, value);
+                set_expr(&sFadeOut, "fade.out", name, value);
+                set_expr(&sStretchBegin, "stretch.begin", name, value);
+                set_expr(&sStretchEnd, "stretch.end", name, value);
+                set_expr(&sLoopBegin, "loop.begin", name, value);
+                set_expr(&sLoopEnd, "loop.end", name, value);
                 set_expr(&sLength, "length", name, value);
 
                 sWaveBorder.set("wave.border", name, value);
@@ -492,6 +504,10 @@ namespace lsp
                 (port == pPort) ||
                 (sFadeIn.depends(port)) ||
                 (sFadeOut.depends(port)) ||
+                (sStretchBegin.depends(port)) ||
+                (sStretchEnd.depends(port)) ||
+                (sLoopBegin.depends(port)) ||
+                (sLoopEnd.depends(port)) ||
                 (sHeadCut.depends(port)) ||
                 (sTailCut.depends(port)) ||
                 (sLength.depends(port)))
@@ -574,11 +590,15 @@ namespace lsp
                 tk::String *dst = as->label(i);
                 expr::Parameters *p = dst->params();
 
-                float length   = sLength.evaluate_float();
-                float head_cut = sHeadCut.evaluate_float();
-                float tail_cut = sTailCut.evaluate_float();
-                float fade_in  = sFadeIn.evaluate_float();
-                float fade_out = sFadeOut.evaluate_float();
+                float length    = sLength.evaluate_float();
+                float head_cut  = sHeadCut.evaluate_float();
+                float tail_cut  = sTailCut.evaluate_float();
+                float fade_in   = sFadeIn.evaluate_float();
+                float fade_out  = sFadeOut.evaluate_float();
+                float s_begin   = sStretchBegin.evaluate_float();
+                float s_end     = sStretchEnd.evaluate_float();
+                float l_begin   = sLoopBegin.evaluate_float();
+                float l_end     = sLoopEnd.evaluate_float();
 
                 p->set_float("length", length);
                 p->set_float("head_cut", head_cut);
@@ -586,6 +606,10 @@ namespace lsp
                 p->set_float("length_cut", lsp_max(0.0f, length - head_cut - tail_cut));
                 p->set_float("fade_in", fade_in);
                 p->set_float("fade_out", fade_out);
+                p->set_float("stretch_begin", s_begin);
+                p->set_float("stretch_end", s_end);
+                p->set_float("loop_begin", l_begin);
+                p->set_float("loop_end", l_end);
 
                 LSPString tmp;
                 p->set_string("file", fpath.as_string());
@@ -644,6 +668,8 @@ namespace lsp
             float length   = sLength.evaluate_float() - sHeadCut.evaluate_float() - sTailCut.evaluate_float();
             float fade_in  = (length > 0) ? samples * (sFadeIn.evaluate_float() / length) : 0.0f;
             float fade_out = (length > 0) ? samples * (sFadeOut.evaluate_float() / length) : 0.0f;
+            float s_begin  = (length > 0) ? samples * (sStretchBegin.evaluate_float() / length) : 0.0f;
+            float s_end    = (length > 0) ? samples * (sStretchEnd.evaluate_float() / length) : 0.0f;
 
             for (size_t i=0; i<allocate; ++i)
             {
@@ -658,6 +684,8 @@ namespace lsp
                 // Update fades
                 ac->fade_in()->set(fade_in);
                 ac->fade_out()->set(fade_out);
+                ac->stretch_begin()->set(s_begin);
+                ac->stretch_end()->set(s_end);
             }
         }
 

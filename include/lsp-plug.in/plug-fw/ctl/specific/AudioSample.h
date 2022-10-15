@@ -98,6 +98,8 @@ namespace lsp
                 ctl::Integer        sWaveBorder;
                 ctl::Integer        sFadeInBorder;
                 ctl::Integer        sFadeOutBorder;
+                ctl::Integer        sStretchBorder;
+                ctl::Integer        sLoopBorder;
                 ctl::Integer        sLineWidth;
                 ctl::LCString       sMainText;
                 ctl::Integer        sLabelRadius;
@@ -114,6 +116,10 @@ namespace lsp
                 ctl::Expression     sTailCut;
                 ctl::Expression     sFadeIn;
                 ctl::Expression     sFadeOut;
+                ctl::Expression     sStretchBegin;
+                ctl::Expression     sStretchEnd;
+                ctl::Expression     sLoopBegin;
+                ctl::Expression     sLoopEnd;
                 ctl::Expression     sLength;
 
                 ctl::Padding        sIPadding;
