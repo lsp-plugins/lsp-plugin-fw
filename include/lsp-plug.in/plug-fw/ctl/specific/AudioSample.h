@@ -91,6 +91,9 @@ namespace lsp
                 tk::Menu           *pMenu;
                 DataSink           *pDataSink;
                 DragInSink         *pDragInSink;
+                bool                bFullSample;
+                bool                bStretch;
+                bool                bLoop;
                 lltl::parray<file_format_t>     vFormats;
                 lltl::parray<tk::MenuItem>      vMenuItems;
                 lltl::pphash<char, ui::IPort>   vClipboardBind;
@@ -116,11 +119,14 @@ namespace lsp
                 ctl::Expression     sTailCut;
                 ctl::Expression     sFadeIn;
                 ctl::Expression     sFadeOut;
+                ctl::Expression     sStretch;
                 ctl::Expression     sStretchBegin;
                 ctl::Expression     sStretchEnd;
+                ctl::Expression     sLoop;
                 ctl::Expression     sLoopBegin;
                 ctl::Expression     sLoopEnd;
                 ctl::Expression     sLength;
+                ctl::Expression     sActualLength;
 
                 ctl::Padding        sIPadding;
 
