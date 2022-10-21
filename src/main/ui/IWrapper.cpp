@@ -691,33 +691,41 @@ namespace lsp
                 return res;
             }
 
+            // Obtain the parent directory if needed
+            io::Path dir;
+            if (relative)
+            {
+                if ((res = file->get_parent(&dir)) != STATUS_OK)
+                    relative = false;
+            }
+
             // Export settings
-            res = export_settings(&o, (relative) ? file : NULL);
+            res = export_settings(&o, (relative) ? &dir : NULL);
             status_t res2 = o.close();
 
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::export_settings(io::IOutSequence *os, const char *relative)
+        status_t IWrapper::export_settings(io::IOutSequence *os, const char *basedir)
         {
-            if (relative == NULL)
+            if (basedir == NULL)
                 return export_settings(os, static_cast<io::Path *>(NULL));
 
             io::Path path;
-            status_t res = path.set(relative);
+            status_t res = path.set(basedir);
             if (res != STATUS_OK)
                 return res;
 
             return export_settings(os, &path);
         }
 
-        status_t IWrapper::export_settings(io::IOutSequence *os, const LSPString *relative)
+        status_t IWrapper::export_settings(io::IOutSequence *os, const LSPString *basedir)
         {
-            if (relative == NULL)
+            if (basedir == NULL)
                 return export_settings(os, static_cast<io::Path *>(NULL));
 
             io::Path path;
-            status_t res = path.set(relative);
+            status_t res = path.set(basedir);
             if (res != STATUS_OK)
                 return res;
 
@@ -781,7 +789,7 @@ namespace lsp
             c->append_ascii     (config_separator);
         }
 
-        status_t IWrapper::export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *relative)
+        status_t IWrapper::export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *basedir)
         {
             status_t res;
             float buf;
@@ -819,7 +827,7 @@ namespace lsp
                 comment.clear();
                 name.clear();
                 value.clear();
-                res     = core::serialize_port_value(s, meta, data, relative, 0);
+                res     = core::serialize_port_value(s, meta, data, basedir, 0);
                 if (res != STATUS_BAD_TYPE)
                 {
                     if (res != STATUS_OK)
@@ -978,7 +986,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *relative)
+        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *basedir)
         {
             // Create configuration serializer
             config::Serializer s;
@@ -995,7 +1003,7 @@ namespace lsp
                 return res;
 
             // Export regular ports
-            if ((res = export_ports(&s, &vPorts, relative)) != STATUS_OK)
+            if ((res = export_ports(&s, &vPorts, basedir)) != STATUS_OK)
                 return res;
 
             // Export KVT data
@@ -1013,7 +1021,7 @@ namespace lsp
                 if (res == STATUS_OK)
                     res = s.writeln();
                 if (res == STATUS_OK)
-                    res = export_kvt(&s, kvt, relative);
+                    res = export_kvt(&s, kvt, basedir);
 
                 kvt->gc();
                 kvt_release();
@@ -1043,27 +1051,51 @@ namespace lsp
 
         status_t IWrapper::import_settings(const io::Path *file, bool preset)
         {
+            // Get parent file
+            io::Path basedir;
+            bool has_parent = file->get_parent(&basedir) == STATUS_OK;
+
             // Read the resource as sequence
             io::IInSequence *is = pLoader->read_sequence(file, "UTF-8");
             if (is == NULL)
                 return pLoader->last_error();
-            status_t res = import_settings(is, preset);
+            status_t res = import_settings(is, preset, (has_parent) ? &basedir : NULL);
             status_t res2 = is->close();
             delete is;
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::import_settings(io::IInSequence *is, bool preset)
+        status_t IWrapper::import_settings(io::IInSequence *is, bool preset, const io::Path *basedir)
         {
             config::PullParser parser;
             status_t res = parser.wrap(is);
             if (res == STATUS_OK)
-                res = import_settings(&parser, preset);
+                res = import_settings(&parser, preset, basedir);
             status_t res2 = parser.close();
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::import_settings(config::PullParser *parser, bool preset)
+        status_t IWrapper::import_settings(io::IInSequence *is, bool preset, const char *basedir)
+        {
+            if (basedir == NULL)
+                return import_settings(is, preset, static_cast<io::Path *>(NULL));
+
+            io::Path tmp;
+            status_t res = tmp.set(basedir);
+            return (res == STATUS_OK) ? import_settings(is, preset, &tmp) : res;
+        }
+
+        status_t IWrapper::import_settings(io::IInSequence *is, bool preset, const LSPString *basedir)
+        {
+            if (basedir == NULL)
+                return import_settings(is, preset, static_cast<io::Path *>(NULL));
+
+            io::Path tmp;
+            status_t res = tmp.set(basedir);
+            return (res == STATUS_OK) ? import_settings(is, preset, &tmp) : res;
+        }
+
+        status_t IWrapper::import_settings(config::PullParser *parser, bool preset, const io::Path *basedir)
         {
             status_t res;
             config::param_t param;
@@ -1176,7 +1208,7 @@ namespace lsp
                         const meta::port_t *meta = p->metadata();
                         if ((meta != NULL) && (param.name.equals_ascii(meta->id)))
                         {
-                            if (set_port_value(p, &param, flags, NULL))
+                            if (set_port_value(p, &param, flags, basedir))
                                 p->notify_all();
                             break;
                         }

@@ -108,7 +108,7 @@ namespace lsp
                 void            build_global_config_header(LSPString *c);
                 status_t        init_visual_schema();
                 status_t        load_global_config(config::PullParser *parser);
-                status_t        import_settings(config::PullParser *parser, bool preset);
+                status_t        import_settings(config::PullParser *parser, bool preset, const io::Path *basedir);
                 status_t        init_global_constants(const tk::StyleSheet *sheet);
                 status_t        apply_visual_schema(const tk::StyleSheet *sheet);
                 status_t        export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *relative);
@@ -286,12 +286,12 @@ namespace lsp
                 /**
                  * Export settings
                  * @param os output stream to perform export
-                 * @param relative the paths will be written relative to the passed path name, can be NULL
+                 * @param basedir the directory the config file will be written, can be NULL
                  * @return status of operation
                  */
-                virtual status_t            export_settings(io::IOutSequence *os, const char *relative);
-                virtual status_t            export_settings(io::IOutSequence *os, const LSPString *relative);
-                virtual status_t            export_settings(io::IOutSequence *os, const io::Path *relative = NULL);
+                virtual status_t            export_settings(io::IOutSequence *os, const char *basedir);
+                virtual status_t            export_settings(io::IOutSequence *os, const LSPString *basedir);
+                virtual status_t            export_settings(io::IOutSequence *os, const io::Path *basedir = NULL);
 
                 /**
                  * Import settings
@@ -302,7 +302,9 @@ namespace lsp
                 virtual status_t            import_settings(const char *file, bool preset);
                 virtual status_t            import_settings(const io::Path *file, bool preset);
                 virtual status_t            import_settings(const LSPString *file, bool preset);
-                virtual status_t            import_settings(io::IInSequence *is, bool preset);
+                virtual status_t            import_settings(io::IInSequence *is, bool preset, const char *basedir);
+                virtual status_t            import_settings(io::IInSequence *is, bool preset, const LSPString *basedir);
+                virtual status_t            import_settings(io::IInSequence *is, bool preset, const io::Path *basedir = NULL);
 
                 /**
                  * Load visual schema for the wrapper

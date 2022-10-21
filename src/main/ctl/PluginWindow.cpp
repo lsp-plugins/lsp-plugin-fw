@@ -97,6 +97,7 @@ namespace lsp
             wExport         = NULL;
             wImport         = NULL;
             wPreferHost     = NULL;
+            wRelPaths       = NULL;
 
             pPVersion       = NULL;
             pPBypass        = NULL;
@@ -1335,7 +1336,7 @@ namespace lsp
 
                 create_config_filters(dlg);
 
-                // Add 'Relative paths' option
+                // Add 'Relative paths' option if present
                 tk::Box *wc = new tk::Box(dpy);
                 _this->widgets()->add(wc);
                 wc->init();
@@ -1354,6 +1355,8 @@ namespace lsp
                     tk::CheckBox *ck_rpath  = new tk::CheckBox(dpy);
                     _this->widgets()->add(ck_rpath);
                     ck_rpath->init();
+                    ck_rpath->slots()->bind(tk::SLOT_SUBMIT, slot_relative_path_changed, _this);
+                    _this->wRelPaths        = ck_rpath;
                     op_rpath->add(ck_rpath);
 
                     // Add label
@@ -1361,7 +1364,8 @@ namespace lsp
                     _this->widgets()->add(lbl_rpath);
                     lbl_rpath->init();
 
-                    lbl_rpath->allocation()->set_expand(true);
+                    lbl_rpath->allocation()->set_hexpand(true);
+                    lbl_rpath->allocation()->set_hfill(true);
                     lbl_rpath->text_layout()->set_halign(-1.0f);
                     lbl_rpath->text()->set("labels.relative_paths");
                     op_rpath->add(lbl_rpath);
@@ -1378,6 +1382,12 @@ namespace lsp
                 dlg->slots()->bind(tk::SLOT_HIDE, slot_commit_path, _this);
             }
 
+            // Initialize and show the window
+            if ((_this->wRelPaths != NULL) && (_this->pRelPaths != NULL))
+            {
+                bool checked = _this->pRelPaths->value() >= 0.5f;
+                _this->wRelPaths->checked()->set(checked);
+            }
             dlg->show(_this->wWidget);
             return STATUS_OK;
         }
@@ -2202,7 +2212,27 @@ namespace lsp
 
             return STATUS_OK;
         }
-    }
-}
+
+        status_t PluginWindow::slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+            if (_this->pRelPaths == NULL)
+                return STATUS_OK;
+
+            tk::CheckBox *ck_box = tk::widget_cast<tk::CheckBox>(sender);
+            if (ck_box == NULL)
+                return STATUS_OK;
+
+            float value = ck_box->checked()->get() ? 1.0f : 0.0f;
+            _this->pRelPaths->set_value(value);
+            _this->pRelPaths->notify_all();
+
+            return STATUS_OK;
+        }
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
