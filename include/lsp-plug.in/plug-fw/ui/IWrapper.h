@@ -294,6 +294,16 @@ namespace lsp
                 virtual status_t            export_settings(io::IOutSequence *os, const io::Path *basedir = NULL);
 
                 /**
+                 * Export settings
+                 * @param s output configuration serializer
+                 * @param basedir the directory the config file will be written, can be NULL
+                 * @return status of operation
+                 */
+                virtual status_t            export_settings(config::Serializer *s, const char *basedir);
+                virtual status_t            export_settings(config::Serializer *s, const LSPString *basedir);
+                virtual status_t            export_settings(config::Serializer *s, const io::Path *basedir = NULL);
+
+                /**
                  * Import settings
                  * @param the source (file name or input sequence)
                  * @param preset the configuration is loaded as a preset

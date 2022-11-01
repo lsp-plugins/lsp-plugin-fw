@@ -130,7 +130,7 @@ namespace lsp
                     float v = *(static_cast<const float *>(data));
                     if (is_discrete_unit(meta->unit) || (meta->flags & meta::F_INT))
                     {
-                        if (meta->unit == meta::U_BOOL)
+                        if (is_bool_unit(meta->unit))
                         {
                             LSP_STATUS_ASSERT(s->write_bool(meta->id, (v >= 0.5f), flags));
                         }

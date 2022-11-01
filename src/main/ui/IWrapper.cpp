@@ -52,6 +52,7 @@ namespace lsp
             PATH(UI_DLG_CONFIG_PATH_ID, "Dialog path for saving/loading configuration files"),
             PATH(UI_DLG_REW_PATH_ID, "Dialog path for importing REW settings files"),
             PATH(UI_DLG_HYDROGEN_PATH_ID, "Dialog path for importing Hydrogen drumkit files"),
+            PATH(UI_DLG_LSPC_BUNDLE_PATH_ID, "Dialog path for exporting/importing LSPC bundles"),
             PATH(UI_DLG_MODEL3D_PATH_ID, "Dialog for saving/loading 3D model files"),
             PATH(UI_DLG_DEFAULT_PATH_ID, "Dialog default path for other files"),
             PATH(UI_R3D_BACKEND_PORT_ID, "Identifier of selected backend for 3D rendering"),
@@ -732,6 +733,89 @@ namespace lsp
             return export_settings(os, &path);
         }
 
+        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *basedir)
+        {
+            // Create configuration serializer
+            config::Serializer s;
+            status_t res = s.wrap(os, 0);
+            if (res != STATUS_OK)
+                return res;
+
+            res = export_settings(&s, basedir);
+            status_t res2 = s.close();
+            return (res != STATUS_OK) ? res : res2;
+        }
+
+        status_t IWrapper::export_settings(config::Serializer *s, const char *basedir)
+        {
+            if (basedir == NULL)
+                return export_settings(s, static_cast<io::Path *>(NULL));
+
+            io::Path path;
+            status_t res = path.set(basedir);
+            if (res != STATUS_OK)
+                return res;
+
+            return export_settings(s, &path);
+        }
+
+        status_t IWrapper::export_settings(config::Serializer *s, const LSPString *basedir)
+        {
+            if (basedir == NULL)
+                return export_settings(s, static_cast<io::Path *>(NULL));
+
+            io::Path path;
+            status_t res = path.set(basedir);
+            if (res != STATUS_OK)
+                return res;
+
+            return export_settings(s, &path);
+        }
+
+        status_t IWrapper::export_settings(config::Serializer *s, const io::Path *basedir)
+        {
+            // Write header
+            status_t res;
+            LSPString comment;
+            build_config_header(&comment);
+            if ((res = s->write_comment(&comment)) != STATUS_OK)
+                return res;
+            if ((res = s->writeln()) != STATUS_OK)
+                return res;
+
+            // Export regular ports
+            if ((res = export_ports(s, &vPorts, basedir)) != STATUS_OK)
+                return res;
+
+            // Export KVT data
+            core::KVTStorage *kvt = kvt_lock();
+            if (kvt != NULL)
+            {
+                // Write comment
+                res = s->writeln();
+                if (res == STATUS_OK)
+                    res = s->write_comment(config_separator);
+                if (res == STATUS_OK)
+                    res = s->write_comment("KVT parameters");
+                if (res == STATUS_OK)
+                    res = s->write_comment(config_separator);
+                if (res == STATUS_OK)
+                    res = s->writeln();
+                if (res == STATUS_OK)
+                    res = export_kvt(s, kvt, basedir);
+
+                kvt->gc();
+                kvt_release();
+            }
+
+            if (res == STATUS_OK)
+                res = s->writeln();
+            if (res == STATUS_OK)
+                res = s->write_comment(config_separator);
+
+            return res;
+        }
+
         void IWrapper::build_config_header(LSPString *c)
         {
             const meta::package_t *pkg = package();
@@ -984,55 +1068,6 @@ namespace lsp
             }
 
             return STATUS_OK;
-        }
-
-        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *basedir)
-        {
-            // Create configuration serializer
-            config::Serializer s;
-            status_t res = s.wrap(os, 0);
-            if (res != STATUS_OK)
-                return res;
-
-            // Write header
-            LSPString comment;
-            build_config_header(&comment);
-            if ((res = s.write_comment(&comment)) != STATUS_OK)
-                return res;
-            if ((res = s.writeln()) != STATUS_OK)
-                return res;
-
-            // Export regular ports
-            if ((res = export_ports(&s, &vPorts, basedir)) != STATUS_OK)
-                return res;
-
-            // Export KVT data
-            core::KVTStorage *kvt = kvt_lock();
-            if (kvt != NULL)
-            {
-                // Write comment
-                res = s.writeln();
-                if (res == STATUS_OK)
-                    res = s.write_comment(config_separator);
-                if (res == STATUS_OK)
-                    res = s.write_comment("KVT parameters");
-                if (res == STATUS_OK)
-                    res = s.write_comment(config_separator);
-                if (res == STATUS_OK)
-                    res = s.writeln();
-                if (res == STATUS_OK)
-                    res = export_kvt(&s, kvt, basedir);
-
-                kvt->gc();
-                kvt_release();
-            }
-
-            if (res == STATUS_OK)
-                res = s.writeln();
-            if (res == STATUS_OK)
-                res = s.write_comment(config_separator);
-
-            return res;
         }
 
         status_t IWrapper::import_settings(const char *file, bool preset)

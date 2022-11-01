@@ -5,6 +5,7 @@
 === 1.0.7 ===
 * Improved preset loading for incomplete presets that are missing some plugin parameters.
 * Fixed broken configuration save and load with relative file paths.
+* Extended possibilities of configuration export: now passing configuration serializer is possible.
 
 === 1.0.6 ===
 * Fixed Clang warnings and errors.
