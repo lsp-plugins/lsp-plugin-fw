@@ -77,6 +77,8 @@ namespace lsp
             const char *                   bundle_path,
             const LV2_Feature *const *     features)
         {
+            lsp_trace("%p: instantiate descriptor->URI=%s", descriptor, descriptor->URI);
+
             // Check sample rate
             if (sample_rate > MAX_SAMPLE_RATE)
             {
@@ -111,6 +113,10 @@ namespace lsp
                             lsp_error("Plugin instantiation error: %s", meta->lv2_uri);
                             return NULL;
                         }
+                        else
+                        {
+                            lsp_trace("%p: Instantiated plugin with URI=%s", descriptor, meta->lv2_uri);
+                        }
                     }
                 }
             }
@@ -122,7 +128,7 @@ namespace lsp
                 return NULL;
             }
 
-            lsp_trace("descriptor_uri=%s, uri=%s, sample_rate=%f", descriptor->URI, meta->lv2_uri, sample_rate);
+            lsp_trace("%p: descriptor_uri=%s, uri=%s, sample_rate=%f", descriptor, descriptor->URI, meta->lv2_uri, sample_rate);
 
             // Create resource loader
             resource::ILoader *loader = core::create_resource_loader();
