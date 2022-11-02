@@ -122,7 +122,7 @@ namespace lsp
                 return NULL;
             }
 
-            lsp_trace("uri=%s, sample_rate=%f", meta->lv2_uri, sample_rate);
+            lsp_trace("descriptor_uri=%s, uri=%s, sample_rate=%f", descriptor->URI, meta->lv2_uri, sample_rate);
 
             // Create resource loader
             resource::ILoader *loader = core::create_resource_loader();
