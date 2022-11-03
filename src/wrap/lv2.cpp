@@ -35,8 +35,30 @@ namespace lsp
     {
         //---------------------------------------------------------------------
         // List of LV2 descriptors (generated at startup)
+        void gen_descriptors();
+        void drop_descriptors();
+
+        struct DescriptorGuard
+        {
+            DescriptorGuard()
+            {
+            #ifndef LSP_IDE_DEBUG
+                IF_DEBUG( lsp::debug::redirect("lsp-lv2.log"); );
+            #endif /* LSP_IDE_DEBUG */
+                gen_descriptors();
+            }
+
+            ~DescriptorGuard()
+            {
+            #ifndef LSP_IDE_DEBUG
+                IF_DEBUG( lsp::debug::redirect("lsp-lv2.log"); );
+            #endif /* LSP_IDE_DEBUG */
+                drop_descriptors();
+            }
+        };
+
         static lltl::darray<LV2_Descriptor> descriptors;
-        static ipc::Mutex descriptors_mutex;
+        static DescriptorGuard descriptor_guard;
 
         //---------------------------------------------------------------------
         void activate(LV2_Handle instance)
@@ -311,19 +333,7 @@ namespace lsp
         void gen_descriptors()
         {
             // Perform size test first
-            if (descriptors.size() > 0)
-                return;
-
             lsp_trace("generating descriptors...");
-
-            // Lock mutex and test again
-            if (!descriptors_mutex.lock())
-                return;
-            if (descriptors.size() > 0)
-            {
-                descriptors_mutex.unlock();
-                return;
-            }
 
             // Generate descriptors
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
@@ -358,10 +368,15 @@ namespace lsp
             // Sort descriptors
             descriptors.qsort(cmp_descriptors);
 
-            // Unlock descriptor mutex
-            descriptors_mutex.unlock();
-
-            lsp_trace("generated %d descriptors", descriptors.size());
+        #ifdef LSP_TRACE
+            lsp_trace("generated %d descriptors:", descriptors.size());
+            for (size_t i=0, n=descriptors.size(); i<n; ++i)
+            {
+                LV2_Descriptor *d = descriptors.uget(i);
+                lsp_trace("%p: %s", d, d->URI);
+            }
+            lsp_trace("generated %d descriptors:", descriptors.size());
+        #endif /* LSP_TRACE */
         };
 
         void drop_descriptors()
@@ -369,9 +384,6 @@ namespace lsp
             lsp_trace("dropping %d descriptors", descriptors.size());
             descriptors.flush();
         };
-
-        //---------------------------------------------------------------------
-        static StaticFinalizer finalizer(drop_descriptors);
 
     } /* namespace lv2 */
 } /* namespace lsp */
@@ -383,9 +395,9 @@ extern "C"
     LV2_SYMBOL_EXPORT
     const LV2_Descriptor *lv2_descriptor(uint32_t index)
     {
+    #ifndef LSP_IDE_DEBUG
         IF_DEBUG( lsp::debug::redirect("lsp-lv2.log"); );
-
-        lsp::lv2::gen_descriptors();
+    #endif /* LSP_IDE_DEBUG */
         return lsp::lv2::descriptors.get(index);
     }
 #ifdef __cplusplus
