@@ -35,6 +35,8 @@
     #include <lsp-plug.in/ws/x11/decode.h>
 #endif /* USE_LIBX11 */
 
+#define VST2_LOG_FILE   "lsp-vst2-aeffect.log"
+
 namespace lsp
 {
     namespace vst2
@@ -882,7 +884,9 @@ namespace lsp
         AEffect *instantiate(const char *uid, audioMasterCallback callback)
         {
             // Initialize debug
-            IF_DEBUG( debug::redirect("lsp-vst2-aeffect.log"); );
+        #ifndef LSP_IDE_DEBUG
+            IF_DEBUG( debug::redirect(VST2_LOG_FILE); );
+        #endif /* LSP_IDE_DEBUG */
             lsp_trace("uid=%s, callback=%p", uid, callback);
 
             // Initialize DSP

@@ -28,6 +28,7 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/impl/wrapper.h>
 
+#define LV2_LOG_FILE            "lsp-lv2.log"
 
 namespace lsp
 {
@@ -43,7 +44,7 @@ namespace lsp
             DescriptorGuard()
             {
             #ifndef LSP_IDE_DEBUG
-                IF_DEBUG( lsp::debug::redirect("lsp-lv2.log"); );
+                IF_DEBUG( lsp::debug::redirect(LV2_LOG_FILE); );
             #endif /* LSP_IDE_DEBUG */
                 gen_descriptors();
             }
@@ -51,7 +52,7 @@ namespace lsp
             ~DescriptorGuard()
             {
             #ifndef LSP_IDE_DEBUG
-                IF_DEBUG( lsp::debug::redirect("lsp-lv2.log"); );
+                IF_DEBUG( lsp::debug::redirect(LV2_LOG_FILE); );
             #endif /* LSP_IDE_DEBUG */
                 drop_descriptors();
             }
@@ -369,19 +370,19 @@ namespace lsp
             descriptors.qsort(cmp_descriptors);
 
         #ifdef LSP_TRACE
-            lsp_trace("generated %d descriptors:", descriptors.size());
+            lsp_trace("generated %d descriptors:", int(descriptors.size()));
             for (size_t i=0, n=descriptors.size(); i<n; ++i)
             {
                 LV2_Descriptor *d = descriptors.uget(i);
-                lsp_trace("%p: %s", d, d->URI);
+                lsp_trace("[%4d] %p: %s", int(i), d, d->URI);
             }
-            lsp_trace("generated %d descriptors:", descriptors.size());
+            lsp_trace("generated %d descriptors:", int(descriptors.size()));
         #endif /* LSP_TRACE */
         };
 
         void drop_descriptors()
         {
-            lsp_trace("dropping %d descriptors", descriptors.size());
+            lsp_trace("dropping %d descriptors", int(descriptors.size()));
             descriptors.flush();
         };
 
@@ -396,10 +397,10 @@ extern "C"
     const LV2_Descriptor *lv2_descriptor(uint32_t index)
     {
     #ifndef LSP_IDE_DEBUG
-        IF_DEBUG( lsp::debug::redirect("lsp-lv2.log"); );
+        IF_DEBUG( lsp::debug::redirect(LV2_LOG_FILE); );
     #endif /* LSP_IDE_DEBUG */
         return lsp::lv2::descriptors.get(index);
     }
 #ifdef __cplusplus
-}
+} /* extern "C" */
 #endif /* __cplusplus */

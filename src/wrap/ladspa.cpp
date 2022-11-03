@@ -42,14 +42,38 @@
 #include <lsp-plug.in/plug-fw/wrap/ladspa/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/ladspa/impl/wrapper.h>
 
+
+#define LADSPA_LOG_FILE         "lsp-ladspa.log"
+
 namespace lsp
 {
     namespace ladspa
     {
         //---------------------------------------------------------------------
         // List of LADSPA descriptors (generated at startup)
+        void gen_descriptors();
+        void drop_descriptors();
+
+        struct DescriptorGuard
+        {
+            DescriptorGuard()
+            {
+            #ifndef LSP_IDE_DEBUG
+                IF_DEBUG( lsp::debug::redirect(LADSPA_LOG_FILE); );
+            #endif /* LSP_IDE_DEBUG */
+                gen_descriptors();
+            }
+
+            ~DescriptorGuard()
+            {
+            #ifndef LSP_IDE_DEBUG
+                IF_DEBUG( lsp::debug::redirect(LADSPA_LOG_FILE); );
+            #endif /* LSP_IDE_DEBUG */
+                drop_descriptors();
+            }
+        };
+
         static lltl::darray<LADSPA_Descriptor> descriptors;
-        static ipc::Mutex descriptors_mutex;
 
         //---------------------------------------------------------------------
         inline bool port_supported(const meta::port_t *port)
@@ -388,18 +412,7 @@ namespace lsp
 
         void gen_descriptors()
         {
-            // Perform size test first
-            if (descriptors.size() > 0)
-                return;
-
-            // Lock mutex and test again
-            if (!descriptors_mutex.lock())
-                return;
-            if (descriptors.size() > 0)
-            {
-                descriptors_mutex.unlock();
-                return;
-            }
+            lsp_trace("generating descriptors...");
 
             // Obtain the manifest
             status_t res;
@@ -460,12 +473,21 @@ namespace lsp
                 manifest = NULL;
             }
 
-            // Unlock descriptor mutex
-            descriptors_mutex.unlock();
+        #ifdef LSP_TRACE
+            lsp_trace("generated %d descriptors:", int(descriptors.size()));
+            for (size_t i=0, n=descriptors.size(); i<n; ++i)
+            {
+                LADSPA_Descriptor *d = descriptors.uget(i);
+                lsp_trace("[%4d] %p: id=%ul label=%s", int(i), d, d->UniqueID, d->Label);
+            }
+            lsp_trace("generated %d descriptors:", int(descriptors.size()));
+        #endif /* LSP_TRACE */
         };
 
         void drop_descriptors()
         {
+            lsp_trace("dropping %d descriptors", int(descriptors.size()));
+
             for (size_t i=0, n=descriptors.size(); i<n; ++i)
             {
                 LADSPA_Descriptor *d = descriptors.uget(i);
@@ -495,10 +517,8 @@ namespace lsp
             descriptors.flush();
         };
 
-        //---------------------------------------------------------------------
-        static StaticFinalizer finalizer(drop_descriptors);
-    }
-}
+    } /* namespace ladspa */
+} /* namespace lsp */
 
 //---------------------------------------------------------------------
 #ifdef __cplusplus
@@ -508,11 +528,11 @@ extern "C"
     LSP_EXPORT_MODIFIER
     const LADSPA_Descriptor *ladspa_descriptor(unsigned long index)
     {
-        IF_DEBUG( lsp::debug::redirect("lsp-ladspa.log"); );
-
-        lsp::ladspa::gen_descriptors();
+    #ifndef LSP_IDE_DEBUG
+        IF_DEBUG( lsp::debug::redirect(LADSPA_LOG_FILE); );
+    #endif /* LSP_IDE_DEBUG */
         return lsp::ladspa::descriptors.get(index);
     }
 #ifdef __cplusplus
-}
+} /* extern "C" */
 #endif /* __cplusplus */
