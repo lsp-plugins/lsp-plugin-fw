@@ -314,6 +314,8 @@ namespace lsp
             if (descriptors.size() > 0)
                 return;
 
+            lsp_trace("generating descriptors...");
+
             // Lock mutex and test again
             if (!descriptors_mutex.lock())
                 return;
@@ -358,6 +360,8 @@ namespace lsp
 
             // Unlock descriptor mutex
             descriptors_mutex.unlock();
+
+            lsp_trace("generated %d descriptors", descriptors.size());
         };
 
         void drop_descriptors()
