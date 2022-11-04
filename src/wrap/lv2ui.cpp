@@ -40,31 +40,13 @@ namespace lsp
     namespace lv2
     {
         //--------------------------------------------------------------------------------------
-        // List of LV2 UI descriptors (generated at startup)
-        void ui_gen_descriptors();
-        void ui_drop_descriptors();
-
-        struct UIDescriptorGuard
-        {
-            UIDescriptorGuard()
-            {
-            #ifndef LSP_IDE_DEBUG
-                IF_DEBUG( lsp::debug::redirect(LV2UI_LOG_FILE); );
-            #endif /* LSP_IDE_DEBUG */
-                ui_gen_descriptors();
-            }
-
-            ~UIDescriptorGuard()
-            {
-            #ifndef LSP_IDE_DEBUG
-                IF_DEBUG( lsp::debug::redirect(LV2UI_LOG_FILE); );
-            #endif /* LSP_IDE_DEBUG */
-                ui_drop_descriptors();
-            }
-        };
-
+        // List of LV2 UI descriptors. The list is generated at first demand because
+        // of undetermined order of initialization of static objects which may
+        // cause undefined behaviour when reading the list of UI factories
+        // which can be not fully initialized.
         static lltl::darray<LV2UI_Descriptor> ui_descriptors;
-        static UIDescriptorGuard ui_descriptor_guard;
+        static ipc::Mutex ui_descriptors_mutex;
+        static volatile bool ui_descriptors_initialized = false;
 
         //--------------------------------------------------------------------------------------
         // LV2UI routines
@@ -248,7 +230,20 @@ namespace lsp
 
         void ui_gen_descriptors()
         {
-            lsp_trace("generating descriptors...");
+            // Perform first check that descriptors are initialized
+            if (ui_descriptors_initialized)
+                return;
+
+            // Lock mutex for lazy initialization
+            if (!ui_descriptors_mutex.lock())
+                return;
+			lsp_finally { ui_descriptors_mutex.unlock(); };
+
+			// Perform test again and leave if all is OK
+			if (ui_descriptors_initialized)
+                return;
+			lsp_finally { ui_descriptors_initialized = true; };
+
 
             // Generate descriptors
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
@@ -301,6 +296,10 @@ namespace lsp
             ui_descriptors.flush();
         };
 
+        //--------------------------------------------------------------------------------------
+        // Static finalizer for the list of UI descriptors at library finalization
+        static StaticFinalizer lv2ui_finalizer(ui_drop_descriptors);
+
     } /* namespace lv2 */
 } /* namespace lsp */
 
@@ -315,6 +314,7 @@ extern "C"
     #ifndef LSP_IDE_DEBUG
         IF_DEBUG( lsp::debug::redirect(LV2UI_LOG_FILE); );
     #endif /* LSP_IDE_DEBUG */
+        lsp::lv2::ui_gen_descriptors();
         return lsp::lv2::ui_descriptors.get(index);
     }
 #ifdef __cplusplus

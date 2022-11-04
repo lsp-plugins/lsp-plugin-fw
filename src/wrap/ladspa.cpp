@@ -51,29 +51,9 @@ namespace lsp
     {
         //---------------------------------------------------------------------
         // List of LADSPA descriptors (generated at startup)
-        void gen_descriptors();
-        void drop_descriptors();
-
-        struct DescriptorGuard
-        {
-            DescriptorGuard()
-            {
-            #ifndef LSP_IDE_DEBUG
-                IF_DEBUG( lsp::debug::redirect(LADSPA_LOG_FILE); );
-            #endif /* LSP_IDE_DEBUG */
-                gen_descriptors();
-            }
-
-            ~DescriptorGuard()
-            {
-            #ifndef LSP_IDE_DEBUG
-                IF_DEBUG( lsp::debug::redirect(LADSPA_LOG_FILE); );
-            #endif /* LSP_IDE_DEBUG */
-                drop_descriptors();
-            }
-        };
-
         static lltl::darray<LADSPA_Descriptor> descriptors;
+        static ipc::Mutex descriptors_mutex;
+        static volatile bool descriptors_initialized = false;
 
         //---------------------------------------------------------------------
         inline bool port_supported(const meta::port_t *port)
@@ -412,6 +392,21 @@ namespace lsp
 
         void gen_descriptors()
         {
+            // Perform first check that descriptors are initialized
+            if (descriptors_initialized)
+                return;
+
+            // Lock mutex for lazy initialization
+            if (!descriptors_mutex.lock())
+                return;
+            lsp_finally { descriptors_mutex.unlock(); };
+
+            // Perform test again and leave if all is OK
+            if (descriptors_initialized)
+                return;
+            lsp_finally { descriptors_initialized = true; };
+
+            // Do the main stuff
             lsp_trace("generating descriptors...");
 
             // Obtain the manifest
@@ -517,6 +512,8 @@ namespace lsp
             descriptors.flush();
         };
 
+        //---------------------------------------------------------------------
+        static StaticFinalizer finalizer(drop_descriptors);
     } /* namespace ladspa */
 } /* namespace lsp */
 
@@ -531,6 +528,7 @@ extern "C"
     #ifndef LSP_IDE_DEBUG
         IF_DEBUG( lsp::debug::redirect(LADSPA_LOG_FILE); );
     #endif /* LSP_IDE_DEBUG */
+        lsp::ladspa::gen_descriptors();
         return lsp::ladspa::descriptors.get(index);
     }
 #ifdef __cplusplus

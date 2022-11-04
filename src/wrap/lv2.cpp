@@ -35,31 +35,13 @@ namespace lsp
     namespace lv2
     {
         //---------------------------------------------------------------------
-        // List of LV2 descriptors (generated at startup)
-        void gen_descriptors();
-        void drop_descriptors();
-
-        struct DescriptorGuard
-        {
-            DescriptorGuard()
-            {
-            #ifndef LSP_IDE_DEBUG
-                IF_DEBUG( lsp::debug::redirect(LV2_LOG_FILE); );
-            #endif /* LSP_IDE_DEBUG */
-                gen_descriptors();
-            }
-
-            ~DescriptorGuard()
-            {
-            #ifndef LSP_IDE_DEBUG
-                IF_DEBUG( lsp::debug::redirect(LV2_LOG_FILE); );
-            #endif /* LSP_IDE_DEBUG */
-                drop_descriptors();
-            }
-        };
-
+        // List of LV2 descriptors. The list is generated at first demand because
+        // of undetermined order of initialization of static objects which may
+        // cause undefined behaviour when reading the list of plugin factories
+        // which can be not fully initialized.
         static lltl::darray<LV2_Descriptor> descriptors;
-        static DescriptorGuard descriptor_guard;
+        static ipc::Mutex descriptors_mutex;
+        static volatile bool descriptors_initialized = false;
 
         //---------------------------------------------------------------------
         void activate(LV2_Handle instance)
@@ -333,6 +315,20 @@ namespace lsp
 
         void gen_descriptors()
         {
+            // Perform first check that descriptors are initialized
+            if (descriptors_initialized)
+                return;
+
+            // Lock mutex for lazy initialization
+            if (!descriptors_mutex.lock())
+                return;
+            lsp_finally { descriptors_mutex.unlock(); };
+
+            // Perform test again and leave if all is OK
+            if (descriptors_initialized)
+                return;
+            lsp_finally { descriptors_initialized = true; };
+
             // Perform size test first
             lsp_trace("generating descriptors...");
 
@@ -386,6 +382,10 @@ namespace lsp
             descriptors.flush();
         };
 
+        //---------------------------------------------------------------------
+        // Static finalizer for the list of descriptors at library finalization
+        static StaticFinalizer finalizer(drop_descriptors);
+
     } /* namespace lv2 */
 } /* namespace lsp */
 
@@ -399,6 +399,8 @@ extern "C"
     #ifndef LSP_IDE_DEBUG
         IF_DEBUG( lsp::debug::redirect(LV2_LOG_FILE); );
     #endif /* LSP_IDE_DEBUG */
+    
+        lsp::lv2::gen_descriptors();
         return lsp::lv2::descriptors.get(index);
     }
 #ifdef __cplusplus
