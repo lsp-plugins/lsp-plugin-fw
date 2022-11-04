@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/singletone.h>
 #include <lsp-plug.in/common/static.h>
-#include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
@@ -40,8 +40,7 @@ namespace lsp
         // cause undefined behaviour when reading the list of plugin factories
         // which can be not fully initialized.
         static lltl::darray<LV2_Descriptor> descriptors;
-        static ipc::Mutex descriptors_mutex;
-        static volatile bool descriptors_initialized = false;
+        static lsp::singletone_t library;
 
         //---------------------------------------------------------------------
         void activate(LV2_Handle instance)
@@ -315,24 +314,16 @@ namespace lsp
 
         void gen_descriptors()
         {
-            // Perform first check that descriptors are initialized
-            if (descriptors_initialized)
+            // Check that data already has been initialized
+            if (library.initialized())
                 return;
-
-            // Lock mutex for lazy initialization
-            if (!descriptors_mutex.lock())
-                return;
-            lsp_finally { descriptors_mutex.unlock(); };
-
-            // Perform test again and leave if all is OK
-            if (descriptors_initialized)
-                return;
-            lsp_finally { descriptors_initialized = true; };
-
-            // Perform size test first
-            lsp_trace("generating descriptors...");
 
             // Generate descriptors
+            lltl::darray<LV2_Descriptor> result;
+            lsp_finally { result.flush(); };
+
+            lsp_trace("generating descriptors...");
+
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
             {
                 for (size_t i=0; ; ++i)
@@ -343,7 +334,7 @@ namespace lsp
                         break;
 
                     // Allocate new descriptor
-                    LV2_Descriptor *d = descriptors.add();
+                    LV2_Descriptor *d = result.add();
                     if (d == NULL)
                     {
                         lsp_warn("Error allocating LV2 descriptor for plugin %s", meta->lv2_uri);
@@ -363,17 +354,22 @@ namespace lsp
             }
 
             // Sort descriptors
-            descriptors.qsort(cmp_descriptors);
+            result.qsort(cmp_descriptors);
 
         #ifdef LSP_TRACE
-            lsp_trace("generated %d descriptors:", int(descriptors.size()));
-            for (size_t i=0, n=descriptors.size(); i<n; ++i)
+            lsp_trace("generated %d descriptors:", int(result.size()));
+            for (size_t i=0, n=result.size(); i<n; ++i)
             {
                 LV2_Descriptor *d = descriptors.uget(i);
                 lsp_trace("[%4d] %p: %s", int(i), d, d->URI);
             }
-            lsp_trace("generated %d descriptors:", int(descriptors.size()));
+            lsp_trace("generated %d descriptors:", int(result.size()));
         #endif /* LSP_TRACE */
+
+            // Commit the generated list to the global descriptor list
+            lsp_singletone_init(library) {
+                result.swap(descriptors);
+            };
         };
 
         void drop_descriptors()

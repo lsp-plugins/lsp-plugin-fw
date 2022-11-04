@@ -19,10 +19,10 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/ipc/Mutex.h>
-#include <lsp-plug.in/lltl/darray.h>
-#include <lsp-plug.in/common/static.h>
 #include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/common/singletone.h>
+#include <lsp-plug.in/common/static.h>
+#include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
@@ -45,8 +45,7 @@ namespace lsp
         // cause undefined behaviour when reading the list of UI factories
         // which can be not fully initialized.
         static lltl::darray<LV2UI_Descriptor> ui_descriptors;
-        static ipc::Mutex ui_descriptors_mutex;
-        static volatile bool ui_descriptors_initialized = false;
+        static lsp::singletone_t ui_library;
 
         //--------------------------------------------------------------------------------------
         // LV2UI routines
@@ -231,21 +230,14 @@ namespace lsp
         void ui_gen_descriptors()
         {
             // Perform first check that descriptors are initialized
-            if (ui_descriptors_initialized)
+            if (ui_library.initialized())
                 return;
-
-            // Lock mutex for lazy initialization
-            if (!ui_descriptors_mutex.lock())
-                return;
-			lsp_finally { ui_descriptors_mutex.unlock(); };
-
-			// Perform test again and leave if all is OK
-			if (ui_descriptors_initialized)
-                return;
-			lsp_finally { ui_descriptors_initialized = true; };
-
 
             // Generate descriptors
+            lltl::darray<LV2UI_Descriptor> result;
+            lsp_finally { result.flush(); };
+            lsp_trace("generating UI descriptors...");
+
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
             {
                 for (size_t i=0; ; ++i)
@@ -260,7 +252,7 @@ namespace lsp
                         continue;
 
                     // Allocate new descriptor
-                    LV2UI_Descriptor *d     = ui_descriptors.add();
+                    LV2UI_Descriptor *d     = result.add();
                     if (d == NULL)
                     {
                         lsp_warn("Error allocating LV2 descriptor for plugin %s", meta->lv2_uri);
@@ -277,17 +269,22 @@ namespace lsp
             }
 
             // Sort descriptors
-            ui_descriptors.qsort(ui_cmp_descriptors);
+            result.qsort(ui_cmp_descriptors);
 
         #ifdef LSP_TRACE
-            lsp_trace("generated %d descriptors:", int(ui_descriptors.size()));
-            for (size_t i=0, n=ui_descriptors.size(); i<n; ++i)
+            lsp_trace("generated %d descriptors:", int(result.size()));
+            for (size_t i=0, n=result.size(); i<n; ++i)
             {
-                LV2UI_Descriptor *d = ui_descriptors.uget(i);
+                LV2UI_Descriptor *d = result.uget(i);
                 lsp_trace("[%4d] %p: %s", int(i), d, d->URI);
             }
-            lsp_trace("generated %d descriptors:", int(ui_descriptors.size()));
+            lsp_trace("generated %d descriptors:", int(result.size()));
         #endif /* LSP_TRACE */
+
+            // Commit the generated list to the global descriptor list
+            lsp_singletone_init(ui_library) {
+                result.swap(ui_descriptors);
+            };
         };
 
         void ui_drop_descriptors()

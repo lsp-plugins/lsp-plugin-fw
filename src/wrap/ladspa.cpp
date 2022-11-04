@@ -19,18 +19,18 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/common/singletone.h>
+#include <lsp-plug.in/common/static.h>
+#include <lsp-plug.in/io/IInStream.h>
+#include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
-#include <lsp-plug.in/common/alloc.h>
-#include <lsp-plug.in/common/debug.h>
-#include <lsp-plug.in/io/IInStream.h>
-#include <lsp-plug.in/ipc/Mutex.h>
-#include <lsp-plug.in/lltl/darray.h>
-#include <lsp-plug.in/common/static.h>
-#include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/stdlib/stdio.h>
+#include <lsp-plug.in/stdlib/string.h>
 
 #ifdef USE_LADSPA
     #include <ladspa.h>
@@ -52,8 +52,7 @@ namespace lsp
         //---------------------------------------------------------------------
         // List of LADSPA descriptors (generated at startup)
         static lltl::darray<LADSPA_Descriptor> descriptors;
-        static ipc::Mutex descriptors_mutex;
-        static volatile bool descriptors_initialized = false;
+        static lsp::singletone_t library;
 
         //---------------------------------------------------------------------
         inline bool port_supported(const meta::port_t *port)
@@ -390,102 +389,13 @@ namespace lsp
             return strcmp(d1->Label, d2->Label);
         }
 
-        void gen_descriptors()
+        static void destroy_descriptors(lltl::darray<LADSPA_Descriptor> & list)
         {
-            // Perform first check that descriptors are initialized
-            if (descriptors_initialized)
-                return;
+            lsp_trace("dropping %d descriptors", int(list.size()));
 
-            // Lock mutex for lazy initialization
-            if (!descriptors_mutex.lock())
-                return;
-            lsp_finally { descriptors_mutex.unlock(); };
-
-            // Perform test again and leave if all is OK
-            if (descriptors_initialized)
-                return;
-            lsp_finally { descriptors_initialized = true; };
-
-            // Do the main stuff
-            lsp_trace("generating descriptors...");
-
-            // Obtain the manifest
-            status_t res;
-            meta::package_t *manifest = NULL;
-            resource::ILoader *loader = core::create_resource_loader();
-            if (loader != NULL)
+            for (size_t i=0, n=list.size(); i<n; ++i)
             {
-                io::IInStream *is = loader->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
-                if (is != NULL)
-                {
-                    if ((res = meta::load_manifest(&manifest, is)) != STATUS_OK)
-                    {
-                        lsp_warn("Error loading manifest file, error=%d", int(res));
-                        manifest = NULL;
-                    }
-                    is->close();
-                    delete is;
-                }
-                delete loader;
-            }
-            if (manifest == NULL)
-                lsp_trace("No manifest file found");
-
-            // Generate descriptors
-            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
-            {
-                for (size_t i=0; ; ++i)
-                {
-                    // Enumerate next element
-                    const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
-                        break;
-
-                    // Skip plugins not compatible with LADSPA
-                    if ((meta->ladspa_id == 0) || (meta->ladspa_lbl == NULL))
-                        continue;
-
-                    // Allocate new descriptor
-                    LADSPA_Descriptor *d = descriptors.add();
-                    if (d == NULL)
-                    {
-                        lsp_warn("Error allocating LADSPA descriptor for plugin %s", meta->ladspa_lbl);
-                        continue;
-                    }
-
-                    // Initialize descriptor
-                    make_descriptor(d, manifest, meta);
-                }
-            }
-
-            // Sort descriptors
-            descriptors.qsort(cmp_descriptors);
-
-            // Free previously loaded manifest data
-            if (manifest != NULL)
-            {
-                meta::free_manifest(manifest);
-                manifest = NULL;
-            }
-
-        #ifdef LSP_TRACE
-            lsp_trace("generated %d descriptors:", int(descriptors.size()));
-            for (size_t i=0, n=descriptors.size(); i<n; ++i)
-            {
-                LADSPA_Descriptor *d = descriptors.uget(i);
-                lsp_trace("[%4d] %p: id=%ul label=%s", int(i), d, d->UniqueID, d->Label);
-            }
-            lsp_trace("generated %d descriptors:", int(descriptors.size()));
-        #endif /* LSP_TRACE */
-        };
-
-        void drop_descriptors()
-        {
-            lsp_trace("dropping %d descriptors", int(descriptors.size()));
-
-            for (size_t i=0, n=descriptors.size(); i<n; ++i)
-            {
-                LADSPA_Descriptor *d = descriptors.uget(i);
+                LADSPA_Descriptor *d = list.uget(i);
 
                 if (d->PortNames)
                 {
@@ -509,7 +419,104 @@ namespace lsp
                     free(const_cast<char *>(d->Maker));
             }
 
-            descriptors.flush();
+            list.flush();
+        }
+
+        void gen_descriptors()
+        {
+            // Perform first check that descriptors are initialized
+            if (library.initialized())
+                return;
+
+            // Obtain the manifest
+            lsp_trace("Obtaining manifest...");
+
+            status_t res;
+            meta::package_t *manifest = NULL;
+            resource::ILoader *loader = core::create_resource_loader();
+            if (loader != NULL)
+            {
+                lsp_finally { delete loader; };
+
+                io::IInStream *is = loader->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
+                if (is != NULL)
+                {
+                    lsp_finally {
+                        is->close();
+                        delete is;
+                    };
+
+                    if ((res = meta::load_manifest(&manifest, is)) != STATUS_OK)
+                    {
+                        lsp_warn("Error loading manifest file, error=%d", int(res));
+                        manifest = NULL;
+                    }
+                }
+            }
+            if (manifest == NULL)
+                lsp_trace("No manifest file found");
+
+            // Generate descriptors
+            lltl::darray<LADSPA_Descriptor> result;
+            lsp_finally { destroy_descriptors(result); };
+
+            lsp_trace("generating descriptors...");
+
+            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *meta = f->enumerate(i);
+                    if (meta == NULL)
+                        break;
+
+                    // Skip plugins not compatible with LADSPA
+                    if ((meta->ladspa_id == 0) || (meta->ladspa_lbl == NULL))
+                        continue;
+
+                    // Allocate new descriptor
+                    LADSPA_Descriptor *d = result.add();
+                    if (d == NULL)
+                    {
+                        lsp_warn("Error allocating LADSPA descriptor for plugin %s", meta->ladspa_lbl);
+                        continue;
+                    }
+
+                    // Initialize descriptor
+                    make_descriptor(d, manifest, meta);
+                }
+            }
+
+            // Sort descriptors
+            result.qsort(cmp_descriptors);
+
+            // Free previously loaded manifest data
+            if (manifest != NULL)
+            {
+                meta::free_manifest(manifest);
+                manifest = NULL;
+            }
+
+        #ifdef LSP_TRACE
+            lsp_trace("generated %d descriptors:", int(result.size()));
+            for (size_t i=0, n=result.size(); i<n; ++i)
+            {
+                LADSPA_Descriptor *d = result.uget(i);
+                lsp_trace("[%4d] %p: id=%ul label=%s", int(i), d, d->UniqueID, d->Label);
+            }
+            lsp_trace("generated %d descriptors:", int(result.size()));
+        #endif /* LSP_TRACE */
+
+            // Commit the generated list to the global descriptor list
+            lsp_singletone_init(library) {
+                result.swap(descriptors);
+            };
+        };
+
+        void drop_descriptors()
+        {
+            destroy_descriptors(descriptors);
         };
 
         //---------------------------------------------------------------------
