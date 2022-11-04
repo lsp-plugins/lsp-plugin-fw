@@ -1130,6 +1130,20 @@ namespace lsp
             return (res == STATUS_OK) ? import_settings(is, preset, &tmp) : res;
         }
 
+        status_t IWrapper::import_settings(config::PullParser *parser, bool preset, const char *basedir)
+        {
+            io::Path tmp;
+            status_t res = tmp.set(basedir);
+            return (res == STATUS_OK) ? import_settings(parser, preset, &tmp) : res;
+        }
+
+        status_t IWrapper::import_settings(config::PullParser *parser, bool preset, const LSPString *basedir)
+        {
+            io::Path tmp;
+            status_t res = tmp.set(basedir);
+            return (res == STATUS_OK) ? import_settings(parser, preset, &tmp) : res;
+        }
+
         status_t IWrapper::import_settings(config::PullParser *parser, bool preset, const io::Path *basedir)
         {
             status_t res;

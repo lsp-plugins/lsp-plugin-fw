@@ -108,7 +108,6 @@ namespace lsp
                 void            build_global_config_header(LSPString *c);
                 status_t        init_visual_schema();
                 status_t        load_global_config(config::PullParser *parser);
-                status_t        import_settings(config::PullParser *parser, bool preset, const io::Path *basedir);
                 status_t        init_global_constants(const tk::StyleSheet *sheet);
                 status_t        apply_visual_schema(const tk::StyleSheet *sheet);
                 status_t        export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *relative);
@@ -315,6 +314,9 @@ namespace lsp
                 virtual status_t            import_settings(io::IInSequence *is, bool preset, const char *basedir);
                 virtual status_t            import_settings(io::IInSequence *is, bool preset, const LSPString *basedir);
                 virtual status_t            import_settings(io::IInSequence *is, bool preset, const io::Path *basedir = NULL);
+                virtual status_t            import_settings(config::PullParser *parser, bool preset, const char *basedir);
+                virtual status_t            import_settings(config::PullParser *parser, bool preset, const LSPString *basedir);
+                virtual status_t            import_settings(config::PullParser *parser, bool preset, const io::Path *basedir = NULL);
 
                 /**
                  * Load visual schema for the wrapper
