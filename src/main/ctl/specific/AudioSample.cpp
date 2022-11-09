@@ -281,6 +281,10 @@ namespace lsp
                 sGlassColor.init(pWrapper, as->glass_color());
                 sLineColor.init(pWrapper, as->line_color());
                 sMainColor.init(pWrapper, as->main_color());
+                sStretchColor.init(pWrapper, as->stretch_color());
+                sStretchBorderColor.init(pWrapper, as->stretch_border_color());
+                sLoopColor.init(pWrapper, as->loop_color());
+                sLoopBorderColor.init(pWrapper, as->loop_border_color());
                 sLabelBgColor.init(pWrapper, as->label_bg_color());
 
                 for (size_t i=0; i<tk::AudioSample::LABELS; ++i)
@@ -474,6 +478,10 @@ namespace lsp
                 sLineColor.set("line.color", name, value);
                 sMainColor.set("main.color", name, value);
                 sLabelBgColor.set("label.bg.color", name, value);
+                sStretchColor.set("stretch.color", name, value);
+                sStretchBorderColor.set("stretch.border.color", name, value);
+                sLoopColor.set("loop.color", name, value);
+                sLoopBorderColor.set("loop.border.color", name, value);
 
                 // Parse file formats
                 if ((!strcmp(name, "format")) || (!strcmp(name, "formats")) || (!strcmp(name, "fmt")))

@@ -92,8 +92,6 @@ namespace lsp
                 DataSink           *pDataSink;
                 DragInSink         *pDragInSink;
                 bool                bFullSample;
-                bool                bStretch;
-                bool                bLoop;
                 lltl::parray<file_format_t>     vFormats;
                 lltl::parray<tk::MenuItem>      vMenuItems;
                 lltl::pphash<char, ui::IPort>   vClipboardBind;
@@ -135,6 +133,10 @@ namespace lsp
                 ctl::Color          sGlassColor;
                 ctl::Color          sLineColor;
                 ctl::Color          sMainColor;
+                ctl::Color          sStretchColor;
+                ctl::Color          sStretchBorderColor;
+                ctl::Color          sLoopColor;
+                ctl::Color          sLoopBorderColor;
                 ctl::Color          sLabelTextColor[tk::AudioSample::LABELS];
                 ctl::Color          sLabelBgColor;
 
