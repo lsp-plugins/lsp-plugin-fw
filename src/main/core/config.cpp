@@ -78,9 +78,9 @@ namespace lsp
                     // Serialize meta information
                     const char *unit = meta::get_unit_name(meta->unit);
                     if (unit != NULL)
-                        LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [%s]", meta->name, unit), STATUS_NO_MEM)
+                        LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [%s]", meta->name, unit), STATUS_NO_MEM);
                     else if (meta->unit == meta::U_BOOL)
-                        LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [boolean]", meta->name), STATUS_NO_MEM)
+                        LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [boolean]", meta->name), STATUS_NO_MEM);
                     else
                         LSP_BOOL_ASSERT(comment.append_utf8(meta->name), STATUS_NO_MEM);
 

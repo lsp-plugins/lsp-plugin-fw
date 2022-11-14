@@ -69,6 +69,7 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/Grid.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/Cell.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/MultiLabel.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/TabControl.h>
 
     #include <lsp-plug.in/plug-fw/ctl/compound/ComboBox.h>
     #include <lsp-plug.in/plug-fw/ctl/compound/ComboGroup.h>

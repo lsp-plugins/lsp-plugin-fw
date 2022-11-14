@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 19 июл. 2021 г.
+ * Created on: 14 нояб. 2022 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_COMPOUND_COMBOGROUP_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_COMPOUND_COMBOGROUP_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_TABCONTROL_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_TABCONTROL_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,38 +34,42 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Combo group
+         * Tab control
          */
-        class ComboGroup: public Widget
+        class TabControl: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ui::IPort              *pPort;
-                float                   fMin;
-                float                   fMax;
-                float                   fStep;
-                ssize_t                 nActive;
+                ui::IPort                  *pPort;
+                float                       fMin;
+                float                       fMax;
+                float                       fStep;
+                ssize_t                     nActive;
 
-                ctl::Color              sColor;
-                ctl::Color              sTextColor;
-                ctl::Color              sSpinColor;
-                ctl::LCString           sEmptyText;
-                ctl::Padding            sTextPadding;
-                ctl::Expression         sActive;
-                ctl::Embedding          sEmbed;
+                ctl::Color                  sBorderColor;
+                ctl::Integer                sBorderSize;
+                ctl::Integer                sBorderRadius;
+                ctl::Integer                sTabSpacing;
+                ctl::Integer                sHeadingSpacing;
+                ctl::Embedding              sEmbedding;
+                ctl::Boolean                sTabJoint;
+                ctl::Expression             sActive;
+
+                lltl::parray<tk::Tab>       vTabs;
 
             protected:
-                static status_t         slot_combo_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t         slot_submit(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                    submit_value();
                 void                    select_active_widget();
+                tk::Tab                *create_new_tab(tk::Widget *child, tk::Registry *registry);
 
             public:
-                explicit                ComboGroup(ui::IWrapper *wrapper, tk::ComboGroup *cgroup);
-                virtual                ~ComboGroup();
+                explicit                TabControl(ui::IWrapper *wrapper, tk::TabControl *tc);
+                virtual                ~TabControl();
 
                 virtual status_t        init() override;
 
@@ -77,9 +81,8 @@ namespace lsp
                 virtual void            notify(ui::IPort *port) override;
         };
 
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
-
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_COMBOGROUP_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_TABCONTROL_H_ */

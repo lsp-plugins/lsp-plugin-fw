@@ -108,6 +108,7 @@ namespace lsp
                 sSpinColor.set("scolor", name, value);
                 sEmptyText.set("text", name, value);
                 sTextPadding.set("text.padding", name, value);
+                sEmbed.set("embedding", name, value);
                 sEmbed.set("embed", name, value);
 
                 set_font(cgrp->font(), "font", name, value);
