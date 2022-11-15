@@ -82,6 +82,8 @@ namespace lsp
                 tc->slots()->bind(tk::SLOT_SUBMIT, slot_submit, this);
 
                 sBorderColor.init(pWrapper, tc->border_color());
+                sHeadingColor.init(pWrapper, tc->heading_color());
+                sHeadingGapColor.init(pWrapper, tc->heading_gap_color());
                 sBorderSize.init(pWrapper, tc->border_size());
                 sBorderRadius.init(pWrapper, tc->border_radius());
                 sTabSpacing.init(pWrapper, tc->tab_spacing());
@@ -104,6 +106,10 @@ namespace lsp
 
                 sBorderColor.set("border.color", name, value);
                 sBorderColor.set("bcolor", name, value);
+                sHeadingColor.set("heading.color", name, value);
+                sHeadingColor.set("hcolor", name, value);
+                sHeadingGapColor.set("heading.gap.color", name, value);
+                sHeadingGapColor.set("hgcolor", name, value);
                 sBorderSize.set("border.size", name, value);
                 sBorderSize.set("bsize", name, value);
                 sBorderRadius.set("border.radius", name, value);
@@ -115,6 +121,8 @@ namespace lsp
                 sEmbedding.set("embedding", name, value);
                 sEmbedding.set("embed", name, value);
                 sTabJoint.set("tab.joint", name, value);
+                sHeadingFill.set("heading.fill", name, value);
+                sHeadingGapFill.set("heading.gap.fill", name, value);
 
                 set_constraints(tc->constraints(), name, value);
                 set_layout(tc->heading(), "heading", name, value);
