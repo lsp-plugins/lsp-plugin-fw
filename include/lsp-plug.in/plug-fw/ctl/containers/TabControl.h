@@ -50,15 +50,17 @@ namespace lsp
 
                 ctl::Color                  sBorderColor;
                 ctl::Color                  sHeadingColor;
+                ctl::Color                  sHeadingSpacingColor;
                 ctl::Color                  sHeadingGapColor;
                 ctl::Integer                sBorderSize;
                 ctl::Integer                sBorderRadius;
                 ctl::Integer                sTabSpacing;
                 ctl::Integer                sHeadingSpacing;
+                ctl::Integer                sHeadingGap;
                 ctl::Embedding              sEmbedding;
                 ctl::Boolean                sTabJoint;
                 ctl::Boolean                sHeadingFill;
-                ctl::Boolean                sHeadingGapFill;
+                ctl::Boolean                sHeadingSpacingFill;
                 ctl::Expression             sActive;
 
                 lltl::parray<tk::Tab>       vTabs;
