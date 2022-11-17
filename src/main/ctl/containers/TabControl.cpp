@@ -90,6 +90,7 @@ namespace lsp
                 sTabSpacing.init(pWrapper, tc->tab_spacing());
                 sHeadingSpacing.init(pWrapper, tc->heading_spacing());
                 sHeadingGap.init(pWrapper, tc->heading_gap());
+                sHeadingGapBrightness.init(pWrapper, tc->heading_gap_brightness());
                 sEmbedding.init(pWrapper, tc->embedding());
                 sTabJoint.init(pWrapper, tc->tab_joint());
                 sHeadingFill.init(pWrapper, tc->heading_fill());
@@ -126,6 +127,8 @@ namespace lsp
                 sHeadingSpacing.set("heading.spacing", name, value);
                 sHeadingGap.set("hgap", name, value);
                 sHeadingGap.set("heading.gap", name, value);
+                sHeadingGapBrightness.set("heading.gap.brightness", name, value);
+                sHeadingGapBrightness.set("hgap.brightness", name, value);
                 sEmbedding.set("embedding", name, value);
                 sEmbedding.set("embed", name, value);
                 sTabJoint.set("tab.joint", name, value);

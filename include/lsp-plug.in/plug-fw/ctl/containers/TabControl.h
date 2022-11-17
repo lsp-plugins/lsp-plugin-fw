@@ -57,6 +57,7 @@ namespace lsp
                 ctl::Integer                sTabSpacing;
                 ctl::Integer                sHeadingSpacing;
                 ctl::Integer                sHeadingGap;
+                ctl::Float                  sHeadingGapBrightness;
                 ctl::Embedding              sEmbedding;
                 ctl::Boolean                sTabJoint;
                 ctl::Boolean                sHeadingFill;

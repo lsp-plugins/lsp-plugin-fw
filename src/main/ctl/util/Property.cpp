@@ -167,14 +167,14 @@ namespace lsp
 
         status_t Property::on_resolved(const LSPString *name, ui::IPort *p)
         {
-            // lsp_trace("[%s] resolved %s -> %s = %f", sText.get_utf8(), name->get_utf8(), p->id(), p->get_value());
+            lsp_trace("resolved %s -> %s = %f", name->get_utf8(), p->id(), p->value());
             // Already subscribed?
             if (vDependencies.index_of(p) >= 0)
                 return STATUS_OK;
 
             if (!vDependencies.add(p))
                 return STATUS_NO_MEM;
-            // lsp_trace("bind to %s", p->id());
+            lsp_trace("bind to %s", p->id());
             p->bind(this);
             return STATUS_OK;
         }
