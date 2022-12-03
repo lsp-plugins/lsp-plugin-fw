@@ -7,6 +7,7 @@
 * Fixed broken configuration save and load with relative file paths.
 * Extended possibilities of configuration export: now passing configuration serializer is possible.
 * Fixed possible concurrency problems on LADSPA/LV2/LV2UI library initialization.
+* Fixed possible cases of access to the deallocated memory when working with the SwitchedPort port.
 
 === 1.0.6 ===
 * Fixed Clang warnings and errors.

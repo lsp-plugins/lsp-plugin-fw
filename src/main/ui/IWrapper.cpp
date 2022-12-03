@@ -139,7 +139,15 @@ namespace lsp
             // Clear sorted ports
             vSortedPorts.flush();
 
-            // Destroy switched ports
+            // Destroy switched ports in two passes.
+            // 1. Disconnect from dependent ports.
+            for (size_t i=0, n=vSwitchedPorts.size(); i<n; ++i)
+            {
+                SwitchedPort *p = vSwitchedPorts.uget(i);
+                if (p != NULL)
+                    p->destroy();
+            }
+            // 2. Free memory allocated for the switched port.
             for (size_t i=0, n=vSwitchedPorts.size(); i<n; ++i)
             {
                 IPort *p = vSwitchedPorts.uget(i);

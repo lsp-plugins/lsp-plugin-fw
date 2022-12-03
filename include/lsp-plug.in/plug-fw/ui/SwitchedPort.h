@@ -65,7 +65,6 @@ namespace lsp
                 static token_t     *tokenize(const char *path);
                 static token_t     *next_token(token_t *token);
                 void                rebind();
-                void                destroy();
                 inline IPort       *current()
                 {
                     if (pReference == NULL)
@@ -76,6 +75,8 @@ namespace lsp
             public:
                 explicit SwitchedPort(IWrapper *wrapper);
                 virtual ~SwitchedPort();
+
+                void            destroy();
 
             public:
                 bool compile(const char *id);
