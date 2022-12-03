@@ -1070,21 +1070,21 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::import_settings(const char *file, bool preset)
+        status_t IWrapper::import_settings(const char *file, size_t flags)
         {
             io::Path tmp;
             status_t res = tmp.set(file);
-            return (res == STATUS_OK) ? import_settings(&tmp, preset) : res;
+            return (res == STATUS_OK) ? import_settings(&tmp, flags) : res;
         }
 
-        status_t IWrapper::import_settings(const LSPString *file, bool preset)
+        status_t IWrapper::import_settings(const LSPString *file, size_t flags)
         {
             io::Path tmp;
             status_t res = tmp.set(file);
-            return (res == STATUS_OK) ? import_settings(&tmp, preset) : res;
+            return (res == STATUS_OK) ? import_settings(&tmp, flags) : res;
         }
 
-        status_t IWrapper::import_settings(const io::Path *file, bool preset)
+        status_t IWrapper::import_settings(const io::Path *file, size_t flags)
         {
             // Get parent file
             io::Path basedir;
@@ -1094,71 +1094,74 @@ namespace lsp
             io::IInSequence *is = pLoader->read_sequence(file, "UTF-8");
             if (is == NULL)
                 return pLoader->last_error();
-            status_t res = import_settings(is, preset, (has_parent) ? &basedir : NULL);
+            status_t res = import_settings(is, flags, (has_parent) ? &basedir : NULL);
             status_t res2 = is->close();
             delete is;
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::import_settings(io::IInSequence *is, bool preset, const io::Path *basedir)
+        status_t IWrapper::import_settings(io::IInSequence *is, size_t flags, const io::Path *basedir)
         {
             config::PullParser parser;
             status_t res = parser.wrap(is);
             if (res == STATUS_OK)
-                res = import_settings(&parser, preset, basedir);
+                res = import_settings(&parser, flags, basedir);
             status_t res2 = parser.close();
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::import_settings(io::IInSequence *is, bool preset, const char *basedir)
+        status_t IWrapper::import_settings(io::IInSequence *is, size_t flags, const char *basedir)
         {
             if (basedir == NULL)
-                return import_settings(is, preset, static_cast<io::Path *>(NULL));
+                return import_settings(is, flags, static_cast<io::Path *>(NULL));
 
             io::Path tmp;
             status_t res = tmp.set(basedir);
-            return (res == STATUS_OK) ? import_settings(is, preset, &tmp) : res;
+            return (res == STATUS_OK) ? import_settings(is, flags, &tmp) : res;
         }
 
-        status_t IWrapper::import_settings(io::IInSequence *is, bool preset, const LSPString *basedir)
+        status_t IWrapper::import_settings(io::IInSequence *is, size_t flags, const LSPString *basedir)
         {
             if (basedir == NULL)
-                return import_settings(is, preset, static_cast<io::Path *>(NULL));
+                return import_settings(is, flags, static_cast<io::Path *>(NULL));
 
             io::Path tmp;
             status_t res = tmp.set(basedir);
-            return (res == STATUS_OK) ? import_settings(is, preset, &tmp) : res;
+            return (res == STATUS_OK) ? import_settings(is, flags, &tmp) : res;
         }
 
-        status_t IWrapper::import_settings(config::PullParser *parser, bool preset, const char *basedir)
+        status_t IWrapper::import_settings(config::PullParser *parser, size_t flags, const char *basedir)
         {
             io::Path tmp;
             status_t res = tmp.set(basedir);
-            return (res == STATUS_OK) ? import_settings(parser, preset, &tmp) : res;
+            return (res == STATUS_OK) ? import_settings(parser, flags, &tmp) : res;
         }
 
-        status_t IWrapper::import_settings(config::PullParser *parser, bool preset, const LSPString *basedir)
+        status_t IWrapper::import_settings(config::PullParser *parser, size_t flags, const LSPString *basedir)
         {
             io::Path tmp;
             status_t res = tmp.set(basedir);
-            return (res == STATUS_OK) ? import_settings(parser, preset, &tmp) : res;
+            return (res == STATUS_OK) ? import_settings(parser, flags, &tmp) : res;
         }
 
-        status_t IWrapper::import_settings(config::PullParser *parser, bool preset, const io::Path *basedir)
+        status_t IWrapper::import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir)
         {
             status_t res;
             config::param_t param;
             core::KVTStorage *kvt = kvt_lock();
 
             // Reset all ports to default values
-            for (size_t i=0, n=vPorts.size(); i<n; ++i)
+            if (!(flags & IMPORT_FLAG_PATCH))
             {
-                ui::IPort *p = vPorts.uget(i);
-                if (p == NULL)
-                    continue;
+                for (size_t i=0, n=vPorts.size(); i<n; ++i)
+                {
+                    ui::IPort *p = vPorts.uget(i);
+                    if (p == NULL)
+                        continue;
 
-                p->set_default();
-                p->notify_all();
+                    p->set_default();
+                    p->notify_all();
+                }
             }
 
             while ((res = parser->next(&param)) == STATUS_OK)
@@ -1247,7 +1250,8 @@ namespace lsp
                 }
                 else
                 {
-                    size_t flags = (preset) ? plug::PF_PRESET_IMPORT : plug::PF_STATE_IMPORT;
+                    size_t port_flags = (flags & (IMPORT_FLAG_PRESET | IMPORT_FLAG_PATCH)) ?
+                                    plug::PF_PRESET_IMPORT : plug::PF_STATE_IMPORT;
 
                     for (size_t i=0, n=vPorts.size(); i<n; ++i)
                     {
@@ -1257,7 +1261,7 @@ namespace lsp
                         const meta::port_t *meta = p->metadata();
                         if ((meta != NULL) && (param.name.equals_ascii(meta->id)))
                         {
-                            if (set_port_value(p, &param, flags, basedir))
+                            if (set_port_value(p, &param, port_flags, basedir))
                                 p->notify_all();
                             break;
                         }

@@ -83,6 +83,7 @@ namespace lsp
                 {
                     ctl::PluginWindow  *ctl;
                     tk::MenuItem       *item;
+                    bool                patch;
                     LSPString           location;
                 } preset_sel_t;
 

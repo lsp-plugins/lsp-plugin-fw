@@ -57,6 +57,13 @@ namespace lsp
         class Module;
         class ISchemaListener;
 
+        enum import_flags_t
+        {
+            IMPORT_FLAG_NONE   = 0,
+            IMPORT_FLAG_PRESET = 1 << 0,
+            IMPORT_FLAG_PATCH  = 1 << 1
+        };
+
         /**
          * UI wrapper
          */
@@ -305,18 +312,18 @@ namespace lsp
                 /**
                  * Import settings
                  * @param the source (file name or input sequence)
-                 * @param preset the configuration is loaded as a preset
+                 * @param flags different flags (@see import_flags_t)
                  * @return status of operation
                  */
-                virtual status_t            import_settings(const char *file, bool preset);
-                virtual status_t            import_settings(const io::Path *file, bool preset);
-                virtual status_t            import_settings(const LSPString *file, bool preset);
-                virtual status_t            import_settings(io::IInSequence *is, bool preset, const char *basedir);
-                virtual status_t            import_settings(io::IInSequence *is, bool preset, const LSPString *basedir);
-                virtual status_t            import_settings(io::IInSequence *is, bool preset, const io::Path *basedir = NULL);
-                virtual status_t            import_settings(config::PullParser *parser, bool preset, const char *basedir);
-                virtual status_t            import_settings(config::PullParser *parser, bool preset, const LSPString *basedir);
-                virtual status_t            import_settings(config::PullParser *parser, bool preset, const io::Path *basedir = NULL);
+                virtual status_t            import_settings(const char *file, size_t flags);
+                virtual status_t            import_settings(const io::Path *file, size_t flags);
+                virtual status_t            import_settings(const LSPString *file, size_t flags);
+                virtual status_t            import_settings(io::IInSequence *is, size_t flags, const char *basedir);
+                virtual status_t            import_settings(io::IInSequence *is, size_t flags, const LSPString *basedir);
+                virtual status_t            import_settings(io::IInSequence *is, size_t flags, const io::Path *basedir = NULL);
+                virtual status_t            import_settings(config::PullParser *parser, size_t flags, const char *basedir);
+                virtual status_t            import_settings(config::PullParser *parser, size_t flags, const LSPString *basedir);
+                virtual status_t            import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir = NULL);
 
                 /**
                  * Load visual schema for the wrapper
