@@ -101,6 +101,7 @@ namespace lsp
                 ctl::Integer        sFadeOutBorder;
                 ctl::Integer        sStretchBorder;
                 ctl::Integer        sLoopBorder;
+                ctl::Integer        sPlayBorder;
                 ctl::Integer        sLineWidth;
                 ctl::LCString       sMainText;
                 ctl::Integer        sLabelRadius;
@@ -123,6 +124,7 @@ namespace lsp
                 ctl::Expression     sLoop;
                 ctl::Expression     sLoopBegin;
                 ctl::Expression     sLoopEnd;
+                ctl::Expression     sPlayPosition;
                 ctl::Expression     sLength;
                 ctl::Expression     sActualLength;
 
@@ -137,6 +139,7 @@ namespace lsp
                 ctl::Color          sStretchBorderColor;
                 ctl::Color          sLoopColor;
                 ctl::Color          sLoopBorderColor;
+                ctl::Color          sPlayColor;
                 ctl::Color          sLabelTextColor[tk::AudioSample::LABELS];
                 ctl::Color          sLabelBgColor;
 
@@ -156,6 +159,7 @@ namespace lsp
                 void                commit_file();
                 void                sync_status();
                 void                sync_labels();
+                void                sync_markers();
                 void                sync_mesh();
                 tk::Menu           *create_menu();
                 tk::MenuItem       *create_menu_item(tk::Menu *menu);

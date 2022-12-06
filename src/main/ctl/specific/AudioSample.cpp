@@ -249,6 +249,7 @@ namespace lsp
                 sFadeOutBorder.init(pWrapper, as->fade_out_border());
                 sStretchBorder.init(pWrapper, as->stretch_border());
                 sLoopBorder.init(pWrapper, as->loop_border());
+                sPlayBorder.init(pWrapper, as->play_border());
                 sLineWidth.init(pWrapper, as->line_width());
                 sMainText.init(pWrapper, as->main_text());
                 sLabelRadius.init(pWrapper, as->label_radius());
@@ -273,6 +274,7 @@ namespace lsp
                 sLoop.init(pWrapper, this);
                 sLoopBegin.init(pWrapper, this);
                 sLoopEnd.init(pWrapper, this);
+                sPlayPosition.init(pWrapper, this);
                 sLength.init(pWrapper, this);
                 sActualLength.init(pWrapper, this);
 
@@ -285,6 +287,7 @@ namespace lsp
                 sStretchBorderColor.init(pWrapper, as->stretch_border_color());
                 sLoopColor.init(pWrapper, as->loop_color());
                 sLoopBorderColor.init(pWrapper, as->loop_border_color());
+                sPlayColor.init(pWrapper, as->play_color());
                 sLabelBgColor.init(pWrapper, as->label_bg_color());
 
                 for (size_t i=0; i<tk::AudioSample::LABELS; ++i)
@@ -405,6 +408,7 @@ namespace lsp
                 set_expr(&sLoop, "loop.enabled", name, value);
                 set_expr(&sLoopBegin, "loop.begin", name, value);
                 set_expr(&sLoopEnd, "loop.end", name, value);
+                set_expr(&sPlayPosition, "play.position", name, value);
                 set_expr(&sLength, "length", name, value);
                 set_expr(&sActualLength, "length.actual", name, value);
 
@@ -503,8 +507,9 @@ namespace lsp
         void AudioSample::end(ui::UIContext *ctx)
         {
             sync_status();
-            sync_labels();
             sync_mesh();
+            sync_labels();
+            sync_markers();
 
             Widget::end(ctx);
         }
@@ -518,6 +523,9 @@ namespace lsp
             if (sStatus.depends(port))
                 sync_status();
 
+            if (port == pMeshPort)
+                sync_mesh();
+
             if ((port == pMeshPort) ||
                 (port == pPort) ||
                 (sFadeIn.depends(port)) ||
@@ -528,13 +536,14 @@ namespace lsp
                 (sLoop.depends(port)) ||
                 (sLoopBegin.depends(port)) ||
                 (sLoopEnd.depends(port)) ||
+                (sPlayPosition.depends(port)) ||
                 (sHeadCut.depends(port)) ||
                 (sTailCut.depends(port)) ||
                 (sLength.depends(port)) ||
                 (sActualLength.depends(port)))
             {
-                sync_mesh();
                 sync_labels();
+                sync_markers();
             }
         }
 
@@ -622,6 +631,7 @@ namespace lsp
                 float s_end     = sStretchEnd.evaluate_float();
                 float l_begin   = sLoopBegin.evaluate_float();
                 float l_end     = sLoopEnd.evaluate_float();
+                float pp        = sPlayPosition.evaluate_float();
 
                 p->set_float("length", length);
                 p->set_float("head_cut", head_cut);
@@ -633,6 +643,7 @@ namespace lsp
                 p->set_float("stretch_end", s_end);
                 p->set_float("loop_begin", l_begin);
                 p->set_float("loop_end", l_end);
+                p->set_float("play_position", pp);
 
                 LSPString tmp;
                 p->set_string("file", fpath.as_string());
@@ -647,7 +658,7 @@ namespace lsp
             }
         }
 
-        void AudioSample::sync_mesh()
+        void AudioSample::sync_markers()
         {
             plug::mesh_t *mesh = (pMeshPort != NULL) ? pMeshPort->buffer<plug::mesh_t>() : NULL;
             if (mesh == NULL)
@@ -657,34 +668,7 @@ namespace lsp
             if (as == NULL)
                 return;
 
-            // Recreate channels
-            as->channels()->clear();
-            size_t allocate = (mesh->nBuffers & 1) ? mesh->nBuffers + 1 : mesh->nBuffers;
-
-            // Add new managed channels
-            for (size_t i=0; i < allocate; ++i)
-            {
-                size_t src_idx = lsp_min(i, mesh->nBuffers-1);
-
-                // Create audio channel
-                tk::AudioChannel *ac = new tk::AudioChannel(wWidget->display());
-                if (ac == NULL)
-                    return;
-                if (ac->init() != STATUS_OK)
-                {
-                    ac->destroy();
-                    delete ac;
-                    return;
-                }
-
-                // Inject style
-                LSPString style;
-                style.fmt_ascii("AudioSample::Channel%d", int(src_idx % 8) + 1);
-                inject_style(ac, style.get_ascii());
-
-                // Add audio channel as managed and increment counter
-                as->channels()->madd(ac);
-            }
+            size_t channels     = (mesh->nBuffers & 1) ? mesh->nBuffers + 1 : mesh->nBuffers;
 
             // Synchronize mesh state
             size_t samples  = mesh->nItems;
@@ -693,6 +677,7 @@ namespace lsp
             float fade_in = 0.0f, fade_out = 0.0f;
             float s_begin = -1.0f, s_end = -1.0f;
             float l_begin = -1.0f, l_end = -1.0f;
+            float pp = sPlayPosition.evaluate_float(-1.0f);
             bool s_on = sStretch.evaluate_bool(false);
             bool l_on = sLoop.evaluate_bool(false);
 
@@ -709,6 +694,7 @@ namespace lsp
                 s_end       = ((s_on) && (length > 0)) ? kl * sStretchEnd.evaluate_float(-1.0f)   : -1.0f;
                 l_begin     = ((l_on) && (length > 0)) ? kl * sLoopBegin.evaluate_float(-1.0f)    : -1.0f;
                 l_end       = ((l_on) && (length > 0)) ? kl * sLoopEnd.evaluate_float(-1.0f)      : -1.0f;
+                pp          = ((pp >= 0) && (length > 0)) ? kl * pp : -1.0f;
             }
             else
             {
@@ -719,8 +705,9 @@ namespace lsp
                 fade_out    = (length > 0) ? kl * sFadeOut.evaluate_float() : 0.0f;
                 s_begin     = ((s_on) && (length > 0)) ? kl * sStretchBegin.evaluate_float(-1.0f) : -1.0f;
                 s_end       = ((s_on) && (length > 0)) ? kl * sStretchEnd.evaluate_float(-1.0f)   : -1.0f;
-                l_begin     = ((l_on) && (length > 0)) ? kl * sStretchBegin.evaluate_float(-1.0f) : -1.0f;
-                l_end       = ((l_on) && (length > 0)) ? kl * sStretchEnd.evaluate_float(-1.0f)   : -1.0f;
+                l_begin     = ((l_on) && (length > 0)) ? kl * sLoopBegin.evaluate_float(-1.0f) : -1.0f;
+                l_end       = ((l_on) && (length > 0)) ? kl * sLoopEnd.evaluate_float(-1.0f)   : -1.0f;
+                pp          = ((pp >= 0) && (length > 0)) ? kl * pp : -1.0f;
             }
 
             // Configure the values
@@ -737,19 +724,15 @@ namespace lsp
             if (l_end < l_begin)
                 lsp::swap(l_begin, l_end);
 
-            lsp_trace("head_cut=%f, tail_cut=%f", head_cut, tail_cut);
+            lsp_trace("head_cut=%f, tail_cut=%f, pp = %f", head_cut, tail_cut, pp);
 
-            for (size_t i=0; i<allocate; ++i)
+            for (size_t i=0; i<channels; ++i)
             {
-                size_t src_idx = lsp_min(i, mesh->nBuffers-1);
                 tk::AudioChannel *ac = as->channels()->get(i);
                 if (ac == NULL)
                     continue;
 
-                // Update mesh
-                ac->samples()->set(mesh->pvData[src_idx], samples);
-
-                // Update fades
+                // Update fades and markers
                 ac->fade_in()->set(fade_in);
                 ac->fade_out()->set(fade_out);
                 ac->stretch_begin()->set(s_begin);
@@ -758,6 +741,51 @@ namespace lsp
                 ac->loop_end()->set(l_end);
                 ac->head_cut()->set(head_cut);
                 ac->tail_cut()->set(tail_cut);
+                ac->play_position()->set(pp);
+                lsp_trace("actual play position: %d", int(ac->play_position()->get()));
+            }
+        }
+
+        void AudioSample::sync_mesh()
+        {
+            plug::mesh_t *mesh = (pMeshPort != NULL) ? pMeshPort->buffer<plug::mesh_t>() : NULL;
+            if (mesh == NULL)
+                return;
+
+            tk::AudioSample *as     = tk::widget_cast<tk::AudioSample>(wWidget);
+            if (as == NULL)
+                return;
+
+            // Recreate channels
+            as->channels()->clear();
+            size_t channels = (mesh->nBuffers & 1) ? mesh->nBuffers + 1 : mesh->nBuffers;
+            size_t samples  = mesh->nItems;
+
+            // Add new managed channels
+            for (size_t i=0; i < channels; ++i)
+            {
+                size_t src_idx = lsp_min(i, mesh->nBuffers-1);
+
+                // Create audio channel
+                tk::AudioChannel *ac = new tk::AudioChannel(wWidget->display());
+                if (ac == NULL)
+                    return;
+                if (ac->init() != STATUS_OK)
+                {
+                    ac->destroy();
+                    delete ac;
+                    return;
+                }
+
+                ac->samples()->set(mesh->pvData[src_idx], samples);
+
+                // Inject style
+                LSPString style;
+                style.fmt_ascii("AudioSample::Channel%d", int(src_idx % 8) + 1);
+                inject_style(ac, style.get_ascii());
+
+                // Add audio channel as managed and increment counter
+                as->channels()->madd(ac);
             }
         }
 
