@@ -724,7 +724,7 @@ namespace lsp
             if (l_end < l_begin)
                 lsp::swap(l_begin, l_end);
 
-            lsp_trace("head_cut=%f, tail_cut=%f, pp = %f", head_cut, tail_cut, pp);
+//            lsp_trace("head_cut=%f, tail_cut=%f, pp = %f", head_cut, tail_cut, pp);
 
             for (size_t i=0; i<channels; ++i)
             {
@@ -742,7 +742,7 @@ namespace lsp
                 ac->head_cut()->set(head_cut);
                 ac->tail_cut()->set(tail_cut);
                 ac->play_position()->set(pp);
-                lsp_trace("actual play position: %d", int(ac->play_position()->get()));
+//                lsp_trace("actual play position: %d", int(ac->play_position()->get()));
             }
         }
 
