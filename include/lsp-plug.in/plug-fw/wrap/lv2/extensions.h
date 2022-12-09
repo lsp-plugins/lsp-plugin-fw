@@ -97,6 +97,17 @@ namespace lsp
                 LV2UI_Resize           *ui_resize;
                 lv2::Wrapper           *pWrapper;
 
+                LV2UI_Controller        ctl;
+                LV2UI_Write_Function    wf;
+                ssize_t                 nAtomIn;            // Atom input port identifier
+                ssize_t                 nAtomOut;           // Atom output port identifier
+                size_t                  nMaxBlockLength;    // Maximum size of audio block passed to plugin
+                float                   fUIScaleFactor;     // UI scale factor
+                uint8_t                *pBuffer;            // Atom serialization buffer
+                size_t                  nBufSize;           // Atom serialization buffer size
+                float                   fUIRefreshRate;     // UI refresh rate
+                void                   *pParentWindow;      // Parent window handle
+
                 // State interface
                 LV2_State_Store_Function    hStore;
                 LV2_State_Retrieve_Function hRetrieve;
@@ -194,17 +205,6 @@ namespace lsp
                 LV2_URID                uridStreamFrameSize;        // Size of frame
                 LV2_URID                uridStreamFrameData;        // Frame data
 
-                LV2UI_Controller        ctl;
-                LV2UI_Write_Function    wf;
-                ssize_t                 nAtomIn;            // Atom input port identifier
-                ssize_t                 nAtomOut;           // Atom output port identifier
-                size_t                  nMaxBlockLength;    // Maximum size of audio block passed to plugin
-                float                   fUIScaleFactor;     // UI scale factor
-                uint8_t                *pBuffer;            // Atom serialization buffer
-                size_t                  nBufSize;           // Atom serialization buffer size
-                float                   fUIRefreshRate;     // UI refresh rate
-                void                   *pParentWindow;      // Parent window handle
-
             public:
                 inline Extensions(
                     const LV2_Feature* const* feat,
@@ -216,14 +216,31 @@ namespace lsp
                 {
                     map                 = NULL;
                     unmap               = NULL;
-                    ui_resize           = NULL;
                     sched               = NULL;
                     iDisplay            = NULL;
                     mapPath             = NULL;
-                    pParentWindow       = NULL;
+                    ui_resize           = NULL;
                     pWrapper            = NULL;
-                    fUIRefreshRate      = MESH_REFRESH_RATE;
+
+                    ctl                 = lv2_ctl;
+                    wf                  = lv2_write;
+                    nAtomIn             = -1;
+                    nAtomOut            = -1;
                     nMaxBlockLength     = LV2PORT_MAX_BLOCK_LENGTH;
+                    fUIScaleFactor      = 1.0f;
+                    pBuffer             = NULL;
+                    nBufSize            = 0;
+                    fUIRefreshRate      = MESH_REFRESH_RATE;
+                    pParentWindow       = NULL;
+
+                    // State interface
+                    hStore              = NULL;
+                    hRetrieve           = NULL;
+                    hHandle             = NULL;
+
+                    uriPlugin           = plugin_uri;
+                    uriTypes            = types_uri;
+                    uriKvt              = kvt_uri;
 
                     const LV2_Options_Option *opts = NULL;
 
@@ -263,16 +280,6 @@ namespace lsp
                     }
 
                     // Initialize basic URIDs
-                    ctl                         = lv2_ctl;
-                    wf                          = lv2_write;
-                    nAtomIn                     = -1;
-                    nAtomOut                    = -1;
-                    pBuffer                     = NULL;
-                    nBufSize                    = 0;
-
-                    uriPlugin                   = plugin_uri;
-                    uriTypes                    = types_uri;
-                    uriKvt                      = kvt_uri;
                     uridPlugin                  = (map != NULL) ? map->map(map->handle, uriPlugin) : -1;
 
                     if (map != NULL)
