@@ -35,7 +35,7 @@
 #define SPEC_FREQ_MAX                       LSP_DSP_UNITS_SPEC_FREQ_MAX
 
 // Other constants
-#define MAX_SAMPLE_RATE                     192000              /* Maximum supported sample rate [samples / s]      */
+#define MAX_SAMPLE_RATE                     384000              /* Maximum supported sample rate [samples / s]      */
 #define MAX_SOUND_SPEED                     500                 /* Maximum speed of the sound [ m/s ]               */
 #define BPM_MIN                             1.0f                /* Minimum BPM                                      */
 #define BPM_MAX                             1000.0f             /* Maximum BPM                                      */
