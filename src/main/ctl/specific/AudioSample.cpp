@@ -26,6 +26,8 @@
 #include <lsp-plug.in/io/InStringSequence.h>
 #include <lsp-plug.in/expr/Tokenizer.h>
 
+#include <private/ctl/AudioFilePreview.h>
+
 namespace lsp
 {
     namespace ctl
@@ -180,10 +182,12 @@ namespace lsp
             pMeshPort       = NULL;
             pPathPort       = NULL;
             pDialog         = NULL;
+            pFilePreview    = NULL;
             pMenu           = NULL;
             pDataSink       = NULL;
             pDragInSink     = NULL;
             bFullSample     = false;
+            bLoadPreview    = false;
         }
 
         AudioSample::~AudioSample()
@@ -319,6 +323,19 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void AudioSample::destroy()
+        {
+            // Destroy the file preview
+            if (pFilePreview != NULL)
+            {
+                pFilePreview->destroy();
+                delete pFilePreview;
+                pFilePreview = NULL;
+            }
+
+            ctl::Widget::destroy();
+        }
+
         tk::MenuItem *AudioSample::create_menu_item(tk::Menu *menu)
         {
             tk::MenuItem *mi = new tk::MenuItem(wWidget->display());
@@ -432,6 +449,7 @@ namespace lsp
                 sIPadding.set("ipadding", name, value);
 
                 set_value(&bFullSample, "sample.full", name, value);
+                set_value(&bLoadPreview, "load.preview", name, value);
                 set_constraints(as->constraints(), name, value);
                 set_text_layout(as->main_text_layout(), "text.layout.main", name, value);
                 set_text_layout(as->main_text_layout(), "tlayout.main", name, value);
@@ -793,27 +811,29 @@ namespace lsp
         {
             if (pDialog == NULL)
             {
-                pDialog = new tk::FileDialog(wWidget->display());
-                if (pDialog == NULL)
+                tk::FileDialog *dlg = new tk::FileDialog(wWidget->display());
+                if (dlg == NULL)
                     return;
-                status_t res = pDialog->init();
+                lsp_finally {
+                    if (dlg != NULL)
+                    {
+                        dlg->destroy();
+                        delete dlg;
+                    }
+                };
+                status_t res = dlg->init();
                 if (res != STATUS_OK)
-                {
-                    pDialog->destroy();
-                    delete pDialog;
-                    pDialog = NULL;
                     return;
-                }
 
-                pDialog->title()->set("titles.load_audio_file");
-                pDialog->mode()->set(tk::FDM_OPEN_FILE);
+                dlg->title()->set("titles.load_audio_file");
+                dlg->mode()->set(tk::FDM_OPEN_FILE);
                 tk::FileMask *ffi;
 
                 // Add all listed formats
                 for (size_t i=0, n=vFormats.size(); i<n; ++i)
                 {
                     file_format_t *f = vFormats.uget(i);
-                    if ((ffi = pDialog->filter()->add()) != NULL)
+                    if ((ffi = dlg->filter()->add()) != NULL)
                     {
                         ffi->pattern()->set(f->filter, f->flags);
                         ffi->title()->set(f->title);
@@ -821,17 +841,41 @@ namespace lsp
                     }
                 }
 
-                pDialog->selected_filter()->set(0);
+                dlg->selected_filter()->set(0);
 
-                pDialog->action_text()->set("actions.load");
-                pDialog->slots()->bind(tk::SLOT_SUBMIT, slot_dialog_submit, this);
-                pDialog->slots()->bind(tk::SLOT_HIDE, slot_dialog_hide, this);
+                dlg->action_text()->set("actions.load");
+                dlg->slots()->bind(tk::SLOT_SUBMIT, slot_dialog_submit, this);
+                dlg->slots()->bind(tk::SLOT_HIDE, slot_dialog_hide, this);
+
+                // Commit the change
+                lsp::swap(pDialog, dlg);
+            }
+
+            if ((bLoadPreview) && (pFilePreview == NULL))
+            {
+                ctl::Widget *pw = new AudioFilePreview(pWrapper);
+                if (pw == NULL)
+                    return;
+                lsp_finally {
+                    if (pw != NULL)
+                    {
+                        pw->destroy();
+                        delete pw;
+                    }
+                };
+
+                status_t res = pw->init();
+                if (res != STATUS_OK)
+                    return;
+
+                lsp::swap(pFilePreview, pw);
             }
 
             const char *path = (pPathPort != NULL) ? pPathPort->buffer<char>() : NULL;
             if (path != NULL)
                 pDialog->path()->set_raw(path);
 
+            pDialog->preview()->set((pFilePreview != NULL) ? pFilePreview->widget() : NULL);
             pDialog->show(wWidget);
         }
 

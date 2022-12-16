@@ -62,6 +62,7 @@ namespace lsp
             SWITCH(UI_SCALING_HOST_ID, "Prefer host-reported UI scale factor", 1.0f),
             KNOB(UI_FONT_SCALING_PORT_ID, "Manual UI font scaling factor", U_PERCENT, 50.0f, 200.0f, 100.0f, 1.0f),
             PATH(UI_VISUAL_SCHEMA_FILE_ID, "Current visual schema file used by the UI"),
+            SWITCH(UI_PREVIEW_AUTO_PLAY_ID, "Enable automatic playback of the audio file in the file preview part of the file open dialog", 0.0f),
             PORTS_END
         };
 
