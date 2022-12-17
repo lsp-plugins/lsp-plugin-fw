@@ -23,6 +23,9 @@
 #include <private/ui/xml/RootNode.h>
 #include <private/ui/xml/Handler.h>
 
+#include <lsp-plug.in/mm/InAudioFileStream.h>
+#include <stdarg.h>
+
 namespace lsp
 {
     namespace ctl
@@ -76,6 +79,176 @@ namespace lsp
             ctl::Align::destroy();
         }
 
+        void AudioFilePreview::activate()
+        {
+            unselect_file();
+        }
+
+        void AudioFilePreview::deactivate()
+        {
+            unselect_file();
+        }
+
+        void AudioFilePreview::unselect_file()
+        {
+            set_localized("audio_channels", NULL);
+            set_localized("sample_rate", NULL);
+            set_localized("sample_format", NULL);
+            set_localized("duration", NULL);
+
+            // TODO: stop playback on the DSP backend
+        }
+
+        void AudioFilePreview::select_file(const char *file)
+        {
+            io::Path tmp;
+            if ((file == NULL) || (tmp.set(file) != STATUS_OK))
+            {
+                unselect_file();
+                return;
+            }
+            select_file(&tmp);
+        }
+
+        void AudioFilePreview::select_file(const LSPString *file)
+        {
+            io::Path tmp;
+            if ((file == NULL) || (file->is_empty()) || (tmp.set(file) != STATUS_OK))
+            {
+                unselect_file();
+                return;
+            }
+            select_file(&tmp);
+        }
+
+        void AudioFilePreview::set_raw(const char *id, const char *fmt...)
+        {
+            // Find widget
+            tk::Label *lbl = vWidgets.get<tk::Label>(id);
+            if (lbl == NULL)
+                return;
+
+            // Do we need to reset the value?
+            if (fmt == NULL)
+            {
+                lbl->text()->set("labels.file_preview.n_a");
+                return;
+            }
+
+            // Format the value
+            va_list args;
+            va_start(args, fmt);
+            lsp_finally { va_end(args); };
+
+            LSPString tmp;
+            if (tmp.vfmt_utf8(fmt, args))
+                lbl->text()->set_raw(&tmp);
+            else
+                lbl->text()->set("labels.file_preview.n_a");
+        }
+
+        void AudioFilePreview::set_localized(const char *id, const char *key, const expr::Parameters *params)
+        {
+            // Find widget
+            tk::Label *lbl = vWidgets.get<tk::Label>(id);
+            if (lbl == NULL)
+                return;
+
+            // Do we need to reset the value?
+            if (key == NULL)
+            {
+                lbl->text()->set("labels.file_preview.n_a");
+                return;
+            }
+
+            // Commit the new text value
+            if (lbl->text()->set(key, params) != STATUS_OK)
+                lbl->text()->set("labels.file_preview.n_a");
+        }
+
+        void AudioFilePreview::select_file(const io::Path *file)
+        {
+            status_t res;
+            if ((file == NULL) || (file->is_empty()) || (!file->is_reg()))
+            {
+                unselect_file();
+                return;
+            }
+
+            lsp_trace("select file: %s", file->as_native());
+
+            // Obtain the information about audio stream
+            mm::audio_stream_t info;
+            {
+                mm::InAudioFileStream ifs;
+                if ((res = ifs.open(file)) != STATUS_OK)
+                {
+                    unselect_file();
+                    return;
+                }
+                lsp_finally{ ifs.close(); };
+
+                if ((res = ifs.info(&info)) != STATUS_OK)
+                {
+                    unselect_file();
+                    return;
+                }
+            }
+
+            // Determine the time parameters
+            wssize_t time       = (info.frames * 1000) / info.srate;
+            size_t msec         = time % 1000;
+            time               /= 1000;
+            ssize_t seconds     = time % 60;
+            time               /= 60;
+            ssize_t minutes     = time % 60;
+            ssize_t hours       = time / 60;
+
+            expr::Parameters tparams;
+            tparams.set_int("frames", info.frames);
+            tparams.set_int("msec", msec);
+            tparams.set_int("sec", seconds);
+            tparams.set_int("min", minutes);
+            tparams.set_int("hour", hours);
+            const char *lc_key =
+                (hours != 0) ? "labels.file_preview.time_hms" :
+                (minutes != 0) ? "labels.file_preview.time_ms" :
+                "labels.file_preview.time_s";
+
+            expr::Parameters srparams;
+            srparams.set_int("value", info.srate);
+
+            // Estimate the sample format
+            LSPString sfmt_key;
+            const char *sfmt = NULL;
+            switch (mm::sformat_format(info.format))
+            {
+                case mm::SFMT_U8: sfmt = "u8"; break;
+                case mm::SFMT_S8: sfmt = "s8"; break;
+                case mm::SFMT_U16: sfmt = "u16"; break;
+                case mm::SFMT_S16: sfmt = "s16"; break;
+                case mm::SFMT_U24: sfmt = "u24"; break;
+                case mm::SFMT_S24: sfmt = "s24"; break;
+                case mm::SFMT_U32: sfmt = "u32"; break;
+                case mm::SFMT_S32: sfmt = "s32"; break;
+                case mm::SFMT_F32: sfmt = "f32"; break;
+                case mm::SFMT_F64: sfmt = "f64"; break;
+                default: sfmt = "unknown"; break;
+            }
+            sfmt_key.fmt_ascii("labels.file_preview.sample_format.%s", sfmt);
+
+            set_raw("audio_channels", "%d", int(info.channels));
+            set_localized("sample_rate", "labels.values.x_hz", &srparams);
+            set_localized("sample_format", sfmt_key.get_utf8());
+            set_localized("duration", lc_key, &tparams);
+
+            // Check the auyo-play option.
+            ui::IPort *p = pWrapper->port(UI_PREVIEW_AUTO_PLAY_PORT);
+            if ((p != NULL) && (p->value() >= 0.5f))
+            {
+                // TODO: trigger DSP backend to play the file
+            }
+        }
     } /* namespace ctl */
 } /* namespace lsp */
 

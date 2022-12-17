@@ -147,6 +147,7 @@ namespace lsp
 
             protected:
                 static status_t     slot_audio_sample_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_dialog_change(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dialog_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dialog_hide(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_popup_cut_action(tk::Widget *sender, void *ptr, void *data);
@@ -158,6 +159,7 @@ namespace lsp
             protected:
                 void                show_file_dialog();
                 void                update_path();
+                void                preview_file();
                 void                commit_file();
                 void                sync_status();
                 void                sync_labels();

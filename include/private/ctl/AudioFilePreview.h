@@ -43,6 +43,8 @@ namespace lsp
 
             protected:
                 void                do_destroy();
+                void                set_raw(const char *id, const char *fmt...);
+                void                set_localized(const char *id, const char *key, const expr::Parameters *params = NULL);
 
             public:
                 explicit AudioFilePreview(ui::IWrapper *src);
@@ -52,7 +54,28 @@ namespace lsp
                 virtual void        destroy() override;
 
             public:
-                // TODO: public interface for file manipulation
+                /**
+                 * Do the actions before the file dialog becomes visible
+                 */
+                void                activate();
+
+                /**
+                 * Do the actions after the file dialog becomes invisible
+                 */
+                void                deactivate();
+
+                /**
+                 * Select the specific file for playback
+                 * @param file file to select
+                 */
+                void                select_file(const char *file);
+                void                select_file(const LSPString *file);
+                void                select_file(const io::Path *file);
+
+                /**
+                 * Unselect currently selected file
+                 */
+                void                unselect_file();
         };
     } /* namespace ctl */
 } /* namespace lsp */
