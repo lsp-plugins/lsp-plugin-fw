@@ -2,7 +2,7 @@
  * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins
+ * This file is part of lsp-plugin-fw
  * Created on: 16 дек. 2022 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
@@ -39,6 +39,10 @@ namespace lsp
             sRoot(src->display())
         {
             pClass          = &metadata;
+
+            nPlayPosition   = 0;
+            nFileLength     = 0;
+            bPlaying        = false;
         }
 
         AudioFilePreview::~AudioFilePreview()
@@ -70,6 +74,10 @@ namespace lsp
             if (res != STATUS_OK)
                 lsp_warn("Error parsing resource: %s, error: %d", LSP_BUILTIN_PREFIX "ui/audio_file_preview.xml", int(res));
 
+            bind_slot("play_pause", tk::SLOT_SUBMIT, slot_play_pause_submit);
+            bind_slot("stop", tk::SLOT_SUBMIT, slot_stop_submit);
+            bind_slot("play_position", tk::SLOT_CHANGE, slot_play_position_change);
+
             return res;
         }
 
@@ -81,11 +89,13 @@ namespace lsp
 
         void AudioFilePreview::activate()
         {
+            pWrapper->play_subscribe(this);
             unselect_file();
         }
 
         void AudioFilePreview::deactivate()
         {
+            pWrapper->play_unsubscribe(this);
             unselect_file();
         }
 
@@ -96,7 +106,8 @@ namespace lsp
             set_localized("sample_format", NULL);
             set_localized("duration", NULL);
 
-            // TODO: stop playback on the DSP backend
+            update_play_button(false);
+            pWrapper->play_file(NULL, 0, true);
         }
 
         void AudioFilePreview::select_file(const char *file)
@@ -174,6 +185,8 @@ namespace lsp
                 unselect_file();
                 return;
             }
+            if ((res = sFile.set(file)) != STATUS_OK)
+                return;
 
             lsp_trace("select file: %s", file->as_native());
 
@@ -242,13 +255,119 @@ namespace lsp
             set_localized("sample_format", sfmt_key.get_utf8());
             set_localized("duration", lc_key, &tparams);
 
-            // Check the auyo-play option.
+            // Updatte the playback fader
+            play_position_update(0, info.frames);
+
+            // Check the auyo-play option and trigger DSP backend for the file playback
             ui::IPort *p = pWrapper->port(UI_PREVIEW_AUTO_PLAY_PORT);
             if ((p != NULL) && (p->value() >= 0.5f))
             {
-                // TODO: trigger DSP backend to play the file
+                update_play_button(true);
+                pWrapper->play_file(file->as_utf8(), 0, false);
+            }
+            else
+            {
+                update_play_button(false);
+                pWrapper->play_file(NULL, 0, true);
             }
         }
+
+        void AudioFilePreview::play_position_update(wsize_t position, wsize_t length)
+        {
+            nPlayPosition   = position;
+            nFileLength     = length;
+
+            // Commit the playback position
+            tk::Fader *pf = vWidgets.get<tk::Fader>("play_position");
+            if (pf != NULL)
+            {
+                pf->value()->set_all(position, 0, length);
+                pf->step()->set(1.0f);
+            }
+        }
+
+        void AudioFilePreview::update_play_button(bool playing)
+        {
+            if (bPlaying == playing)
+                return;
+            bPlaying = playing;
+
+            tk::Button *btn = vWidgets.get<tk::Button>("play_pause");
+            if (btn == NULL)
+                return;
+
+            const char *lc_key = (playing) ? "actions.file_preview.pause" : "actions.file_preview.play";
+            btn->text()->set(lc_key);
+        }
+
+        void AudioFilePreview::on_play_pause_submitted()
+        {
+            if (bPlaying)
+                pWrapper->play_file(NULL, 0, false);
+            else
+                pWrapper->play_file(sFile.as_utf8(), nPlayPosition, false);
+
+            update_play_button(!bPlaying);
+        }
+
+        void AudioFilePreview::on_stop_submitted()
+        {
+            // Stop the playback
+            if (!bPlaying)
+                return;
+
+            pWrapper->play_file(NULL, 0, false);
+            play_position_update(0, nFileLength);
+            update_play_button(!bPlaying);
+        }
+
+        void AudioFilePreview::on_play_position_changed()
+        {
+            if ((!bPlaying) || (sFile.is_empty()))
+                return;
+
+            // Commit the new playback position and trigger the playback
+            wsize_t position = 0;
+            tk::Fader *pf = vWidgets.get<tk::Fader>("play_position");
+            if (pf != NULL)
+                position = pf->value()->get();
+
+            pWrapper->play_file(sFile.as_utf8(), position, false);
+        }
+
+        tk::handler_id_t AudioFilePreview::bind_slot(const char *id, tk::slot_t slot, tk::event_handler_t handler)
+        {
+            tk::Widget *w = vWidgets.find(id);
+            if (w == 0)
+                return -STATUS_NOT_FOUND;
+
+            return w->slots()->bind(slot, handler, this);
+        }
+
+        status_t AudioFilePreview::slot_play_pause_submit(tk::Widget *sender, void *ptr, void *data)
+        {
+            AudioFilePreview *_this = static_cast<AudioFilePreview *>(ptr);
+            if (_this != NULL)
+                _this->on_play_pause_submitted();
+            return STATUS_OK;
+        }
+
+        status_t AudioFilePreview::slot_stop_submit(tk::Widget *sender, void *ptr, void *data)
+        {
+            AudioFilePreview *_this = static_cast<AudioFilePreview *>(ptr);
+            if (_this != NULL)
+                _this->on_stop_submitted();
+            return STATUS_OK;
+        }
+
+        status_t AudioFilePreview::slot_play_position_change(tk::Widget *sender, void *ptr, void *data)
+        {
+            AudioFilePreview *_this = static_cast<AudioFilePreview *>(ptr);
+            if (_this != NULL)
+                _this->on_play_position_changed();
+            return STATUS_OK;
+        }
+
     } /* namespace ctl */
 } /* namespace lsp */
 

@@ -85,12 +85,14 @@ namespace lsp
     {
         IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
         {
-            pDisplay    = NULL;
-            wWindow     = NULL;
-            pWindow     = NULL;
-            pUI         = ui;
-            pLoader     = loader;
-            nFlags      = 0;
+            pDisplay        = NULL;
+            wWindow         = NULL;
+            pWindow         = NULL;
+            pUI             = ui;
+            pLoader         = loader;
+            nFlags          = 0;
+            nPlayPosition   = 0;
+            nPlayLength     = 0;
 
             plug::position_t::init(&sPosition);
         }
@@ -105,6 +107,9 @@ namespace lsp
 
         void IWrapper::destroy()
         {
+            // Flush list of playback listeners
+            vPlayListeners.flush();
+
             // Flush list of 'Schema reloaded' handlers
             vSchemaListeners.flush();
 
@@ -1895,7 +1900,39 @@ namespace lsp
 
             return STATUS_OK;
         }
-    }
+
+        status_t IWrapper::play_file(const char *file, wsize_t position, bool release)
+        {
+            lsp_trace("file=%s, position=%lld, release=%s",
+                file, (long long)(position), (release) ? "true" : "false");
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IWrapper::play_subscribe(IPlayListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            if (vPlayListeners.contains(listener))
+                return STATUS_ALREADY_BOUND;
+            if (!vPlayListeners.add(listener))
+                return STATUS_NO_MEM;
+
+            listener->play_position_update(nPlayPosition, nPlayLength);
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::play_unsubscribe(IPlayListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            if (!vPlayListeners.contains(listener))
+                return STATUS_NOT_BOUND;
+            if (!vPlayListeners.premove(listener))
+                return STATUS_NO_MEM;
+            return STATUS_OK;
+        }
+
+    } /* namespace ui */
 } /* namespace lsp */
 
 

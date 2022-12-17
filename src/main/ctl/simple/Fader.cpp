@@ -378,8 +378,11 @@ namespace lsp
             }
 
             fdr->value()->set(value);
-            pPort->set_value(dfl);
-            pPort->notify_all();
+            if (pPort != NULL)
+            {
+                pPort->set_value(dfl);
+                pPort->notify_all();
+            }
         }
 
         void Fader::commit_value(float value)

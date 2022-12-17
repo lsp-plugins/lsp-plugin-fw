@@ -31,7 +31,7 @@ namespace lsp
         /** Audio file preview controller.
          * This class can be used as a controller around functions responsible for audio file preview and playback.
          */
-        class AudioFilePreview: public ctl::Align
+        class AudioFilePreview: public ctl::Align, public ui::IPlayListener
         {
             public:
                 static const ctl_class_t metadata;
@@ -40,11 +40,25 @@ namespace lsp
                 tk::Registry        vWidgets;
                 ctl::Registry       vControllers;
                 tk::Align           sRoot;              // Root widget
+                io::Path            sFile;              // File for the playback
+                wsize_t             nPlayPosition;      // Play position
+                wsize_t             nFileLength;        // File length
+                bool                bPlaying;           // Playing flag
 
             protected:
                 void                do_destroy();
                 void                set_raw(const char *id, const char *fmt...);
                 void                set_localized(const char *id, const char *key, const expr::Parameters *params = NULL);
+                void                update_play_button(bool playing);
+                void                on_play_pause_submitted();
+                void                on_stop_submitted();
+                void                on_play_position_changed();
+                tk::handler_id_t    bind_slot(const char *id, tk::slot_t slot, tk::event_handler_t handler);
+
+            protected:
+                static status_t     slot_play_pause_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_stop_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_play_position_change(tk::Widget *sender, void *ptr, void *data);
 
             public:
                 explicit AudioFilePreview(ui::IWrapper *src);
@@ -52,6 +66,9 @@ namespace lsp
 
                 virtual status_t    init() override;
                 virtual void        destroy() override;
+
+            public:
+                virtual void        play_position_update(wsize_t position, wsize_t length) override;
 
             public:
                 /**
