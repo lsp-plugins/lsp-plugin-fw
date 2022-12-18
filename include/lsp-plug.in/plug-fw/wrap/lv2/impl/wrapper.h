@@ -1035,16 +1035,18 @@ namespace lsp
             if ((nPlayPosition == position) && (nPlayLength == length))
                 return;
 
+            lsp_trace("position = %lld, length=%lld", (long long)position, (long long)length);
+
             LV2_Atom_Forge_Frame    frame;
 
             pExt->forge_frame_time(0); // Event header
             pExt->forge_object(&frame, pExt->uridPlayPositionUpdate, pExt->uridPlayPositionType);
 
             pExt->forge_key(pExt->uridPlayPositionPosition);
-            pExt->forge_long(pSamplePlayer->position());
+            pExt->forge_long(position);
 
             pExt->forge_key(pExt->uridPlayPositionLength);
-            pExt->forge_long(pSamplePlayer->sample_length());
+            pExt->forge_long(length);
 
             pExt->forge_pop(&frame);
 
@@ -1352,9 +1354,10 @@ namespace lsp
                     transmit_kvt_events();
 
                 transmit_time_position_to_clients();
-                transmit_play_position_to_clients();
                 transmit_port_data_to_clients(sync_req, patch_req, state_req);
             }
+
+            transmit_play_position_to_clients();
 
             // Complete sequence
             pExt->forge_pop(&seq);

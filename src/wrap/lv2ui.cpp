@@ -278,7 +278,6 @@ namespace lsp
                 LV2UI_Descriptor *d = result.uget(i);
                 lsp_trace("[%4d] %p: %s", int(i), d, d->URI);
             }
-            lsp_trace("generated %d descriptors:", int(result.size()));
         #endif /* LSP_TRACE */
 
             // Commit the generated list to the global descriptor list

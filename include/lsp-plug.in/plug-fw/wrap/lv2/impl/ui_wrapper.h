@@ -708,10 +708,11 @@ namespace lsp
 
                     if ((body->key == pExt->uridPlayPositionPosition) && (body->value.type == pExt->forge.Long))
                         position            = (reinterpret_cast<LV2_Atom_Long *>(&body->value))->body;
-                    else if ((body->key == pExt->uridPlayPositionPosition) && (body->value.type == pExt->forge.Long))
+                    else if ((body->key == pExt->uridPlayPositionLength) && (body->value.type == pExt->forge.Long))
                         length              = (reinterpret_cast<LV2_Atom_Long *>(&body->value))->body;
                 }
 
+                lsp_trace("received play position = %lld, length=%lld", (long long)position, (long long)length);
                 notify_play_position(position, length);
             }
             else

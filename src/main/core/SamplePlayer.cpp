@@ -403,7 +403,7 @@ namespace lsp
             else // out_channels == 2
             {
                 // 1/2 channels -> 2 channels
-                for (size_t i=0; i<sample_channels; ++i)
+                for (size_t i=0; i<2; ++i)
                 {
                     ps.set_channel(0, i % sample_channels);
                     vPlaybacks[i] = vPlayers[i].play(&ps);
