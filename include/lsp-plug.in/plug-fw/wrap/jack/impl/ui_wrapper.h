@@ -396,26 +396,7 @@ namespace lsp
             // Notify sample listeners if something has changed
             core::SamplePlayer *sp = pWrapper->sample_player();
             if (sp != NULL)
-            {
-                wssize_t pos = sp->position();
-                wssize_t len = sp->sample_length();
-                if ((pos != nPlayPosition) || (len != nPlayLength))
-                {
-                    // Notify all listeners
-                    lltl::parray<ui::IPlayListener> listeners;
-                    listeners.add(vPlayListeners);
-                    for (size_t i=0; i<vPlayListeners.size(); ++i)
-                    {
-                        ui::IPlayListener *listener = vPlayListeners.uget(i);
-                        if (listener != NULL)
-                            listener->play_position_update(pos, len);
-                    }
-
-                    // Commit the play position
-                    nPlayPosition   = pos;
-                    nPlayLength     = len;
-                }
-            }
+                notify_play_position(sp->position(), sp->sample_length());
 
             dsp::finish(&ctx);
 

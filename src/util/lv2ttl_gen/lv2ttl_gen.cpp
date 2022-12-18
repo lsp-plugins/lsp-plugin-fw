@@ -888,6 +888,8 @@ namespace lsp
                 long bufsize    = lv2::lv2_all_port_sizes(m.ports, meta::is_in_port(p), meta::is_out_port(p));
                 if (m.extensions & meta::E_KVT_SYNC)
                     bufsize        += OSC_BUFFER_MAX;
+                if (m.extensions & meta::E_FILE_PREVIEW)
+                    bufsize        += size_t(PATH_MAX + 0x100);
 
                 if (!(requirements & REQ_MIDI))
                     fprintf(out, "\t\tlv2:portProperty lv2:connectionOptional ;\n");

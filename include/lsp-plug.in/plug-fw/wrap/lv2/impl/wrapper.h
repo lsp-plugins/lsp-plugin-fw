@@ -85,6 +85,10 @@ namespace lsp
             nDumpResp       = 0;
             pPackage        = NULL;
             pKVTDispatcher  = NULL;
+
+            pSamplePlayer   = NULL;
+            nPlayPosition   = 0;
+            nPlayLength     = 0;
         }
 
         Wrapper::~Wrapper()
@@ -106,6 +110,9 @@ namespace lsp
             sSurface.height = 0;
             sSurface.stride = 0;
             pPackage        = NULL;
+
+            pKVTDispatcher  = NULL;
+            pSamplePlayer   = NULL;
         }
 
         lv2::Port *Wrapper::port_by_urid(LV2_URID urid)
@@ -199,6 +206,16 @@ namespace lsp
             pPlugin->set_sample_rate(srate);
             bUpdateSettings     = true;
 
+            // Create sample player if required
+            if (m->extensions & meta::E_FILE_PREVIEW)
+            {
+                pSamplePlayer       = new core::SamplePlayer(m);
+                if (pSamplePlayer == NULL)
+                    return STATUS_NO_MEM;
+                pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
+                pSamplePlayer->set_sample_rate(srate);
+            }
+
             // Update refresh rate
             nSyncSamples        = srate / pExt->ui_refresh_rate();
             nClients            = 0;
@@ -208,6 +225,14 @@ namespace lsp
 
         void Wrapper::destroy()
         {
+            // Destroy sample player
+            if (pSamplePlayer != NULL)
+            {
+                pSamplePlayer->destroy();
+                delete pSamplePlayer;
+                pSamplePlayer = NULL;
+            }
+
             // Stop KVT dispatcher
             if (pKVTDispatcher != NULL)
             {
@@ -557,6 +582,8 @@ namespace lsp
                 }
                 // Process samples
                 pPlugin->process(to_process);
+                if (pSamplePlayer != NULL)
+                    pSamplePlayer->process(to_process);
                 // Sanitize output data
                 for (size_t i=0; i<n_audio_ports; ++i)
                 {
@@ -866,16 +893,50 @@ namespace lsp
                     atomic_add(&nDumpReq, 1);
                 }
             }
+            else if (obj->body.otype == pExt->uridPlayRequestType)
+            {
+                if (pSamplePlayer != NULL)
+                {
+                    char *file          = pSamplePlayer->requested_file_name(); // Destination buffer to store the file name
+                    wsize_t position    = 0;
+                    bool release        = false;
+                    file[0]             = '\0';
+
+                    for (
+                        LV2_Atom_Property_Body *body = lv2_atom_object_begin(&obj->body) ;
+                        !lv2_atom_object_is_end(&obj->body, obj->atom.size, body) ;
+                        body = lv2_atom_object_next(body)
+                    )
+                    {
+        //                lsp_trace("body->key (%d) = %s", int(body->key), pExt->unmap_urid(body->key));
+        //                lsp_trace("body->value.type (%d) = %s", int(body->value.type), pExt->unmap_urid(body->value.type));
+
+                        if ((body->key == pExt->uridPlayRequestFileName) && (body->value.type == pExt->forge.Path))
+                        {
+                            // Read the path string
+                            const LV2_Atom *atom = &body->value;
+                            lv2_set_string(file, PATH_MAX, reinterpret_cast<const char *>(atom + 1), atom->size);
+                        }
+                        else if ((body->key == pExt->uridPlayRequestPosition) && (body->value.type == pExt->forge.Long))
+                            position            = (reinterpret_cast<LV2_Atom_Long *>(&body->value))->body;
+                        else if ((body->key == pExt->uridPlayRequestRelease) && (body->value.type == pExt->forge.Bool))
+                            release             = (reinterpret_cast<LV2_Atom_Long *>(&body->value))->body != 0;
+                    }
+
+                    // Submit the playback request
+                    pSamplePlayer->play_sample(position, release);
+                }
+            }
             else
             {
-                lsp_trace("Unknown object: \n"
-                          "  ev->body.type (%d) = %s\n"
-                          "  obj->body.otype (%d) = %s\n"
-                          "  obj->body.id (%d) = %s",
-                         int(ev->body.type), pExt->unmap_urid(ev->body.type),
-                         int(obj->body.otype), pExt->unmap_urid(obj->body.otype),
-                         int(obj->body.id), pExt->unmap_urid(obj->body.id)
-                 );
+                lsp_trace(
+                    "Unknown object: \n"
+                    "  ev->body.type (%d) = %s\n"
+                    "  obj->body.otype (%d) = %s\n"
+                    "  obj->body.id (%d) = %s",
+                    int(ev->body.type), pExt->unmap_urid(ev->body.type),
+                    int(obj->body.otype), pExt->unmap_urid(obj->body.otype),
+                    int(obj->body.id), pExt->unmap_urid(obj->body.id));
             }
         }
 
@@ -961,6 +1022,35 @@ namespace lsp
             pExt->forge_float(sPosition.beatsPerMinute);
 
             pExt->forge_pop(&frame);
+        }
+
+        void Wrapper::transmit_play_position_to_clients()
+        {
+            if (pSamplePlayer == NULL)
+                return;
+
+            wssize_t position   = pSamplePlayer->position();
+            wssize_t length     = pSamplePlayer->sample_length();
+
+            if ((nPlayPosition == position) && (nPlayLength == length))
+                return;
+
+            LV2_Atom_Forge_Frame    frame;
+
+            pExt->forge_frame_time(0); // Event header
+            pExt->forge_object(&frame, pExt->uridPlayPositionUpdate, pExt->uridPlayPositionType);
+
+            pExt->forge_key(pExt->uridPlayPositionPosition);
+            pExt->forge_long(pSamplePlayer->position());
+
+            pExt->forge_key(pExt->uridPlayPositionLength);
+            pExt->forge_long(pSamplePlayer->sample_length());
+
+            pExt->forge_pop(&frame);
+
+            // Commit new position
+            nPlayPosition       = position;
+            nPlayLength         = length;
         }
 
         void Wrapper::transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req)
@@ -1262,6 +1352,7 @@ namespace lsp
                     transmit_kvt_events();
 
                 transmit_time_position_to_clients();
+                transmit_play_position_to_clients();
                 transmit_port_data_to_clients(sync_req, patch_req, state_req);
             }
 
@@ -2016,6 +2107,12 @@ namespace lsp
         {
             return pPackage;
         }
+
+        void Wrapper::state_changed()
+        {
+            change_state_atomic(SM_SYNC, SM_CHANGED);
+        }
+
     } /* namespace lv2 */
 } /* namespace lsp */
 

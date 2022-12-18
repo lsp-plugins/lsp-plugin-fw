@@ -83,26 +83,43 @@ namespace lsp
         //---------------------------------------------------------------------
         UIWrapper::UIWrapper(ui::Module *ui, resource::ILoader *loader, lv2::Extensions *ext): ui::IWrapper(ui, loader)
         {
-            pExt        = ext;
-            nLatencyID  = 0;
-            pLatency    = NULL;
-            bConnected  = false;
-            pOscBuffer  = NULL;
-            pPackage    = NULL;
+            pExt            = ext;
+            nLatencyID      = 0;
+            pLatency        = NULL;
+            bConnected      = false;
+            pOscBuffer      = NULL;
+            pPackage        = NULL;
+
+            nPlayReq        = 0;
+            sPlayFileName   = NULL;
+            nPlayPosition   = 0;
+            bPlayRelease    = false;
         }
 
         UIWrapper::~UIWrapper()
         {
-            pUI         = NULL;
-            pExt        = NULL;
-            nLatencyID  = 0;
-            pLatency    = NULL;
-            bConnected  = false;
-            pPackage    = NULL;
+            if (sPlayFileName != NULL)
+                free(sPlayFileName);
+
+            pUI             = NULL;
+            pExt            = NULL;
+            nLatencyID      = 0;
+            pLatency        = NULL;
+            bConnected      = false;
+            pPackage        = NULL;
+
+            nPlayReq        = 0;
+            sPlayFileName   = NULL;
+            nPlayPosition   = 0;
+            bPlayRelease    = false;
         }
 
         void UIWrapper::destroy()
         {
+            // Free playback file name if it is set
+            if (sPlayFileName != NULL)
+                free(sPlayFileName);
+
             // Disconnect UI
             ui_deactivated();
 
@@ -201,7 +218,12 @@ namespace lsp
 
             // Create atom transport
             if (pExt->atom_supported())
-                pExt->ui_create_atom_transport(vExtPorts.size(), lv2_all_port_sizes(meta->ports, true, false));
+            {
+                size_t buffer_size = lv2_all_port_sizes(meta->ports, true, false);
+                if (meta->extensions & meta::E_FILE_PREVIEW)
+                    buffer_size        += PATH_MAX + 0x100;
+                pExt->ui_create_atom_transport(vExtPorts.size(), buffer_size);
+            }
 
             // Add stub for latency reporting
             {
@@ -669,6 +691,29 @@ namespace lsp
                     p->notify_all();
                 }
             }
+            else if (obj->body.otype == pExt->uridPlayPositionType)
+            {
+                // We have received the current playback position
+                wssize_t position   = -1;
+                wssize_t length     = -1;
+
+                for (
+                    LV2_Atom_Property_Body *body = lv2_atom_object_begin(&obj->body) ;
+                    !lv2_atom_object_is_end(&obj->body, obj->atom.size, body) ;
+                    body = lv2_atom_object_next(body)
+                )
+                {
+    //                lsp_trace("body->key (%d) = %s", int(body->key), pExt->unmap_urid(body->key));
+    //                lsp_trace("body->value.type (%d) = %s", int(body->value.type), pExt->unmap_urid(body->value.type));
+
+                    if ((body->key == pExt->uridPlayPositionPosition) && (body->value.type == pExt->forge.Long))
+                        position            = (reinterpret_cast<LV2_Atom_Long *>(&body->value))->body;
+                    else if ((body->key == pExt->uridPlayPositionPosition) && (body->value.type == pExt->forge.Long))
+                        length              = (reinterpret_cast<LV2_Atom_Long *>(&body->value))->body;
+                }
+
+                notify_play_position(position, length);
+            }
             else
             {
                 lsp_trace("obj->body.otype = %d (%s)", int(obj->body.otype), pExt->unmap_urid(obj->body.otype));
@@ -903,6 +948,9 @@ namespace lsp
                 sKVTMutex.unlock();
             }
 
+            // Send play event if it is pending
+            send_play_event();
+
             // Call the parent wrapper code
             IWrapper::main_iteration();
         }
@@ -994,6 +1042,48 @@ namespace lsp
         {
             return pPackage;
         }
+
+        status_t UIWrapper::play_file(const char *file, wsize_t position, bool release)
+        {
+            const meta::plugin_t *meta = pUI->metadata();
+            if (!(meta->extensions & meta::E_FILE_PREVIEW))
+                return STATUS_NOT_SUPPORTED;
+
+            // Copy the name of file to play
+            if (file == NULL)
+                file = "";
+            char *fname = strdup(file);
+            if (fname == NULL)
+                return STATUS_NO_MEM;
+            lsp_finally {
+                if (fname != NULL)
+                    free(fname);
+            };
+
+            // Form the playback request
+            lsp::swap(fname, sPlayFileName);
+            nPlayPosition   = position;
+            bPlayRelease    = release;
+            ++nPlayReq;
+
+            return STATUS_OK;
+        }
+
+        void UIWrapper::send_play_event()
+        {
+            if (nPlayReq > 0)
+            {
+                // Send the sample playback event
+                pExt->ui_play_sample(sPlayFileName, nPlayPosition, bPlayRelease);
+                if (sPlayFileName != NULL)
+                {
+                    free(sPlayFileName);
+                    sPlayFileName   = NULL;
+                }
+                nPlayReq        = 0;
+            }
+        }
+
     } /* namespace lv2 */
 } /* namespace lsp */
 

@@ -130,6 +130,8 @@ namespace lsp
                 static void     drop_bundle_versions(lltl::pphash<LSPString, LSPString> *versions);
                 void            get_bundle_version_key(LSPString *key);
 
+                void            notify_play_position(wssize_t position, wssize_t length);
+
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
                 void            position_updated(const plug::position_t *pos);

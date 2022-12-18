@@ -118,9 +118,11 @@ namespace lsp
                 void    set_sample_rate(size_t sample_rate);
                 void    process(size_t samples);
                 void    play_sample(const char *file, wsize_t position, bool release);
+                void    play_sample(wsize_t position, bool release);
 
-                inline wssize_t position() const         { return nPlayPosition; }
-                inline wssize_t sample_length() const    { return nFileLength;   }
+                inline wssize_t position() const        { return nPlayPosition; }
+                inline wssize_t sample_length() const   { return nFileLength;   }
+                inline char    *requested_file_name()   { return sReqFileName;  }
         };
 
     } /* namespace core */

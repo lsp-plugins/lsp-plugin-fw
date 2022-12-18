@@ -1932,6 +1932,24 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void IWrapper::notify_play_position(wssize_t position, wssize_t length)
+        {
+            if ((nPlayPosition == position) && (nPlayLength == length))
+                return;
+
+            lltl::parray<ui::IPlayListener> listeners;
+            listeners.add(vPlayListeners);
+            for (size_t i=0; i<vPlayListeners.size(); ++i)
+            {
+                ui::IPlayListener *listener = vPlayListeners.uget(i);
+                if (listener != NULL)
+                    listener->play_position_update(position, length);
+            }
+
+            nPlayPosition   = position;
+            nPlayLength     = length;
+        }
+
     } /* namespace ui */
 } /* namespace lsp */
 

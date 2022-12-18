@@ -263,6 +263,12 @@ namespace lsp
             // Form the async request
             strncpy(sReqFileName, file, PATH_MAX);
             sReqFileName[PATH_MAX-1] = '\0';
+
+            play_sample(position, release);
+        }
+
+        void SamplePlayer::play_sample(wsize_t position, bool release)
+        {
             nReqPosition    = position;
             bReqRelease     = release;
             ++nUpdateReq;

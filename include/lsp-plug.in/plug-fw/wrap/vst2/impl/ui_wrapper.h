@@ -281,6 +281,11 @@ namespace lsp
 
         void UIWrapper::transfer_dsp_to_ui()
         {
+            // Initialize DSP state
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
+
             // Try to sync position
             IWrapper::position_updated(pWrapper->position());
 
@@ -352,6 +357,11 @@ namespace lsp
                 kvt->gc();
                 kvt_release();
             }
+
+            // Notify sample listeners if something has changed
+            core::SamplePlayer *sp = pWrapper->sample_player();
+            if (sp != NULL)
+                notify_play_position(sp->position(), sp->sample_length());
         }
 
         bool UIWrapper::show_ui()
