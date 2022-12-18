@@ -182,14 +182,18 @@ namespace lsp
         void AudioFilePreview::select_file(const io::Path *file)
         {
             status_t res;
+
+            sFile.clear();
             if ((file == NULL) || (file->is_empty()) || (!file->is_reg()))
             {
-                sFile.clear();
                 unselect_file();
                 return;
             }
             if ((res = sFile.set(file)) != STATUS_OK)
+            {
+                unselect_file();
                 return;
+            }
 
             lsp_trace("select file: %s", file->as_native());
 
@@ -262,6 +266,8 @@ namespace lsp
             ui::IPort *p    = pWrapper->port(UI_PREVIEW_AUTO_PLAY_PORT);
             nPlayPosition   = 0;
             nFileLength     = info.frames;
+
+            change_state(PS_STOP);
             change_state(((p != NULL) && (p->value() >= 0.5f)) ? PS_PLAY : PS_STOP);
         }
 
@@ -335,7 +341,7 @@ namespace lsp
         void AudioFilePreview::play_position_update(wssize_t position, wssize_t length)
         {
             // Commit values only when playing
-            lsp_trace("position=%lld, length=%lld", (long long)position, (long long)length);
+//            lsp_trace("position=%lld, length=%lld", (long long)position, (long long)length);
 
             switch (enState)
             {
