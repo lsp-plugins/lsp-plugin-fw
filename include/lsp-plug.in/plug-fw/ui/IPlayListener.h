@@ -43,10 +43,10 @@ namespace lsp
             public:
                 /**
                  * Obtain the actual playback position
-                 * @param position the actual playback position in samples
-                 * @param length the overall length of the file in samples
+                 * @param position the actual playback position in samples, negative if playback has stopped
+                 * @param length the overall length of the file in samples, negative if playback has stopped
                  */
-                virtual void play_position_update(wsize_t position, wsize_t length);
+                virtual void play_position_update(wssize_t position, wssize_t length);
         };
 
     } /* namespace ui */

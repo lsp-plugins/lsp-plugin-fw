@@ -272,18 +272,26 @@ namespace lsp
             }
         }
 
-        void AudioFilePreview::play_position_update(wsize_t position, wsize_t length)
+        void AudioFilePreview::play_position_update(wssize_t position, wssize_t length)
         {
-            nPlayPosition   = position;
-            nFileLength     = length;
-
-            // Commit the playback position
-            tk::Fader *pf = vWidgets.get<tk::Fader>("play_position");
-            if (pf != NULL)
+            // Commit values only when playing
+            if (bPlaying)
             {
-                pf->value()->set_all(position, 0, length);
-                pf->step()->set(1.0f);
+                nPlayPosition   = lsp_max(position, 0);
+                nFileLength     = length;
+
+                // Commit the playback position
+                tk::Fader *pf = vWidgets.get<tk::Fader>("play_position");
+                if (pf != NULL)
+                {
+                    pf->value()->set_all(nPlayPosition, 0, nFileLength);
+                    pf->step()->set(1.0f);
+                }
             }
+
+            // Playback has stopped?
+            if (position < 0)
+                update_play_button(false);
         }
 
         void AudioFilePreview::update_play_button(bool playing)
@@ -317,13 +325,12 @@ namespace lsp
                 return;
 
             pWrapper->play_file(NULL, 0, false);
-            play_position_update(0, nFileLength);
-            update_play_button(!bPlaying);
+            play_position_update(-1, nFileLength);
         }
 
         void AudioFilePreview::on_play_position_changed()
         {
-            if ((!bPlaying) || (sFile.is_empty()))
+            if (sFile.is_empty())
                 return;
 
             // Commit the new playback position and trigger the playback
@@ -332,7 +339,10 @@ namespace lsp
             if (pf != NULL)
                 position = pf->value()->get();
 
-            pWrapper->play_file(sFile.as_utf8(), position, false);
+            if (bPlaying)
+                pWrapper->play_file(sFile.as_utf8(), position, false);
+            else
+                nPlayPosition = position;
         }
 
         tk::handler_id_t AudioFilePreview::bind_slot(const char *id, tk::slot_t slot, tk::event_handler_t handler)

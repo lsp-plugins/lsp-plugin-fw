@@ -93,8 +93,8 @@ namespace lsp
                 ui::Module                     *pUI;
                 resource::ILoader              *pLoader;            // Prefix-based resource loader
                 size_t                          nFlags;             // Flags
-                wsize_t                         nPlayPosition;      // Playback position of the current file preview
-                wsize_t                         nPlayLength;        // Overall playback file length in samples
+                wssize_t                        nPlayPosition;      // Playback position of the current file preview
+                wssize_t                        nPlayLength;        // Overall playback file length in samples
                 expr::Variables                 sGlobalVars;        // Global variables
                 plug::position_t                sPosition;          // Melodic position
 

@@ -68,7 +68,7 @@ namespace lsp
                 virtual void        destroy() override;
 
             public:
-                virtual void        play_position_update(wsize_t position, wsize_t length) override;
+                virtual void        play_position_update(wssize_t position, wssize_t length) override;
 
             public:
                 /**

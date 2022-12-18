@@ -29,7 +29,7 @@ namespace lsp
         {
         }
 
-        void IPlayListener::play_position_update(wsize_t position, wsize_t length)
+        void IPlayListener::play_position_update(wssize_t position, wssize_t length)
         {
         }
 

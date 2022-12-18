@@ -82,6 +82,9 @@ namespace lsp
                 dspu::Sample           *pLoaded;                // Loaded sample
                 dspu::Sample           *pGCList;                // Garbage collection
 
+                wssize_t                nPlayPosition;          // Playback position
+                wssize_t                nFileLength;            // Length of the file
+
                 char                    sFileName[PATH_MAX];    // Actual file name
                 char                    sReqFileName[PATH_MAX]; // Requested file name
                 wsize_t                 nReqPosition;           // Requested playback position
@@ -116,8 +119,8 @@ namespace lsp
                 void    process(size_t samples);
                 void    play_sample(const char *file, wsize_t position, bool release);
 
-                wsize_t position() const;
-                wsize_t sample_length() const;
+                inline wssize_t position() const         { return nPlayPosition; }
+                inline wssize_t sample_length() const    { return nFileLength;   }
         };
 
     } /* namespace core */

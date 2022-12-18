@@ -23,6 +23,7 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_IMPL_UI_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/ui_wrapper.h>
 
 #define JACK_STATUS_OFF         "PluginWindow::StatusBar::Label::FAIL"
@@ -188,6 +189,14 @@ namespace lsp
         void UIWrapper::dump_state_request()
         {
             return pWrapper->dump_plugin_state();
+        }
+
+        status_t UIWrapper::play_file(const char *file, wsize_t position, bool release)
+        {
+            core::SamplePlayer *p = pWrapper->sample_player();
+            if (p != NULL)
+                p->play_sample(file, position, release);
+            return STATUS_OK;
         }
 
         status_t UIWrapper::create_port(const meta::port_t *port, const char *postfix)
@@ -382,6 +391,30 @@ namespace lsp
                 // Call garbage collection and release KVT storage
                 kvt->gc();
                 pWrapper->kvt_release();
+            }
+
+            // Notify sample listeners if something has changed
+            core::SamplePlayer *sp = pWrapper->sample_player();
+            if (sp != NULL)
+            {
+                wssize_t pos = sp->position();
+                wssize_t len = sp->sample_length();
+                if ((pos != nPlayPosition) || (len != nPlayLength))
+                {
+                    // Notify all listeners
+                    lltl::parray<ui::IPlayListener> listeners;
+                    listeners.add(vPlayListeners);
+                    for (size_t i=0; i<vPlayListeners.size(); ++i)
+                    {
+                        ui::IPlayListener *listener = vPlayListeners.uget(i);
+                        if (listener != NULL)
+                            listener->play_position_update(pos, len);
+                    }
+
+                    // Commit the play position
+                    nPlayPosition   = pos;
+                    nPlayLength     = len;
+                }
             }
 
             dsp::finish(&ctx);

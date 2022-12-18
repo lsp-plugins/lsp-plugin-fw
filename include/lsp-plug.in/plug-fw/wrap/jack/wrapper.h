@@ -28,6 +28,7 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/string.h>
@@ -84,6 +85,8 @@ namespace lsp
                 volatile uatomic_t              nDumpReq;           // Dump state to file request
                 uatomic_t                       nDumpResp;          // Dump state to file response
 
+                core::SamplePlayer             *pSamplePlayer;      // Sample player
+
                 lltl::parray<jack::Port>        vAllPorts;          // All ports
                 lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
                 lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
@@ -134,6 +137,8 @@ namespace lsp
                 inline bool                         connected() const;
                 inline bool                         disconnected() const;
                 inline bool                         connection_lost() const;
+
+                inline core::SamplePlayer          *sample_player();
 
                 status_t                            connect();
                 status_t                            disconnect();

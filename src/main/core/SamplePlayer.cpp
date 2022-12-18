@@ -76,6 +76,9 @@ namespace lsp
             pLoaded         = NULL;
             pGCList         = NULL;
 
+            nPlayPosition   = 0;
+            nFileLength     = 0;
+
             sFileName[0]    = '\0';
             nReqPosition    = 0;
             bReqRelease     = false;
@@ -169,6 +172,8 @@ namespace lsp
                     {
                         if (pgi->role == meta::PGR_LEFT)
                             pOut[0]     = find_out_port(pgi->id, ports, count);
+                        else if (pgi->role == meta::PGR_RIGHT)
+                            pOut[1]     = find_out_port(pgi->id, ports, count);
                     }
                     return;
                 }
@@ -342,17 +347,6 @@ namespace lsp
             }
         }
 
-        wsize_t SamplePlayer::position() const
-        {
-            return (vPlaybacks[0].valid()) ? vPlaybacks[0].position() : 0;
-        }
-
-        wsize_t SamplePlayer::sample_length() const
-        {
-            const dspu::Sample *s = vPlayers[0].get(0);
-            return (s != NULL) ? s->length() : 0;
-        }
-
         void SamplePlayer::play_current_sample(wsize_t position)
         {
             // Cancel current playbacks
@@ -413,16 +407,20 @@ namespace lsp
 
         void SamplePlayer::process_playback(size_t samples)
         {
-            if (pOut[0] == NULL)
-                return;
+            if (pOut[0] != NULL)
+            {
+                // Obtain data buffers
+                float *buf[2];
+                buf[0]  = pOut[0]->buffer<float>();
+                buf[1]  = (pOut[1] != NULL) ? pOut[1]->buffer<float>() : buf[0];
 
-            // Obtain data buffers
-            float *buf[2];
-            buf[0]  = pOut[0]->buffer<float>();
-            buf[1]  = (pOut[1] != NULL) ? pOut[1]->buffer<float>() : buf[0];
+                for (size_t i=0; i<2; ++i)
+                    vPlayers[i].process(buf[i], buf[i], samples);
+            }
 
-            for (size_t i=0; i<2; ++i)
-                vPlayers[i].process(buf[i], buf[i], samples);
+            // Update state
+            nPlayPosition   = vPlaybacks[0].position();
+            nFileLength     = vPlaybacks[0].sample_length();
         }
 
         void SamplePlayer::process(size_t samples)
