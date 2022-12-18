@@ -34,6 +34,7 @@
     #include <lsp-plug.in/plug-fw/ui/ISchemaListener.h>
     #include <lsp-plug.in/plug-fw/ui/PortResolver.h>
     #include <lsp-plug.in/plug-fw/ui/IKVTListener.h>
+    #include <lsp-plug.in/plug-fw/ui/IPlayListener.h>
 
     #include <lsp-plug.in/plug-fw/ui/ControlPort.h>
     #include <lsp-plug.in/plug-fw/ui/PathPort.h>

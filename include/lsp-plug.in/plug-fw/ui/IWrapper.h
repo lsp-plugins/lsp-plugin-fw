@@ -56,6 +56,7 @@ namespace lsp
     {
         class Module;
         class ISchemaListener;
+        class IPlayListener;
 
         enum import_flags_t
         {
@@ -92,8 +93,10 @@ namespace lsp
                 ui::Module                     *pUI;
                 resource::ILoader              *pLoader;            // Prefix-based resource loader
                 size_t                          nFlags;             // Flags
+                wssize_t                        nPlayPosition;      // Playback position of the current file preview
+                wssize_t                        nPlayLength;        // Overall playback file length in samples
                 expr::Variables                 sGlobalVars;        // Global variables
-                plug::position_t                sPosition;
+                plug::position_t                sPosition;          // Melodic position
 
                 lltl::parray<ui::IPort>         vPorts;             // All possible ports
                 lltl::parray<ui::IPort>         vSortedPorts;       // Alphabetically-sorted ports
@@ -104,6 +107,7 @@ namespace lsp
                 lltl::pphash<LSPString, LSPString> vAliases;        // Port aliases
                 lltl::parray<IKVTListener>      vKvtListeners;      // KVT listeners
                 lltl::parray<ISchemaListener>   vSchemaListeners;   // Schema change listeners
+                lltl::parray<IPlayListener>     vPlayListeners;     // List of playback listeners
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
@@ -125,6 +129,8 @@ namespace lsp
                 status_t        read_bundle_versions(const io::Path *file, lltl::pphash<LSPString, LSPString> *versions);
                 static void     drop_bundle_versions(lltl::pphash<LSPString, LSPString> *versions);
                 void            get_bundle_version_key(LSPString *key);
+
+                void            notify_play_position(wssize_t position, wssize_t length);
 
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
@@ -356,6 +362,32 @@ namespace lsp
                 virtual status_t            save_global_config(const char *file);
                 virtual status_t            save_global_config(const io::Path *file);
                 virtual status_t            save_global_config(const LSPString *file);
+
+                /**
+                 * Send request to perform preview playback of the file
+                 *
+                 * @param file file name or empty/null if need to stop the playback
+                 * @param position initial position of playback in samples
+                 * @param release indicator for the stop event that informs that the sample won't
+                 *        be played anymore and the previously allocated memory should be released
+                 * @return status of operation
+                 */
+                virtual status_t            play_file(const char *file, wsize_t position, bool release);
+
+                /**
+                 * Subscribe for the listen update events, listener immediately receives
+                 * current playback position on the success subscription
+                 * @param listener the listener
+                 * @return status of the subscription
+                 */
+                virtual status_t            play_subscribe(IPlayListener *listener);
+
+                /**
+                 * Unsunscribe the listen update events
+                 * @param listener
+                 * @return status of operation
+                 */
+                virtual status_t            play_unsubscribe(IPlayListener *listener);
 
                 /**
                  * Add schema listener

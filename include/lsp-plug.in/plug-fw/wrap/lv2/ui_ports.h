@@ -756,26 +756,14 @@ namespace lsp
                 {
                 };
 
-            protected:
-                void set_string(const char *str, size_t len)
-                {
-                    if ((str != NULL) && (len > 0))
-                    {
-                        size_t copy     = (len >= PATH_MAX) ? PATH_MAX-1 : len;
-                        ::memcpy(sPath, str, len);
-                        sPath[copy]     = '\0';
-                    }
-                    else
-                        sPath[0]        = '\0';
-                }
-
             public:
                 virtual void deserialize(const void *data)
                 {
                     // Read path value
                     const LV2_Atom *atom = reinterpret_cast<const LV2_Atom *>(data);
-                    set_string(reinterpret_cast<const char *>(atom + 1), atom->size);
+                    lv2_set_string(sPath, PATH_MAX, reinterpret_cast<const char *>(atom + 1), atom->size);
 
+                    // The code below works only when restoring plugin state
                     lsp_trace("mapPath = %p, path = %s", pExt->mapPath, sPath);
                     if ((pExt->mapPath != NULL) && (::strstr(sPath, LSP_BUILTIN_PREFIX) != sPath))
                     {
@@ -783,7 +771,7 @@ namespace lsp
                         if (unmapped_path != NULL)
                         {
                             lsp_trace("unmapped path: %s -> %s", sPath, unmapped_path);
-                            set_string(unmapped_path, ::strlen(unmapped_path));
+                            lv2_set_string(sPath, PATH_MAX, unmapped_path, ::strlen(unmapped_path));
                             ::free(unmapped_path);
                         }
                     }
@@ -812,12 +800,12 @@ namespace lsp
 
                 virtual void write(const void* buffer, size_t size, size_t flags)
                 {
-                    set_string(reinterpret_cast<const char *>(buffer), size);
+                    lv2_set_string(sPath, PATH_MAX, reinterpret_cast<const char *>(buffer), size);
 
                     // Try to perform direct access to the port using LV2:Instance interface
-                    lsp_trace("writing patch event id=%s, path=%s (%d)",
-                            pMetadata->id, static_cast<const char *>(buffer), int(size)
-                    );
+                    lsp_trace(
+                        "writing patch event id=%s, path=%s (%d)",
+                        pMetadata->id, static_cast<const char *>(buffer), int(size));
                     pExt->ui_write_patch(this);
                 }
 

@@ -88,10 +88,12 @@ namespace lsp
                 ui::IPort          *pMeshPort;
                 ui::IPort          *pPathPort;
                 tk::FileDialog     *pDialog;
+                ctl::Widget        *pFilePreview;
                 tk::Menu           *pMenu;
                 DataSink           *pDataSink;
                 DragInSink         *pDragInSink;
                 bool                bFullSample;
+                bool                bLoadPreview;
                 lltl::parray<file_format_t>     vFormats;
                 lltl::parray<tk::MenuItem>      vMenuItems;
                 lltl::pphash<char, ui::IPort>   vClipboardBind;
@@ -145,6 +147,7 @@ namespace lsp
 
             protected:
                 static status_t     slot_audio_sample_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_dialog_change(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dialog_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dialog_hide(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_popup_cut_action(tk::Widget *sender, void *ptr, void *data);
@@ -156,6 +159,7 @@ namespace lsp
             protected:
                 void                show_file_dialog();
                 void                update_path();
+                void                preview_file();
                 void                commit_file();
                 void                sync_status();
                 void                sync_labels();
@@ -166,15 +170,16 @@ namespace lsp
 
             public:
                 explicit AudioSample(ui::IWrapper *wrapper, tk::AudioSample *widget);
-                virtual ~AudioSample();
+                virtual ~AudioSample() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
+                virtual void        destroy() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        end(ui::UIContext *ctx);
-                virtual void        notify(ui::IPort *port);
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        end(ui::UIContext *ctx) override;
+                virtual void        notify(ui::IPort *port) override;
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
 
     } /* namespace ctl */

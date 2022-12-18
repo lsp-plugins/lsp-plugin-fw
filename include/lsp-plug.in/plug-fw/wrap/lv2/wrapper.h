@@ -29,6 +29,7 @@
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/executor.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ports.h>
@@ -111,7 +112,11 @@ namespace lsp
                 ipc::Mutex              sKVTMutex;
                 core::KVTDispatcher    *pKVTDispatcher;
 
-                LV2_Inline_Display_Image_Surface sSurface; // Canvas surface
+                core::SamplePlayer     *pSamplePlayer;      // Sample player
+                wssize_t                nPlayPosition;      // Sample playback position
+                wssize_t                nPlayLength;        // Sample playback length
+
+                LV2_Inline_Display_Image_Surface sSurface;  // Canvas surface
 
             protected:
                 lv2::Port                      *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *meta, const char *postfix, bool virt);
@@ -127,6 +132,7 @@ namespace lsp
 
                 void                            transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req);
                 void                            transmit_time_position_to_clients();
+                void                            transmit_play_position_to_clients();
                 void                            transmit_midi_events(lv2::Port *p);
                 void                            transmit_osc_events(lv2::Port *p);
                 void                            transmit_kvt_events();
@@ -141,7 +147,7 @@ namespace lsp
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader, lv2::Extensions *ext);
-                virtual ~Wrapper();
+                virtual ~Wrapper() override;
 
                 status_t                        init(float srate);
                 void                            destroy();
@@ -170,8 +176,6 @@ namespace lsp
                 );
 
                 // Job part
-                virtual ipc::IExecutor         *executor();
-
                 inline void job_run(
                     LV2_Worker_Respond_Handle   handle,
                     LV2_Worker_Respond_Function respond,
@@ -196,17 +200,15 @@ namespace lsp
 
                 inline float                    get_sample_rate() const { return fSampleRate; }
 
-                virtual core::KVTStorage       *kvt_lock();
-
-                virtual core::KVTStorage       *kvt_trylock();
-
-                virtual bool                    kvt_release();
-
-                virtual void                    state_changed()         { change_state_atomic(SM_SYNC, SM_CHANGED); }
-
                 inline core::KVTDispatcher     *kvt_dispatcher()        { return pKVTDispatcher; }
 
-                virtual const meta::package_t  *package() const;
+            public:
+                virtual ipc::IExecutor         *executor() override;
+                virtual core::KVTStorage       *kvt_lock() override;
+                virtual core::KVTStorage       *kvt_trylock() override;
+                virtual bool                    kvt_release() override;
+                virtual void                    state_changed() override;
+                virtual const meta::package_t  *package() const override;
         };
     } /* namespace lv2 */
 } /* namespace lsp */

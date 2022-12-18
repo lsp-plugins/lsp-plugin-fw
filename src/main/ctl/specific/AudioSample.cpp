@@ -26,6 +26,8 @@
 #include <lsp-plug.in/io/InStringSequence.h>
 #include <lsp-plug.in/expr/Tokenizer.h>
 
+#include <private/ctl/AudioFilePreview.h>
+
 namespace lsp
 {
     namespace ctl
@@ -180,10 +182,12 @@ namespace lsp
             pMeshPort       = NULL;
             pPathPort       = NULL;
             pDialog         = NULL;
+            pFilePreview    = NULL;
             pMenu           = NULL;
             pDataSink       = NULL;
             pDragInSink     = NULL;
             bFullSample     = false;
+            bLoadPreview    = false;
         }
 
         AudioSample::~AudioSample()
@@ -319,6 +323,19 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void AudioSample::destroy()
+        {
+            // Destroy the file preview
+            if (pFilePreview != NULL)
+            {
+                pFilePreview->destroy();
+                delete pFilePreview;
+                pFilePreview = NULL;
+            }
+
+            ctl::Widget::destroy();
+        }
+
         tk::MenuItem *AudioSample::create_menu_item(tk::Menu *menu)
         {
             tk::MenuItem *mi = new tk::MenuItem(wWidget->display());
@@ -432,6 +449,7 @@ namespace lsp
                 sIPadding.set("ipadding", name, value);
 
                 set_value(&bFullSample, "sample.full", name, value);
+                set_value(&bLoadPreview, "load.preview", name, value);
                 set_constraints(as->constraints(), name, value);
                 set_text_layout(as->main_text_layout(), "text.layout.main", name, value);
                 set_text_layout(as->main_text_layout(), "tlayout.main", name, value);
@@ -791,29 +809,32 @@ namespace lsp
 
         void AudioSample::show_file_dialog()
         {
+            // Create dialog if it wasn't created previously
             if (pDialog == NULL)
             {
-                pDialog = new tk::FileDialog(wWidget->display());
-                if (pDialog == NULL)
+                tk::FileDialog *dlg = new tk::FileDialog(wWidget->display());
+                if (dlg == NULL)
                     return;
-                status_t res = pDialog->init();
+                lsp_finally {
+                    if (dlg != NULL)
+                    {
+                        dlg->destroy();
+                        delete dlg;
+                    }
+                };
+                status_t res = dlg->init();
                 if (res != STATUS_OK)
-                {
-                    pDialog->destroy();
-                    delete pDialog;
-                    pDialog = NULL;
                     return;
-                }
 
-                pDialog->title()->set("titles.load_audio_file");
-                pDialog->mode()->set(tk::FDM_OPEN_FILE);
+                dlg->title()->set("titles.load_audio_file");
+                dlg->mode()->set(tk::FDM_OPEN_FILE);
                 tk::FileMask *ffi;
 
                 // Add all listed formats
                 for (size_t i=0, n=vFormats.size(); i<n; ++i)
                 {
                     file_format_t *f = vFormats.uget(i);
-                    if ((ffi = pDialog->filter()->add()) != NULL)
+                    if ((ffi = dlg->filter()->add()) != NULL)
                     {
                         ffi->pattern()->set(f->filter, f->flags);
                         ffi->title()->set(f->title);
@@ -821,17 +842,53 @@ namespace lsp
                     }
                 }
 
-                pDialog->selected_filter()->set(0);
+                dlg->selected_filter()->set(0);
 
-                pDialog->action_text()->set("actions.load");
-                pDialog->slots()->bind(tk::SLOT_SUBMIT, slot_dialog_submit, this);
-                pDialog->slots()->bind(tk::SLOT_HIDE, slot_dialog_hide, this);
+                dlg->action_text()->set("actions.load");
+                dlg->slots()->bind(tk::SLOT_CHANGE, slot_dialog_change, this);
+                dlg->slots()->bind(tk::SLOT_SUBMIT, slot_dialog_submit, this);
+                dlg->slots()->bind(tk::SLOT_HIDE, slot_dialog_hide, this);
+
+                // Commit the change
+                lsp::swap(pDialog, dlg);
             }
 
+            // Create the file preview controller if required
+            if ((bLoadPreview) && (pFilePreview == NULL))
+            {
+                ctl::Widget *pw = new AudioFilePreview(pWrapper);
+                if (pw == NULL)
+                    return;
+                lsp_finally {
+                    if (pw != NULL)
+                    {
+                        pw->destroy();
+                        delete pw;
+                    }
+                };
+
+                status_t res = pw->init();
+                if (res != STATUS_OK)
+                    return;
+
+                lsp::swap(pFilePreview, pw);
+            }
+
+            // Configure the dialog
             const char *path = (pPathPort != NULL) ? pPathPort->buffer<char>() : NULL;
             if (path != NULL)
                 pDialog->path()->set_raw(path);
 
+            ctl::AudioFilePreview *pw = ctl::ctl_cast<ctl::AudioFilePreview>(pFilePreview);
+            if ((pw != NULL) && (bLoadPreview))
+            {
+                pDialog->preview()->set(pw->widget());
+                pw->activate();
+            }
+            else
+                pDialog->preview()->set(NULL);
+
+            // Show the dialog
             pDialog->show(wWidget);
         }
 
@@ -851,6 +908,19 @@ namespace lsp
             const char *u8path = path.get_utf8();
             pPathPort->write(u8path, strlen(u8path));
             pPathPort->notify_all();
+        }
+
+        void AudioSample::preview_file()
+        {
+            ctl::AudioFilePreview *pw = ctl::ctl_cast<ctl::AudioFilePreview>(pFilePreview);
+            if (pw == NULL)
+                return;
+
+            LSPString path;
+            if (pDialog->selected_file()->format(&path) != STATUS_OK)
+                return;
+
+            pw->select_file(&path);
         }
 
         void AudioSample::commit_file()
@@ -877,6 +947,15 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t AudioSample::slot_dialog_change(tk::Widget *sender, void *ptr, void *data)
+        {
+            AudioSample *_this = static_cast<AudioSample *>(ptr);
+            if (_this != NULL)
+                _this->preview_file();
+
+            return STATUS_OK;
+        }
+
         status_t AudioSample::slot_dialog_submit(tk::Widget *sender, void *ptr, void *data)
         {
             AudioSample *_this = static_cast<AudioSample *>(ptr);
@@ -889,8 +968,18 @@ namespace lsp
         status_t AudioSample::slot_dialog_hide(tk::Widget *sender, void *ptr, void *data)
         {
             AudioSample *_this = static_cast<AudioSample *>(ptr);
-            if (_this != NULL)
-                _this->update_path();
+            if (_this == NULL)
+                return STATUS_OK;
+
+            _this->update_path();
+
+            // Deactivate the audio preview controller if it was set
+            if ((_this->pDialog != NULL) && (_this->pDialog->preview()->is_set()))
+            {
+                ctl::AudioFilePreview *pw = ctl::ctl_cast<ctl::AudioFilePreview>(_this->pFilePreview);
+                if (pw != NULL)
+                    pw->deactivate();
+            }
 
             return STATUS_OK;
         }

@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/ui.h>
@@ -68,6 +69,8 @@ namespace lsp
                 lltl::parray<vst2::Port>            vProxyPorts;    // List of all created VST proxy ports
                 lltl::parray<meta::port_t>          vGenMetadata;   // Generated metadata
 
+                core::SamplePlayer                 *pSamplePlayer;  // Sample player
+
                 core::KVTStorage                    sKVT;
                 ipc::Mutex                          sKVTMutex;
 
@@ -92,7 +95,7 @@ namespace lsp
                     AEffect *effect,
                     audioMasterCallback callback
                 );
-                ~Wrapper();
+                virtual ~Wrapper() override;
 
                 status_t                        init();
                 void                            destroy();
@@ -121,16 +124,14 @@ namespace lsp
 
                 void                            request_state_dump();
 
+                inline core::SamplePlayer      *sample_player();
+
             public:
-                virtual ipc::IExecutor         *executor();
-
-                virtual core::KVTStorage       *kvt_lock();
-
-                virtual core::KVTStorage       *kvt_trylock();
-
-                virtual bool                    kvt_release();
-
-                virtual const meta::package_t  *package() const;
+                virtual ipc::IExecutor         *executor() override;
+                virtual core::KVTStorage       *kvt_lock() override;
+                virtual core::KVTStorage       *kvt_trylock() override;
+                virtual bool                    kvt_release() override;
+                virtual const meta::package_t  *package() const override;
         };
     } /* namespace vst2 */
 } /* namespace lsp */

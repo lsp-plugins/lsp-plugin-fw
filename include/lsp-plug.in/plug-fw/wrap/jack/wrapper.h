@@ -28,6 +28,7 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/string.h>
@@ -84,6 +85,8 @@ namespace lsp
                 volatile uatomic_t              nDumpReq;           // Dump state to file request
                 uatomic_t                       nDumpResp;          // Dump state to file response
 
+                core::SamplePlayer             *pSamplePlayer;      // Sample player
+
                 lltl::parray<jack::Port>        vAllPorts;          // All ports
                 lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
                 lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
@@ -110,23 +113,23 @@ namespace lsp
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader);
-                virtual ~Wrapper();
+                virtual ~Wrapper() override;
 
                 status_t                            init();
                 void                                destroy();
 
             public:
-                virtual ipc::IExecutor             *executor();
+                virtual ipc::IExecutor             *executor() override;
 
-                virtual void                        query_display_draw();
+                virtual void                        query_display_draw() override;
 
-                virtual core::KVTStorage           *kvt_lock();
+                virtual core::KVTStorage           *kvt_lock() override;
 
-                virtual core::KVTStorage           *kvt_trylock();
+                virtual core::KVTStorage           *kvt_trylock() override;
 
-                virtual bool                        kvt_release();
+                virtual bool                        kvt_release() override;
 
-                virtual const meta::package_t      *package() const;
+                virtual const meta::package_t      *package() const override;
 
             public:
                 inline jack_client_t               *client();
@@ -134,6 +137,8 @@ namespace lsp
                 inline bool                         connected() const;
                 inline bool                         disconnected() const;
                 inline bool                         connection_lost() const;
+
+                inline core::SamplePlayer          *sample_player();
 
                 status_t                            connect();
                 status_t                            disconnect();

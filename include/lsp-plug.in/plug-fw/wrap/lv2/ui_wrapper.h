@@ -66,11 +66,17 @@ namespace lsp
                 uint8_t                    *pOscBuffer;     // OSC packet data
                 meta::package_t            *pPackage;       // Package metadata
 
+                size_t                      nPlayReq;       // Playback request
+                char                       *sPlayFileName;  // Playback file name
+                wsize_t                     nPlayPosition;  // Playback position
+                bool                        bPlayRelease;   // Playback release flag
+
             protected:
                 lv2::UIPort                *create_port(const meta::port_t *p, const char *postfix);
 
                 void                        receive_atom(const LV2_Atom_Object * atom);
                 void                        receive_raw_osc_packet(const void *data, size_t size);
+
                 static ssize_t              compare_ports_by_urid(const lv2::UIPort *a, const lv2::UIPort *b);
                 static ssize_t              compare_abstract_ports_by_urid(const ui::IPort *a, const ui::IPort *b);
                 static lv2::UIPort         *find_by_urid(lltl::parray<lv2::UIPort> &v, LV2_URID urid);
@@ -83,41 +89,37 @@ namespace lsp
 
             public:
                 explicit UIWrapper(ui::Module *ui, resource::ILoader *loader, lv2::Extensions *ext);
-                virtual ~UIWrapper();
+                virtual ~UIWrapper() override;
 
-                virtual status_t            init(void *root_widget);
-                virtual void                destroy();
+                virtual status_t            init(void *root_widget) override;
+                virtual void                destroy() override;
 
             public:
                 int                         resize_ui(ssize_t width, ssize_t height);
 
                 void                        ui_activated();
-
-                virtual core::KVTStorage   *kvt_lock();
-
-                virtual core::KVTStorage   *kvt_trylock();
-
-                virtual bool                kvt_release();
-
-                void                        parse_raw_osc_event(osc::parse_frame_t *frame);
-
                 void                        ui_deactivated();
 
-                virtual float               ui_scaling_factor(float scaling);
-
+                void                        parse_raw_osc_event(osc::parse_frame_t *frame);
                 void                        notify(size_t id, size_t size, size_t format, const void *buf);
 
                 void                        send_kvt_state();
-
                 void                        receive_kvt_state();
-
                 void                        sync_kvt_state();
-
-                virtual void                main_iteration();
 
                 void                        dump_state_request();
 
-                virtual const meta::package_t  *package() const;
+                void                        send_play_event();
+
+            public:
+                virtual float               ui_scaling_factor(float scaling) override;
+                virtual void                main_iteration() override;
+                virtual core::KVTStorage   *kvt_lock() override;
+                virtual core::KVTStorage   *kvt_trylock() override;
+                virtual bool                kvt_release() override;
+                virtual const meta::package_t  *package() const override;
+
+                virtual status_t            play_file(const char *file, wsize_t position, bool release) override;
         };
     } /* namespace lv2 */
 } /* namespace lsp */

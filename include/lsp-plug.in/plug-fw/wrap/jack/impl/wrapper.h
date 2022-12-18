@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/ports.h>
+#include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 
 namespace lsp
 {
@@ -46,6 +47,8 @@ namespace lsp
             nDumpReq        = 0;
             nDumpResp       = 0;
 
+            pSamplePlayer   = NULL;
+
             pPackage        = NULL;
         }
 
@@ -59,6 +62,7 @@ namespace lsp
             nQueryDrawResp  = 0;
             nDumpReq        = 0;
             nDumpResp       = 0;
+            pSamplePlayer   = NULL;
         }
 
         static ssize_t cmp_port_identifiers(const jack::Port *pa, const jack::Port *pb)
@@ -109,6 +113,15 @@ namespace lsp
             // Initialize plugin and UI
             if (pPlugin != NULL)
                 pPlugin->init(this, plugin_ports.array());
+
+            // Create sample player if required
+            if (meta->extensions & meta::E_FILE_PREVIEW)
+            {
+                pSamplePlayer       = new core::SamplePlayer(meta);
+                if (pSamplePlayer == NULL)
+                    return STATUS_NO_MEM;
+                pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
+            }
 
             // Update state, mark initialized
             nState      = S_INITIALIZED;
@@ -189,6 +202,8 @@ namespace lsp
             }
             jack_nframes_t sr           = jack_get_sample_rate(pClient);
             pPlugin->set_sample_rate(sr);
+            if (pSamplePlayer != NULL)
+                pSamplePlayer->set_sample_rate(sr);
             sPosition.sampleRate        = sr;
             bUpdateSettings             = true;
 
@@ -280,6 +295,10 @@ namespace lsp
             // Call the main processing unit
             pPlugin->process(samples);
 
+            // Launch the sample player
+            if (pSamplePlayer != NULL)
+                pSamplePlayer->process(samples);
+
             // Report latency if changed
             ssize_t latency = pPlugin->latency();
             if (latency != nLatency)
@@ -349,6 +368,14 @@ namespace lsp
         {
             // Disconnect
             disconnect();
+
+            // Destroy sample player
+            if (pSamplePlayer != NULL)
+            {
+                pSamplePlayer->destroy();
+                delete pSamplePlayer;
+                pSamplePlayer = NULL;
+            }
 
             // Destroy ports
             for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
@@ -611,6 +638,8 @@ namespace lsp
         {
             jack::Wrapper *_this        = static_cast<jack::Wrapper *>(arg);
             _this->pPlugin->set_sample_rate(nframes);
+            if (_this->pSamplePlayer != NULL)
+                _this->pSamplePlayer->set_sample_rate(nframes);
             _this->sPosition.sampleRate = nframes;
             _this->bUpdateSettings      = true;
             return 0;
@@ -968,6 +997,11 @@ namespace lsp
             bool prev = bUIActive;
             bUIActive = active;
             return prev;
+        }
+
+        core::SamplePlayer *Wrapper::sample_player()
+        {
+            return pSamplePlayer;
         }
     } /* namespace jack */
 } /* namespace lsp */

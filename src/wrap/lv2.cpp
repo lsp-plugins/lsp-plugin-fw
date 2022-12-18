@@ -360,10 +360,9 @@ namespace lsp
             lsp_trace("generated %d descriptors:", int(result.size()));
             for (size_t i=0, n=result.size(); i<n; ++i)
             {
-                LV2_Descriptor *d = descriptors.uget(i);
+                LV2_Descriptor *d = result.uget(i);
                 lsp_trace("[%4d] %p: %s", int(i), d, d->URI);
             }
-            lsp_trace("generated %d descriptors:", int(result.size()));
         #endif /* LSP_TRACE */
 
             // Commit the generated list to the global descriptor list

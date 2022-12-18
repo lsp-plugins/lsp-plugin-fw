@@ -8,6 +8,7 @@
 * Extended possibilities of configuration export: now passing configuration serializer is possible.
 * Fixed possible concurrency problems on LADSPA/LV2/LV2UI library initialization.
 * Fixed possible cases of access to the deallocated memory when working with the SwitchedPort port.
+* Added possibility to preview the audio file contents in the file dialog.
 
 === 1.0.6 ===
 * Fixed Clang warnings and errors.

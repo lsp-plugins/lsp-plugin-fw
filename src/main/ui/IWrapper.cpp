@@ -62,6 +62,7 @@ namespace lsp
             SWITCH(UI_SCALING_HOST_ID, "Prefer host-reported UI scale factor", 1.0f),
             KNOB(UI_FONT_SCALING_PORT_ID, "Manual UI font scaling factor", U_PERCENT, 50.0f, 200.0f, 100.0f, 1.0f),
             PATH(UI_VISUAL_SCHEMA_FILE_ID, "Current visual schema file used by the UI"),
+            SWITCH(UI_PREVIEW_AUTO_PLAY_ID, "Enable automatic playback of the audio file in the file preview part of the file open dialog", 0.0f),
             PORTS_END
         };
 
@@ -84,12 +85,14 @@ namespace lsp
     {
         IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
         {
-            pDisplay    = NULL;
-            wWindow     = NULL;
-            pWindow     = NULL;
-            pUI         = ui;
-            pLoader     = loader;
-            nFlags      = 0;
+            pDisplay        = NULL;
+            wWindow         = NULL;
+            pWindow         = NULL;
+            pUI             = ui;
+            pLoader         = loader;
+            nFlags          = 0;
+            nPlayPosition   = 0;
+            nPlayLength     = 0;
 
             plug::position_t::init(&sPosition);
         }
@@ -104,6 +107,9 @@ namespace lsp
 
         void IWrapper::destroy()
         {
+            // Flush list of playback listeners
+            vPlayListeners.flush();
+
             // Flush list of 'Schema reloaded' handlers
             vSchemaListeners.flush();
 
@@ -1894,7 +1900,57 @@ namespace lsp
 
             return STATUS_OK;
         }
-    }
+
+        status_t IWrapper::play_file(const char *file, wsize_t position, bool release)
+        {
+            lsp_trace("file=%s, position=%lld, release=%s",
+                file, (long long)(position), (release) ? "true" : "false");
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IWrapper::play_subscribe(IPlayListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            if (vPlayListeners.contains(listener))
+                return STATUS_ALREADY_BOUND;
+            if (!vPlayListeners.add(listener))
+                return STATUS_NO_MEM;
+
+            listener->play_position_update(nPlayPosition, nPlayLength);
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::play_unsubscribe(IPlayListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            if (!vPlayListeners.contains(listener))
+                return STATUS_NOT_BOUND;
+            if (!vPlayListeners.premove(listener))
+                return STATUS_NO_MEM;
+            return STATUS_OK;
+        }
+
+        void IWrapper::notify_play_position(wssize_t position, wssize_t length)
+        {
+            if ((nPlayPosition == position) && (nPlayLength == length))
+                return;
+
+            lltl::parray<ui::IPlayListener> listeners;
+            listeners.add(vPlayListeners);
+            for (size_t i=0; i<vPlayListeners.size(); ++i)
+            {
+                ui::IPlayListener *listener = vPlayListeners.uget(i);
+                if (listener != NULL)
+                    listener->play_position_update(position, length);
+            }
+
+            nPlayPosition   = position;
+            nPlayLength     = length;
+        }
+
+    } /* namespace ui */
 } /* namespace lsp */
 
 
