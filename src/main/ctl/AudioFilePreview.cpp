@@ -90,12 +90,14 @@ namespace lsp
         void AudioFilePreview::activate()
         {
             pWrapper->play_subscribe(this);
+            sFile.clear();
             unselect_file();
         }
 
         void AudioFilePreview::deactivate()
         {
             pWrapper->play_unsubscribe(this);
+            sFile.clear();
             unselect_file();
         }
 
@@ -182,6 +184,7 @@ namespace lsp
             status_t res;
             if ((file == NULL) || (file->is_empty()) || (!file->is_reg()))
             {
+                sFile.clear();
                 unselect_file();
                 return;
             }
@@ -293,6 +296,10 @@ namespace lsp
             {
                 case PS_PLAY:
                 {
+                    // Do not change state if current file is empty
+                    if (sFile.is_empty())
+                        break;
+
                     wsize_t position = compute_valid_play_position(nPlayPosition);
                     wsize_t file_len = lsp_max(nFileLength, 0);
                     set_play_position(position, file_len);
