@@ -42,7 +42,7 @@ namespace lsp
 
             nPlayPosition   = 0;
             nFileLength     = 0;
-            bPlaying        = false;
+            enState         = PS_STOP;
         }
 
         AudioFilePreview::~AudioFilePreview()
@@ -106,7 +106,7 @@ namespace lsp
             set_localized("sample_format", NULL);
             set_localized("duration", NULL);
 
-            update_play_button(false);
+            change_state(PS_STOP);
             pWrapper->play_file(NULL, 0, true);
         }
 
@@ -255,51 +255,27 @@ namespace lsp
             set_localized("sample_format", sfmt_key.get_utf8());
             set_localized("duration", lc_key, &tparams);
 
-            // Updatte the playback fader
-            play_position_update(0, info.frames);
-
             // Check the auyo-play option and trigger DSP backend for the file playback
-            ui::IPort *p = pWrapper->port(UI_PREVIEW_AUTO_PLAY_PORT);
-            if ((p != NULL) && (p->value() >= 0.5f))
-            {
-                update_play_button(true);
-                pWrapper->play_file(file->as_utf8(), 0, false);
-            }
-            else
-            {
-                update_play_button(false);
-                pWrapper->play_file(NULL, 0, true);
-            }
+            ui::IPort *p    = pWrapper->port(UI_PREVIEW_AUTO_PLAY_PORT);
+            nPlayPosition   = 0;
+            nFileLength     = info.frames;
+            change_state(((p != NULL) && (p->value() >= 0.5f)) ? PS_PLAY : PS_STOP);
         }
 
-        void AudioFilePreview::play_position_update(wssize_t position, wssize_t length)
+        void AudioFilePreview::set_play_position(wssize_t position, wssize_t length)
         {
-            // Commit values only when playing
-            if (bPlaying)
-            {
-                nPlayPosition   = lsp_max(position, 0);
-                nFileLength     = length;
-
-                // Commit the playback position
-                tk::Fader *pf = vWidgets.get<tk::Fader>("play_position");
-                if (pf != NULL)
-                {
-                    pf->value()->set_all(nPlayPosition, 0, nFileLength);
-                    pf->step()->set(1.0f);
-                }
-            }
-
-            // Playback has stopped?
-            if (position < 0)
-                update_play_button(false);
-        }
-
-        void AudioFilePreview::update_play_button(bool playing)
-        {
-            if (bPlaying == playing)
+            // Commit the playback position
+            tk::Fader *pf = vWidgets.get<tk::Fader>("play_position");
+            if (pf == NULL)
                 return;
-            bPlaying = playing;
 
+            pf->value()->set_all(position, 0, length);
+            pf->step()->set(1.0f);
+        }
+
+        void AudioFilePreview::update_play_button(play_state_t new_state)
+        {
+            bool playing    = new_state == PS_PLAY;
             tk::Button *btn = vWidgets.get<tk::Button>("play_pause");
             if (btn == NULL)
                 return;
@@ -308,24 +284,94 @@ namespace lsp
             btn->text()->set(lc_key);
         }
 
+        void AudioFilePreview::change_state(play_state_t state)
+        {
+            if (enState == state)
+                return;
+
+            switch (state)
+            {
+                case PS_PLAY:
+                {
+                    wsize_t position = compute_valid_play_position(nPlayPosition);
+                    wsize_t file_len = lsp_max(nFileLength, 0);
+                    set_play_position(position, file_len);
+                    update_play_button(state);
+
+                    enState = state;
+                    pWrapper->play_file(sFile.as_utf8(), position, true);
+                    break;
+                }
+                case PS_PAUSE:
+                    update_play_button(state);
+                    enState = state;
+                    pWrapper->play_file(NULL, 0, false);
+                    break;
+
+                case PS_STOP:
+                {
+                    nPlayPosition       = 0;
+                    wssize_t file_len   = lsp_max(nFileLength, 0);
+                    set_play_position(nPlayPosition, file_len);
+                    update_play_button(state);
+
+                    enState = state;
+                    pWrapper->play_file(NULL, 0, false);
+                    break;
+                }
+
+                default:
+                    break;
+            }
+        }
+
+        void AudioFilePreview::play_position_update(wssize_t position, wssize_t length)
+        {
+            // Commit values only when playing
+            lsp_trace("position=%lld, length=%lld", (long long)position, (long long)length);
+
+            switch (enState)
+            {
+                case PS_PLAY:
+                    if ((position >= 0) && (length >= 0))
+                    {
+                        nPlayPosition   = position;
+                        nFileLength     = length;
+                        set_play_position(position, length);
+                    }
+                    else
+                        change_state(PS_STOP);
+                    break;
+
+                case PS_PAUSE:
+                    break;
+
+                case PS_STOP:
+                {
+                    nPlayPosition       = 0;
+                    wssize_t file_len   = lsp_max(nFileLength, 0);
+                    set_play_position(nPlayPosition, file_len);
+                    break;
+                }
+
+                default:
+                    break;
+            }
+        }
+
         void AudioFilePreview::on_play_pause_submitted()
         {
-            if (bPlaying)
-                pWrapper->play_file(NULL, 0, false);
-            else
-                pWrapper->play_file(sFile.as_utf8(), nPlayPosition, false);
-
-            update_play_button(!bPlaying);
+            change_state((enState == PS_PLAY) ? PS_PAUSE : PS_PLAY);
         }
 
         void AudioFilePreview::on_stop_submitted()
         {
-            // Stop the playback
-            if (!bPlaying)
-                return;
+            change_state(PS_STOP);
+        }
 
-            pWrapper->play_file(NULL, 0, false);
-            play_position_update(-1, nFileLength);
+        wsize_t AudioFilePreview::compute_valid_play_position(wssize_t position)
+        {
+            return (nFileLength >= 0) ? lsp_limit(position, 0, nFileLength-1) : 0;
         }
 
         void AudioFilePreview::on_play_position_changed()
@@ -339,10 +385,16 @@ namespace lsp
             if (pf != NULL)
                 position = pf->value()->get();
 
-            if (bPlaying)
-                pWrapper->play_file(sFile.as_utf8(), position, false);
-            else
-                nPlayPosition = position;
+            switch (enState)
+            {
+                case PS_PLAY:
+                    pWrapper->play_file(sFile.as_utf8(), compute_valid_play_position(position), false);
+                    break;
+
+                default:
+                    nPlayPosition = position;
+                    break;
+            }
         }
 
         tk::handler_id_t AudioFilePreview::bind_slot(const char *id, tk::slot_t slot, tk::event_handler_t handler)

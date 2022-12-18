@@ -923,7 +923,7 @@ namespace lsp
                             release             = (reinterpret_cast<LV2_Atom_Long *>(&body->value))->body != 0;
                     }
 
-                    // Submit the playback request
+                    // Submit the playback request and make the play position out-of-sync
                     pSamplePlayer->play_sample(position, release);
                 }
             }

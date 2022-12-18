@@ -545,7 +545,10 @@ namespace lsp
         {
             core::SamplePlayer *p = pWrapper->sample_player();
             if (p != NULL)
+            {
+                // Trigger playback and force the position to become out-of-sync
                 p->play_sample(file, position, release);
+            }
             return STATUS_OK;
         }
     } /* namespace vst2 */
