@@ -56,20 +56,22 @@ namespace lsp
 
             public:
                 explicit UIWrapper(ui::Module *ui, vst2::Wrapper *wrapper);
-                virtual ~UIWrapper();
+                virtual ~UIWrapper() override;
 
-                virtual status_t                init(void *root_widget);
-                virtual void                    destroy();
+                virtual status_t                init(void *root_widget) override;
+                virtual void                    destroy() override;
 
             public:
-                virtual core::KVTStorage       *kvt_lock();
-                virtual core::KVTStorage       *kvt_trylock();
-                virtual bool                    kvt_release();
+                virtual core::KVTStorage       *kvt_lock() override;
+                virtual core::KVTStorage       *kvt_trylock() override;
+                virtual bool                    kvt_release() override;
 
-                virtual void                    dump_state_request();
-                virtual void                    main_iteration();
+                virtual void                    dump_state_request() override;
+                virtual void                    main_iteration() override;
 
-                virtual const meta::package_t  *package() const;
+                virtual const meta::package_t  *package() const override;
+
+                virtual status_t                play_file(const char *file, wsize_t position, bool release) override;
 
             public:
                 bool                            show_ui();

@@ -113,23 +113,23 @@ namespace lsp
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader);
-                virtual ~Wrapper();
+                virtual ~Wrapper() override;
 
                 status_t                            init();
                 void                                destroy();
 
             public:
-                virtual ipc::IExecutor             *executor();
+                virtual ipc::IExecutor             *executor() override;
 
-                virtual void                        query_display_draw();
+                virtual void                        query_display_draw() override;
 
-                virtual core::KVTStorage           *kvt_lock();
+                virtual core::KVTStorage           *kvt_lock() override;
 
-                virtual core::KVTStorage           *kvt_trylock();
+                virtual core::KVTStorage           *kvt_trylock() override;
 
-                virtual bool                        kvt_release();
+                virtual bool                        kvt_release() override;
 
-                virtual const meta::package_t      *package() const;
+                virtual const meta::package_t      *package() const override;
 
             public:
                 inline jack_client_t               *client();

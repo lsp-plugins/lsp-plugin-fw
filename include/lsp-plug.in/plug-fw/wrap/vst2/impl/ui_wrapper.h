@@ -23,6 +23,8 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_VST2_IMPL_UI_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+
+#include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/ui_ports.h>
 
@@ -527,6 +529,14 @@ namespace lsp
             // No plugin has been found
             fprintf(stderr, "Not found UI for plugin: %s, will continue in headless mode\n", vst2_uid);
             return NULL;
+        }
+
+        status_t UIWrapper::play_file(const char *file, wsize_t position, bool release)
+        {
+            core::SamplePlayer *p = pWrapper->sample_player();
+            if (p != NULL)
+                p->play_sample(file, position, release);
+            return STATUS_OK;
         }
     } /* namespace vst2 */
 } /* namespace lsp */
