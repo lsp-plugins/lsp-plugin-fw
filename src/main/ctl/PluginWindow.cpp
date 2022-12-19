@@ -62,7 +62,7 @@ namespace lsp
                 return STATUS_NOT_BOUND;
 
             io::InStringSequence is(text);
-            return wrapper->import_settings(&is, false);
+            return wrapper->import_settings(&is, ui::IMPORT_FLAG_NONE);
         }
 
         //-----------------------------------------------------------------
@@ -97,6 +97,7 @@ namespace lsp
             wExport         = NULL;
             wImport         = NULL;
             wPreferHost     = NULL;
+            wRelPaths       = NULL;
 
             pPVersion       = NULL;
             pPBypass        = NULL;
@@ -846,16 +847,12 @@ namespace lsp
                     free(resources);
                     return STATUS_BAD_STATE;
                 }
-                if (!tmp.equals_ascii("preset"))
+
+                if ((!tmp.equals_ascii("patch")) && (!tmp.equals_ascii("preset")))
                     continue;
 
                 // Add preset file to result
-                if (path.get_noext(&tmp) != STATUS_OK)
-                {
-                    free(resources);
-                    return STATUS_BAD_STATE;
-                }
-                strncpy(item->name, tmp.get_utf8(), resource::RESOURCE_NAME_MAX);
+                strncpy(item->name, path.get(), resource::RESOURCE_NAME_MAX);
                 item->name[resource::RESOURCE_NAME_MAX-1] = '\0';
                 if (!presets->add(item))
                 {
@@ -872,6 +869,7 @@ namespace lsp
 
         status_t PluginWindow::init_presets(tk::Menu *menu)
         {
+            status_t res;
             if (menu == NULL)
                 return STATUS_OK;
 
@@ -898,17 +896,26 @@ namespace lsp
             item->menu()->set(menu);
 
             preset_sel_t *sel;
+            io::Path path;
+            LSPString tmp;
 
             for (size_t i=0, n=presets.size(); i<n; ++i)
             {
                 // Enumerate next backend information
                 const resource::resource_t *preset = presets.uget(i);
+                if ((res = path.set(preset->name)) != STATUS_OK)
+                    return res;
 
                 // Create menu item
                 if ((item = create_menu_item(menu)) == NULL)
                     return STATUS_NO_MEM;
 
-                item->text()->set_raw(preset->name);
+                // Get name of the preset/patch without an extension
+                if ((res = path.get_noext(&tmp)) != STATUS_OK)
+                    return res;
+                item->text()->set_raw(&tmp);
+                if ((res = path.get_ext(&tmp)) != STATUS_OK)
+                    return res;
 
                 // Create backend information
                 if ((sel = new preset_sel_t()) == NULL)
@@ -916,7 +923,8 @@ namespace lsp
 
                 sel->ctl    = this;
                 sel->item   = item;
-                sel->location.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s/%s.preset", metadata->ui_presets, preset->name);
+                sel->patch  = tmp.equals_ascii("patch");
+                sel->location.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s/%s", metadata->ui_presets, preset->name);
 
                 if (!vPresetSel.add(sel))
                 {
@@ -1106,7 +1114,10 @@ namespace lsp
                 return STATUS_BAD_ARGUMENTS;
 
             lsp_trace("Loading preset %s", sel->location.get_native());
-            sel->ctl->pWrapper->import_settings(&sel->location, true);
+            size_t flags = ui::IMPORT_FLAG_PRESET;
+            if (sel->patch)
+                flags      |= ui::IMPORT_FLAG_PATCH;
+            sel->ctl->pWrapper->import_settings(&sel->location, flags);
 
             return STATUS_OK;
         }
@@ -1335,7 +1346,7 @@ namespace lsp
 
                 create_config_filters(dlg);
 
-                // Add 'Relative paths' option
+                // Add 'Relative paths' option if present
                 tk::Box *wc = new tk::Box(dpy);
                 _this->widgets()->add(wc);
                 wc->init();
@@ -1354,6 +1365,8 @@ namespace lsp
                     tk::CheckBox *ck_rpath  = new tk::CheckBox(dpy);
                     _this->widgets()->add(ck_rpath);
                     ck_rpath->init();
+                    ck_rpath->slots()->bind(tk::SLOT_SUBMIT, slot_relative_path_changed, _this);
+                    _this->wRelPaths        = ck_rpath;
                     op_rpath->add(ck_rpath);
 
                     // Add label
@@ -1361,7 +1374,8 @@ namespace lsp
                     _this->widgets()->add(lbl_rpath);
                     lbl_rpath->init();
 
-                    lbl_rpath->allocation()->set_expand(true);
+                    lbl_rpath->allocation()->set_hexpand(true);
+                    lbl_rpath->allocation()->set_hfill(true);
                     lbl_rpath->text_layout()->set_halign(-1.0f);
                     lbl_rpath->text()->set("labels.relative_paths");
                     op_rpath->add(lbl_rpath);
@@ -1378,6 +1392,12 @@ namespace lsp
                 dlg->slots()->bind(tk::SLOT_HIDE, slot_commit_path, _this);
             }
 
+            // Initialize and show the window
+            if ((_this->wRelPaths != NULL) && (_this->pRelPaths != NULL))
+            {
+                bool checked = _this->pRelPaths->value() >= 0.5f;
+                _this->wRelPaths->checked()->set(checked);
+            }
             dlg->show(_this->wWidget);
             return STATUS_OK;
         }
@@ -1635,7 +1655,7 @@ namespace lsp
             status_t res = _this->wImport->selected_file()->format(&path);
 
             if (res == STATUS_OK)
-                _this->pWrapper->import_settings(&path, false);
+                _this->pWrapper->import_settings(&path, ui::IMPORT_FLAG_NONE);
 
             return STATUS_OK;
         }
@@ -2202,7 +2222,27 @@ namespace lsp
 
             return STATUS_OK;
         }
-    }
-}
+
+        status_t PluginWindow::slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+            if (_this->pRelPaths == NULL)
+                return STATUS_OK;
+
+            tk::CheckBox *ck_box = tk::widget_cast<tk::CheckBox>(sender);
+            if (ck_box == NULL)
+                return STATUS_OK;
+
+            float value = ck_box->checked()->get() ? 1.0f : 0.0f;
+            _this->pRelPaths->set_value(value);
+            _this->pRelPaths->notify_all();
+
+            return STATUS_OK;
+        }
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

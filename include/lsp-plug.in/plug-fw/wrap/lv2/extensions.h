@@ -97,6 +97,17 @@ namespace lsp
                 LV2UI_Resize           *ui_resize;
                 lv2::Wrapper           *pWrapper;
 
+                LV2UI_Controller        ctl;
+                LV2UI_Write_Function    wf;
+                ssize_t                 nAtomIn;            // Atom input port identifier
+                ssize_t                 nAtomOut;           // Atom output port identifier
+                size_t                  nMaxBlockLength;    // Maximum size of audio block passed to plugin
+                float                   fUIScaleFactor;     // UI scale factor
+                uint8_t                *pBuffer;            // Atom serialization buffer
+                size_t                  nBufSize;           // Atom serialization buffer size
+                float                   fUIRefreshRate;     // UI refresh rate
+                void                   *pParentWindow;      // Parent window handle
+
                 // State interface
                 LV2_State_Store_Function    hStore;
                 LV2_State_Retrieve_Function hRetrieve;
@@ -117,6 +128,8 @@ namespace lsp
                 LV2_URID                uridUINotification;
                 LV2_URID                uridConnectUI;
                 LV2_URID                uridDisconnectUI;
+                LV2_URID                uridPlaySample;
+                LV2_URID                uridPlayPositionUpdate;
                 LV2_URID                uridDumpState;
                 LV2_URID                uridPathType;
                 LV2_URID                uridMidiEventType;
@@ -194,16 +207,13 @@ namespace lsp
                 LV2_URID                uridStreamFrameSize;        // Size of frame
                 LV2_URID                uridStreamFrameData;        // Frame data
 
-                LV2UI_Controller        ctl;
-                LV2UI_Write_Function    wf;
-                ssize_t                 nAtomIn;            // Atom input port identifier
-                ssize_t                 nAtomOut;           // Atom output port identifier
-                size_t                  nMaxBlockLength;    // Maximum size of audio block passed to plugin
-                float                   fUIScaleFactor;     // UI scale factor
-                uint8_t                *pBuffer;            // Atom serialization buffer
-                size_t                  nBufSize;           // Atom serialization buffer size
-                float                   fUIRefreshRate;     // UI refresh rate
-                void                   *pParentWindow;      // Parent window handle
+                LV2_URID                uridPlayRequestType;
+                LV2_URID                uridPlayRequestFileName;
+                LV2_URID                uridPlayRequestPosition;
+                LV2_URID                uridPlayRequestRelease;
+                LV2_URID                uridPlayPositionType;
+                LV2_URID                uridPlayPositionPosition;
+                LV2_URID                uridPlayPositionLength;
 
             public:
                 inline Extensions(
@@ -216,14 +226,31 @@ namespace lsp
                 {
                     map                 = NULL;
                     unmap               = NULL;
-                    ui_resize           = NULL;
                     sched               = NULL;
                     iDisplay            = NULL;
                     mapPath             = NULL;
-                    pParentWindow       = NULL;
+                    ui_resize           = NULL;
                     pWrapper            = NULL;
-                    fUIRefreshRate      = MESH_REFRESH_RATE;
+
+                    ctl                 = lv2_ctl;
+                    wf                  = lv2_write;
+                    nAtomIn             = -1;
+                    nAtomOut            = -1;
                     nMaxBlockLength     = LV2PORT_MAX_BLOCK_LENGTH;
+                    fUIScaleFactor      = 1.0f;
+                    pBuffer             = NULL;
+                    nBufSize            = 0;
+                    fUIRefreshRate      = MESH_REFRESH_RATE;
+                    pParentWindow       = NULL;
+
+                    // State interface
+                    hStore              = NULL;
+                    hRetrieve           = NULL;
+                    hHandle             = NULL;
+
+                    uriPlugin           = plugin_uri;
+                    uriTypes            = types_uri;
+                    uriKvt              = kvt_uri;
 
                     const LV2_Options_Option *opts = NULL;
 
@@ -263,16 +290,6 @@ namespace lsp
                     }
 
                     // Initialize basic URIDs
-                    ctl                         = lv2_ctl;
-                    wf                          = lv2_write;
-                    nAtomIn                     = -1;
-                    nAtomOut                    = -1;
-                    pBuffer                     = NULL;
-                    nBufSize                    = 0;
-
-                    uriPlugin                   = plugin_uri;
-                    uriTypes                    = types_uri;
-                    uriKvt                      = kvt_uri;
                     uridPlugin                  = (map != NULL) ? map->map(map->handle, uriPlugin) : -1;
 
                     if (map != NULL)
@@ -286,6 +303,8 @@ namespace lsp
                     uridUINotification          = map_type_legacy("UINotification");
                     uridConnectUI               = map_primitive("ui_connect");
                     uridDisconnectUI            = map_primitive("ui_disconnect");
+                    uridPlaySample              = map_primitive("play_sample");
+                    uridPlayPositionUpdate      = map_primitive("play_position_update");
                     uridDumpState               = map_primitive("dumpState");
                     uridPathType                = forge.Path;
                     uridMidiEventType           = map_uri(LV2_MIDI__MidiEvent);
@@ -363,6 +382,14 @@ namespace lsp
                     uridStreamFrameId           = map_field("StreamFrame", "id");
                     uridStreamFrameSize         = map_field("StreamFrame", "size");
                     uridStreamFrameData         = map_field("StreamFrame", "data");
+
+                    uridPlayRequestType         = map_type("PlayRequest");
+                    uridPlayRequestFileName     = map_field("PlayRequest", "fileName");
+                    uridPlayRequestPosition     = map_field("PlayRequest", "position");
+                    uridPlayRequestRelease      = map_field("PlayRequest", "release");
+                    uridPlayPositionType        = map_type("PlayPosition");
+                    uridPlayPositionPosition    = map_field("PlayPosition", "position");
+                    uridPlayPositionLength      = map_field("PlayPosition", "length");
 
                     // Decode passed options if they are present
                     if (opts != NULL)
@@ -588,6 +615,12 @@ namespace lsp
                     return lv2_atom_forge_primitive(&forge, &a.atom);
                 }
 
+                inline LV2_Atom_Forge_Ref forge_bool(int32_t val)
+                {
+                    const LV2_Atom_Bool a = {{sizeof(int32_t), forge.Bool}, val ? 1 : 0};
+                    return lv2_atom_forge_primitive(&forge, &a.atom);
+                }
+
                 inline void forge_pad(size_t size)
                 {
                     lv2_atom_forge_pad(&forge, size);
@@ -793,7 +826,7 @@ namespace lsp
                     if (pWrapper != NULL)
                         return;
 
-                    // Prepare ofrge for transfer
+                    // Prepare forge for transfer
                     LV2_Atom_Forge_Frame    frame;
                     forge_set_buffer(pBuffer, nBufSize);
 
@@ -819,6 +852,29 @@ namespace lsp
                     forge_urid(p->get_urid());
                     forge_key(uridPatchValue);
                     p->serialize();
+                    forge_pop(&frame);
+
+                    write_data(nAtomOut, lv2_atom_total_size(msg), uridEventTransfer, msg);
+                    return true;
+                }
+
+                bool ui_play_sample(const char *name, wsize_t position, bool release)
+                {
+                    if (map == NULL)
+                        return false;
+
+                    // Forge PATCH SET message
+                    LV2_Atom_Forge_Frame    frame;
+                    forge_set_buffer(pBuffer, nBufSize);
+
+                    forge_frame_time(0);
+                    LV2_Atom *msg = forge_object(&frame, uridPlaySample, uridPlayRequestType);
+                    forge_key(uridPlayRequestFileName);
+                    forge_path(name);
+                    forge_key(uridPlayRequestPosition);
+                    forge_long(position);
+                    forge_key(uridPlayRequestRelease);
+                    forge_bool(release);
                     forge_pop(&frame);
 
                     write_data(nAtomOut, lv2_atom_total_size(msg), uridEventTransfer, msg);
@@ -899,7 +955,7 @@ namespace lsp
         }
 
         #undef PATCH_OVERHEAD
-    }
-}
+    } /* namespace lv2 */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_LV2_EXTENSIONS_H_ */

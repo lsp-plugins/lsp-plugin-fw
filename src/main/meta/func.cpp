@@ -75,6 +75,7 @@ namespace lsp
             { "dB",     "units.db" },
             { "G",      "units.gain" },
             { "G",      "units.gain" },
+            { "Np",     "units.neper" },
 
             { "°",      "units.deg" },
             { "°C",     "units.degc" },

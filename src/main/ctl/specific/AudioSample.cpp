@@ -26,6 +26,8 @@
 #include <lsp-plug.in/io/InStringSequence.h>
 #include <lsp-plug.in/expr/Tokenizer.h>
 
+#include <private/ctl/AudioFilePreview.h>
+
 namespace lsp
 {
     namespace ctl
@@ -180,9 +182,12 @@ namespace lsp
             pMeshPort       = NULL;
             pPathPort       = NULL;
             pDialog         = NULL;
+            pFilePreview    = NULL;
             pMenu           = NULL;
             pDataSink       = NULL;
             pDragInSink     = NULL;
+            bFullSample     = false;
+            bLoadPreview    = false;
         }
 
         AudioSample::~AudioSample()
@@ -246,6 +251,9 @@ namespace lsp
                 sWaveBorder.init(pWrapper, as->wave_border());
                 sFadeInBorder.init(pWrapper, as->fade_in_border());
                 sFadeOutBorder.init(pWrapper, as->fade_out_border());
+                sStretchBorder.init(pWrapper, as->stretch_border());
+                sLoopBorder.init(pWrapper, as->loop_border());
+                sPlayBorder.init(pWrapper, as->play_border());
                 sLineWidth.init(pWrapper, as->line_width());
                 sMainText.init(pWrapper, as->main_text());
                 sLabelRadius.init(pWrapper, as->label_radius());
@@ -264,13 +272,26 @@ namespace lsp
                 sTailCut.init(pWrapper, this);
                 sFadeIn.init(pWrapper, this);
                 sFadeOut.init(pWrapper, this);
+                sStretch.init(pWrapper, this);
+                sStretchBegin.init(pWrapper, this);
+                sStretchEnd.init(pWrapper, this);
+                sLoop.init(pWrapper, this);
+                sLoopBegin.init(pWrapper, this);
+                sLoopEnd.init(pWrapper, this);
+                sPlayPosition.init(pWrapper, this);
                 sLength.init(pWrapper, this);
+                sActualLength.init(pWrapper, this);
 
                 sColor.init(pWrapper, as->color());
                 sBorderColor.init(pWrapper, as->border_color());
                 sGlassColor.init(pWrapper, as->glass_color());
                 sLineColor.init(pWrapper, as->line_color());
                 sMainColor.init(pWrapper, as->main_color());
+                sStretchColor.init(pWrapper, as->stretch_color());
+                sStretchBorderColor.init(pWrapper, as->stretch_border_color());
+                sLoopColor.init(pWrapper, as->loop_color());
+                sLoopBorderColor.init(pWrapper, as->loop_border_color());
+                sPlayColor.init(pWrapper, as->play_color());
                 sLabelBgColor.init(pWrapper, as->label_bg_color());
 
                 for (size_t i=0; i<tk::AudioSample::LABELS; ++i)
@@ -300,6 +321,19 @@ namespace lsp
             }
 
             return STATUS_OK;
+        }
+
+        void AudioSample::destroy()
+        {
+            // Destroy the file preview
+            if (pFilePreview != NULL)
+            {
+                pFilePreview->destroy();
+                delete pFilePreview;
+                pFilePreview = NULL;
+            }
+
+            ctl::Widget::destroy();
         }
 
         tk::MenuItem *AudioSample::create_menu_item(tk::Menu *menu)
@@ -379,9 +413,21 @@ namespace lsp
                 set_expr(&sTailCut, "tcut", name, value);
                 set_expr(&sFadeIn, "fade_in", name, value);
                 set_expr(&sFadeIn, "fadein", name, value);
+                set_expr(&sFadeIn, "fade.in", name, value);
                 set_expr(&sFadeOut, "fade_out", name, value);
                 set_expr(&sFadeOut, "fadeout", name, value);
+                set_expr(&sFadeOut, "fade.out", name, value);
+                set_expr(&sStretch, "stretch.enable", name, value);
+                set_expr(&sStretch, "stretch.enabled", name, value);
+                set_expr(&sStretchBegin, "stretch.begin", name, value);
+                set_expr(&sStretchEnd, "stretch.end", name, value);
+                set_expr(&sLoop, "loop.enable", name, value);
+                set_expr(&sLoop, "loop.enabled", name, value);
+                set_expr(&sLoopBegin, "loop.begin", name, value);
+                set_expr(&sLoopEnd, "loop.end", name, value);
+                set_expr(&sPlayPosition, "play.position", name, value);
                 set_expr(&sLength, "length", name, value);
+                set_expr(&sActualLength, "length.actual", name, value);
 
                 sWaveBorder.set("wave.border", name, value);
                 sWaveBorder.set("wborder", name, value);
@@ -402,6 +448,8 @@ namespace lsp
 
                 sIPadding.set("ipadding", name, value);
 
+                set_value(&bFullSample, "sample.full", name, value);
+                set_value(&bLoadPreview, "load.preview", name, value);
                 set_constraints(as->constraints(), name, value);
                 set_text_layout(as->main_text_layout(), "text.layout.main", name, value);
                 set_text_layout(as->main_text_layout(), "tlayout.main", name, value);
@@ -452,6 +500,10 @@ namespace lsp
                 sLineColor.set("line.color", name, value);
                 sMainColor.set("main.color", name, value);
                 sLabelBgColor.set("label.bg.color", name, value);
+                sStretchColor.set("stretch.color", name, value);
+                sStretchBorderColor.set("stretch.border.color", name, value);
+                sLoopColor.set("loop.color", name, value);
+                sLoopBorderColor.set("loop.border.color", name, value);
 
                 // Parse file formats
                 if ((!strcmp(name, "format")) || (!strcmp(name, "formats")) || (!strcmp(name, "fmt")))
@@ -473,8 +525,9 @@ namespace lsp
         void AudioSample::end(ui::UIContext *ctx)
         {
             sync_status();
-            sync_labels();
             sync_mesh();
+            sync_labels();
+            sync_markers();
 
             Widget::end(ctx);
         }
@@ -488,16 +541,27 @@ namespace lsp
             if (sStatus.depends(port))
                 sync_status();
 
+            if (port == pMeshPort)
+                sync_mesh();
+
             if ((port == pMeshPort) ||
                 (port == pPort) ||
                 (sFadeIn.depends(port)) ||
                 (sFadeOut.depends(port)) ||
+                (sStretch.depends(port)) ||
+                (sStretchBegin.depends(port)) ||
+                (sStretchEnd.depends(port)) ||
+                (sLoop.depends(port)) ||
+                (sLoopBegin.depends(port)) ||
+                (sLoopEnd.depends(port)) ||
+                (sPlayPosition.depends(port)) ||
                 (sHeadCut.depends(port)) ||
                 (sTailCut.depends(port)) ||
-                (sLength.depends(port)))
+                (sLength.depends(port)) ||
+                (sActualLength.depends(port)))
             {
-                sync_mesh();
                 sync_labels();
+                sync_markers();
             }
         }
 
@@ -574,18 +638,30 @@ namespace lsp
                 tk::String *dst = as->label(i);
                 expr::Parameters *p = dst->params();
 
-                float length   = sLength.evaluate_float();
-                float head_cut = sHeadCut.evaluate_float();
-                float tail_cut = sTailCut.evaluate_float();
-                float fade_in  = sFadeIn.evaluate_float();
-                float fade_out = sFadeOut.evaluate_float();
+                float length    = sLength.evaluate_float();
+                float head_cut  = sHeadCut.evaluate_float();
+                float tail_cut  = sTailCut.evaluate_float();
+                float length_cut= lsp_max(0.0f, length - head_cut - tail_cut);
+                float actual_len= sActualLength.evaluate_float(length_cut);
+                float fade_in   = sFadeIn.evaluate_float();
+                float fade_out  = sFadeOut.evaluate_float();
+                float s_begin   = sStretchBegin.evaluate_float();
+                float s_end     = sStretchEnd.evaluate_float();
+                float l_begin   = sLoopBegin.evaluate_float();
+                float l_end     = sLoopEnd.evaluate_float();
+                float pp        = sPlayPosition.evaluate_float();
 
                 p->set_float("length", length);
                 p->set_float("head_cut", head_cut);
                 p->set_float("tail_cut", tail_cut);
-                p->set_float("length_cut", lsp_max(0.0f, length - head_cut - tail_cut));
+                p->set_float("length_cut", actual_len);
                 p->set_float("fade_in", fade_in);
                 p->set_float("fade_out", fade_out);
+                p->set_float("stretch_begin", s_begin);
+                p->set_float("stretch_end", s_end);
+                p->set_float("loop_begin", l_begin);
+                p->set_float("loop_end", l_end);
+                p->set_float("play_position", pp);
 
                 LSPString tmp;
                 p->set_string("file", fpath.as_string());
@@ -597,6 +673,94 @@ namespace lsp
                 p->set_string("file_ext", &tmp);
                 fpath.get_noext(&tmp);
                 p->set_string("file_noext", &tmp);
+            }
+        }
+
+        void AudioSample::sync_markers()
+        {
+            plug::mesh_t *mesh = (pMeshPort != NULL) ? pMeshPort->buffer<plug::mesh_t>() : NULL;
+            if (mesh == NULL)
+                return;
+
+            tk::AudioSample *as     = tk::widget_cast<tk::AudioSample>(wWidget);
+            if (as == NULL)
+                return;
+
+            size_t channels     = (mesh->nBuffers & 1) ? mesh->nBuffers + 1 : mesh->nBuffers;
+
+            // Synchronize mesh state
+            size_t samples  = mesh->nItems;
+            float length = 0.0f;
+            float head_cut = 0.0f, tail_cut = 0.0f;
+            float fade_in = 0.0f, fade_out = 0.0f;
+            float s_begin = -1.0f, s_end = -1.0f;
+            float l_begin = -1.0f, l_end = -1.0f;
+            float pp = sPlayPosition.evaluate_float(-1.0f);
+            bool s_on = sStretch.evaluate_bool(false);
+            bool l_on = sLoop.evaluate_bool(false);
+
+            if (bFullSample)
+            {
+                length      = sLength.evaluate_float();
+                float kl    = samples / length;
+
+                fade_in     = kl * sFadeIn.evaluate_float();
+                fade_out    = kl * sFadeOut.evaluate_float();
+                head_cut    = kl * sHeadCut.evaluate_float(0.0f);
+                tail_cut    = kl * sTailCut.evaluate_float(0.0f);
+                s_begin     = ((s_on) && (length > 0)) ? kl * sStretchBegin.evaluate_float(-1.0f) : -1.0f;
+                s_end       = ((s_on) && (length > 0)) ? kl * sStretchEnd.evaluate_float(-1.0f)   : -1.0f;
+                l_begin     = ((l_on) && (length > 0)) ? kl * sLoopBegin.evaluate_float(-1.0f)    : -1.0f;
+                l_end       = ((l_on) && (length > 0)) ? kl * sLoopEnd.evaluate_float(-1.0f)      : -1.0f;
+                pp          = ((pp >= 0) && (length > 0)) ? kl * pp : -1.0f;
+            }
+            else
+            {
+                length      = sLength.evaluate_float() - sHeadCut.evaluate_float() - sTailCut.evaluate_float();
+                float kl    = samples / length;
+
+                fade_in     = (length > 0) ? kl * sFadeIn.evaluate_float() : 0.0f;
+                fade_out    = (length > 0) ? kl * sFadeOut.evaluate_float() : 0.0f;
+                s_begin     = ((s_on) && (length > 0)) ? kl * sStretchBegin.evaluate_float(-1.0f) : -1.0f;
+                s_end       = ((s_on) && (length > 0)) ? kl * sStretchEnd.evaluate_float(-1.0f)   : -1.0f;
+                l_begin     = ((l_on) && (length > 0)) ? kl * sLoopBegin.evaluate_float(-1.0f) : -1.0f;
+                l_end       = ((l_on) && (length > 0)) ? kl * sLoopEnd.evaluate_float(-1.0f)   : -1.0f;
+                pp          = ((pp >= 0) && (length > 0)) ? kl * pp : -1.0f;
+            }
+
+            // Configure the values
+            if (s_begin >= 0.0f)
+                s_begin     = lsp_limit(s_begin, 0.0f, length);
+            if (s_end >= 0.0f)
+                s_end       = lsp_limit(s_end, 0.0f, length);
+            if (l_begin >= 0.0f)
+                l_begin     = lsp_limit(l_begin, 0.0f, length);
+            if (l_end >= 0.0f)
+                l_end       = lsp_limit(l_end, 0.0f, length);
+            if (s_end < s_begin)
+                lsp::swap(s_begin, s_end);
+            if (l_end < l_begin)
+                lsp::swap(l_begin, l_end);
+
+//            lsp_trace("head_cut=%f, tail_cut=%f, pp = %f", head_cut, tail_cut, pp);
+
+            for (size_t i=0; i<channels; ++i)
+            {
+                tk::AudioChannel *ac = as->channels()->get(i);
+                if (ac == NULL)
+                    continue;
+
+                // Update fades and markers
+                ac->fade_in()->set(fade_in);
+                ac->fade_out()->set(fade_out);
+                ac->stretch_begin()->set(s_begin);
+                ac->stretch_end()->set(s_end);
+                ac->loop_begin()->set(l_begin);
+                ac->loop_end()->set(l_end);
+                ac->head_cut()->set(head_cut);
+                ac->tail_cut()->set(tail_cut);
+                ac->play_position()->set(pp);
+//                lsp_trace("actual play position: %d", int(ac->play_position()->get()));
             }
         }
 
@@ -612,10 +776,11 @@ namespace lsp
 
             // Recreate channels
             as->channels()->clear();
-            size_t allocate = (mesh->nBuffers & 1) ? mesh->nBuffers + 1 : mesh->nBuffers;
+            size_t channels = (mesh->nBuffers & 1) ? mesh->nBuffers + 1 : mesh->nBuffers;
+            size_t samples  = mesh->nItems;
 
             // Add new managed channels
-            for (size_t i=0; i < allocate; ++i)
+            for (size_t i=0; i < channels; ++i)
             {
                 size_t src_idx = lsp_min(i, mesh->nBuffers-1);
 
@@ -630,6 +795,8 @@ namespace lsp
                     return;
                 }
 
+                ac->samples()->set(mesh->pvData[src_idx], samples);
+
                 // Inject style
                 LSPString style;
                 style.fmt_ascii("AudioSample::Channel%d", int(src_idx % 8) + 1);
@@ -638,54 +805,36 @@ namespace lsp
                 // Add audio channel as managed and increment counter
                 as->channels()->madd(ac);
             }
-
-            // Synchronize mesh state
-            size_t samples = mesh->nItems;
-            float length   = sLength.evaluate_float() - sHeadCut.evaluate_float() - sTailCut.evaluate_float();
-            float fade_in  = (length > 0) ? samples * (sFadeIn.evaluate_float() / length) : 0.0f;
-            float fade_out = (length > 0) ? samples * (sFadeOut.evaluate_float() / length) : 0.0f;
-
-            for (size_t i=0; i<allocate; ++i)
-            {
-                size_t src_idx = lsp_min(i, mesh->nBuffers-1);
-                tk::AudioChannel *ac = as->channels()->get(i);
-                if (ac == NULL)
-                    continue;
-
-                // Update mesh
-                ac->samples()->set(mesh->pvData[src_idx], samples);
-
-                // Update fades
-                ac->fade_in()->set(fade_in);
-                ac->fade_out()->set(fade_out);
-            }
         }
 
         void AudioSample::show_file_dialog()
         {
+            // Create dialog if it wasn't created previously
             if (pDialog == NULL)
             {
-                pDialog = new tk::FileDialog(wWidget->display());
-                if (pDialog == NULL)
+                tk::FileDialog *dlg = new tk::FileDialog(wWidget->display());
+                if (dlg == NULL)
                     return;
-                status_t res = pDialog->init();
+                lsp_finally {
+                    if (dlg != NULL)
+                    {
+                        dlg->destroy();
+                        delete dlg;
+                    }
+                };
+                status_t res = dlg->init();
                 if (res != STATUS_OK)
-                {
-                    pDialog->destroy();
-                    delete pDialog;
-                    pDialog = NULL;
                     return;
-                }
 
-                pDialog->title()->set("titles.load_audio_file");
-                pDialog->mode()->set(tk::FDM_OPEN_FILE);
+                dlg->title()->set("titles.load_audio_file");
+                dlg->mode()->set(tk::FDM_OPEN_FILE);
                 tk::FileMask *ffi;
 
                 // Add all listed formats
                 for (size_t i=0, n=vFormats.size(); i<n; ++i)
                 {
                     file_format_t *f = vFormats.uget(i);
-                    if ((ffi = pDialog->filter()->add()) != NULL)
+                    if ((ffi = dlg->filter()->add()) != NULL)
                     {
                         ffi->pattern()->set(f->filter, f->flags);
                         ffi->title()->set(f->title);
@@ -693,17 +842,53 @@ namespace lsp
                     }
                 }
 
-                pDialog->selected_filter()->set(0);
+                dlg->selected_filter()->set(0);
 
-                pDialog->action_text()->set("actions.load");
-                pDialog->slots()->bind(tk::SLOT_SUBMIT, slot_dialog_submit, this);
-                pDialog->slots()->bind(tk::SLOT_HIDE, slot_dialog_hide, this);
+                dlg->action_text()->set("actions.load");
+                dlg->slots()->bind(tk::SLOT_CHANGE, slot_dialog_change, this);
+                dlg->slots()->bind(tk::SLOT_SUBMIT, slot_dialog_submit, this);
+                dlg->slots()->bind(tk::SLOT_HIDE, slot_dialog_hide, this);
+
+                // Commit the change
+                lsp::swap(pDialog, dlg);
             }
 
+            // Create the file preview controller if required
+            if ((bLoadPreview) && (pFilePreview == NULL))
+            {
+                ctl::Widget *pw = new AudioFilePreview(pWrapper);
+                if (pw == NULL)
+                    return;
+                lsp_finally {
+                    if (pw != NULL)
+                    {
+                        pw->destroy();
+                        delete pw;
+                    }
+                };
+
+                status_t res = pw->init();
+                if (res != STATUS_OK)
+                    return;
+
+                lsp::swap(pFilePreview, pw);
+            }
+
+            // Configure the dialog
             const char *path = (pPathPort != NULL) ? pPathPort->buffer<char>() : NULL;
             if (path != NULL)
                 pDialog->path()->set_raw(path);
 
+            ctl::AudioFilePreview *pw = ctl::ctl_cast<ctl::AudioFilePreview>(pFilePreview);
+            if ((pw != NULL) && (bLoadPreview))
+            {
+                pDialog->preview()->set(pw->widget());
+                pw->activate();
+            }
+            else
+                pDialog->preview()->set(NULL);
+
+            // Show the dialog
             pDialog->show(wWidget);
         }
 
@@ -723,6 +908,19 @@ namespace lsp
             const char *u8path = path.get_utf8();
             pPathPort->write(u8path, strlen(u8path));
             pPathPort->notify_all();
+        }
+
+        void AudioSample::preview_file()
+        {
+            ctl::AudioFilePreview *pw = ctl::ctl_cast<ctl::AudioFilePreview>(pFilePreview);
+            if (pw == NULL)
+                return;
+
+            LSPString path;
+            if (pDialog->selected_file()->format(&path) != STATUS_OK)
+                return;
+
+            pw->select_file(&path);
         }
 
         void AudioSample::commit_file()
@@ -749,6 +947,15 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t AudioSample::slot_dialog_change(tk::Widget *sender, void *ptr, void *data)
+        {
+            AudioSample *_this = static_cast<AudioSample *>(ptr);
+            if (_this != NULL)
+                _this->preview_file();
+
+            return STATUS_OK;
+        }
+
         status_t AudioSample::slot_dialog_submit(tk::Widget *sender, void *ptr, void *data)
         {
             AudioSample *_this = static_cast<AudioSample *>(ptr);
@@ -761,8 +968,18 @@ namespace lsp
         status_t AudioSample::slot_dialog_hide(tk::Widget *sender, void *ptr, void *data)
         {
             AudioSample *_this = static_cast<AudioSample *>(ptr);
-            if (_this != NULL)
-                _this->update_path();
+            if (_this == NULL)
+                return STATUS_OK;
+
+            _this->update_path();
+
+            // Deactivate the audio preview controller if it was set
+            if ((_this->pDialog != NULL) && (_this->pDialog->preview()->is_set()))
+            {
+                ctl::AudioFilePreview *pw = ctl::ctl_cast<ctl::AudioFilePreview>(_this->pFilePreview);
+                if (pw != NULL)
+                    pw->deactivate();
+            }
 
             return STATUS_OK;
         }

@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 23 нояб. 2020 г.
+ * Created on: 18 дек. 2022 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,19 +19,19 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_VERSION_H_
-#define LSP_PLUG_IN_PLUG_FW_VERSION_H_
+#include <lsp-plug.in/plug-fw/ui.h>
 
-#define LSP_PLUGIN_FW_MAJOR         1
-#define LSP_PLUGIN_FW_MINOR         0
-#define LSP_PLUGIN_FW_MICRO         7
+namespace lsp
+{
+    namespace ui
+    {
+        IPlayListener::~IPlayListener()
+        {
+        }
 
-#if defined(LSP_PLUGIN_FW_PUBLISHER)
-    #define LSP_PLUGIN_FW_PUBLIC        LSP_EXPORT_MODIFIER
-#elif defined(LSP_PLUGIN_FW_BUILTIN) || defined(LSP_IDE_DEBUG)
-    #define LSP_PLUGIN_FW_PUBLIC
-#else
-    #define LSP_PLUGIN_FW_PUBLIC        LSP_IMPORT_MODIFIER
-#endif
+        void IPlayListener::play_position_update(wssize_t position, wssize_t length)
+        {
+        }
 
-#endif /* LSP_PLUG_IN_PLUG_FW_VERSION_H_ */
+    } /* namespace ui */
+} /* namespace lsp */

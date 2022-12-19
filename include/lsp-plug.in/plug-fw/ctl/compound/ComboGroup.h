@@ -60,7 +60,6 @@ namespace lsp
                 static status_t         slot_combo_submit(tk::Widget *sender, void *ptr, void *data);
 
             protected:
-                void                    sync_metadata(ui::IPort *port);
                 void                    submit_value();
                 void                    select_active_widget();
 
@@ -68,13 +67,14 @@ namespace lsp
                 explicit                ComboGroup(ui::IWrapper *wrapper, tk::ComboGroup *cgroup);
                 virtual                ~ComboGroup();
 
-                virtual status_t        init();
+                virtual status_t        init() override;
 
             public:
-                virtual void            set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual status_t        add(ui::UIContext *ctx, ctl::Widget *child);
-                virtual void            end(ui::UIContext *ctx);
-                virtual void            notify(ui::IPort *port);
+                virtual void            sync_metadata(ui::IPort *port) override;
+                virtual void            set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual status_t        add(ui::UIContext *ctx, ctl::Widget *child) override;
+                virtual void            end(ui::UIContext *ctx) override;
+                virtual void            notify(ui::IPort *port) override;
         };
 
     }

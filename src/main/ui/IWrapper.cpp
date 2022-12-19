@@ -52,6 +52,7 @@ namespace lsp
             PATH(UI_DLG_CONFIG_PATH_ID, "Dialog path for saving/loading configuration files"),
             PATH(UI_DLG_REW_PATH_ID, "Dialog path for importing REW settings files"),
             PATH(UI_DLG_HYDROGEN_PATH_ID, "Dialog path for importing Hydrogen drumkit files"),
+            PATH(UI_DLG_LSPC_BUNDLE_PATH_ID, "Dialog path for exporting/importing LSPC bundles"),
             PATH(UI_DLG_MODEL3D_PATH_ID, "Dialog for saving/loading 3D model files"),
             PATH(UI_DLG_DEFAULT_PATH_ID, "Dialog default path for other files"),
             PATH(UI_R3D_BACKEND_PORT_ID, "Identifier of selected backend for 3D rendering"),
@@ -61,6 +62,7 @@ namespace lsp
             SWITCH(UI_SCALING_HOST_ID, "Prefer host-reported UI scale factor", 1.0f),
             KNOB(UI_FONT_SCALING_PORT_ID, "Manual UI font scaling factor", U_PERCENT, 50.0f, 200.0f, 100.0f, 1.0f),
             PATH(UI_VISUAL_SCHEMA_FILE_ID, "Current visual schema file used by the UI"),
+            SWITCH(UI_PREVIEW_AUTO_PLAY_ID, "Enable automatic playback of the audio file in the file preview part of the file open dialog", 0.0f),
             PORTS_END
         };
 
@@ -83,12 +85,14 @@ namespace lsp
     {
         IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
         {
-            pDisplay    = NULL;
-            wWindow     = NULL;
-            pWindow     = NULL;
-            pUI         = ui;
-            pLoader     = loader;
-            nFlags      = 0;
+            pDisplay        = NULL;
+            wWindow         = NULL;
+            pWindow         = NULL;
+            pUI             = ui;
+            pLoader         = loader;
+            nFlags          = 0;
+            nPlayPosition   = 0;
+            nPlayLength     = 0;
 
             plug::position_t::init(&sPosition);
         }
@@ -103,6 +107,9 @@ namespace lsp
 
         void IWrapper::destroy()
         {
+            // Flush list of playback listeners
+            vPlayListeners.flush();
+
             // Flush list of 'Schema reloaded' handlers
             vSchemaListeners.flush();
 
@@ -138,7 +145,15 @@ namespace lsp
             // Clear sorted ports
             vSortedPorts.flush();
 
-            // Destroy switched ports
+            // Destroy switched ports in two passes.
+            // 1. Disconnect from dependent ports.
+            for (size_t i=0, n=vSwitchedPorts.size(); i<n; ++i)
+            {
+                SwitchedPort *p = vSwitchedPorts.uget(i);
+                if (p != NULL)
+                    p->destroy();
+            }
+            // 2. Free memory allocated for the switched port.
             for (size_t i=0, n=vSwitchedPorts.size(); i<n; ++i)
             {
                 IPort *p = vSwitchedPorts.uget(i);
@@ -691,37 +706,128 @@ namespace lsp
                 return res;
             }
 
+            // Obtain the parent directory if needed
+            io::Path dir;
+            if (relative)
+            {
+                if ((res = file->get_parent(&dir)) != STATUS_OK)
+                    relative = false;
+            }
+
             // Export settings
-            res = export_settings(&o, (relative) ? file : NULL);
+            res = export_settings(&o, (relative) ? &dir : NULL);
             status_t res2 = o.close();
 
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::export_settings(io::IOutSequence *os, const char *relative)
+        status_t IWrapper::export_settings(io::IOutSequence *os, const char *basedir)
         {
-            if (relative == NULL)
+            if (basedir == NULL)
                 return export_settings(os, static_cast<io::Path *>(NULL));
 
             io::Path path;
-            status_t res = path.set(relative);
+            status_t res = path.set(basedir);
             if (res != STATUS_OK)
                 return res;
 
             return export_settings(os, &path);
         }
 
-        status_t IWrapper::export_settings(io::IOutSequence *os, const LSPString *relative)
+        status_t IWrapper::export_settings(io::IOutSequence *os, const LSPString *basedir)
         {
-            if (relative == NULL)
+            if (basedir == NULL)
                 return export_settings(os, static_cast<io::Path *>(NULL));
 
             io::Path path;
-            status_t res = path.set(relative);
+            status_t res = path.set(basedir);
             if (res != STATUS_OK)
                 return res;
 
             return export_settings(os, &path);
+        }
+
+        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *basedir)
+        {
+            // Create configuration serializer
+            config::Serializer s;
+            status_t res = s.wrap(os, 0);
+            if (res != STATUS_OK)
+                return res;
+
+            res = export_settings(&s, basedir);
+            status_t res2 = s.close();
+            return (res != STATUS_OK) ? res : res2;
+        }
+
+        status_t IWrapper::export_settings(config::Serializer *s, const char *basedir)
+        {
+            if (basedir == NULL)
+                return export_settings(s, static_cast<io::Path *>(NULL));
+
+            io::Path path;
+            status_t res = path.set(basedir);
+            if (res != STATUS_OK)
+                return res;
+
+            return export_settings(s, &path);
+        }
+
+        status_t IWrapper::export_settings(config::Serializer *s, const LSPString *basedir)
+        {
+            if (basedir == NULL)
+                return export_settings(s, static_cast<io::Path *>(NULL));
+
+            io::Path path;
+            status_t res = path.set(basedir);
+            if (res != STATUS_OK)
+                return res;
+
+            return export_settings(s, &path);
+        }
+
+        status_t IWrapper::export_settings(config::Serializer *s, const io::Path *basedir)
+        {
+            // Write header
+            status_t res;
+            LSPString comment;
+            build_config_header(&comment);
+            if ((res = s->write_comment(&comment)) != STATUS_OK)
+                return res;
+            if ((res = s->writeln()) != STATUS_OK)
+                return res;
+
+            // Export regular ports
+            if ((res = export_ports(s, &vPorts, basedir)) != STATUS_OK)
+                return res;
+
+            // Export KVT data
+            core::KVTStorage *kvt = kvt_lock();
+            if (kvt != NULL)
+            {
+                // Write comment
+                res = s->writeln();
+                if (res == STATUS_OK)
+                    res = s->write_comment(config_separator);
+                if (res == STATUS_OK)
+                    res = s->write_comment("KVT parameters");
+                if (res == STATUS_OK)
+                    res = s->write_comment(config_separator);
+                if (res == STATUS_OK)
+                    res = s->writeln();
+                if (res == STATUS_OK)
+                    res = export_kvt(s, kvt, basedir);
+
+                kvt->gc();
+                kvt_release();
+            }
+
+            if (res == STATUS_OK)
+                res = s->writeln();
+            if (res == STATUS_OK)
+                res = s->write_comment(config_separator);
+
+            return res;
         }
 
         void IWrapper::build_config_header(LSPString *c)
@@ -781,7 +887,7 @@ namespace lsp
             c->append_ascii     (config_separator);
         }
 
-        status_t IWrapper::export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *relative)
+        status_t IWrapper::export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *basedir)
         {
             status_t res;
             float buf;
@@ -819,7 +925,7 @@ namespace lsp
                 comment.clear();
                 name.clear();
                 value.clear();
-                res     = core::serialize_port_value(s, meta, data, relative, 0);
+                res     = core::serialize_port_value(s, meta, data, basedir, 0);
                 if (res != STATUS_BAD_TYPE)
                 {
                     if (res != STATUS_OK)
@@ -978,96 +1084,99 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *relative)
-        {
-            // Create configuration serializer
-            config::Serializer s;
-            status_t res = s.wrap(os, 0);
-            if (res != STATUS_OK)
-                return res;
-
-            // Write header
-            LSPString comment;
-            build_config_header(&comment);
-            if ((res = s.write_comment(&comment)) != STATUS_OK)
-                return res;
-            if ((res = s.writeln()) != STATUS_OK)
-                return res;
-
-            // Export regular ports
-            if ((res = export_ports(&s, &vPorts, relative)) != STATUS_OK)
-                return res;
-
-            // Export KVT data
-            core::KVTStorage *kvt = kvt_lock();
-            if (kvt != NULL)
-            {
-                // Write comment
-                res = s.writeln();
-                if (res == STATUS_OK)
-                    res = s.write_comment(config_separator);
-                if (res == STATUS_OK)
-                    res = s.write_comment("KVT parameters");
-                if (res == STATUS_OK)
-                    res = s.write_comment(config_separator);
-                if (res == STATUS_OK)
-                    res = s.writeln();
-                if (res == STATUS_OK)
-                    res = export_kvt(&s, kvt, relative);
-
-                kvt->gc();
-                kvt_release();
-            }
-
-            if (res == STATUS_OK)
-                res = s.writeln();
-            if (res == STATUS_OK)
-                res = s.write_comment(config_separator);
-
-            return res;
-        }
-
-        status_t IWrapper::import_settings(const char *file, bool preset)
+        status_t IWrapper::import_settings(const char *file, size_t flags)
         {
             io::Path tmp;
             status_t res = tmp.set(file);
-            return (res == STATUS_OK) ? import_settings(&tmp, preset) : res;
+            return (res == STATUS_OK) ? import_settings(&tmp, flags) : res;
         }
 
-        status_t IWrapper::import_settings(const LSPString *file, bool preset)
+        status_t IWrapper::import_settings(const LSPString *file, size_t flags)
         {
             io::Path tmp;
             status_t res = tmp.set(file);
-            return (res == STATUS_OK) ? import_settings(&tmp, preset) : res;
+            return (res == STATUS_OK) ? import_settings(&tmp, flags) : res;
         }
 
-        status_t IWrapper::import_settings(const io::Path *file, bool preset)
+        status_t IWrapper::import_settings(const io::Path *file, size_t flags)
         {
+            // Get parent file
+            io::Path basedir;
+            bool has_parent = file->get_parent(&basedir) == STATUS_OK;
+
             // Read the resource as sequence
             io::IInSequence *is = pLoader->read_sequence(file, "UTF-8");
             if (is == NULL)
                 return pLoader->last_error();
-            status_t res = import_settings(is, preset);
+            status_t res = import_settings(is, flags, (has_parent) ? &basedir : NULL);
             status_t res2 = is->close();
             delete is;
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::import_settings(io::IInSequence *is, bool preset)
+        status_t IWrapper::import_settings(io::IInSequence *is, size_t flags, const io::Path *basedir)
         {
             config::PullParser parser;
             status_t res = parser.wrap(is);
             if (res == STATUS_OK)
-                res = import_settings(&parser, preset);
+                res = import_settings(&parser, flags, basedir);
             status_t res2 = parser.close();
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::import_settings(config::PullParser *parser, bool preset)
+        status_t IWrapper::import_settings(io::IInSequence *is, size_t flags, const char *basedir)
+        {
+            if (basedir == NULL)
+                return import_settings(is, flags, static_cast<io::Path *>(NULL));
+
+            io::Path tmp;
+            status_t res = tmp.set(basedir);
+            return (res == STATUS_OK) ? import_settings(is, flags, &tmp) : res;
+        }
+
+        status_t IWrapper::import_settings(io::IInSequence *is, size_t flags, const LSPString *basedir)
+        {
+            if (basedir == NULL)
+                return import_settings(is, flags, static_cast<io::Path *>(NULL));
+
+            io::Path tmp;
+            status_t res = tmp.set(basedir);
+            return (res == STATUS_OK) ? import_settings(is, flags, &tmp) : res;
+        }
+
+        status_t IWrapper::import_settings(config::PullParser *parser, size_t flags, const char *basedir)
+        {
+            io::Path tmp;
+            status_t res = tmp.set(basedir);
+            return (res == STATUS_OK) ? import_settings(parser, flags, &tmp) : res;
+        }
+
+        status_t IWrapper::import_settings(config::PullParser *parser, size_t flags, const LSPString *basedir)
+        {
+            io::Path tmp;
+            status_t res = tmp.set(basedir);
+            return (res == STATUS_OK) ? import_settings(parser, flags, &tmp) : res;
+        }
+
+        status_t IWrapper::import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir)
         {
             status_t res;
             config::param_t param;
             core::KVTStorage *kvt = kvt_lock();
+
+            // Reset all ports to default values
+            if (!(flags & IMPORT_FLAG_PATCH))
+            {
+                for (size_t i=0, n=vPorts.size(); i<n; ++i)
+                {
+                    ui::IPort *p = vPorts.uget(i);
+                    if (p == NULL)
+                        continue;
+
+                    p->set_default();
+                    p->notify_all();
+                }
+            }
 
             while ((res = parser->next(&param)) == STATUS_OK)
             {
@@ -1155,7 +1264,8 @@ namespace lsp
                 }
                 else
                 {
-                    size_t flags = (preset) ? plug::PF_PRESET_IMPORT : plug::PF_STATE_IMPORT;
+                    size_t port_flags = (flags & (IMPORT_FLAG_PRESET | IMPORT_FLAG_PATCH)) ?
+                                    plug::PF_PRESET_IMPORT : plug::PF_STATE_IMPORT;
 
                     for (size_t i=0, n=vPorts.size(); i<n; ++i)
                     {
@@ -1165,7 +1275,7 @@ namespace lsp
                         const meta::port_t *meta = p->metadata();
                         if ((meta != NULL) && (param.name.equals_ascii(meta->id)))
                         {
-                            if (set_port_value(p, &param, flags, NULL))
+                            if (set_port_value(p, &param, port_flags, basedir))
                                 p->notify_all();
                             break;
                         }
@@ -1790,7 +1900,57 @@ namespace lsp
 
             return STATUS_OK;
         }
-    }
+
+        status_t IWrapper::play_file(const char *file, wsize_t position, bool release)
+        {
+            lsp_trace("file=%s, position=%lld, release=%s",
+                file, (long long)(position), (release) ? "true" : "false");
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IWrapper::play_subscribe(IPlayListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            if (vPlayListeners.contains(listener))
+                return STATUS_ALREADY_BOUND;
+            if (!vPlayListeners.add(listener))
+                return STATUS_NO_MEM;
+
+            listener->play_position_update(nPlayPosition, nPlayLength);
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::play_unsubscribe(IPlayListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            if (!vPlayListeners.contains(listener))
+                return STATUS_NOT_BOUND;
+            if (!vPlayListeners.premove(listener))
+                return STATUS_NO_MEM;
+            return STATUS_OK;
+        }
+
+        void IWrapper::notify_play_position(wssize_t position, wssize_t length)
+        {
+            if ((nPlayPosition == position) && (nPlayLength == length))
+                return;
+
+            lltl::parray<ui::IPlayListener> listeners;
+            listeners.add(vPlayListeners);
+            for (size_t i=0; i<vPlayListeners.size(); ++i)
+            {
+                ui::IPlayListener *listener = vPlayListeners.uget(i);
+                if (listener != NULL)
+                    listener->play_position_update(position, length);
+            }
+
+            nPlayPosition   = position;
+            nPlayLength     = length;
+        }
+
+    } /* namespace ui */
 } /* namespace lsp */
 
 

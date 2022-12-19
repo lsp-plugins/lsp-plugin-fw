@@ -40,6 +40,7 @@
 #define UI_DLG_MODEL3D_PATH_ID              "dlg_model3d_path"
 #define UI_DLG_REW_PATH_ID                  "dlg_rew_path"
 #define UI_DLG_HYDROGEN_PATH_ID             "dlg_hydrogen_path"
+#define UI_DLG_LSPC_BUNDLE_PATH_ID          "dlg_lspc_bundle_path"
 #define UI_R3D_BACKEND_PORT_ID              "r3d_backend"
 #define UI_LANGUAGE_PORT_ID                 "language"
 #define UI_REL_PATHS_PORT_ID                "use_relative_paths"
@@ -47,6 +48,7 @@
 #define UI_SCALING_HOST_ID                  "ui_scaling_host"
 #define UI_FONT_SCALING_PORT_ID             "font_scaling"
 #define UI_VISUAL_SCHEMA_FILE_ID            "visual_schema_file"
+#define UI_PREVIEW_AUTO_PLAY_ID             "preview_auto_play"
 
 #define MSTUD_PORT                          UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                        UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -62,6 +64,7 @@
 #define UI_SCALING_HOST                     UI_CONFIG_PORT_PREFIX UI_SCALING_HOST_ID
 #define UI_FONT_SCALING_PORT                UI_CONFIG_PORT_PREFIX UI_FONT_SCALING_PORT_ID
 #define UI_VISUAL_SCHEMA_PORT               UI_CONFIG_PORT_PREFIX UI_VISUAL_SCHEMA_FILE_ID
+#define UI_PREVIEW_AUTO_PLAY_PORT           UI_CONFIG_PORT_PREFIX UI_PREVIEW_AUTO_PLAY_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                      "main_menu"

@@ -53,6 +53,9 @@ namespace lsp
             fLatency        = 0.0f;
             nDumpReq        = 0;
             nDumpResp       = 0;
+
+            pSamplePlayer   = NULL;
+
             pBypass         = NULL;
             bUpdateSettings = true;
             pUIWrapper      = NULL;
@@ -139,11 +142,28 @@ namespace lsp
             // Initialize plugin
             pPlugin->init(this, plugin_ports.array());
 
+            // Create sample player if required
+            if (m->extensions & meta::E_FILE_PREVIEW)
+            {
+                pSamplePlayer       = new core::SamplePlayer(m);
+                if (pSamplePlayer == NULL)
+                    return STATUS_NO_MEM;
+                pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
+            }
+
             return STATUS_OK;
         }
 
         void Wrapper::destroy()
         {
+            // Destroy sample player
+            if (pSamplePlayer != NULL)
+            {
+                pSamplePlayer->destroy();
+                delete pSamplePlayer;
+                pSamplePlayer = NULL;
+            }
+
             // Shutdown and delete executor if exists
             if (pExecutor != NULL)
             {
@@ -330,6 +350,8 @@ namespace lsp
                 sr  = MAX_SAMPLE_RATE;
             }
             pPlugin->set_sample_rate(sr);
+            if (pSamplePlayer != NULL)
+                pSamplePlayer->set_sample_rate(sr);
             bUpdateSettings = true;
         }
 
@@ -526,6 +548,10 @@ namespace lsp
             // Process samples
             pPlugin->process(samples);
 
+            // Launch the sample player
+            if (pSamplePlayer != NULL)
+                pSamplePlayer->process(samples);
+
             // Sanitize output audio data
             for (size_t i=0, n=vAudioPorts.size(); i<n; ++i)
             {
@@ -577,7 +603,6 @@ namespace lsp
         {
             run(inputs, outputs, samples);
         }
-
 
         status_t Wrapper::serialize_port_data()
         {
@@ -1299,6 +1324,11 @@ namespace lsp
         const meta::package_t *Wrapper::package() const
         {
             return pPackage;
+        }
+
+        core::SamplePlayer *Wrapper::sample_player()
+        {
+            return pSamplePlayer;
         }
     } /* namespace vst2 */
 } /* namespace lsp */

@@ -19,27 +19,33 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/ipc/Mutex.h>
-#include <lsp-plug.in/lltl/darray.h>
-#include <lsp-plug.in/common/static.h>
 #include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/common/singletone.h>
+#include <lsp-plug.in/common/static.h>
+#include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/impl/ui_wrapper.h>
+
 #ifndef LSP_IDE_DEBUG
     #include <lsp-plug.in/plug-fw/wrap/lv2/impl/wrapper.h>
 #endif /* LSP_IDE_DEBUG */
+
+#define LV2UI_LOG_FILE      "lsp-lv2ui.log"
 
 namespace lsp
 {
     namespace lv2
     {
         //--------------------------------------------------------------------------------------
-        // List of LV2 descriptors (generated at startup)
+        // List of LV2 UI descriptors. The list is generated at first demand because
+        // of undetermined order of initialization of static objects which may
+        // cause undefined behaviour when reading the list of UI factories
+        // which can be not fully initialized.
         static lltl::darray<LV2UI_Descriptor> ui_descriptors;
-        static ipc::Mutex ui_descriptors_mutex;
+        static lsp::singletone_t ui_library;
 
         //--------------------------------------------------------------------------------------
         // LV2UI routines
@@ -223,20 +229,15 @@ namespace lsp
 
         void ui_gen_descriptors()
         {
-            // Perform size test first
-            if (ui_descriptors.size() > 0)
+            // Perform first check that descriptors are initialized
+            if (ui_library.initialized())
                 return;
-
-            // Lock mutex and test again
-            if (!ui_descriptors_mutex.lock())
-                return;
-            if (ui_descriptors.size() > 0)
-            {
-                ui_descriptors_mutex.unlock();
-                return;
-            }
 
             // Generate descriptors
+            lltl::darray<LV2UI_Descriptor> result;
+            lsp_finally { result.flush(); };
+            lsp_trace("generating UI descriptors...");
+
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
             {
                 for (size_t i=0; ; ++i)
@@ -251,7 +252,7 @@ namespace lsp
                         continue;
 
                     // Allocate new descriptor
-                    LV2UI_Descriptor *d     = ui_descriptors.add();
+                    LV2UI_Descriptor *d     = result.add();
                     if (d == NULL)
                     {
                         lsp_warn("Error allocating LV2 descriptor for plugin %s", meta->lv2_uri);
@@ -268,24 +269,31 @@ namespace lsp
             }
 
             // Sort descriptors
-            ui_descriptors.qsort(ui_cmp_descriptors);
+            result.qsort(ui_cmp_descriptors);
 
         #ifdef LSP_TRACE
-            lsp_trace("allocated %d UI descriptors:", ui_descriptors.size());
-            for (size_t i=0, n=ui_descriptors.size(); i<n; ++i)
-                lsp_trace("  %s", ui_descriptors.uget(i)->URI);
+            lsp_trace("generated %d descriptors:", int(result.size()));
+            for (size_t i=0, n=result.size(); i<n; ++i)
+            {
+                LV2UI_Descriptor *d = result.uget(i);
+                lsp_trace("[%4d] %p: %s", int(i), d, d->URI);
+            }
         #endif /* LSP_TRACE */
 
-            // Unlock descriptor mutex
-            ui_descriptors_mutex.unlock();
+            // Commit the generated list to the global descriptor list
+            lsp_singletone_init(ui_library) {
+                result.swap(ui_descriptors);
+            };
         };
 
         void ui_drop_descriptors()
         {
-            lsp_trace("freeing %d UI descriptors", ui_descriptors.size());
+            lsp_trace("dropping %d descriptors", int(ui_descriptors.size()));
             ui_descriptors.flush();
         };
 
+        //--------------------------------------------------------------------------------------
+        // Static finalizer for the list of UI descriptors at library finalization
         static StaticFinalizer lv2ui_finalizer(ui_drop_descriptors);
 
     } /* namespace lv2 */
@@ -299,13 +307,11 @@ extern "C"
     LV2_SYMBOL_EXPORT
     const LV2UI_Descriptor *lv2ui_descriptor(uint32_t index)
     {
-        IF_DEBUG( lsp::debug::redirect("lsp-lv2ui.log"); );
-
+    #ifndef LSP_IDE_DEBUG
+        IF_DEBUG( lsp::debug::redirect(LV2UI_LOG_FILE); );
+    #endif /* LSP_IDE_DEBUG */
         lsp::lv2::ui_gen_descriptors();
-        const LV2UI_Descriptor *descr = lsp::lv2::ui_descriptors.get(index);
-        lsp_trace("Returning descr=%p, uri=%s", descr, descr->URI);
-
-        return descr;
+        return lsp::lv2::ui_descriptors.get(index);
     }
 #ifdef __cplusplus
 }

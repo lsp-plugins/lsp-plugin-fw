@@ -83,6 +83,7 @@ namespace lsp
                 {
                     ctl::PluginWindow  *ctl;
                     tk::MenuItem       *item;
+                    bool                patch;
                     LSPString           location;
                 } preset_sel_t;
 
@@ -123,6 +124,7 @@ namespace lsp
                 tk::FileDialog             *wExport;        // Export settings dialog
                 tk::FileDialog             *wImport;        // Import settings dialog
                 tk::MenuItem               *wPreferHost;    // Prefer host menu item
+                tk::CheckBox               *wRelPaths;       // Relative path checkbox
 
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
@@ -195,6 +197,8 @@ namespace lsp
                 static status_t slot_scale_mouse_down(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_scale_mouse_move(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_scale_mouse_up(tk::Widget *sender, void *ptr, void *data);
+
+                static status_t slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);

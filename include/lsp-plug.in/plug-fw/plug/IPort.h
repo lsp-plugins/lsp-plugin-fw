@@ -56,11 +56,21 @@ namespace lsp
                  */
                 virtual float value();
 
+                /** Get default port value
+                 *
+                 * @return default port value
+                 */
+                virtual float default_value() const;
+
                 /** Set port value
                  *
                  * @param value value to set
                  */
                 virtual void set_value(float value);
+
+                /** Set port value to default
+                 */
+                virtual void set_default();
 
                 /** Get port buffer, may be NULL if buffer write is not required
                  *

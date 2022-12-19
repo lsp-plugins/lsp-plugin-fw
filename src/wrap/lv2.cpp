@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/singletone.h>
 #include <lsp-plug.in/common/static.h>
-#include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
@@ -28,15 +28,19 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/impl/wrapper.h>
 
+#define LV2_LOG_FILE            "lsp-lv2.log"
 
 namespace lsp
 {
     namespace lv2
     {
         //---------------------------------------------------------------------
-        // List of LV2 descriptors (generated at startup)
+        // List of LV2 descriptors. The list is generated at first demand because
+        // of undetermined order of initialization of static objects which may
+        // cause undefined behaviour when reading the list of plugin factories
+        // which can be not fully initialized.
         static lltl::darray<LV2_Descriptor> descriptors;
-        static ipc::Mutex descriptors_mutex;
+        static lsp::singletone_t library;
 
         //---------------------------------------------------------------------
         void activate(LV2_Handle instance)
@@ -77,6 +81,8 @@ namespace lsp
             const char *                   bundle_path,
             const LV2_Feature *const *     features)
         {
+            lsp_trace("%p: instantiate descriptor->URI=%s", descriptor, descriptor->URI);
+
             // Check sample rate
             if (sample_rate > MAX_SAMPLE_RATE)
             {
@@ -111,6 +117,10 @@ namespace lsp
                             lsp_error("Plugin instantiation error: %s", meta->lv2_uri);
                             return NULL;
                         }
+                        else
+                        {
+                            lsp_trace("%p: Instantiated plugin with URI=%s", descriptor, meta->lv2_uri);
+                        }
                     }
                 }
             }
@@ -122,7 +132,7 @@ namespace lsp
                 return NULL;
             }
 
-            lsp_trace("uri=%s, sample_rate=%f", meta->lv2_uri, sample_rate);
+            lsp_trace("%p: descriptor_uri=%s, uri=%s, sample_rate=%f", descriptor, descriptor->URI, meta->lv2_uri, sample_rate);
 
             // Create resource loader
             resource::ILoader *loader = core::create_resource_loader();
@@ -304,20 +314,16 @@ namespace lsp
 
         void gen_descriptors()
         {
-            // Perform size test first
-            if (descriptors.size() > 0)
+            // Check that data already has been initialized
+            if (library.initialized())
                 return;
-
-            // Lock mutex and test again
-            if (!descriptors_mutex.lock())
-                return;
-            if (descriptors.size() > 0)
-            {
-                descriptors_mutex.unlock();
-                return;
-            }
 
             // Generate descriptors
+            lltl::darray<LV2_Descriptor> result;
+            lsp_finally { result.flush(); };
+
+            lsp_trace("generating descriptors...");
+
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
             {
                 for (size_t i=0; ; ++i)
@@ -328,7 +334,7 @@ namespace lsp
                         break;
 
                     // Allocate new descriptor
-                    LV2_Descriptor *d = descriptors.add();
+                    LV2_Descriptor *d = result.add();
                     if (d == NULL)
                     {
                         lsp_warn("Error allocating LV2 descriptor for plugin %s", meta->lv2_uri);
@@ -348,19 +354,31 @@ namespace lsp
             }
 
             // Sort descriptors
-            descriptors.qsort(cmp_descriptors);
+            result.qsort(cmp_descriptors);
 
-            // Unlock descriptor mutex
-            descriptors_mutex.unlock();
+        #ifdef LSP_TRACE
+            lsp_trace("generated %d descriptors:", int(result.size()));
+            for (size_t i=0, n=result.size(); i<n; ++i)
+            {
+                LV2_Descriptor *d = result.uget(i);
+                lsp_trace("[%4d] %p: %s", int(i), d, d->URI);
+            }
+        #endif /* LSP_TRACE */
+
+            // Commit the generated list to the global descriptor list
+            lsp_singletone_init(library) {
+                result.swap(descriptors);
+            };
         };
 
         void drop_descriptors()
         {
-            lsp_trace("dropping %d descriptors", descriptors.size());
+            lsp_trace("dropping %d descriptors", int(descriptors.size()));
             descriptors.flush();
         };
 
         //---------------------------------------------------------------------
+        // Static finalizer for the list of descriptors at library finalization
         static StaticFinalizer finalizer(drop_descriptors);
 
     } /* namespace lv2 */
@@ -373,11 +391,13 @@ extern "C"
     LV2_SYMBOL_EXPORT
     const LV2_Descriptor *lv2_descriptor(uint32_t index)
     {
-        IF_DEBUG( lsp::debug::redirect("lsp-lv2.log"); );
-
+    #ifndef LSP_IDE_DEBUG
+        IF_DEBUG( lsp::debug::redirect(LV2_LOG_FILE); );
+    #endif /* LSP_IDE_DEBUG */
+    
         lsp::lv2::gen_descriptors();
         return lsp::lv2::descriptors.get(index);
     }
 #ifdef __cplusplus
-}
+} /* extern "C" */
 #endif /* __cplusplus */

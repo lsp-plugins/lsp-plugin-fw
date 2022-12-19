@@ -62,6 +62,7 @@
     #include <lsp-plug.in/plug-fw/ctl/simple/Hyperlink.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Fader.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/ProgressBar.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/CheckBox.h>
 
     #include <lsp-plug.in/plug-fw/ctl/containers/Box.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/Align.h>
@@ -69,6 +70,7 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/Grid.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/Cell.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/MultiLabel.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/TabControl.h>
 
     #include <lsp-plug.in/plug-fw/ctl/compound/ComboBox.h>
     #include <lsp-plug.in/plug-fw/ctl/compound/ComboGroup.h>

@@ -78,9 +78,9 @@ namespace lsp
                     // Serialize meta information
                     const char *unit = meta::get_unit_name(meta->unit);
                     if (unit != NULL)
-                        LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [%s]", meta->name, unit), STATUS_NO_MEM)
+                        LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [%s]", meta->name, unit), STATUS_NO_MEM);
                     else if (meta->unit == meta::U_BOOL)
-                        LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [boolean]", meta->name), STATUS_NO_MEM)
+                        LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [boolean]", meta->name), STATUS_NO_MEM);
                     else
                         LSP_BOOL_ASSERT(comment.append_utf8(meta->name), STATUS_NO_MEM);
 
@@ -130,7 +130,7 @@ namespace lsp
                     float v = *(static_cast<const float *>(data));
                     if (is_discrete_unit(meta->unit) || (meta->flags & meta::F_INT))
                     {
-                        if (meta->unit == meta::U_BOOL)
+                        if (is_bool_unit(meta->unit))
                         {
                             LSP_STATUS_ASSERT(s->write_bool(meta->id, (v >= 0.5f), flags));
                         }
