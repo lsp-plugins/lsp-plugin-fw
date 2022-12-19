@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.8 ===
+
+
 === 1.0.7 ===
 * Improved preset loading for incomplete presets that are missing some plugin parameters.
 * Fixed broken configuration save and load with relative file paths.
