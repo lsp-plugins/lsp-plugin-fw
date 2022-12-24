@@ -252,9 +252,28 @@ namespace lsp
             };
         }
 
+        static void drop_descriptor(clap_plugin_descriptor_t *d)
+        {
+            if (d == NULL)
+                return;
+
+            if (d->version != NULL)
+                free(static_cast<char *>(d->version));
+            if (d->vendor != NULL)
+                free(static_cast<char *>(d->vendor));
+            if (d->manual_url != NULL)
+                free(static_cast<char *>(d->manual_url));
+
+            d->version          = NULL;
+            d->vendor           = NULL;
+            d->manual_url       = NULL;
+        }
+
         static void drop_descriptors()
         {
             lsp_trace("dropping %d descriptors", int(descriptors.size()));
+            for (size_t i=0, n=descriptors.size(); i<n; ++i)
+                drop_descriptor(descriptors.uget(i));
             descriptors.flush();
         }
 
