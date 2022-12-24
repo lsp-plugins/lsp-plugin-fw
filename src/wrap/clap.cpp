@@ -26,9 +26,13 @@
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/impl/wrapper.h>
+#include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
-#define CLAP_LOG_FILE           "lsp-lv2.log"
+
+#define CLAP_LOG_FILE           "lsp-clap.log"
 
 namespace lsp
 {
@@ -47,13 +51,22 @@ namespace lsp
         // Plugin instance related stuff
         bool CLAP_ABI init(const clap_plugin_t *plugin)
         {
-            // TODO
-            return true;
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->init() == STATUS_OK;
         }
 
         void CLAP_ABI destroy(const clap_plugin_t *plugin)
         {
-            // TODO
+            // Destroy the wrapper
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            if (w != NULL)
+            {
+                w->destroy();
+                delete w;
+            }
+
+            // Free the plugin data structure as required by CLAP specification
+            free(const_cast<clap_plugin_t *>(plugin));
         }
 
         bool CLAP_ABI activate(
@@ -62,41 +75,52 @@ namespace lsp
             uint32_t min_frames_count,
             uint32_t max_frames_count)
         {
-            // TODO
-            return true;
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->activate(sample_rate, min_frames_count, max_frames_count) == STATUS_OK;
         }
 
         void CLAP_ABI deactivate(const clap_plugin_t *plugin)
         {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            w->deactivate();
         }
 
         bool CLAP_ABI start_processing(const clap_plugin_t *plugin)
         {
-            return true;
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->start_processing() == STATUS_OK;
         }
 
         void CLAP_ABI stop_processing(const clap_plugin_t *plugin)
         {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            w->stop_processing();
         }
 
         void CLAP_ABI reset(const clap_plugin_t *plugin)
         {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            w->reset();
         }
 
         clap_process_status CLAP_ABI process(
             const struct clap_plugin *plugin,
             const clap_process_t *process)
         {
-            return CLAP_PROCESS_CONTINUE;
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->process(process);
         }
 
         const void * CLAP_ABI get_extension(const clap_plugin_t *plugin, const char *id)
         {
-            return NULL;
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->get_extension(id);
         }
 
         void CLAP_ABI on_main_thread(const clap_plugin_t *plugin)
         {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            w->on_main_thread();
         }
 
         //---------------------------------------------------------------------
@@ -178,15 +202,32 @@ namespace lsp
                     }
 
                     // Initialize descriptor
-                    // TODO
-//                    d->URI                  = meta->lv2_uri;
-//                    d->instantiate          = instantiate;
-//                    d->connect_port         = connect_port;
-//                    d->activate             = activate;
-//                    d->run                  = run;
-//                    d->deactivate           = deactivate;
-//                    d->cleanup              = cleanup;
-//                    d->extension_data       = extension_data;
+                    char *tmp;
+                    bzero(d, sizeof(*d));
+                    d->id               = meta->clap_uid;
+                    d->name             = meta->description;
+                    d->vendor           = NULL;
+                    d->url              = NULL;
+                    d->manual_url       = NULL;
+                    d->support_url      = NULL;
+                    d->version          = NULL;
+                    d->description      = (meta->bundle != NULL) ? meta->bundle->description : NULL;
+                    d->features         = NULL; // TODO: generate list of features
+
+                    if (asprintf(&tmp, "%d.%d.%d",
+                        int(LSP_MODULE_VERSION_MAJOR(meta->version)),
+                        int(LSP_MODULE_VERSION_MINOR(meta->version)),
+                        int(LSP_MODULE_VERSION_MICRO(meta->version)) >= 0))
+                        d->version          = tmp;
+
+                    if (manifest != NULL)
+                    {
+                        if (asprintf(&tmp, "%s CLAP", manifest->brand) >= 0)
+                            d->vendor           = tmp;
+                        d->url              = manifest->site;
+                        if (asprintf(&tmp, "%s/doc/%s/html/plugins/%s.html", manifest->site, "lsp-plugins", meta->uid) >= 0)
+                            d->manual_url       = tmp;
+                    }
                 }
             }
 
@@ -273,7 +314,29 @@ namespace lsp
                                 delete plugin;
                         };
 
-                        // TODO: Create the wrapper
+                        // Create the resource loader
+                        resource::ILoader *loader = core::create_resource_loader();
+                        lsp_finally {
+                            if (loader != NULL)
+                                delete loader;
+                        };
+
+                        // Create the wrapper
+                        Wrapper *wrapper    = new Wrapper(plugin, package_manifest, loader, host);
+                        if (wrapper == NULL)
+                        {
+                            lsp_warn("Error creating wrapper");
+                            return NULL;
+                        }
+                        lsp_finally {
+                            if (wrapper != NULL)
+                            {
+                                wrapper->destroy();
+                                delete wrapper;
+                            }
+                        };
+                        plugin              = NULL;
+                        loader              = NULL;
 
                         // Allocate the plugin handle and fill it
                         clap_plugin_t *h   = static_cast<clap_plugin_t *>(malloc(sizeof(clap_plugin_t)));
@@ -283,7 +346,7 @@ namespace lsp
 
                         // Fill-in the plugin data and return
                         h->desc             = descriptor;
-                        h->plugin_data      = NULL;     // TODO: put pointer to the wrapper
+                        h->plugin_data      = wrapper;
                         h->init             = init;
                         h->destroy          = destroy;
                         h->activate         = activate;
@@ -294,6 +357,9 @@ namespace lsp
                         h->process          = process;
                         h->get_extension    = get_extension;
                         h->on_main_thread   = on_main_thread;
+
+                        // Prevent wrapper of being deleted
+                        wrapper             = NULL;
 
                         return h;
                     }
@@ -316,6 +382,10 @@ namespace lsp
         // Library-related stuff
         static bool init_library(const char *plugin_path)
         {
+        #ifndef LSP_IDE_DEBUG
+            IF_DEBUG( lsp::debug::redirect(CLAP_LOG_FILE); );
+        #endif /* LSP_IDE_DEBUG */
+
             gen_descriptors();
             return true;
         }
