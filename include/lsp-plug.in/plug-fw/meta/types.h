@@ -347,6 +347,7 @@ namespace lsp
             const char             *vst2_uid;       // Steinberg VST 2.x ID of the plugin
             const uint32_t          ladspa_id;      // LADSPA ID of the plugin
             const char             *ladspa_lbl;     // LADSPA unique label of the plugin
+            const char             *clap_uid;       // Unique identifier for CLAP format
             const version_t         version;        // Version of the plugin
             const int              *classes;        // List of plugin classes terminated by negative value
             const int               extensions;     // Additional extensions
