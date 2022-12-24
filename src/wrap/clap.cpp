@@ -204,6 +204,8 @@ namespace lsp
                     // Initialize descriptor
                     char *tmp;
                     bzero(d, sizeof(*d));
+
+                    d->clap_version     = CLAP_VERSION;
                     d->id               = meta->clap_uid;
                     d->name             = meta->description;
                     d->vendor           = NULL;
