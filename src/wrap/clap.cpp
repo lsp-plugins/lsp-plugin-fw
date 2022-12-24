@@ -258,11 +258,11 @@ namespace lsp
                 return;
 
             if (d->version != NULL)
-                free(static_cast<char *>(d->version));
+                free(const_cast<char *>(d->version));
             if (d->vendor != NULL)
-                free(static_cast<char *>(d->vendor));
+                free(const_cast<char *>(d->vendor));
             if (d->manual_url != NULL)
-                free(static_cast<char *>(d->manual_url));
+                free(const_cast<char *>(d->manual_url));
 
             d->version          = NULL;
             d->vendor           = NULL;
