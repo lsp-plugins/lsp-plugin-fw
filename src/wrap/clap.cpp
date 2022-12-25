@@ -48,6 +48,140 @@ namespace lsp
         static lsp::singletone_t library;
 
         //---------------------------------------------------------------------
+        // Audio ports extension
+        static uint32_t audio_ports_count(const clap_plugin_t *plugin, bool is_input)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->audio_ports_count(is_input);
+        }
+
+        static bool audio_ports_get(
+            const clap_plugin_t *plugin,
+            uint32_t index,
+            bool is_input,
+            clap_audio_port_info_t *info)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            const clap_audio_port_info_t *meta = w->audio_port_info(index, is_input);
+            if (info == NULL)
+                return false;
+
+            // Output the value to the passed poiner
+            info->id            = meta->id;
+            strcpy(info->name, meta->name);
+            info->channel_count = meta->channel_count;
+            info->flags         = meta->flags;
+            info->port_type     = meta->port_type;
+            info->in_place_pair = meta->in_place_pair;
+
+            return true;
+        }
+
+        static const clap_plugin_audio_ports_t audio_ports_extension =
+        {
+            .count = audio_ports_count,
+            .get = audio_ports_get,
+        };
+
+        //---------------------------------------------------------------------
+        // Parameters extension
+        // Returns the number of parameters.
+        // [main-thread]
+        uint32_t CLAP_ABI params_count(const clap_plugin_t *plugin)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->params_count();
+        }
+
+        bool CLAP_ABI get_param_info(
+            const clap_plugin_t *plugin,
+            uint32_t param_index,
+            clap_param_info_t *param_info)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->param_info(param_info, param_index) == STATUS_OK;
+        }
+
+        bool CLAP_ABI get_param_value(const clap_plugin_t *plugin, clap_id param_id, double *value)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->get_param_value(value, param_id) == STATUS_OK;
+        }
+
+        bool CLAP_ABI format_param_value(
+           const clap_plugin_t *plugin,
+           clap_id param_id,
+           double value,
+           char *display,
+           uint32_t size)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->format_param_value(display, size, param_id, value) == STATUS_OK;
+        }
+
+        bool CLAP_ABI parse_param_value(
+            const clap_plugin_t *plugin,
+            clap_id param_id,
+            const char *display,
+            double *value)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->parse_param_value(value, param_id, display) == STATUS_OK;
+        }
+
+        void CLAP_ABI flush_param_events(
+            const clap_plugin_t *plugin,
+            const clap_input_events_t *in,
+            const clap_output_events_t *out)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            w->flush_param_events(in, out);
+        }
+
+        static const clap_plugin_params_t plugin_params_extension =
+        {
+            .count          = params_count,
+            .get_info       = get_param_info,
+            .get_value      = get_param_value,
+            .value_to_text  = format_param_value,
+            .text_to_value  = parse_param_value,
+            .flush          = flush_param_events,
+        };
+
+        //---------------------------------------------------------------------
+        // Latency extension
+        uint32_t CLAP_ABI get_latency(const clap_plugin_t *plugin)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->latency();
+        }
+
+        static const clap_plugin_latency_t latency_extension =
+        {
+            .get = get_latency,
+        };
+
+        //---------------------------------------------------------------------
+        // State extension
+        bool CLAP_ABI save_state(const clap_plugin_t *plugin, const clap_ostream_t *stream)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->save_state(stream) == STATUS_OK;
+        }
+
+        bool CLAP_ABI load_state(const clap_plugin_t *plugin, const clap_istream_t *stream)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->load_state(stream) == STATUS_OK;
+        }
+
+        const clap_plugin_state_t state_extension =
+        {
+            .save = save_state,
+            .load = load_state,
+        };
+
+        //---------------------------------------------------------------------
         // Plugin instance related stuff
         bool CLAP_ABI init(const clap_plugin_t *plugin)
         {
@@ -113,6 +247,18 @@ namespace lsp
 
         const void * CLAP_ABI get_extension(const clap_plugin_t *plugin, const char *id)
         {
+            if (!strcmp(id, CLAP_EXT_LATENCY))
+                return &latency_extension;
+            if (!strcmp(id, CLAP_EXT_AUDIO_PORTS))
+                return &audio_ports_extension;
+            if (!strcmp(id, CLAP_EXT_STATE))
+                return &state_extension;
+            if (!strcmp(id, CLAP_EXT_PARAMS))
+                return &plugin_params_extension;
+// TODO: work with note ports
+//            if (!strcmp(id, CLAP_EXT_NOTE_PORTS))
+//               return &s_my_plug_note_ports;
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->get_extension(id);
         }
