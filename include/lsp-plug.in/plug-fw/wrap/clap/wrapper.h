@@ -22,11 +22,14 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_CLAP_WRAPPER_H_
 #define LSP_PLUG_IN_PLUG_FW_WRAP_CLAP_WRAPPER_H_
 
+#include <lsp-plug.in/plug-fw/version.h>
+
 #include <clap/clap.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/ports.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
 namespace lsp
@@ -39,19 +42,43 @@ namespace lsp
         class Wrapper: public plug::IWrapper
         {
             protected:
+                typedef struct audio_group_t
+                {
+                    meta::port_group_type_t nType;      // Type of the group (MONO, STEREO, etc)
+                    size_t                  nFlags;     // Flags to return to the CLAP host
+                    ssize_t                 nInPlace;   // CLAP host optimizations: in-place pair
+                    const char             *sName;      // Pointer to the group name
+                    size_t                  nPorts;     // Number of ports in the group
+                    plug::IPort            *vPorts[];   // List of ports in the audio port group
+                } audio_group_t;
+
+            protected:
                 const clap_host_t              *pHost;
                 const meta::package_t          *pPackage;
                 HostExtensions                 *pExt;
                 ssize_t                         nLatency;
 
-                lltl::darray<clap_audio_port_info_t> vInAudioPortInfo;
-                lltl::darray<clap_audio_port_info_t> vOutAudioPortInfo;
-                lltl::parray<plug::IPort>       vInAudioPorts;
-                lltl::parray<plug::IPort>       vOutAudioPorts;
+                lltl::parray<audio_group_t>     vAudioIn;
+                lltl::parray<audio_group_t>     vAudioOut;
                 lltl::parray<plug::IPort>       vParamPorts;
+                lltl::parray<plug::IPort>       vAllPorts;
 
                 bool                            bRestartRequested;  // Flag that indicates that the plugin restart was requested
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
+
+            protected:
+                static audio_group_t *alloc_audio_group(size_t ports);
+                static audio_group_t *create_audio_group(
+                    const meta::port_group_t *meta,
+                    lltl::parray<plug::IPort> * ins,
+                    lltl::parray<plug::IPort> * outs);
+                static audio_group_t *create_audio_group(plug::IPort *port);
+                static void     destroy_audio_group(audio_group_t *grp);
+                static plug::IPort *find_port(const char *id, lltl::parray<plug::IPort> *list);
+
+            protected:
+                void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
+                status_t        generate_audio_port_groups();
 
             public:
                 explicit Wrapper(
@@ -63,39 +90,39 @@ namespace lsp
 
             public:
                 // CLAP public API functions
-                status_t    init();
-                void        destroy();
-                status_t    activate(double sample_rate, uint32_t min_frames_count, uint32_t max_frames_count);
-                void        deactivate();
-                status_t    start_processing();
-                void        stop_processing();
-                void        reset();
+                status_t        init();
+                void            destroy();
+                status_t        activate(double sample_rate, size_t min_frames_count, size_t max_frames_count);
+                void            deactivate();
+                status_t        start_processing();
+                void            stop_processing();
+                void            reset();
                 clap_process_status     process(const clap_process_t *process);
-                const void *get_extension(const char *id);
-                void        on_main_thread();
+                const void     *get_extension(const char *id);
+                void            on_main_thread();
 
             public:
                 // CLAP parameter extension
-                size_t      params_count() const;
-                status_t    param_info(clap_param_info *info, size_t index) const;
-                status_t    get_param_value(double *value, size_t index) const;
-                status_t    format_param_value(char *buffer, size_t buf_size, size_t param_id, double value) const;
-                status_t    parse_param_value(double *value, size_t param_id, const char *text) const;
-                void        flush_param_events(const clap_input_events_t *in, const clap_output_events_t *out);
+                size_t          params_count() const;
+                status_t        param_info(clap_param_info *info, size_t index) const;
+                status_t        get_param_value(double *value, size_t index) const;
+                status_t        format_param_value(char *buffer, size_t buf_size, size_t param_id, double value) const;
+                status_t        parse_param_value(double *value, size_t param_id, const char *text) const;
+                void            flush_param_events(const clap_input_events_t *in, const clap_output_events_t *out);
 
             public:
                 // CLAP latency extension
-                size_t      latency() const;
+                size_t          latency() const;
 
             public:
                 // CLAP audio port extension
-                size_t      audio_ports_count(bool is_input) const;
-                const clap_audio_port_info_t     *audio_port_info(size_t index, bool is_input) const;
+                size_t          audio_ports_count(bool is_input) const;
+                status_t        audio_port_info(clap_audio_port_info_t *info, size_t index, bool is_input) const;
 
             public:
                 // CLAP state extension
-                status_t    save_state(const clap_ostream_t *stream);
-                status_t    load_state(const clap_istream_t *stream);
+                status_t        save_state(const clap_ostream_t *stream);
+                status_t        load_state(const clap_istream_t *stream);
         };
     } /* namespace clap */
 } /* namespace lsp */

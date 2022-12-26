@@ -22,6 +22,8 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_CLAP_EXTENSIONS_H_
 #define LSP_PLUG_IN_PLUG_FW_WRAP_CLAP_EXTENSIONS_H_
 
+#include <lsp-plug.in/plug-fw/version.h>
+
 #include <clap/clap.h>
 #include <lsp-plug.in/stdlib/string.h>
 

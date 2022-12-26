@@ -62,19 +62,7 @@ namespace lsp
             clap_audio_port_info_t *info)
         {
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
-            const clap_audio_port_info_t *meta = w->audio_port_info(index, is_input);
-            if (info == NULL)
-                return false;
-
-            // Output the value to the passed poiner
-            info->id            = meta->id;
-            strcpy(info->name, meta->name);
-            info->channel_count = meta->channel_count;
-            info->flags         = meta->flags;
-            info->port_type     = meta->port_type;
-            info->in_place_pair = meta->in_place_pair;
-
-            return true;
+            return w->audio_port_info(info, index, is_input) == STATUS_OK;
         }
 
         static const clap_plugin_audio_ports_t audio_ports_extension =
