@@ -104,7 +104,7 @@ namespace lsp
             public:
                 // CLAP parameter extension
                 size_t          params_count() const;
-                status_t        param_info(clap_param_info *info, size_t index) const;
+                status_t        param_info(clap_param_info_t *info, size_t index) const;
                 status_t        get_param_value(double *value, size_t index) const;
                 status_t        format_param_value(char *buffer, size_t buf_size, size_t param_id, double value) const;
                 status_t        parse_param_value(double *value, size_t param_id, const char *text) const;

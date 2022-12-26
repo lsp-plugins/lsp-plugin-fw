@@ -486,28 +486,69 @@ namespace lsp
             return vParamPorts.size();
         }
 
-        status_t Wrapper::param_info(clap_param_info *info, size_t index) const
+        status_t Wrapper::param_info(clap_param_info_t *info, size_t index) const
         {
+            // Get the port and it's metadata
+            plug::IPort *p = vParamPorts.get(index);
+            if (p == NULL)
+                return STATUS_NOT_FOUND;
+            const meta::port_t *meta = p->metadata();
+            if (meta == NULL)
+                return STATUS_BAD_STATE;
+
+            // Fill-in parameter flags
+            info->id        = clap_hash_string(meta->id);
+            info->flags     = CLAP_PARAM_IS_AUTOMATABLE | CLAP_PARAM_REQUIRES_PROCESS;
+            if (meta::is_discrete_unit(meta->unit) )
+                info->flags    |= CLAP_PARAM_IS_STEPPED;
+            else if (meta->flags & meta::F_INT)
+                info->flags    |= CLAP_PARAM_IS_STEPPED;
+            if (meta->flags & meta::F_CYCLIC)
+                info->flags    |= CLAP_PARAM_IS_PERIODIC;
+            if (meta->role == meta::R_BYPASS)
+                info->flags    |= CLAP_PARAM_IS_BYPASS;
+            info->cookie    = p;
+            clap_strcpy(info->name, meta->name, sizeof(info->name));
+            info->module[0] = '\0';
+
+            float min = 0.0f, max = 0.0f;
+            meta::get_port_parameters(meta, &min, &max, NULL);
+
+            info->min_value     = min;
+            info->max_value     = max;
+            info->default_value = meta->start;
+
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t Wrapper::get_param_value(double *value, size_t index) const
         {
-            return STATUS_NOT_IMPLEMENTED;
+            // Get the port and it's metadata
+            plug::IPort *p = vParamPorts.get(index);
+            if (p == NULL)
+                return STATUS_NOT_FOUND;
+
+            if (value != NULL)
+                *value      = p->value();
+
+            return STATUS_OK;
         }
 
         status_t Wrapper::format_param_value(char *buffer, size_t buf_size, size_t param_id, double value) const
         {
+            // TODO: need more details about units included into the output value
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t Wrapper::parse_param_value(double *value, size_t param_id, const char *text) const
         {
+            // TODO: need more details about units included into the output value
             return STATUS_NOT_IMPLEMENTED;
         }
 
         void Wrapper::flush_param_events(const clap_input_events_t *in, const clap_output_events_t *out)
         {
+            // TODO: process events
         }
 
     } /* namespace clap */
