@@ -115,6 +115,64 @@ namespace lsp
                 }
         };
 
+        class ParameterPort: public plug::IPort
+        {
+            protected:
+                float   fValue;
+                clap_id nID;
+
+            public:
+                explicit ParameterPort(const meta::port_t *meta) : IPort(meta)
+                {
+                    fValue  = meta->start;
+                    nID     = clap_hash_string(meta->id);
+                }
+
+            public:
+                inline clap_id uid() const  { return nID; }
+
+            public:
+                virtual float value() override { return fValue; }
+        };
+
+        class PortGroup: public ParameterPort
+        {
+            private:
+                size_t                  nCols;
+                size_t                  nRows;
+
+            public:
+                explicit PortGroup(const meta::port_t *meta) : ParameterPort(meta)
+                {
+                    nCols               = meta::port_list_size(meta->members);
+                    nRows               = meta::list_size(meta->items);
+                }
+
+                virtual ~PortGroup()
+                {
+                    nCols               = 0;
+                    nRows               = 0;
+                }
+
+            public:
+                virtual void set_value(float value)
+                {
+                    int32_t v = value;
+                    if ((v >= 0) && (v < ssize_t(nRows)))
+                        fValue              = v;
+                }
+
+                virtual float value()
+                {
+                    return fValue;
+                }
+
+            public:
+                inline size_t rows() const      { return nRows;     }
+                inline size_t cols() const      { return nCols;     }
+                inline size_t curr_row() const  { return fValue;    }
+        };
+
     } /* namespace clap */
 } /* namespace lsp */
 

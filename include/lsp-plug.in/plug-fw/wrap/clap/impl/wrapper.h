@@ -78,6 +78,13 @@ namespace lsp
             }
             vAllPorts.flush();
 
+            // Cleanup generated metadata
+            for (size_t i=0, n=vGenMetadata.size(); i<n; ++i)
+            {
+                meta::port_t *port = vGenMetadata.uget(i);
+                meta::drop_port_metadata(port);
+            }
+
             // Destroy the loader
             if (pLoader != NULL)
             {
@@ -139,16 +146,51 @@ namespace lsp
 
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
-                    // TODO
+                {
+                    clap::ParameterPort *pp = new clap::ParameterPort(port);
+                    vParamPorts.add(pp);
+                    ip  = pp;
                     break;
+                }
 
                 case meta::R_METER:
                     // TODO
                     break;
 
                 case meta::R_PORT_SET:
-                    // TODO
+                {
+                    LSPString postfix_str;
+                    clap::PortGroup *pg      = new clap::PortGroup(port);
+                    vAllPorts.add(pg);
+                    vParamPorts.add(pg);
+                    plugin_ports->add(pg);
+
+                    for (size_t row=0; row<pg->rows(); ++row)
+                    {
+                        // Generate postfix
+                        postfix_str.fmt_ascii("%s_%d", (postfix != NULL) ? postfix : "", int(row));
+                        const char *port_post   = postfix_str.get_ascii();
+
+                        // Clone port metadata
+                        meta::port_t *cm        = meta::clone_port_metadata(port->members, port_post);
+                        if (cm != NULL)
+                        {
+                            vGenMetadata.add(cm);
+
+                            for (; cm->id != NULL; ++cm)
+                            {
+                                if (meta::is_growing_port(cm))
+                                    cm->start    = cm->min + ((cm->max - cm->min) * row) / float(pg->rows());
+                                else if (meta::is_lowering_port(cm))
+                                    cm->start    = cm->max - ((cm->max - cm->min) * row) / float(pg->rows());
+
+                                create_port(plugin_ports, cm, port_post);
+                            }
+                        }
+                    }
+
                     break;
+                }
 
                 default:
                     break;
@@ -181,6 +223,13 @@ namespace lsp
                     return p;
             }
             return NULL;
+        }
+
+        ssize_t Wrapper::compare_ports_by_clap_id(const ParameterPort *a, const ParameterPort *b)
+        {
+            clap_id a_id = a->uid();
+            clap_id b_id = b->uid();
+            return (a_id < b_id) ? -1 : (a_id > b_id) ? 1 : 0;
         }
 
         Wrapper::audio_group_t *Wrapper::alloc_audio_group(size_t ports)
@@ -256,7 +305,7 @@ namespace lsp
             return grp;
         }
 
-        status_t Wrapper::generate_audio_port_groups()
+        status_t Wrapper::generate_audio_port_groups(const meta::plugin_t *meta)
         {
             // Generate mofifiable lists of input and output ports
             lltl::parray<plug::IPort> ins, outs;
@@ -275,8 +324,7 @@ namespace lsp
 
             // Try to create ports using port groups
             audio_group_t *in_main = NULL, *out_main = NULL;
-            const meta::plugin_t *pmeta = pPlugin->metadata();
-            for (const meta::port_group_t *pg = (pmeta != NULL) ? pmeta->port_groups : NULL;
+            for (const meta::port_group_t *pg = (meta != NULL) ? meta->port_groups : NULL;
                 (pg != NULL) && (pg->id != NULL);
                 ++pg)
             {
@@ -357,6 +405,33 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t Wrapper::create_ports(const meta::plugin_t *meta)
+        {
+            // Create ports
+            lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
+            lltl::parray<plug::IPort> plugin_ports;
+            for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
+                create_port(&plugin_ports, port, NULL);
+            vParamPorts.qsort(compare_ports_by_clap_id);
+
+        #ifdef LSP_TRACE
+            // Validate that we don't have conflicts between uinque port identifiers
+            for (size_t i=1, n=vParamPorts.size(); i<n; ++i)
+            {
+                clap::ParameterPort *curr = vParamPorts.uget(i);
+                clap::ParameterPort *prev = vParamPorts.uget(i-1);
+                if (curr->uid() == prev->uid())
+                {
+                    lsp_error("Conflicting clap_id hash=0x%08lx for ports '%s' and '%s', consider choosing another port identifier",
+                        long(curr->uid()), prev->metadata()->id, curr->metadata()->id);
+                    return STATUS_BAD_STATE;
+                }
+            }
+        #endif /* LSP_TRACE */
+
+            return STATUS_OK;
+        }
+
         status_t Wrapper::init()
         {
             // Obtain the plugin metadata
@@ -369,14 +444,11 @@ namespace lsp
             if (pExt == NULL)
                 return STATUS_NO_MEM;
 
-            // Create ports
-            lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
-            lltl::parray<plug::IPort> plugin_ports;
-            for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
-                create_port(&plugin_ports, port, NULL);
+            // Create all possible ports for plugin and validate the state
+            LSP_STATUS_ASSERT(create_ports(meta));
 
             // Generate the input and output audio port groups
-            LSP_STATUS_ASSERT(generate_audio_port_groups());
+            LSP_STATUS_ASSERT(generate_audio_port_groups(meta));
 
 
             // TODO
@@ -486,7 +558,7 @@ namespace lsp
             return vParamPorts.size();
         }
 
-        status_t Wrapper::param_info(clap_param_info_t *info, size_t index) const
+        status_t Wrapper::param_info(clap_param_info_t *info, size_t index)
         {
             // Get the port and it's metadata
             plug::IPort *p = vParamPorts.get(index);
@@ -521,27 +593,53 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t Wrapper::get_param_value(double *value, size_t index) const
+        ParameterPort *Wrapper::find_param(clap_id param_id)
         {
-            // Get the port and it's metadata
-            plug::IPort *p = vParamPorts.get(index);
+            ssize_t first=0, last = vParamPorts.size() - 1;
+            while (first <= last)
+            {
+                size_t center       = size_t(first + last) >> 1;
+                ParameterPort *p    = vParamPorts.uget(center);
+                if (param_id == p->uid())
+                    return p;
+                else if (param_id < p->uid())
+                    last    = center - 1;
+                else
+                    first   = center + 1;
+            }
+            return NULL;
+        }
+
+        status_t Wrapper::get_param_value(double *value, clap_id param_id)
+        {
+            // Get the parameter port
+            plug::IPort *p = find_param(param_id);
             if (p == NULL)
                 return STATUS_NOT_FOUND;
-
             if (value != NULL)
                 *value      = p->value();
 
             return STATUS_OK;
         }
 
-        status_t Wrapper::format_param_value(char *buffer, size_t buf_size, size_t param_id, double value) const
+        status_t Wrapper::format_param_value(char *buffer, size_t buf_size, clap_id param_id, double value)
         {
+            // Get the parameter port
+            plug::IPort *p = find_param(param_id);
+            if (p == NULL)
+                return STATUS_NOT_FOUND;
+
             // TODO: need more details about units included into the output value
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t Wrapper::parse_param_value(double *value, size_t param_id, const char *text) const
+        status_t Wrapper::parse_param_value(double *value, clap_id param_id, const char *text)
         {
+            // Get the parameter port
+            plug::IPort *p = find_param(param_id);
+            if (p == NULL)
+                return STATUS_NOT_FOUND;
+
             // TODO: need more details about units included into the output value
             return STATUS_NOT_IMPLEMENTED;
         }

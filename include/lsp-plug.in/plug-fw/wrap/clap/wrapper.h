@@ -60,8 +60,9 @@ namespace lsp
 
                 lltl::parray<audio_group_t>     vAudioIn;
                 lltl::parray<audio_group_t>     vAudioOut;
-                lltl::parray<plug::IPort>       vParamPorts;
+                lltl::parray<ParameterPort>     vParamPorts;        // List of parameters sorted by clap_id
                 lltl::parray<plug::IPort>       vAllPorts;
+                lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
                 bool                            bRestartRequested;  // Flag that indicates that the plugin restart was requested
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
@@ -75,10 +76,13 @@ namespace lsp
                 static audio_group_t *create_audio_group(plug::IPort *port);
                 static void     destroy_audio_group(audio_group_t *grp);
                 static plug::IPort *find_port(const char *id, lltl::parray<plug::IPort> *list);
+                static ssize_t  compare_ports_by_clap_id(const ParameterPort *a, const ParameterPort *b);
 
             protected:
                 void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
-                status_t        generate_audio_port_groups();
+                status_t        create_ports(const meta::plugin_t *meta);
+                status_t        generate_audio_port_groups(const meta::plugin_t *meta);
+                ParameterPort  *find_param(clap_id param_id);
 
             public:
                 explicit Wrapper(
@@ -104,10 +108,10 @@ namespace lsp
             public:
                 // CLAP parameter extension
                 size_t          params_count() const;
-                status_t        param_info(clap_param_info_t *info, size_t index) const;
-                status_t        get_param_value(double *value, size_t index) const;
-                status_t        format_param_value(char *buffer, size_t buf_size, size_t param_id, double value) const;
-                status_t        parse_param_value(double *value, size_t param_id, const char *text) const;
+                status_t        param_info(clap_param_info_t *info, size_t index);
+                status_t        get_param_value(double *value, clap_id param_id);
+                status_t        format_param_value(char *buffer, size_t buf_size, clap_id param_id, double value);
+                status_t        parse_param_value(double *value, clap_id param_id, const char *text);
                 void            flush_param_events(const clap_input_events_t *in, const clap_output_events_t *out);
 
             public:

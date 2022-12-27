@@ -314,7 +314,7 @@ namespace lsp
          * @param meta associated metadata
          * @return status of operation
          */
-        status_t        parse_bool(float *dst, const char *text);
+        status_t        parse_bool(float *dst, const char *text, const port_t *meta);
 
         /**
          * Parse some text value associated with specified metadata and considered to be enumeration

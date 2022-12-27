@@ -463,7 +463,7 @@ namespace lsp
         } \
         setlocale(lc, value);
 
-        status_t parse_bool(float *dst, const char *text)
+        status_t parse_bool(float *dst, const char *text, const port_t *meta)
         {
             if ((!::strcasecmp(text, "true")) ||
                 (!::strcasecmp(text, "on")) ||
@@ -483,7 +483,14 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            return STATUS_INVALID_VALUE;
+            // Try to parse as floating-point value
+            float v = 0.0f;
+            status_t res = parse_float(&v, text, meta);
+            if (res != STATUS_OK)
+                return res;
+
+            *dst    = (fabs(v) >= 0.5f) ? 1.0f : 0.0f;
+            return STATUS_OK;
         }
 
         status_t parse_enum(float *dst, const char *text, const port_t *meta)
@@ -579,7 +586,7 @@ namespace lsp
                 return STATUS_BAD_ARGUMENTS;
 
             if (meta->unit == U_BOOL)
-                return parse_bool(dst, text);
+                return parse_bool(dst, text, meta);
             else if (meta->unit == U_ENUM)
                 return parse_enum(dst, text, meta);
             else if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW))
@@ -686,7 +693,7 @@ namespace lsp
             if (step != NULL)
                 *step       = f_step;
         }
-    }
-}
+    } /* namespace meta */
+} /* namespace lsp */
 
 
