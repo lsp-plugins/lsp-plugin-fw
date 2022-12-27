@@ -593,7 +593,7 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        ParameterPort *Wrapper::find_param(clap_id param_id)
+        clap::ParameterPort *Wrapper::find_param(clap_id param_id)
         {
             ssize_t first=0, last = vParamPorts.size() - 1;
             while (first <= last)
@@ -613,7 +613,7 @@ namespace lsp
         status_t Wrapper::get_param_value(double *value, clap_id param_id)
         {
             // Get the parameter port
-            plug::IPort *p = find_param(param_id);
+            clap::ParameterPort *p = find_param(param_id);
             if (p == NULL)
                 return STATUS_NOT_FOUND;
             if (value != NULL)
@@ -625,12 +625,15 @@ namespace lsp
         status_t Wrapper::format_param_value(char *buffer, size_t buf_size, clap_id param_id, double value)
         {
             // Get the parameter port
-            plug::IPort *p = find_param(param_id);
+            clap::ParameterPort *p = find_param(param_id);
             if (p == NULL)
                 return STATUS_NOT_FOUND;
+            const meta::port_t *meta = p->metadata();
+            if (meta == NULL)
+                return STATUS_BAD_STATE;
 
-            // TODO: need more details about units included into the output value
-            return STATUS_NOT_IMPLEMENTED;
+            meta::format_value(buffer, buf_size, meta, value, -1, false);
+            return STATUS_OK;
         }
 
         status_t Wrapper::parse_param_value(double *value, clap_id param_id, const char *text)

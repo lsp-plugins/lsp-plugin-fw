@@ -253,7 +253,7 @@ namespace lsp
                     expr::Parameters params;
                     LSPString text, funit;
 
-                    meta::format_value(buf, TMP_BUF_SIZE, mdata, fValue, nPrecision);
+                    meta::format_value(buf, TMP_BUF_SIZE, mdata, fValue, nPrecision, false);
                     text.set_ascii(buf);
                     sunit.format(&funit);
                     if (mdata->unit == meta::U_BOOL)
@@ -415,7 +415,7 @@ namespace lsp
 
             // Set-up value
             char buf[TMP_BUF_SIZE];
-            format_value(buf, TMP_BUF_SIZE, mdata, _this->fValue, _this->nPrecision);
+            format_value(buf, TMP_BUF_SIZE, mdata, _this->fValue, _this->nPrecision, false);
             popup->sValue.text()->set_raw(buf);
             popup->sValue.selection()->set_all();
 

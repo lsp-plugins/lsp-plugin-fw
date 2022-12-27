@@ -491,7 +491,7 @@ namespace lsp
 
             // Set-up value
             char buf[TMP_BUF_SIZE];
-            format_value(buf, TMP_BUF_SIZE, mdata, _this->nNote, _this->nDigits);
+            format_value(buf, TMP_BUF_SIZE, mdata, _this->nNote, _this->nDigits, false);
             popup->sValue.text()->set_raw(buf);
             popup->sValue.selection()->set_all();
 

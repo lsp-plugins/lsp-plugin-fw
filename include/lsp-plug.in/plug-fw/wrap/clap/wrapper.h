@@ -82,7 +82,7 @@ namespace lsp
                 void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 status_t        create_ports(const meta::plugin_t *meta);
                 status_t        generate_audio_port_groups(const meta::plugin_t *meta);
-                ParameterPort  *find_param(clap_id param_id);
+                clap::ParameterPort  *find_param(clap_id param_id);
 
             public:
                 explicit Wrapper(

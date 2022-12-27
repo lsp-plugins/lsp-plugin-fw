@@ -312,8 +312,9 @@ namespace lsp
             return count;
         }
 
-        void format_float(char *buf, size_t len, const port_t *meta, float value, ssize_t precision)
+        void format_float(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units)
         {
+            const char *unit    = (units) ? get_unit_name(meta->unit) : NULL;
             float v = (value < 0.0f) ? - value : value;
             size_t tolerance    = 0;
 
@@ -350,24 +351,43 @@ namespace lsp
             else
                 tolerance   = (precision > 4) ? 4 : precision;
 
-            const char *fmt = "%.0f";
-            switch (tolerance)
+            const char *fmt;
+            if (unit != NULL)
             {
-                case 4:     fmt = "%.4f"; break;
-                case 3:     fmt = "%.3f"; break;
-                case 2:     fmt = "%.2f"; break;
-                case 1:     fmt = "%.1f"; break;
-                default:    fmt = "%.0f"; break;
-            };
+                switch (tolerance)
+                {
+                    case 4:     fmt = "%.4f %s"; break;
+                    case 3:     fmt = "%.3f %s"; break;
+                    case 2:     fmt = "%.2f %s"; break;
+                    case 1:     fmt = "%.1f %s"; break;
+                    default:    fmt = "%.0f %s"; break;
+                };
+                snprintf(buf, len, fmt, value, unit);
+            }
+            else
+            {
+                switch (tolerance)
+                {
+                    case 4:     fmt = "%.4f"; break;
+                    case 3:     fmt = "%.3f"; break;
+                    case 2:     fmt = "%.2f"; break;
+                    case 1:     fmt = "%.1f"; break;
+                    default:    fmt = "%.0f"; break;
+                };
+                snprintf(buf, len, fmt, value);
+            }
 
-            snprintf(buf, len, fmt, value);
             if (len > 0)
                 buf[len - 1] = '\0';
         }
 
-        void format_int(char *buf, size_t len, const port_t *meta, float value)
+        void format_int(char *buf, size_t len, const port_t *meta, float value, bool units)
         {
-            snprintf(buf, len, "%ld", long(value));
+            const char *unit    = (units) ? get_unit_name(meta->unit) : NULL;
+            if (unit != NULL)
+                snprintf(buf, len, "%ld", long(value));
+            else
+                snprintf(buf, len, "%ld %s", long(value), unit);
             if (len > 0)
                 buf[len - 1] = '\0';
         }
@@ -391,34 +411,63 @@ namespace lsp
                 buf[0] = '\0';
         }
 
-        void format_decibels(char *buf, size_t len, const port_t *meta, float value, ssize_t precision)
+        void format_decibels(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units)
         {
-            double mul      = (meta->unit == U_GAIN_AMP) ? 20.0 : 10.0;
-            if (value < 0.0f)
-                value           = - value;
-
-            value = mul * log(value) / M_LN10;
-            float thresh    = (meta->flags & F_EXT) ? -140.0f : -80.0f;
-            if (value <= thresh)
-            {
-                strcpy(buf, "-inf");
-                return;
-            }
-
             const char *fmt;
-            if (precision < 0)
-                fmt = "%.2f";
-            else if (precision == 1)
-                fmt = "%.1f";
-            else if (precision == 2)
-                fmt = "%.2f";
-            else if (precision == 3)
-                fmt = "%.3f";
-            else
-                fmt = "%.4f";
+            const char *unit    = (units) ? get_unit_name(meta::U_DB) : NULL;
+            double mul          = (meta->unit == U_GAIN_AMP) ? 20.0 : 10.0;
+            if (value < 0.0f)
+                value               = - value;
 
-            snprintf(buf, len, fmt, value);
-            buf[len - 1] = '\0';
+            value               = mul * log(value) / M_LN10;
+            float thresh        = (meta->flags & F_EXT) ? -140.0f : -80.0f;
+
+            if (unit != NULL)
+            {
+                if (value <= thresh)
+                {
+                    snprintf(buf, len, "-inf %s", unit);
+                    if (len > 0)
+                        buf[len - 1] = '\0';
+                    return;
+                }
+
+                if (precision < 0)
+                    fmt = "%.2f %s";
+                else if (precision == 1)
+                    fmt = "%.1f %s";
+                else if (precision == 2)
+                    fmt = "%.2f %s";
+                else if (precision == 3)
+                    fmt = "%.3f %s";
+                else
+                    fmt = "%.4f %s";
+
+                snprintf(buf, len, fmt, value, unit);
+            }
+            else
+            {
+                if (value <= thresh)
+                {
+                    strcpy(buf, "-inf");
+                    return;
+                }
+
+                if (precision < 0)
+                    fmt = "%.2f";
+                else if (precision == 1)
+                    fmt = "%.1f";
+                else if (precision == 2)
+                    fmt = "%.2f";
+                else if (precision == 3)
+                    fmt = "%.3f";
+                else
+                    fmt = "%.4f";
+
+                snprintf(buf, len, fmt, value);
+            }
+            if (len > 0)
+                buf[len - 1] = '\0';
         }
 
         void format_bool(char *buf, size_t len, const port_t *meta, float value)
@@ -438,18 +487,18 @@ namespace lsp
         }
 
 
-        void format_value(char *buf, size_t len, const port_t *meta, float value, ssize_t precision)
+        void format_value(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units)
         {
             if (meta->unit == U_BOOL)
                 format_bool(buf, len, meta, value);
             else if (meta->unit == U_ENUM)
                 format_enum(buf, len, meta, value);
             else if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW))
-                format_decibels(buf, len, meta, value, precision);
+                format_decibels(buf, len, meta, value, precision, units);
             else if (meta->flags & F_INT)
-                format_int(buf, len, meta, value);
+                format_int(buf, len, meta, value, units);
             else
-                format_float(buf, len, meta, value, precision);
+                format_float(buf, len, meta, value, precision, units);
         }
 
 #define UPDATE_LOCALE(out_var, lc, value) \

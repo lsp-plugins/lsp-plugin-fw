@@ -556,7 +556,7 @@ namespace lsp
                     }
                     else
                     {
-                        meta::format_value(dst, kVstMaxParamStrLen, m, p->value(), -1);
+                        meta::format_value(dst, kVstMaxParamStrLen, m, p->value(), -1, false);
                         lsp_trace("param_display = %s", dst);
                     }
                     v = 1;

@@ -253,8 +253,9 @@ namespace lsp
          * @param meta port metadata
          * @param value value to format
          * @param precision precision
+         * @param units emit units to the final format if possible
          */
-        void            format_float(char *buf, size_t len, const port_t *meta, float value, ssize_t precision);
+        void            format_float(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units);
 
         /**
          * Format integer value
@@ -263,8 +264,9 @@ namespace lsp
          * @param len length of the buffer
          * @param meta port metadata
          * @param value value to format
+         * @param units emit units to the final format if possible
          */
-        void            format_int(char *buf, size_t len, const port_t *meta, float value);
+        void            format_int(char *buf, size_t len, const port_t *meta, float value, bool units);
 
         /**
          * Format enumerated value
@@ -284,8 +286,9 @@ namespace lsp
          * @param meta port metadata
          * @param value value to format
          * @param precision precision
+         * @param units emit units to the final format if possible
          */
-        void            format_decibels(char *buf, size_t len, const port_t *meta, float value, ssize_t precision);
+        void            format_decibels(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units);
 
         /**
          * Format boolean value
@@ -303,8 +306,9 @@ namespace lsp
          * @param meta port metadata
          * @param value value to format
          * @param precision precision
+         * @param units emit units to the final format if possible
          */
-        void            format_value(char *buf, size_t len, const port_t *meta, float value, ssize_t precision);
+        void            format_value(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units);
 
         /**
          * Parse some text value associated with specified metadata and considered to be boolean
