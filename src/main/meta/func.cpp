@@ -35,9 +35,6 @@ namespace lsp
 {
     namespace meta
     {
-        static constexpr float NEPER_PER_DB = 0.1151277918f;
-        static constexpr float DB_PER_NEPER = 8.6860000037f;
-
         typedef struct unit_desc_t
         {
             const char *name;
@@ -126,7 +123,7 @@ namespace lsp
             }
         }
 
-        static inline bool tolower(char c)
+        static inline char tolower(char c)
         {
             return ((c >= 'A') && (c <= 'Z')) ? c + 'a' - 'A' : c;
         }
@@ -136,9 +133,9 @@ namespace lsp
             for (;; ++s, ++pat)
             {
                 if (*s == '\0')
-                    return *s == '\0';
+                    return *pat == '\0';
                 else if (*pat == '\0')
-                    return *s == '\0';
+                    return true;
                 else if (tolower(*s) != tolower(*pat))
                     return false;
             }
@@ -627,6 +624,16 @@ namespace lsp
                 value   = 1.0f;
                 text   += 2;
             }
+            else if (check_match(text, "yes"))
+            {
+                value   = 1.0f;
+                text   += 3;
+            }
+            else if (check_match(text, "t"))
+            {
+                value   = 1.0f;
+                text   += 1;
+            }
             else if (check_match(text, "false"))
             {
                 value   = 0.0f;
@@ -636,6 +643,16 @@ namespace lsp
             {
                 value   = 0.0f;
                 text   += 3;
+            }
+            else if (check_match(text, "no"))
+            {
+                value   = 0.0f;
+                text   += 2;
+            }
+            else if (check_match(text, "f"))
+            {
+                value   = 0.0f;
+                text   += 1;
             }
             else
             {
@@ -656,10 +673,12 @@ namespace lsp
                 value       = (fabs(value) >= 0.5f) ? 1.0f : 0.0f;
             }
 
+            // Check that there is no data at the end
             text = skip_blank(text);
             if (*text != '\0')
                 return STATUS_INVALID_VALUE;
 
+            // Return result
             if (dst != NULL)
                 *dst    = value;
             return STATUS_OK;
@@ -725,6 +744,7 @@ namespace lsp
 
             // Check for -inf
             float value     = 0.0f;
+            bool inf        = false;
             if (check_match(text, "-inf"))
             {
                 if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW))
@@ -733,14 +753,24 @@ namespace lsp
                     value       = -INFINITY;
                 text       += 4;
                 if (*text != '\0')
+                {
                     text        = skip_blank(text, 1);
+                    if (text == NULL)
+                        return STATUS_INVALID_VALUE;
+                }
+                inf         = true;
             }
             else if (check_match(text, "+inf"))
             {
                 value       = +INFINITY;
                 text       += 4;
                 if (*text != '\0')
+                {
                     text        = skip_blank(text, 1);
+                    if (text == NULL)
+                        return STATUS_INVALID_VALUE;
+                }
+                inf         = true;
             }
             else
             {
@@ -754,52 +784,63 @@ namespace lsp
                 errno       = 0;
                 char *end   = NULL;
                 value       = ::strtof(text, &end);
-                if (errno != 0)
+                if ((errno != 0) || (end == text))
                     return STATUS_INVALID_VALUE;
                 text        = skip_blank(end);
             }
 
             // Are the units present?
-            if ((*text != '\0') && (units))
+            if (*text != '\0')
             {
+                if (!units)
+                    return STATUS_INVALID_VALUE;
+
                 if (check_match(text, "db"))
                 {
                     text       += 2;
+
                     // The input is in decibels, convert to desired metadata type
-                    switch (meta->unit)
+                    if (!inf)
                     {
-                        case U_DB:
-                            break;
-                        case U_GAIN_POW:
-                            value   = ::expf(value * M_LN10 * 0.1f);
-                            break;
-                        case U_NEPER:
-                            value  *= NEPER_PER_DB;
-                            break;
-                        case U_GAIN_AMP:
-                        default:
-                            value   = ::expf(value * M_LN10 * 0.05f);
-                            break;
+                        switch (meta->unit)
+                        {
+                            case U_DB:
+                                break;
+                            case U_GAIN_POW:
+                                value   = dspu::db_to_power(value);
+                                break;
+                            case U_NEPER:
+                                value   = dspu::db_to_neper(value);
+                                break;
+                            case U_GAIN_AMP:
+                            default:
+                                value   = dspu::db_to_gain(value);
+                                break;
+                        }
                     }
                 }
                 else if (check_match(text, "np"))
                 {
                     text       += 2;
+
                     // The input is in nepers, convert to desired metadata type
-                    switch (meta->unit)
+                    if (!inf)
                     {
-                        case U_NEPER:
-                            break;
-                        case U_GAIN_POW:
-                            value   = ::expf(value * DB_PER_NEPER * M_LN10 * 0.1f);
-                            break;
-                        case U_DB:
-                            value  *= DB_PER_NEPER;
-                            break;
-                        case U_GAIN_AMP:
-                        default:
-                            value   = ::expf(value * DB_PER_NEPER * M_LN10 * 0.05f);
-                            break;
+                        switch (meta->unit)
+                        {
+                            case U_NEPER:
+                                break;
+                            case U_GAIN_POW:
+                                value   = dspu::neper_to_power(value);
+                                break;
+                            case U_DB:
+                                value   = dspu::neper_to_db(value);
+                                break;
+                            case U_GAIN_AMP:
+                            default:
+                                value   = dspu::neper_to_gain(value);
+                                break;
+                        }
                     }
                 }
                 else if (check_match(text, "g"))
@@ -807,30 +848,48 @@ namespace lsp
                     text       += 1;
 
                     // The input is raw gain, convert to desired metadata type
-                    float thresh    = (meta->flags & F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
-                    switch (meta->unit)
+                    if (!inf)
                     {
-                        case U_DB:
-                            value   = (value < thresh) ? -INFINITY : (20.0f / M_LN10) * logf(value);
-                            break;
-                        case U_NEPER:
-                            value   = (value < thresh) ? -INFINITY : (20.0f / M_LN10) * logf(value) * NEPER_PER_DB;
-                            break;
-                        case U_GAIN_POW:
-                        case U_GAIN_AMP:
-                        default:
-                            break;
+                        float thresh    = (meta->flags & F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
+                        switch (meta->unit)
+                        {
+                            case U_DB:
+                                value   = (value < thresh) ? -INFINITY : dspu::gain_to_db(value);
+                                break;
+                            case U_NEPER:
+                                thresh  = dspu::db_to_neper(thresh);
+                                value   = (value < thresh) ? -INFINITY : dspu::gain_to_neper(value);
+                                break;
+                            case U_GAIN_POW:
+                            case U_GAIN_AMP:
+                            default:
+                                break;
+                        }
                     }
                 }
                 else
                     return STATUS_INVALID_VALUE;
 
+                // Ensure that no more text left
                 text = skip_blank(text);
+                if (*text != '\0')
+                    return STATUS_INVALID_VALUE;
             }
-
-            // No more characters should be at the end
-            if (*text != '\0')
-                return STATUS_INVALID_VALUE;
+            else if (!inf)
+            {
+                // Units are not specified
+                switch (meta->unit)
+                {
+                    case U_GAIN_POW:
+                        value   = dspu::db_to_power(value);
+                        break;
+                    case U_GAIN_AMP:
+                        value   = dspu::db_to_gain(value);
+                        break;
+                    default:
+                        break;
+                }
+            }
 
             // Return the result
             if (dst != NULL)
@@ -839,7 +898,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t parse_note_frequency(float *dst, const char *text)
+        status_t parse_note_frequency(float *dst, const char *text, const port_t *meta)
         {
             text = skip_blank(text);
 
@@ -890,18 +949,18 @@ namespace lsp
             errno       = 0;
             char *end   = NULL;
             long octave = ::strtol(text, &end, 10);
-            if (errno != 0)
+            if ((errno != 0) || (end == text))
             {
                 // Unsuccessful parse?
                 if (end != text)
                     return STATUS_INVALID_VALUE;
-                octave      = 2;
+                octave      = 4;
             }
 
             // Validate the input
-            if ((octave < -1) || (octave > 11))
+            if ((octave < -1) || (octave > 9))
                 return STATUS_INVALID_VALUE;
-            ssize_t midi_code   = octave * 12 + note;
+            ssize_t midi_code   = (octave + 1) * 12 + note;
             if ((midi_code < 0) || (midi_code > 127))
                 return STATUS_INVALID_VALUE;
 
@@ -910,15 +969,21 @@ namespace lsp
             if (*text != '\0')
                 return STATUS_INVALID_VALUE;
 
+            float value = dspu::midi_note_to_frequency(midi_code);
+            if (meta->unit == meta::U_KHZ)
+                value  *= 1e-3f;
+            else if (meta->unit == meta::U_MHZ)
+                value  *= 1e-6f;
+
             // Store the value and return
             if (dst != NULL)
-                *dst        = dspu::midi_note_to_frequency(midi_code);
+                *dst        = value;
             return STATUS_OK;
         }
 
         status_t parse_frequency(float *dst, const char *text, const port_t *meta, bool units)
         {
-            status_t res = parse_note_frequency(dst, text);
+            status_t res = parse_note_frequency(dst, text, meta);
             if (res == STATUS_OK)
                 return res;
 
@@ -934,7 +999,7 @@ namespace lsp
             errno       = 0;
             char *end   = NULL;
             float value = ::strtof(text, &end);
-            if (errno != 0)
+            if ((errno != 0) || (end == text))
                 return STATUS_INVALID_VALUE;
 
             // Ensure that there is no data at the end if units are not allowed
@@ -951,21 +1016,42 @@ namespace lsp
 
             // Parse the unit modifier
             float mod   = 1.0f;
-            switch (*(text++))
-            {
-                case 'u': mod   = 1e-6f; break; // micro
-                case 'm': mod   = 1e-3f; break; // milli
-                case 'k': mod   = 1e+3f; break; // kilo
-                case 'M': mod   = 1e+6f; break; // mega
-                case 'G': mod   = 1e+9f; break; // giga
-                default:  mod   = 1.0f;  break;
-            }
-
-            // Cast Hz to desired unit
             if (meta->unit == meta::U_KHZ)
-                mod    *= 1e-3f;
+            {
+                switch (*text)
+                {
+                    case 'u': mod   = 1e-9f; ++text; break; // micro
+                    case 'm': mod   = 1e-6f; ++text; break; // milli
+                    case 'k': mod   = 1e+0f; ++text; break; // kilo
+                    case 'M': mod   = 1e+3f; ++text; break; // mega
+                    case 'G': mod   = 1e+6f; ++text; break; // giga
+                    default:  mod   = 1e-3f;  break;
+                }
+            }
             else if (meta->unit == meta::U_MHZ)
-                mod    *= 1e-6f;
+            {
+                switch (*text)
+                {
+                    case 'u': mod   = 1e-12f; ++text; break; // micro
+                    case 'm': mod   = 1e-9f; ++text; break; // milli
+                    case 'k': mod   = 1e-3f; ++text; break; // kilo
+                    case 'M': mod   = 1e+0f; ++text; break; // mega
+                    case 'G': mod   = 1e+3f; ++text; break; // giga
+                    default:  mod   = 1e-6f;  break;
+                }
+            }
+            else
+            {
+                switch (*text)
+                {
+                    case 'u': mod   = 1e-6f; ++text; break; // micro
+                    case 'm': mod   = 1e-3f; ++text; break; // milli
+                    case 'k': mod   = 1e+3f; ++text; break; // kilo
+                    case 'M': mod   = 1e+6f; ++text; break; // mega
+                    case 'G': mod   = 1e+9f; ++text; break; // giga
+                    default:  mod   = 1.0f;  break;
+                }
+            }
 
             // Check the presence of the 'Hz'
             if (check_match(text, "hz"))
@@ -976,7 +1062,7 @@ namespace lsp
 
             // Return the final result
             if (dst != NULL)
-                *dst        = value;
+                *dst        = value * mod;
             return STATUS_OK;
         }
 
@@ -993,14 +1079,14 @@ namespace lsp
             errno       = 0;
             char *end   = NULL;
             long value  = ::strtol(text, &end, 10);
-            if (errno == 0)
+            if ((errno != 0) || (end == text))
                 return STATUS_INVALID_VALUE;
             text        = skip_blank(end);
 
             // Check presence of the unit value
             const char *unit    = (units) ? get_unit_name(meta->unit) : NULL;
             if ((unit != NULL) && (check_match(text, unit)))
-                text        = skip_blank(end + strlen(unit));
+                text        = skip_blank(text + strlen(unit));
 
             // Check that we reached the end of string
             if (*text != '\0')
@@ -1025,14 +1111,14 @@ namespace lsp
             errno       = 0;
             char *end   = NULL;
             float value = ::strtof(text, &end);
-            if (errno == 0)
+            if ((errno != 0) || (end == text))
                 return STATUS_INVALID_VALUE;
             text        = skip_blank(end);
 
             // Check presence of the unit value
             const char *unit    = (units) ? get_unit_name(meta->unit) : NULL;
             if ((unit != NULL) && (check_match(text, unit)))
-                text        = skip_blank(end + strlen(unit));
+                text        = skip_blank(text + strlen(unit));
 
             // Check that we reached the end of string
             if (*text != '\0')
@@ -1046,7 +1132,11 @@ namespace lsp
 
         status_t parse_value(float *dst, const char *text, const port_t *meta, bool units)
         {
-            if ((text == NULL) || (meta == NULL) || (*text == '\0'))
+            if ((text == NULL) || (meta == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            text = skip_blank(text);
+            if (*text == '\0')
                 return STATUS_BAD_ARGUMENTS;
 
             if (meta->unit == U_BOOL)

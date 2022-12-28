@@ -347,9 +347,10 @@ namespace lsp
          *
          * @param dst destination pointer to store parsed value
          * @param text text to parse
+         * @param meta associated metadata
          * @return status of operation
          */
-        status_t        parse_note_frequency(float *dst, const char *text);
+        status_t        parse_note_frequency(float *dst, const char *text, const port_t *meta);
 
         /**
          * Parse frequency value. Allows to pass note name considering the A2 being 440 Hz.
