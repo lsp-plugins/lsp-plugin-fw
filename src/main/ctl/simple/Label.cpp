@@ -312,7 +312,7 @@ namespace lsp
                 return false;
 
             float fv;
-            status_t res = parse_value(&fv, value->get_utf8(), meta);
+            status_t res = parse_value(&fv, value->get_utf8(), meta, false);
             if (res != STATUS_OK)
                 return false;
 
@@ -492,7 +492,7 @@ namespace lsp
             if (popup->sValue.text()->format(&value) == STATUS_OK)
             {
                 float v;
-                if (meta::parse_value(&v, value.get_utf8(), meta) == STATUS_OK)
+                if (meta::parse_value(&v, value.get_utf8(), meta, false) == STATUS_OK)
                 {
                     style = INPUT_STYLE_VALID;
                     if (!meta::range_match(meta, v))

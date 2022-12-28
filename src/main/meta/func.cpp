@@ -25,6 +25,8 @@
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/dsp-units/const.h>
+#include <lsp-plug.in/dsp-units/units.h>
 
 #include <locale.h>
 #include <errno.h>
@@ -33,6 +35,9 @@ namespace lsp
 {
     namespace meta
     {
+        static constexpr float NEPER_PER_DB = 0.1151277918f;
+        static constexpr float DB_PER_NEPER = 8.6860000037f;
+
         typedef struct unit_desc_t
         {
             const char *name;
@@ -98,6 +103,47 @@ namespace lsp
             { "on",     "bool.on" },
             { NULL,     NULL }
         };
+
+        static const char *skip_blank(const char *src, size_t required = 0)
+        {
+            size_t skipped = 0;
+
+            while (true)
+            {
+                switch (*src)
+                {
+                    case ' ':
+                    case '\n':
+                    case '\r':
+                    case '\t':
+                    case '\v':
+                        ++skipped;
+                        ++src;
+                        break;
+                    default:
+                        return (skipped >= required) ? src : NULL;
+                }
+            }
+        }
+
+        static inline bool tolower(char c)
+        {
+            return ((c >= 'A') && (c <= 'Z')) ? c + 'a' - 'A' : c;
+        }
+
+        static bool check_match(const char *s, const char *pat)
+        {
+            for (;; ++s, ++pat)
+            {
+                if (*s == '\0')
+                    return *s == '\0';
+                else if (*pat == '\0')
+                    return *s == '\0';
+                else if (tolower(*s) != tolower(*pat))
+                    return false;
+            }
+            return true;
+        }
 
         const char *get_unit_name(size_t unit)
         {
@@ -312,6 +358,60 @@ namespace lsp
             return count;
         }
 
+        bool match_bool(float value)
+        {
+            return (value == 1.0f) || (value == 0.0f);
+        }
+
+        bool match_enum(const port_t *meta, float value)
+        {
+            float min   = (meta->flags & F_LOWER) ? meta->min: 0.0f;
+            float step  = (meta->flags & F_STEP) ? meta->step : 1.0f;
+
+            for (const port_item_t *p = meta->items; (p != NULL) && (p->text != NULL); ++p)
+            {
+                if (value == min)
+                    return true;
+                min    += step;
+            }
+
+            return false;
+        }
+
+        bool match_int(const port_t *meta, float value)
+        {
+            float start     = (meta->flags & F_LOWER) ? meta->min   : 0;
+            float end       = (meta->flags & F_UPPER) ? meta->max   : 0;
+
+            if (start < end)
+                return (value >= start) && (value <= end);
+
+            return (value >= end) && (value <= start);
+        }
+
+        bool match_float(const port_t *meta, float value)
+        {
+            float start     = (meta->flags & F_LOWER) ? meta->min   : 0;
+            float end       = (meta->flags & F_UPPER) ? meta->max   : 0;
+
+            if (start < end)
+                return (value >= start) && (value <= end);
+
+            return (value >= end) && (value <= start);
+        }
+
+        bool range_match(const port_t *meta, float value)
+        {
+            if (meta->unit == U_BOOL)
+                return match_bool(value);
+            else if (meta->unit == U_ENUM)
+                return match_enum(meta, value);
+            else if (meta->flags & F_INT)
+                return match_int(meta, value);
+
+            return match_float(meta, value);
+        }
+
         void format_float(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units)
         {
             const char *unit    = (units) ? get_unit_name(meta->unit) : NULL;
@@ -514,122 +614,437 @@ namespace lsp
 
         status_t parse_bool(float *dst, const char *text, const port_t *meta)
         {
-            if ((!::strcasecmp(text, "true")) ||
-                (!::strcasecmp(text, "on")) ||
-                (!::strcasecmp(text, "1")))
+            text    = skip_blank(text);
+            float value = 0.0f;
+
+            if (check_match(text, "true"))
             {
-                if (dst != NULL)
-                    *dst    = 1.0f;
-                return STATUS_OK;
+                value   = 1.0f;
+                text   += 4;
+            }
+            else if (check_match(text, "on"))
+            {
+                value   = 1.0f;
+                text   += 2;
+            }
+            else if (check_match(text, "false"))
+            {
+                value   = 0.0f;
+                text   += 5;
+            }
+            else if (check_match(text, "off"))
+            {
+                value   = 0.0f;
+                text   += 3;
+            }
+            else
+            {
+                // Update locale
+                UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+                lsp_finally {
+                    if (saved_locale != NULL)
+                        ::setlocale(LC_NUMERIC, saved_locale);
+                };
+
+                // Parse the floating-point value
+                errno       = 0;
+                char *end   = NULL;
+                value       = ::strtof(text, &end);
+                if (errno != 0)
+                    return STATUS_INVALID_VALUE;
+                text        = end;
+                value       = (fabs(value) >= 0.5f) ? 1.0f : 0.0f;
             }
 
-            if ((!::strcasecmp(text, "false")) ||
-                (!::strcasecmp(text, "off")) ||
-                (!::strcasecmp(text, "0")))
-            {
-                if (dst != NULL)
-                    *dst    = 0.0f;
-                return STATUS_OK;
-            }
+            text = skip_blank(text);
+            if (*text != '\0')
+                return STATUS_INVALID_VALUE;
 
-            // Try to parse as floating-point value
-            float v = 0.0f;
-            status_t res = parse_float(&v, text, meta);
-            if (res != STATUS_OK)
-                return res;
-
-            *dst    = (fabs(v) >= 0.5f) ? 1.0f : 0.0f;
+            if (dst != NULL)
+                *dst    = value;
             return STATUS_OK;
         }
 
         status_t parse_enum(float *dst, const char *text, const port_t *meta)
         {
-            float min   = (meta->flags & F_LOWER) ? meta->min: 0.0f;
-            float step  = (meta->flags & F_STEP) ? meta->step : 1.0f;
+            text        = skip_blank(text);
+
+            // Try to find match to the corresponding enum constant
+            float min   = (meta->flags & F_LOWER)   ? meta->min     : 0.0f;
+            float step  = (meta->flags & F_STEP)    ? meta->step    : 1.0f;
+            float value = min;
 
             for (const port_item_t *p = meta->items; (p != NULL) && (p->text != NULL); ++p)
             {
-                if (!::strcasecmp(text, p->text))
+                if (check_match(text, p->text))
                 {
-                    if (dst != NULL)
-                        *dst    = min;
-                    return STATUS_OK;
+                    const char *end = skip_blank(text + strlen(p->text));
+                    if (*end == '\0')
+                    {
+                        if (dst != NULL)
+                            *dst    = value;
+                        return STATUS_OK;
+                    }
                 }
-                min    += step;
+                value  += step;
             }
 
-            return STATUS_INVALID_VALUE;
+            // The value was not found. Try to parse as floating-point
+            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+            lsp_finally {
+                if (saved_locale != NULL)
+                    ::setlocale(LC_NUMERIC, saved_locale);
+            };
+
+            // Parse the floating-point value
+            errno       = 0;
+            char *end   = NULL;
+            value       = ::strtof(text, &end);
+            if (errno != 0)
+                return STATUS_INVALID_VALUE;
+
+            // Validate that there is nothing left at the end
+            text        = skip_blank(end);
+            if (*text != '\0')
+                return STATUS_INVALID_VALUE;
+
+            // Check match
+            if (!match_enum(meta, value))
+                return STATUS_INVALID_VALUE;
+
+            // Return the result
+            if (dst != NULL)
+                *dst        = value;
+
+            return STATUS_OK;
         }
 
-        status_t parse_decibels(float *dst, const char *text, const port_t *meta)
+        status_t parse_decibels(float *dst, const char *text, const port_t *meta, bool units)
         {
-            if (!::strcasecmp(text, "-inf"))
+            text = skip_blank(text);
+
+            // Check for -inf
+            float value     = 0.0f;
+            if (check_match(text, "-inf"))
             {
-                if (dst != NULL)
-                    *dst = 0.0f;
-                return STATUS_OK;
+                if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW))
+                    value       = 0.0f;
+                else
+                    value       = -INFINITY;
+                text       += 4;
+                if (*text != '\0')
+                    text        = skip_blank(text, 1);
+            }
+            else if (check_match(text, "+inf"))
+            {
+                value       = +INFINITY;
+                text       += 4;
+                if (*text != '\0')
+                    text        = skip_blank(text, 1);
+            }
+            else
+            {
+                UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+                lsp_finally {
+                    if (saved_locale != NULL)
+                        ::setlocale(LC_NUMERIC, saved_locale);
+                };
+
+                // Parse the floating-point value
+                errno       = 0;
+                char *end   = NULL;
+                value       = ::strtof(text, &end);
+                if (errno != 0)
+                    return STATUS_INVALID_VALUE;
+                text        = skip_blank(end);
             }
 
-            float mul   = (meta->unit == U_GAIN_AMP) ? 0.05f : 0.1f;
+            // Are the units present?
+            if ((*text != '\0') && (units))
+            {
+                if (check_match(text, "db"))
+                {
+                    text       += 2;
+                    // The input is in decibels, convert to desired metadata type
+                    switch (meta->unit)
+                    {
+                        case U_DB:
+                            break;
+                        case U_GAIN_POW:
+                            value   = ::expf(value * M_LN10 * 0.1f);
+                            break;
+                        case U_NEPER:
+                            value  *= NEPER_PER_DB;
+                            break;
+                        case U_GAIN_AMP:
+                        default:
+                            value   = ::expf(value * M_LN10 * 0.05f);
+                            break;
+                    }
+                }
+                else if (check_match(text, "np"))
+                {
+                    text       += 2;
+                    // The input is in nepers, convert to desired metadata type
+                    switch (meta->unit)
+                    {
+                        case U_NEPER:
+                            break;
+                        case U_GAIN_POW:
+                            value   = ::expf(value * DB_PER_NEPER * M_LN10 * 0.1f);
+                            break;
+                        case U_DB:
+                            value  *= DB_PER_NEPER;
+                            break;
+                        case U_GAIN_AMP:
+                        default:
+                            value   = ::expf(value * DB_PER_NEPER * M_LN10 * 0.05f);
+                            break;
+                    }
+                }
+                else if (check_match(text, "g"))
+                {
+                    text       += 1;
 
-            // Parse float value
+                    // The input is raw gain, convert to desired metadata type
+                    float thresh    = (meta->flags & F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
+                    switch (meta->unit)
+                    {
+                        case U_DB:
+                            value   = (value < thresh) ? -INFINITY : (20.0f / M_LN10) * logf(value);
+                            break;
+                        case U_NEPER:
+                            value   = (value < thresh) ? -INFINITY : (20.0f / M_LN10) * logf(value) * NEPER_PER_DB;
+                            break;
+                        case U_GAIN_POW:
+                        case U_GAIN_AMP:
+                        default:
+                            break;
+                    }
+                }
+                else
+                    return STATUS_INVALID_VALUE;
+
+                text = skip_blank(text);
+            }
+
+            // No more characters should be at the end
+            if (*text != '\0')
+                return STATUS_INVALID_VALUE;
+
+            // Return the result
+            if (dst != NULL)
+                *dst        = value;
+
+            return STATUS_OK;
+        }
+
+        status_t parse_note_frequency(float *dst, const char *text)
+        {
+            text = skip_blank(text);
+
+            // Parse the note name
+            int note;
+            switch (*(text++))
+            {
+                case 'c': case 'C': note    = 0;  break;
+                case 'd': case 'D': note    = 2;  break;
+                case 'e': case 'E': note    = 4;  break;
+                case 'f': case 'F': note    = 5;  break;
+                case 'g': case 'G': note    = 7;  break;
+                case 'a': case 'A': note    = 9;  break;
+                case 'b': case 'B': note    = 11; break;
+                case 'h': case 'H': note    = 11; break;
+                default:
+                    return STATUS_INVALID_VALUE;
+            }
+
+            // Check alterations
+            if (*text == '#')
+            {
+                ++text;
+                ++note;
+
+                // Double alteration?
+                if (*text == '#')
+                {
+                    ++text;
+                    ++note;
+                }
+            }
+            else if (*text == 'b')
+            {
+                ++text;
+                --note;
+
+                // Double alteration?
+                if (*text == 'b')
+                {
+                    ++text;
+                    --note;
+                }
+            }
+
+            // Parse the octave (if specified)
+            text        = skip_blank(text);
+            errno       = 0;
+            char *end   = NULL;
+            long octave = ::strtol(text, &end, 10);
+            if (errno != 0)
+            {
+                // Unsuccessful parse?
+                if (end != text)
+                    return STATUS_INVALID_VALUE;
+                octave      = 2;
+            }
+
+            // Validate the input
+            if ((octave < -1) || (octave > 11))
+                return STATUS_INVALID_VALUE;
+            ssize_t midi_code   = octave * 12 + note;
+            if ((midi_code < 0) || (midi_code > 127))
+                return STATUS_INVALID_VALUE;
+
+            // Check that there are no extra characters at the end
+            text        = skip_blank(end);
+            if (*text != '\0')
+                return STATUS_INVALID_VALUE;
+
+            // Store the value and return
+            if (dst != NULL)
+                *dst        = dspu::midi_note_to_frequency(midi_code);
+            return STATUS_OK;
+        }
+
+        status_t parse_frequency(float *dst, const char *text, const port_t *meta, bool units)
+        {
+            status_t res = parse_note_frequency(dst, text);
+            if (res == STATUS_OK)
+                return res;
+
+            // Update locale
             UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+            lsp_finally {
+                if (saved_locale != NULL)
+                    ::setlocale(LC_NUMERIC, saved_locale);
+            };
+
+            // Parse the floating-point value
+            text        = skip_blank(text);
             errno       = 0;
             char *end   = NULL;
             float value = ::strtof(text, &end);
-            status_t res= STATUS_INVALID_VALUE;
+            if (errno != 0)
+                return STATUS_INVALID_VALUE;
 
-            if ((*end == '\0') && (errno == 0))
+            // Ensure that there is no data at the end if units are not allowed
+            text        = skip_blank(end);
+            if (*text == '\0')
             {
-                if (dst != NULL)
-                    *dst    = ::expf(value * M_LN10 * mul);
-                res     = STATUS_OK;
-            }
-
-            if (saved_locale != NULL)
-                ::setlocale(LC_NUMERIC, saved_locale);
-
-            return res;
-        }
-
-        status_t parse_int(float *dst, const char *text, const port_t *meta)
-        {
-            errno       = 0;
-            char *end   = NULL;
-            long value  = ::strtol(text, &end, 10);
-            if ((*end == '\0') && (errno == 0))
-            {
+                // No more data?
                 if (dst != NULL)
                     *dst        = value;
                 return STATUS_OK;
             }
+            else if (!units)
+                return STATUS_INVALID_VALUE;
 
-            return STATUS_INVALID_VALUE;
+            // Parse the unit modifier
+            float mod   = 1.0f;
+            switch (*(text++))
+            {
+                case 'u': mod   = 1e-6f; break; // micro
+                case 'm': mod   = 1e-3f; break; // milli
+                case 'k': mod   = 1e+3f; break; // kilo
+                case 'M': mod   = 1e+6f; break; // mega
+                case 'G': mod   = 1e+9f; break; // giga
+                default:  mod   = 1.0f;  break;
+            }
+
+            // Cast Hz to desired unit
+            if (meta->unit == meta::U_KHZ)
+                mod    *= 1e-3f;
+            else if (meta->unit == meta::U_MHZ)
+                mod    *= 1e-6f;
+
+            // Check the presence of the 'Hz'
+            if (check_match(text, "hz"))
+                text       += 2;
+            text        = skip_blank(text);
+            if (*text != '\0')
+                return STATUS_INVALID_VALUE;
+
+            // Return the final result
+            if (dst != NULL)
+                *dst        = value;
+            return STATUS_OK;
         }
 
-        status_t parse_float(float *dst, const char *text, const port_t *meta)
+        status_t parse_int(float *dst, const char *text, const port_t *meta, bool units)
         {
-            // Parse float value
+            // Update locale
             UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+            lsp_finally {
+                if (saved_locale != NULL)
+                    ::setlocale(LC_NUMERIC, saved_locale);
+            };
+
+            // Parse the integer value
+            errno       = 0;
+            char *end   = NULL;
+            long value  = ::strtol(text, &end, 10);
+            if (errno == 0)
+                return STATUS_INVALID_VALUE;
+            text        = skip_blank(end);
+
+            // Check presence of the unit value
+            const char *unit    = (units) ? get_unit_name(meta->unit) : NULL;
+            if ((unit != NULL) && (check_match(text, unit)))
+                text        = skip_blank(end + strlen(unit));
+
+            // Check that we reached the end of string
+            if (*text != '\0')
+                return STATUS_INVALID_VALUE;
+
+            // Return the result
+            if (dst != NULL)
+                *dst    = value;
+            return STATUS_OK;
+        }
+
+        status_t parse_float(float *dst, const char *text, const port_t *meta, bool units)
+        {
+            // Update locale
+            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+            lsp_finally {
+                if (saved_locale != NULL)
+                    ::setlocale(LC_NUMERIC, saved_locale);
+            };
+
+            // Parse the floating-point value
             errno       = 0;
             char *end   = NULL;
             float value = ::strtof(text, &end);
-            status_t res= STATUS_INVALID_VALUE;
+            if (errno == 0)
+                return STATUS_INVALID_VALUE;
+            text        = skip_blank(end);
 
-            if ((*end == '\0') && (errno == 0))
-            {
-                if (dst != NULL)
-                    *dst    = value;
-                res     = STATUS_OK;
-            }
+            // Check presence of the unit value
+            const char *unit    = (units) ? get_unit_name(meta->unit) : NULL;
+            if ((unit != NULL) && (check_match(text, unit)))
+                text        = skip_blank(end + strlen(unit));
 
-            if (saved_locale != NULL)
-                ::setlocale(LC_NUMERIC, saved_locale);
+            // Check that we reached the end of string
+            if (*text != '\0')
+                return STATUS_INVALID_VALUE;
 
-            return res;
+            // Return the result
+            if (dst != NULL)
+                *dst    = value;
+            return STATUS_OK;
         }
 
-        status_t parse_value(float *dst, const char *text, const port_t *meta)
+        status_t parse_value(float *dst, const char *text, const port_t *meta, bool units)
         {
             if ((text == NULL) || (meta == NULL) || (*text == '\0'))
                 return STATUS_BAD_ARGUMENTS;
@@ -638,68 +1053,16 @@ namespace lsp
                 return parse_bool(dst, text, meta);
             else if (meta->unit == U_ENUM)
                 return parse_enum(dst, text, meta);
-            else if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW))
-                return parse_decibels(dst, text, meta);
+            else if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW) || (meta->unit == U_DB) || (meta->unit == U_NEPER))
+                return parse_decibels(dst, text, meta, units);
+            else if ((meta->unit == U_HZ) || (meta->unit == U_KHZ) || (meta->unit == U_MHZ))
+                return parse_frequency(dst, text, meta, units);
             else if (meta->flags & F_INT)
-                return parse_int(dst, text, meta);
+                return parse_int(dst, text, meta, units);
             else
-                return parse_float(dst, text, meta);
+                return parse_float(dst, text, meta, units);
 
             return STATUS_BAD_ARGUMENTS;
-        }
-
-        bool match_bool(float value)
-        {
-            return (value == 1.0f) || (value == 0.0f);
-        }
-
-        bool match_enum(const port_t *meta, float value)
-        {
-            float min   = (meta->flags & F_LOWER) ? meta->min: 0.0f;
-            float step  = (meta->flags & F_STEP) ? meta->step : 1.0f;
-
-            for (const port_item_t *p = meta->items; (p != NULL) && (p->text != NULL); ++p)
-            {
-                if (value == min)
-                    return true;
-                min    += step;
-            }
-
-            return false;
-        }
-
-        bool match_int(const port_t *meta, float value)
-        {
-            float start     = (meta->flags & F_LOWER) ? meta->min   : 0;
-            float end       = (meta->flags & F_UPPER) ? meta->max   : 0;
-
-            if (start < end)
-                return (value >= start) && (value <= end);
-
-            return (value >= end) && (value <= start);
-        }
-
-        bool match_float(const port_t *meta, float value)
-        {
-            float start     = (meta->flags & F_LOWER) ? meta->min   : 0;
-            float end       = (meta->flags & F_UPPER) ? meta->max   : 0;
-
-            if (start < end)
-                return (value >= start) && (value <= end);
-
-            return (value >= end) && (value <= start);
-        }
-
-        bool range_match(const port_t *meta, float value)
-        {
-            if (meta->unit == U_BOOL)
-                return match_bool(value);
-            else if (meta->unit == U_ENUM)
-                return match_enum(meta, value);
-            else if (meta->flags & F_INT)
-                return match_int(meta, value);
-
-            return match_float(meta, value);
         }
 
         void get_port_parameters(const port_t *p, float *min, float *max, float *step)

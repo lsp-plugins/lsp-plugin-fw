@@ -336,9 +336,31 @@ namespace lsp
          * @param dst destination pointer to store parsed value
          * @param text text to parse
          * @param meta associated metadata
+         * @param units allow units passed after a value
          * @return status of operation
          */
-        status_t        parse_decibels(float *dst, const char *text, const port_t *meta);
+        status_t        parse_decibels(float *dst, const char *text, const port_t *meta, bool units);
+
+        /**
+         * Try to convert the string to the note name and compute it's main tone frequency considering
+         * the A2 being 440 Hz.
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @return status of operation
+         */
+        status_t        parse_note_frequency(float *dst, const char *text);
+
+        /**
+         * Parse frequency value. Allows to pass note name considering the A2 being 440 Hz.
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @param units allow units to be specified if possible
+         * @return status of operation
+         */
+        status_t        parse_frequency(float *dst, const char *text, const port_t *meta, bool units);
 
         /**
          * Parse some text value associated with specified metadata and considered to be integer value
@@ -346,9 +368,10 @@ namespace lsp
          * @param dst destination pointer to store parsed value
          * @param text text to parse
          * @param meta associated metadata
+         * @param units allow units to be specified if possible
          * @return status of operation
          */
-        status_t        parse_int(float *dst, const char *text, const port_t *meta);
+        status_t        parse_int(float *dst, const char *text, const port_t *meta, bool units);
 
         /**
          * Parse some text value associated with specified metadata and considered to be floating-point value
@@ -356,9 +379,10 @@ namespace lsp
          * @param dst destination pointer to store parsed value
          * @param text text to parse
          * @param meta associated metadata
+         * @param units allow units to be specified if possible
          * @return status of operation
          */
-        status_t        parse_float(float *dst, const char *text, const port_t *meta);
+        status_t        parse_float(float *dst, const char *text, const port_t *meta, bool units);
 
         /**
          * Parse some text value associated with specified metadata
@@ -366,9 +390,10 @@ namespace lsp
          * @param dst destination pointer to store parsed value
          * @param text text to parse
          * @param meta associated metadata
+         * @param units allow units passed after a value
          * @return status of operation
          */
-        status_t        parse_value(float *dst, const char *text, const port_t *meta);
+        status_t        parse_value(float *dst, const char *text, const port_t *meta, bool units);
 
         /**
          * Check that value matches the range specified by the port metadata
