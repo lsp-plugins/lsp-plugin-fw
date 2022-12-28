@@ -364,6 +364,17 @@ namespace lsp
         status_t        parse_frequency(float *dst, const char *text, const port_t *meta, bool units);
 
         /**
+         * Parse time value.
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @param units allow units to be specified if possible
+         * @return status of operation
+         */
+        status_t        parse_time(float *dst, const char *text, const port_t *meta, bool units);
+
+        /**
          * Parse some text value associated with specified metadata and considered to be integer value
          *
          * @param dst destination pointer to store parsed value

@@ -892,6 +892,7 @@ namespace lsp
             }
 
             // Return the result
+            value       = (meta->flags & F_INT) ? truncf(value) : value;
             if (dst != NULL)
                 *dst        = value;
 
@@ -976,6 +977,7 @@ namespace lsp
                 value  *= 1e-6f;
 
             // Store the value and return
+            value       = (meta->flags & F_INT) ? truncf(value) : value;
             if (dst != NULL)
                 *dst        = value;
             return STATUS_OK;
@@ -1061,8 +1063,106 @@ namespace lsp
                 return STATUS_INVALID_VALUE;
 
             // Return the final result
+            value       = (meta->flags & F_INT) ? truncf(value * mod) : value * mod;
             if (dst != NULL)
-                *dst        = value * mod;
+                *dst        = value;
+            return STATUS_OK;
+        }
+
+        status_t parse_time(float *dst, const char *text, const port_t *meta, bool units)
+        {
+            // Update locale
+            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+            lsp_finally {
+                if (saved_locale != NULL)
+                    ::setlocale(LC_NUMERIC, saved_locale);
+            };
+
+            // Parse the floating-point value
+            text        = skip_blank(text);
+            errno       = 0;
+            char *end   = NULL;
+            float value = ::strtof(text, &end);
+            if ((errno != 0) || (end == text))
+                return STATUS_INVALID_VALUE;
+            text        = skip_blank(end);
+
+            // Ensure that there is no data at the end if units are not allowed
+            if (*text == '\0')
+            {
+                // No more data?
+                if (dst != NULL)
+                    *dst        = value;
+                return STATUS_OK;
+            }
+            else if (!units)
+                return STATUS_INVALID_VALUE;
+
+            // Parse the unit modifier
+            if (check_match(text, "min"))
+            {
+                text       += 3;
+                switch (meta->unit)
+                {
+                    case U_SEC:     value *= 60.0f;     break;
+                    case U_MSEC:    value *= 60e+3f;    break;
+                    case U_MIN:
+                    default: break;
+                }
+            }
+            else if (check_match(text, "s"))
+            {
+                text       += 1;
+                switch (meta->unit)
+                {
+                    case U_MIN:     value /= 60.0f;     break;
+                    case U_MSEC:    value *= 1e+3f;     break;
+                    case U_SEC:
+                    default: break;
+                }
+            }
+            else if (check_match(text, "ms"))
+            {
+                text       += 2;
+                switch (meta->unit)
+                {
+                    case U_MIN:     value /= 60.0e+3f;  break;
+                    case U_SEC:     value *= 1e-3f;     break;
+                    case U_MSEC:
+                    default: break;
+                }
+            }
+            else if (check_match(text, "us"))
+            {
+                text       += 2;
+                switch (meta->unit)
+                {
+                    case U_MIN:     value /= 60.0e+6f;  break;
+                    case U_SEC:     value *= 1e-6f;     break;
+                    case U_MSEC:    value *= 1e-3f;     break;
+                    default: break;
+                }
+            }
+            else if (check_match(text, "ns"))
+            {
+                text       += 2;
+                switch (meta->unit)
+                {
+                    case U_MIN:     value /= 60.0e+9f;  break;
+                    case U_SEC:     value *= 1e-9f;     break;
+                    case U_MSEC:    value *= 1e-6f;     break;
+                    default: break;
+                }
+            }
+
+            text        = skip_blank(text);
+            if (*text != '\0')
+                return STATUS_INVALID_VALUE;
+
+            // Return the final result
+            value       = (meta->flags & F_INT) ? truncf(value) : value;
+            if (dst != NULL)
+                *dst        = value;
             return STATUS_OK;
         }
 
@@ -1147,6 +1247,8 @@ namespace lsp
                 return parse_decibels(dst, text, meta, units);
             else if ((meta->unit == U_HZ) || (meta->unit == U_KHZ) || (meta->unit == U_MHZ))
                 return parse_frequency(dst, text, meta, units);
+            else if ((meta->unit == U_MIN) || (meta->unit == U_SEC) || (meta->unit == U_MSEC))
+                return parse_time(dst, text, meta, units);
             else if (meta->flags & F_INT)
                 return parse_int(dst, text, meta, units);
             else

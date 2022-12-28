@@ -863,6 +863,95 @@ UTEST_BEGIN("meta.func", parse)
         UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
     };
 
+    void test_parse_time()
+    {
+        static const meta::port_t port = {
+            "test",
+            "Test SEC port",
+            meta::U_SEC,
+            meta::R_CONTROL,
+            meta::F_IN | meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
+            0.0f,
+            1000.0f,
+            0.0f,
+            1.0f,
+            NULL,
+            NULL
+        };
+
+        //------------------------------------------------
+        printf("Testing float parse units=false\n");
+
+        // Test valid cases
+        float dst = -1.0f;
+
+        UTEST_ASSERT(meta::parse_value(&dst, "1.5", &port, false) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, 1.5f));
+        UTEST_ASSERT(meta::parse_value(&dst, "42.5", &port, false) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, 42.5f));
+        UTEST_ASSERT(meta::parse_value(&dst, " -10.5 ", &port, false) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, -10.5f));
+
+        // Test invalid cases
+        dst = -1.0f;
+        UTEST_ASSERT(meta::parse_value(&dst, "1 2", &port, false) == STATUS_INVALID_VALUE);
+        UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
+        UTEST_ASSERT(meta::parse_value(&dst, "1 s", &port, false) == STATUS_INVALID_VALUE);
+        UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
+        UTEST_ASSERT(meta::parse_value(&dst, "-1 s", &port, false) == STATUS_INVALID_VALUE);
+        UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
+        UTEST_ASSERT(meta::parse_value(&dst, "0 db", &port, false) == STATUS_INVALID_VALUE);
+        UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
+
+        // Test empty cases
+        dst = -1.0f;
+        UTEST_ASSERT(meta::parse_value(&dst, "", &port, false) == STATUS_BAD_ARGUMENTS);
+        UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
+        UTEST_ASSERT(meta::parse_value(&dst, "    ", &port, false) == STATUS_BAD_ARGUMENTS);
+        UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
+
+        //------------------------------------------------
+        printf("Testing float parse units=true\n");
+
+        // Test valid cases
+        dst = -1.0f;
+        UTEST_ASSERT(meta::parse_value(&dst, "1.5", &port, true) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, 1.5f));
+        UTEST_ASSERT(meta::parse_value(&dst, "42.5", &port, true) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, 42.5f));
+        UTEST_ASSERT(meta::parse_value(&dst, " -10.5 ", &port, true) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, -10.5f));
+        UTEST_ASSERT(meta::parse_value(&dst, "10.5 s", &port, true) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, 10.5f));
+        UTEST_ASSERT(meta::parse_value(&dst, "-10.5 s", &port, true) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, -10.5f));
+
+        UTEST_ASSERT(meta::parse_value(&dst, "2 min", &port, true) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, 120.0f));
+        UTEST_ASSERT(meta::parse_value(&dst, "2 s", &port, true) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, 2.0f));
+        UTEST_ASSERT(meta::parse_value(&dst, "2ms", &port, true) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, 2.0e-3f));
+        UTEST_ASSERT(meta::parse_value(&dst, "2us", &port, true) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, 2.0e-6f));
+        UTEST_ASSERT(meta::parse_value(&dst, "2ns", &port, true) == STATUS_OK);
+        UTEST_ASSERT(float_equals_adaptive(dst, 2.0e-9f));
+
+        // Test invalid cases
+        dst = -1.0f;
+        UTEST_ASSERT(meta::parse_value(&dst, "1 2", &port, true) == STATUS_INVALID_VALUE);
+        UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
+        UTEST_ASSERT(meta::parse_value(&dst, "0 db", &port, true) == STATUS_INVALID_VALUE);
+        UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
+
+        // Test empty cases
+        dst = -1.0f;
+        UTEST_ASSERT(meta::parse_value(&dst, "", &port, true) == STATUS_BAD_ARGUMENTS);
+        UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
+        UTEST_ASSERT(meta::parse_value(&dst, "    ", &port, true) == STATUS_BAD_ARGUMENTS);
+        UTEST_ASSERT(float_equals_adaptive(dst, -1.0f));
+    };
+
     UTEST_MAIN
     {
         test_parse_bool();
@@ -875,6 +964,7 @@ UTEST_BEGIN("meta.func", parse)
         test_parse_freq();
         test_parse_int();
         test_parse_float();
+        test_parse_time();
     }
 
 UTEST_END
