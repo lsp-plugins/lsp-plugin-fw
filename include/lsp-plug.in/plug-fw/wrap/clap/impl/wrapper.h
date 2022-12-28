@@ -642,9 +642,19 @@ namespace lsp
             plug::IPort *p = find_param(param_id);
             if (p == NULL)
                 return STATUS_NOT_FOUND;
+            const meta::port_t *meta = p->metadata();
+            if (meta == NULL)
+                return STATUS_BAD_STATE;
 
-            // TODO: need more details about units included into the output value
-            return STATUS_NOT_IMPLEMENTED;
+            float parsed = 0.0f;
+            status_t res = meta::parse_value(&parsed, text, meta, true);
+            if (res != STATUS_OK)
+                return res;
+
+            if (value != NULL)
+                *value  = meta::limit_value(meta, parsed);
+
+            return STATUS_OK;
         }
 
         void Wrapper::flush_param_events(const clap_input_events_t *in, const clap_output_events_t *out)
