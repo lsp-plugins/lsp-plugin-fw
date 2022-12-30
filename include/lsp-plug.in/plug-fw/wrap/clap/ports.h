@@ -40,6 +40,7 @@ namespace lsp
         {
             protected:
                 float      *pBuffer;            // The original buffer passed by the host OR sanitized buffer
+                size_t      nOffset;            // The relative offset from the beginning of the buffer
                 size_t      nBufSize;           // The actual current buffer size
                 size_t      nBufCap;            // The quantized capacity of the buffer
 
@@ -47,6 +48,7 @@ namespace lsp
                 explicit AudioPort(const meta::port_t *meta) : IPort(meta)
                 {
                     pBuffer     = NULL;
+                    nOffset     = 0;
                     nBufSize    = 0;
                     nBufCap     = 0;
                 }
@@ -63,7 +65,12 @@ namespace lsp
             public:
                 virtual void *buffer() override
                 {
-                    return pBuffer;
+                    return &pBuffer[nOffset];
+                }
+
+                virtual void post_process(size_t samples) override
+                {
+                    nOffset    += samples;
                 }
 
             public:
@@ -115,6 +122,82 @@ namespace lsp
                 }
         };
 
+        class MidiInputPort: public plug::IPort
+        {
+            protected:
+                plug::midi_t    sQueue;             // MIDI event buffer
+
+            public:
+                explicit MidiInputPort(const meta::port_t *meta): IPort(meta)
+                {
+                    sQueue.clear();
+                }
+
+            public:
+                virtual void *buffer()
+                {
+                    return &sQueue;
+                }
+
+            public:
+                inline void clear()
+                {
+                    sQueue.clear();
+                }
+
+                inline bool push(const midi::event_t *me)
+                {
+                    return sQueue.push(me);
+                }
+        };
+
+        class MidiOutputPort: public plug::IPort
+        {
+            protected:
+                plug::midi_t    sQueue;             // MIDI event buffer
+                size_t          nOffset;            // Read-out offset
+
+            public:
+                explicit MidiOutputPort(const meta::port_t *meta): IPort(meta)
+                {
+                    nOffset     = 0;
+                    sQueue.clear();
+                }
+
+            public:
+                virtual void *buffer()
+                {
+                    return &sQueue;
+                }
+
+            public:
+                inline void clear()
+                {
+                    nOffset     = 0;
+                    sQueue.clear();
+                }
+
+                inline const midi::event_t *get(size_t index) const
+                {
+                    return (index < sQueue.nEvents) ? &sQueue.vEvents[index] : NULL;
+                }
+
+                inline const midi::event_t *front() const
+                {
+                    return get(nOffset);
+                }
+
+                inline const midi::event_t *peek()
+                {
+                    return (nOffset < sQueue.nEvents) ? &sQueue.vEvents[nOffset++] : NULL;
+                }
+
+                inline size_t size() const
+                {
+                    return sQueue.nEvents;
+                }
+        };
+
         class ParameterPort: public plug::IPort
         {
             protected:
@@ -124,12 +207,17 @@ namespace lsp
             public:
                 explicit ParameterPort(const meta::port_t *meta) : IPort(meta)
                 {
-                    fValue  = meta->start;
-                    nID     = clap_hash_string(meta->id);
+                    fValue              = meta->start;
+                    nID                 = clap_hash_string(meta->id);
                 }
 
             public:
                 inline clap_id uid() const  { return nID; }
+
+                float update_value(float value)
+                {
+                    return fValue = meta::limit_value(pMetadata, value);
+                }
 
             public:
                 virtual float value() override { return fValue; }

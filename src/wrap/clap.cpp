@@ -235,6 +235,8 @@ namespace lsp
 
         const void * CLAP_ABI get_extension(const clap_plugin_t *plugin, const char *id)
         {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+
             if (!strcmp(id, CLAP_EXT_LATENCY))
                 return &latency_extension;
             if (!strcmp(id, CLAP_EXT_AUDIO_PORTS))
@@ -247,7 +249,6 @@ namespace lsp
 //            if (!strcmp(id, CLAP_EXT_NOTE_PORTS))
 //               return &s_my_plug_note_ports;
 
-            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->get_extension(id);
         }
 

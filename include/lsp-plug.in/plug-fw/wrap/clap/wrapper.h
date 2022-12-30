@@ -27,6 +27,7 @@
 #include <clap/clap.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/ports.h>
@@ -49,7 +50,7 @@ namespace lsp
                     ssize_t                 nInPlace;   // CLAP host optimizations: in-place pair
                     const char             *sName;      // Pointer to the group name
                     size_t                  nPorts;     // Number of ports in the group
-                    plug::IPort            *vPorts[];   // List of ports in the audio port group
+                    AudioPort              *vPorts[];   // List of ports in the audio port group
                 } audio_group_t;
 
             protected:
@@ -61,11 +62,14 @@ namespace lsp
                 lltl::parray<audio_group_t>     vAudioIn;
                 lltl::parray<audio_group_t>     vAudioOut;
                 lltl::parray<ParameterPort>     vParamPorts;        // List of parameters sorted by clap_id
+                lltl::parray<MidiInputPort>     vMidiIn;            // Midi input ports
+                lltl::parray<MidiOutputPort>    vMidiOut;           // Midi output ports
                 lltl::parray<plug::IPort>       vAllPorts;
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
                 bool                            bRestartRequested;  // Flag that indicates that the plugin restart was requested
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
+                core::SamplePlayer             *pSamplePlayer;      // Sample player
 
             protected:
                 static audio_group_t *alloc_audio_group(size_t ports);
@@ -80,9 +84,11 @@ namespace lsp
 
             protected:
                 void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
-                status_t        create_ports(const meta::plugin_t *meta);
+                status_t        create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta);
                 status_t        generate_audio_port_groups(const meta::plugin_t *meta);
                 clap::ParameterPort  *find_param(clap_id param_id);
+                size_t          prepare_block(size_t *ev_index, size_t offset, const clap_process_t *process);
+                void            generate_output_events(size_t offset, const clap_process_t *process);
 
             public:
                 explicit Wrapper(

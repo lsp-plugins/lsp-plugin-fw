@@ -42,6 +42,7 @@ namespace lsp
             pPackage            = package;
             pExt                = NULL;
             nLatency            = 0;
+            pSamplePlayer       = NULL;
 
             bRestartRequested   = false;
             bUpdateSettings     = true;
@@ -54,6 +55,14 @@ namespace lsp
 
         void Wrapper::destroy()
         {
+            // Destroy sample player
+            if (pSamplePlayer != NULL)
+            {
+                pSamplePlayer->destroy();
+                delete pSamplePlayer;
+                pSamplePlayer = NULL;
+            }
+
             // Destroy plugin
             if (pPlugin != NULL)
             {
@@ -77,6 +86,8 @@ namespace lsp
                 delete p;
             }
             vAllPorts.flush();
+            vMidiIn.flush();
+            vMidiOut.flush();
 
             // Cleanup generated metadata
             for (size_t i=0, n=vGenMetadata.size(); i<n; ++i)
@@ -129,10 +140,24 @@ namespace lsp
                     break;
 
                 case meta::R_MIDI:
-                    // TODO
+                {
+                    if (meta::is_in_port(port))
+                    {
+                        clap::MidiInputPort *mi = new clap::MidiInputPort(port);
+                        vMidiIn.add(mi);
+                        ip  = mi;
+                    }
+                    else
+                    {
+                        clap::MidiOutputPort *mo = new clap::MidiOutputPort(port);
+                        vMidiOut.add(mo);
+                        ip  = mo;
+                    }
                     break;
+                }
 
                 case meta::R_AUDIO:
+                    // Audio ports will be organized into groups after instantiation of all ports
                     ip = new clap::AudioPort(port);
                     break;
 
@@ -271,12 +296,16 @@ namespace lsp
             {
                 const char *id  = meta->items[i].id;
                 plug::IPort *p  = find_port(id, list);
-                grp->vPorts[i]  = p;
+                if (p == NULL)
+                {
+                    lsp_error("Missing %s port '%s' for the audio group '%s'",
+                        (meta->flags & meta::PGF_OUT) ? "output" : "input", id, meta->id);
+                    continue;
+                }
+
+                grp->vPorts[i]  = static_cast<clap::AudioPort *>(p);
                 if (p != NULL)
                     list->premove(p);
-                else
-                    lsp_error("Missing %s port '%s' for the group '%s'",
-                        (meta->flags & meta::PGF_OUT) ? "output" : "input", id, meta->id);
             }
 
             return grp;
@@ -300,7 +329,7 @@ namespace lsp
             grp->nInPlace       = -1;
             grp->sName          = meta->id;
             grp->nPorts         = 1;
-            grp->vPorts[0]      = port;
+            grp->vPorts[0]      = static_cast<clap::AudioPort *>(port);
 
             return grp;
         }
@@ -405,13 +434,12 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t Wrapper::create_ports(const meta::plugin_t *meta)
+        status_t Wrapper::create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta)
         {
             // Create ports
             lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
-            lltl::parray<plug::IPort> plugin_ports;
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
-                create_port(&plugin_ports, port, NULL);
+                create_port(plugin_ports, port, NULL);
             vParamPorts.qsort(compare_ports_by_clap_id);
 
         #ifdef LSP_TRACE
@@ -445,19 +473,32 @@ namespace lsp
                 return STATUS_NO_MEM;
 
             // Create all possible ports for plugin and validate the state
-            LSP_STATUS_ASSERT(create_ports(meta));
+            lltl::parray<plug::IPort> plugin_ports;
+            LSP_STATUS_ASSERT(create_ports(&plugin_ports, meta));
 
             // Generate the input and output audio port groups
             LSP_STATUS_ASSERT(generate_audio_port_groups(meta));
 
+            // Initialize plugin
+            if (pPlugin != NULL)
+                pPlugin->init(this, plugin_ports.array());
 
-            // TODO
+            // Create sample player if required
+            if (meta->extensions & meta::E_FILE_PREVIEW)
+            {
+                pSamplePlayer       = new core::SamplePlayer(meta);
+                if (pSamplePlayer == NULL)
+                    return STATUS_NO_MEM;
+                pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
+            }
+
             return STATUS_OK;
         }
 
         status_t Wrapper::activate(double sample_rate, size_t min_frames_count, size_t max_frames_count)
         {
             // Clear the flag that the restart has been requested
+            sPosition.sampleRate= sample_rate;
             bRestartRequested   = false;
             bUpdateSettings     = true;
 
@@ -493,8 +534,306 @@ namespace lsp
         {
         }
 
+        size_t Wrapper::prepare_block(size_t *ev_index, size_t offset, const clap_process_t *process)
+        {
+            // There are no more events in the block?
+            size_t last_time    = process->frames_count;
+            size_t num_ev       = process->in_events->size(process->in_events);
+
+            // Estimate the block size
+            for (size_t i = *ev_index; i < num_ev; ++i)
+            {
+                // Fetch the event
+                const clap_event_header_t *hdr = process->in_events->get(process->in_events, i);
+                if ((hdr->space_id != CLAP_CORE_EVENT_SPACE_ID) || (hdr->time < offset))
+                    continue;
+
+                // Allow several type of events only at the beginning of the processing block
+                if (((hdr->type == CLAP_EVENT_PARAM_VALUE) ||
+                     (hdr->type == CLAP_EVENT_PARAM_MOD) ||
+                     (hdr->type == CLAP_EVENT_TRANSPORT))
+                    && (hdr->time != offset))
+                {
+                    last_time   = hdr->time;
+                    break;
+                }
+            }
+
+            // Now we are ready to process each event
+            for (size_t i = *ev_index; i < num_ev; ++i)
+            {
+                // Fetch the event until it's timestamp is not out of the block
+                const clap_event_header_t *hdr = process->in_events->get(process->in_events, i);
+                if ((hdr->space_id != CLAP_CORE_EVENT_SPACE_ID) || (hdr->time < offset))
+                    continue;
+                else if (hdr->time >= last_time)
+                    break;
+
+                // Process the event
+                switch (hdr->type)
+                {
+                    case CLAP_EVENT_NOTE_ON:
+                    {
+                        // const clap_event_note_t *ev = reinterpret_cast<const clap_event_note_t *>(hdr);
+                        // TODO: handle note on
+                        break;
+                    }
+                    case CLAP_EVENT_NOTE_OFF:
+                    {
+                        // const clap_event_note_t *ev = reinterpret_cast<const clap_event_note_t *>(hdr);
+                        // TODO: handle note off
+                        break;
+                    }
+                    case CLAP_EVENT_NOTE_CHOKE:
+                    {
+                        // const clap_event_note_t *ev = reinterpret_cast<const clap_event_note_t *>(hdr);
+                        // TODO: handle note choke
+                        break;
+                    }
+                    case CLAP_EVENT_NOTE_EXPRESSION:
+                    {
+                        // const clap_event_note_expression_t *ev = reinterpret_cast<const clap_event_note_expression_t *>(hdr);
+                        // TODO: handle note expression
+                        break;
+                    }
+                    case CLAP_EVENT_PARAM_VALUE:
+                    {
+                        const clap_event_param_value_t *ev = reinterpret_cast<const clap_event_param_value_t *>(hdr);
+                        clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
+                        if ((pp != NULL) && (pp->uid() == ev->param_id))
+                        {
+                            float ov            = pp->value();
+                            float nv            = pp->update_value(ev->value);
+                            if (ov != nv)
+                            {
+                                lsp_trace("port changed (set): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                bUpdateSettings     = true;
+                            }
+                        }
+                        break;
+                    }
+                    case CLAP_EVENT_PARAM_MOD:
+                    {
+                        const clap_event_param_mod_t *ev = reinterpret_cast<const clap_event_param_mod_t *>(hdr);
+                        clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
+                        if ((pp != NULL) && (pp->uid() == ev->param_id))
+                        {
+                            float ov            = pp->value();
+                            float nv            = pp->update_value(ov + ev->amount);
+                            if (ov != nv)
+                            {
+                                lsp_trace("port changed (mod): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                bUpdateSettings     = true;
+                            }
+                        }
+                        break;
+                    }
+                    case CLAP_EVENT_TRANSPORT:
+                    {
+                        const clap_event_transport_t *ev = reinterpret_cast<const clap_event_transport_t *>(hdr);
+                        // Update the transport state
+                        if (ev->flags & CLAP_TRANSPORT_HAS_TEMPO)
+                        {
+                            sPosition.beatsPerMinute        = ev->tempo;
+                            sPosition.beatsPerMinuteChange  = ev->tempo_inc;
+                        }
+                        if (ev->flags & CLAP_TRANSPORT_HAS_TIME_SIGNATURE)
+                        {
+                            sPosition.numerator             = ev->tsig_num;
+                            sPosition.denominator           = ev->tsig_denom;
+                        }
+                        if (ev->flags & CLAP_TRANSPORT_HAS_BEATS_TIMELINE)
+                        {
+                            sPosition.frame                 = sPosition.sampleRate * (ev->song_pos_seconds / double(CLAP_SECTIME_FACTOR));
+                            sPosition.ticksPerBeat          = DEFAULT_TICKS_PER_BEAT;
+                            sPosition.tick                  = (sPosition.ticksPerBeat * double(ev->song_pos_beats - ev->bar_start) * sPosition.numerator * sPosition.beatsPerMinute) / (60.0 * CLAP_BEATTIME_FACTOR);
+                        }
+                        break;
+                    }
+                    case CLAP_EVENT_MIDI:
+                    {
+                        // Parse MIDI event and broadcast it to all input MIDI ports
+                        const clap_event_midi_t *ev = reinterpret_cast<const clap_event_midi_t *>(hdr);
+                        midi::event_t me;
+                        ssize_t size = midi::decode(&me, ev->data);
+                        if (size >= 0)
+                        {
+                            me.timestamp                    = hdr->time - offset;
+                            for (size_t i=0, n=vMidiIn.size(); i<n; ++i)
+                            {
+                                MidiInputPort *in = vMidiIn.uget(i);
+                                if (in == NULL)
+                                    continue;
+                                in->push(&me);
+                            }
+                        }
+                        break;
+                    }
+                    case CLAP_EVENT_MIDI_SYSEX:
+                    {
+                        // const clap_event_midi_sysex_t *ev = reinterpret_cast<const clap_event_midi_sysex_t *>(hdr);
+                        // We don't support MIDI System Exclusive messages
+                        break;
+                    }
+                    case CLAP_EVENT_MIDI2:
+                    {
+                       // const clap_event_midi2_t *ev = reinterpret_cast<const clap_event_midi2_t *>(hdr);
+                       // We don't support MIDI2 yet
+                       break;
+                    }
+                    default:
+                        break;
+                } // switch
+            } // for
+
+            // Return the result
+            return last_time    = offset;
+        }
+
+        void Wrapper::generate_output_events(size_t offset, const clap_process_t *process)
+        {
+            // Are there any MIDI ports available?
+            size_t n_outs = vMidiOut.size();
+            if (n_outs <= 0)
+                return;
+
+            // Sort all MIDI events according to their timestamps
+            for (size_t i=0; i<n_outs; ++i)
+            {
+                plug::midi_t *queue = static_cast<plug::midi_t *>(vMidiOut.uget(i)->buffer());
+                if (queue != NULL)
+                    queue->sort();
+            }
+
+            clap_event_midi_t msg;
+            msg.header.size     = sizeof(clap_event_midi_t);
+            msg.header.time     = 0;
+            msg.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+            msg.header.type     = CLAP_EVENT_MIDI;
+            msg.header.flags    = 0;
+            msg.port_index      = 0;
+
+            // Merge the result
+            while (true)
+            {
+                const midi::event_t *ev     = NULL;
+                MidiOutputPort *port        = NULL;
+
+                // Scan for the event with the minimum timestamp among all ports
+                for (size_t i=0; i<n_outs; ++i)
+                {
+                    MidiOutputPort *p           = vMidiOut.uget(i);
+                    if (p == NULL)
+                        continue;
+                    const midi::event_t *e      = p->peek();
+                    if (e == NULL)
+                        continue;
+                    if ((ev == NULL) || (ev->timestamp < e->timestamp))
+                    {
+                        ev                  = e;
+                        port                = p;
+                    }
+                }
+
+                // No port/message found?
+                if (port == NULL)
+                    break;
+
+                // Emit MIDI message
+                msg.header.time     = offset + ev->timestamp;
+                msg.data[0]         = 0;
+                msg.data[1]         = 0;
+                msg.data[2]         = 0;
+                if (midi::encode(msg.data, ev) >= 0)
+                    process->out_events->try_push(process->out_events, &msg.header);
+
+                // Remove MIDI message from the output MIDI port
+                port->peek();
+            }
+        }
+
         clap_process_status Wrapper::process(const clap_process_t *process)
         {
+            if ((process->audio_inputs_count != vAudioIn.size()) ||
+                (process->audio_outputs_count != vAudioOut.size()))
+                return CLAP_PROCESS_ERROR;
+
+            // Bind audio ports
+            for (size_t i=0, n=vAudioIn.size(); i<n; ++i)
+            {
+                const clap_audio_buffer_t *b = &process->audio_inputs[i];
+                audio_group_t *g = vAudioIn.uget(i);
+                if (b->channel_count != g->nPorts)
+                    return CLAP_PROCESS_ERROR;
+                for (size_t j=0; j<g->nPorts; ++j)
+                    g->vPorts[j]->bind(b->data32[i], process->frames_count);
+            }
+            for (size_t i=0, n=vAudioOut.size(); i<n; ++i)
+            {
+                const clap_audio_buffer_t *b = &process->audio_inputs[i];
+                audio_group_t *g = vAudioOut.uget(i);
+                if (b->channel_count != g->nPorts)
+                    return CLAP_PROCESS_ERROR;
+                for (size_t j=0; j<g->nPorts; ++j)
+                    g->vPorts[j]->bind(b->data32[i], process->frames_count);
+            }
+
+            // CLAP may deliver change of input parameters in the input events.
+            // We need to split these events into the set of ranges and process
+            // each range independently
+            size_t ev_index = 0;
+            for (size_t offset=0; offset < process->frames_count; )
+            {
+                // Cleanup MIDI ports
+                for (size_t i=0,n=vMidiIn.size(); i<n; ++i)
+                    vMidiIn.uget(i)->clear();
+                for (size_t i=0,n=vMidiOut.size(); i<n; ++i)
+                    vMidiOut.uget(i)->clear();
+
+                // Prepare event block
+                size_t block_size = prepare_block(&ev_index, offset, process);
+
+                // Call the plugin for processing
+                pPlugin->process(block_size);
+
+                // Call the sampler for processing
+                if (pSamplePlayer != NULL)
+                    pSamplePlayer->process(block_size);
+
+                generate_output_events(offset, process);
+
+                // Advance the audio ports
+                for (size_t i=0, n=vAudioIn.size(); i<n; ++i)
+                {
+                    audio_group_t *g = vAudioIn.uget(i);
+                    for (size_t j=0; j<g->nPorts; ++j)
+                        g->vPorts[j]->post_process(block_size);
+                }
+                for (size_t i=0, n=vAudioOut.size(); i<n; ++i)
+                {
+                    audio_group_t *g = vAudioOut.uget(i);
+                    for (size_t j=0; j<g->nPorts; ++j)
+                        g->vPorts[j]->post_process(block_size);
+                }
+
+                // Update the processing offset
+                offset     += block_size;
+            }
+
+            // Unbind audio ports
+            for (size_t i=0, n=vAudioIn.size(); i<n; ++i)
+            {
+                audio_group_t *g = vAudioIn.uget(i);
+                for (size_t j=0; j<g->nPorts; ++j)
+                    g->vPorts[j]->unbind();
+            }
+            for (size_t i=0, n=vAudioOut.size(); i<n; ++i)
+            {
+                audio_group_t *g = vAudioOut.uget(i);
+                for (size_t j=0; j<g->nPorts; ++j)
+                    g->vPorts[j]->unbind();
+            }
+
             // Report the latency
             // From CLAP documentation:
             // The latency is only allowed to change if the plugin is deactivated.
@@ -659,7 +998,53 @@ namespace lsp
 
         void Wrapper::flush_param_events(const clap_input_events_t *in, const clap_output_events_t *out)
         {
-            // TODO: process events
+            // Now we are ready to process each event
+            for (size_t i = 0, n = in->size(in); i < n; ++i)
+            {
+                // Fetch the event until it's timestamp is not out of the block
+                const clap_event_header_t *hdr = in->get(in, i);
+                if (hdr->space_id != CLAP_CORE_EVENT_SPACE_ID)
+                    continue;
+
+                // Process the event
+                switch (hdr->type)
+                {
+                    case CLAP_EVENT_PARAM_VALUE:
+                    {
+                        const clap_event_param_value_t *ev = reinterpret_cast<const clap_event_param_value_t *>(hdr);
+                        clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
+                        if ((pp != NULL) && (pp->uid() == ev->param_id))
+                        {
+                            float ov            = pp->value();
+                            float nv            = pp->update_value(ev->value);
+                            if (ov != nv)
+                            {
+                                lsp_trace("port changed (set): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                bUpdateSettings     = true;
+                            }
+                        }
+                        break;
+                    }
+                    case CLAP_EVENT_PARAM_MOD:
+                    {
+                        const clap_event_param_mod_t *ev = reinterpret_cast<const clap_event_param_mod_t *>(hdr);
+                        clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
+                        if ((pp != NULL) && (pp->uid() == ev->param_id))
+                        {
+                            float ov            = pp->value();
+                            float nv            = pp->update_value(ov + ev->amount);
+                            if (ov != nv)
+                            {
+                                lsp_trace("port changed (mod): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                bUpdateSettings     = true;
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                } // switch
+            } // for
         }
 
     } /* namespace clap */
