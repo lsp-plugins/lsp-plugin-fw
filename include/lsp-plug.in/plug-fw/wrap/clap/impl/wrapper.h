@@ -862,6 +862,40 @@ namespace lsp
             return nLatency;
         }
 
+        size_t Wrapper::has_note_ports() const
+        {
+            return (vMidiIn.size() + vMidiOut.size()) > 0;
+        }
+
+        size_t Wrapper::note_ports_count(bool is_input) const
+        {
+            return (is_input) ? vMidiIn.size() : vMidiOut.size();
+        }
+
+        status_t Wrapper::note_port_info(clap_note_port_info_t *info, size_t index, bool is_input) const
+        {
+            const char *id  = NULL;
+            if (is_input)
+            {
+                const clap::MidiInputPort *mp = vMidiIn.get(index);
+                id = (mp != NULL) ? mp->metadata()->id : NULL;
+            }
+            else
+            {
+                const clap::MidiOutputPort *mp = vMidiOut.get(index);
+                id = (mp != NULL) ? mp->metadata()->id : NULL;
+            }
+            if (id == NULL)
+                return STATUS_NOT_FOUND;
+
+            info->id                    = clap_hash_string(id);
+            info->supported_dialects    = CLAP_NOTE_DIALECT_MIDI;
+            info->preferred_dialect     = CLAP_NOTE_DIALECT_MIDI;
+            clap_strcpy(info->name, id, sizeof(info->name));
+
+            return STATUS_OK;
+        }
+
         size_t Wrapper::audio_ports_count(bool is_input) const
         {
             return (is_input) ? vAudioIn.size() : vAudioOut.size();
@@ -873,7 +907,7 @@ namespace lsp
             if (grp == NULL)
                 return STATUS_NOT_FOUND;
 
-            info->id            = index;
+            info->id            = clap_hash_string(grp->sName);
             clap_strcpy(info->name, grp->sName, sizeof(info->name));
             info->flags         = grp->nFlags;
             info->channel_count = grp->nPorts;

@@ -130,6 +130,12 @@ namespace lsp
                 status_t        audio_port_info(clap_audio_port_info_t *info, size_t index, bool is_input) const;
 
             public:
+                // CLAP note port extension
+                size_t          has_note_ports() const;
+                size_t          note_ports_count(bool is_input) const;
+                status_t        note_port_info(clap_note_port_info_t *info, size_t index, bool is_input) const;
+
+            public:
                 // CLAP state extension
                 status_t        save_state(const clap_ostream_t *stream);
                 status_t        load_state(const clap_istream_t *stream);

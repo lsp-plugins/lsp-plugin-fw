@@ -72,6 +72,30 @@ namespace lsp
         };
 
         //---------------------------------------------------------------------
+        // Note ports extension
+        static uint32_t note_ports_count(const clap_plugin_t *plugin, bool is_input)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->note_ports_count(is_input);
+        }
+
+        static bool note_ports_get(
+            const clap_plugin_t *plugin,
+            uint32_t index,
+            bool is_input,
+            clap_note_port_info_t *info)
+        {
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->note_port_info(info, index, is_input) == STATUS_OK;
+        }
+
+        static const clap_plugin_note_ports_t note_ports_extension =
+        {
+            .count = note_ports_count,
+            .get = note_ports_get,
+        };
+
+        //---------------------------------------------------------------------
         // Parameters extension
         // Returns the number of parameters.
         // [main-thread]
@@ -245,9 +269,8 @@ namespace lsp
                 return &state_extension;
             if (!strcmp(id, CLAP_EXT_PARAMS))
                 return &plugin_params_extension;
-// TODO: work with note ports
-//            if (!strcmp(id, CLAP_EXT_NOTE_PORTS))
-//               return &s_my_plug_note_ports;
+            if ((!strcmp(id, CLAP_EXT_NOTE_PORTS)) && (w->has_note_ports()))
+               return &note_ports_extension;
 
             return w->get_extension(id);
         }
