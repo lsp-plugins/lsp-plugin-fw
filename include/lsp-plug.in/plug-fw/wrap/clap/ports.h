@@ -2,21 +2,21 @@
  * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins-comp-delay
+ * This file is part of lsp-plugin-fw
  * Created on: 26 дек. 2022 г.
  *
- * lsp-plugins-comp-delay is free software: you can redistribute it and/or modify
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * lsp-plugins-comp-delay is distributed in the hope that it will be useful,
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with lsp-plugins-comp-delay. If not, see <https://www.gnu.org/licenses/>.
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_CLAP_PORTS_H_
@@ -24,19 +24,53 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <clap/clap.h>
 #include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/data.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/helpers.h>
+#include <lsp-plug.in/stdlib/math.h>
 
 namespace lsp
 {
     namespace clap
     {
+        // Specify port classes
+        class Port: public plug::IPort
+        {
+            public:
+                explicit Port(const meta::port_t *meta): plug::IPort(meta)
+                {
+                }
+
+            public:
+                /**
+                 * Ensure that port is serializable
+                 * @return true if port is serializable
+                 */
+                virtual bool serializable() const { return false; }
+
+                /** Serialize the state of the port to the chunk
+                 *
+                 * @param chunk chunk to perform serialization
+                 */
+                virtual void serialize(const clap_ostream_t *os) {}
+
+                /** Serialize the state of the port to the chunk
+                 *
+                 * @param chunk chunk to perform serialization
+                 */
+                virtual void deserialize(const clap_istream_t *is) {}
+        };
+
         /**
          * Audio port: input or output
          */
-        class AudioPort: public plug::IPort
+        class AudioPort: public Port
         {
             protected:
                 float      *pBuffer;            // The original buffer passed by the host OR sanitized buffer
@@ -45,7 +79,7 @@ namespace lsp
                 size_t      nBufCap;            // The quantized capacity of the buffer
 
             public:
-                explicit AudioPort(const meta::port_t *meta) : IPort(meta)
+                explicit AudioPort(const meta::port_t *meta) : Port(meta)
                 {
                     pBuffer     = NULL;
                     nOffset     = 0;
@@ -122,13 +156,13 @@ namespace lsp
                 }
         };
 
-        class MidiInputPort: public plug::IPort
+        class MidiInputPort: public Port
         {
             protected:
                 plug::midi_t    sQueue;             // MIDI event buffer
 
             public:
-                explicit MidiInputPort(const meta::port_t *meta): IPort(meta)
+                explicit MidiInputPort(const meta::port_t *meta): Port(meta)
                 {
                     sQueue.clear();
                 }
@@ -151,14 +185,14 @@ namespace lsp
                 }
         };
 
-        class MidiOutputPort: public plug::IPort
+        class MidiOutputPort: public Port
         {
             protected:
                 plug::midi_t    sQueue;             // MIDI event buffer
                 size_t          nOffset;            // Read-out offset
 
             public:
-                explicit MidiOutputPort(const meta::port_t *meta): IPort(meta)
+                explicit MidiOutputPort(const meta::port_t *meta): Port(meta)
                 {
                     nOffset     = 0;
                     sQueue.clear();
@@ -198,17 +232,19 @@ namespace lsp
                 }
         };
 
-        class ParameterPort: public plug::IPort
+        class ParameterPort: public Port
         {
             protected:
-                float   fValue;
-                clap_id nID;
+                float       fValue;
+                clap_id     nID;
+                uatomic_t   nSID;           // Serial ID of the parameter
 
             public:
-                explicit ParameterPort(const meta::port_t *meta) : IPort(meta)
+                explicit ParameterPort(const meta::port_t *meta) : Port(meta)
                 {
                     fValue              = meta->start;
                     nID                 = clap_hash_string(meta->id);
+                    nSID                = 0;
                 }
 
             public:
@@ -221,6 +257,75 @@ namespace lsp
 
             public:
                 virtual float value() override { return fValue; }
+
+                virtual bool serializable() const  override { return true; }
+
+                virtual void serialize(const clap_ostream_t *os) override
+                {
+                    float v = CPU_TO_BE(fValue);
+                    os->write(os, &v, sizeof(v));
+                }
+
+                virtual void deserialize(const clap_istream_t *is) override
+                {
+                    float value;
+                    ssize_t nread = is->read(is, &value, sizeof(value));
+                    if (nread != sizeof(value))
+                        return;
+
+                    update_value(BE_TO_CPU(value));
+                    atomic_add(&nSID, 1);
+                }
+        };
+
+        class MeterPort: public Port
+        {
+            public:
+                float   fValue;
+                bool    bForce;
+
+            public:
+                explicit MeterPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    fValue      = meta->start;
+                    bForce      = true;
+                }
+
+                virtual ~MeterPort()
+                {
+                    fValue      = pMetadata->start;
+                }
+
+            public:
+                // Native Interface
+                virtual float value() override
+                {
+                    return fValue;
+                }
+
+                virtual void set_value(float value) override
+                {
+                    value       = meta::limit_value(pMetadata, value);
+
+                    if (pMetadata->flags & meta::F_PEAK)
+                    {
+                        if ((bForce) || (fabs(fValue) < fabs(value)))
+                        {
+                            fValue  = value;
+                            bForce  = false;
+                        }
+                    }
+                    else
+                        fValue = value;
+                }
+
+                float sync_value()
+                {
+                    float value = fValue;
+                    bForce      = true;
+                    return value;
+                }
         };
 
         class PortGroup: public ParameterPort
@@ -228,29 +333,32 @@ namespace lsp
             private:
                 size_t                  nCols;
                 size_t                  nRows;
+                uatomic_t               nSID; // Serial ID of the parameter
 
             public:
                 explicit PortGroup(const meta::port_t *meta) : ParameterPort(meta)
                 {
                     nCols               = meta::port_list_size(meta->members);
                     nRows               = meta::list_size(meta->items);
+                    nSID                = 0;
                 }
 
                 virtual ~PortGroup()
                 {
                     nCols               = 0;
                     nRows               = 0;
+                    nSID                = 0;
                 }
 
             public:
-                virtual void set_value(float value)
+                virtual void set_value(float value) override
                 {
                     int32_t v = value;
                     if ((v >= 0) && (v < ssize_t(nRows)))
                         fValue              = v;
                 }
 
-                virtual float value()
+                virtual float value() override
                 {
                     return fValue;
                 }
@@ -261,6 +369,160 @@ namespace lsp
                 inline size_t curr_row() const  { return fValue;    }
         };
 
+        class MeshPort: public Port
+        {
+            private:
+                plug::mesh_t       *pMesh;
+
+            public:
+                explicit MeshPort(const meta::port_t *meta) :
+                    Port(meta)
+                {
+                    pMesh   = clap::create_mesh(meta);
+                }
+
+                virtual ~MeshPort() override
+                {
+                    clap::destroy_mesh(pMesh);
+                    pMesh = NULL;
+                }
+
+            public:
+                virtual void *buffer() override
+                {
+                    return pMesh;
+                }
+        };
+
+        class StreamPort: public Port
+        {
+            private:
+                plug::stream_t     *pStream;
+
+            public:
+                explicit StreamPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    pStream     = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
+                }
+
+                virtual ~StreamPort() override
+                {
+                    if (pStream != NULL)
+                    {
+                        plug::stream_t::destroy(pStream);
+                        pStream     = NULL;
+                    }
+                }
+
+            public:
+                virtual void *buffer() override
+                {
+                    return pStream;
+                }
+        };
+
+        class FrameBufferPort: public Port
+        {
+            private:
+                plug::frame_buffer_t    sFB;
+
+            public:
+                explicit FrameBufferPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    sFB.init(pMetadata->start, pMetadata->step);
+                }
+
+                virtual ~FrameBufferPort() override
+                {
+                    sFB.destroy();
+                }
+
+            public:
+                virtual void *buffer() override
+                {
+                    return &sFB;
+                }
+        };
+
+        class PathPort: public Port
+        {
+            private:
+                clap::path_t    sPath;
+
+            public:
+                explicit PathPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    sPath.init();
+                }
+
+                virtual ~PathPort()
+                {
+                }
+
+            public:
+                virtual void *buffer() override
+                {
+                    return static_cast<plug::path_t *>(&sPath);
+                }
+
+                virtual bool pre_process(size_t samples) override
+                {
+                    return sPath.pending();
+                }
+
+                virtual void serialize(const clap_ostream_t *os) override
+                {
+                    sPath.serialize(os);
+                }
+
+                virtual void deserialize(const clap_istream_t *is) override
+                {
+                    sPath.deserialize(is);
+                }
+
+                virtual bool serializable() const override { return true; }
+        };
+
+        class OscPort: public Port
+        {
+            private:
+                plug::osc_buffer_t     *pFB;
+
+            public:
+                explicit OscPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    pFB     = NULL;
+                }
+
+                virtual ~OscPort()
+                {
+                }
+
+            public:
+                virtual void *buffer()
+                {
+                    return pFB;
+                }
+
+                virtual int init()
+                {
+                    pFB     = plug::osc_buffer_t::create(OSC_BUFFER_MAX);
+                    return (pFB == NULL) ? STATUS_NO_MEM : STATUS_OK;
+                }
+
+                virtual void destroy()
+                {
+                    if (pFB != NULL)
+                    {
+                        plug::osc_buffer_t::destroy(pFB);
+                        pFB     = NULL;
+                    }
+                }
+        };
     } /* namespace clap */
 } /* namespace lsp */
 

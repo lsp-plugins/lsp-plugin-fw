@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <clap/clap.h>
+#include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
 
 namespace lsp
@@ -41,6 +42,8 @@ namespace lsp
             pHost               = host;
             pPackage            = package;
             pExt                = NULL;
+            pExecutor           = NULL;
+
             nLatency            = 0;
             pSamplePlayer       = NULL;
 
@@ -55,6 +58,14 @@ namespace lsp
 
         void Wrapper::destroy()
         {
+            // Shutdown and delete executor if exists
+            if (pExecutor != NULL)
+            {
+                pExecutor->shutdown();
+                delete pExecutor;
+                pExecutor   = NULL;
+            }
+
             // Destroy sample player
             if (pSamplePlayer != NULL)
             {
@@ -123,20 +134,20 @@ namespace lsp
 
         void Wrapper::create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix)
         {
-            plug::IPort *ip     = NULL;
+            clap::Port *cp      = NULL;
 
             switch (port->role)
             {
                 case meta::R_MESH:
-                    // TODO
+                    cp                      = new clap::MeshPort(port);
                     break;
 
                 case meta::R_FBUFFER:
-                    // TODO
+                    cp                      = new clap::FrameBufferPort(port);
                     break;
 
                 case meta::R_STREAM:
-                    // TODO
+                    cp                      = new clap::StreamPort(port);
                     break;
 
                 case meta::R_MIDI:
@@ -145,28 +156,28 @@ namespace lsp
                     {
                         clap::MidiInputPort *mi = new clap::MidiInputPort(port);
                         vMidiIn.add(mi);
-                        ip  = mi;
+                        cp  = mi;
                     }
                     else
                     {
                         clap::MidiOutputPort *mo = new clap::MidiOutputPort(port);
                         vMidiOut.add(mo);
-                        ip  = mo;
+                        cp  = mo;
                     }
                     break;
                 }
 
                 case meta::R_AUDIO:
                     // Audio ports will be organized into groups after instantiation of all ports
-                    ip = new clap::AudioPort(port);
+                    cp = new clap::AudioPort(port);
                     break;
 
                 case meta::R_OSC:
-                    // TODO
+                    cp = new clap::OscPort(port);
                     break;
 
                 case meta::R_PATH:
-                    // TODO
+                    cp                      = new clap::PathPort(port);
                     break;
 
                 case meta::R_CONTROL:
@@ -174,18 +185,18 @@ namespace lsp
                 {
                     clap::ParameterPort *pp = new clap::ParameterPort(port);
                     vParamPorts.add(pp);
-                    ip  = pp;
+                    cp  = pp;
                     break;
                 }
 
                 case meta::R_METER:
-                    // TODO
+                    cp                      = new clap::MeterPort(port);
                     break;
 
                 case meta::R_PORT_SET:
                 {
                     LSPString postfix_str;
-                    clap::PortGroup *pg      = new clap::PortGroup(port);
+                    clap::PortGroup *pg     = new clap::PortGroup(port);
                     vAllPorts.add(pg);
                     vParamPorts.add(pg);
                     plugin_ports->add(pg);
@@ -221,10 +232,10 @@ namespace lsp
                     break;
             }
 
-            if (ip != NULL)
+            if (cp != NULL)
             {
                 #ifdef LSP_DEBUG
-                    const char *src_id = ip->metadata()->id;
+                    const char *src_id = cp->metadata()->id;
                     for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
                     {
                         plug::IPort *p = vAllPorts.uget(i);
@@ -233,8 +244,8 @@ namespace lsp
                     }
                 #endif /* LSP_DEBUG */
 
-                vAllPorts.add(ip);
-                plugin_ports->add(ip);
+                vAllPorts.add(cp);
+                plugin_ports->add(cp);
             }
         }
 
@@ -607,6 +618,8 @@ namespace lsp
                             if (ov != nv)
                             {
                                 lsp_trace("port changed (set): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                if (pExt->state != NULL)
+                                    pExt->state->mark_dirty(pHost);
                                 bUpdateSettings     = true;
                             }
                         }
@@ -623,6 +636,8 @@ namespace lsp
                             if (ov != nv)
                             {
                                 lsp_trace("port changed (mod): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                if (pExt->state != NULL)
+                                    pExt->state->mark_dirty(pHost);
                                 bUpdateSettings     = true;
                             }
                         }
@@ -1054,6 +1069,8 @@ namespace lsp
                             if (ov != nv)
                             {
                                 lsp_trace("port changed (set): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                if (pExt->state != NULL)
+                                    pExt->state->mark_dirty(pHost);
                                 bUpdateSettings     = true;
                             }
                         }
@@ -1070,6 +1087,8 @@ namespace lsp
                             if (ov != nv)
                             {
                                 lsp_trace("port changed (mod): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                if (pExt->state != NULL)
+                                    pExt->state->mark_dirty(pHost);
                                 bUpdateSettings     = true;
                             }
                         }
@@ -1079,6 +1098,24 @@ namespace lsp
                         break;
                 } // switch
             } // for
+        }
+
+        ipc::IExecutor *Wrapper::executor()
+        {
+            lsp_trace("executor = %p", reinterpret_cast<void *>(pExecutor));
+            if (pExecutor != NULL)
+                return pExecutor;
+
+            lsp_trace("Creating native executor service");
+            ipc::NativeExecutor *exec = new ipc::NativeExecutor();
+            if (exec == NULL)
+                return NULL;
+            if (exec->start() != STATUS_OK)
+            {
+                delete exec;
+                return NULL;
+            }
+            return pExecutor = exec;
         }
 
     } /* namespace clap */

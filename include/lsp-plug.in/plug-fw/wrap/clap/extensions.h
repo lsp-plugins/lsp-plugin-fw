@@ -56,47 +56,6 @@ namespace lsp
                     params      = get_extension<clap_host_params_t>(host, CLAP_EXT_PARAMS);
                 }
         };
-
-        /**
-         * Perform the string copy with guaranteed string termination at the end
-         * @param dst destination buffer
-         * @param src source buffer
-         * @param len length of the buffer
-         * @return pointer to destination buffer
-         */
-        inline char *clap_strcpy(char *dst, const char *src, size_t len)
-        {
-            strncpy(dst, src, len);
-            dst[len-1] = '\0';
-            return dst;
-        }
-
-        /**
-         * Hash the string value and return the hash value as a clap identifier
-         * @param str string to hash
-         * @return clap identifier as a result of hashing
-         */
-        inline clap_id clap_hash_string(const char *str)
-        {
-            constexpr size_t num_primes = 8;
-            static const uint16_t primes[num_primes] = {
-                0x80ab, 0x815f, 0x8d41, 0x9161,
-                0x9463, 0x9b77, 0xabc1, 0xb567,
-            };
-
-            size_t prime_id = 0;
-            size_t len      = strlen(str);
-            clap_id res     = len * primes[prime_id];
-
-            for (size_t i=0; i<len; ++i)
-            {
-                prime_id        = (prime_id + 1) % num_primes;
-                res             = clap_id(res << 7) | clap_id((res >> (sizeof(clap_id) * 8 - 7)) & 0x7f); // rotate 7 bits left
-                res            += str[i] * primes[prime_id];
-            }
-
-            return res;
-        }
     } /* namespace clap */
 } /* namespace lsp */
 

@@ -30,6 +30,7 @@
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/ports.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
@@ -56,7 +57,8 @@ namespace lsp
             protected:
                 const clap_host_t              *pHost;
                 const meta::package_t          *pPackage;
-                HostExtensions                 *pExt;
+                clap::HostExtensions           *pExt;
+                ipc::IExecutor                 *pExecutor;
                 ssize_t                         nLatency;
 
                 lltl::parray<audio_group_t>     vAudioIn;
@@ -64,7 +66,7 @@ namespace lsp
                 lltl::parray<ParameterPort>     vParamPorts;        // List of parameters sorted by clap_id
                 lltl::parray<MidiInputPort>     vMidiIn;            // Midi input ports
                 lltl::parray<MidiOutputPort>    vMidiOut;           // Midi output ports
-                lltl::parray<plug::IPort>       vAllPorts;
+                lltl::parray<clap::Port>        vAllPorts;
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
                 bool                            bRestartRequested;  // Flag that indicates that the plugin restart was requested
@@ -139,6 +141,10 @@ namespace lsp
                 // CLAP state extension
                 status_t        save_state(const clap_ostream_t *stream);
                 status_t        load_state(const clap_istream_t *stream);
+
+            public:
+                // plug::IWrapper methods
+                virtual ipc::IExecutor         *executor() override;
         };
     } /* namespace clap */
 } /* namespace lsp */
