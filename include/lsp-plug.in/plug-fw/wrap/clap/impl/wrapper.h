@@ -97,6 +97,7 @@ namespace lsp
                 delete p;
             }
             vAllPorts.flush();
+            vSortedPorts.flush();
             vMidiIn.flush();
             vMidiOut.flush();
 
@@ -266,6 +267,13 @@ namespace lsp
             clap_id a_id = a->uid();
             clap_id b_id = b->uid();
             return (a_id < b_id) ? -1 : (a_id > b_id) ? 1 : 0;
+        }
+
+        ssize_t Wrapper::compare_ports_by_id(const clap::Port *a, const clap::Port *b)
+        {
+            const char *a_id = a->metadata()->id;
+            const char *b_id = b->metadata()->id;
+            return strcmp(a_id, b_id);
         }
 
         Wrapper::audio_group_t *Wrapper::alloc_audio_group(size_t ports)
@@ -452,6 +460,11 @@ namespace lsp
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(plugin_ports, port, NULL);
             vParamPorts.qsort(compare_ports_by_clap_id);
+
+            // Create sorted copy of all ports
+            if (!vSortedPorts.add(vAllPorts))
+                return STATUS_NO_MEM;
+            vSortedPorts.qsort(compare_ports_by_id);
 
         #ifdef LSP_TRACE
             // Validate that we don't have conflicts between uinque port identifiers
@@ -931,14 +944,447 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t Wrapper::save_state(const clap_ostream_t *stream)
+        status_t Wrapper::save_state(const clap_ostream_t *os)
         {
-            return STATUS_OK;
+            status_t res        = STATUS_OK;
+
+            // Write the header (magic + version)
+            if ((res = write_fully(os, uint32_t(LSP_CLAP_MAGIC))) != STATUS_OK)
+            {
+                lsp_warn("Error serializing header signature, code=%d", int(res));
+                return res;
+            }
+            if ((res = write_fully(os, uint32_t(LSP_CLAP_VERSION))) != STATUS_OK)
+            {
+                lsp_warn("Error serializing header version, code=%d", int(res));
+                return res;
+            }
+
+            // Serialize all regular ports
+            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+            {
+                // Get VST port
+                clap::Port *cp             = vAllPorts.uget(i);
+                if (cp == NULL)
+                    continue;
+
+                // Get metadata
+                const meta::port_t *p      = cp->metadata();
+                if ((p == NULL) || (p->id == NULL) || (meta::is_out_port(p)) || (!cp->serializable()))
+                    continue;
+
+                // Check that port is serializable
+                lsp_trace("Serializing port id=%s", p->id);
+
+                // Write port identifier
+                if ((res = write_string(os, p->id)) != STATUS_OK)
+                {
+                    lsp_warn("Error serializing port identifier id=%s, code=%d", p->id, int(res));
+                    return res;
+                }
+
+                // Serialize the port state
+                if ((res = cp->serialize(os)) != STATUS_OK)
+                {
+                    lsp_warn("Error serializing port state id=%s, code=%d", p->id, int(res));
+                    return res;
+                }
+            }
+
+            // Serialize KVT storage
+            if (sKVTMutex.lock())
+            {
+                lsp_finally {
+                    sKVT.gc();
+                    sKVTMutex.unlock();
+                };
+
+                const core::kvt_param_t *p;
+
+                // Read the whole KVT storage
+                core::KVTIterator *it = sKVT.enum_all();
+                while (it->next() == STATUS_OK)
+                {
+                    res             = it->get(&p);
+                    if (res == STATUS_NOT_FOUND) // Not a parameter
+                        continue;
+                    else if (res != STATUS_OK)
+                    {
+                        lsp_warn("it->get() returned %d", int(res));
+                        break;
+                    }
+                    else if (it->is_transient()) // Skip transient parameters
+                        continue;
+
+                    const char *name = it->name();
+                    if (name == NULL)
+                    {
+                        lsp_trace("it->name() returned NULL");
+                        break;
+                    }
+
+                    uint8_t flags = 0;
+                    if (it->is_private())
+                        flags      |= clap::FLAG_PRIVATE;
+
+                    kvt_dump_parameter("Saving state of KVT parameter: %s = ", p, name);
+
+                    // Write KVT entry header
+                    if ((res = write_string(os, name)) != STATUS_OK)
+                    {
+                        lsp_warn("Error serializing KVT record name id=%s, code=%d", name, int(res));
+                        return res;
+                    }
+                    if ((res = write_fully(os, flags)) != STATUS_OK)
+                    {
+                        lsp_warn("Error serializing KVT record flags id=%s, code=%d", name, int(res));
+                        return res;
+                    }
+
+                    // Serialize parameter according to it's type
+                    switch (p->type)
+                    {
+                        case core::KVT_INT32:
+                        {
+                            res = write_fully(os, uint8_t(clap::TYPE_INT32));
+                            if (res == STATUS_OK)
+                                res = write_fully(os, p->i32);
+                            break;
+                        };
+                        case core::KVT_UINT32:
+                        {
+                            res = write_fully(os, uint8_t(clap::TYPE_UINT32));
+                            if (res == STATUS_OK)
+                                res = write_fully(os, p->u32);
+                            break;
+                        }
+                        case core::KVT_INT64:
+                        {
+                            res = write_fully(os, uint8_t(clap::TYPE_INT64));
+                            if (res == STATUS_OK)
+                                res = write_fully(os, p->i64);
+                            break;
+                        };
+                        case core::KVT_UINT64:
+                        {
+                            res = write_fully(os, uint8_t(clap::TYPE_UINT64));
+                            if (res == STATUS_OK)
+                                res = write_fully(os, p->u64);
+                            break;
+                        }
+                        case core::KVT_FLOAT32:
+                        {
+                            res = write_fully(os, uint8_t(clap::TYPE_FLOAT32));
+                            if (res == STATUS_OK)
+                                res = write_fully(os, p->f32);
+                            break;
+                        }
+                        case core::KVT_FLOAT64:
+                        {
+                            res = write_fully(os, uint8_t(clap::TYPE_FLOAT64));
+                            if (res == STATUS_OK)
+                                res = write_fully(os, p->f64);
+                            break;
+                        }
+                        case core::KVT_STRING:
+                        {
+                            res = write_fully(os, uint8_t(clap::TYPE_STRING));
+                            if (res == STATUS_OK)
+                                res = write_string(os, (p->str != NULL) ? p->str : "");
+                            break;
+                        }
+                        case core::KVT_BLOB:
+                        {
+                            if ((p->blob.size > 0) && (p->blob.data == NULL))
+                            {
+                                res = STATUS_INVALID_VALUE;
+                                break;
+                            }
+
+                            res = write_fully(os, uint8_t(clap::TYPE_BLOB));
+                            if (res == STATUS_OK)
+                                res = write_fully(os, uint32_t(p->blob.size));
+                            if (res == STATUS_OK)
+                                res = write_string(os, (p->blob.ctype != NULL) ? p->blob.ctype : "");
+                            if ((res == STATUS_OK) && (p->blob.size > 0))
+                                res = write_fully(os, p->blob.data, p->blob.size);
+                            break;
+                        }
+
+                        default:
+                            res     = STATUS_BAD_TYPE;
+                            break;
+                    }
+
+                    // Successful status?
+                    if (res != STATUS_OK)
+                    {
+                        lsp_warn("Failed to serialize value id=%s, code=%d", name, int(res));
+                        break;
+                    }
+                }
+            }
+
+            return res;
         }
 
-        status_t Wrapper::load_state(const clap_istream_t *stream)
+        clap::Port *Wrapper::find_by_id(const char *id)
         {
-            return STATUS_OK;
+            ssize_t first=0, last = vSortedPorts.size() - 1;
+            while (first <= last)
+            {
+                size_t center       = size_t(first + last) >> 1;
+                clap::Port *p       = vSortedPorts.uget(center);
+                int res             = strcmp(id, p->metadata()->id);
+                if (res == 0)
+                    return p;
+                else if (res < 0)
+                    last    = center - 1;
+                else
+                    first   = center + 1;
+            }
+            return NULL;
+        }
+
+        status_t Wrapper::read_value(const clap_istream_t *is, const char *name, core::kvt_param_t *p)
+        {
+            uint8_t type;
+            status_t res;
+
+            p->type = core::KVT_ANY;
+
+            // Read the type
+            if ((res = read_fully(is, &type)) != STATUS_OK)
+            {
+                lsp_warn("Failed to read type for port id=%s", name);
+                return res;
+            }
+
+            switch (type)
+            {
+                case clap::TYPE_INT32:
+                    p->type         = core::KVT_INT32;
+                    res             = read_fully(is, &p->i32);
+                    break;
+                case clap::TYPE_UINT32:
+                    p->type         = core::KVT_UINT32;
+                    res             = read_fully(is, &p->u32);
+                    break;
+                case clap::TYPE_INT64:
+                    p->type         = core::KVT_INT64;
+                    res             = read_fully(is, &p->i64);
+                    break;
+                case clap::TYPE_UINT64:
+                    p->type         = core::KVT_UINT64;
+                    res             = read_fully(is, &p->u64);
+                    break;
+                case clap::TYPE_FLOAT32:
+                    p->type         = core::KVT_FLOAT32;
+                    res             = read_fully(is, &p->f32);
+                    break;
+                case clap::TYPE_FLOAT64:
+                    p->type         = core::KVT_FLOAT64;
+                    res             = read_fully(is, &p->f64);
+                    break;
+                case clap::TYPE_STRING:
+                {
+                    char *str       = NULL;
+                    size_t cap      = 0;
+
+                    p->type         = core::KVT_STRING;
+                    p->str          = NULL;
+                    res             = read_string(is, &str, &cap);
+                    if (res == STATUS_OK)
+                        p->str      = str;
+                    break;
+                }
+                case clap::TYPE_BLOB:
+                {
+                    uint32_t size   = 0;
+                    char *ctype     = NULL;
+                    uint8_t *data   = NULL;
+                    size_t cap      = 0;
+
+                    lsp_finally {
+                        if (ctype != NULL)
+                            free(ctype);
+                        if (data != NULL)
+                            free(data);
+                    };
+
+                    p->type         = core::KVT_BLOB;
+                    p->blob.ctype   = NULL;
+                    p->blob.data    = NULL;
+                    if ((res = read_fully(is, &size)) != STATUS_OK)
+                        return res;
+                    if ((res = read_string(is, &ctype, &cap)) != STATUS_OK)
+                        return res;
+
+                    if (size > 0)
+                    {
+                        data            = static_cast<uint8_t *>(malloc(size));
+                        if (data == NULL)
+                            return STATUS_NO_MEM;
+                        if ((res = read_fully(is, &data)) != STATUS_OK)
+                            return res;
+                    }
+
+                    if (res == STATUS_OK)
+                    {
+                        p->blob.ctype   = ctype;
+                        p->blob.data    = data;
+                        ctype           = NULL;
+                        data            = NULL;
+                    }
+                    break;
+                }
+                default:
+                    lsp_warn("Unknown KVT parameter type: %d ('%c') for id=%s", type, type, name);
+                    break;
+            }
+
+            return res;
+        }
+
+        void Wrapper::destroy_value(core::kvt_param_t *p)
+        {
+            switch (p->type)
+            {
+                case core::KVT_STRING:
+                {
+                    if (p->str != NULL)
+                    {
+                        free(const_cast<char *>(p->str));
+                        p->str          = NULL;
+                    }
+                    break;
+                }
+                case core::KVT_BLOB:
+                {
+                    if (p->blob.ctype != NULL)
+                    {
+                        free(const_cast<char *>(p->blob.ctype));
+                        p->blob.ctype   = NULL;
+                    }
+                    if (p->blob.data != NULL)
+                    {
+                        free(const_cast<void *>(p->blob.data));
+                        p->blob.data    = NULL;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            p->type = core::KVT_ANY;
+        }
+
+        status_t Wrapper::load_state(const clap_istream_t *is)
+        {
+            status_t res;
+            uint32_t magic, version;
+
+            // Read magic value
+            if ((res = read_fully(is, &magic)) != STATUS_OK)
+            {
+                lsp_warn("Failed to read state header, code=%d", int(res));
+                return res;
+            }
+            if (magic != clap::LSP_CLAP_MAGIC)
+            {
+                lsp_warn("Invalid state header signature");
+                return res;
+            }
+            // Read version
+            if ((res = read_fully(is, &version)) != STATUS_OK)
+            {
+                lsp_warn("Failed to read state version, code=%d", int(res));
+                return res;
+            }
+            if (version != clap::LSP_CLAP_VERSION)
+            {
+                lsp_warn("Unsupported version %d", int(version));
+                return res;
+            }
+
+            // Lock the KVT
+            if (!sKVTMutex.lock())
+            {
+                lsp_warn("Failed to lock KVT");
+                return STATUS_UNKNOWN_ERR;
+            }
+            lsp_finally {
+                sKVT.gc();
+                sKVTMutex.unlock();
+            };
+            sKVT.clear();
+
+            // Read the state
+            lsp_debug("Reading state...");
+            char *name = NULL;
+            size_t name_cap = 0;
+            lsp_finally {
+                if (name != NULL)
+                    free(name);
+            };
+
+            // Read and parse the record
+            while ((res = read_string(is, &name, &name_cap)) == STATUS_OK)
+            {
+                core::kvt_param_t p;
+                p.type  = core::KVT_ANY;
+                lsp_finally {
+                    destroy_value(&p);
+                };
+
+                if (name[0] != '/')
+                {
+                    // Obtain the port by it's identifier
+                    clap::Port *cp       = find_by_id(name);
+                    if (cp != NULL)
+                    {
+                        if ((res = cp->deserialize(is)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to deserialize port id=%s", name);
+                            return res;
+                        }
+                    }
+                    else
+                    {
+                        if ((res = read_value(is, name, &p)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to read value for port id=%s", name);
+                            return res;
+                        }
+                        lsp_warn("Missing port id=%s, skipping", name);
+                    }
+                }
+                else
+                {
+                    // Read the KVT parameter flags
+                    uint8_t flags = 0;
+                    if ((res = read_fully(is, &flags)) != STATUS_OK)
+                    {
+                        lsp_warn("Failed to resolve flags for parameter id=%s", name);
+                        return res;
+                    }
+
+                    // This is KVT port
+                    if (p.type != core::KVT_ANY)
+                    {
+                        size_t kflags = core::KVT_TX;
+                        if (flags & clap::FLAG_PRIVATE)
+                            kflags     |= core::KVT_PRIVATE;
+
+                        kvt_dump_parameter("Fetched parameter %s = ", &p, name);
+                        sKVT.put(name, &p, kflags);
+                    }
+                }
+            }
+
+            // Analyze result
+            return (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
         }
 
         size_t Wrapper::params_count() const
@@ -1116,6 +1562,26 @@ namespace lsp
                 return NULL;
             }
             return pExecutor = exec;
+        }
+
+        core::KVTStorage *Wrapper::kvt_lock()
+        {
+            return (sKVTMutex.lock()) ? &sKVT : NULL;
+        }
+
+        core::KVTStorage *Wrapper::kvt_trylock()
+        {
+            return (sKVTMutex.try_lock()) ? &sKVT : NULL;
+        }
+
+        bool Wrapper::kvt_release()
+        {
+            return sKVTMutex.unlock();
+        }
+
+        const meta::package_t *Wrapper::package() const
+        {
+            return pPackage;
         }
 
     } /* namespace clap */

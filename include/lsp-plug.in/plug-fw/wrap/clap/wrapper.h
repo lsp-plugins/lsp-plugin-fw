@@ -26,6 +26,7 @@
 
 #include <clap/clap.h>
 #include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
@@ -67,7 +68,11 @@ namespace lsp
                 lltl::parray<MidiInputPort>     vMidiIn;            // Midi input ports
                 lltl::parray<MidiOutputPort>    vMidiOut;           // Midi output ports
                 lltl::parray<clap::Port>        vAllPorts;
+                lltl::parray<clap::Port>        vSortedPorts;       // List of ports sorted by metadata identifier
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
+
+                core::KVTStorage                sKVT;
+                ipc::Mutex                      sKVTMutex;
 
                 bool                            bRestartRequested;  // Flag that indicates that the plugin restart was requested
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
@@ -83,6 +88,9 @@ namespace lsp
                 static void     destroy_audio_group(audio_group_t *grp);
                 static plug::IPort *find_port(const char *id, lltl::parray<plug::IPort> *list);
                 static ssize_t  compare_ports_by_clap_id(const ParameterPort *a, const ParameterPort *b);
+                static ssize_t  compare_ports_by_id(const clap::Port *a, const clap::Port *b);
+                static status_t read_value(const clap_istream_t *is, const char *name, core::kvt_param_t *p);
+                static void     destroy_value(core::kvt_param_t *p);
 
             protected:
                 void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
@@ -139,12 +147,20 @@ namespace lsp
 
             public:
                 // CLAP state extension
-                status_t        save_state(const clap_ostream_t *stream);
-                status_t        load_state(const clap_istream_t *stream);
+                status_t        save_state(const clap_ostream_t *os);
+                status_t        load_state(const clap_istream_t *is);
 
             public:
                 // plug::IWrapper methods
                 virtual ipc::IExecutor         *executor() override;
+                virtual core::KVTStorage       *kvt_lock() override;
+                virtual core::KVTStorage       *kvt_trylock() override;
+                virtual bool                    kvt_release() override;
+                virtual const meta::package_t  *package() const override;
+
+            public:
+                // Miscellaneous functions
+                clap::Port     *find_by_id(const char *id);
         };
     } /* namespace clap */
 } /* namespace lsp */

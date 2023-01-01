@@ -58,13 +58,13 @@ namespace lsp
                  *
                  * @param chunk chunk to perform serialization
                  */
-                virtual void serialize(const clap_ostream_t *os) {}
+                virtual status_t serialize(const clap_ostream_t *os) { return STATUS_OK; }
 
                 /** Serialize the state of the port to the chunk
                  *
                  * @param chunk chunk to perform serialization
                  */
-                virtual void deserialize(const clap_istream_t *is) {}
+                virtual status_t deserialize(const clap_istream_t *is) { return STATUS_OK; }
         };
 
         /**
@@ -260,21 +260,36 @@ namespace lsp
 
                 virtual bool serializable() const  override { return true; }
 
-                virtual void serialize(const clap_ostream_t *os) override
+                virtual status_t serialize(const clap_ostream_t *os) override
                 {
-                    float v = CPU_TO_BE(fValue);
-                    os->write(os, &v, sizeof(v));
+                    float v = fValue;
+                    status_t res = write_fully(os, uint8_t(clap::TYPE_FLOAT32));
+                    if (res == STATUS_OK)
+                        res = write_fully(os, v);
+                    return res;
                 }
 
-                virtual void deserialize(const clap_istream_t *is) override
+                virtual status_t deserialize(const clap_istream_t *is) override
                 {
-                    float value;
-                    ssize_t nread = is->read(is, &value, sizeof(value));
-                    if (nread != sizeof(value))
-                        return;
+                    uint8_t type = 0;
+                    float value = 0.0f;
 
-                    update_value(BE_TO_CPU(value));
+                    // Read the type
+                    status_t res = read_fully(is, &type);
+                    if (res != STATUS_OK)
+                        return res;
+                    else if (type != clap::TYPE_FLOAT32)
+                        return STATUS_BAD_FORMAT;
+
+                    // Read the value
+                    res = read_fully(is, &value);
+                    if (res != STATUS_OK)
+                        return res;
+
+                    // Commit value
+                    update_value(value);
                     atomic_add(&nSID, 1);
+                    return STATUS_OK;
                 }
         };
 
@@ -473,14 +488,27 @@ namespace lsp
                     return sPath.pending();
                 }
 
-                virtual void serialize(const clap_ostream_t *os) override
+                virtual status_t serialize(const clap_ostream_t *os) override
                 {
-                    sPath.serialize(os);
+                    status_t res = write_fully(os, uint8_t(clap::TYPE_STRING));
+                    if (res != STATUS_OK)
+                        return res;
+
+                    return sPath.serialize(os);
                 }
 
-                virtual void deserialize(const clap_istream_t *is) override
+                virtual status_t deserialize(const clap_istream_t *is) override
                 {
-                    sPath.deserialize(is);
+                    uint8_t type = 0;
+
+                    // Read the type
+                    status_t res = read_fully(is, &type);
+                    if (res != STATUS_OK)
+                        return res;
+                    else if (type != clap::TYPE_STRING)
+                        return STATUS_BAD_FORMAT;
+
+                    return sPath.deserialize(is);
                 }
 
                 virtual bool serializable() const override { return true; }

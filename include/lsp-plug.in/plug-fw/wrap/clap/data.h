@@ -26,16 +26,35 @@
 
 #include <clap/clap.h>
 #include <lsp-plug.in/common/atomic.h>
-#include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/helpers.h>
 #include <lsp-plug.in/stdlib/string.h>
-
 
 namespace lsp
 {
     namespace clap
     {
+        constexpr uint32_t LSP_CLAP_MAGIC   = 0x4C535020;
+        constexpr uint32_t LSP_CLAP_VERSION = 0x1;
+
+        enum serial_flags_t
+        {
+            FLAG_PRIVATE    = 0,
+        };
+
+        enum serial_types_t
+        {
+            TYPE_INT32      = 'i',
+            TYPE_UINT32     = 'u',
+            TYPE_INT64      = 'I',
+            TYPE_UINT64     = 'U',
+            TYPE_FLOAT32    = 'f',
+            TYPE_FLOAT64    = 'F',
+            TYPE_STRING     = 's',
+            TYPE_BLOB       = 'B'
+        };
+
         /**
          * Path data primitive
          */
@@ -139,31 +158,22 @@ namespace lsp
                 return nFlags & F_ACCEPTED;
             }
 
-            void serialize(const clap_ostream_t *os)
+            status_t serialize(const clap_ostream_t *os)
             {
-                size_t len      = lsp_min(strlen(sPath), size_t(PATH_MAX-1));
-                uint16_t wlen   = CPU_TO_BE(uint16_t(len));
-                os->write(os, &wlen, sizeof(wlen));
-                os->write(os, sPath, wlen);
+                ssize_t res = write_string(os, sPath);
+                return (res < 0) ? -res : STATUS_OK;
             }
 
-            void deserialize(const clap_istream_t *is)
+            status_t deserialize(const clap_istream_t *is)
             {
-                uint16_t len;
-                ssize_t nread = is->read(is, &len, sizeof(len));
-                if (nread != sizeof(len))
-                    return;
-                len = BE_TO_CPU(len);
-
                 // Deserialize as DSP request
-                ssize_t count   = lsp_min(len, size_t(PATH_MAX-1));
-                nread           = is->read(is, sDspRequest, count);
-                if (nread == count)
-                {
-                    nXFlagsReq          = plug::PF_STATE_RESTORE;
-                    sDspRequest[count]  = '\0';
-                    atomic_add(&nDspSerial, 1);
-                }
+                ssize_t count   = read_string(is, sDspRequest, PATH_MAX-1);
+                if (count < 0)
+                    return -count;
+
+                nXFlagsReq          = plug::PF_STATE_RESTORE;
+                atomic_add(&nDspSerial, 1);
+                return STATUS_OK;
             }
 
             void submit(const char *path, size_t len, bool ui, size_t flags)

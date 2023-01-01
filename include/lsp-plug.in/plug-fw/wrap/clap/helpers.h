@@ -26,6 +26,7 @@
 
 #include <clap/clap.h>
 #include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
 namespace lsp
@@ -107,6 +108,212 @@ namespace lsp
         {
             if (mesh != NULL)
                 free(mesh);
+        }
+
+        /**
+         * Write the constant-sized block to the CLAP output streem
+         * @param os CLAP output stream
+         * @param buf buffer that should be written
+         * @param size size of buffer to write
+         * @return status of operation
+         */
+        inline status_t write_fully(const clap_ostream_t *os, const void *buf, size_t size)
+        {
+            const uint8_t *ptr = static_cast<const uint8_t *>(buf);
+            for (size_t offset = 0; offset < size; )
+            {
+                ssize_t written = os->write(os, &ptr[offset], size - offset);
+                if (written < 0)
+                    return STATUS_IO_ERROR;
+                offset         += written;
+            }
+            return STATUS_OK;
+        }
+
+        /**
+         * Write simple data type to the CLAP output stream
+         * @param os CLAP output stream
+         * @param value value to write
+         * @return status of operation
+         */
+        template <class T>
+        inline status_t write_fully(const clap_ostream_t *os, const T &value)
+        {
+            T tmp   = CPU_TO_LE(value);
+            return write_fully(os, &tmp, sizeof(tmp));
+        }
+
+        /**
+         * Read the constant-sized block from the CLAP input streem
+         * @param is CLAP input stream
+         * @param buf target buffer to read the data to
+         * @param size size of buffer to read
+         * @return status of operation
+         */
+        inline status_t read_fully(const clap_istream_t *is, void *buf, size_t size)
+        {
+            uint8_t *ptr = static_cast<uint8_t *>(buf);
+            for (size_t offset = 0; offset < size; )
+            {
+                ssize_t read = is->read(is, &ptr[offset], size - offset);
+                if (read <= 0)
+                {
+                    if (read < 0)
+                        return STATUS_IO_ERROR;
+                    return (offset > 0) ? STATUS_CORRUPTED : STATUS_EOF;
+                }
+                offset         += read;
+            }
+            return STATUS_OK;
+        }
+
+        /**
+         * Read simple data type from the CLAP input stream
+         * @param is CLAP input stream
+         * @param value value to write
+         * @return status of operation
+         */
+        template <class T>
+        inline status_t read_fully(const clap_istream_t *is, T *value)
+        {
+            T tmp;
+            status_t res = read_fully(is, &tmp, sizeof(tmp));
+            if (res == STATUS_OK)
+                *value      = LE_TO_CPU(tmp);
+            return STATUS_OK;
+        }
+
+        inline status_t write_varint(const clap_ostream_t *os, size_t value)
+        {
+            do {
+                uint8_t b   = (value >= 0x80) ? 0x80 | (value & 0x7f) : value;
+                value     >>= 7;
+
+                ssize_t n   = os->write(os, &b, sizeof(b));
+                if (n < 0)
+                    return STATUS_IO_ERROR;
+            } while (value > 0);
+
+            return STATUS_OK;
+        }
+
+        /**
+         * Write string to CLAP output stream
+         * @param os CLAP output stream
+         * @param s NULL_terminated string to write
+         * @return number of actual bytes written or negative error code
+         */
+        inline status_t write_string(const clap_ostream_t *os, const char *s)
+        {
+            size_t len = strlen(s);
+
+            // Write variable-sized string length
+            status_t res = write_varint(os, len);
+            if (res != STATUS_OK)
+                return res;
+
+            // Write the payload data
+            return write_fully(os, s, len);
+        }
+
+        /**
+         * Read the variable-sized integer
+         * @param is input stream to perform read
+         * @param value the pointer to store the read value
+         * @return status of operation
+         */
+        inline status_t read_varint(const clap_istream_t *is, size_t *value)
+        {
+            // Read variable-sized string length
+            size_t len = 0, shift = 0, read = 0;
+            while (true)
+            {
+                uint8_t b;
+                ssize_t n = is->read(is, &b, sizeof(b));
+                if (n <= 0)
+                {
+                    if (n < 0)
+                        return STATUS_IO_ERROR;
+                    return (shift > 0) ? STATUS_CORRUPTED : STATUS_EOF;
+                }
+
+                // Commit part of the value to the result variable
+                ++read;
+                len    |= size_t(b & 0x7f) << shift;
+                if (!(b & 0x80)) // Last byte in the sequence?
+                    break;
+                shift += 7;
+                if (shift > ((sizeof(size_t) * 8) - 7))
+                    return STATUS_OVERFLOW;
+            }
+
+            *value = len;
+            return STATUS_OK;
+        }
+
+        /**
+         * Read the string from the CLAP input stream
+         * @param is CLAP input stream
+         * @param buf buffer to store the string
+         * @param maxlen the maximum available string length. @note The value should consider
+         *        that the destination buffer holds at least one more character for NULL-terminating
+         *        character
+         * @return number of actual bytes read or negative error code
+         */
+        inline status_t read_string(const clap_istream_t *is, char *buf, size_t maxlen)
+        {
+            // Read variable-sized string length
+            size_t len = 0;
+            status_t res = read_varint(is, &len);
+            if (res != STATUS_OK)
+                return res;
+            if (len > maxlen)
+                return STATUS_OVERFLOW;
+
+            // Read the payload data
+            res = read_fully(is, buf, len);
+            if (res == STATUS_OK)
+                buf[res]  = '\0';
+            return STATUS_OK;
+        }
+
+        /**
+         * Read the string from the CLAP input stream
+         * @param is CLAP input stream
+         * @param buf pointer to variable to store the pointer to the string. The previous value will be
+         *   reallocated if there is not enough capacity. Should be freed by caller after use even if the
+         *   execution was unsuccessful.
+         * @param capacity the pointer to variable that contains the current capacity of the string
+         * @return number of actual bytes read or negative error code
+         */
+        inline status_t read_string(const clap_istream_t *is, char **buf, size_t *capacity)
+        {
+            // Read variable-sized string length
+            size_t len = 0;
+            status_t res = read_varint(is, &len);
+            if (res != STATUS_OK)
+                return res;
+
+            // Reallocate memory if there is not enough space
+            char *s = *buf;
+            size_t cap = *capacity;
+            if ((s == NULL) || (cap < (len + 1)))
+            {
+                cap     = align_size(len + 1, 32);
+                s       = static_cast<char *>(realloc(s, sizeof(char *) * cap));
+                if (s == NULL)
+                    return STATUS_NO_MEM;
+
+                *buf        = s;
+                *capacity   = cap;
+            }
+
+            // Read the payload data
+            res = read_fully(is, buf, len);
+            if (res == STATUS_OK)
+                s[res]      = '\0';
+
+            return STATUS_OK;
         }
 
     } /* namespace clap */
