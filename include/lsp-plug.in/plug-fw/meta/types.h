@@ -169,6 +169,61 @@ namespace lsp
                 C_MIXER
         };
 
+        enum clap_feature_t
+        {
+            // Primary plugin catetory
+            CF_INSTRUMENT,
+            CF_AUDIO_EFFECT,
+            CF_NOTE_EFFECT,
+            CF_ANALYZER,
+
+            // Plugin sub-category
+            CF_SYNTHESIZER,
+            CF_SAMPLER,
+            CF_DRUM,
+            CF_DRUM_MACHINE,
+
+            CF_FILTER,
+            CF_PHASER,
+            CF_EQUALIZER,
+            CF_DEESSER,
+            CF_PHASE_VOCODER,
+            CF_GRANULAR,
+            CF_FREQUENCY_SHIFTER,
+            CF_PITCH_SHIFTER,
+
+            CF_DISTORTION,
+            CF_TRANSIENT_SHAPER,
+            CF_COMPRESSOR,
+            CF_LIMITER,
+
+            CF_FLANGER,
+            CF_CHORUS,
+            CF_DELAY,
+            CF_REVERB,
+
+            CF_TREMOLO,
+            CF_GLITCH,
+
+            CF_UTILITY,
+            CF_PITCH_CORRECTION,
+            CF_RESTORATION,
+
+            CF_MULTI_EFFECTS,
+
+            CF_MIXING,
+            CF_MASTERING,
+
+            // Audio Capabilities
+            CF_MONO,
+            CF_STEREO,
+            CF_SURROUND,
+            CF_AMBISONIC,
+
+            // Overall number of features
+            CF_TOTAL
+        };
+
         /**
          * Different bundle groups
          */
@@ -350,6 +405,7 @@ namespace lsp
             const char             *clap_uid;       // Unique identifier for CLAP format
             const version_t         version;        // Version of the plugin
             const int              *classes;        // List of plugin classes terminated by negative value
+            const int              *clap_features;  // List of CLAP plugin features
             const int               extensions;     // Additional extensions
             const port_t           *ports;          // List of all ports
             const char             *ui_resource;    // Location of the UI file resource

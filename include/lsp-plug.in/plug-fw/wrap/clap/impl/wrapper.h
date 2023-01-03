@@ -1388,10 +1388,16 @@ namespace lsp
             // Get the port and it's metadata
             plug::IPort *p = vParamPorts.get(index);
             if (p == NULL)
+            {
+                lsp_warn("Port with index=%d not found out of %d ports", int(index), int(vParamPorts.size()));
                 return STATUS_NOT_FOUND;
+            }
             const meta::port_t *meta = p->metadata();
             if (meta == NULL)
+            {
+                lsp_warn("Empty metadata for port index=%d", int(index));
                 return STATUS_BAD_STATE;
+            }
 
             // Fill-in parameter flags
             info->id        = clap_hash_string(meta->id);
@@ -1415,7 +1421,7 @@ namespace lsp
             info->max_value     = max;
             info->default_value = meta->start;
 
-            return STATUS_NOT_IMPLEMENTED;
+            return STATUS_OK;
         }
 
         clap::ParameterPort *Wrapper::find_param(clap_id param_id)

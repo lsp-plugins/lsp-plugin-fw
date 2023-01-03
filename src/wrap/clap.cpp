@@ -23,6 +23,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/singletone.h>
 #include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -51,6 +52,8 @@ namespace lsp
         // Audio ports extension
         static uint32_t audio_ports_count(const clap_plugin_t *plugin, bool is_input)
         {
+            lsp_trace("plugin=%p, is_input=%d", plugin, int(is_input));
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->audio_ports_count(is_input);
         }
@@ -61,6 +64,8 @@ namespace lsp
             bool is_input,
             clap_audio_port_info_t *info)
         {
+            lsp_trace("plugin=%p, index=%d, is_input=%d, info=%p", plugin, index, int(is_input), info);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->audio_port_info(info, index, is_input) == STATUS_OK;
         }
@@ -75,6 +80,8 @@ namespace lsp
         // Note ports extension
         static uint32_t note_ports_count(const clap_plugin_t *plugin, bool is_input)
         {
+            lsp_trace("plugin=%p, is_input=%d", plugin, int(is_input));
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->note_ports_count(is_input);
         }
@@ -85,6 +92,8 @@ namespace lsp
             bool is_input,
             clap_note_port_info_t *info)
         {
+            lsp_trace("plugin=%p, index=%d, is_input=%d, info=%p", plugin, index, int(is_input), info);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->note_port_info(info, index, is_input) == STATUS_OK;
         }
@@ -101,6 +110,8 @@ namespace lsp
         // [main-thread]
         uint32_t CLAP_ABI params_count(const clap_plugin_t *plugin)
         {
+            lsp_trace("plugin=%p", plugin);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->params_count();
         }
@@ -110,12 +121,16 @@ namespace lsp
             uint32_t param_index,
             clap_param_info_t *param_info)
         {
+            lsp_trace("plugin=%p, param_index=%d, param_info=%p", plugin, int(param_index), param_info);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->param_info(param_info, param_index) == STATUS_OK;
         }
 
         bool CLAP_ABI get_param_value(const clap_plugin_t *plugin, clap_id param_id, double *value)
         {
+            lsp_trace("plugin=%p, param_id=0x%08x, value=%p", plugin, int(param_id), value);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->get_param_value(value, param_id) == STATUS_OK;
         }
@@ -127,6 +142,9 @@ namespace lsp
            char *display,
            uint32_t size)
         {
+            lsp_trace("plugin=%p, param_id=0x%08x, value=%f, display=%p, size=%d",
+                plugin, int(param_id), value, display, int(size));
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->format_param_value(display, size, param_id, value) == STATUS_OK;
         }
@@ -137,6 +155,9 @@ namespace lsp
             const char *display,
             double *value)
         {
+            lsp_trace("plugin=%p, param_id=0x%08x, display=%s, value=%p",
+                plugin, int(param_id), display, value);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->parse_param_value(value, param_id, display) == STATUS_OK;
         }
@@ -146,6 +167,8 @@ namespace lsp
             const clap_input_events_t *in,
             const clap_output_events_t *out)
         {
+            lsp_trace("plugin=%p, in=%p, out=%p", plugin, in, out);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             w->flush_param_events(in, out);
         }
@@ -164,6 +187,8 @@ namespace lsp
         // Latency extension
         uint32_t CLAP_ABI get_latency(const clap_plugin_t *plugin)
         {
+            lsp_trace("plugin=%p", plugin);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->latency();
         }
@@ -177,12 +202,16 @@ namespace lsp
         // State extension
         bool CLAP_ABI save_state(const clap_plugin_t *plugin, const clap_ostream_t *stream)
         {
+            lsp_trace("plugin=%p, stream=%p", plugin, stream);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->save_state(stream) == STATUS_OK;
         }
 
         bool CLAP_ABI load_state(const clap_plugin_t *plugin, const clap_istream_t *stream)
         {
+            lsp_trace("plugin=%p, stream=%p", plugin, stream);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->load_state(stream) == STATUS_OK;
         }
@@ -197,12 +226,16 @@ namespace lsp
         // Plugin instance related stuff
         bool CLAP_ABI init(const clap_plugin_t *plugin)
         {
+            lsp_trace("plugin=%p", plugin);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->init() == STATUS_OK;
         }
 
         void CLAP_ABI destroy(const clap_plugin_t *plugin)
         {
+            lsp_trace("plugin=%p", plugin);
+
             // Destroy the wrapper
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             if (w != NULL)
@@ -221,30 +254,41 @@ namespace lsp
             uint32_t min_frames_count,
             uint32_t max_frames_count)
         {
+            lsp_trace("plugin=%p, sample_rate=%f, min_frames_count=%d, max_frames_count=%d",
+                plugin, sample_rate, int(min_frames_count), int(max_frames_count));
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->activate(sample_rate, min_frames_count, max_frames_count) == STATUS_OK;
         }
 
         void CLAP_ABI deactivate(const clap_plugin_t *plugin)
         {
+            lsp_trace("plugin=%p", plugin);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             w->deactivate();
         }
 
         bool CLAP_ABI start_processing(const clap_plugin_t *plugin)
         {
+            lsp_trace("plugin=%p", plugin);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->start_processing() == STATUS_OK;
         }
 
         void CLAP_ABI stop_processing(const clap_plugin_t *plugin)
         {
+            lsp_trace("plugin=%p", plugin);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             w->stop_processing();
         }
 
         void CLAP_ABI reset(const clap_plugin_t *plugin)
         {
+            lsp_trace("plugin=%p", plugin);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             w->reset();
         }
@@ -253,12 +297,16 @@ namespace lsp
             const struct clap_plugin *plugin,
             const clap_process_t *process)
         {
+            lsp_trace("plugin=%p, process=%p", plugin, process);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->process(process);
         }
 
         const void * CLAP_ABI get_extension(const clap_plugin_t *plugin, const char *id)
         {
+            lsp_trace("plugin=%p, id=%s", plugin, id);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
 
             if (!strcmp(id, CLAP_EXT_LATENCY))
@@ -277,6 +325,8 @@ namespace lsp
 
         void CLAP_ABI on_main_thread(const clap_plugin_t *plugin)
         {
+            lsp_trace("plugin=%p", plugin);
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             w->on_main_thread();
         }
@@ -310,6 +360,75 @@ namespace lsp
         static ssize_t cmp_descriptors(const clap_plugin_descriptor_t *d1, const clap_plugin_descriptor_t *d2)
         {
             return strcmp(d1->id, d2->id);
+        }
+
+        static const char * const *make_feature_list(const meta::plugin_t *meta)
+        {
+            // Estimate the overall number of CLAP features
+            size_t count = 0;
+            for (const int *f=meta->clap_features; *f >= 0; ++f)
+                if (*f < meta::CF_TOTAL)
+                    ++count;
+
+            // Allocate the array of the corresponding size;
+            const char **list = static_cast<const char **>(malloc(sizeof(const char *) * (count + 1)));
+            if (list == NULL)
+                return NULL;
+
+            // Fill the list with CLAP features
+            count = 0;
+            for (const int *f=meta->clap_features; *f >= 0; ++f)
+            {
+                const char *cf = NULL;
+                switch (*f)
+                {
+                    case meta::CF_INSTRUMENT:       cf = CLAP_PLUGIN_FEATURE_INSTRUMENT; break;
+                    case meta::CF_AUDIO_EFFECT:     cf = CLAP_PLUGIN_FEATURE_AUDIO_EFFECT; break;
+                    case meta::CF_NOTE_EFFECT:      cf = CLAP_PLUGIN_FEATURE_NOTE_EFFECT; break;
+                    case meta::CF_ANALYZER:         cf = CLAP_PLUGIN_FEATURE_ANALYZER; break;
+                    case meta::CF_SYNTHESIZER:      cf = CLAP_PLUGIN_FEATURE_SYNTHESIZER; break;
+                    case meta::CF_SAMPLER:          cf = CLAP_PLUGIN_FEATURE_SAMPLER; break;
+                    case meta::CF_DRUM:             cf = CLAP_PLUGIN_FEATURE_DRUM; break;
+                    case meta::CF_DRUM_MACHINE:     cf = CLAP_PLUGIN_FEATURE_DRUM_MACHINE; break;
+                    case meta::CF_FILTER:           cf = CLAP_PLUGIN_FEATURE_FILTER; break;
+                    case meta::CF_PHASER:           cf = CLAP_PLUGIN_FEATURE_PHASER; break;
+                    case meta::CF_EQUALIZER:        cf = CLAP_PLUGIN_FEATURE_EQUALIZER; break;
+                    case meta::CF_DEESSER:          cf = CLAP_PLUGIN_FEATURE_DEESSER; break;
+                    case meta::CF_PHASE_VOCODER:    cf = CLAP_PLUGIN_FEATURE_PHASE_VOCODER; break;
+                    case meta::CF_GRANULAR:         cf = CLAP_PLUGIN_FEATURE_GRANULAR; break;
+                    case meta::CF_FREQUENCY_SHIFTER:cf = CLAP_PLUGIN_FEATURE_FREQUENCY_SHIFTER; break;
+                    case meta::CF_PITCH_SHIFTER:    cf = CLAP_PLUGIN_FEATURE_PITCH_SHIFTER; break;
+                    case meta::CF_DISTORTION:       cf = CLAP_PLUGIN_FEATURE_DISTORTION; break;
+                    case meta::CF_TRANSIENT_SHAPER: cf = CLAP_PLUGIN_FEATURE_TRANSIENT_SHAPER; break;
+                    case meta::CF_COMPRESSOR:       cf = CLAP_PLUGIN_FEATURE_COMPRESSOR; break;
+                    case meta::CF_LIMITER:          cf = CLAP_PLUGIN_FEATURE_LIMITER; break;
+                    case meta::CF_FLANGER:          cf = CLAP_PLUGIN_FEATURE_FLANGER; break;
+                    case meta::CF_CHORUS:           cf = CLAP_PLUGIN_FEATURE_CHORUS; break;
+                    case meta::CF_DELAY:            cf = CLAP_PLUGIN_FEATURE_DELAY; break;
+                    case meta::CF_REVERB:           cf = CLAP_PLUGIN_FEATURE_REVERB; break;
+                    case meta::CF_TREMOLO:          cf = CLAP_PLUGIN_FEATURE_TREMOLO; break;
+                    case meta::CF_GLITCH:           cf = CLAP_PLUGIN_FEATURE_GLITCH; break;
+                    case meta::CF_UTILITY:          cf = CLAP_PLUGIN_FEATURE_UTILITY; break;
+                    case meta::CF_PITCH_CORRECTION: cf = CLAP_PLUGIN_FEATURE_PITCH_CORRECTION; break;
+                    case meta::CF_RESTORATION:      cf = CLAP_PLUGIN_FEATURE_RESTORATION; break;
+                    case meta::CF_MULTI_EFFECTS:    cf = CLAP_PLUGIN_FEATURE_MULTI_EFFECTS; break;
+                    case meta::CF_MIXING:           cf = CLAP_PLUGIN_FEATURE_MIXING; break;
+                    case meta::CF_MASTERING:        cf = CLAP_PLUGIN_FEATURE_MASTERING; break;
+                    case meta::CF_MONO:             cf = CLAP_PLUGIN_FEATURE_MONO; break;
+                    case meta::CF_STEREO:           cf = CLAP_PLUGIN_FEATURE_STEREO; break;
+                    case meta::CF_SURROUND:         cf = CLAP_PLUGIN_FEATURE_SURROUND; break;
+                    case meta::CF_AMBISONIC:        cf = CLAP_PLUGIN_FEATURE_AMBISONIC; break;
+                    default:
+                        break;
+                }
+                if (cf != NULL)
+                    list[count++] = cf;
+            }
+
+            // Add NULL terminator
+            list[count]     = NULL;
+
+            return list;
         }
 
         static void gen_descriptors()
@@ -372,7 +491,7 @@ namespace lsp
                     d->support_url      = NULL;
                     d->version          = NULL;
                     d->description      = (meta->bundle != NULL) ? meta->bundle->description : NULL;
-                    d->features         = NULL; // TODO: generate list of features
+                    d->features         = make_feature_list(meta);
 
                     if (asprintf(&tmp, "%d.%d.%d",
                         int(LSP_MODULE_VERSION_MAJOR(meta->version)),
@@ -421,6 +540,8 @@ namespace lsp
                 free(const_cast<char *>(d->vendor));
             if (d->manual_url != NULL)
                 free(const_cast<char *>(d->manual_url));
+            if (d->features != NULL)
+                free(const_cast<char **>(d->features));
 
             d->version          = NULL;
             d->vendor           = NULL;

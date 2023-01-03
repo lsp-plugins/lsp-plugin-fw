@@ -242,7 +242,7 @@ namespace lsp
 
         static void print_plugin_groups(FILE *out, const meta::plugin_t &m)
         {
-            size_t count = 0;
+            size_t count = 0, emitted = 0;
 
             emit_header(out, count, "\ta");
             for (const int *c = m.classes; ((c != NULL) && ((*c) >= 0)); ++c)
@@ -255,9 +255,14 @@ namespace lsp
                         if (count++)
                             fputs(", ", out);
                         fprintf(out, "lv2:%s", grp->name);
+                        ++emitted;
                         break;
                     }
                 }
+
+                // LV2 supports only one plugin class at this moment
+                if (emitted > 0)
+                    break;
             }
 
             emit_option(out, count, count <= 0, "lv2:Plugin");
