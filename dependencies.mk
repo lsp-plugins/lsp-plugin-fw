@@ -311,6 +311,53 @@ ifeq ($(PLATFORM),Windows)
 endif
 
 #------------------------------------------------------------------------------
+# VST build dependencies
+DEPENDENCIES_CLAP = \
+  $(DEPENDENCIES_COMMON) \
+  $(DEPENDENCIES_COMMON_UI)
+
+DEPENDENCIES_CLAP_WRAP = \
+  LIBDL \
+  LSP_COMMON_LIB \
+  LSP_3RD_PARTY
+
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_CLAP += \
+    LIBPTHREAD \
+    LIBDL \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBXRANDR \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
+
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_CLAP += \
+    LIBPTHREAD \
+    LIBDL \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBXRANDR \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
+
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_CLAP += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM \
+    LIBMPR \
+    LIBGDI32 \
+    LIBD2D1 \
+    LIBOLE \
+    LIBWINCODEC \
+    LIBDWRITE \
+    LIBUUID
+endif
+
+#------------------------------------------------------------------------------
 # List of dependencies
 DEPENDENCIES = \
   $(DEPENDENCIES_PLUGINS) \
@@ -321,7 +368,8 @@ DEPENDENCIES = \
   $(DEPENDENCIES_LV2) \
   $(DEPENDENCIES_LV2_UI) \
   $(DEPENDENCIES_LV2TTL_GEN) \
-  $(DEPENDENCIES_VST2)
+  $(DEPENDENCIES_VST2) \
+  $(DEPENDENCIES_CLAP)
 
 #------------------------------------------------------------------------------
 # All possible dependencies

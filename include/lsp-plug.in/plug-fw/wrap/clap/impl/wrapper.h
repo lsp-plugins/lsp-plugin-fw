@@ -630,7 +630,7 @@ namespace lsp
                             float nv            = pp->update_value(ev->value);
                             if (ov != nv)
                             {
-                                lsp_trace("port changed (set): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                lsp_trace("port changed (set): %s, offset%d, old=%f, new=%f", pp->metadata()->id, int(offset), ov, nv);
                                 if (pExt->state != NULL)
                                     pExt->state->mark_dirty(pHost);
                                 bUpdateSettings     = true;
@@ -648,7 +648,7 @@ namespace lsp
                             float nv            = pp->update_value(ov + ev->amount);
                             if (ov != nv)
                             {
-                                lsp_trace("port changed (mod): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                lsp_trace("port changed (mod): %s, offset%d, old=%f, new=%f", pp->metadata()->id, int(offset), ov, nv);
                                 if (pExt->state != NULL)
                                     pExt->state->mark_dirty(pHost);
                                 bUpdateSettings     = true;
@@ -812,7 +812,7 @@ namespace lsp
             size_t ev_index = 0;
             for (size_t offset=0; offset < process->frames_count; )
             {
-                // Cleanup MIDI ports
+                // Cleanup stat of input and output MIDI ports
                 for (size_t i=0,n=vMidiIn.size(); i<n; ++i)
                     vMidiIn.uget(i)->clear();
                 for (size_t i=0,n=vMidiOut.size(); i<n; ++i)
@@ -820,6 +820,8 @@ namespace lsp
 
                 // Prepare event block
                 size_t block_size = prepare_block(&ev_index, offset, process);
+                for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+                    vAllPorts.uget(i)->pre_process(block_size);
 
                 // Call the plugin for processing
                 pPlugin->process(block_size);
@@ -828,21 +830,10 @@ namespace lsp
                 if (pSamplePlayer != NULL)
                     pSamplePlayer->process(block_size);
 
+                // Do the post-processing stuff
                 generate_output_events(offset, process);
-
-                // Advance the audio ports
-                for (size_t i=0, n=vAudioIn.size(); i<n; ++i)
-                {
-                    audio_group_t *g = vAudioIn.uget(i);
-                    for (size_t j=0; j<g->nPorts; ++j)
-                        g->vPorts[j]->post_process(block_size);
-                }
-                for (size_t i=0, n=vAudioOut.size(); i<n; ++i)
-                {
-                    audio_group_t *g = vAudioOut.uget(i);
-                    for (size_t j=0; j<g->nPorts; ++j)
-                        g->vPorts[j]->post_process(block_size);
-                }
+                for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+                    vAllPorts.uget(i)->post_process(block_size);
 
                 // Update the processing offset
                 offset     += block_size;
@@ -1148,8 +1139,8 @@ namespace lsp
 
         status_t Wrapper::read_value(const clap_istream_t *is, const char *name, core::kvt_param_t *p)
         {
-            uint8_t type;
             status_t res;
+            uint8_t type = 0;
 
             p->type = core::KVT_ANY;
 
@@ -1283,7 +1274,7 @@ namespace lsp
         status_t Wrapper::load_state(const clap_istream_t *is)
         {
             status_t res;
-            uint32_t magic, version;
+            uint32_t magic = 0, version = 0;
 
             // Read magic value
             if ((res = read_fully(is, &magic)) != STATUS_OK)
@@ -1514,7 +1505,7 @@ namespace lsp
                             float nv            = pp->update_value(ev->value);
                             if (ov != nv)
                             {
-                                lsp_trace("port changed (set): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                lsp_trace("port changed (set): %s, offset%d, old=%f, new=%f", pp->metadata()->id, int(hdr->time), ov, nv);
                                 if (pExt->state != NULL)
                                     pExt->state->mark_dirty(pHost);
                                 bUpdateSettings     = true;
@@ -1532,7 +1523,7 @@ namespace lsp
                             float nv            = pp->update_value(ov + ev->amount);
                             if (ov != nv)
                             {
-                                lsp_trace("port changed (mod): %s, old=%f, new=%f", pp->metadata()->id, ov, nv);
+                                lsp_trace("port changed (mod): %s, offset%d, old=%f, new=%f", pp->metadata()->id, int(hdr->time), ov, nv);
                                 if (pExt->state != NULL)
                                     pExt->state->mark_dirty(pHost);
                                 bUpdateSettings     = true;

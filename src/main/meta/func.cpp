@@ -481,7 +481,7 @@ namespace lsp
         void format_int(char *buf, size_t len, const port_t *meta, float value, bool units)
         {
             const char *unit    = (units) ? get_unit_name(meta->unit) : NULL;
-            if (unit != NULL)
+            if (unit == NULL)
                 snprintf(buf, len, "%ld", long(value));
             else
                 snprintf(buf, len, "%ld %s", long(value), unit);
