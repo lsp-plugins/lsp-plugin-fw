@@ -288,6 +288,8 @@ namespace lsp
                     if (res != STATUS_OK)
                         return res;
 
+                    lsp_trace("  value = %f", value);
+
                     // Commit value
                     update_value(value);
                     atomic_add(&nSID, 1);
@@ -510,7 +512,11 @@ namespace lsp
                     else if (type != clap::TYPE_STRING)
                         return STATUS_BAD_FORMAT;
 
-                    return sPath.deserialize(is);
+                    res = sPath.deserialize(is);
+                    if (res == STATUS_OK)
+                        lsp_trace("  value = %s", sPath.sDspRequest);
+
+                    return res;
                 }
 
                 virtual bool serializable() const override { return true; }

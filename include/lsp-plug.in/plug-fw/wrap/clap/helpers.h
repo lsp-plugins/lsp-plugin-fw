@@ -295,8 +295,8 @@ namespace lsp
                 return res;
 
             // Reallocate memory if there is not enough space
-            char *s = *buf;
-            size_t cap = *capacity;
+            char *s     = *buf;
+            size_t cap  = *capacity;
             if ((s == NULL) || (cap < (len + 1)))
             {
                 cap     = align_size(len + 1, 32);
@@ -309,9 +309,9 @@ namespace lsp
             }
 
             // Read the payload data
-            res = read_fully(is, buf, len);
+            res = read_fully(is, s, len);
             if (res == STATUS_OK)
-                s[res]      = '\0';
+                s[len]      = '\0';
 
             return STATUS_OK;
         }

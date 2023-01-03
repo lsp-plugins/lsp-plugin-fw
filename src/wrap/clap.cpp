@@ -28,8 +28,9 @@
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/debug.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/impl/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -206,7 +207,21 @@ namespace lsp
             lsp_trace("plugin=%p, stream=%p", plugin, stream);
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+
+        #ifdef LSP_TRACE
+            debug_ostream_t dbg(stream);
+
+            status_t res = w->save_state(&dbg);
+            if (res == STATUS_OK)
+            {
+                lsp_dumpb("Output state dump", dbg.data(), dbg.size());
+                res     = dbg.flush();
+            }
+
+            return res == STATUS_OK;
+        #else
             return w->save_state(stream) == STATUS_OK;
+        #endif /* LSP_TRACE */
         }
 
         bool CLAP_ABI load_state(const clap_plugin_t *plugin, const clap_istream_t *stream)
@@ -214,7 +229,19 @@ namespace lsp
             lsp_trace("plugin=%p, stream=%p", plugin, stream);
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+
+        #ifdef LSP_TRACE
+            debug_istream_t dbg(stream);
+            status_t res = dbg.fill();
+            if (res == STATUS_OK)
+            {
+                lsp_dumpb("Input state dump", dbg.data(), dbg.size());
+                res     = w->load_state(&dbg);
+            }
+            return res == STATUS_OK;
+        #else
             return w->load_state(stream) == STATUS_OK;
+        #endif /* LSP_TRACE */
         }
 
         const clap_plugin_state_t state_extension =

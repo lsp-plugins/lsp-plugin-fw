@@ -1309,6 +1309,7 @@ namespace lsp
                 lsp_warn("Failed to read state header, code=%d", int(res));
                 return res;
             }
+            lsp_trace("Magic signature: %08lx", int(magic));
             if (magic != clap::LSP_CLAP_MAGIC)
             {
                 lsp_warn("Invalid state header signature");
@@ -1320,6 +1321,7 @@ namespace lsp
                 lsp_warn("Failed to read state version, code=%d", int(res));
                 return res;
             }
+            lsp_trace("Data version: %d", int(version));
             if (version != clap::LSP_CLAP_VERSION)
             {
                 lsp_warn("Unsupported version %d", int(version));
@@ -1355,6 +1357,8 @@ namespace lsp
                 lsp_finally {
                     destroy_value(&p);
                 };
+
+                lsp_trace("Parameter name: %s", name);
 
                 if (name[0] != '/')
                 {
