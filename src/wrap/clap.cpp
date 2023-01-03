@@ -22,6 +22,7 @@
 #include <clap/clap.h>
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/singletone.h>
+#include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
@@ -257,6 +258,10 @@ namespace lsp
             lsp_trace("plugin=%p, sample_rate=%f, min_frames_count=%d, max_frames_count=%d",
                 plugin, sample_rate, int(min_frames_count), int(max_frames_count));
 
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->activate(sample_rate, min_frames_count, max_frames_count) == STATUS_OK;
         }
@@ -264,6 +269,10 @@ namespace lsp
         void CLAP_ABI deactivate(const clap_plugin_t *plugin)
         {
             lsp_trace("plugin=%p", plugin);
+
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             w->deactivate();
@@ -273,6 +282,10 @@ namespace lsp
         {
             lsp_trace("plugin=%p", plugin);
 
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->start_processing() == STATUS_OK;
         }
@@ -280,6 +293,10 @@ namespace lsp
         void CLAP_ABI stop_processing(const clap_plugin_t *plugin)
         {
             lsp_trace("plugin=%p", plugin);
+
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             w->stop_processing();
@@ -289,6 +306,10 @@ namespace lsp
         {
             lsp_trace("plugin=%p", plugin);
 
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             w->reset();
         }
@@ -297,6 +318,10 @@ namespace lsp
             const struct clap_plugin *plugin,
             const clap_process_t *process)
         {
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
+
             lsp_trace("plugin=%p, process=%p", plugin, process);
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
@@ -326,6 +351,10 @@ namespace lsp
         void CLAP_ABI on_main_thread(const clap_plugin_t *plugin)
         {
             lsp_trace("plugin=%p", plugin);
+
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             w->on_main_thread();
@@ -686,6 +715,7 @@ namespace lsp
             IF_DEBUG( lsp::debug::redirect(CLAP_LOG_FILE); );
         #endif /* LSP_IDE_DEBUG */
 
+            dsp::init();
             gen_descriptors();
             return true;
         }

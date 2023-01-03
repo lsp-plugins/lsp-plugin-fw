@@ -504,8 +504,8 @@ namespace lsp
             LSP_STATUS_ASSERT(generate_audio_port_groups(meta));
 
             // Initialize plugin
-            if (pPlugin != NULL)
-                pPlugin->init(this, plugin_ports.array());
+            lsp_trace("pPlugin = %p", pPlugin);
+            pPlugin->init(this, plugin_ports.array());
 
             // Create sample player if required
             if (meta->extensions & meta::E_FILE_PREVIEW)
@@ -534,7 +534,29 @@ namespace lsp
                     long(MAX_SAMPLE_RATE));
                 sample_rate  = MAX_SAMPLE_RATE;
             }
+
+            lsp_trace("pPlugin = %p", pPlugin);
             pPlugin->set_sample_rate(sample_rate);
+
+            // Activate audio ports
+            for (size_t i=0, n=vAudioIn.size(); i<n; ++i)
+            {
+                audio_group_t *g = vAudioIn.uget(i);
+                for (size_t j=0; j<g->nPorts; ++j)
+                {
+                    lsp_trace("activating input port id=%s", g->vPorts[j]->metadata()->id);
+                    g->vPorts[j]->activate(min_frames_count, max_frames_count);
+                }
+            }
+            for (size_t i=0, n=vAudioOut.size(); i<n; ++i)
+            {
+                audio_group_t *g = vAudioOut.uget(i);
+                for (size_t j=0; j<g->nPorts; ++j)
+                {
+                    lsp_trace("activating output port id=%s", g->vPorts[j]->metadata()->id);
+                    g->vPorts[j]->activate(min_frames_count, max_frames_count);
+                }
+            }
 
             return STATUS_OK;
         }
@@ -547,11 +569,13 @@ namespace lsp
 
         status_t Wrapper::start_processing()
         {
+            pPlugin->activate();
             return STATUS_OK;
         }
 
         void Wrapper::stop_processing()
         {
+            pPlugin->deactivate();
         }
 
         void Wrapper::reset()
@@ -715,7 +739,7 @@ namespace lsp
             } // for
 
             // Return the result
-            return last_time    = offset;
+            return last_time - offset;
         }
 
         void Wrapper::generate_output_events(size_t offset, const clap_process_t *process)
@@ -798,7 +822,7 @@ namespace lsp
             }
             for (size_t i=0, n=vAudioOut.size(); i<n; ++i)
             {
-                const clap_audio_buffer_t *b = &process->audio_inputs[i];
+                const clap_audio_buffer_t *b = &process->audio_outputs[i];
                 audio_group_t *g = vAudioOut.uget(i);
                 if (b->channel_count != g->nPorts)
                     return CLAP_PROCESS_ERROR;
@@ -812,6 +836,8 @@ namespace lsp
             size_t ev_index = 0;
             for (size_t offset=0; offset < process->frames_count; )
             {
+                lsp_trace("offset=%d, frames_count=%d", int(offset), int(process->frames_count));
+
                 // Cleanup stat of input and output MIDI ports
                 for (size_t i=0,n=vMidiIn.size(); i<n; ++i)
                     vMidiIn.uget(i)->clear();
@@ -820,6 +846,7 @@ namespace lsp
 
                 // Prepare event block
                 size_t block_size = prepare_block(&ev_index, offset, process);
+                lsp_trace("block size=%d", int(block_size));
                 for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
                     vAllPorts.uget(i)->pre_process(block_size);
 

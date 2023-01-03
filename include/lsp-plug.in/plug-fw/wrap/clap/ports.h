@@ -141,6 +141,7 @@ namespace lsp
                         dsp::sanitize2(pBuffer, ptr, samples);
 
                     nBufSize    = samples;
+                    nOffset     = 0;
                 }
 
                 // Unbind the audio port and perform sanitize for output ports
@@ -153,6 +154,7 @@ namespace lsp
                         pBuffer     = NULL;
                     }
                     nBufSize    = 0;
+                    nOffset     = 0;
                 }
         };
 
