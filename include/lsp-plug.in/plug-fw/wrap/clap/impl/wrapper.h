@@ -648,7 +648,9 @@ namespace lsp
                     {
                         const clap_event_param_value_t *ev = reinterpret_cast<const clap_event_param_value_t *>(hdr);
                         clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
-                        if ((pp != NULL) && (pp->uid() == ev->param_id))
+                        if ((pp == NULL) || (pp->uid() != ev->param_id))
+                            pp              = find_param(ev->param_id);
+                        if (pp != NULL)
                         {
                             float ov            = pp->value();
                             float nv            = pp->update_value(ev->value);
@@ -666,7 +668,9 @@ namespace lsp
                     {
                         const clap_event_param_mod_t *ev = reinterpret_cast<const clap_event_param_mod_t *>(hdr);
                         clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
-                        if ((pp != NULL) && (pp->uid() == ev->param_id))
+                        if ((pp == NULL) || (pp->uid() != ev->param_id))
+                            pp              = find_param(ev->param_id);
+                        if (pp != NULL)
                         {
                             float ov            = pp->value();
                             float nv            = pp->update_value(ov + ev->amount);
@@ -1536,7 +1540,9 @@ namespace lsp
                     {
                         const clap_event_param_value_t *ev = reinterpret_cast<const clap_event_param_value_t *>(hdr);
                         clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
-                        if ((pp != NULL) && (pp->uid() == ev->param_id))
+                        if ((pp == NULL) || (pp->uid() != ev->param_id))
+                            pp              = find_param(ev->param_id);
+                        if (pp != NULL)
                         {
                             float ov            = pp->value();
                             float nv            = pp->update_value(ev->value);
@@ -1554,7 +1560,9 @@ namespace lsp
                     {
                         const clap_event_param_mod_t *ev = reinterpret_cast<const clap_event_param_mod_t *>(hdr);
                         clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
-                        if ((pp != NULL) && (pp->uid() == ev->param_id))
+                        if ((pp == NULL) || (pp->uid() != ev->param_id))
+                            pp              = find_param(ev->param_id);
+                        if (pp != NULL)
                         {
                             float ov            = pp->value();
                             float nv            = pp->update_value(ov + ev->amount);
