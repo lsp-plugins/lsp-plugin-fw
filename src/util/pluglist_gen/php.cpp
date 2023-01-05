@@ -121,6 +121,7 @@ namespace lsp
             fprintf(out, "\t\t\t'description' => \"%s\",\n", php_escape(buf, m->description));
             fprintf(out, "\t\t\t'acronym' => \"%s\",\n", php_escape(buf, m->acronym));
 
+            // Emit different plugin format identifiers
             if (m->ladspa_id > 0)
             {
                 fprintf(out, "\t\t\t'ladspa_uid' => '%ld',\n", long(m->ladspa_id));
@@ -131,10 +132,23 @@ namespace lsp
                 fprintf(out, "\t\t\t'ladspa_uid' => null,\n");
                 fprintf(out, "\t\t\t'ladspa_label' => null,\n");
             }
+            if (m->lv2_uri != NULL)
+                fprintf(out, "\t\t\t'lv2_uri' => \"%s\",\n", php_escape(buf, m->lv2_uri));
+            else
+                fprintf(out, "\t\t\t'lv2_uri' => null,\n");
+            if (m->lv2ui_uri != NULL)
+                fprintf(out, "\t\t\t'lv2ui_uri' => \"%s\",\n", php_escape(buf, m->lv2ui_uri));
+            else
+                fprintf(out, "\t\t\t'lv2ui_uri' => null,\n");
+            if (m->vst2_uid != NULL)
+                fprintf(out, "\t\t\t'vst2_uid' => \"%s\",\n", php_escape(buf, m->vst2_uid));
+            else
+                fprintf(out, "\t\t\t'vst2_uid' => null,\n");
+            if (m->clap_uid != NULL)
+                fprintf(out, "\t\t\t'clap_uid' => \"%s\",\n", php_escape(buf, m->clap_uid));
+            else
+                fprintf(out, "\t\t\t'clap_uid' => null,\n");
 
-            fprintf(out, "\t\t\t'lv2_uri' => \"%s\",\n", php_escape(buf, m->lv2_uri));
-            fprintf(out, "\t\t\t'lv2ui_uri' => \"%s\",\n", php_escape(buf, m->lv2ui_uri));
-            fprintf(out, "\t\t\t'vst2_uid' => \"%s\",\n", php_escape(buf, m->vst2_uid));
             fprintf(out, "\t\t\t'jack' => true,\n");
             fprintf(out, "\t\t\t'groups' => ");
             php_print_plugin_groups(out, m->classes);

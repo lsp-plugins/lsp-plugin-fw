@@ -20,7 +20,7 @@
 
 #------------------------------------------------------------------------------
 # Features enabled by default
-DEFAULT_FEATURES = doc ladspa lv2 vst2
+DEFAULT_FEATURES = clap doc ladspa lv2 vst2
 
 #------------------------------------------------------------------------------
 # Plugin dependencies
@@ -50,6 +50,8 @@ TEST_DEPENDENCIES_UI = \
 #------------------------------------------------------------------------------
 # Platform-specific dependencies
 ifeq ($(PLATFORM),Linux)
+  DEFAULT_FEATURES += jack
+
   DEPENDENCIES_BIN += \
     LSP_R3D_GLX_LIB
 
@@ -60,6 +62,8 @@ ifeq ($(PLATFORM),Linux)
 endif
 
 ifeq ($(PLATFORM),BSD)
+  DEFAULT_FEATURES += jack
+
   DEPENDENCIES_BIN += \
     LSP_R3D_GLX_LIB
 
