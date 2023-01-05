@@ -349,7 +349,7 @@ namespace lsp
             dsp::start(&ctx);
             lsp_finally { dsp::finish(&ctx); };
 
-            lsp_trace("plugin=%p, process=%p", plugin, process);
+//            lsp_trace("plugin=%p, process=%p", plugin, process);
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             return w->process(process);
