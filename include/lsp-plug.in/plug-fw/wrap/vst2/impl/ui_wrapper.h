@@ -265,7 +265,7 @@ namespace lsp
 
         void UIWrapper::dump_state_request()
         {
-            pWrapper->query_display_draw();
+            pWrapper->request_state_dump();
         }
 
         void UIWrapper::main_iteration()
@@ -351,7 +351,7 @@ namespace lsp
                 }
                 #else
                     kvt-> commit_all(core::KVT_RX);    // Just clear all RX queue for non-debug version
-                #endif
+                #endif /* LSP_DEBUG */
 
                 // Call garbage collection and release KVT storage
                 kvt->gc();

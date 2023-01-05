@@ -51,8 +51,6 @@ namespace lsp
                 virtual bool sync()         { return false; };
 
                 virtual bool sync_again()   { return false; };
-
-                virtual void resync()       { };
         };
 
         class UIPortGroup: public UIPort
@@ -91,13 +89,6 @@ namespace lsp
 
                     nSID        = sid;
                     return true;
-                }
-
-                virtual void resync()
-                {
-                    if (pPG == NULL)
-                        return;
-                    nSID    = pPG->sid() - 1;
                 }
 
             public:
@@ -148,13 +139,6 @@ namespace lsp
                     return true;
                 }
 
-                virtual void resync()
-                {
-                    if (pPort == NULL)
-                        return;
-                    nSID    = static_cast<vst2::ParameterPort *>(pPort)->sid() - 1;
-                }
-
                 virtual void *buffer()
                 {
                     return pPort->buffer();
@@ -195,12 +179,6 @@ namespace lsp
                     else
                         fValue      = pPort->value();
                     return value != fValue;
-                }
-
-                virtual void resync()
-                {
-                    if (pMetadata != NULL)
-                        fValue      = pMetadata->start;
                 }
         };
 
