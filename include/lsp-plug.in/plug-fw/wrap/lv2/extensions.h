@@ -240,7 +240,7 @@ namespace lsp
                     fUIScaleFactor      = 1.0f;
                     pBuffer             = NULL;
                     nBufSize            = 0;
-                    fUIRefreshRate      = MESH_REFRESH_RATE;
+                    fUIRefreshRate      = UI_FRAMES_PER_SECOND;
                     pParentWindow       = NULL;
 
                     // State interface
@@ -424,7 +424,7 @@ namespace lsp
                                 else if ((opts->type == forge.Long) && (opts->size == sizeof(int64_t)))
                                     fUIRefreshRate  = *reinterpret_cast<const int64_t *>(opts->value);
                                 if (fUIRefreshRate < 0)
-                                    fUIRefreshRate = MESH_REFRESH_RATE;
+                                    fUIRefreshRate = UI_FRAMES_PER_SECOND;
                                 lsp_trace("UI refresh rate has been set to %f", fUIRefreshRate);
                             }
 
