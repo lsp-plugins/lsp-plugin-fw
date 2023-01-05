@@ -27,18 +27,21 @@
 #include <clap/clap.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/ipc/Mutex.h>
-#include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/ports.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
 namespace lsp
 {
     namespace clap
     {
+        class UIWrapper;
+
         /**
          * CLAP plugin wrapper interface
          */
@@ -56,23 +59,26 @@ namespace lsp
                 } audio_group_t;
 
             protected:
-                const clap_host_t              *pHost;
-                const meta::package_t          *pPackage;
-                clap::HostExtensions           *pExt;
-                ipc::IExecutor                 *pExecutor;
-                ssize_t                         nLatency;
+                const clap_host_t              *pHost;              // Host interface
+                const meta::package_t          *pPackage;           // Package metadata
+                clap::UIWrapper                *pUIWrapper;         // UI wrapper
+                clap::HostExtensions           *pExt;               // CLAP Extensions
+                ipc::IExecutor                 *pExecutor;          // Executor service
+                ssize_t                         nLatency;           // The actual plugin latency
+                uatomic_t                       nDumpReq;           // State dump request counter
+                uatomic_t                       nDumpResp;          // State dump response counter
 
-                lltl::parray<audio_group_t>     vAudioIn;
-                lltl::parray<audio_group_t>     vAudioOut;
+                lltl::parray<audio_group_t>     vAudioIn;           // Input audio ports
+                lltl::parray<audio_group_t>     vAudioOut;          // Output audio ports
                 lltl::parray<ParameterPort>     vParamPorts;        // List of parameters sorted by clap_id
                 lltl::parray<MidiInputPort>     vMidiIn;            // Midi input ports
                 lltl::parray<MidiOutputPort>    vMidiOut;           // Midi output ports
-                lltl::parray<clap::Port>        vAllPorts;
+                lltl::parray<clap::Port>        vAllPorts;          // List of all available ports
                 lltl::parray<clap::Port>        vSortedPorts;       // List of ports sorted by metadata identifier
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
-                core::KVTStorage                sKVT;
-                ipc::Mutex                      sKVTMutex;
+                core::KVTStorage                sKVT;               // KVT storage
+                ipc::Mutex                      sKVTMutex;          // KVT storage access mutex
 
                 bool                            bRestartRequested;  // Flag that indicates that the plugin restart was requested
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
@@ -161,7 +167,10 @@ namespace lsp
 
             public:
                 // Miscellaneous functions
-                clap::Port     *find_by_id(const char *id);
+                clap::Port                     *find_by_id(const char *id);
+                inline core::SamplePlayer      *sample_player();
+                void                            request_state_dump();
+                inline UIWrapper               *ui_wrapper();
         };
     } /* namespace clap */
 } /* namespace lsp */

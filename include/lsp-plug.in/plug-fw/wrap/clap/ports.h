@@ -237,9 +237,12 @@ namespace lsp
         class ParameterPort: public Port
         {
             protected:
-                float       fValue;
-                clap_id     nID;
-                uatomic_t   nSID;           // Serial ID of the parameter
+                float           fValue;         // The actual value of the port
+                clap_id         nID;            // Unique CLAP identifier of the port
+                uatomic_t       nSID;           // Serial ID of the parameter
+                float           fPending;       // Pending value from the UI
+                uatomic_t       nPendingSID;    // Serial ID of parameter for the UI request
+                volatile bool   bPending;       // There is pending for change request from the UI
 
             public:
                 explicit ParameterPort(const meta::port_t *meta) : Port(meta)
@@ -247,14 +250,81 @@ namespace lsp
                     fValue              = meta->start;
                     nID                 = clap_hash_string(meta->id);
                     nSID                = 0;
+                    fPending            = 0.0f;
+                    nPendingSID         = nSID;
+                    bPending            = false;
                 }
 
             public:
-                inline clap_id uid() const  { return nID; }
+                inline clap_id uid() const      { return nID;       }
+                inline uatomic_t sid() const    { return nSID;      }
 
                 float update_value(float value)
                 {
-                    return fValue = meta::limit_value(pMetadata, value);
+                    float old   = fValue;
+                    float res   = meta::limit_value(pMetadata, value);
+                    if (old != res)
+                    {
+                        fValue      = res;
+                        atomic_add(&nSID, 1);
+                    }
+
+                    return res;
+                }
+
+                void write_value(float value)
+                {
+                    fPending            = value;
+                    nPendingSID         = nSID;
+                    bPending            = true;
+                }
+
+                bool sync(const clap_output_events_t *out)
+                {
+                    if (!bPending)
+                        return false;
+
+                    // Cleanup pending flags and read the requested value
+                    bPending            = false;
+                    uatomic_t sid       = nPendingSID;
+                    float pending       = fPending;
+
+                    // Do not perform anything if SID does not match
+                    if (sid != nSID)
+                        return false;
+
+                    // Ensure that value has changed
+                    float old   = fValue;
+                    float res   = meta::limit_value(pMetadata, pending);
+                    if (old == res)
+                        return false;
+
+                    // Try to submit the value to the output event queue
+                    clap_event_param_value_t ev;
+                    ev.header.size      = sizeof(ev);
+                    ev.header.time      = 0;
+                    ev.header.space_id  = CLAP_CORE_EVENT_SPACE_ID;
+                    ev.header.type      = CLAP_EVENT_PARAM_VALUE;
+                    ev.header.flags     = CLAP_EVENT_IS_LIVE;
+                    ev.param_id         = nID;
+                    ev.cookie           = this;
+                    ev.note_id          = -1;
+                    ev.port_index       = -1;
+                    ev.channel          = -1;
+                    ev.key              = -1;
+                    ev.value            = pending;
+
+                    // Submit the value to the output queue
+                    if (out->try_push(out, &ev.header))
+                    {
+                        fValue              = res;
+                        atomic_add(&nSID, 1);
+                        return true;
+                    }
+
+                    // Try to apply changes next time
+                    bPending            = true;
+                    return false;
                 }
 
             public:
@@ -292,7 +362,6 @@ namespace lsp
 
                     // Commit value
                     update_value(value);
-                    atomic_add(&nSID, 1);
                     return STATUS_OK;
                 }
         };
@@ -352,31 +421,21 @@ namespace lsp
             private:
                 size_t                  nCols;
                 size_t                  nRows;
-                uatomic_t               nSID; // Serial ID of the parameter
 
             public:
                 explicit PortGroup(const meta::port_t *meta) : ParameterPort(meta)
                 {
                     nCols               = meta::port_list_size(meta->members);
                     nRows               = meta::list_size(meta->items);
-                    nSID                = 0;
                 }
 
                 virtual ~PortGroup()
                 {
                     nCols               = 0;
                     nRows               = 0;
-                    nSID                = 0;
                 }
 
             public:
-                virtual void set_value(float value) override
-                {
-                    int32_t v = value;
-                    if ((v >= 0) && (v < ssize_t(nRows)))
-                        fValue              = v;
-                }
-
                 virtual float value() override
                 {
                     return fValue;

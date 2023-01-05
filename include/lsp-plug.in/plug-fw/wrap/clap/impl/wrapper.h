@@ -41,10 +41,13 @@ namespace lsp
         {
             pHost               = host;
             pPackage            = package;
+            pUIWrapper          = NULL;
             pExt                = NULL;
             pExecutor           = NULL;
 
             nLatency            = 0;
+            nDumpReq            = 0;
+            nDumpResp           = 0;
             pSamplePlayer       = NULL;
 
             bRestartRequested   = false;
@@ -496,6 +499,14 @@ namespace lsp
             if (pExt == NULL)
                 return STATUS_NO_MEM;
 
+            // Create resource loader
+            pLoader = core::create_resource_loader();
+            if (pLoader == NULL)
+                return STATUS_NO_MEM;
+
+            // Create UI wrapper
+            pUIWrapper = UIWrapper::create(this);
+
             // Create all possible ports for plugin and validate the state
             lltl::parray<plug::IPort> plugin_ports;
             LSP_STATUS_ASSERT(create_ports(&plugin_ports, meta));
@@ -834,6 +845,22 @@ namespace lsp
                     g->vPorts[j]->bind(b->data32[i], process->frames_count);
             }
 
+            // Sync the parameter ports with the UI
+            for (size_t i=0, n=vParamPorts.size(); i<n; ++i)
+            {
+                clap::ParameterPort *port = vParamPorts.uget(i);
+                if ((port != NULL) && (port->sync(process->out_events)))
+                    bUpdateSettings     = true;
+            }
+
+            // Need to dump state?
+            uatomic_t dump_req      = nDumpReq;
+            if (dump_req != nDumpResp)
+            {
+                dump_plugin_state();
+                nDumpResp           = dump_req;
+            }
+
             // CLAP may deliver change of input parameters in the input events.
             // We need to split these events into the set of ranges and process
             // each range independently
@@ -853,6 +880,13 @@ namespace lsp
 //                lsp_trace("block size=%d", int(block_size));
                 for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
                     vAllPorts.uget(i)->pre_process(block_size);
+
+                // Update the settings for the plugin
+                if (bUpdateSettings)
+                {
+                    pPlugin->update_settings();
+                    bUpdateSettings     = false;
+                }
 
                 // Call the plugin for processing
                 pPlugin->process(block_size);
@@ -1166,6 +1200,16 @@ namespace lsp
                     first   = center + 1;
             }
             return NULL;
+        }
+
+        core::SamplePlayer *Wrapper::sample_player()
+        {
+            return pSamplePlayer;
+        }
+
+        UIWrapper *Wrapper::ui_wrapper()
+        {
+            return pUIWrapper;
         }
 
         status_t Wrapper::read_value(const clap_istream_t *is, const char *name, core::kvt_param_t *p)
@@ -1624,6 +1668,11 @@ namespace lsp
         {
             if (pExt->state != NULL)
                 pExt->state->mark_dirty(pHost);
+        }
+
+        void Wrapper::request_state_dump()
+        {
+            atomic_add(&nDumpReq, 1);
         }
 
     } /* namespace clap */

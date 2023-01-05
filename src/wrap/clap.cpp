@@ -29,7 +29,9 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/debug.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/impl/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/impl/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
@@ -251,6 +253,167 @@ namespace lsp
         };
 
         //---------------------------------------------------------------------
+        // UI extension
+        bool CLAP_ABI ui_is_api_supported(const clap_plugin_t *plugin, const char *api, bool is_floating)
+        {
+            lsp_trace("plugin = %p, api=%s, is_floating=%d", plugin, api, int(is_floating));
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            if (uw == NULL)
+                return false;
+
+            // TODO: check support of the specific UI
+            return false;
+        }
+
+        bool CLAP_ABI ui_get_preferred_api(const clap_plugin_t *plugin, const char **api, bool *is_floating)
+        {
+            lsp_trace("plugin = %p, api=%p, is_floating=%p", plugin, api, is_floating);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            if (uw == NULL)
+                return false;
+
+            // TODO: emit support of the specific UI
+            return false;
+        }
+
+        bool CLAP_ABI ui_create(const clap_plugin_t *plugin, const char *api, bool is_floating)
+        {
+            lsp_trace("plugin = %p, api=%s, is_floating=%d", plugin, api, int(is_floating));
+            if (!ui_is_api_supported(plugin, api, is_floating))
+                return false;
+
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            if (uw == NULL)
+                return false;
+
+            status_t res = uw->init(NULL);
+            if (res != STATUS_OK)
+                uw->destroy();
+
+            return res == STATUS_OK;
+        }
+
+        void CLAP_ABI ui_destroy(const clap_plugin_t *plugin)
+        {
+            lsp_trace("plugin = %p", plugin);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            if (uw != NULL)
+                uw->destroy();
+        }
+
+        bool CLAP_ABI ui_set_scale(const clap_plugin_t *plugin, double scale)
+        {
+            lsp_trace("plugin = %p, scale=%f", plugin, scale);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            return (uw != NULL) ? uw->set_scale(scale) : false;
+        }
+
+        bool CLAP_ABI ui_get_size(const clap_plugin_t *plugin, uint32_t *width, uint32_t *height)
+        {
+            lsp_trace("plugin = %p, width=%p, height=%p", plugin, width, height);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            return (uw != NULL) ? uw->get_size(width, height) : false;
+        }
+
+        bool CLAP_ABI ui_can_resize(const clap_plugin_t *plugin)
+        {
+            lsp_trace("plugin = %p", plugin);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            return (uw != NULL) ? uw->can_resize() : false;
+        }
+
+        bool CLAP_ABI ui_get_resize_hints(const clap_plugin_t *plugin, clap_gui_resize_hints_t *hints)
+        {
+            lsp_trace("plugin = %p, hints=%p", plugin, hints);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            return (uw != NULL) ? uw->get_resize_hints(hints) : false;
+        }
+
+        bool CLAP_ABI ui_adjust_size(const clap_plugin_t *plugin, uint32_t *width, uint32_t *height)
+        {
+            lsp_trace("plugin = %p, width=%p, height=%p", plugin, width, height);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            return (uw != NULL) ? uw->adjust_size(width, height) : false;
+        }
+
+        bool CLAP_ABI ui_set_size(const clap_plugin_t *plugin, uint32_t width, uint32_t height)
+        {
+            lsp_trace("plugin = %p, width=%d, height=%d", plugin, int(width), int(height));
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            return (uw != NULL) ? uw->set_size(width, height) : false;
+        }
+
+        bool CLAP_ABI ui_set_parent(const clap_plugin_t *plugin, const clap_window_t *window)
+        {
+            lsp_trace("plugin = %p, window=%p", plugin, window);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            return (uw != NULL) ? uw->set_parent(window) : false;
+        }
+
+        bool CLAP_ABI ui_set_transient(const clap_plugin_t *plugin, const clap_window_t *window)
+        {
+            lsp_trace("plugin = %p, window=%p", plugin, window);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            return (uw != NULL) ? uw->set_transient(window) : false;
+        }
+
+        void CLAP_ABI ui_suggest_title(const clap_plugin_t *plugin, const char *title)
+        {
+            lsp_trace("plugin = %p, title=%s", plugin, title);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            if (uw != NULL)
+                uw->suggest_title(title);
+        }
+
+        bool CLAP_ABI ui_show(const clap_plugin_t *plugin)
+        {
+            lsp_trace("plugin = %p", plugin);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            return (uw != NULL) ? uw->show() : false;
+        }
+
+        bool CLAP_ABI ui_hide(const clap_plugin_t *plugin)
+        {
+            lsp_trace("plugin = %p", plugin);
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            UIWrapper *uw = w->ui_wrapper();
+            return (uw != NULL) ? uw->hide() : false;
+        }
+
+        const clap_plugin_gui_t ui_extension =
+        {
+            .is_api_supported = ui_is_api_supported,
+            .get_preferred_api = ui_get_preferred_api,
+            .create = ui_create,
+            .destroy = ui_destroy,
+            .set_scale = ui_set_scale,
+            .get_size = ui_get_size,
+            .can_resize = ui_can_resize,
+            .get_resize_hints = ui_get_resize_hints,
+            .adjust_size = ui_adjust_size,
+            .set_size = ui_set_size,
+            .set_parent = ui_set_parent,
+            .set_transient = ui_set_transient,
+            .suggest_title = ui_suggest_title,
+            .show = ui_show,
+            .hide = ui_hide
+        };
+
+        //---------------------------------------------------------------------
         // Plugin instance related stuff
         bool CLAP_ABI init(const clap_plugin_t *plugin)
         {
@@ -370,7 +533,9 @@ namespace lsp
             if (!strcmp(id, CLAP_EXT_PARAMS))
                 return &plugin_params_extension;
             if ((!strcmp(id, CLAP_EXT_NOTE_PORTS)) && (w->has_note_ports()))
-               return &note_ports_extension;
+                return &note_ports_extension;
+            if ((!strcmp(id, CLAP_EXT_GUI)) && (w->ui_wrapper() != NULL))
+                return &ui_extension;
 
             return w->get_extension(id);
         }
