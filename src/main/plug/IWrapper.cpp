@@ -159,21 +159,21 @@ namespace lsp
                 v.write("artifact", pkg->artifact);
 
                 // Package version
-                tmp.fmt_ascii("%d.%d.%d",
-                        int(pkg->version.major),
-                        int(pkg->version.minor),
-                        int(pkg->version.micro)
-                );
+                tmp.fmt_ascii(
+                    "%d.%d.%d",
+                    int(pkg->version.major),
+                    int(pkg->version.minor),
+                    int(pkg->version.micro));
                 if (pkg->version.branch)
                     tmp.fmt_append_utf8("-%s", pkg->version.branch);
                 v.write("package", tmp.get_utf8());
 
                 // Version
-                tmp.fmt_ascii("%d.%d.%d",
-                        int(LSP_MODULE_VERSION_MAJOR(meta->version)),
-                        int(LSP_MODULE_VERSION_MINOR(meta->version)),
-                        int(LSP_MODULE_VERSION_MICRO(meta->version))
-                    );
+                tmp.fmt_ascii(
+                    "%d.%d.%d",
+                    int(LSP_MODULE_VERSION_MAJOR(meta->version)),
+                    int(LSP_MODULE_VERSION_MINOR(meta->version)),
+                    int(LSP_MODULE_VERSION_MICRO(meta->version)));
                 v.write("version", tmp.get_utf8());
 
                 // Write plugin identifiers
@@ -181,6 +181,7 @@ namespace lsp
                 v.write("vst_id", meta->vst2_uid);
                 v.write("ladspa_id", meta->ladspa_id);
                 v.write("ladspa_label", meta->ladspa_lbl);
+                v.write("clap_id", meta->clap_uid);
 
                 // Dump object contents
                 v.write("this", pPlugin);

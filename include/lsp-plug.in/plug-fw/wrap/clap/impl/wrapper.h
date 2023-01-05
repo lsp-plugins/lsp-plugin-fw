@@ -1612,6 +1612,12 @@ namespace lsp
             return pPackage;
         }
 
+        void Wrapper::state_changed()
+        {
+            if (pExt->state != NULL)
+                pExt->state->mark_dirty(pHost);
+        }
+
     } /* namespace clap */
 } /* namespace lsp */
 
