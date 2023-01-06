@@ -28,8 +28,9 @@
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
-#include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/runtime/system.h>
+#include <lsp-plug.in/stdlib/stdio.h>
+#include <lsp-plug.in/tk/tk.h>
 
 namespace lsp
 {
@@ -40,6 +41,7 @@ namespace lsp
         {
             pWrapper    = wrapper;
             pUIThread   = NULL;
+            fScaling    = -1.0f;
         }
 
         UIWrapper::~UIWrapper()
@@ -120,14 +122,7 @@ namespace lsp
         void UIWrapper::destroy()
         {
             // Stop the UI thread
-            if (pUIThread != NULL)
-            {
-                pUIThread->cancel();
-                pUIThread->join();
-
-                delete pUIThread;
-                pUIThread = NULL;
-            }
+            hide();
 
             // Call parent instance
             IWrapper::destroy();
@@ -362,6 +357,11 @@ namespace lsp
             return STATUS_OK;
         }
 
+        float UIWrapper::ui_scaling_factor(float scaling)
+        {
+            return (fScaling > 0.0f) ? fScaling : scaling;
+        }
+
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
             return STATUS_OK;
@@ -382,16 +382,22 @@ namespace lsp
             static constexpr size_t FRAME_PERIOD    = 1000 / UI_FRAMES_PER_SECOND;
 
             UIWrapper *this_ = static_cast<UIWrapper *>(arg);
-            system::time_millis_t ctime = system::get_time_millis();
 
+            // Perform main loop
+            system::time_millis_t ctime = system::get_time_millis();
             while (!ipc::Thread::is_cancelled())
             {
                 // Measure the time of next frame to appear
                 system::time_millis_t deadline = ctime + FRAME_PERIOD;
 
-                // Perform main iteration
-                this_->transfer_dsp_to_ui();
-                this_->main_iteration();
+                // Perform main iteration with locked mutex
+                if (this_->sMutex.lock())
+                {
+                    this_->transfer_dsp_to_ui();
+                    this_->main_iteration();
+
+                    this_->sMutex.unlock();
+                }
 
                 // Wait for the next frame to appear
                 system::time_millis_t ftime = system::get_time_millis();
@@ -405,56 +411,192 @@ namespace lsp
 
         bool UIWrapper::set_scale(double scale)
         {
-            return false;
+            fScaling    = scale;
+            return true;
         }
 
         bool UIWrapper::get_size(uint32_t *width, uint32_t *height)
         {
-            return false;
+            tk::Window *wnd     = window();
+            if (wnd == NULL)
+                return false;
+
+            // Lock the access to the main loop
+            ws::rectangle_t rr;
+            rr.nWidth       = 0;
+            rr.nHeight      = 0;
+
+            if (sMutex.lock())
+            {
+                lsp_finally { sMutex.unlock(); };
+
+                // Obtain the window parameters
+                if (!wnd->visibility()->get())
+                    return false;
+                if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
+                    return false;
+            }
+            else
+                return false;
+
+            // Return result
+            if (width != NULL)
+                *width  = rr.nWidth;
+            if (height != NULL)
+                *height = rr.nHeight;
+
+            return true;
         }
 
         bool UIWrapper::can_resize()
         {
-            return false;
+            tk::Window *wnd     = window();
+            if (wnd == NULL)
+                return false;
+
+            if (!sMutex.lock())
+                return false;
+            lsp_finally { sMutex.unlock(); };
+
+            return wnd->border_style()->get() != ws::BS_DIALOG;
         }
 
         bool UIWrapper::get_resize_hints(clap_gui_resize_hints_t *hints)
         {
-            return false;
+            tk::Window *wnd     = window();
+            if (wnd == NULL)
+                return false;
+
+            if (!sMutex.lock())
+                return false;
+            lsp_finally { sMutex.unlock(); };
+
+            // Obtain window size constraints
+            ws::size_limit_t sr;
+            wnd->get_padded_size_limits(&sr);
+
+            hints->can_resize_horizontally = (sr.nMaxWidth < 0) || (sr.nMaxWidth  > sr.nMinWidth);
+            hints->can_resize_vertically    = (sr.nMaxHeight< 0) || (sr.nMaxHeight > sr.nMinHeight);
+
+            hints->preserve_aspect_ratio    = false;
+            hints->aspect_ratio_width       = 1;
+            hints->aspect_ratio_height      = 1;
+
+            return true;
         }
 
         bool UIWrapper::adjust_size(uint32_t *width, uint32_t *height)
         {
-            return false;
+            tk::Window *wnd     = window();
+            if (wnd == NULL)
+                return false;
+
+            if (sMutex.lock())
+                return false;
+            lsp_finally { sMutex.unlock(); };
+
+            ws::size_limit_t sr;
+            wnd->get_padded_size_limits(&sr);
+
+            ws::rectangle_t r;
+            r.nLeft     = 0;
+            r.nTop      = 0;
+            r.nWidth    = *width;
+            r.nHeight   = *height;
+
+            tk::SizeConstraints::apply(&r, &sr);
+
+            *width      = r.nWidth;
+            *height     = r.nHeight;
+
+            return true;
         }
 
         bool UIWrapper::set_size(uint32_t width, uint32_t height)
         {
-            return false;
+            tk::Window *wnd     = window();
+            if (wnd == NULL)
+                return false;
+
+            if (sMutex.lock())
+                return false;
+            lsp_finally { sMutex.unlock(); };
+
+            wnd->resize_window(width, height);
+
+            return true;
         }
 
         bool UIWrapper::set_parent(const clap_window_t *window)
         {
+            // TODO
             return false;
         }
 
         bool UIWrapper::set_transient(const clap_window_t *window)
         {
+            // TODO
             return false;
         }
 
         void UIWrapper::suggest_title(const char *title)
         {
+            tk::Window *wnd     = window();
+            if (wnd == NULL)
+                return;
+            if (!sMutex.lock())
+                return;
+            lsp_finally { sMutex.unlock(); };
+
+            // Update the window title
+            wnd->title()->set_raw(title);
         }
 
         bool UIWrapper::show()
         {
-            return false;
+            hide();
+
+            // Show the window
+            tk::Window *wnd = window();
+            if (wnd == NULL)
+                return false;
+
+            // Launch the main loop thread
+            pUIThread   = new ipc::Thread(ui_main_loop, this);
+            if (pUIThread == NULL)
+                return false;
+
+            // Show the window and start the main thread
+            wnd->show();
+            if (pUIThread->start() != STATUS_OK)
+            {
+                wnd->hide();
+                delete pUIThread;
+                pUIThread = NULL;
+                return false;
+            }
+
+            return true;
         }
 
         bool UIWrapper::hide()
         {
-            return false;
+            // Cancel the main loop thread
+            if (pUIThread != NULL)
+            {
+                pUIThread->cancel();
+                pUIThread->join();
+
+                delete pUIThread;
+                pUIThread = NULL;
+            }
+
+            // Hide the window
+            tk::Window *wnd = window();
+            if (wnd != NULL)
+                wnd->hide();
+
+            return true;
         }
 
         UIWrapper *UIWrapper::create(clap::Wrapper *wrapper)

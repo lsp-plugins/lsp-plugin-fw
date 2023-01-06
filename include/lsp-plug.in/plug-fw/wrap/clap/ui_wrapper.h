@@ -26,6 +26,7 @@
 
 #include <clap/clap.h>
 #include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
@@ -46,6 +47,8 @@ namespace lsp
             private:
                 clap::Wrapper                  *pWrapper;       // CLAP Wrapper
                 ipc::Thread                    *pUIThread;      // Thread that performs the UI event loop
+                float                           fScaling;       // Scaling factor
+                ipc::Mutex                      sMutex;         // Main loop mutex
 
             protected:
                 static status_t                 slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
@@ -75,6 +78,8 @@ namespace lsp
                 virtual const meta::package_t  *package() const override;
 
                 virtual status_t                play_file(const char *file, wsize_t position, bool release) override;
+
+                virtual float                   ui_scaling_factor(float scaling) override;
 
             public: // CLAP API
                 bool set_scale(double scale);

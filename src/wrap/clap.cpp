@@ -262,7 +262,17 @@ namespace lsp
             if (uw == NULL)
                 return false;
 
-            // TODO: check support of the specific UI
+        #if defined(PLATFORM_WINDOWS)
+            if (!strcmp(api, CLAP_WINDOW_API_WIN32))
+                return true;
+        #elif defined(PLATFORM_MACOSX)
+            if (!strcmp(api, CLAP_WINDOW_API_COCOA))
+                return true;
+        #else
+            if (!strcmp(api, CLAP_WINDOW_API_X11))
+                return true;
+        #endif
+
             return false;
         }
 
@@ -274,8 +284,16 @@ namespace lsp
             if (uw == NULL)
                 return false;
 
-            // TODO: emit support of the specific UI
-            return false;
+        #if defined(PLATFORM_WINDOWS)
+            *api        = CLAP_WINDOW_API_WIN32;
+        #elif defined(PLATFORM_MACOSX)
+            *api        = CLAP_WINDOW_API_COCOA;
+        #else
+            *api        = CLAP_WINDOW_API_X11;
+        #endif
+            *is_floating= false;
+
+            return true;
         }
 
         bool CLAP_ABI ui_create(const clap_plugin_t *plugin, const char *api, bool is_floating)
