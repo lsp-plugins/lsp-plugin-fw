@@ -42,7 +42,7 @@ namespace lsp
             pWrapper        = wrapper;
             pExt            = wrapper->extensions();
             pUIThread       = NULL;
-            fScaling        = -1.0f;
+            fScaling        = -100.0f;
             pParent         = NULL;
             pTransientFor   = NULL;
             bUIInitialized  = false;
@@ -55,6 +55,8 @@ namespace lsp
 
         status_t UIWrapper::init(void *root_widget)
         {
+            lsp_trace("Initializing wrapper");
+
             status_t res = STATUS_OK;
 
             // Obtain UI metadata
@@ -102,6 +104,7 @@ namespace lsp
 
         void UIWrapper::destroy()
         {
+            // Cleanup UI initialized flag
             bUIInitialized  = false;
 
             // Destroy the transient window wrapper
@@ -362,6 +365,18 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
+            UIWrapper *this_    = static_cast<UIWrapper *>(ptr);
+
+            tk::Window *wnd     = this_->window();
+            if ((wnd == NULL) || (!wnd->visibility()->get()))
+                return STATUS_OK;
+
+            ws::rectangle_t rr;
+            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
+                return STATUS_OK;
+
+            this_->pExt->gui->request_resize(this_->pExt->host, rr.nWidth, rr.nHeight);
+
             return STATUS_OK;
         }
 
@@ -384,6 +399,8 @@ namespace lsp
 
             UIWrapper *this_ = static_cast<UIWrapper *>(arg);
 
+            lsp_trace("Entering main loop");
+
             // Perform main loop
             system::time_millis_t ctime = system::get_time_millis();
             while (!ipc::Thread::is_cancelled())
@@ -394,10 +411,9 @@ namespace lsp
                 // Perform main iteration with locked mutex
                 if (this_->sMutex.lock())
                 {
+                    lsp_finally { this_->sMutex.unlock(); };
                     this_->transfer_dsp_to_ui();
                     this_->main_iteration();
-
-                    this_->sMutex.unlock();
                 }
 
                 // Wait for the next frame to appear
@@ -407,12 +423,15 @@ namespace lsp
                 ctime   = ftime;
             }
 
+            lsp_trace("Leaving main loop");
+
             return STATUS_OK;
         }
 
         bool UIWrapper::set_scale(double scale)
         {
-            fScaling    = scale;
+            // Scale is in %
+            fScaling    = scale * 100.0f;
             return true;
         }
 
@@ -427,17 +446,14 @@ namespace lsp
             rr.nWidth       = 0;
             rr.nHeight      = 0;
 
-            if (sMutex.lock())
-            {
-                lsp_finally { sMutex.unlock(); };
+            if (!sMutex.lock())
+                return false;
+            lsp_finally { sMutex.unlock(); };
 
-                // Obtain the window parameters
-                if (!wnd->visibility()->get())
-                    return false;
-                if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
-                    return false;
-            }
-            else
+            // Obtain the window parameters
+            if (!wnd->visibility()->get())
+                return false;
+            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
                 return false;
 
             // Return result
@@ -492,7 +508,7 @@ namespace lsp
             if (wnd == NULL)
                 return false;
 
-            if (sMutex.lock())
+            if (!sMutex.lock())
                 return false;
             lsp_finally { sMutex.unlock(); };
 
@@ -519,7 +535,7 @@ namespace lsp
             if (wnd == NULL)
                 return false;
 
-            if (sMutex.lock())
+            if (!sMutex.lock())
                 return false;
             lsp_finally { sMutex.unlock(); };
 
@@ -577,7 +593,9 @@ namespace lsp
             if (bUIInitialized)
                 return true;
 
-            status_t res;
+            lsp_trace("Initializing UI contents");
+
+            status_t res = STATUS_OK;
             const meta::plugin_t *meta = pUI->metadata();
             if (pUI->metadata() == NULL)
                 return false;
@@ -592,6 +610,7 @@ namespace lsp
             }
 
             // Bind resize slot
+            lsp_trace("Binding slots");
             tk::Window *wnd  = window();
             if (wnd != NULL)
             {
@@ -602,35 +621,49 @@ namespace lsp
 
             // Call the post-initialization routine
             if (res == STATUS_OK)
+            {
+                lsp_trace("Doing post-init");
                 res = pUI->post_init();
+            }
 
-            bUIInitialized = true;
-            return true;
+            bUIInitialized = (res == STATUS_OK);
+            lsp_trace("bUIInitialized = %d, res=%d", int(bUIInitialized), int(res));
+            return bUIInitialized;
+        }
+
+        bool UIWrapper::ui_active() const
+        {
+            return pUIThread != NULL;
         }
 
         bool UIWrapper::show()
         {
-            hide();
-
             // Lazy initialize the UI ONLY after whe have the parent/transient settings
             if (!initialize_ui())
                 return false;
 
+            tk::Window *wnd  = window();
+            if (wnd == NULL)
+                return false;
+
             // Launch the main loop thread
+            lsp_trace("Creating main loop thread");
             pUIThread   = new ipc::Thread(ui_main_loop, this);
             if (pUIThread == NULL)
                 return false;
 
             // Show the window and start the main thread
-            tk::Window *wnd  = window();
             wnd->show(pTransientFor);
             if (pUIThread->start() != STATUS_OK)
             {
+                lsp_error("Failed to start UI main loop thread");
                 wnd->hide();
                 delete pUIThread;
                 pUIThread = NULL;
                 return false;
             }
+
+            lsp_trace("Successfully started main loop thread");
 
             return true;
         }
@@ -655,49 +688,6 @@ namespace lsp
             return true;
         }
 
-        UIWrapper *UIWrapper::create(clap::Wrapper *wrapper)
-        {
-            const char *clap_uid = wrapper->metadata()->clap_uid;
-
-            // Lookup plugin identifier among all registered plugin factories
-            for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
-            {
-                for (size_t i=0; ; ++i)
-                {
-                    // Enumerate next element
-                    const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
-                        break;
-
-                    // Check plugin identifier
-                    if (!::strcmp(meta->clap_uid, clap_uid))
-                    {
-                        // Instantiate the plugin UI and return
-                        ui::Module *ui = f->create(meta);
-                        if (ui == NULL)
-                        {
-                            fprintf(stderr, "Failed to instantiate UI for plugin id=%s\n", clap_uid);
-                            return NULL;
-                        }
-                        lsp_finally {
-                            if (ui != NULL)
-                            {
-                                ui->destroy();
-                                delete ui;
-                            }
-                        };
-                        clap::UIWrapper *ui_wrapper = new clap::UIWrapper(ui, wrapper);
-                        if (ui_wrapper != NULL)
-                            ui  = NULL;
-                        return ui_wrapper;
-                    }
-                }
-            }
-
-            // No plugin has been found
-            fprintf(stderr, "Not found UI for plugin: %s, will continue in headless mode\n", clap_uid);
-            return NULL;
-        }
     } /* namespace clap */
 } /* namespace lsp */
 

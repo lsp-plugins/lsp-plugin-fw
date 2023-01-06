@@ -258,8 +258,7 @@ namespace lsp
         {
             lsp_trace("plugin = %p, api=%s, is_floating=%d", plugin, api, int(is_floating));
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
-            UIWrapper *uw = w->ui_wrapper();
-            if (uw == NULL)
+            if (!w->ui_provided())
                 return false;
 
         #if defined(PLATFORM_WINDOWS)
@@ -280,8 +279,7 @@ namespace lsp
         {
             lsp_trace("plugin = %p, api=%p, is_floating=%p", plugin, api, is_floating);
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
-            UIWrapper *uw = w->ui_wrapper();
-            if (uw == NULL)
+            if (!w->ui_provided())
                 return false;
 
         #if defined(PLATFORM_WINDOWS)
@@ -303,24 +301,15 @@ namespace lsp
                 return false;
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
-            UIWrapper *uw = w->ui_wrapper();
-            if (uw == NULL)
-                return false;
-
-            status_t res = uw->init(NULL);
-            if (res != STATUS_OK)
-                uw->destroy();
-
-            return res == STATUS_OK;
+            UIWrapper *uw = w->create_ui();
+            return uw != NULL;
         }
 
         void CLAP_ABI ui_destroy(const clap_plugin_t *plugin)
         {
             lsp_trace("plugin = %p", plugin);
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
-            UIWrapper *uw = w->ui_wrapper();
-            if (uw != NULL)
-                uw->destroy();
+            w->destroy_ui();
         }
 
         bool CLAP_ABI ui_set_scale(const clap_plugin_t *plugin, double scale)
@@ -552,7 +541,7 @@ namespace lsp
                 return &plugin_params_extension;
             if ((!strcmp(id, CLAP_EXT_NOTE_PORTS)) && (w->has_note_ports()))
                 return &note_ports_extension;
-            if ((!strcmp(id, CLAP_EXT_GUI)) && (w->ui_wrapper() != NULL))
+            if ((!strcmp(id, CLAP_EXT_GUI)) && (w->ui_provided()))
                 return &ui_extension;
 
             return w->get_extension(id);
@@ -958,10 +947,10 @@ extern "C"
     extern CLAP_EXPORT
     const clap_plugin_entry_t clap_entry =
     {
-       .clap_version    = CLAP_VERSION_INIT,
-       .init            = lsp::clap::init_library,
-       .deinit          = lsp::clap::destroy_library,
-       .get_factory     = lsp::clap::get_factory
+        .clap_version   = CLAP_VERSION_INIT,
+        .init           = lsp::clap::init_library,
+        .deinit         = lsp::clap::destroy_library,
+        .get_factory    = lsp::clap::get_factory
     };
 
 #ifdef __cplusplus

@@ -41,6 +41,8 @@ namespace lsp
         {
             pHost               = host;
             pPackage            = package;
+            pUIMetadata         = NULL;
+            pUIFactory          = NULL;
             pUIWrapper          = NULL;
             pExt                = NULL;
             pExecutor           = NULL;
@@ -48,10 +50,11 @@ namespace lsp
             nLatency            = 0;
             nDumpReq            = 0;
             nDumpResp           = 0;
-            pSamplePlayer       = NULL;
 
+            bUIActive           = false;
             bRestartRequested   = false;
             bUpdateSettings     = true;
+            pSamplePlayer       = NULL;
         }
 
         Wrapper::~Wrapper()
@@ -487,12 +490,46 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void Wrapper::lookup_ui_factory()
+        {
+            // Create UI wrapper
+            const char *clap_uid = metadata()->clap_uid;
+
+            // Lookup plugin identifier among all registered plugin factories
+            for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *meta = f->enumerate(i);
+                    if (meta == NULL)
+                        break;
+
+                    // Check plugin identifier
+                    if (!::strcmp(meta->clap_uid, clap_uid))
+                    {
+                        pUIMetadata     = meta;
+                        pUIFactory      = f;
+
+                        lsp_trace("UI factory: %p, UI metadata: %p", pUIFactory, pUIMetadata);
+                        return;
+                    }
+                }
+            }
+
+            pUIMetadata     = NULL;
+            pUIFactory      = NULL;
+        }
+
         status_t Wrapper::init()
         {
             // Obtain the plugin metadata
             const meta::plugin_t *meta = pPlugin->metadata();
             if (meta == NULL)
                 return STATUS_BAD_STATE;
+
+            // Lookup for the UI factory
+            lookup_ui_factory();
 
             // Create extensions
             pExt    = new HostExtensions(pHost);
@@ -503,9 +540,6 @@ namespace lsp
             pLoader = core::create_resource_loader();
             if (pLoader == NULL)
                 return STATUS_NO_MEM;
-
-            // Create UI wrapper
-            pUIWrapper = UIWrapper::create(this);
 
             // Create all possible ports for plugin and validate the state
             lltl::parray<plug::IPort> plugin_ports;
@@ -825,6 +859,17 @@ namespace lsp
                 (process->audio_outputs_count != vAudioOut.size()))
                 return CLAP_PROCESS_ERROR;
 
+            // Update UI activity state
+            bool ui_active = (pUIWrapper != NULL) ? pUIWrapper->ui_active() : false;
+            if (ui_active != bUIActive)
+            {
+                if (ui_active)
+                    pPlugin->activate_ui();
+                else
+                    pPlugin->deactivate_ui();
+                bUIActive   = ui_active;
+            }
+
             // Bind audio ports
             for (size_t i=0, n=vAudioIn.size(); i<n; ++i)
             {
@@ -850,7 +895,10 @@ namespace lsp
             {
                 clap::ParameterPort *port = vParamPorts.uget(i);
                 if ((port != NULL) && (port->sync(process->out_events)))
+                {
+                    lsp_trace("port change from UI: id=%s value=%f", port->metadata()->id, port->value());
                     bUpdateSettings     = true;
+                }
             }
 
             // Need to dump state?
@@ -884,6 +932,7 @@ namespace lsp
                 // Update the settings for the plugin
                 if (bUpdateSettings)
                 {
+                    lsp_trace("Updating settings");
                     pPlugin->update_settings();
                     bUpdateSettings     = false;
                 }
@@ -1210,6 +1259,70 @@ namespace lsp
         UIWrapper *Wrapper::ui_wrapper()
         {
             return pUIWrapper;
+        }
+
+        UIWrapper *Wrapper::create_ui()
+        {
+            if (pUIWrapper != NULL)
+                return pUIWrapper;
+
+            const char *clap_uid = metadata()->clap_uid;
+            if (!ui_provided())
+            {
+                fprintf(stderr, "Not found UI for plugin: %s, will continue in headless mode\n", clap_uid);
+                return NULL;
+            }
+
+            // Instantiate the plugin UI and return
+            ui::Module *ui = static_cast<ui::Factory *>(pUIFactory)->create(pUIMetadata);
+            if (ui == NULL)
+            {
+                fprintf(stderr, "Failed to instantiate UI for plugin id=%s\n", clap_uid);
+                return NULL;
+            }
+            lsp_finally {
+                if (ui != NULL)
+                {
+                    ui->destroy();
+                    delete ui;
+                }
+            };
+
+            // Create wrapper
+            UIWrapper *uw = new clap::UIWrapper(ui, this);
+            if (uw == NULL)
+            {
+                fprintf(stderr, "Failed to instantiate UI wrapper plugin id=%s\n", clap_uid);
+                return NULL;
+            }
+            ui  = NULL; // Will be destroyed by wrapper
+
+            status_t res = uw->init(NULL);
+            if (res != STATUS_OK)
+            {
+                uw->destroy();
+                delete uw;
+                return NULL;
+            }
+
+            // Return result
+            pUIWrapper = uw;
+            return pUIWrapper;
+        }
+
+        void Wrapper::destroy_ui()
+        {
+            if (pUIWrapper == NULL)
+                return;
+
+            pUIWrapper->destroy();
+            delete pUIWrapper;
+            pUIWrapper = NULL;
+        }
+
+        bool Wrapper::ui_provided()
+        {
+            return (pUIMetadata != NULL) && (pUIFactory != NULL);
         }
 
         HostExtensions *Wrapper::extensions()

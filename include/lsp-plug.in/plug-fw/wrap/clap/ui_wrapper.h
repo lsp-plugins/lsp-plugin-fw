@@ -57,7 +57,6 @@ namespace lsp
             protected:
                 static status_t                 slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_show(tk::Widget *sender, void *ptr, void *data);
-                static status_t                 slot_ui_realize(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_close(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t                 ui_main_loop(void *arg);
@@ -103,8 +102,8 @@ namespace lsp
                 bool                            show();
                 bool                            hide();
 
-            public: // Factory method
-                static UIWrapper               *create(clap::Wrapper *wrapper);
+            public: // Miscellaneious functions
+                bool                            ui_active() const;
         };
     } /* namespace clap */
 } /* namespace lsp */
