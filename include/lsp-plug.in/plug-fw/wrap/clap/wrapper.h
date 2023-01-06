@@ -171,6 +171,7 @@ namespace lsp
                 inline core::SamplePlayer      *sample_player();
                 void                            request_state_dump();
                 inline UIWrapper               *ui_wrapper();
+                inline HostExtensions          *extensions();
         };
     } /* namespace clap */
 } /* namespace lsp */

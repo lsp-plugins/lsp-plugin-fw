@@ -39,9 +39,13 @@ namespace lsp
         UIWrapper::UIWrapper(ui::Module *ui, clap::Wrapper *wrapper):
             ui::IWrapper(ui, wrapper->resources())
         {
-            pWrapper    = wrapper;
-            pUIThread   = NULL;
-            fScaling    = -1.0f;
+            pWrapper        = wrapper;
+            pExt            = wrapper->extensions();
+            pUIThread       = NULL;
+            fScaling        = -1.0f;
+            pParent         = NULL;
+            pTransientFor   = NULL;
+            bUIInitialized  = false;
         }
 
         UIWrapper::~UIWrapper()
@@ -93,34 +97,20 @@ namespace lsp
             if ((res = pUI->init(this, pDisplay)) != STATUS_OK)
                 return res;
 
-            // Build the UI
-            if (meta->ui_resource != NULL)
-            {
-                if ((res = build_ui(meta->ui_resource, root_widget)) != STATUS_OK)
-                {
-                    lsp_error("Error building UI for resource %s: code=%d", meta->ui_resource, int(res));
-                    return res;
-                }
-            }
-
-            // Bind resize slot
-            tk::Window *wnd  = window();
-            if (wnd != NULL)
-            {
-                wnd->slots()->bind(tk::SLOT_RESIZE, slot_ui_resize, this);
-                wnd->slots()->bind(tk::SLOT_SHOW, slot_ui_show, this);
-                wnd->slots()->bind(tk::SLOT_REALIZED, slot_ui_realize, this);
-            }
-
-            // Call the post-initialization routine
-            if (res == STATUS_OK)
-                res = pUI->post_init();
-
             return res;
         }
 
         void UIWrapper::destroy()
         {
+            bUIInitialized  = false;
+
+            // Destroy the transient window wrapper
+            if (pTransientFor != NULL)
+            {
+                delete pTransientFor;
+                pTransientFor   = NULL;
+            }
+
             // Stop the UI thread
             hide();
 
@@ -362,6 +352,14 @@ namespace lsp
             return (fScaling > 0.0f) ? fScaling : scaling;
         }
 
+        bool UIWrapper::accept_window_size(size_t width, size_t height)
+        {
+            if (pExt == NULL)
+                return IWrapper::accept_window_size(width, height);
+
+            return pExt->gui->request_resize(pExt->host, width, height);
+        }
+
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
             return STATUS_OK;
@@ -372,8 +370,11 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t UIWrapper::slot_ui_realize(tk::Widget *sender, void *ptr, void *data)
+        status_t UIWrapper::slot_ui_close(tk::Widget *sender, void *ptr, void *data)
         {
+            UIWrapper *this_ = static_cast<UIWrapper *>(ptr);
+            if (this_->pExt != NULL)
+                this_->pExt->gui->closed(this_->pExt->host, false);
             return STATUS_OK;
         }
 
@@ -527,16 +528,35 @@ namespace lsp
             return true;
         }
 
+        void *UIWrapper::to_native_handle(const clap_window_t *window)
+        {
+        #if defined(PLATFORM_WINDOWS)
+            return static_cast<void *>(window->win32);
+        #elif defined(PLATFORM_MACOSX)
+            return static_cast<void *>(window->cocoa);
+        #else
+            return reinterpret_cast<void *>(window->x11);
+        #endif
+        }
+
         bool UIWrapper::set_parent(const clap_window_t *window)
         {
-            // TODO
-            return false;
+            pParent     = to_native_handle(window);
+            return true;
         }
 
         bool UIWrapper::set_transient(const clap_window_t *window)
         {
-            // TODO
-            return false;
+            if (pDisplay == NULL)
+                return false;
+
+            if (pTransientFor != NULL)
+                delete pTransientFor;
+
+            void *handle    = to_native_handle(window);
+            pTransientFor   = (handle != NULL) ? pDisplay->display()->wrap_window(handle) : NULL;
+
+            return true;
         }
 
         void UIWrapper::suggest_title(const char *title)
@@ -552,13 +572,48 @@ namespace lsp
             wnd->title()->set_raw(title);
         }
 
+        bool UIWrapper::initialize_ui()
+        {
+            if (bUIInitialized)
+                return true;
+
+            status_t res;
+            const meta::plugin_t *meta = pUI->metadata();
+            if (pUI->metadata() == NULL)
+                return false;
+
+            if (meta->ui_resource != NULL)
+            {
+                if ((res = build_ui(meta->ui_resource, pParent)) != STATUS_OK)
+                {
+                    lsp_error("Error building UI for resource %s: code=%d", meta->ui_resource, int(res));
+                    return false;
+                }
+            }
+
+            // Bind resize slot
+            tk::Window *wnd  = window();
+            if (wnd != NULL)
+            {
+                wnd->slots()->bind(tk::SLOT_RESIZE, slot_ui_resize, this);
+                wnd->slots()->bind(tk::SLOT_SHOW, slot_ui_show, this);
+                wnd->slots()->bind(tk::SLOT_CLOSE, slot_ui_close, this);
+            }
+
+            // Call the post-initialization routine
+            if (res == STATUS_OK)
+                res = pUI->post_init();
+
+            bUIInitialized = true;
+            return true;
+        }
+
         bool UIWrapper::show()
         {
             hide();
 
-            // Show the window
-            tk::Window *wnd = window();
-            if (wnd == NULL)
+            // Lazy initialize the UI ONLY after whe have the parent/transient settings
+            if (!initialize_ui())
                 return false;
 
             // Launch the main loop thread
@@ -567,7 +622,8 @@ namespace lsp
                 return false;
 
             // Show the window and start the main thread
-            wnd->show();
+            tk::Window *wnd  = window();
+            wnd->show(pTransientFor);
             if (pUIThread->start() != STATUS_OK)
             {
                 wnd->hide();

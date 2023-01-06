@@ -37,10 +37,11 @@ namespace lsp
         struct HostExtensions
         {
             public:
+                const clap_host            *host;
                 const clap_host_latency_t  *latency;
                 const clap_host_state_t    *state;
                 const clap_host_params_t   *params;
-                const clap_plugin_gui_t    *gui;
+                const clap_host_gui_t      *gui;
 
             protected:
                 template <class T>
@@ -50,12 +51,13 @@ namespace lsp
                 }
 
             public:
-                explicit HostExtensions(const clap_host_t *host)
+                explicit HostExtensions(const clap_host_t *clap_host)
                 {
+                    host        = clap_host;
                     latency     = get_extension<clap_host_latency_t>(host, CLAP_EXT_LATENCY);
                     state       = get_extension<clap_host_state_t>(host, CLAP_EXT_STATE);
                     params      = get_extension<clap_host_params_t>(host, CLAP_EXT_PARAMS);
-                    gui         = get_extension<clap_plugin_gui_t>(host, CLAP_EXT_GUI);
+                    gui         = get_extension<clap_host_gui_t>(host, CLAP_EXT_GUI);
                 }
         };
     } /* namespace clap */

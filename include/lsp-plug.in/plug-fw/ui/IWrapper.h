@@ -426,6 +426,14 @@ namespace lsp
                  * @return status of operation
                  */
                 virtual status_t            reset_settings();
+
+                /**
+                 * Check that the specified window size is accepted by the host
+                 * @param width the requested window width
+                 * @param height the requested window height
+                 * @return true if the specified window size is accepted by the host
+                 */
+                virtual bool                accept_window_size(size_t width, size_t height);
         };
     }
 

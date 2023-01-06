@@ -46,20 +46,27 @@ namespace lsp
         {
             private:
                 clap::Wrapper                  *pWrapper;       // CLAP Wrapper
+                HostExtensions                 *pExt;           // Host extensions
                 ipc::Thread                    *pUIThread;      // Thread that performs the UI event loop
                 float                           fScaling;       // Scaling factor
                 ipc::Mutex                      sMutex;         // Main loop mutex
+                void                           *pParent;        // Parent window handle
+                ws::IWindow                    *pTransientFor;  // TransientFor window
+                bool                            bUIInitialized; // UI initialized flag
 
             protected:
                 static status_t                 slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_realize(tk::Widget *sender, void *ptr, void *data);
+                static status_t                 slot_ui_close(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t                 ui_main_loop(void *arg);
+                static void                    *to_native_handle(const clap_window_t *window);
 
             protected:
                 clap::UIPort                   *create_port(const meta::port_t *port, const char *postfix);
                 void                            transfer_dsp_to_ui();
+                bool                            initialize_ui();
 
             public:
                 explicit UIWrapper(ui::Module *ui, clap::Wrapper *wrapper);
@@ -81,18 +88,20 @@ namespace lsp
 
                 virtual float                   ui_scaling_factor(float scaling) override;
 
+                virtual bool                    accept_window_size(size_t width, size_t height) override;
+
             public: // CLAP API
-                bool set_scale(double scale);
-                bool get_size(uint32_t *width, uint32_t *height);
-                bool can_resize();
-                bool get_resize_hints(clap_gui_resize_hints_t *hints);
-                bool adjust_size(uint32_t *width, uint32_t *height);
-                bool set_size(uint32_t width, uint32_t height);
-                bool set_parent(const clap_window_t *window);
-                bool set_transient(const clap_window_t *window);
-                void suggest_title(const char *title);
-                bool show();
-                bool hide();
+                bool                            set_scale(double scale);
+                bool                            get_size(uint32_t *width, uint32_t *height);
+                bool                            can_resize();
+                bool                            get_resize_hints(clap_gui_resize_hints_t *hints);
+                bool                            adjust_size(uint32_t *width, uint32_t *height);
+                bool                            set_size(uint32_t width, uint32_t height);
+                bool                            set_parent(const clap_window_t *window);
+                bool                            set_transient(const clap_window_t *window);
+                void                            suggest_title(const char *title);
+                bool                            show();
+                bool                            hide();
 
             public: // Factory method
                 static UIWrapper               *create(clap::Wrapper *wrapper);

@@ -1212,6 +1212,11 @@ namespace lsp
             return pUIWrapper;
         }
 
+        HostExtensions *Wrapper::extensions()
+        {
+            return pExt;
+        }
+
         status_t Wrapper::read_value(const clap_istream_t *is, const char *name, core::kvt_param_t *p)
         {
             status_t res;
