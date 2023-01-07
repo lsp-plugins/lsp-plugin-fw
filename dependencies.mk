@@ -20,7 +20,7 @@
 
 #------------------------------------------------------------------------------
 # Features enabled by default
-DEFAULT_FEATURES = doc ladspa lv2 vst2
+DEFAULT_FEATURES = clap doc ladspa lv2 vst2
 
 #------------------------------------------------------------------------------
 # Plugin dependencies
@@ -50,6 +50,8 @@ TEST_DEPENDENCIES_UI = \
 #------------------------------------------------------------------------------
 # Platform-specific dependencies
 ifeq ($(PLATFORM),Linux)
+  DEFAULT_FEATURES += jack
+
   DEPENDENCIES_BIN += \
     LSP_R3D_GLX_LIB
 
@@ -60,6 +62,8 @@ ifeq ($(PLATFORM),Linux)
 endif
 
 ifeq ($(PLATFORM),BSD)
+  DEFAULT_FEATURES += jack
+
   DEPENDENCIES_BIN += \
     LSP_R3D_GLX_LIB
 
@@ -311,6 +315,53 @@ ifeq ($(PLATFORM),Windows)
 endif
 
 #------------------------------------------------------------------------------
+# VST build dependencies
+DEPENDENCIES_CLAP = \
+  $(DEPENDENCIES_COMMON) \
+  $(DEPENDENCIES_COMMON_UI)
+
+DEPENDENCIES_CLAP_WRAP = \
+  LIBDL \
+  LSP_COMMON_LIB \
+  LSP_3RD_PARTY
+
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES_CLAP += \
+    LIBPTHREAD \
+    LIBDL \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBXRANDR \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
+
+ifeq ($(PLATFORM),BSD)
+  DEPENDENCIES_CLAP += \
+    LIBPTHREAD \
+    LIBDL \
+    LIBSNDFILE \
+    LIBX11 \
+    LIBXRANDR \
+    LIBCAIRO \
+    LIBFREETYPE
+endif
+
+ifeq ($(PLATFORM),Windows)
+  DEPENDENCIES_CLAP += \
+    LIBSHLWAPI \
+    LIBWINMM \
+    LIBMSACM \
+    LIBMPR \
+    LIBGDI32 \
+    LIBD2D1 \
+    LIBOLE \
+    LIBWINCODEC \
+    LIBDWRITE \
+    LIBUUID
+endif
+
+#------------------------------------------------------------------------------
 # List of dependencies
 DEPENDENCIES = \
   $(DEPENDENCIES_PLUGINS) \
@@ -321,7 +372,8 @@ DEPENDENCIES = \
   $(DEPENDENCIES_LV2) \
   $(DEPENDENCIES_LV2_UI) \
   $(DEPENDENCIES_LV2TTL_GEN) \
-  $(DEPENDENCIES_VST2)
+  $(DEPENDENCIES_VST2) \
+  $(DEPENDENCIES_CLAP)
 
 #------------------------------------------------------------------------------
 # All possible dependencies

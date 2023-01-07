@@ -133,49 +133,12 @@ namespace lsp
             return (major * 1000) + (minor * 100) + micro;
         }
 
-    #ifdef LSP_TRACE
         inline void dump_vst_bank(const void *bank, size_t ck_size)
         {
-            const uint8_t *ddump        = reinterpret_cast<const uint8_t *>(bank);
-            lsp_trace("Chunk dump:");
-
-            for (size_t offset=0; offset < ck_size; offset += 16)
-            {
-                // Print HEX dump
-                lsp_nprintf("%08x: ", int(offset));
-                for (size_t i=0; i<0x10; ++i)
-                {
-                    if ((offset + i) < ck_size)
-                        lsp_nprintf("%02x ", int(ddump[i]));
-                    else
-                        lsp_nprintf("   ");
-                }
-                lsp_nprintf("   ");
-
-                // Print character dump
-                for (size_t i=0; i<0x10; ++i)
-                {
-                    if ((offset + i) < ck_size)
-                    {
-                        uint8_t c   = ddump[i];
-                        if ((c < 0x20) || (c >= 0x7f))
-                            c           = '.';
-                        lsp_nprintf("%c", c);
-                    }
-                    else
-                        lsp_nprintf(" ");
-                }
-                lsp_printf("");
-
-                // Move pointer
-                ddump       += 0x10;
-            }
+            IF_TRACE(
+                lsp_dumpb("Chunk dump:", bank, ck_size)
+            );
         }
-    #else
-        inline void dump_vst_bank(const void *bank, size_t ck_size)
-        {
-        }
-    #endif /* LSP_TRACE */
     } /* namespace vst2 */
 } /* namespace lsp */
 

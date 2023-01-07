@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.8 ===
-
+* Significantly improved text value parsing into the port value.
 
 === 1.0.7 ===
 * Improved preset loading for incomplete presets that are missing some plugin parameters.

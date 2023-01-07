@@ -176,6 +176,8 @@ namespace lsp
                 return res;
             if ((res = json_out_property(s, "vst2_uid", m->vst2_uid)) != STATUS_OK)
                 return res;
+            if ((res = json_out_property(s, "clap_uid", m->clap_uid)) != STATUS_OK)
+                return res;
             if ((res = s->write_property("groups")) != STATUS_OK)
                 return res;
             if ((res = json_write_plugin_groups(s, m->classes)) != STATUS_OK)

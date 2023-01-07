@@ -265,7 +265,7 @@ namespace lsp
 
         void UIWrapper::dump_state_request()
         {
-            pWrapper->query_display_draw();
+            pWrapper->request_state_dump();
         }
 
         void UIWrapper::main_iteration()
@@ -351,7 +351,7 @@ namespace lsp
                 }
                 #else
                     kvt-> commit_all(core::KVT_RX);    // Just clear all RX queue for non-debug version
-                #endif
+                #endif /* LSP_DEBUG */
 
                 // Call garbage collection and release KVT storage
                 kvt->gc();
@@ -476,21 +476,24 @@ namespace lsp
 
         status_t UIWrapper::eff_edit_idle(void *arg)
         {
-            static constexpr size_t FRAME_PERIOD    = 40; // 25 FPS
+            static constexpr size_t FRAME_PERIOD    = 1000 / UI_FRAMES_PER_SECOND;
+
             UIWrapper *this_ = static_cast<UIWrapper *>(arg);
+            system::time_millis_t ctime = system::get_time_millis();
 
             while (!ipc::Thread::is_cancelled())
             {
                 // Measure the time of next frame to appear
-                system::time_millis_t ctime = system::get_time_millis() + FRAME_PERIOD;
+                system::time_millis_t deadline = ctime + FRAME_PERIOD;
 
                 // Perform main iteration
                 this_->main_iteration();
 
                 // Wait for the next frame to appear
                 system::time_millis_t ftime = system::get_time_millis();
-                if (ftime < ctime)
-                    this_->pDisplay->wait_events(ctime - ftime);
+                if (ftime < deadline)
+                    this_->pDisplay->wait_events(deadline - ftime);
+                ctime   = ftime;
             }
 
             return STATUS_OK;

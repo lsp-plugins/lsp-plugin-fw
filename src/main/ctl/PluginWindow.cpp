@@ -2200,7 +2200,10 @@ namespace lsp
                 tk::SizeConstraints::apply(&xr, &sr);
 
                 if ((width != xr.nWidth) || (height != xr.nHeight))
-                    wnd->resize_window(width, height);
+                {
+                    if (_this->pWrapper->accept_window_size(width, height))
+                        wnd->resize_window(width, height);
+                }
             }
 
             return STATUS_OK;

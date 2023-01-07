@@ -1950,6 +1950,11 @@ namespace lsp
             nPlayLength     = length;
         }
 
+        bool IWrapper::accept_window_size(size_t width, size_t height)
+        {
+            return true;
+        }
+
     } /* namespace ui */
 } /* namespace lsp */
 

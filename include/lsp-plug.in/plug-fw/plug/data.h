@@ -585,7 +585,12 @@ namespace lsp
              */
             double          beatsPerMinute;
 
-            /** Current tick within beat
+            /**
+             * The tempo increment/decrement on each additional sample
+             */
+            double          beatsPerMinuteChange;
+
+            /** Current tick within the bar
              *
              */
             double          tick;

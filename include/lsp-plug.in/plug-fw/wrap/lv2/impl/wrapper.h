@@ -121,7 +121,7 @@ namespace lsp
             ssize_t first = 0, last = vPluginPorts.size() - 1;
             while (first <= last)
             {
-                size_t center   = (first + last) >> 1;
+                size_t center   = size_t(first + last) >> 1;
                 lv2::Port *p    = vPluginPorts.uget(center);
                 if (urid == p->get_urid())
                     return p;

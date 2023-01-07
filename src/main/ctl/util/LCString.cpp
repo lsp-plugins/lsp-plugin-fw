@@ -61,12 +61,8 @@ namespace lsp
             }
             else if ((!strcmp(name, ".meta")) || (!strcmp(name, ".metadata")))
             {
-                float flag = 0.0f;
-                if (meta::parse_bool(&flag, value) == STATUS_OK)
-                {
-                    if (flag >= 0.5f)
-                        bind_metadata(pProp->params());
-                }
+                if (!strcasecmp(value, "true"))
+                    bind_metadata(pProp->params());
             }
             else
                 return false;
