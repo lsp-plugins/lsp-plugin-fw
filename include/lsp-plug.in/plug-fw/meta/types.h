@@ -166,7 +166,10 @@ namespace lsp
                 C_ANALYSER,
                 C_CONVERTER,
                 C_FUNCTION,
-                C_MIXER
+                C_MIXER,
+
+            // Overall number of classes
+            C_TOTAL
         };
 
         enum clap_feature_t

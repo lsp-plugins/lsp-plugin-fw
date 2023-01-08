@@ -37,7 +37,7 @@ namespace lsp
         };
 
         // Atom ports' metadata for LV2 plugins
-        const meta::port_t atom_ports[] =
+        static const meta::port_t atom_ports[] =
         {
             // Input audio ports
             { LSP_LV2_ATOM_PORT_IN,     "UI Input",     meta::U_NONE,         meta::R_UI_SYNC, meta::F_IN, 0, 0, 0, 0, NULL       },
