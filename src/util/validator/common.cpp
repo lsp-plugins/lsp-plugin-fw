@@ -248,27 +248,27 @@ namespace lsp
                         allocation_error(ctx);
                         return;
                     }
-                    lsp_finally {
-                        if (cm != NULL)
-                            meta::drop_port_metadata(cm);
-                    };
                     if (ctx->gen_ports.add(cm))
-                        cm      = NULL;
-                    else
-                        allocation_error(ctx);
-
-                    // Perform checks of ports in the group
-                    size_t col          = 0;
-                    for (; cm->id != NULL; ++cm, ++col)
                     {
-                        if (meta::is_growing_port(cm))
-                            cm->start    = cm->min + ((cm->max - cm->min) * row) / float(num_rows);
-                        else if (meta::is_lowering_port(cm))
-                            cm->start    = cm->max - ((cm->max - cm->min) * row) / float(num_rows);
+                        // Perform checks of ports in the group
+                        size_t col          = 0;
+                        for (; cm->id != NULL; ++cm, ++col)
+                        {
+                            if (meta::is_growing_port(cm))
+                                cm->start    = cm->min + ((cm->max - cm->min) * row) / float(num_rows);
+                            else if (meta::is_lowering_port(cm))
+                                cm->start    = cm->max - ((cm->max - cm->min) * row) / float(num_rows);
 
-                        // Recursively call for port validation
-                        validate_ports(ctx, meta, cm, postfix_buf);
-                    } // for cm
+                            // Recursively call for port validation
+                            validate_ports(ctx, meta, cm, postfix_buf);
+                        } // for cm
+                    }
+                    else
+                    {
+                        meta::drop_port_metadata(cm);
+                        allocation_error(ctx);
+                        return;
+                    }
                 } // for row
             } // meta::R_PORT_SET
         }
@@ -334,7 +334,7 @@ namespace lsp
             if ((clash = ctx->lsp_acronyms.get(meta->acronym)) != NULL)
                 validation_error(ctx, "Model acronym '%s' for plugin uid='%s' clashes the acronym for plugin uid='%s'",
                     meta->acronym, meta->uid, clash->uid);
-            if (!ctx->lsp_acronyms.create(meta->acronym, const_cast<meta::plugin_t *>(meta)))
+            else if (!ctx->lsp_acronyms.create(meta->acronym, const_cast<meta::plugin_t *>(meta)))
                 allocation_error(ctx);
 
             // Validate presence of developer and add to list of developers

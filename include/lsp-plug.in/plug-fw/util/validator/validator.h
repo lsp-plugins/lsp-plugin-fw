@@ -42,7 +42,8 @@ namespace lsp
             size_t  errors;
             lltl::pphash<char, meta::plugin_t>      lsp_acronyms;
             lltl::pphash<char, meta::plugin_t>      lsp_ids;
-            lltl::pphash<size_t, meta::plugin_t>    ladspa_ids;
+            lltl::pphash<char, meta::plugin_t>      vst2_ids;
+            lltl::pphash<uint32_t, meta::plugin_t>  ladspa_ids;
             lltl::pphash<char, meta::plugin_t>      ladspa_labels;
             lltl::parray<meta::person_t>            developers;
             lltl::parray<meta::bundle_t>            bundles;

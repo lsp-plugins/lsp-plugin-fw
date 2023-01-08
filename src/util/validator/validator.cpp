@@ -114,6 +114,7 @@ namespace lsp
                     if (meta == NULL)
                         break;
 
+                    ++ctx.plugins;
                     validate_plugin(&ctx, meta);
                 }
             }

@@ -22,6 +22,8 @@
 #include <lsp-plug.in/plug-fw/util/validator/validator.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
+#include <lsp-plug.in/plug-fw/wrap/clap/helpers.h>
+
 namespace lsp
 {
     namespace validator
@@ -35,6 +37,17 @@ namespace lsp
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)
             {
+                // Check that control port does not clash with another control port
+                if (port->role == meta::R_CONTROL)
+                {
+                    clap_id uid = lsp::clap::clap_hash_string(port->id);
+                    const meta::port_t *clash = ctx->clap_ids.get(&uid);
+                    if (clash != NULL)
+                        validation_error(ctx, "Port id='%s' clashes port id='%s' for plugin uid='%s'",
+                            port->id, clash->id, meta->uid);
+                    else if (!ctx->clap_ids.create(&uid, const_cast<meta::port_t *>(port)))
+                        allocation_error(ctx);
+                }
             }
         } /* namespace clap */
     } /* namespace validator */

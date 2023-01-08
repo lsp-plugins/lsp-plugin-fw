@@ -19,8 +19,10 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/3rdparty/steinberg/vst2.h>
 #include <lsp-plug.in/plug-fw/util/validator/validator.h>
 #include <lsp-plug.in/stdlib/stdio.h>
+#include <lsp-plug.in/stdlib/string.h>
 
 namespace lsp
 {
@@ -30,11 +32,29 @@ namespace lsp
         {
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
+                // Validate VST 2.x identifier
+                if (meta->vst2_uid == NULL)
+                    return;
+                if (strlen(meta->vst2_uid) != 4)
+                    validation_error(ctx, "Plugin uid='%s' has invalid VST 2.x identifier '%s', should be 4 characters", meta->vst2_uid);
 
+                // Check conflicts
+                const meta::plugin_t *clash = ctx->vst2_ids.get(meta->vst2_uid);
+                if (clash != NULL)
+                    validation_error(ctx, "Plugin uid='%s' clashes plugin uid='%s': duplicate VST 2.x identifier '%s'",
+                        meta->uid, clash->uid, meta->vst2_uid);
+                else if (!ctx->vst2_ids.create(meta->vst2_uid, const_cast<meta::plugin_t *>(meta)))
+                    allocation_error(ctx);
             }
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)
             {
+                if (port->role == meta::R_CONTROL)
+                {
+                    if (strlen(port->id) >= kVstMaxParamStrLen)
+                        validation_error(ctx, "Plugin uid='%s', parameter='%s': VST 2.x restrictions do not allow the parameter name to be not larger %d characters",
+                            meta->uid, port->id, int(kVstMaxParamStrLen-1));
+                }
             }
 
         } /* namespace vst2 */

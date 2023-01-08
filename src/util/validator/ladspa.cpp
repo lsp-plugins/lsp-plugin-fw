@@ -30,7 +30,37 @@ namespace lsp
         {
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
+                // Validate LADSPA identifier
+                if (meta->ladspa_id <= 0)
+                {
+                    if (meta->ladspa_lbl != NULL)
+                        validation_error(ctx, "Plugin uid='%s' has no integral LADSPA identifier but has provided LADSPA label='%s'",
+                            meta->uid, meta->ladspa_lbl);
 
+                    return;
+                }
+
+                // Check conflicts within ladspa_id
+                const meta::plugin_t *clash = ctx->ladspa_ids.get(&meta->ladspa_id);
+                if (clash != NULL)
+                    validation_error(ctx, "Plugin uid='%s' clashes plugin uid='%s': duplicate LADSPA identifier %d (0x%x)",
+                        meta->uid, clash->uid, int(meta->ladspa_id), int(meta->ladspa_id));
+                else if (!ctx->ladspa_ids.create(&meta->ladspa_id, const_cast<meta::plugin_t *>(meta)))
+                    allocation_error(ctx);
+
+                // Check conflicts within ladspa_label
+                if (meta->ladspa_lbl != NULL)
+                {
+                    clash = ctx->ladspa_labels.get(meta->ladspa_lbl);
+                    if (clash != NULL)
+                        validation_error(ctx, "Plugin uid='%s' clashes plugin uid='%s': duplicate LADSPA label '%s'",
+                            meta->uid, clash->uid, meta->ladspa_lbl);
+                    else if (!ctx->ladspa_labels.create(meta->ladspa_lbl, const_cast<meta::plugin_t *>(meta)))
+                        allocation_error(ctx);
+                }
+                else
+                    validation_error(ctx, "Plugin uid='%s' provides integral LADSPA identifier %d (0x%x) but does not provide LADSPA label",
+                        meta->uid, int(meta->ladspa_id), int(meta->ladspa_id));
             }
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)
