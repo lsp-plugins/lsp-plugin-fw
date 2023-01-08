@@ -43,6 +43,7 @@ namespace lsp
             lltl::pphash<char, meta::plugin_t>      lsp_acronyms;
             lltl::pphash<char, meta::plugin_t>      lsp_ids;
             lltl::pphash<char, meta::plugin_t>      vst2_ids;
+            lltl::pphash<char, meta::plugin_t>      clap_ids;
             lltl::pphash<uint32_t, meta::plugin_t>  ladspa_ids;
             lltl::pphash<char, meta::plugin_t>      ladspa_labels;
             lltl::parray<meta::person_t>            developers;
@@ -55,7 +56,7 @@ namespace lsp
             size_t bypass;
             lltl::parray<meta::port_t>              gen_ports;
             lltl::pphash<char, meta::port_t>        port_ids;
-            lltl::pphash<clap_id, meta::port_t>     clap_ids;
+            lltl::pphash<clap_id, meta::port_t>     clap_port_ids;
         } context_t;
 
         namespace ladspa

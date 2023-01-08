@@ -318,7 +318,7 @@ namespace lsp
             ctx->osc_out    = 0;
             ctx->bypass     = 0;
             ctx->port_ids.flush();
-            ctx->clap_ids.flush();
+            ctx->clap_port_ids.flush();
 
             // Validate name
             if (meta->name == NULL)
@@ -388,12 +388,6 @@ namespace lsp
             jack::validate_plugin(ctx, meta);
             clap::validate_plugin(ctx, meta);
 
-//            const char             *lv2_uri;        // LV2 URI
-//            const char             *lv2ui_uri;      // LV2 UI URI
-//            const char             *vst2_uid;       // Steinberg VST 2.x ID of the plugin
-//            const uint32_t          ladspa_id;      // LADSPA ID of the plugin
-//            const char             *ladspa_lbl;     // LADSPA unique label of the plugin
-//            const char             *clap_uid;       // Unique identifier for CLAP format
 // TODO          const version_t         version;        // Version of the plugin
 //            const int              *clap_features;  // List of CLAP plugin features
 //            const char             *ui_resource;    // Location of the UI file resource
