@@ -23,12 +23,11 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_VST2_DEFS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/plug-fw/meta/types.h>
 
-#include <lsp-plug.in/3rdparty/steinberg/vst2.h>
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/types.h>
-
+#include <lsp-plug.in/plug-fw/meta/types.h>
+#include <steinberg/vst2.h>
 
 namespace lsp
 {
@@ -124,10 +123,10 @@ namespace lsp
             size_t micro = LSP_MODULE_VERSION_MICRO(lsp_version);
 
             // Limit version elemnts for VST
-            if (minor >= 10)
-                minor   = 9;
-            if (micro >= 100)
-                micro = 99;
+            if (minor > VST_VERSION_MINOR_MAX)
+                minor   = VST_VERSION_MINOR_MAX;
+            if (micro > VST_VERSION_MICRO_MAX)
+                micro   = VST_VERSION_MICRO_MAX;
 
             // The VST versioning is too dumb, make micro version extended
             return (major * 1000) + (minor * 100) + micro;

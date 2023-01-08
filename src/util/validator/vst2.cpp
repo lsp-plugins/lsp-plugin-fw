@@ -19,11 +19,11 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/3rdparty/steinberg/vst2.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/util/validator/validator.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <steinberg/vst2.h>
 
 namespace lsp
 {
