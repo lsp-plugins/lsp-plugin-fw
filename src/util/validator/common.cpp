@@ -329,13 +329,16 @@ namespace lsp
                 validation_error(ctx, "Not specified plugin description for plugin uid='%s'", meta->uid);
 
             // Validate acronym
-            if (meta->acronym == NULL)
+            if (meta->acronym != NULL)
+            {
+                if ((clash = ctx->lsp_acronyms.get(meta->acronym)) != NULL)
+                    validation_error(ctx, "Model acronym '%s' for plugin uid='%s' clashes the acronym for plugin uid='%s'",
+                        meta->acronym, meta->uid, clash->uid);
+                else if (!ctx->lsp_acronyms.create(meta->acronym, const_cast<meta::plugin_t *>(meta)))
+                    allocation_error(ctx);
+            }
+            else
                 validation_error(ctx, "Not specified plugin acronym for plugin uid='%s'", meta->uid);
-            if ((clash = ctx->lsp_acronyms.get(meta->acronym)) != NULL)
-                validation_error(ctx, "Model acronym '%s' for plugin uid='%s' clashes the acronym for plugin uid='%s'",
-                    meta->acronym, meta->uid, clash->uid);
-            else if (!ctx->lsp_acronyms.create(meta->acronym, const_cast<meta::plugin_t *>(meta)))
-                allocation_error(ctx);
 
             // Validate presence of developer and add to list of developers
             if (meta->developer != NULL)
