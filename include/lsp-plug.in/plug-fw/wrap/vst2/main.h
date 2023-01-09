@@ -44,7 +44,7 @@
 #endif /* PLATFORM_WINDOWS */
 
 // This should be included to generate other VST stuff
-#include <lsp-plug.in/3rdparty/steinberg/vst2main.h>
+#include <steinberg/vst2main.h>
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_VST2_MAIN_H_ */
