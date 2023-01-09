@@ -116,7 +116,7 @@ namespace lsp
             return buf;
         }
 
-        inline VstInt32 version(uint32_t lsp_version)
+        inline VstInt32 version(const meta::module_version_t & lsp_version)
         {
             size_t major = LSP_MODULE_VERSION_MAJOR(lsp_version);
             size_t minor = LSP_MODULE_VERSION_MINOR(lsp_version);

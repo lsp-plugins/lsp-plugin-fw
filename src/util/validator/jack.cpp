@@ -30,7 +30,6 @@ namespace lsp
         {
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
-
             }
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)

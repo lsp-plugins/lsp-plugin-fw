@@ -46,6 +46,19 @@ namespace lsp
                         meta->uid, clash->uid, meta->vst2_uid);
                 else if (!ctx->vst2_ids.create(meta->vst2_uid, const_cast<meta::plugin_t *>(meta)))
                     allocation_error(ctx);
+
+                // Validate versionb
+                size_t micro = LSP_MODULE_VERSION_MICRO(meta->version);
+                if (micro > VST_VERSION_MICRO_MAX)
+                    validation_error(ctx,
+                        "Micro version value=%d of plugin uid='%s' is greater than maximum possible value %d",
+                        int(micro), meta->uid, int(VST_VERSION_MICRO_MAX));
+
+                size_t minor = LSP_MODULE_VERSION_MINOR(meta->version);
+                if (minor > VST_VERSION_MINOR_MAX)
+                    validation_error(ctx,
+                        "Minor version value=%d of plugin uid='%s' is greater than maximum possible value %d",
+                        int(micro), meta->uid, int(VST_VERSION_MINOR_MAX));
             }
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)
