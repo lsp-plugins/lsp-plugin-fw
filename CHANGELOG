@@ -3,7 +3,9 @@
 *******************************************************************************
 
 === 1.0.8 ===
+* Added CLAP plugin format support.
 * Significantly improved text value parsing into the port value.
+* Implemented plugin metadata validator.
 
 === 1.0.7 ===
 * Improved preset loading for incomplete presets that are missing some plugin parameters.

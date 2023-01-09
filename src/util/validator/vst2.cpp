@@ -37,7 +37,8 @@ namespace lsp
                 if (meta->vst2_uid == NULL)
                     return;
                 if (strlen(meta->vst2_uid) != 4)
-                    validation_error(ctx, "Plugin uid='%s' has invalid VST 2.x identifier '%s', should be 4 characters", meta->vst2_uid);
+                    validation_error(ctx, "Plugin uid='%s' has invalid VST 2.x identifier '%s', should be 4 characters",
+                        meta->uid, meta->vst2_uid);
 
                 // Check conflicts
                 const meta::plugin_t *clash = ctx->vst2_ids.get(meta->vst2_uid);

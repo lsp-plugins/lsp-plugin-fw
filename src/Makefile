@@ -314,6 +314,26 @@ HOST_UTL_RES_PATH               = $(HOST_LSP_PLUGIN_FW_BIN)/res
 
 HOST_UTL_COMMON_OBJ             = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/common, *.cpp))
 
+HOST_UTL_VALIDATOR              = $(HOST_UTL_BIN_PATH)/validator$(EXECUTABLE_EXT)
+HOST_UTL_VALIDATOR_OBJ          = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/validator, *.cpp))
+HOST_UTL_VALIDATOR_MAIN_OBJ     = $(HOST_LSP_PLUGIN_FW_BIN)/util/validator.o
+HOST_UTL_VALIDATOR_DEPS_ALL     = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
+HOST_UTL_VALIDATOR_DEPS         = $(foreach dep, $(HOST_UTL_VALIDATOR_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
+HOST_UTL_VALIDATOR_LIBS         = $(foreach dep, $(HOST_UTL_VALIDATOR_DEPS_ALL), $($(dep)_OBJ))
+HOST_UTL_VALIDATOR_LDFLAGS      = $(foreach dep, $(HOST_UTL_VALIDATOR_DEPS_ALL), $($(dep)_LDFLAGS))
+HOST_UTL_VALIDATOR_OBJS         = \
+  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_UI) \
+  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
+  $(HOST_OBJ_PLUG_META) \
+  $(HOST_OBJ_PLUG_DSP) \
+  $(HOST_OBJ_PLUG_UI) \
+  $(HOST_UTL_VALIDATOR_OBJ) \
+  $(HOST_UTL_COMMON_OBJ) \
+  $(HOST_UTL_VALIDATOR_MAIN_OBJ)
+
 HOST_UTL_JACK_MAKE              = $(HOST_UTL_BIN_PATH)/jack_make$(EXECUTABLE_EXT)
 HOST_UTL_JACK_MAKE_OBJ          = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/jack_make, *.cpp))
 HOST_UTL_JACK_MAKE_MAIN_OBJ     = $(HOST_LSP_PLUGIN_FW_BIN)/util/jack_make.o
@@ -555,6 +575,7 @@ ifeq ($(TEST),1)
     $(HOST_OBJ_WRAP_LV2UI) \
     $(HOST_OBJ_WRAP_VST2) \
     $(HOST_UTL_COMMON_OBJ) \
+    $(HOST_UTL_VALIDATOR_OBJ) \
     $(HOST_UTL_JACK_MAKE_OBJ) \
     $(HOST_UTL_VST2_MAKE_OBJ) \
     $(HOST_UTL_LV2TTL_GEN_OBJ) \
@@ -644,7 +665,7 @@ HOST_DEP_DEP_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
 .PHONY: jack ladspa dssi lv2 vst2 clap test meta doc
-.PHONY: resources
+.PHONY: resources validate
 .PHONY: install_jack install_ladspa install_lv2 install_vst2 install_clap install_doc install_xdg
 .PHONY: uninstall_jack uninstall_ladspa uninstall_lv2 uninstall_vst2 uninstall_clap uninstall_doc uninstall_xdg
 .PHONY: package_jack package_ladspa package_lv2 package_vst2 package_clap package_doc
@@ -815,6 +836,11 @@ $(HOST_LSP_PLUGIN_FW_OBJ_RES): $(HOST_UTL_RESPACK) resources
 
 #------------------------------------------------------------------------------
 # Utilities
+$(HOST_UTL_VALIDATOR): $(HOST_UTL_VALIDATOR_DEPS) $(HOST_UTL_VALIDATOR_OBJS) $(HOST_PLUG_DEPS)
+	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+	mkdir -p $(dir $(@))
+	$(HOST_CXX) -o $(@) $(HOST_UTL_VALIDATOR_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_VALIDATOR_LIBS) $(EXE_FLAGS) $(HOST_UTL_VALIDATOR_LDFLAGS)
+
 $(HOST_UTL_JACK_MAKE): $(HOST_UTL_JACK_MAKE_DEPS) $(HOST_UTL_JACK_MAKE_OBJS) $(HOST_PLUG_DEPS)
 	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
@@ -876,6 +902,10 @@ $(ARTIFACT_LIB_CLAP): $(OBJ_WRAP_CLAP) $(ARTIFACT_LIB_CLAP_DEPS) $(ARTIFACT_LIB_
 	$(CXX) -o $(ARTIFACT_LIB_CLAP) $(ARTIFACT_LIB_CLAP_LIBS) $(ARTIFACT_LIB_CLAP_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_CLAP_LDFLAGS)
 
 # All targets
+validate: $(HOST_UTL_VALIDATOR)
+	echo "Validating plugin metadata"
+	$(HOST_UTL_VALIDATOR)
+
 resources: $(HOST_UTL_REPOSITORY)
 	echo "  $(HOST_UTL_REPOSITORY)"
 	$(HOST_UTL_REPOSITORY) -o "$(HOST_UTL_RES_PATH)" $(LSP_PLUGIN_FW_OBJ_VARS) -m "$(ROOTDIR)/res/manifest.json" "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
@@ -945,7 +975,7 @@ xdg:
 
 test: $(ARTIFACT_BIN_TEST)
 
-all: test meta $(BUILD_TARGETS)
+all: test meta validate $(BUILD_TARGETS)
 
 #------------------------------------------------------------------------------
 # Installation
