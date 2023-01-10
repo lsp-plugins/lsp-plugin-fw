@@ -113,11 +113,7 @@ namespace lsp
                         return false;
 
                     nSID        = sid;
-                    float value = pPort->value();
-
-                    if (fValue == value)
-                        return false;
-                    fValue      = value;
+                    fValue      = pPort->value();
                     return true;
                 }
 

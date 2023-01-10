@@ -121,18 +121,19 @@ namespace lsp
 
             public:
                 explicit Area3D(ui::IWrapper *wrapper, tk::Area3D *widget);
-                virtual ~Area3D();
+                virtual ~Area3D() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             protected:
-                virtual void        property_changed(tk::Property *prop);
+                virtual void        property_changed(tk::Property *prop) override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
                 virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
+                virtual void        end(ui::UIContext *ctx) override;
 
-                virtual void        notify(ui::IPort *port);
+                virtual void        notify(ui::IPort *port) override;
 
             public:
                 void                query_draw();

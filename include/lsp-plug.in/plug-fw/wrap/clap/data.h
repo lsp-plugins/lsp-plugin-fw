@@ -167,9 +167,9 @@ namespace lsp
             status_t deserialize(const clap_istream_t *is)
             {
                 // Deserialize as DSP request
-                ssize_t count   = read_string(is, sDspRequest, PATH_MAX-1);
-                if (count < 0)
-                    return -count;
+                status_t res = read_string(is, sDspRequest, PATH_MAX-1);
+                if (res != STATUS_OK)
+                    return res;
 
                 nXFlagsReq          = plug::PF_STATE_RESTORE;
                 atomic_add(&nDspSerial, 1);

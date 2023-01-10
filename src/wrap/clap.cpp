@@ -828,7 +828,10 @@ namespace lsp
                 {
                     // Find the corresponding CLAP plugin
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if ((meta != NULL) && (!strcmp(meta->clap_uid, plugin_id)))
+                    if (meta == NULL)
+                        break;
+
+                    if (!strcmp(meta->clap_uid, plugin_id))
                     {
                         // Create module
                         plug::Module *plugin = f->create(meta);

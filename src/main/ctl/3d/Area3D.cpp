@@ -499,6 +499,16 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void Area3D::end(ui::UIContext *ctx)
+        {
+            sync_pov_change(&sPov.x, pPosX, pPosX);
+            sync_pov_change(&sPov.y, pPosY, pPosY);
+            sync_pov_change(&sPov.z, pPosZ, pPosZ);
+            sync_angle_change(&sAngles.fYaw, pYaw, pYaw);
+            sync_angle_change(&sAngles.fPitch, pPitch, pPitch);
+            fFov    = sFov.evaluate_float(70.0f);
+        }
+
         void Area3D::notify(ui::IPort *port)
         {
             sync_pov_change(&sPov.x, pPosX, port);
@@ -509,7 +519,7 @@ namespace lsp
 
             if (sFov.depends(port))
             {
-                fFov    = sFov.evaluate_float(70);
+                fFov    = sFov.evaluate_float(70.0f);
                 query_draw();
             }
         }

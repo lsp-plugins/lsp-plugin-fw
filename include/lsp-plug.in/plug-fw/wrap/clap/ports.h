@@ -73,6 +73,7 @@ namespace lsp
         class AudioPort: public Port
         {
             protected:
+                float      *pBind;              // Bound buffer
                 float      *pBuffer;            // The original buffer passed by the host OR sanitized buffer
                 size_t      nOffset;            // The relative offset from the beginning of the buffer
                 size_t      nBufSize;           // The actual current buffer size
@@ -81,6 +82,7 @@ namespace lsp
             public:
                 explicit AudioPort(const meta::port_t *meta) : Port(meta)
                 {
+                    pBind       = NULL;
                     pBuffer     = NULL;
                     nOffset     = 0;
                     nBufSize    = 0;
@@ -99,7 +101,7 @@ namespace lsp
             public:
                 virtual void *buffer() override
                 {
-                    return &pBuffer[nOffset];
+                    return &pBind[nOffset];
                 }
 
                 virtual void post_process(size_t samples) override
@@ -112,10 +114,6 @@ namespace lsp
                 // Allocates enough space for data sanitize.
                 bool activate(size_t min_frames_count, size_t max_frames_count)
                 {
-                    // For output ports, we can use the output buffer directly
-                    if (meta::is_out_port(pMetadata))
-                        return true;
-
                     // Check that capacity matches
                     size_t capacity = align_size(max_frames_count, 16);
                     if ((pBuffer != NULL) && (capacity == nBufCap))
@@ -128,6 +126,9 @@ namespace lsp
                     if (pBuffer == NULL)
                         return false;
 
+//                    lsp_trace("id=%s, pBind=%p, pBuffer=%p, max_frames_count=%d",
+//                        pMetadata->id, pBind, pBuffer, int(max_frames_count));
+
                     nBufCap    = capacity;
                     return true;
                 }
@@ -135,10 +136,16 @@ namespace lsp
                 // Bind the audio port and perform sanitize for input ports
                 void bind(float *ptr, size_t samples)
                 {
+//                    lsp_trace("id=%s, pBind=%p, pBuffer=%p, ptr=%p, samples=%d",
+//                        pMetadata->id, pBind, pBuffer, ptr, samples);
+
                     if (meta::is_out_port(pMetadata))
-                        pBuffer     = ptr;
+                        pBind       = (ptr != NULL) ? ptr : pBuffer;
                     else // if (meta::is_in_port(pMetadata))
+                    {
                         dsp::sanitize2(pBuffer, ptr, samples);
+                        pBind       = pBuffer;
+                    }
 
                     nBufSize    = samples;
                     nOffset     = 0;
@@ -149,10 +156,9 @@ namespace lsp
                 {
                     // Sanitize plugin's output if possible
                     if (meta::is_out_port(pMetadata))
-                    {
-                        dsp::sanitize1(pBuffer, nBufSize);
-                        pBuffer     = NULL;
-                    }
+                        dsp::sanitize1(pBind, nBufSize);
+
+                    pBind       = NULL;
                     nBufSize    = 0;
                     nOffset     = 0;
                 }

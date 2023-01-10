@@ -377,7 +377,6 @@ namespace lsp
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
             UIWrapper *this_    = static_cast<UIWrapper *>(ptr);
-
             tk::Window *wnd     = this_->window();
             if ((wnd == NULL) || (!wnd->visibility()->get()))
                 return STATUS_OK;
@@ -393,6 +392,19 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
         {
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
+        {
+            UIWrapper *this_    = static_cast<UIWrapper *>(ptr);
+            tk::Window *wnd     = this_->window();
+
+            ws::rectangle_t rr;
+            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
+                return STATUS_OK;
+            this_->pExt->gui->request_resize(this_->pExt->host, rr.nWidth, rr.nHeight);
+
             return STATUS_OK;
         }
 
@@ -423,6 +435,7 @@ namespace lsp
                 if (this_->sMutex.lock())
                 {
                     lsp_finally { this_->sMutex.unlock(); };
+                    this_->tranfet_ui_to_dsp();
                     this_->transfer_dsp_to_ui();
                     this_->main_iteration();
                 }
@@ -627,6 +640,7 @@ namespace lsp
             {
                 wnd->slots()->bind(tk::SLOT_RESIZE, slot_ui_resize, this);
                 wnd->slots()->bind(tk::SLOT_SHOW, slot_ui_show, this);
+                wnd->slots()->bind(tk::SLOT_REALIZED, slot_ui_realized, this);
                 wnd->slots()->bind(tk::SLOT_CLOSE, slot_ui_close, this);
             }
 

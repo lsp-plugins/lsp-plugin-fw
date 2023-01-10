@@ -113,6 +113,7 @@ namespace lsp
                 meta::port_t *port = vGenMetadata.uget(i);
                 meta::drop_port_metadata(port);
             }
+            vGenMetadata.flush();
 
             // Destroy the loader
             if (pLoader != NULL)
@@ -439,7 +440,7 @@ namespace lsp
             // Create the rest input ports
             for (size_t i=0, n=ins.size(); i<n; ++i)
             {
-                plug::IPort *p  = ins.uget(i);
+                plug::IPort *p      = ins.uget(i);
                 audio_group_t *grp  = create_audio_group(p);
                 if (grp == NULL)
                     return STATUS_NO_MEM;
@@ -447,9 +448,9 @@ namespace lsp
             }
 
             // Create the rest output ports
-            for (size_t i=0, n=ins.size(); i<n; ++i)
+            for (size_t i=0, n=outs.size(); i<n; ++i)
             {
-                plug::IPort *p  = ins.uget(i);
+                plug::IPort *p      = outs.uget(i);
                 audio_group_t *grp  = create_audio_group(p);
                 if (grp == NULL)
                     return STATUS_NO_MEM;
@@ -582,6 +583,8 @@ namespace lsp
 
             lsp_trace("pPlugin = %p", pPlugin);
             pPlugin->set_sample_rate(sample_rate);
+            if (pSamplePlayer != NULL)
+                pSamplePlayer->set_sample_rate(sample_rate);
 
             // Activate audio ports
             for (size_t i=0, n=vAudioIn.size(); i<n; ++i)
@@ -855,8 +858,8 @@ namespace lsp
 
         clap_process_status Wrapper::process(const clap_process_t *process)
         {
-            if ((process->audio_inputs_count != vAudioIn.size()) ||
-                (process->audio_outputs_count != vAudioOut.size()))
+            if ((process->audio_inputs_count > vAudioIn.size()) ||
+                (process->audio_outputs_count > vAudioOut.size()))
                 return CLAP_PROCESS_ERROR;
 
             // Update UI activity state
@@ -870,24 +873,59 @@ namespace lsp
                 bUIActive   = ui_active;
             }
 
-            // Bind audio ports
+            // Bind audio inputs
+//            lsp_trace("audio_inputs.count=%d", int(process->audio_inputs_count));
             for (size_t i=0, n=vAudioIn.size(); i<n; ++i)
             {
-                const clap_audio_buffer_t *b = &process->audio_inputs[i];
                 audio_group_t *g = vAudioIn.uget(i);
-                if (b->channel_count != g->nPorts)
-                    return CLAP_PROCESS_ERROR;
-                for (size_t j=0; j<g->nPorts; ++j)
-                    g->vPorts[j]->bind(b->data32[i], process->frames_count);
+                if (i < process->audio_inputs_count)
+                {
+                    const clap_audio_buffer_t *b = &process->audio_inputs[i];
+//                    lsp_trace("audio_inputs[%d].channels = %d", int(i), int(b->channel_count));
+                    for (size_t j=0; j<g->nPorts; ++j)
+                    {
+                        float *buf = (j < b->channel_count) ? b->data32[j] : NULL;
+//                        lsp_trace("audio_inputs[%d].data32[%d] = %p", int(i), int(j), buf);
+                        g->vPorts[j]->bind(buf, process->frames_count);
+                    }
+                }
+                else
+                {
+//                    lsp_trace("audio_inputs[%d].channels = %d", int(i), 0);
+                    for (size_t j=0; j<g->nPorts; ++j)
+                    {
+//                        lsp_trace("audio_inputs[%d].data32[%d] = %p", int(i), int(j), NULL);
+                        g->vPorts[j]->bind(NULL, process->frames_count);
+                    }
+                }
             }
+
+            // Bind audio outputs
+//            lsp_trace("audio_outputs.count=%d", int(process->audio_outputs_count));
             for (size_t i=0, n=vAudioOut.size(); i<n; ++i)
             {
-                const clap_audio_buffer_t *b = &process->audio_outputs[i];
                 audio_group_t *g = vAudioOut.uget(i);
-                if (b->channel_count != g->nPorts)
-                    return CLAP_PROCESS_ERROR;
-                for (size_t j=0; j<g->nPorts; ++j)
-                    g->vPorts[j]->bind(b->data32[i], process->frames_count);
+
+                if (i < process->audio_outputs_count)
+                {
+                    const clap_audio_buffer_t *b = &process->audio_outputs[i];
+//                    lsp_trace("audio_outputs[%d].channels = %d", int(i), int(b->channel_count));
+                    for (size_t j=0; j<g->nPorts; ++j)
+                    {
+                        float *buf = (j < b->channel_count) ? b->data32[j] : NULL;
+//                        lsp_trace("audio_outputs[%d].data32[%d] = %p", int(i), int(j), buf);
+                        g->vPorts[j]->bind(buf, process->frames_count);
+                    }
+                }
+                else
+                {
+//                    lsp_trace("audio_outputs[%d].channels = %d", int(i), 0);
+                    for (size_t j=0; j<g->nPorts; ++j)
+                    {
+//                        lsp_trace("audio_outputs[%d].data32[%d] = %p", int(i), int(j), NULL);
+                        g->vPorts[j]->bind(NULL, process->frames_count);
+                    }
+                }
             }
 
             // Sync the parameter ports with the UI
@@ -1344,6 +1382,8 @@ namespace lsp
                 return res;
             }
 
+            lsp_trace("Parameter type: '%c'", char(p->type));
+
             switch (type)
             {
                 case clap::TYPE_INT32:
@@ -1401,15 +1441,17 @@ namespace lsp
                     p->blob.data    = NULL;
                     if ((res = read_fully(is, &size)) != STATUS_OK)
                         return res;
+                    lsp_trace("BLOB size: %d (0x%x)", int(size), int(size));
                     if ((res = read_string(is, &ctype, &cap)) != STATUS_OK)
                         return res;
+                    lsp_trace("BLOB content type: %s", ctype);
 
                     if (size > 0)
                     {
                         data            = static_cast<uint8_t *>(malloc(size));
                         if (data == NULL)
                             return STATUS_NO_MEM;
-                        if ((res = read_fully(is, &data)) != STATUS_OK)
+                        if ((res = read_fully(is, data, size)) != STATUS_OK)
                             return res;
                     }
 
@@ -1417,6 +1459,7 @@ namespace lsp
                     {
                         p->blob.ctype   = ctype;
                         p->blob.data    = data;
+                        p->blob.size    = size;
                         ctype           = NULL;
                         data            = NULL;
                     }
@@ -1558,6 +1601,13 @@ namespace lsp
                         return res;
                     }
 
+                    lsp_trace("Parameter flags: 0x%x", int(flags));
+                    if ((res = read_value(is, name, &p)) != STATUS_OK)
+                    {
+                        lsp_warn("Failed to read value for KVT parameter id=%s, code=%d", name, int(res));
+                        return res;
+                    }
+
                     // This is KVT port
                     if (p.type != core::KVT_ANY)
                     {
@@ -1565,7 +1615,7 @@ namespace lsp
                         if (flags & clap::FLAG_PRIVATE)
                             kflags     |= core::KVT_PRIVATE;
 
-                        kvt_dump_parameter("Fetched parameter %s = ", &p, name);
+                        kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
                         sKVT.put(name, &p, kflags);
                     }
                 }

@@ -273,7 +273,7 @@ namespace lsp
             // Read the payload data
             res = read_fully(is, buf, len);
             if (res == STATUS_OK)
-                buf[res]  = '\0';
+                buf[len]  = '\0';
             return STATUS_OK;
         }
 
