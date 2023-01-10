@@ -46,6 +46,7 @@ namespace lsp
             pParent         = NULL;
             pTransientFor   = NULL;
             bUIInitialized  = false;
+            bRequestProcess = false;
         }
 
         UIWrapper::~UIWrapper()
@@ -146,17 +147,17 @@ namespace lsp
 
                 case meta::R_MESH:
                     lsp_trace("creating mesh port %s", port->id);
-                    cup = new clap::UIMeshPort(port, cp);
+                    cup = new clap::UIMeshPort(cp);
                     break;
 
                 case meta::R_STREAM:
                     lsp_trace("creating stream port %s", port->id);
-                    cup = new clap::UIStreamPort(port, cp);
+                    cup = new clap::UIStreamPort(cp);
                     break;
 
                 case meta::R_FBUFFER:
                     lsp_trace("creating fbuffer port %s", port->id);
-                    cup = new clap::UIFrameBufferPort(port, cp);
+                    cup = new clap::UIFrameBufferPort(cp);
                     break;
 
                 case meta::R_OSC:
@@ -169,7 +170,7 @@ namespace lsp
 
                 case meta::R_PATH:
                     lsp_trace("creating path port %s", port->id);
-                    cup = new clap::UIPathPort(port, cp);
+                    cup = new clap::UIPathPort(cp);
                     break;
 
                 case meta::R_CONTROL:
@@ -178,16 +179,16 @@ namespace lsp
                     lsp_trace("creating regular port %s", port->id);
                     // VST specifies only INPUT parameters, output should be read in different way
                     if (meta::is_out_port(port))
-                        cup     = new clap::UIMeterPort(port, cp);
+                        cup     = new clap::UIMeterPort(cp);
                     else
-                        cup     = new clap::UIParameterPort(port, static_cast<clap::ParameterPort *>(cp));
+                        cup     = new clap::UIParameterPort(static_cast<clap::ParameterPort *>(cp), &bRequestProcess);
                     break;
 
                 case meta::R_PORT_SET:
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES], param_name[MAX_PARAM_ID_BYTES];
                     lsp_trace("creating port group %s", port->id);
-                    UIPortGroup *upg = new clap::UIPortGroup(static_cast<clap::PortGroup *>(cp));
+                    UIPortGroup *upg = new clap::UIPortGroup(static_cast<clap::PortGroup *>(cp), &bRequestProcess);
 
                     // Add immediately port group to list
                     vPorts.add(upg);
@@ -227,6 +228,16 @@ namespace lsp
                 vPorts.add(cup);
 
             return cup;
+        }
+
+        void UIWrapper::tranfet_ui_to_dsp()
+        {
+            if (bRequestProcess)
+            {
+                if ((pExt != NULL) && (pExt->host != NULL))
+                    pExt->host->request_process(pExt->host);
+                bRequestProcess = false;
+            }
         }
 
         void UIWrapper::transfer_dsp_to_ui()

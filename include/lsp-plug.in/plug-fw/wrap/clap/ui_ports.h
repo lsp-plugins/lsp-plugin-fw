@@ -64,13 +64,15 @@ namespace lsp
             protected:
                 float           fValue;
                 uatomic_t       nSID;
+                bool           *bRqFlag;
 
             public:
-                explicit UIParameterPort(const meta::port_t *meta, clap::ParameterPort *port):
-                    UIPort(meta, port)
+                explicit UIParameterPort(clap::ParameterPort *port, bool *rq_flag):
+                    UIPort(port->metadata(), port)
                 {
-                    fValue      = meta->start;
+                    fValue      = pMetadata->start;
                     nSID        = port->sid() - 1;
+                    bRqFlag     = rq_flag;
                 }
 
                 virtual ~UIParameterPort() override
@@ -87,6 +89,9 @@ namespace lsp
                 virtual void set_value(float value) override
                 {
                     fValue = value;
+                    if (bRqFlag != NULL)
+                        *bRqFlag    = true;
+
                     if (pPort == NULL)
                         return;
 
@@ -125,7 +130,7 @@ namespace lsp
         class UIPortGroup: public UIParameterPort
         {
             public:
-                explicit UIPortGroup(clap::PortGroup *port) : UIParameterPort(port->metadata(), port)
+                explicit UIPortGroup(clap::PortGroup *port, bool *rq_flag) : UIParameterPort(port, rq_flag)
                 {
                 }
 
@@ -157,10 +162,10 @@ namespace lsp
                 float   fValue;
 
             public:
-                explicit UIMeterPort(const meta::port_t *meta, clap::Port *port):
-                    UIPort(meta, port)
+                explicit UIMeterPort(clap::Port *port):
+                    UIPort(port->metadata(), port)
                 {
-                    fValue      = meta->start;
+                    fValue      = port->default_value();
                 }
 
                 virtual ~UIMeterPort() override
@@ -194,10 +199,10 @@ namespace lsp
                 plug::mesh_t   *pMesh;
 
             public:
-                explicit UIMeshPort(const meta::port_t *meta, clap::Port *port):
-                    UIPort(meta, port)
+                explicit UIMeshPort(clap::Port *port):
+                    UIPort(port->metadata(), port)
                 {
-                    pMesh       = clap::create_mesh(meta);
+                    pMesh       = clap::create_mesh(pMetadata);
                 }
 
                 virtual ~UIMeshPort() override
@@ -236,8 +241,8 @@ namespace lsp
                 plug::stream_t     *pStream;
 
             public:
-                explicit UIStreamPort(const meta::port_t *meta, clap::Port *port):
-                    UIPort(meta, port)
+                explicit UIStreamPort(clap::Port *port):
+                    UIPort(port->metadata(), port)
                 {
                     pStream     = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
                 }
@@ -267,8 +272,8 @@ namespace lsp
                 plug::frame_buffer_t    sFB;
 
             public:
-                explicit UIFrameBufferPort(const meta::port_t *meta, clap::Port *port):
-                    UIPort(meta, port)
+                explicit UIFrameBufferPort(clap::Port *port):
+                    UIPort(port->metadata(), port)
                 {
                     sFB.init(pMetadata->start, pMetadata->step);
                 }
@@ -298,7 +303,7 @@ namespace lsp
                 clap::path_t   *pPath;
 
             public:
-                explicit UIPathPort(const meta::port_t *meta, clap::Port *port): UIPort(meta, port)
+                explicit UIPathPort(clap::Port *port): UIPort(port->metadata(), port)
                 {
                     plug::path_t *path  = pPort->buffer<plug::path_t>();
                     if (path != NULL)

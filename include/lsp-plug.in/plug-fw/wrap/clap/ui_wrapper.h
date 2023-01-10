@@ -53,6 +53,7 @@ namespace lsp
                 void                           *pParent;        // Parent window handle
                 ws::IWindow                    *pTransientFor;  // TransientFor window
                 bool                            bUIInitialized; // UI initialized flag
+                bool                            bRequestProcess;// Request the process() call flag
 
             protected:
                 static status_t                 slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
@@ -64,6 +65,7 @@ namespace lsp
 
             protected:
                 clap::UIPort                   *create_port(const meta::port_t *port, const char *postfix);
+                void                            tranfet_ui_to_dsp();
                 void                            transfer_dsp_to_ui();
                 bool                            initialize_ui();
 
