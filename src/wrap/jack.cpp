@@ -92,20 +92,112 @@ namespace lsp
         // JACK wrapper
         static wrapper_t  wrapper;
 
-        status_t parse_connection(cmdline_t *cfg, const char *string)
+        static status_t add_connection(cmdline_t *cfg, LSPString *src, LSPString *dst)
         {
-#if 0
-            LSPString text, key, value; //, *dst;
+            if ((src == NULL) || (src->is_empty()))
+            {
+                fprintf(stderr, "Not specified source JACK port name in connection string\n");
+                return STATUS_INVALID_VALUE;
+            }
+            if ((dst == NULL) || (dst->is_empty()))
+            {
+                fprintf(stderr, "Not specified destination JACK port name in connection string\n");
+                return STATUS_INVALID_VALUE;
+            }
+
+            connection_t *conn = cfg->routing.add();
+            if (conn == NULL)
+                return STATUS_NO_MEM;
+            conn->src   = NULL;
+            conn->dst   = NULL;
+
+            conn->src   = src->clone_utf8();
+            conn->dst   = dst->clone_utf8();
+
+            if ((conn->src == NULL) || (conn->dst == NULL))
+                return STATUS_NO_MEM;
+
+            return STATUS_OK;
+        }
+
+        static status_t parse_connection(cmdline_t *cfg, const char *string)
+        {
+            status_t res;
+            LSPString text, src, dst, *str;
             if (!text.set_native(string))
                 return STATUS_NO_MEM;
 
-            lsp_wchar_t prev = 0, curr = 0;
+            str = &src;
+            lsp_wchar_t curr = 0;
+            size_t count = 0;
             for (size_t i=0, n=text.length(); i<n; ++i)
             {
-                prev    = curr;
-                curr    = text.char_at(i);
+                lsp_wchar_t prev    = curr;
+                curr                = text.char_at(i);
+                if (prev == '\\')
+                {
+                    switch (curr)
+                    {
+                        case '\\':
+                        case '/':
+                        case ' ':
+                        case '=':
+                        case ',':
+                            break;
+                        case 'r': curr = '\r'; break;
+                        case 'n': curr = '\n'; break;
+                        case 't': curr = '\t'; break;
+                        case 'v': curr = '\v'; break;
+                        default:
+                            if (!str->append(prev))
+                                return STATUS_NO_MEM;
+                            break;
+                    }
+                    if (!str->append(curr))
+                        return STATUS_NO_MEM;
+                    ++count;
+                    curr    = 0;
+                }
+                else
+                {
+                    switch (curr)
+                    {
+                        case '\\':
+                            break;
+                        case '=':
+                            ++count;
+                            if (str == &dst)
+                            {
+                                if (!str->append(curr))
+                                    return STATUS_NO_MEM;
+                            }
+                            else // dst == &key
+                                str = &dst;
+                            break;
+                        case ',':
+                            // Add and cleanup strings
+                            if ((res = add_connection(cfg, &src, &dst)) != STATUS_OK)
+                                return res;
+                            str     = &src;
+                            src.clear();
+                            dst.clear();
+                            count = 0;
+                            break;
+                        default:
+                            if (!str->append(curr))
+                                return STATUS_NO_MEM;
+                            ++count;
+                            break;
+                    }
+                }
             }
-#endif
+
+            // Add last connection if present
+            if (count > 0)
+            {
+                if ((res = add_connection(cfg, &src, &dst)) != STATUS_OK)
+                    return res;
+            }
 
             return STATUS_OK;
         }
@@ -171,8 +263,12 @@ namespace lsp
                         fprintf(stderr, "Not specified connection string for '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
-                    if ((res = parse_connection(cfg, argv[i++])) != STATUS_OK)
+                    const char *conn = argv[i++];
+                    if ((res = parse_connection(cfg, conn)) != STATUS_OK)
+                    {
+                        fprintf(stderr, "Error in connection string for '%s' parameter: '%s'\n", arg, conn);
                         return res;
+                    }
                 }
             #ifdef XDND_PROXY_SUPPORT
                 else if (!::strcmp(arg, "--dnd-proxy"))
@@ -662,6 +758,19 @@ extern "C"
         {
             fprintf(stderr, "Not specified plugin identifier, exiting\n");
             return -STATUS_NOT_FOUND;
+        }
+
+        // Output routing if specified
+        if (!cmdline.routing.is_empty())
+        {
+            printf("JACK connection routing:\n");
+            for (size_t i=0, n=cmdline.routing.size(); i<n; ++i)
+            {
+                jack::connection_t *conn = cmdline.routing.uget(i);
+                if (conn != NULL)
+                    printf("%s -> %s\n", conn->src, conn->dst);
+            }
+            printf("\n");
         }
 
         // Initialize DSP
