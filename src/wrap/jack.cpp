@@ -28,6 +28,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/ws/ws.h>
 #include <lsp-plug.in/dsp/dsp.h>
@@ -85,13 +86,34 @@ namespace lsp
             void           *parent_id;
             bool            headless;
             bool            list;
+            lltl::darray<connection_t> routing;
         } cmdline_t;
 
         // JACK wrapper
         static wrapper_t  wrapper;
 
+        status_t parse_connection(cmdline_t *cfg, const char *string)
+        {
+#if 0
+            LSPString text, key, value; //, *dst;
+            if (!text.set_native(string))
+                return STATUS_NO_MEM;
+
+            lsp_wchar_t prev = 0, curr = 0;
+            for (size_t i=0, n=text.length(); i<n; ++i)
+            {
+                prev    = curr;
+                curr    = text.char_at(i);
+            }
+#endif
+
+            return STATUS_OK;
+        }
+
         status_t parse_cmdline(cmdline_t *cfg, const char *plugin_id, int argc, const char **argv)
         {
+            status_t res;
+
             // Initialize config with default values
             cfg->cfg_file       = NULL;
             cfg->plugin_id      = NULL;
@@ -112,13 +134,17 @@ namespace lsp
                             (plugin_id != NULL) ? "" : " plugin-id"
                     );
                     printf("Available parameters:\n");
-                    printf("  -c, --config <file>   Load settings file on startup\n");
+                    printf("  -c, --config <file>       Load settings file on startup\n");
                     IF_XDND_PROXY_SUPPORT(
-                        printf("  --dnd-proxy <id>      Create window as child and DnD proxy of specified window ID\n");
+                        printf("  --dnd-proxy <id>          Create window as child and DnD proxy of specified window ID\n");
                     )
-                    printf("  -h, --help            Output help\n");
-                    printf("  -hl, --headless       Launch in console only, without UI\n");
-                    printf("  -l, --list            List available plugin identifiers\n");
+                    printf("  -h, --help                Output help\n");
+                    printf("  -hl, --headless           Launch in console only, without UI\n");
+                    printf("  -l, --list                List available plugin identifiers\n");
+                    printf("  -x, --connect <src>=<dst> Connect input/output JACK port to another\n");
+                    printf("                            input/output JACK port. Multiple options are\n");
+                    printf("                            allowed, the connection pairs can be separated\n");
+                    printf("                            by comma. Use backslash for escaping characters\n");
                     printf("\n");
 
                     return STATUS_CANCELLED;
@@ -138,6 +164,16 @@ namespace lsp
                     cfg->list           = true;
                 else if ((plugin_id == NULL) && (cfg->plugin_id == NULL))
                     cfg->plugin_id      = argv[i++];
+                else if ((!::strcmp(arg, "--connect")) || (!::strcmp(arg, "-x")))
+                {
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified connection string for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    if ((res = parse_connection(cfg, argv[i++])) != STATUS_OK)
+                        return res;
+                }
             #ifdef XDND_PROXY_SUPPORT
                 else if (!::strcmp(arg, "--dnd-proxy"))
                 {
@@ -167,6 +203,21 @@ namespace lsp
                 cfg->plugin_id      = plugin_id;
 
             return STATUS_OK;
+        }
+
+        void destroy_cmdline(cmdline_t *cfg)
+        {
+            for (size_t i=0, n=cfg->routing.size(); i<n; ++i)
+            {
+                connection_t *c = cfg->routing.uget(i);
+                if (c == NULL)
+                    continue;
+                if (c->src != NULL)
+                    free(const_cast<char *>(c->src));
+                if (c->dst != NULL)
+                    free(const_cast<char *>(c->dst));
+            }
+            cfg->routing.flush();
         }
 
         static ssize_t metadata_sort_func(const meta::plugin_t *a, const meta::plugin_t *b)
@@ -594,6 +645,7 @@ extern "C"
         
         // Parse command-line arguments
         jack::cmdline_t cmdline;
+        lsp_finally { destroy_cmdline(&cmdline); };
         if ((res = parse_cmdline(&cmdline, plugin_id, argc, argv)) != STATUS_OK)
             return (res == STATUS_CANCELLED) ? 0 : res;
 
