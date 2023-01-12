@@ -1655,8 +1655,9 @@ namespace lsp
                 info->flags    |= CLAP_PARAM_IS_STEPPED;
             if (meta->flags & meta::F_CYCLIC)
                 info->flags    |= CLAP_PARAM_IS_PERIODIC;
-            if (meta->role == meta::R_BYPASS)
-                info->flags    |= CLAP_PARAM_IS_BYPASS;
+// We do not link bypass with host bypass at this moment
+//            if (meta->role == meta::R_BYPASS)
+//                info->flags    |= CLAP_PARAM_IS_BYPASS;
             info->cookie    = p;
             clap_strcpy(info->name, meta->name, sizeof(info->name));
             info->module[0] = '\0';
