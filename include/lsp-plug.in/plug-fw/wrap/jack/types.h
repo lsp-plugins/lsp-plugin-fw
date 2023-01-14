@@ -35,6 +35,12 @@ namespace lsp
 {
     namespace jack
     {
+        typedef struct connection_t
+        {
+            const char *src;
+            const char *dst;
+        } connection_t;
+
         typedef struct path_t: public plug::path_t
         {
             enum flags_t
