@@ -141,6 +141,7 @@ namespace lsp
                 inline core::SamplePlayer          *sample_player();
 
                 status_t                            connect();
+                void                                set_routing(const lltl::darray<connection_t> *routing);
                 status_t                            disconnect();
 
                 jack::Port                         *port_by_id(const char *id);

@@ -227,6 +227,11 @@ namespace lsp
                     return (pPort != NULL) ? STATUS_OK : STATUS_UNKNOWN_ERR;
                 }
 
+                const char *jack_name() const
+                {
+                    return jack_port_name(pPort);
+                }
+
                 void set_buffer_size(size_t size)
                 {
                     // set_buffer_size should affect only input audio ports at this moment

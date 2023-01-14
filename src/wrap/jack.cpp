@@ -76,6 +76,7 @@ namespace lsp
             jack::UIWrapper    *pUIWrapper;         // Plugin UI wrapper
             ws::timestamp_t     nLastReconnect;     // Last connection time
             ws::timestamp_t     nLastIconSync;      // Last icon synchronization time
+            const lltl::darray<connection_t> *pRouting;  // Routing
             volatile bool       bInterrupt;         // Interrupt signal received
         } wrapper_t;
 
@@ -234,8 +235,9 @@ namespace lsp
                     printf("  -hl, --headless           Launch in console only, without UI\n");
                     printf("  -l, --list                List available plugin identifiers\n");
                     printf("  -x, --connect <src>=<dst> Connect input/output JACK port to another\n");
-                    printf("                            input/output JACK port. Multiple options are\n");
-                    printf("                            allowed, the connection pairs can be separated\n");
+                    printf("                            input/output JACK port when JACK connection\n");
+                    printf("                            is estimated. Multiple options are allowed,\n");
+                    printf("                            the connection <src>=<dst> pais can be separated\n");
                     printf("                            by comma. Use backslash for escaping characters\n");
                     printf("\n");
 
@@ -537,6 +539,7 @@ namespace lsp
             #endif
 
             // Initialize plugin wrapper
+            w->pRouting     = &cmdline.routing;
             w->pWrapper     = new jack::Wrapper(w->pPlugin, w->pLoader);
             if (w->pWrapper == NULL)
             {
@@ -622,6 +625,12 @@ namespace lsp
                     printf("Trying to connect to JACK\n");
                     if (jw->connect() == STATUS_OK)
                     {
+                        if (!w->pRouting->is_empty())
+                        {
+                            printf("Connecting ports...");
+                            jw->set_routing(w->pRouting);
+                        }
+
                         printf("Successfully connected to JACK\n");
                         w->nSync        = 0;
                         w->bNotify      = true;
