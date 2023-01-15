@@ -63,8 +63,6 @@ namespace lsp
             pPort           = NULL;
 
             nFlags          = 0;
-            fMin            = 0.0f;
-            fMax            = 1.0f;
             fDefault        = 0.0f;
             fStep           = 1.0f;
             fAStep          = 10.0f;
@@ -92,6 +90,8 @@ namespace lsp
                 sHoleColor.init(pWrapper, knob->hole_color());
                 sTipColor.init(pWrapper, knob->tip_color());
                 sBalanceTipColor.init(pWrapper, knob->balance_tip_color());
+                sMin.init(pWrapper, this);
+                sMax.init(pWrapper, this);
 
                 // Bind slots
                 knob->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
@@ -120,10 +120,16 @@ namespace lsp
                 sBalanceTipColor.set("btcolor", name, value);
                 sBalanceTipColor.set("balance.tip.color", name, value);
 
-                if (set_value(&fMin, "min", name, value))
+                if (!strcmp(name, "min"))
+                {
+                    sMin.parse(value);
                     nFlags     |= KF_MIN;
-                if (set_value(&fMax, "max", name, value))
+                }
+                if (!strcmp(name, "max"))
+                {
+                    sMax.parse(value);
                     nFlags     |= KF_MAX;
+                }
                 if (set_value(&fStep, "step", name, value))
                     nFlags     |= KF_STEP;
 
@@ -200,9 +206,9 @@ namespace lsp
             if (is_gain_unit(p->unit)) // Gain
             {
                 double base     = (p->unit == meta::U_GAIN_AMP) ? M_LN10 * 0.05 : M_LN10 * 0.1;
+                double thresh   = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
                 value           = exp(value * base);
-                float min       = (p->flags & meta::F_LOWER) ? p->min : 0.0f;
-                if ((min <= 0.0f) && (value < GAIN_AMP_M_80_DB))
+                if (value < thresh)
                     value           = 0.0f;
             }
             else if (is_discrete_unit(p->unit)) // Integer type
@@ -232,28 +238,7 @@ namespace lsp
 
             const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
             float dfl   = (p != NULL) ? pPort->default_value() : fDefaultValue;
-            float value = dfl;
 
-            if (p != NULL)
-            {
-                if (meta::is_gain_unit(p->unit)) // Decibels
-                {
-                    double base = (p->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
-
-                    if (value < GAIN_AMP_M_120_DB)
-                        value           = GAIN_AMP_M_120_DB;
-
-                    value = base * log(value);
-                }
-                else if (nFlags & KF_LOG)
-                {
-                    if (value < GAIN_AMP_M_120_DB)
-                        value           = GAIN_AMP_M_120_DB;
-                    value = log(value);
-                }
-            }
-
-            knob->value()->set(value);
             if (pPort != NULL)
             {
                 pPort->set_value(dfl);
@@ -261,57 +246,11 @@ namespace lsp
             }
         }
 
-        void Knob::commit_value(float value)
+        void Knob::commit_value(size_t flags)
         {
             tk::Knob *knob = tk::widget_cast<tk::Knob>(wWidget);
             if (knob == NULL)
                 return;
-
-            const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
-            if (p == NULL)
-                return;
-
-            if (meta::is_gain_unit(p->unit)) // Decibels
-            {
-                double base = (p->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
-
-                if (value < GAIN_AMP_M_120_DB)
-                    value           = GAIN_AMP_M_120_DB;
-
-                knob->value()->set(base * log(value));
-            }
-            else if (meta::is_discrete_unit(p->unit)) // Integer type
-            {
-                float ov    = truncf(knob->value()->get());
-                float nv    = truncf(value);
-                if (ov != nv)
-                    knob->value()->set(nv);
-            }
-            else if (nFlags & KF_LOG)
-            {
-                if (value < GAIN_AMP_M_120_DB)
-                    value           = GAIN_AMP_M_120_DB;
-                knob->value()->set(log(value));
-            }
-            else
-                knob->value()->set(value);
-        }
-
-        void Knob::notify(ui::IPort *port)
-        {
-            Widget::notify(port);
-
-            if ((port == pPort) && (pPort != NULL))
-                commit_value(pPort->value());
-        }
-
-        void Knob::end(ui::UIContext *ctx)
-        {
-            // Call parent controller
-            Widget::end(ctx);
-
-            // Ensure that widget is set
-            tk::Knob *knob = tk::widget_cast<tk::Knob>(wWidget);
 
             // Ensure that port is set
             meta::port_t xp;
@@ -336,12 +275,12 @@ namespace lsp
             // Override default values
             if (nFlags & KF_MIN)
             {
-                xp.min          = fMin;
+                xp.min          = sMin.evaluate_float();
                 xp.flags       |= meta::F_LOWER;
             }
             if (nFlags & KF_MAX)
             {
-                xp.max          = fMax;
+                xp.max          = sMax.evaluate_float();
                 xp.flags       |= meta::F_UPPER;
             }
             if (nFlags & KF_STEP)
@@ -359,6 +298,7 @@ namespace lsp
                 nFlags          = lsp_setflag(nFlags, KF_LOG, xp.flags & meta::F_LOG);
 
             float min = 0.0f, max = 1.0f, step = 0.01f, balance = 0.0f;
+            float value     = (pPort != NULL) ? pPort->value() : xp.start;
 
             if (meta::is_gain_unit(p->unit)) // Gain
             {
@@ -371,10 +311,13 @@ namespace lsp
                 step            = base * log((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f) * 0.1f;
                 double thresh   = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
 
-                min             = (fabs(min) < thresh) ? (base * log(thresh) - step) : (base * log(min));
-                max             = (fabs(max) < thresh) ? (base * log(thresh) - step) : (base * log(max));
-                double db_dfl   = (fabs(max) < thresh) ? (base * log(thresh) - step) : (base * log(dfl));
+                min             = (fabs(min)   < thresh) ? (base * log(thresh) - step) : (base * log(min));
+                max             = (fabs(max)   < thresh) ? (base * log(thresh) - step) : (base * log(max));
+                double db_dfl   = (fabs(dfl)   < thresh) ? (base * log(thresh) - step) : (base * log(dfl));
+                value           = (fabs(value) < thresh) ? (base * log(thresh) - step) : (base * log(value));
+
                 balance         = lsp_xlimit(db_dfl, min, max);
+                value           = lsp_xlimit(value, min, max);
 
                 step           *= 10.0f;
                 fDefaultValue   = base * log(p->start);
@@ -386,6 +329,7 @@ namespace lsp
                                   (p->flags & meta::F_UPPER) ? p->max : 1.0f;
                 float dfl       = (nFlags & KF_BAL_SET) ? fBalance : p->min;
                 balance         = lsp_xlimit(dfl, min, max);
+                value           = lsp_xlimit(value, min, max);
                 ssize_t istep   = (p->flags & meta::F_STEP) ? p->step : 1;
 
                 step            = (istep == 0) ? 1.0f : istep;
@@ -399,13 +343,16 @@ namespace lsp
                 float thresh    = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
 
                 step            = log((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f);
-                min             = (fabs(xmin) < thresh) ? log(thresh) - step : log(xmin);
-                max             = (fabs(xmax) < thresh) ? log(thresh) - step : log(xmax);
-                float dfl       = (fabs(xdfl) < thresh) ? log(thresh) - step : log(xdfl);
+                min             = (fabs(xmin) < thresh)  ? log(thresh) - step : log(xmin);
+                max             = (fabs(xmax) < thresh)  ? log(thresh) - step : log(xmax);
+                float dfl       = (fabs(xdfl) < thresh)  ? log(thresh) - step : log(xdfl);
+                value           = (fabs(value) < thresh) ? log(thresh) - step : log(value);
+
                 balance         = lsp_xlimit(dfl, min, max);
+                value           = lsp_xlimit(value, min, max);
 
                 step           *= 10.0f;
-                fDefaultValue = log(p->start);
+                fDefaultValue   = log(p->start);
             }
             else // Float and other values, non-logarithmic
             {
@@ -413,6 +360,7 @@ namespace lsp
                 max             = (p->flags & meta::F_UPPER) ? p->max : 1.0f;
                 float dfl       = (nFlags & KF_BAL_SET) ? fBalance : min;
                 balance         = lsp_xlimit(dfl, min, max);
+                value           = lsp_xlimit(value, min, max);
 
                 step            = (p->flags & meta::F_STEP) ? p->step * 10.0f : (max - min) * 0.1f;
                 fDefaultValue   = p->start;
@@ -420,7 +368,12 @@ namespace lsp
 
             // Initialize knob
             knob->cycling()->set(p->flags & meta::F_CYCLIC);
-            knob->value()->set_all(fDefaultValue, min, max);
+            if (flags & KF_MIN)
+                knob->value()->set_min(min);
+            if (flags & KF_MAX)
+                knob->value()->set_max(max);
+            if (flags & KF_VALUE)
+                knob->value()->set((flags & KF_DFL) ? fDefaultValue : value);
             knob->step()->set(step);
             knob->balance()->set(balance);
 
@@ -428,6 +381,32 @@ namespace lsp
                 knob->step()->set_accel(fAStep);
             if (nFlags & KF_DSTEP)
                 knob->step()->set_decel(fDStep);
+        }
+
+        void Knob::notify(ui::IPort *port)
+        {
+            Widget::notify(port);
+            size_t flags = 0;
+
+            if (sMin.depends(port))
+                flags      |= KF_MIN;
+            if (sMax.depends(port))
+                flags      |= KF_MAX;
+            if (pPort != NULL)
+            {
+                if (port == pPort)
+                    flags      |= KF_VALUE;
+            }
+
+            if (flags)
+                commit_value(flags);
+        }
+
+        void Knob::end(ui::UIContext *ctx)
+        {
+            // Call parent controller
+            Widget::end(ctx);
+            commit_value(KF_MIN | KF_MAX | KF_VALUE | KF_DFL);
         }
 
         status_t Knob::slot_change(tk::Widget *sender, void *ptr, void *data)
@@ -445,5 +424,5 @@ namespace lsp
                 _this->set_default_value();
             return STATUS_OK;
         }
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
