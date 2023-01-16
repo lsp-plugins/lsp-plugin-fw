@@ -114,17 +114,18 @@ namespace lsp
             protected:
                 bool                        bResizable;
 
-                tk::WidgetContainer        *wContent;       // The main box containing all widgets
-                tk::Window                 *wGreeting;      // Greeting message window
-                tk::Window                 *wAbout;         // About message window
-                tk::Menu                   *wMenu;          // Menu
-                tk::Menu                   *wUIScaling;     // UI Scaling menu
-                tk::Menu                   *wFontScaling;   // UI Scaling menu
-                tk::Menu                   *wResetSettings; // Reset settings menu
-                tk::FileDialog             *wExport;        // Export settings dialog
-                tk::FileDialog             *wImport;        // Import settings dialog
-                tk::MenuItem               *wPreferHost;    // Prefer host menu item
-                tk::CheckBox               *wRelPaths;       // Relative path checkbox
+                tk::WidgetContainer        *wContent;           // The main box containing all widgets
+                tk::Window                 *wGreeting;          // Greeting message window
+                tk::Window                 *wAbout;             // About message window
+                tk::Menu                   *wMenu;              // Menu
+                tk::Menu                   *wUIScaling;         // UI Scaling menu
+                tk::Menu                   *wFontScaling;       // UI Scaling menu
+                tk::Menu                   *wResetSettings;     // Reset settings menu
+                tk::FileDialog             *wExport;            // Export settings dialog
+                tk::FileDialog             *wImport;            // Import settings dialog
+                tk::MenuItem               *wPreferHost;        // Prefer host menu item
+                tk::MenuItem               *wKnobScaleEnable;   // Enable knob scale actions
+                tk::CheckBox               *wRelPaths;          // Relative path checkbox
 
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
@@ -136,6 +137,7 @@ namespace lsp
                 ui::IPort                  *pUIScalingHost;
                 ui::IPort                  *pUIFontScaling;
                 ui::IPort                  *pVisualSchema;
+                ui::IPort                  *pKnobScaleEnable;
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
 
@@ -199,6 +201,7 @@ namespace lsp
                 static status_t slot_scale_mouse_up(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_enable_slot_scale_changed(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
@@ -223,6 +226,7 @@ namespace lsp
                 status_t            init_scaling_support(tk::Menu *menu);
                 status_t            init_font_scaling_support(tk::Menu *menu);
                 status_t            init_visual_schema_support(tk::Menu *menu);
+                status_t            init_ui_behaviour(tk::Menu *menu);
                 status_t            init_presets(tk::Menu *menu);
                 status_t            scan_presets(const char *location, lltl::darray<resource::resource_t> *presets);
                 status_t            create_main_menu();
@@ -232,6 +236,7 @@ namespace lsp
                 void                sync_ui_scaling();
                 void                sync_font_scaling();
                 void                sync_visual_schemas();
+                void                sync_knob_scale_enabled();
                 void                bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler);
 
                 status_t            init_context(ui::UIContext *ctx);

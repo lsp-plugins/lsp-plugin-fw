@@ -83,34 +83,36 @@ namespace lsp
 
         PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget): Window(src, widget)
         {
-            pClass          = &metadata;
+            pClass              = &metadata;
 
-            bResizable      = false;
+            bResizable          = false;
 
-            wContent        = NULL;
-            wGreeting       = NULL;
-            wAbout          = NULL;
-            wMenu           = NULL;
-            wUIScaling      = NULL;
-            wFontScaling    = NULL;
-            wResetSettings  = NULL;
-            wExport         = NULL;
-            wImport         = NULL;
-            wPreferHost     = NULL;
-            wRelPaths       = NULL;
+            wContent            = NULL;
+            wGreeting           = NULL;
+            wAbout              = NULL;
+            wMenu               = NULL;
+            wUIScaling          = NULL;
+            wFontScaling        = NULL;
+            wResetSettings      = NULL;
+            wExport             = NULL;
+            wImport             = NULL;
+            wPreferHost         = NULL;
+            wKnobScaleEnable    = NULL;
+            wRelPaths           = NULL;
 
-            pPVersion       = NULL;
-            pPBypass        = NULL;
-            pPath           = NULL;
-            pR3DBackend     = NULL;
-            pLanguage       = NULL;
-            pRelPaths       = NULL;
-            pUIScaling      = NULL;
-            pUIScalingHost  = NULL;
-            pUIFontScaling  = NULL;
-            pVisualSchema   = NULL;
+            pPVersion           = NULL;
+            pPBypass            = NULL;
+            pPath               = NULL;
+            pR3DBackend         = NULL;
+            pLanguage           = NULL;
+            pRelPaths           = NULL;
+            pUIScaling          = NULL;
+            pUIScalingHost      = NULL;
+            pUIFontScaling      = NULL;
+            pVisualSchema       = NULL;
+            pKnobScaleEnable    = NULL;
 
-            pConfigSink     = NULL;
+            pConfigSink         = NULL;
 
             sWndScale.nMFlags           = 0;
             sWndScale.sSize.nLeft       = 0;
@@ -256,6 +258,7 @@ namespace lsp
             BIND_PORT(pWrapper, pUIScalingHost, UI_SCALING_HOST);
             BIND_PORT(pWrapper, pUIFontScaling, UI_FONT_SCALING_PORT);
             BIND_PORT(pWrapper, pVisualSchema, UI_VISUAL_SCHEMA_PORT);
+            BIND_PORT(pWrapper, pKnobScaleEnable, UI_ENABLE_KNOB_SCALE_ACTIONS_PORT);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
 
@@ -402,6 +405,9 @@ namespace lsp
                     itm->slots()->bind(tk::SLOT_SUBMIT, slot_debug_dump, this);
                     wMenu->add(itm);
                 }
+
+                // Create UI behaviour menu
+                init_ui_behaviour(wMenu);
 
                 // Create language selection menu
                 init_i18n_support(wMenu);
@@ -814,6 +820,31 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::init_ui_behaviour(tk::Menu *menu)
+        {
+            // Create submenu item
+            tk::MenuItem *item          = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set("actions.ui_behavior");
+
+            // Create submenu
+            menu                        = create_menu();
+            if (menu == NULL)
+                return STATUS_NO_MEM;
+            item->menu()->set(menu);
+
+            // Create menu items
+            if ((wKnobScaleEnable = create_menu_item(menu)) != NULL)
+            {
+                wKnobScaleEnable->type()->set_check();
+                wKnobScaleEnable->text()->set("actions.ui_behavior.ediable_knob_scale");
+                wKnobScaleEnable->slots()->bind(tk::SLOT_SUBMIT, slot_enable_slot_scale_changed, this);
+            }
+
+            return STATUS_OK;
+        }
+
         ssize_t PluginWindow::compare_presets(const resource::resource_t *a, const resource::resource_t *b)
         {
             return strcmp(a->name, b->name);
@@ -1207,6 +1238,14 @@ namespace lsp
             }
         }
 
+        void PluginWindow::sync_knob_scale_enabled()
+        {
+            // Update the knob scale
+            bool knob_enable    = (pKnobScaleEnable != NULL) ? pKnobScaleEnable->value() >= 0.5f : true;
+            if (wKnobScaleEnable != NULL)
+                wKnobScaleEnable->checked()->set(knob_enable);
+        }
+
         void PluginWindow::begin(ui::UIContext *ctx)
         {
             Window::begin(ctx);
@@ -1276,6 +1315,8 @@ namespace lsp
                 notify(pUIScaling);
             if (pUIFontScaling != NULL)
                 notify(pUIFontScaling);
+            if (pKnobScaleEnable != NULL)
+                notify(pKnobScaleEnable);
 
             // Call for parent class method
             Window::end(ctx);
@@ -1293,6 +1334,8 @@ namespace lsp
                 sync_font_scaling();
             if (port == pVisualSchema)
                 sync_visual_schemas();
+            if (port == pKnobScaleEnable)
+                sync_knob_scale_enabled();
         }
 
         status_t PluginWindow::add(ui::UIContext *ctx, ctl::Widget *child)
@@ -2056,6 +2099,8 @@ namespace lsp
                     _this->pUIScaling->notify_all();
                 if (_this->pLanguage != NULL)
                     _this->pLanguage->notify_all();
+                if (_this->pKnobScaleEnable != NULL)
+                    _this->pKnobScaleEnable->notify_all();
             }
 
             return STATUS_OK;
@@ -2241,6 +2286,24 @@ namespace lsp
             float value = ck_box->checked()->get() ? 1.0f : 0.0f;
             _this->pRelPaths->set_value(value);
             _this->pRelPaths->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_enable_slot_scale_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+            if (_this->pKnobScaleEnable == NULL)
+                return STATUS_OK;
+            if (_this->wKnobScaleEnable == NULL)
+                return STATUS_OK;
+
+            _this->wKnobScaleEnable->checked()->toggle();
+            bool checked = _this->wKnobScaleEnable->checked()->get();
+            _this->pKnobScaleEnable->set_value((checked) ? 1.0f : 0.0f);
+            _this->pKnobScaleEnable->notify_all();
 
             return STATUS_OK;
         }
