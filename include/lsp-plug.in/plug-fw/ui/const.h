@@ -49,6 +49,7 @@
 #define UI_FONT_SCALING_PORT_ID             "font_scaling"
 #define UI_VISUAL_SCHEMA_FILE_ID            "visual_schema_file"
 #define UI_PREVIEW_AUTO_PLAY_ID             "preview_auto_play"
+#define UI_ENABLE_KNOB_SCALE_ACTIONS_ID     "enable_knob_scale_actions"
 
 #define MSTUD_PORT                          UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                        UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -65,6 +66,7 @@
 #define UI_FONT_SCALING_PORT                UI_CONFIG_PORT_PREFIX UI_FONT_SCALING_PORT_ID
 #define UI_VISUAL_SCHEMA_PORT               UI_CONFIG_PORT_PREFIX UI_VISUAL_SCHEMA_FILE_ID
 #define UI_PREVIEW_AUTO_PLAY_PORT           UI_CONFIG_PORT_PREFIX UI_PREVIEW_AUTO_PLAY_ID
+#define UI_ENABLE_KNOB_SCALE_ACTIONS_PORT   UI_CONFIG_PORT_PREFIX UI_ENABLE_KNOB_SCALE_ACTIONS_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                      "main_menu"

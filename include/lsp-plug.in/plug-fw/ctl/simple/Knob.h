@@ -69,6 +69,7 @@ namespace lsp
                 ctl::Expression     sMax;
 
                 ui::IPort          *pPort;
+                ui::IPort          *pScaleEnablePort;
 
                 size_t              nFlags;
                 float               fDefault;
@@ -87,6 +88,7 @@ namespace lsp
                 void                submit_value();
                 void                set_default_value();
                 void                commit_value(size_t flags);
+                void                sync_scale_state();
 
             public:
                 explicit Knob(ui::IWrapper *wrapper, tk::Knob *widget);

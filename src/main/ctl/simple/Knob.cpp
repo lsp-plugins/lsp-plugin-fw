@@ -61,6 +61,7 @@ namespace lsp
             pClass          = &metadata;
 
             pPort           = NULL;
+            pScaleEnablePort= NULL;
 
             nFlags          = 0;
             fDefault        = 0.0f;
@@ -96,6 +97,11 @@ namespace lsp
                 // Bind slots
                 knob->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
                 knob->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_dbl_click, this);
+
+                // Set value
+                pScaleEnablePort = pWrapper->port(UI_ENABLE_KNOB_SCALE_ACTIONS_PORT);
+                if (pScaleEnablePort != NULL)
+                    pScaleEnablePort->bind(this);
             }
 
             return STATUS_OK;
@@ -107,6 +113,7 @@ namespace lsp
             if (knob != NULL)
             {
                 bind_port(&pPort, "id", name, value);
+                bind_port(&pScaleEnablePort, "scale.active.id", name, value);
 
                 sColor.set("color", name, value);
                 sScaleColor.set("scolor", name, value);
@@ -244,6 +251,14 @@ namespace lsp
                 pPort->set_value(dfl);
                 pPort->notify_all();
             }
+        }
+
+        void Knob::sync_scale_state()
+        {
+            bool scale_enable = pScaleEnablePort->value() >= 0.5f;
+            tk::Knob *knob    = tk::widget_cast<tk::Knob>(wWidget);
+            if (knob != NULL)
+                knob->scale_active()->set(scale_enable);
         }
 
         void Knob::commit_value(size_t flags)
@@ -400,6 +415,8 @@ namespace lsp
 
             if (flags)
                 commit_value(flags);
+
+            sync_scale_state();
         }
 
         void Knob::end(ui::UIContext *ctx)
@@ -407,6 +424,7 @@ namespace lsp
             // Call parent controller
             Widget::end(ctx);
             commit_value(KF_MIN | KF_MAX | KF_VALUE | KF_DFL);
+            sync_scale_state();
         }
 
         status_t Knob::slot_change(tk::Widget *sender, void *ptr, void *data)
