@@ -28,6 +28,9 @@
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/meta/types.h>
+#include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/stdlib/math.h>
 
 namespace lsp
 {
@@ -314,6 +317,136 @@ namespace lsp
                 s[len]      = '\0';
 
             return STATUS_OK;
+        }
+
+        inline float to_clap_value(const meta::port_t *meta, float value, float *min_value, float *max_value)
+        {
+            float min = 0.0f, max = 1.0f, step = 0.0f;
+            meta::get_port_parameters(meta, &min, &max, &step);
+
+//                lsp_trace("input = %.3f", value);
+            // Set value as integer or normalized
+            if (meta::is_gain_unit(meta->unit))
+            {
+                float p_value   = value;
+
+                float base      = (meta->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
+                float thresh    = (meta->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
+                float l_step    = log(step + 1.0f) * 0.1f;
+                float l_thresh  = log(thresh);
+                float l_value   = (fabs(value) < thresh) ? (l_thresh - l_step) : (log(value));
+
+                value           = l_value * base;
+                lsp_trace("%s = %f (%f, %f, %f) -> %f (%f)",
+                    meta->id,
+                    p_value,
+                    min, max, step,
+                    value,
+                    l_thresh);
+
+                min             = (fabs(min)   < thresh) ? (l_thresh - l_step) * base : (log(min) * base);
+                max             = (fabs(max)   < thresh) ? (l_thresh - l_step) * base : (log(max) * base);
+            }
+            else if (meta::is_log_rule(meta))
+            {
+//                        float p_value   = value;
+
+                float thresh    = (meta->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
+                float l_step    = log(step + 1.0f) * 0.1f;
+                float l_thresh  = log(thresh);
+
+                float l_min     = (fabs(min)   < thresh) ? (l_thresh - l_step) : (log(min));
+                float l_max     = (fabs(max)   < thresh) ? (l_thresh - l_step) : (log(max));
+                float l_value   = (fabs(value) < thresh) ? (l_thresh - l_step) : (log(value));
+
+                value           = (l_value - l_min) / (l_max - l_min);
+
+                min             = 0.0f;
+                max             = 1.0f;
+            }
+            else if (meta->unit == meta::U_BOOL)
+            {
+                value = (value >= (min + max) * 0.5f) ? 1.0f : 0.0f;
+            }
+            else
+            {
+                if ((meta->flags & meta::F_INT) ||
+                    (meta->unit == meta::U_ENUM) ||
+                    (meta->unit == meta::U_SAMPLES))
+                    value  = truncf(value);
+
+                // Normalize value
+                value = (max != min) ? (value - min) / (max - min) : 0.0f;
+            }
+
+            if (min_value != NULL)
+                *min_value      = min;
+            if (max_value != NULL)
+                *max_value      = max;
+
+//                lsp_trace("result = %.3f", value);
+            return value;
+        }
+
+        inline float from_clap_value(const meta::port_t *meta, float value)
+        {
+//                lsp_trace("input = %.3f", value);
+            // Set value as integer or normalized
+            float min = 0.0f, max = 1.0f, step = 0.0f;
+            meta::get_port_parameters(meta, &min, &max, &step);
+
+            if (meta::is_gain_unit(meta->unit))
+            {
+                float p_value   = value;
+
+                float base      = (meta->unit == meta::U_GAIN_AMP) ? M_LN10 / 20.0 : M_LN10 / 10.0;
+                float thresh    = (meta->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
+                float l_thresh  = log(thresh);
+
+                value           = value * base;
+                value           = (value < l_thresh) ? 0.0f : expf(value);
+
+                lsp_trace("%s = %f (%f) -> %f (%f, %f, %f)",
+                    meta->id,
+                    p_value,
+                    l_thresh,
+                    value,
+                    min, max, step);
+            }
+            else if (meta::is_log_rule(meta))
+            {
+//                        float p_value   = value;
+                float thresh    = (meta->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
+                float l_step    = log(step + 1.0f) * 0.1f;
+                float l_thresh  = log(thresh);
+                float l_min     = (fabs(min)   < thresh) ? (l_thresh - l_step) : (log(min));
+                float l_max     = (fabs(max)   < thresh) ? (l_thresh - l_step) : (log(max));
+
+                value           = value * (l_max - l_min) + l_min;
+                value           = (value < l_thresh) ? 0.0f : expf(value);
+
+//                        lsp_trace("%s = %f (%f, %f, %f) -> %f (%f, %f, %f)",
+//                            pMetadata->id,
+//                            p_value,
+//                            l_thresh, l_min, l_max,
+//                            value,
+//                            min, max, step);
+            }
+            else if (meta->unit == meta::U_BOOL)
+            {
+                value = (value >= 0.5f) ? max : min;
+            }
+            else
+            {
+                value = min + value * (max - min);
+                if ((meta->flags & meta::F_INT) ||
+                    (meta->unit == meta::U_ENUM) ||
+                    (meta->unit == meta::U_SAMPLES))
+                    value  = truncf(value);
+            }
+
+//                lsp_trace("result = %.3f", value);
+            return value;
         }
 
     } /* namespace clap */

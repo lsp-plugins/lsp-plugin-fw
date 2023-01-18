@@ -244,6 +244,7 @@ namespace lsp
         {
             protected:
                 float           fValue;         // The actual value of the port
+                float           fClapValue;     // The actual value in CLAP units scale
                 clap_id         nID;            // Unique CLAP identifier of the port
                 uatomic_t       nSID;           // Serial ID of the parameter
                 float           fPending;       // Pending value from the UI
@@ -254,6 +255,7 @@ namespace lsp
                 explicit ParameterPort(const meta::port_t *meta) : Port(meta)
                 {
                     fValue              = meta->start;
+                    fClapValue          = to_clap_value(meta, fValue, NULL, NULL);
                     nID                 = clap_hash_string(meta->id);
                     nSID                = 0;
                     fPending            = 0.0f;
@@ -265,17 +267,46 @@ namespace lsp
                 inline clap_id uid() const      { return nID;       }
                 inline uatomic_t sid() const    { return nSID;      }
 
-                float update_value(float value)
+                bool clap_set_value(float value)
                 {
+                    lsp_trace("value = %f", value);
+                    if (fClapValue == value)
+                        return false;
+
+                    fClapValue  = value;
+                    value       = from_clap_value(pMetadata, value);
+                    lsp_trace("from_clap_value = %f", value);
+
                     float old   = fValue;
                     float res   = meta::limit_value(pMetadata, value);
-                    if (old != res)
-                    {
-                        fValue      = res;
-                        atomic_add(&nSID, 1);
-                    }
+                    if (old == res)
+                        return false;
 
-                    return res;
+                    fValue      = res;
+                    atomic_add(&nSID, 1);
+
+                    return true;
+                }
+
+                bool clap_mod_value(float value)
+                {
+                    lsp_trace("value = %f", value);
+                    if (value == 0.0f)
+                        return false;
+
+                    fClapValue += value;
+                    value       = from_clap_value(pMetadata, fClapValue);
+                    lsp_trace("from_clap_value = %f", value);
+
+                    float old   = fValue;
+                    float res   = meta::limit_value(pMetadata, value);
+                    if (old == res)
+                        return false;
+
+                    fValue      = res;
+                    atomic_add(&nSID, 1);
+
+                    return true;
                 }
 
                 void write_value(float value)
@@ -306,6 +337,7 @@ namespace lsp
                         return false;
 
                     // Try to submit the value to the output event queue
+                    float clap_value    = to_clap_value(pMetadata, pending, NULL, NULL);
                     clap_event_param_value_t ev;
                     ev.header.size      = sizeof(ev);
                     ev.header.time      = 0;
@@ -318,12 +350,13 @@ namespace lsp
                     ev.port_index       = -1;
                     ev.channel          = -1;
                     ev.key              = -1;
-                    ev.value            = pending;
+                    ev.value            = clap_value;
 
                     // Submit the value to the output queue
                     if (out->try_push(out, &ev.header))
                     {
                         fValue              = res;
+                        fClapValue          = clap_value;
                         atomic_add(&nSID, 1);
                         return true;
                     }
@@ -334,7 +367,7 @@ namespace lsp
                 }
 
             public:
-                virtual float value() override { return fValue; }
+                virtual float value() override  { return fValue; }
 
                 virtual bool serializable() const  override { return true; }
 
@@ -367,7 +400,12 @@ namespace lsp
                     lsp_trace("  value = %f", value);
 
                     // Commit value
-                    update_value(value);
+                    float old           = fValue;
+                    fValue              = value;
+                    fClapValue          = to_clap_value(pMetadata, fValue, NULL, NULL);
+                    if (old != fValue)
+                        atomic_add(&nSID, 1);
+
                     return STATUS_OK;
                 }
         };

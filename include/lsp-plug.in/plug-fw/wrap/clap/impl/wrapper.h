@@ -698,17 +698,13 @@ namespace lsp
                         clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
                         if ((pp == NULL) || (pp->uid() != ev->param_id))
                             pp              = find_param(ev->param_id);
-                        if (pp != NULL)
+
+                        if ((pp != NULL) && (pp->clap_set_value(ev->value)))
                         {
-                            float ov            = pp->value();
-                            float nv            = pp->update_value(ev->value);
-                            if (ov != nv)
-                            {
-                                lsp_trace("port changed (set): %s, offset=%d, old=%f, new=%f", pp->metadata()->id, int(offset), ov, nv);
-                                if (pExt->state != NULL)
-                                    pExt->state->mark_dirty(pHost);
-                                bUpdateSettings     = true;
-                            }
+                            lsp_trace("port changed (set): %s, offset=%d", pp->metadata()->id, int(offset));
+                            if (pExt->state != NULL)
+                                pExt->state->mark_dirty(pHost);
+                            bUpdateSettings     = true;
                         }
                         break;
                     }
@@ -718,17 +714,13 @@ namespace lsp
                         clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
                         if ((pp == NULL) || (pp->uid() != ev->param_id))
                             pp              = find_param(ev->param_id);
-                        if (pp != NULL)
+
+                        if ((pp != NULL) && (pp->clap_mod_value(ev->amount)))
                         {
-                            float ov            = pp->value();
-                            float nv            = pp->update_value(ov + ev->amount);
-                            if (ov != nv)
-                            {
-                                lsp_trace("port changed (mod): %s, offset=%d, old=%f, new=%f", pp->metadata()->id, int(offset), ov, nv);
-                                if (pExt->state != NULL)
-                                    pExt->state->mark_dirty(pHost);
-                                bUpdateSettings     = true;
-                            }
+                            lsp_trace("port changed (mod): %s, offset=%d", pp->metadata()->id, int(offset));
+                            if (pExt->state != NULL)
+                                pExt->state->mark_dirty(pHost);
+                            bUpdateSettings     = true;
                         }
                         break;
                     }
@@ -1117,7 +1109,7 @@ namespace lsp
                     continue;
 
                 // Check that port is serializable
-                lsp_trace("Serializing port id=%s", p->id);
+//                lsp_trace("Serializing port id=%s", p->id);
 
                 // Write port identifier
                 if ((res = write_string(os, p->id)) != STATUS_OK)
@@ -1663,11 +1655,13 @@ namespace lsp
             info->module[0] = '\0';
 
             float min = 0.0f, max = 0.0f;
-            meta::get_port_parameters(meta, &min, &max, NULL);
+            float dfl = to_clap_value(meta, meta->start, &min, &max);
 
             info->min_value     = min;
             info->max_value     = max;
-            info->default_value = meta->start;
+            info->default_value = dfl;
+
+            lsp_trace("id=%s, min=%f, max=%f, dfl=%f", meta->id, min, max, dfl);
 
             return STATUS_OK;
         }
@@ -1696,7 +1690,14 @@ namespace lsp
             if (p == NULL)
                 return STATUS_NOT_FOUND;
             if (value != NULL)
-                *value      = p->value();
+            {
+                float res   = p->value();
+                lsp_trace("id=%s, res = %f", p->metadata()->id, res);
+                res         = to_clap_value(p->metadata(), res, NULL, NULL);
+                lsp_trace("to_clap_value id=%s, res = %f", p->metadata()->id, res);
+
+                *value      = res;
+            }
 
             return STATUS_OK;
         }
@@ -1711,6 +1712,9 @@ namespace lsp
             if (meta == NULL)
                 return STATUS_BAD_STATE;
 
+            lsp_trace("value = %f", value);
+            value   = from_clap_value(meta, value);
+            lsp_trace("from_clap_value = %f", value);
             meta::format_value(buffer, buf_size, meta, value, -1, true);
             return STATUS_OK;
         }
@@ -1730,8 +1734,16 @@ namespace lsp
             if (res != STATUS_OK)
                 return res;
 
+            parsed      = meta::limit_value(meta, parsed);
+            lsp_trace("parsed = %f", parsed);
+
             if (value != NULL)
-                *value  = meta::limit_value(meta, parsed);
+            {
+                parsed      = to_clap_value(meta, parsed, NULL, NULL);
+                lsp_trace("to_clap_value = %f", parsed);
+
+                *value      = parsed;
+            }
 
             return STATUS_OK;
         }
@@ -1755,17 +1767,13 @@ namespace lsp
                         clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
                         if ((pp == NULL) || (pp->uid() != ev->param_id))
                             pp              = find_param(ev->param_id);
-                        if (pp != NULL)
+
+                        if ((pp != NULL) && (pp->clap_set_value(ev->value)))
                         {
-                            float ov            = pp->value();
-                            float nv            = pp->update_value(ev->value);
-                            if (ov != nv)
-                            {
-                                lsp_trace("port changed (set): %s, offset=%d, old=%f, new=%f", pp->metadata()->id, int(hdr->time), ov, nv);
-                                if (pExt->state != NULL)
-                                    pExt->state->mark_dirty(pHost);
-                                bUpdateSettings     = true;
-                            }
+                            lsp_trace("port changed (set): %s, offset=%d", pp->metadata()->id, int(hdr->time));
+                            if (pExt->state != NULL)
+                                pExt->state->mark_dirty(pHost);
+                            bUpdateSettings     = true;
                         }
                         break;
                     }
@@ -1775,17 +1783,13 @@ namespace lsp
                         clap::ParameterPort *pp = static_cast<clap::ParameterPort *>(ev->cookie);
                         if ((pp == NULL) || (pp->uid() != ev->param_id))
                             pp              = find_param(ev->param_id);
-                        if (pp != NULL)
+
+                        if ((pp != NULL) && (pp->clap_mod_value(ev->amount)))
                         {
-                            float ov            = pp->value();
-                            float nv            = pp->update_value(ov + ev->amount);
-                            if (ov != nv)
-                            {
-                                lsp_trace("port changed (mod): %s, offset=%d, old=%f, new=%f", pp->metadata()->id, int(hdr->time), ov, nv);
-                                if (pExt->state != NULL)
-                                    pExt->state->mark_dirty(pHost);
-                                bUpdateSettings     = true;
-                            }
+                            lsp_trace("port changed (mod): %s, offset=%d", pp->metadata()->id, int(hdr->time));
+                            if (pExt->state != NULL)
+                                pExt->state->mark_dirty(pHost);
+                            bUpdateSettings     = true;
                         }
                         break;
                     }
