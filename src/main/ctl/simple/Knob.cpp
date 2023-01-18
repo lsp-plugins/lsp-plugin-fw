@@ -213,7 +213,7 @@ namespace lsp
             if (is_gain_unit(p->unit)) // Gain
             {
                 double base     = (p->unit == meta::U_GAIN_AMP) ? M_LN10 * 0.05 : M_LN10 * 0.1;
-                double thresh   = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
+                double thresh   = (p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
                 value           = exp(value * base);
                 if (value < thresh)
                     value           = 0.0f;
@@ -224,9 +224,10 @@ namespace lsp
             }
             else if (nFlags & KF_LOG)  // Float and other values, logarithmic
             {
+                double thresh   = (p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
                 value           = exp(value);
                 float min       = (p->flags & meta::F_LOWER) ? p->min : 0.0f;
-                if ((min <= 0.0f) && (value < log(GAIN_AMP_M_80_DB)))
+                if ((min <= 0.0f) && (value < thresh))
                     value           = 0.0f;
             }
 

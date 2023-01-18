@@ -4,6 +4,7 @@
 
 === 1.0.8 ===
 * Added CLAP plugin format support.
+* Changed VST parameter normalized value mapping for logarithmic parameters.
 * Added possibility to specify JACK connections that should be estimated by the
   standalone JACK plugin when the plugin connects to the JACK server. 
 * Significantly improved text value parsing into the port value.
