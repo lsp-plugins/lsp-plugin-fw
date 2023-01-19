@@ -228,7 +228,7 @@ namespace lsp
         inline status_t read_varint(const clap_istream_t *is, size_t *value)
         {
             // Read variable-sized string length
-            size_t len = 0, shift = 0, read = 0;
+            size_t len = 0, shift = 0;
             while (true)
             {
                 uint8_t b;
