@@ -241,7 +241,6 @@ namespace lsp
                 }
 
                 // Commit part of the value to the result variable
-                ++read;
                 len    |= size_t(b & 0x7f) << shift;
                 if (!(b & 0x80)) // Last byte in the sequence?
                     break;
