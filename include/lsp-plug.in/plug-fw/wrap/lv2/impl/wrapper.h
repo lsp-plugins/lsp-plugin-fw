@@ -2116,6 +2116,11 @@ namespace lsp
             change_state_atomic(SM_SYNC, SM_CHANGED);
         }
 
+        void Wrapper::query_display_draw()
+        {
+            bQueueDraw = true;
+        }
+
     } /* namespace lv2 */
 } /* namespace lsp */
 

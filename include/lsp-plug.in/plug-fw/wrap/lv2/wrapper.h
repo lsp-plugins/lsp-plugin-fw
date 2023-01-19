@@ -189,8 +189,6 @@ namespace lsp
                 // Inline display part
                 LV2_Inline_Display_Image_Surface *render_inline_display(size_t width, size_t height);
 
-                inline void                     query_display_draw()    { bQueueDraw = true; }
-
                 lv2::Port                      *port(const char *id);
                 lv2::Port                      *port_by_urid(LV2_URID urid);
 
@@ -209,6 +207,7 @@ namespace lsp
                 virtual bool                    kvt_release() override;
                 virtual void                    state_changed() override;
                 virtual const meta::package_t  *package() const override;
+                virtual void                    query_display_draw() override;
         };
     } /* namespace lv2 */
 } /* namespace lsp */
