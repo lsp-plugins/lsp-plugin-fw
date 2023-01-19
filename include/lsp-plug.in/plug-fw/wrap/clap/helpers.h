@@ -328,7 +328,7 @@ namespace lsp
             // Set value as integer or normalized
             if (meta::is_gain_unit(meta->unit))
             {
-                float p_value   = value;
+//                float p_value   = value;
 
                 float base      = (meta->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
                 float thresh    = (meta->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
@@ -337,12 +337,12 @@ namespace lsp
                 float l_value   = (fabs(value) < thresh) ? (l_thresh - l_step) : (log(value));
 
                 value           = l_value * base;
-                lsp_trace("%s = %f (%f, %f, %f) -> %f (%f)",
-                    meta->id,
-                    p_value,
-                    min, max, step,
-                    value,
-                    l_thresh);
+//                lsp_trace("%s = %f (%f, %f, %f) -> %f (%f)",
+//                    meta->id,
+//                    p_value,
+//                    min, max, step,
+//                    value,
+//                    l_thresh);
 
                 min             = (fabs(min)   < thresh) ? (l_thresh - l_step) * base : (log(min) * base);
                 max             = (fabs(max)   < thresh) ? (l_thresh - l_step) * base : (log(max) * base);
@@ -397,7 +397,7 @@ namespace lsp
 
             if (meta::is_gain_unit(meta->unit))
             {
-                float p_value   = value;
+//                float p_value   = value;
 
                 float base      = (meta->unit == meta::U_GAIN_AMP) ? M_LN10 / 20.0 : M_LN10 / 10.0;
                 float thresh    = (meta->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB;
@@ -406,12 +406,12 @@ namespace lsp
                 value           = value * base;
                 value           = (value < l_thresh) ? 0.0f : expf(value);
 
-                lsp_trace("%s = %f (%f) -> %f (%f, %f, %f)",
-                    meta->id,
-                    p_value,
-                    l_thresh,
-                    value,
-                    min, max, step);
+//                lsp_trace("%s = %f (%f) -> %f (%f, %f, %f)",
+//                    meta->id,
+//                    p_value,
+//                    l_thresh,
+//                    value,
+//                    min, max, step);
             }
             else if (meta::is_log_rule(meta))
             {
