@@ -88,7 +88,7 @@ namespace lsp
 
                 virtual void set_value(float value) override
                 {
-                    fValue = value;
+                    fValue = meta::limit_value(pMetadata, value);
                     if (bRqFlag != NULL)
                         *bRqFlag    = true;
 

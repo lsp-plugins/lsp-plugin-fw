@@ -98,7 +98,7 @@ namespace lsp
 
                 virtual void set_value(float value)
                 {
-                    size_t new_value = value;
+                    size_t new_value = meta::limit_value(pMetadata, value);
                     if ((new_value >= 0) && (new_value < nRows) && (new_value != nCurrRow))
                     {
                         nCurrRow        = new_value;

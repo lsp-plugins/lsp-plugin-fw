@@ -123,7 +123,7 @@ namespace lsp
 
                 virtual void set_value(float value)
                 {
-                    fValue = value;
+                    fValue = meta::limit_value(pMetadata, value);
                     if (pPort != NULL)
                         pPort->write_value(value);
                 }
