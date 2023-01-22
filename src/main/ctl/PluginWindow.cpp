@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/io/OutStringSequence.h>
@@ -87,9 +88,12 @@ namespace lsp
 
             bResizable          = false;
 
+            pUserPaths          = NULL;
+
             wContent            = NULL;
             wGreeting           = NULL;
             wAbout              = NULL;
+            wUserPaths          = NULL;
             wMenu               = NULL;
             wUIScaling          = NULL;
             wFontScaling        = NULL;
@@ -98,6 +102,7 @@ namespace lsp
             wImport             = NULL;
             wPreferHost         = NULL;
             wKnobScaleEnable    = NULL;
+            wOverrideHydrogen   = NULL;
             wRelPaths           = NULL;
 
             pPVersion           = NULL;
@@ -111,6 +116,7 @@ namespace lsp
             pUIFontScaling      = NULL;
             pVisualSchema       = NULL;
             pKnobScaleEnable    = NULL;
+            pOverrideHydrogen   = NULL;
 
             pConfigSink         = NULL;
 
@@ -198,9 +204,12 @@ namespace lsp
             }
             vPresetSel.flush();
 
+            pUserPaths      = NULL;
+
             wContent        = NULL;
             wGreeting       = NULL;
             wAbout          = NULL;
+            wUserPaths      = NULL;
             wMenu           = NULL;
             wResetSettings  = NULL;
             wExport         = NULL;
@@ -259,6 +268,7 @@ namespace lsp
             BIND_PORT(pWrapper, pUIFontScaling, UI_FONT_SCALING_PORT);
             BIND_PORT(pWrapper, pVisualSchema, UI_VISUAL_SCHEMA_PORT);
             BIND_PORT(pWrapper, pKnobScaleEnable, UI_ENABLE_KNOB_SCALE_ACTIONS_PORT);
+            BIND_PORT(pWrapper, pOverrideHydrogen, UI_OVERRIDE_HYDROGEN_KITS_PORT);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
 
@@ -387,6 +397,13 @@ namespace lsp
                     child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_clipboard, this);
                     submenu->add(child);
                 }
+
+                itm     = new tk::MenuItem(dpy);
+                widgets()->add(itm);
+                itm->init();
+                itm->text()->set("actions.user_paths");
+                itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_user_paths_dialog, this);
+                wMenu->add(itm);
 
                 // Add separator
                 itm     = new tk::MenuItem(dpy);
@@ -842,6 +859,13 @@ namespace lsp
                 wKnobScaleEnable->slots()->bind(tk::SLOT_SUBMIT, slot_enable_slot_scale_changed, this);
             }
 
+            if ((wOverrideHydrogen = create_menu_item(menu)) != NULL)
+            {
+                wOverrideHydrogen->type()->set_check();
+                wOverrideHydrogen->text()->set("actions.ui_behavior.override_hydrogen_kits");
+                wOverrideHydrogen->slots()->bind(tk::SLOT_SUBMIT, slot_override_hydrogen_kits_changed, this);
+            }
+
             return STATUS_OK;
         }
 
@@ -1246,6 +1270,14 @@ namespace lsp
                 wKnobScaleEnable->checked()->set(knob_enable);
         }
 
+        void PluginWindow::sync_override_hydrogen()
+        {
+            // Update the knob scale
+            bool set_override   = (pOverrideHydrogen != NULL) ? pOverrideHydrogen->value() >= 0.5f : true;
+            if (wOverrideHydrogen != NULL)
+                wOverrideHydrogen->checked()->set(set_override);
+        }
+
         void PluginWindow::begin(ui::UIContext *ctx)
         {
             Window::begin(ctx);
@@ -1317,6 +1349,8 @@ namespace lsp
                 notify(pUIFontScaling);
             if (pKnobScaleEnable != NULL)
                 notify(pKnobScaleEnable);
+            if (pOverrideHydrogen != NULL)
+                notify(pOverrideHydrogen);
 
             // Call for parent class method
             Window::end(ctx);
@@ -1336,6 +1370,8 @@ namespace lsp
                 sync_visual_schemas();
             if (port == pKnobScaleEnable)
                 sync_knob_scale_enabled();
+            if (port == pOverrideHydrogen)
+                sync_override_hydrogen();
         }
 
         status_t PluginWindow::add(ui::UIContext *ctx, ctl::Widget *child)
@@ -1861,6 +1897,101 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void PluginWindow::read_path_param(tk::String *value, const char *port_id)
+        {
+            ui::IPort *p = pWrapper->port(port_id);
+            const char *path = NULL;
+            if ((p != NULL) && (meta::is_path_port(p->metadata())))
+                path = p->buffer<const char>();
+            value->set_raw((path != NULL) ? path : "");
+        }
+
+        void PluginWindow::read_bool_param(tk::Boolean *value, const char *port_id)
+        {
+            ui::IPort *p = pWrapper->port(port_id);
+            bool ck = false;
+            if (p != NULL)
+                ck = p->value() >= 0.5f;
+            value->set(ck);
+        }
+
+        void PluginWindow::commit_path_param(tk::String *value, const char *port_id)
+        {
+            ui::IPort *p = pWrapper->port(port_id);
+            if ((p != NULL) && (meta::is_path_port(p->metadata())))
+            {
+                LSPString text;
+                value->format(&text);
+                const char *path = text.get_utf8();
+                if (path != NULL)
+                    p->write(path, strlen(path));
+                else
+                    p->write("", 0);
+                p->notify_all();
+            }
+        }
+
+        void PluginWindow::commit_bool_param(tk::Boolean *value, const char *port_id)
+        {
+            ui::IPort *p = pWrapper->port(port_id);
+            if (p != NULL)
+            {
+                p->set_value((value->get()) ? 1.0f : 0.0f);
+                p->notify_all();
+            }
+        }
+
+        status_t PluginWindow::show_user_paths_window()
+        {
+            status_t res;
+            tk::Widget *btn;
+            tk::Edit *edit;
+            tk::CheckBox *check;
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
+            if (wnd == NULL)
+                return STATUS_BAD_STATE;
+
+            lsp_trace("Showing user paths dialog");
+
+            if ((wUserPaths == NULL) || (pUserPaths == NULL))
+            {
+                res = create_dialog_window(&pUserPaths, &wUserPaths, LSP_BUILTIN_PREFIX "ui/user_paths.xml");
+                if (res != STATUS_OK)
+                    return res;
+
+                // Bind slots
+                if ((btn = pUserPaths->widgets()->find("submit")) != NULL)
+                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_user_paths_submit, this);
+                if ((btn = pUserPaths->widgets()->find("cancel")) != NULL)
+                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_user_paths_close, this);
+                wUserPaths->slots()->bind(tk::SLOT_CLOSE, slot_user_paths_close, this);
+            }
+
+            if ((edit = pUserPaths->widgets()->get<tk::Edit>("user_hydrogen_kit_path")) != NULL)
+                read_path_param(edit->text(), UI_USER_HYDROGEN_KIT_PATH_PORT);
+            if ((edit = pUserPaths->widgets()->get<tk::Edit>("override_hydrogen_kit_path")) != NULL)
+                read_path_param(edit->text(), UI_OVERRIDE_HYDROGEN_KIT_PATH_PORT);
+            if ((check = pUserPaths->widgets()->get<tk::CheckBox>("override_hydrogen_kits_check")) != NULL)
+                read_bool_param(check->checked(), UI_OVERRIDE_HYDROGEN_KITS_PORT);
+
+            wUserPaths->show(wnd);
+
+            return STATUS_OK;
+        }
+
+        void PluginWindow::apply_user_paths_settings()
+        {
+            tk::Edit *edit;
+            tk::CheckBox *check;
+
+            if ((edit = pUserPaths->widgets()->get<tk::Edit>("user_hydrogen_kit_path")) != NULL)
+                commit_path_param(edit->text(), UI_USER_HYDROGEN_KIT_PATH_PORT);
+            if ((edit = pUserPaths->widgets()->get<tk::Edit>("override_hydrogen_kit_path")) != NULL)
+                commit_path_param(edit->text(), UI_OVERRIDE_HYDROGEN_KIT_PATH_PORT);
+            if ((check = pUserPaths->widgets()->get<tk::CheckBox>("override_hydrogen_kits_check")) != NULL)
+                commit_bool_param(check->checked(), UI_OVERRIDE_HYDROGEN_KITS_PORT);
+        }
+
         status_t PluginWindow::init_context(ui::UIContext *uctx)
         {
             status_t res;
@@ -2304,6 +2435,56 @@ namespace lsp
             bool checked = _this->wKnobScaleEnable->checked()->get();
             _this->pKnobScaleEnable->set_value((checked) ? 1.0f : 0.0f);
             _this->pKnobScaleEnable->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_override_hydrogen_kits_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+            if (_this->pOverrideHydrogen == NULL)
+                return STATUS_OK;
+            if (_this->wOverrideHydrogen == NULL)
+                return STATUS_OK;
+
+            _this->wOverrideHydrogen->checked()->toggle();
+            bool checked = _this->wOverrideHydrogen->checked()->get();
+            _this->pOverrideHydrogen->set_value((checked) ? 1.0f : 0.0f);
+            _this->pOverrideHydrogen->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_show_user_paths_dialog(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            return _this->show_user_paths_window();
+        }
+
+        status_t PluginWindow::slot_user_paths_submit(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            _this->wUserPaths->visibility()->set(false);
+            _this->apply_user_paths_settings();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_user_paths_close(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            _this->wUserPaths->visibility()->set(false);
 
             return STATUS_OK;
         }

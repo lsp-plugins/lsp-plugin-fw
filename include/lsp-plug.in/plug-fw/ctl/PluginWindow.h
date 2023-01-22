@@ -114,9 +114,12 @@ namespace lsp
             protected:
                 bool                        bResizable;
 
+                ctl::Window                *pUserPaths;         // User paths controller
+
                 tk::WidgetContainer        *wContent;           // The main box containing all widgets
                 tk::Window                 *wGreeting;          // Greeting message window
                 tk::Window                 *wAbout;             // About message window
+                tk::Window                 *wUserPaths;         // User paths configuration
                 tk::Menu                   *wMenu;              // Menu
                 tk::Menu                   *wUIScaling;         // UI Scaling menu
                 tk::Menu                   *wFontScaling;       // UI Scaling menu
@@ -125,6 +128,7 @@ namespace lsp
                 tk::FileDialog             *wImport;            // Import settings dialog
                 tk::MenuItem               *wPreferHost;        // Prefer host menu item
                 tk::MenuItem               *wKnobScaleEnable;   // Enable knob scale actions
+                tk::MenuItem               *wOverrideHydrogen;  // Override Hydrogen kits feature
                 tk::CheckBox               *wRelPaths;          // Relative path checkbox
 
                 ui::IPort                  *pPVersion;
@@ -138,6 +142,7 @@ namespace lsp
                 ui::IPort                  *pUIFontScaling;
                 ui::IPort                  *pVisualSchema;
                 ui::IPort                  *pKnobScaleEnable;
+                ui::IPort                  *pOverrideHydrogen;
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
 
@@ -166,7 +171,7 @@ namespace lsp
                 static status_t slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_reset_settings(tk::Widget *sender, void *ptr, void *data);\
+                static status_t slot_reset_settings(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_confirm_reset_settings(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
@@ -203,6 +208,12 @@ namespace lsp
                 static status_t slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_enable_slot_scale_changed(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t slot_show_user_paths_dialog(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_user_paths_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_user_paths_close(tk::Widget *sender, void *ptr, void *data);
+
+                static status_t slot_override_hydrogen_kits_changed(tk::Widget *sender, void *ptr, void *data);
+
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
                 static tk::FileFilters     *create_config_filters(tk::FileDialog *dlg);
@@ -212,6 +223,7 @@ namespace lsp
                 void                do_destroy();
                 status_t            show_greeting_window();
                 status_t            show_about_window();
+                status_t            show_user_paths_window();
                 status_t            locate_window();
                 status_t            show_menu(tk::Widget *menu, tk::Widget *actor, void *data);
                 tk::Label          *create_label(tk::WidgetContainer *dst, const char *key, const char *style_name);
@@ -237,6 +249,12 @@ namespace lsp
                 void                sync_font_scaling();
                 void                sync_visual_schemas();
                 void                sync_knob_scale_enabled();
+                void                sync_override_hydrogen();
+                void                apply_user_paths_settings();
+                void                read_path_param(tk::String *value, const char *port_id);
+                void                read_bool_param(tk::Boolean *value, const char *port_id);
+                void                commit_path_param(tk::String *value, const char *port_id);
+                void                commit_bool_param(tk::Boolean *value, const char *port_id);
                 void                bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler);
 
                 status_t            init_context(ui::UIContext *ctx);

@@ -64,6 +64,9 @@ namespace lsp
             PATH(UI_VISUAL_SCHEMA_FILE_ID, "Current visual schema file used by the UI"),
             SWITCH(UI_PREVIEW_AUTO_PLAY_ID, "Enable automatic playback of the audio file in the file preview part of the file open dialog", 0.0f),
             SWITCH(UI_ENABLE_KNOB_SCALE_ACTIONS_ID, "Enable knob scale mouse actions", 1.0f),
+            PATH(UI_USER_HYDROGEN_KIT_PATH_ID, "User Hydrogen kits path"),
+            PATH(UI_OVERRIDE_HYDROGEN_KIT_PATH_ID, "Override Hydrogen kits path"),
+            SWITCH(UI_OVERRIDE_HYDROGEN_KITS_ID, "Override Hydrogen kits", 1.0f),
             PORTS_END
         };
 
