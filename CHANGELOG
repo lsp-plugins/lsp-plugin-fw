@@ -10,6 +10,7 @@
 * Significantly improved text value parsing into the port value.
 * Implemented plugin metadata validator.
 * Fixed bug related to modification of cyclic parameters for several plugin formats.
+* Fixed possible crash when reading data from clipboard.
 
 === 1.0.7 ===
 * Improved preset loading for incomplete presets that are missing some plugin parameters.

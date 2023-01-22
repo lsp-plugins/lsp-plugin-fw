@@ -148,6 +148,7 @@ namespace lsp
             {
                 pConfigSink->unbind();
                 pConfigSink->release();
+                pConfigSink = NULL;
             }
 
             // Delete UI rendering backend bindings
