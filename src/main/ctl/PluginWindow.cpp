@@ -967,7 +967,7 @@ namespace lsp
                     return STATUS_NO_MEM;
 
                 // Get name of the preset/patch without an extension
-                if ((res = path.get_noext(&tmp)) != STATUS_OK)
+                if ((res = path.get_last_noext(&tmp)) != STATUS_OK)
                     return res;
                 item->text()->set_raw(&tmp);
                 if ((res = path.get_ext(&tmp)) != STATUS_OK)

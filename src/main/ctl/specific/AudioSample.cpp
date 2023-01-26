@@ -671,7 +671,7 @@ namespace lsp
                 p->set_string("file_dir", &tmp);
                 fpath.get_ext(&tmp);
                 p->set_string("file_ext", &tmp);
-                fpath.get_noext(&tmp);
+                fpath.get_last_noext(&tmp);
                 p->set_string("file_noext", &tmp);
             }
         }
