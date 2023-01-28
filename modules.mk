@@ -19,7 +19,7 @@
 #
 
 # Variables that describe dependencies
-LSP_3RD_PARTY_VERSION      := 1.0.5
+LSP_3RD_PARTY_VERSION      := 1.0.6
 LSP_3RD_PARTY_NAME         := lsp-3rd-party
 LSP_3RD_PARTY_TYPE         := hdr
 LSP_3RD_PARTY_URL_RO       := https://github.com/lsp-plugins/$(LSP_3RD_PARTY_NAME).git
@@ -61,13 +61,13 @@ LSP_R3D_IFACE_TYPE         := src
 LSP_R3D_IFACE_URL_RO       := https://github.com/lsp-plugins/$(LSP_R3D_IFACE_NAME).git
 LSP_R3D_IFACE_URL_RW       := git@github.com:lsp-plugins/$(LSP_R3D_IFACE_NAME).git
 
-LSP_R3D_GLX_LIB_VERSION    := 1.0.7
+LSP_R3D_GLX_LIB_VERSION    := 1.0.8
 LSP_R3D_GLX_LIB_NAME       := lsp-r3d-glx-lib
 LSP_R3D_GLX_LIB_TYPE       := bin
 LSP_R3D_GLX_LIB_URL_RO     := https://github.com/lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
 LSP_R3D_GLX_LIB_URL_RW     := git@github.com:lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
 
-LSP_R3D_WGL_LIB_VERSION    := 1.0.2
+LSP_R3D_WGL_LIB_VERSION    := 1.0.3
 LSP_R3D_WGL_LIB_NAME       := lsp-r3d-wgl-lib
 LSP_R3D_WGL_LIB_TYPE       := bin
 LSP_R3D_WGL_LIB_URL_RO     := https://github.com/lsp-plugins/$(LSP_R3D_WGL_LIB_NAME).git
