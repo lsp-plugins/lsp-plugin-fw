@@ -223,7 +223,7 @@ namespace lsp
                 status_t                    set_port_alias(const LSPString *alias, const LSPString *id);
 
                 /**
-                 * Get UI scaling factor
+                 * Get UI scaling factor in percents (100 means no extra scaling applied)
                  * @param scaling the default value for scaling factor if scaling factor is not supported
                  * @return actual scaling factor (in percent) or default value if scaling factor is not supported
                  */
@@ -426,6 +426,14 @@ namespace lsp
                  * @return status of operation
                  */
                 virtual status_t            reset_settings();
+
+                /**
+                 * Check that the specified window size is accepted by the host
+                 * @param width the requested window width
+                 * @param height the requested window height
+                 * @return true if the specified window size is accepted by the host
+                 */
+                virtual bool                accept_window_size(size_t width, size_t height);
         };
     }
 

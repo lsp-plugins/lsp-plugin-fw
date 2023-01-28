@@ -253,8 +253,9 @@ namespace lsp
          * @param meta port metadata
          * @param value value to format
          * @param precision precision
+         * @param units emit units to the final format if possible
          */
-        void            format_float(char *buf, size_t len, const port_t *meta, float value, ssize_t precision);
+        void            format_float(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units);
 
         /**
          * Format integer value
@@ -263,8 +264,9 @@ namespace lsp
          * @param len length of the buffer
          * @param meta port metadata
          * @param value value to format
+         * @param units emit units to the final format if possible
          */
-        void            format_int(char *buf, size_t len, const port_t *meta, float value);
+        void            format_int(char *buf, size_t len, const port_t *meta, float value, bool units);
 
         /**
          * Format enumerated value
@@ -284,8 +286,9 @@ namespace lsp
          * @param meta port metadata
          * @param value value to format
          * @param precision precision
+         * @param units emit units to the final format if possible
          */
-        void            format_decibels(char *buf, size_t len, const port_t *meta, float value, ssize_t precision);
+        void            format_decibels(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units);
 
         /**
          * Format boolean value
@@ -303,8 +306,9 @@ namespace lsp
          * @param meta port metadata
          * @param value value to format
          * @param precision precision
+         * @param units emit units to the final format if possible
          */
-        void            format_value(char *buf, size_t len, const port_t *meta, float value, ssize_t precision);
+        void            format_value(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units);
 
         /**
          * Parse some text value associated with specified metadata and considered to be boolean
@@ -314,7 +318,7 @@ namespace lsp
          * @param meta associated metadata
          * @return status of operation
          */
-        status_t        parse_bool(float *dst, const char *text);
+        status_t        parse_bool(float *dst, const char *text, const port_t *meta);
 
         /**
          * Parse some text value associated with specified metadata and considered to be enumeration
@@ -332,9 +336,43 @@ namespace lsp
          * @param dst destination pointer to store parsed value
          * @param text text to parse
          * @param meta associated metadata
+         * @param units allow units passed after a value
          * @return status of operation
          */
-        status_t        parse_decibels(float *dst, const char *text, const port_t *meta);
+        status_t        parse_decibels(float *dst, const char *text, const port_t *meta, bool units);
+
+        /**
+         * Try to convert the string to the note name and compute it's main tone frequency considering
+         * the A2 being 440 Hz.
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @return status of operation
+         */
+        status_t        parse_note_frequency(float *dst, const char *text, const port_t *meta);
+
+        /**
+         * Parse frequency value. Allows to pass note name considering the A2 being 440 Hz.
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @param units allow units to be specified if possible
+         * @return status of operation
+         */
+        status_t        parse_frequency(float *dst, const char *text, const port_t *meta, bool units);
+
+        /**
+         * Parse time value.
+         *
+         * @param dst destination pointer to store parsed value
+         * @param text text to parse
+         * @param meta associated metadata
+         * @param units allow units to be specified if possible
+         * @return status of operation
+         */
+        status_t        parse_time(float *dst, const char *text, const port_t *meta, bool units);
 
         /**
          * Parse some text value associated with specified metadata and considered to be integer value
@@ -342,9 +380,10 @@ namespace lsp
          * @param dst destination pointer to store parsed value
          * @param text text to parse
          * @param meta associated metadata
+         * @param units allow units to be specified if possible
          * @return status of operation
          */
-        status_t        parse_int(float *dst, const char *text, const port_t *meta);
+        status_t        parse_int(float *dst, const char *text, const port_t *meta, bool units);
 
         /**
          * Parse some text value associated with specified metadata and considered to be floating-point value
@@ -352,9 +391,10 @@ namespace lsp
          * @param dst destination pointer to store parsed value
          * @param text text to parse
          * @param meta associated metadata
+         * @param units allow units to be specified if possible
          * @return status of operation
          */
-        status_t        parse_float(float *dst, const char *text, const port_t *meta);
+        status_t        parse_float(float *dst, const char *text, const port_t *meta, bool units);
 
         /**
          * Parse some text value associated with specified metadata
@@ -362,9 +402,10 @@ namespace lsp
          * @param dst destination pointer to store parsed value
          * @param text text to parse
          * @param meta associated metadata
+         * @param units allow units passed after a value
          * @return status of operation
          */
-        status_t        parse_value(float *dst, const char *text, const port_t *meta);
+        status_t        parse_value(float *dst, const char *text, const port_t *meta, bool units);
 
         /**
          * Check that value matches the range specified by the port metadata

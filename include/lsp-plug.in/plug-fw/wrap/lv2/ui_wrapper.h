@@ -107,8 +107,6 @@ namespace lsp
                 void                        receive_kvt_state();
                 void                        sync_kvt_state();
 
-                void                        dump_state_request();
-
                 void                        send_play_event();
 
             public:
@@ -118,6 +116,7 @@ namespace lsp
                 virtual core::KVTStorage   *kvt_trylock() override;
                 virtual bool                kvt_release() override;
                 virtual const meta::package_t  *package() const override;
+                virtual void                dump_state_request() override;
 
                 virtual status_t            play_file(const char *file, wsize_t position, bool release) override;
         };

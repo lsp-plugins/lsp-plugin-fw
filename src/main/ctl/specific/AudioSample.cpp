@@ -671,7 +671,7 @@ namespace lsp
                 p->set_string("file_dir", &tmp);
                 fpath.get_ext(&tmp);
                 p->set_string("file_ext", &tmp);
-                fpath.get_noext(&tmp);
+                fpath.get_last_noext(&tmp);
                 p->set_string("file_noext", &tmp);
             }
         }
@@ -690,7 +690,7 @@ namespace lsp
 
             // Synchronize mesh state
             size_t samples  = mesh->nItems;
-            float length = 0.0f;
+            float length = 0.0f, act_length = 0.0f;
             float head_cut = 0.0f, tail_cut = 0.0f;
             float fade_in = 0.0f, fade_out = 0.0f;
             float s_begin = -1.0f, s_end = -1.0f;
@@ -702,17 +702,32 @@ namespace lsp
             if (bFullSample)
             {
                 length      = sLength.evaluate_float();
-                float kl    = samples / length;
+                act_length  = (sActualLength.valid()) ? sActualLength.evaluate_float() : sLength.evaluate_float();
+                float kl    = samples / act_length;
 
                 fade_in     = kl * sFadeIn.evaluate_float();
                 fade_out    = kl * sFadeOut.evaluate_float();
                 head_cut    = kl * sHeadCut.evaluate_float(0.0f);
                 tail_cut    = kl * sTailCut.evaluate_float(0.0f);
-                s_begin     = ((s_on) && (length > 0)) ? kl * sStretchBegin.evaluate_float(-1.0f) : -1.0f;
-                s_end       = ((s_on) && (length > 0)) ? kl * sStretchEnd.evaluate_float(-1.0f)   : -1.0f;
-                l_begin     = ((l_on) && (length > 0)) ? kl * sLoopBegin.evaluate_float(-1.0f)    : -1.0f;
-                l_end       = ((l_on) && (length > 0)) ? kl * sLoopEnd.evaluate_float(-1.0f)      : -1.0f;
+                s_begin     = ((s_on) && (act_length > 0)) ? sStretchBegin.evaluate_float(-1.0f) : -1.0f;
+                s_end       = ((s_on) && (act_length > 0)) ? sStretchEnd.evaluate_float(-1.0f)   : -1.0f;
+                l_begin     = ((l_on) && (act_length > 0)) ? kl * sLoopBegin.evaluate_float(-1.0f)    : -1.0f;
+                l_end       = ((l_on) && (act_length > 0)) ? kl * sLoopEnd.evaluate_float(-1.0f)      : -1.0f;
                 pp          = ((pp >= 0) && (length > 0)) ? kl * pp : -1.0f;
+
+                if (s_begin >= 0.0f)
+                    s_begin     = lsp_limit(s_begin, 0.0f, act_length);
+                if (s_end >= 0.0f)
+                {
+                    float sb    = lsp_max(s_begin, 0.0f);
+                    s_end       = (s_end < sb) ? lsp_limit(s_end, 0.0f, act_length) :
+                                  lsp_limit(lsp_max(act_length - length, 0.0f) + s_end, 0.0f, act_length);
+                }
+
+                if (s_begin >= 0.0f)
+                    s_begin    *= kl;
+                if (s_end >= 0.0f)
+                    s_end      *= kl;
             }
             else
             {
@@ -726,13 +741,14 @@ namespace lsp
                 l_begin     = ((l_on) && (length > 0)) ? kl * sLoopBegin.evaluate_float(-1.0f) : -1.0f;
                 l_end       = ((l_on) && (length > 0)) ? kl * sLoopEnd.evaluate_float(-1.0f)   : -1.0f;
                 pp          = ((pp >= 0) && (length > 0)) ? kl * pp : -1.0f;
+
+                if (s_begin >= 0.0f)
+                    s_begin     = lsp_limit(s_begin, 0.0f, length);
+                if (s_end >= 0.0f)
+                    s_end       = lsp_limit(s_end, 0.0f, length);
             }
 
             // Configure the values
-            if (s_begin >= 0.0f)
-                s_begin     = lsp_limit(s_begin, 0.0f, length);
-            if (s_end >= 0.0f)
-                s_end       = lsp_limit(s_end, 0.0f, length);
             if (l_begin >= 0.0f)
                 l_begin     = lsp_limit(l_begin, 0.0f, length);
             if (l_end >= 0.0f)

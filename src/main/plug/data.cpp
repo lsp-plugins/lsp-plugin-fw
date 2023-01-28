@@ -591,14 +591,15 @@ namespace lsp
         // position_t methods
         void position_t::init(position_t *pos)
         {
-            pos->sampleRate     = LSP_DSP_UNITS_DEFAULT_SAMPLE_RATE;
-            pos->speed          = 1.0;
-            pos->frame          = 0;
-            pos->numerator      = 4.0;
-            pos->denominator    = 4.0;
-            pos->beatsPerMinute = BPM_DEFAULT;
-            pos->tick           = 0;
-            pos->ticksPerBeat   = DEFAULT_TICKS_PER_BEAT;
+            pos->sampleRate             = LSP_DSP_UNITS_DEFAULT_SAMPLE_RATE;
+            pos->speed                  = 1.0;
+            pos->frame                  = 0;
+            pos->numerator              = 4.0;
+            pos->denominator            = 4.0;
+            pos->beatsPerMinute         = BPM_DEFAULT;
+            pos->beatsPerMinuteChange   = 0.0f;
+            pos->tick                   = 0;
+            pos->ticksPerBeat           = DEFAULT_TICKS_PER_BEAT;
         }
 
         //-------------------------------------------------------------------------

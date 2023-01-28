@@ -25,10 +25,10 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/common/types.h>
 
-#define LSP_MODULE_VERSION(a, b, c)             uint32_t(((uint32_t(a) & 0xff) << 16) | ((uint32_t(b) & 0xff) << 8) | (uint32_t(c) & 0xff))
-#define LSP_MODULE_VERSION_MAJOR(v)             (uint32_t(((v) >> 16) & 0xff))
-#define LSP_MODULE_VERSION_MINOR(v)             (uint32_t(((v) >> 8) & 0xff))
-#define LSP_MODULE_VERSION_MICRO(v)             (uint32_t((v) & 0xff))
+#define LSP_MODULE_VERSION(a, b, c)             ::lsp::meta::module_version_t{ (a), (b), (c) }
+#define LSP_MODULE_VERSION_MAJOR(v)             ((v).major)
+#define LSP_MODULE_VERSION_MINOR(v)             ((v).minor)
+#define LSP_MODULE_VERSION_MICRO(v)             ((v).micro)
 
 namespace lsp
 {
@@ -166,7 +166,65 @@ namespace lsp
                 C_ANALYSER,
                 C_CONVERTER,
                 C_FUNCTION,
-                C_MIXER
+                C_MIXER,
+
+            // Overall number of classes
+            C_TOTAL
+        };
+
+        enum clap_feature_t
+        {
+            // Primary plugin catetory
+            CF_INSTRUMENT,
+            CF_AUDIO_EFFECT,
+            CF_NOTE_EFFECT,
+            CF_ANALYZER,
+
+            // Plugin sub-category
+            CF_SYNTHESIZER,
+            CF_SAMPLER,
+            CF_DRUM,
+            CF_DRUM_MACHINE,
+
+            CF_FILTER,
+            CF_PHASER,
+            CF_EQUALIZER,
+            CF_DEESSER,
+            CF_PHASE_VOCODER,
+            CF_GRANULAR,
+            CF_FREQUENCY_SHIFTER,
+            CF_PITCH_SHIFTER,
+
+            CF_DISTORTION,
+            CF_TRANSIENT_SHAPER,
+            CF_COMPRESSOR,
+            CF_LIMITER,
+
+            CF_FLANGER,
+            CF_CHORUS,
+            CF_DELAY,
+            CF_REVERB,
+
+            CF_TREMOLO,
+            CF_GLITCH,
+
+            CF_UTILITY,
+            CF_PITCH_CORRECTION,
+            CF_RESTORATION,
+
+            CF_MULTI_EFFECTS,
+
+            CF_MIXING,
+            CF_MASTERING,
+
+            // Audio Capabilities
+            CF_MONO,
+            CF_STEREO,
+            CF_SURROUND,
+            CF_AMBISONIC,
+
+            // Overall number of features
+            CF_TOTAL
         };
 
         /**
@@ -239,6 +297,13 @@ namespace lsp
         };
 
         typedef uint32_t            version_t;
+
+        typedef struct module_version_t
+        {
+            uint8_t             major;
+            uint8_t             minor;
+            uint8_t             micro;
+        } module_version_t;
 
         /**
          * The item of the port group
@@ -347,8 +412,10 @@ namespace lsp
             const char             *vst2_uid;       // Steinberg VST 2.x ID of the plugin
             const uint32_t          ladspa_id;      // LADSPA ID of the plugin
             const char             *ladspa_lbl;     // LADSPA unique label of the plugin
-            const version_t         version;        // Version of the plugin
+            const char             *clap_uid;       // Unique identifier for CLAP format
+            const module_version_t  version;        // Version of the plugin
             const int              *classes;        // List of plugin classes terminated by negative value
+            const int              *clap_features;  // List of CLAP plugin features
             const int               extensions;     // Additional extensions
             const port_t           *ports;          // List of all ports
             const char             *ui_resource;    // Location of the UI file resource
@@ -356,7 +423,8 @@ namespace lsp
             const port_group_t     *port_groups;    // List of all port groups
             const bundle_t         *bundle;         // Bundle associated with plugin
         } plugin_t;
-    }
-}
+
+    } /* namespace meta */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_META_TYPES_H_ */

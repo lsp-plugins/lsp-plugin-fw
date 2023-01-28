@@ -135,7 +135,7 @@ namespace lsp
             const meta::port_t *mdata   = (pPort != NULL) ? pPort->metadata() : NULL;
             if (mdata != NULL)
             {
-                meta::format_value(buf, TMP_BUF_SIZE, mdata, pPort->value(), -1);
+                meta::format_value(buf, TMP_BUF_SIZE, mdata, pPort->value(), -1, false);
                 gt->text()->params()->set_cstring("value", buf);
             }
         }

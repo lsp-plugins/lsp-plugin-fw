@@ -35,7 +35,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst2/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/main.h>
 #include <lsp-plug.in/plug-fw/wrap/common/libpath.h>
-#include <lsp-plug.in/3rdparty/steinberg/vst2.h>
+#include <steinberg/vst2.h>
 
 // System libraries
 #include <sys/types.h>

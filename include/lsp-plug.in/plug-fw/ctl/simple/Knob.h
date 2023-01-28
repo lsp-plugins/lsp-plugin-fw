@@ -54,7 +54,8 @@ namespace lsp
                     KF_LOG          = 1 << 7,
                     KF_LOG_SET      = 1 << 8,
                     KF_CYCLIC       = 1 << 9,
-                    KF_CYCLIC_SET   = 1 << 10
+                    KF_CYCLIC_SET   = 1 << 10,
+                    KF_VALUE        = 1 << 11
                 };
 
             protected:
@@ -64,12 +65,13 @@ namespace lsp
                 ctl::Color          sHoleColor;
                 ctl::Color          sTipColor;
                 ctl::Color          sBalanceTipColor;
+                ctl::Expression     sMin;
+                ctl::Expression     sMax;
 
                 ui::IPort          *pPort;
+                ui::IPort          *pScaleEnablePort;
 
                 size_t              nFlags;
-                float               fMin;
-                float               fMax;
                 float               fDefault;
                 float               fStep;
                 float               fAStep;
@@ -85,7 +87,8 @@ namespace lsp
             protected:
                 void                submit_value();
                 void                set_default_value();
-                void                commit_value(float value);
+                void                commit_value(size_t flags);
+                void                sync_scale_state();
 
             public:
                 explicit Knob(ui::IWrapper *wrapper, tk::Knob *widget);
@@ -98,8 +101,8 @@ namespace lsp
                 virtual void        notify(ui::IPort *port);
                 virtual void        end(ui::UIContext *ctx);
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace tk */
 
 
 

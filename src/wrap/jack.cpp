@@ -2,21 +2,21 @@
  * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins
+ * This file is part of lsp-plugin-fw
  * Created on: 11 мая 2016 г.
  *
- * lsp-plugins is free software: you can redistribute it and/or modify
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * lsp-plugins is distributed in the hope that it will be useful,
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with lsp-plugins. If not, see <https://www.gnu.org/licenses/>.
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <jack/jack.h>
@@ -28,6 +28,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/ws/ws.h>
 #include <lsp-plug.in/dsp/dsp.h>
@@ -75,6 +76,7 @@ namespace lsp
             jack::UIWrapper    *pUIWrapper;         // Plugin UI wrapper
             ws::timestamp_t     nLastReconnect;     // Last connection time
             ws::timestamp_t     nLastIconSync;      // Last icon synchronization time
+            const lltl::darray<connection_t> *pRouting;  // Routing
             volatile bool       bInterrupt;         // Interrupt signal received
         } wrapper_t;
 
@@ -85,13 +87,126 @@ namespace lsp
             void           *parent_id;
             bool            headless;
             bool            list;
+            lltl::darray<connection_t> routing;
         } cmdline_t;
 
         // JACK wrapper
         static wrapper_t  wrapper;
 
+        static status_t add_connection(cmdline_t *cfg, LSPString *src, LSPString *dst)
+        {
+            if ((src == NULL) || (src->is_empty()))
+            {
+                fprintf(stderr, "Not specified source JACK port name in connection string\n");
+                return STATUS_INVALID_VALUE;
+            }
+            if ((dst == NULL) || (dst->is_empty()))
+            {
+                fprintf(stderr, "Not specified destination JACK port name in connection string\n");
+                return STATUS_INVALID_VALUE;
+            }
+
+            connection_t *conn = cfg->routing.add();
+            if (conn == NULL)
+                return STATUS_NO_MEM;
+            conn->src   = NULL;
+            conn->dst   = NULL;
+
+            conn->src   = src->clone_utf8();
+            conn->dst   = dst->clone_utf8();
+
+            if ((conn->src == NULL) || (conn->dst == NULL))
+                return STATUS_NO_MEM;
+
+            return STATUS_OK;
+        }
+
+        static status_t parse_connection(cmdline_t *cfg, const char *string)
+        {
+            status_t res;
+            LSPString text, src, dst, *str;
+            if (!text.set_native(string))
+                return STATUS_NO_MEM;
+
+            str = &src;
+            lsp_wchar_t curr = 0;
+            size_t count = 0;
+            for (size_t i=0, n=text.length(); i<n; ++i)
+            {
+                lsp_wchar_t prev    = curr;
+                curr                = text.char_at(i);
+                if (prev == '\\')
+                {
+                    switch (curr)
+                    {
+                        case '\\':
+                        case '/':
+                        case ' ':
+                        case '=':
+                        case ',':
+                            break;
+                        case 'r': curr = '\r'; break;
+                        case 'n': curr = '\n'; break;
+                        case 't': curr = '\t'; break;
+                        case 'v': curr = '\v'; break;
+                        default:
+                            if (!str->append(prev))
+                                return STATUS_NO_MEM;
+                            break;
+                    }
+                    if (!str->append(curr))
+                        return STATUS_NO_MEM;
+                    ++count;
+                    curr    = 0;
+                }
+                else
+                {
+                    switch (curr)
+                    {
+                        case '\\':
+                            break;
+                        case '=':
+                            ++count;
+                            if (str == &dst)
+                            {
+                                if (!str->append(curr))
+                                    return STATUS_NO_MEM;
+                            }
+                            else // dst == &key
+                                str = &dst;
+                            break;
+                        case ',':
+                            // Add and cleanup strings
+                            if ((res = add_connection(cfg, &src, &dst)) != STATUS_OK)
+                                return res;
+                            str     = &src;
+                            src.clear();
+                            dst.clear();
+                            count = 0;
+                            break;
+                        default:
+                            if (!str->append(curr))
+                                return STATUS_NO_MEM;
+                            ++count;
+                            break;
+                    }
+                }
+            }
+
+            // Add last connection if present
+            if (count > 0)
+            {
+                if ((res = add_connection(cfg, &src, &dst)) != STATUS_OK)
+                    return res;
+            }
+
+            return STATUS_OK;
+        }
+
         status_t parse_cmdline(cmdline_t *cfg, const char *plugin_id, int argc, const char **argv)
         {
+            status_t res;
+
             // Initialize config with default values
             cfg->cfg_file       = NULL;
             cfg->plugin_id      = NULL;
@@ -112,13 +227,18 @@ namespace lsp
                             (plugin_id != NULL) ? "" : " plugin-id"
                     );
                     printf("Available parameters:\n");
-                    printf("  -c, --config <file>   Load settings file on startup\n");
+                    printf("  -c, --config <file>       Load settings file on startup\n");
                     IF_XDND_PROXY_SUPPORT(
-                        printf("  --dnd-proxy <id>      Create window as child and DnD proxy of specified window ID\n");
+                        printf("  --dnd-proxy <id>          Create window as child and DnD proxy of specified window ID\n");
                     )
-                    printf("  -h, --help            Output help\n");
-                    printf("  -hl, --headless       Launch in console only, without UI\n");
-                    printf("  -l, --list            List available plugin identifiers\n");
+                    printf("  -h, --help                Output help\n");
+                    printf("  -hl, --headless           Launch in console only, without UI\n");
+                    printf("  -l, --list                List available plugin identifiers\n");
+                    printf("  -x, --connect <src>=<dst> Connect input/output JACK port to another\n");
+                    printf("                            input/output JACK port when JACK connection\n");
+                    printf("                            is estimated. Multiple options are allowed,\n");
+                    printf("                            the connection <src>=<dst> pais can be separated\n");
+                    printf("                            by comma. Use backslash for escaping characters\n");
                     printf("\n");
 
                     return STATUS_CANCELLED;
@@ -138,6 +258,20 @@ namespace lsp
                     cfg->list           = true;
                 else if ((plugin_id == NULL) && (cfg->plugin_id == NULL))
                     cfg->plugin_id      = argv[i++];
+                else if ((!::strcmp(arg, "--connect")) || (!::strcmp(arg, "-x")))
+                {
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified connection string for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    const char *conn = argv[i++];
+                    if ((res = parse_connection(cfg, conn)) != STATUS_OK)
+                    {
+                        fprintf(stderr, "Error in connection string for '%s' parameter: '%s'\n", arg, conn);
+                        return res;
+                    }
+                }
             #ifdef XDND_PROXY_SUPPORT
                 else if (!::strcmp(arg, "--dnd-proxy"))
                 {
@@ -167,6 +301,21 @@ namespace lsp
                 cfg->plugin_id      = plugin_id;
 
             return STATUS_OK;
+        }
+
+        void destroy_cmdline(cmdline_t *cfg)
+        {
+            for (size_t i=0, n=cfg->routing.size(); i<n; ++i)
+            {
+                connection_t *c = cfg->routing.uget(i);
+                if (c == NULL)
+                    continue;
+                if (c->src != NULL)
+                    free(const_cast<char *>(c->src));
+                if (c->dst != NULL)
+                    free(const_cast<char *>(c->dst));
+            }
+            cfg->routing.flush();
         }
 
         static ssize_t metadata_sort_func(const meta::plugin_t *a, const meta::plugin_t *b)
@@ -390,6 +539,7 @@ namespace lsp
             #endif
 
             // Initialize plugin wrapper
+            w->pRouting     = &cmdline.routing;
             w->pWrapper     = new jack::Wrapper(w->pPlugin, w->pLoader);
             if (w->pWrapper == NULL)
             {
@@ -475,6 +625,12 @@ namespace lsp
                     printf("Trying to connect to JACK\n");
                     if (jw->connect() == STATUS_OK)
                     {
+                        if (!w->pRouting->is_empty())
+                        {
+                            printf("Connecting ports...");
+                            jw->set_routing(w->pRouting);
+                        }
+
                         printf("Successfully connected to JACK\n");
                         w->nSync        = 0;
                         w->bNotify      = true;
@@ -594,6 +750,7 @@ extern "C"
         
         // Parse command-line arguments
         jack::cmdline_t cmdline;
+        lsp_finally { destroy_cmdline(&cmdline); };
         if ((res = parse_cmdline(&cmdline, plugin_id, argc, argv)) != STATUS_OK)
             return (res == STATUS_CANCELLED) ? 0 : res;
 
@@ -610,6 +767,19 @@ extern "C"
         {
             fprintf(stderr, "Not specified plugin identifier, exiting\n");
             return -STATUS_NOT_FOUND;
+        }
+
+        // Output routing if specified
+        if (!cmdline.routing.is_empty())
+        {
+            printf("JACK connection routing:\n");
+            for (size_t i=0, n=cmdline.routing.size(); i<n; ++i)
+            {
+                jack::connection_t *conn = cmdline.routing.uget(i);
+                if (conn != NULL)
+                    printf("%s -> %s\n", conn->src, conn->dst);
+            }
+            printf("\n");
         }
 
         // Initialize DSP

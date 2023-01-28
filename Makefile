@@ -143,11 +143,12 @@ help:
 	$(MAKE) -f "$(BASEDIR)/make/configure.mk" $(@) VERBOSE="$(VERBOSE)"
 	echo ""
 	echo "Available FEATURES:"
+	echo "  clap                      CLAP plugin format binaries"
 	echo "  doc                       Generate standalone HTML documentation"
-	echo "  jack                      Standalone JACK plugins"
-	echo "  ladspa                    LADSPA plugins"
-	echo "  lv2                       LV2 plugins"
-	echo "  vst2                      VST 2.x plugin binaries"
+	echo "  jack                      Standalone JACK plugin format binaries"
+	echo "  ladspa                    LADSPA plugin format binaries"
+	echo "  lv2                       LV2 plugin format binaries"
+	echo "  vst2                      VST 2.x plugin format binaries"
 	echo "  xdg                       Desktop integration icons"
 
 	

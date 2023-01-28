@@ -49,6 +49,10 @@
 #define UI_FONT_SCALING_PORT_ID             "font_scaling"
 #define UI_VISUAL_SCHEMA_FILE_ID            "visual_schema_file"
 #define UI_PREVIEW_AUTO_PLAY_ID             "preview_auto_play"
+#define UI_ENABLE_KNOB_SCALE_ACTIONS_ID     "enable_knob_scale_actions"
+#define UI_USER_HYDROGEN_KIT_PATH_ID        "user_hydrogen_kit_path"
+#define UI_OVERRIDE_HYDROGEN_KIT_PATH_ID    "override_hydrogen_kit_path"
+#define UI_OVERRIDE_HYDROGEN_KITS_ID        "override_hydrogen_kits"
 
 #define MSTUD_PORT                          UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                        UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -65,6 +69,10 @@
 #define UI_FONT_SCALING_PORT                UI_CONFIG_PORT_PREFIX UI_FONT_SCALING_PORT_ID
 #define UI_VISUAL_SCHEMA_PORT               UI_CONFIG_PORT_PREFIX UI_VISUAL_SCHEMA_FILE_ID
 #define UI_PREVIEW_AUTO_PLAY_PORT           UI_CONFIG_PORT_PREFIX UI_PREVIEW_AUTO_PLAY_ID
+#define UI_ENABLE_KNOB_SCALE_ACTIONS_PORT   UI_CONFIG_PORT_PREFIX UI_ENABLE_KNOB_SCALE_ACTIONS_ID
+#define UI_USER_HYDROGEN_KIT_PATH_PORT      UI_CONFIG_PORT_PREFIX UI_USER_HYDROGEN_KIT_PATH_ID
+#define UI_OVERRIDE_HYDROGEN_KIT_PATH_PORT  UI_CONFIG_PORT_PREFIX UI_OVERRIDE_HYDROGEN_KIT_PATH_ID
+#define UI_OVERRIDE_HYDROGEN_KITS_PORT      UI_CONFIG_PORT_PREFIX UI_OVERRIDE_HYDROGEN_KITS_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                      "main_menu"

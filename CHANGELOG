@@ -2,6 +2,16 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.8 ===
+* Added CLAP plugin format support.
+* Changed VST parameter normalized value mapping for logarithmic parameters.
+* Added possibility to specify JACK connections that should be estimated by the
+  standalone JACK plugin when the plugin connects to the JACK server. 
+* Significantly improved text value parsing into the port value.
+* Implemented plugin metadata validator.
+* Fixed bug related to modification of cyclic parameters for several plugin formats.
+* Fixed possible crash when reading data from clipboard.
+
 === 1.0.7 ===
 * Improved preset loading for incomplete presets that are missing some plugin parameters.
 * Fixed broken configuration save and load with relative file paths.

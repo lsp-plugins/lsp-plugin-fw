@@ -129,6 +129,75 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void Wrapper::set_routing(const lltl::darray<connection_t> *routing)
+        {
+            if (routing->size() <= 0)
+                return;
+
+            for (size_t i=0, n=routing->size(); i<n; ++i)
+            {
+                const connection_t *conn = routing->uget(i);
+                if (conn == NULL)
+                    continue;
+
+                size_t self_ports = 0;
+                const char *src = conn->src;
+                const char *dst = conn->dst;
+
+                // Check the source port
+                if (strchr(src, ':') == NULL)
+                {
+                    ++self_ports;
+                    jack::Port *p = port_by_id(src);
+                    const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
+                    if ((meta == NULL) || !(meta::is_audio_out_port(meta) || meta::is_midi_out_port(meta)))
+                    {
+                        fprintf(stderr, "  %s -> %s: invalid port '%s', should be AUDIO OUT or MIDI OUT\n", src, dst, src);
+                        continue;
+                    }
+                    jack::DataPort *dp = static_cast<jack::DataPort *>(p);
+                    src     = dp->jack_name();
+                }
+
+                // Check the destination port
+                if (strchr(dst, ':') == NULL)
+                {
+                    ++self_ports;
+                    jack::Port *p = port_by_id(dst);
+                    const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
+                    if ((meta == NULL) || !(meta::is_audio_in_port(meta) || meta::is_midi_in_port(meta)))
+                    {
+                        fprintf(stderr, "  %s -> %s: invalid port '%s', should be AUDIO IN or MIDI IN\n", src, dst, dst);
+                        continue;
+                    }
+                    jack::DataPort *dp = static_cast<jack::DataPort *>(p);
+                    dst     = dp->jack_name();
+                }
+
+                // At least one self port should be defined
+                if (self_ports <= 0)
+                {
+                    fprintf(stderr, "  %s -> %s: at least one port should belong to the plugin\n", src, dst);
+                    continue;
+                }
+
+                // Perform the connection
+                int res = jack_connect(pClient, src, dst);
+                switch (res)
+                {
+                    case 0:
+                        fprintf(stderr, "  %s -> %s: OK\n", src, dst);
+                        break;
+                    case EEXIST:
+                        fprintf(stderr, "  %s -> %s: connection already has been estimated\n", src, dst);
+                        break;
+                    default:
+                        fprintf(stderr, "  %s -> %s: error, code=%d\n", src, dst, res);
+                        break;
+                }
+            }
+        }
+
         status_t Wrapper::connect()
         {
             // Ensure that client identifier is not longer than jack_client_name_size()

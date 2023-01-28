@@ -156,9 +156,9 @@ namespace lsp
                             }
                             else
                             {
-                                if (abs(v) > 1e+40)
+                                if (fabsf(v) > 1e+40)
                                     v   = +INFINITY;
-                                else if (abs(v) < 1e-40)
+                                else if (fabsf(v) < 1e-40)
                                     v   = -INFINITY;
                                 else
                                     v   = (meta->unit == meta::U_GAIN_AMP) ? dspu::gain_to_db(v) : dspu::power_to_db(v);
