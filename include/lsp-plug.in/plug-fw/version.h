@@ -24,7 +24,7 @@
 
 #define LSP_PLUGIN_FW_MAJOR         1
 #define LSP_PLUGIN_FW_MINOR         0
-#define LSP_PLUGIN_FW_MICRO         9
+#define LSP_PLUGIN_FW_MICRO         10
 
 #if defined(LSP_PLUGIN_FW_PUBLISHER)
     #define LSP_PLUGIN_FW_PUBLIC        LSP_EXPORT_MODIFIER
