@@ -1075,6 +1075,9 @@ package_lv2: lv2 $(BIN_PACKAGE)
 	$(INSTALL) $(ARTIFACT_LIB_LV2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/"
 	$(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/"
 	$(HOST_UTL_LV2TTL_GEN) -o "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" -ui $(ARTIFACT_LIB_LV2_UI)
+	$(foreach target,$(BIN_PACKAGE), \
+	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
     )
@@ -1088,6 +1091,9 @@ package_vst2: vst2 $(BIN_PACKAGE)
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
+	$(foreach target,$(BIN_PACKAGE), \
+	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
     )
@@ -1100,6 +1106,9 @@ package_clap: clap $(BIN_PACKAGE)
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)/"
+	$(foreach target,$(BIN_PACKAGE), \
+	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
     )
