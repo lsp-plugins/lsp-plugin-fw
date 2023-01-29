@@ -240,6 +240,7 @@ namespace lsp
             B_MB_DYNAMICS,
             B_MB_PROCESSING,
             B_SAMPLERS,
+            B_GENERATORS,
             B_UTILITIES
         };
 

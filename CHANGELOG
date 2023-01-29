@@ -4,6 +4,7 @@
 
 === 1.0.10 ===
 * Added shared objects related to 3D rendering to LV2, VST and CLAP packages.
+* Created additinal bundle categories.
 
 === 1.0.9 ===
 * Updated module versions in dependencies.

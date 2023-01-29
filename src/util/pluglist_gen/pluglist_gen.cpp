@@ -87,6 +87,7 @@ namespace lsp
             { meta::B_MB_DYNAMICS,      "mb_dynamics" },
             { meta::B_MB_PROCESSING,    "mb_processing" },
             { meta::B_SAMPLERS,         "samplers" },
+            { meta::B_GENERATORS,       "generators" },
             { meta::B_UTILITIES,        "utilities" },
             { -1, NULL }
         };
