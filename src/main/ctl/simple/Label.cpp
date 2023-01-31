@@ -151,7 +151,9 @@ namespace lsp
 
         const tk::tether_t Label::label_tether[] =
         {
+            { tk::TF_LEFT  | tk::TF_TOP,     1.0f,  1.0f },
             { tk::TF_RIGHT | tk::TF_TOP,    -1.0f,  1.0f },
+            { tk::TF_LEFT  | tk::TF_BOTTOM,  1.0f, -1.0f },
             { tk::TF_RIGHT | tk::TF_BOTTOM, -1.0f, -1.0f },
         };
 
