@@ -114,6 +114,7 @@ namespace lsp
                 f->id                   = 0;
                 f->head                 = 0;
                 f->tail                 = 0;
+                f->size                 = 0;
                 f->length               = 0;
             }
 
@@ -139,6 +140,7 @@ namespace lsp
                 f->id                   = 0;
                 f->head                 = 0;
                 f->tail                 = 0;
+                f->size                 = 0;
                 f->length               = 0;
             }
 
@@ -177,12 +179,10 @@ namespace lsp
             return (f->id == frame) ? head : -STATUS_NOT_FOUND;
         }
 
-        ssize_t stream_t::get_size(uint32_t frame) const
+        ssize_t stream_t::get_frame_size(uint32_t frame) const
         {
             const frame_t *f = &vFrames[frame & (nFrameCap - 1)];
-            ssize_t size = f->tail - f->head;
-            if (size < 0)
-                size       += nBufCap;
+            ssize_t size = f->size;
             return (f->id == frame) ? size : -STATUS_NOT_FOUND;
         }
 
@@ -214,6 +214,7 @@ namespace lsp
             next->id        = frame_id;
             next->head      = curr->tail;
             next->tail      = next->head + size;
+            next->size      = size;
             next->length    = size;
 
             // Clear data for all buffers
@@ -251,22 +252,55 @@ namespace lsp
                 return -STATUS_BAD_STATE;
 
             // Estimate number of items to copy
-            size_t last     = lsp_min(off + count, next->length);
-            if (last > next->length)
+            if (off >= next->size)
                 return 0;
+            count           = lsp_min(count, next->size - off);
 
-            // Copy data
+            // Copy data to the frame
             float *dst      = vChannels[channel];
-            count           = last - off;
-            last            = next->head + count;
-            off            += next->head;
-            if (last > nBufCap)
+            size_t head     = next->head + off;
+            if (head >= nBufCap)
+                head           -= nBufCap;
+
+            size_t tail     = head + count;
+            if (tail > nBufCap)
             {
-                dsp::copy(&dst[off], data, nBufCap - off);
-                dsp::copy(dst, &data[nBufCap - off], last - nBufCap);
+                dsp::copy(&dst[head], data, nBufCap - head);
+                dsp::copy(dst, &data[nBufCap - head], tail - nBufCap);
             }
             else
-                dsp::copy(&dst[off], data, count);
+                dsp::copy(&dst[head], data, count);
+
+            return count;
+        }
+
+        ssize_t stream_t::read_frame(uint32_t frame_id, size_t channel, float *data, size_t off, size_t count)
+        {
+            if (channel >= nChannels)
+                return -STATUS_INVALID_VALUE;
+            frame_t *frame = &vFrames[frame_id & (nFrameCap - 1)];
+            if (frame->id != frame_id)
+                return -STATUS_BAD_STATE;
+
+            // Estimate number of items to copy
+            if (off >= frame->size)
+                return -STATUS_EOF;
+            count           = lsp_min(count, frame->size - off);
+
+            // Copy data from the frame
+            float *dst      = vChannels[channel];
+            size_t head     = frame->head + off;
+            if (head >= nBufCap)
+                head           -= nBufCap;
+
+            size_t tail     = head + count;
+            if (tail > nBufCap)
+            {
+                dsp::copy(data, &dst[head], nBufCap - head);
+                dsp::copy(&data[nBufCap - head], dst, tail - nBufCap);
+            }
+            else
+                dsp::copy(data, &dst[head], count);
 
             return count;
         }
@@ -933,8 +967,9 @@ namespace lsp
             if (nEvents > 1)
                 ::qsort(vEvents, nEvents, sizeof(midi::event_t), compare_midi_events);
         }
-    }
-}
+
+    } /* namespace plug */
+} /* namespace lsp */
 
 
 

@@ -622,16 +622,23 @@ namespace lsp
                  virtual void serialize()
                  {
                      // Serialize not more than number of predefined frames
-                     uint32_t frame_id   = nFrameID;
-                     size_t src_id       = pStream->frame_id();
-                     size_t delta        = src_id - nFrameID;
-                     if (delta > pStream->frames())
-                         frame_id            = src_id - pStream->frames();
+                     uint32_t frame_id  = nFrameID;
+                     uint32_t src_id    = pStream->frame_id();
+                     uint32_t delta     = src_id - nFrameID;
+                     if (delta == 0)
+                         return;
+                     size_t num_frames  = pStream->frames();
+                     uint32_t last_id   = src_id + 1;
+                     if (delta > num_frames)
+                     {
+                         delta              = num_frames;
+                         frame_id           = last_id - num_frames;
+                     }
                      if (delta > STREAM_BULK_MAX)
-                         delta = STREAM_BULK_MAX;
-                     size_t last_id          = frame_id + delta;
+                         last_id            = frame_id + STREAM_BULK_MAX;
 
-                     lsp_trace("id = %s, first=%d, last=%d", pMetadata->id, int(frame_id), int(last_id));
+//                     lsp_trace("id = %s, nFrameID=0x%x num_frames=%d, src=0x%x, first=0x%x, last=0x%x",
+//                         pMetadata->id, int(nFrameID), int(num_frames), int(src_id), int(frame_id), int(last_id));
 
                      // Forge frame buffer parameters
                      size_t nbuffers = pStream->channels();
@@ -643,8 +650,11 @@ namespace lsp
                      for ( ; frame_id != last_id; ++frame_id)
                      {
                          LV2_Atom_Forge_Frame frame;
-                         size_t size = pStream->get_size(frame_id);
-     //                    lsp_trace("frame id=%d, size=%d", int(frame_id), int(size));
+                         ssize_t size = pStream->get_frame_size(frame_id);
+                         if (size < 0)
+                             continue;
+
+//                         lsp_trace("frame id=0x%x, size=%d", int(frame_id), int(size));
 
                          pExt->forge_key(pExt->uridStreamFrame);
                          pExt->forge_object(&frame, pExt->uridBlank, pExt->uridStreamFrameType);
@@ -658,9 +668,11 @@ namespace lsp
                              // Forge vectors
                              for (size_t i=0; i < nbuffers; ++i)
                              {
-                                 pStream->read(i, pData, 0, size);
+                                 pStream->read_frame(frame_id, i, pData, 0, size);
 
                                  pExt->forge_key(pExt->uridStreamFrameData);
+//                                 lsp_trace("forge_vector i=%d, nbuffers=%d, size=%d, pData=%p",
+//                                     int(i), int(nbuffers), int(size), pData);
                                  pExt->forge_vector(sizeof(float), pExt->forge.Float, size, pData);
                              }
                          }

@@ -84,7 +84,13 @@ namespace lsp
             }
         } mesh_t;
 
-        // Streaming mesh
+        /**
+         * Streaming mesh. The data structure consists from a long single buffer splitted into
+         * channels. The mesh is incrementally appended with special markers - frames. Each frame
+         * contains information about it's size, position inside of the buffer and the overall
+         * buffer size available for read. Such structure allows to implement some kind of LIFO
+         * with support of partial data read and transfer.
+         */
         typedef struct stream_t
         {
             protected:
@@ -93,7 +99,8 @@ namespace lsp
                     volatile uint32_t   id;         // Unique frame identifier
                     size_t              head;       // Head of the frame
                     size_t              tail;       // The tail of frame
-                    size_t              length;     // The overall length of the frame
+                    size_t              size;       // The size of the frame
+                    size_t              length;     // The overall length of the stream
                 } frame_t;
 
                 size_t                  nFrames;    // Number of frames
@@ -148,16 +155,16 @@ namespace lsp
                  * Get size of the incremental frame block
                  * @return size of the frame block
                  */
-                ssize_t                 get_size(uint32_t frame) const;
+                ssize_t                 get_frame_size(uint32_t frame) const;
 
                 /**
-                 * Get start position of the whole frame (including previously stored data)
+                 * Get start position of the stream (including previous frames)
                  * @return start the start position of the frame
                  */
                 ssize_t                 get_position(uint32_t frame) const;
 
                 /**
-                 * Get the whole length of the frame (including previously stored data)
+                 * Get the whole length of the stream data starting with the specified frame
                  * @param frame frame identifier
                  * @return the length of the whole frame
                  */
@@ -177,7 +184,7 @@ namespace lsp
                 size_t                  add_frame(size_t size);
 
                 /**
-                 * Write data to the channel
+                 * Write data to the currently allocated frame
                  * @param channel channel to write data
                  * @param data source buffer to write
                  * @param off the offset inside the frame
@@ -187,7 +194,18 @@ namespace lsp
                 ssize_t                 write_frame(size_t channel, const float *data, size_t off, size_t count);
 
                 /**
-                 * Read frame data of the last frame
+                 * Read frame data
+                 * @param frame frame identifier
+                 * @param channel channel number
+                 * @param data pointer to store the value
+                 * @param off offset from the beginning of the frame
+                 * @param count number of elements to read
+                 * @return number of elements written or negative error code
+                 */
+                ssize_t                 read_frame(uint32_t frame_id, size_t channel, float *data, size_t off, size_t count);
+
+                /**
+                 * Read the whole stream according to the information stored inside of the last frame
                  * @param channel channel number
                  * @param data destination buffer
                  * @param off offset relative to the beginning of the whole frame
@@ -602,7 +620,8 @@ namespace lsp
 
             static void init(position_t *pos);
         } position_t;
-    }
-}
+
+    } /* namespace plug */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_PLUG_DATA_H_ */
