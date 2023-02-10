@@ -80,6 +80,9 @@
 #define INT_CONTROL(id, label, units, limits) \
     { id, label, units, R_CONTROL, F_IN | F_LOWER | F_UPPER | F_STEP | F_INT, \
         limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL }
+#define INT_CONTROL_RANGE(id, label, units, min, max, dfl, step) \
+    { id, label, units, R_CONTROL, F_IN | F_LOWER | F_UPPER | F_STEP | F_INT, \
+        min, max, dfl, step, NULL, NULL }
 #define HUE_CTL(id, label, dfl) \
     { id, label, U_NONE, R_CONTROL, F_IN | F_UPPER | F_LOWER | F_STEP | F_CYCLIC, 0.0f, 1.0f, (dfl), 0.25f/360.0f, NULL     }
 #define CYC_CONTROL(id, label, units, limits) \
