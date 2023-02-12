@@ -126,6 +126,7 @@ namespace lsp
             // Drop plugin UI
             if (pUI != NULL)
             {
+                pUI->pre_destroy();
                 pUI->destroy();
                 delete pUI;
 

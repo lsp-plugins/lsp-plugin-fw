@@ -124,6 +124,7 @@ namespace lsp
             // Destroy UI
             if (pUI != NULL)
             {
+                pUI->pre_destroy();
                 pUI->destroy();
                 delete pUI;
                 pUI = NULL;
