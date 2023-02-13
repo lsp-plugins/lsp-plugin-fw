@@ -45,6 +45,8 @@ namespace lsp
                 ui::IPort              *pPort;
 
                 ctl::Color              sColor;
+                ctl::TextLayout         sTextLayout;
+                ctl::Layout             sLayout;
 
                 ctl::Float              sHValue;
                 ctl::Float              sVValue;
@@ -64,9 +66,9 @@ namespace lsp
                 virtual void        notify(ui::IPort *port);
                 virtual void        end(ui::UIContext *ctx);
         };
-    }
-}
 
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_TEXT_H_ */

@@ -41,6 +41,8 @@
     #include <lsp-plug.in/plug-fw/ctl/util/Padding.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Enum.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Direction.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/Layout.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/TextLayout.h>
 
     // Widget controllers
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>

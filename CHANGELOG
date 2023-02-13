@@ -6,6 +6,7 @@
 * Added shared objects related to 3D rendering to LV2, VST and CLAP packages.
 * Fixed buggy tether for the parameter popup window. 
 * Fixed improper data stream synchronization using LV2:Atom protocol.
+* The layout and text layout are now expressions for the ctl::Text controller.
 * Created additinal bundle categories.
 
 === 1.0.9 ===

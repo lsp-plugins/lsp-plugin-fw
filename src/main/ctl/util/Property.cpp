@@ -184,7 +184,7 @@ namespace lsp
             // Nothing
         }
 
-    } /* namespace tk */
+    } /* namespace ctl */
 } /* namespace lsp */
 
 

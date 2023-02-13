@@ -80,6 +80,8 @@ namespace lsp
                 sHValue.init(pWrapper, gt->hvalue());
                 sVValue.init(pWrapper, gt->vvalue());
                 sText.init(pWrapper, gt->text());
+                sLayout.init(pWrapper, gt->layout());
+                sTextLayout.init(pWrapper, gt->text_layout());
             }
 
             return STATUS_OK;
@@ -93,8 +95,8 @@ namespace lsp
                 bind_port(&pPort, "id", name, value);
 
                 sColor.set("color", name, value);
-                set_layout(gt->layout(), NULL, name, value);
-                set_text_layout(gt->text_layout(), name, value);
+                sLayout.set(name, value);
+                sTextLayout.set(name, value);
 
                 sHValue.set("hval", name, value);
                 sHValue.set("xval", name, value);
@@ -153,5 +155,6 @@ namespace lsp
             Widget::end(ctx);
             trigger_expr();
         }
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */
