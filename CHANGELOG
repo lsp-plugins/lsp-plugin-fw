@@ -8,6 +8,7 @@
 * Fixed improper data stream synchronization using LV2:Atom protocol.
 * The layout and text layout are now expressions for the ctl::Text controller.
 * Fixed label value update when switching language in the UI.
+* Added support of named widget groups.
 * Created additinal bundle categories.
 
 === 1.0.9 ===
