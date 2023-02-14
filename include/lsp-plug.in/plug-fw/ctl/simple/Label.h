@@ -82,6 +82,7 @@ namespace lsp
 
                 ctl::LCString       sText;
                 ui::IPort          *pPort;
+                ui::IPort          *pLangPort;
                 float               fValue;
                 bool                bDetailed;
                 bool                bSameLine;
@@ -107,18 +108,19 @@ namespace lsp
 
             public:
                 explicit Label(ui::IWrapper *wrapper, tk::Label *widget, label_type_t type);
-                virtual ~Label();
+                virtual ~Label() override;
 
-                virtual status_t    init();
-                virtual void        destroy();
+                virtual status_t    init() override;
+                virtual void        destroy() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        notify(ui::IPort *port);
-                virtual void        end(ui::UIContext *ctx);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        notify(ui::IPort *port) override;
+                virtual void        end(ui::UIContext *ctx) override;
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

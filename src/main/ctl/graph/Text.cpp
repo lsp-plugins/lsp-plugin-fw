@@ -63,6 +63,7 @@ namespace lsp
             pClass          = &metadata;
 
             pPort           = NULL;
+            pLangPort       = NULL;
         }
 
         Text::~Text()
@@ -83,6 +84,8 @@ namespace lsp
                 sLayout.init(pWrapper, gt->layout());
                 sTextLayout.init(pWrapper, gt->text_layout());
             }
+
+            BIND_PORT(pWrapper, pLangPort, LANGUAGE_PORT);
 
             return STATUS_OK;
         }
@@ -147,6 +150,8 @@ namespace lsp
             Widget::notify(port);
 
             if ((pPort == port) && (pPort != NULL))
+                trigger_expr();
+            if ((pLangPort == port) && (pLangPort != NULL))
                 trigger_expr();
         }
 

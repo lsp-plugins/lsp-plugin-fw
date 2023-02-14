@@ -164,6 +164,7 @@ namespace lsp
 
             enType          = type;
             pPort           = NULL;
+            pLangPort       = NULL;
             fValue          = 0.0f;
             bDetailed       = true;
             bSameLine       = false;
@@ -192,6 +193,8 @@ namespace lsp
 
                 lbl->slot(tk::SLOT_MOUSE_DBL_CLICK)->bind(slot_dbl_click, this);
             }
+
+            BIND_PORT(pWrapper, pLangPort, LANGUAGE_PORT);
 
             return STATUS_OK;
         }
@@ -365,6 +368,8 @@ namespace lsp
         {
             Widget::notify(port);
             if ((pPort != NULL) && (pPort == port))
+                commit_value();
+            if ((pLangPort != NULL) && (pLangPort == port))
                 commit_value();
         }
 
@@ -589,6 +594,12 @@ namespace lsp
             }
 
             return STATUS_OK;
+        }
+
+        void Label::reloaded(const tk::StyleSheet *sheet)
+        {
+            Widget::reloaded(sheet);
+            commit_value();
         }
 
     } /* namespace ctl */

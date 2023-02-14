@@ -43,6 +43,7 @@ namespace lsp
 
             protected:
                 ui::IPort              *pPort;
+                ui::IPort              *pLangPort;
 
                 ctl::Color              sColor;
                 ctl::TextLayout         sTextLayout;
