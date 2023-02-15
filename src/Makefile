@@ -440,15 +440,15 @@ HOST_UTL_PLUGLIST_GEN_OBJS      = \
 # Plugins
 OBJ_PLUG_META               = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_META))
 OBJ_PLUG_DSP                = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_DSP))
-OBJ_PLUG_UI                 = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_UI))
 OBJ_PLUG_SHARED             = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_SHARED))
+OBJ_PLUG_UI                 = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_UI))
 OBJ_PLUG_TEST               = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_TEST))
 OBJ_PLUG                    = $(OBJ_PLUG_META) $(OBJ_PLUG_DSP) $(OBJ_PLUG_SHARED) $(OBJ_PLUG_UI)
 
 HOST_OBJ_PLUG_META          = $(foreach dep, $(HOST_PLUG_DEPS), $($(dep)_OBJ_META))
 HOST_OBJ_PLUG_DSP           = $(foreach dep, $(HOST_PLUG_DEPS), $($(dep)_OBJ_DSP))
-HOST_OBJ_PLUG_UI            = $(foreach dep, $(HOST_PLUG_DEPS), $($(dep)_OBJ_UI))
 HOST_OBJ_PLUG_SHARED        = $(foreach dep, $(HOST_PLUG_DEPS), $($(dep)_OBJ_SHARED))
+HOST_OBJ_PLUG_UI            = $(foreach dep, $(HOST_PLUG_DEPS), $($(dep)_OBJ_UI))
 HOST_OBJ_PLUG_TEST          = $(foreach dep, $(HOST_PLUG_DEPS), $($(dep)_OBJ_TEST))
 HOST_OBJ_PLUG               = $(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP) $(HOST_OBJ_PLUG_SHARED) $(HOST_OBJ_PLUG_UI)
 
@@ -733,7 +733,7 @@ $(DEPENDENCIES_BIN):
 
 $(OBJ_PLUG_META) $(OBJ_PLUG_DSP) $(OBJ_PLUG_UI) $(OBJ_PLUG_TEST): $(PLUG_DEPS)
 
-$(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP) $(HOST_OBJ_PLUG_UI) $(HOST_OBJ_PLUG_TEST): $(PLUG_DEPS)
+$(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP) $(HOST_OBJ_PLUG_SHARED) $(HOST_OBJ_PLUG_UI) $(HOST_OBJ_PLUG_TEST): $(PLUG_DEPS)
 
 #------------------------------------------------------------------------------
 # Compilation
