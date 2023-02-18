@@ -1617,7 +1617,11 @@ namespace lsp
             }
 
             // Analyze result
-            return (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
+            res = (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
+            if (res == STATUS_OK)
+                bUpdateSettings = true;
+
+            return res;
         }
 
         size_t Wrapper::params_count() const
