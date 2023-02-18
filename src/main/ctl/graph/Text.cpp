@@ -111,6 +111,8 @@ namespace lsp
 
                 sText.set("text", name, value);
 
+                set_font(gt->font(), "font", name, value);
+
                 set_param(gt->haxis(), "basis", name, value);
                 set_param(gt->haxis(), "xaxis", name, value);
                 set_param(gt->haxis(), "ox", name, value);
