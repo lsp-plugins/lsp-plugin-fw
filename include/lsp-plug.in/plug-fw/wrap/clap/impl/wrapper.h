@@ -1338,6 +1338,7 @@ namespace lsp
 
             // Return result
             pUIWrapper = uw;
+            atomic_add(&nUIReq, 1);
             return pUIWrapper;
         }
 
@@ -1349,6 +1350,7 @@ namespace lsp
             pUIWrapper->destroy();
             delete pUIWrapper;
             pUIWrapper = NULL;
+            atomic_add(&nUIReq, 1);
         }
 
         bool Wrapper::ui_provided()
