@@ -64,6 +64,8 @@ namespace lsp
                 const meta::plugin_t           *pUIMetadata;        // UI metadata
                 void                           *pUIFactory;         // UI factory
                 clap::UIWrapper                *pUIWrapper;         // UI wrapper
+                uatomic_t                       nUIReq;             // UI change request
+                uatomic_t                       nUIResp;            // UI change response
                 clap::HostExtensions           *pExt;               // CLAP Extensions
                 ipc::IExecutor                 *pExecutor;          // Executor service
                 ssize_t                         nLatency;           // The actual plugin latency
@@ -82,7 +84,6 @@ namespace lsp
                 core::KVTStorage                sKVT;               // KVT storage
                 ipc::Mutex                      sKVTMutex;          // KVT storage access mutex
 
-                bool                            bUIActive;          // UI is active
                 bool                            bRestartRequested;  // Flag that indicates that the plugin restart was requested
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
                 core::SamplePlayer             *pSamplePlayer;      // Sample player

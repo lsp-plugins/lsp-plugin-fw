@@ -56,7 +56,9 @@ namespace lsp
                 ipc::IExecutor                     *pExecutor;
                 vst2::chunk_t                       sChunk;
                 bool                                bUpdateSettings;
-                UIWrapper                          *pUIWrapper;
+                UIWrapper                          *pUIWrapper;     // UI wrapper
+                uatomic_t                           nUIReq;         // UI change request
+                uatomic_t                           nUIResp;        // UI change response
                 float                               fLatency;
                 uatomic_t                           nDumpReq;
                 uatomic_t                           nDumpResp;

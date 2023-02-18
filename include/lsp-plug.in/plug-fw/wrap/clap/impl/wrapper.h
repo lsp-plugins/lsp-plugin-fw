@@ -44,6 +44,8 @@ namespace lsp
             pUIMetadata         = NULL;
             pUIFactory          = NULL;
             pUIWrapper          = NULL;
+            nUIReq              = 0;
+            nUIResp             = 0;
             pExt                = NULL;
             pExecutor           = NULL;
 
@@ -51,7 +53,6 @@ namespace lsp
             nDumpReq            = 0;
             nDumpResp           = 0;
 
-            bUIActive           = false;
             bRestartRequested   = false;
             bUpdateSettings     = true;
             pSamplePlayer       = NULL;
@@ -855,14 +856,14 @@ namespace lsp
                 return CLAP_PROCESS_ERROR;
 
             // Update UI activity state
-            bool ui_active = (pUIWrapper != NULL) ? pUIWrapper->ui_active() : false;
-            if (ui_active != bUIActive)
+            const uatomic_t ui_req = nUIReq;
+            if (ui_req != nUIResp)
             {
-                if (ui_active)
-                    pPlugin->activate_ui();
-                else
+                if (pPlugin->ui_active())
                     pPlugin->deactivate_ui();
-                bUIActive   = ui_active;
+                if (pUIWrapper != NULL)
+                    pPlugin->activate_ui();
+                nUIResp     = ui_req;
             }
 
             // Bind audio inputs
