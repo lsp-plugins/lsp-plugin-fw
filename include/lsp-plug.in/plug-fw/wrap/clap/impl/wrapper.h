@@ -1261,6 +1261,10 @@ namespace lsp
                 }
             }
 
+            // Notify the plugin
+            if (res == STATUS_OK)
+                pPlugin->state_saved();
+
             return res;
         }
 
@@ -1619,7 +1623,10 @@ namespace lsp
             // Analyze result
             res = (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
             if (res == STATUS_OK)
+            {
                 bUpdateSettings = true;
+                pPlugin->state_loaded();
+            }
 
             return res;
         }

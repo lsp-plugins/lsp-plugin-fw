@@ -1013,6 +1013,7 @@ namespace lsp
                 return;
 
             // Call callback
+            bUpdateSettings = true;
             pPlugin->state_loaded();
             lsp_trace("Plugin state has been loaded");
         }
