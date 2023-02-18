@@ -160,8 +160,10 @@ namespace lsp
 
             // Set the text
             LSPString text;
-            ind->rows()->set(1);
-            ind->columns()->set(nDigits);
+            if (ind->rows()->get() != 1)
+                ind->rows()->set(1);
+            if (ind->columns()->get() != ssize_t(nDigits))
+                ind->columns()->set(nDigits);
             if (format(&text, value))
                 ind->text()->set_raw(&text);
         }
