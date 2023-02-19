@@ -55,8 +55,6 @@ endif
 ALLOWED_FEATURES            = doc jack ladspa lv2 vst2 clap xdg
 ENABLED_FEATURES            = $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
 ENABLED_FEATURES_DEFS      := $(foreach feature,$(ENABLED_FEATURES),$(shell echo "$(feature)" | tr a-z A-Z))
-$(info ENABLED_FEATURES=$(ENABLED_FEATURES))
-$(info ENABLED_FEATURES_DEFS=$(ENABLED_FEATURES_DEFS))
 
 # Setup test dependencies
 ifeq ($(TEST),1)
