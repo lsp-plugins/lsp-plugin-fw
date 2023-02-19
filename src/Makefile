@@ -52,6 +52,12 @@ else
   override HOST                    =
 endif
 
+ALLOWED_FEATURES            = doc jack ladspa lv2 vst2 clap xdg
+ENABLED_FEATURES            = $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
+ENABLED_FEATURES_DEFS      := $(foreach feature,$(ENABLED_FEATURES),$(shell echo "$(feature)" | tr a-z A-Z))
+$(info ENABLED_FEATURES=$(ENABLED_FEATURES))
+$(info ENABLED_FEATURES_DEFS=$(ENABLED_FEATURES_DEFS))
+
 # Setup test dependencies
 ifeq ($(TEST),1)
   DEPENDENCIES_TEST      := $(call uniq, $(MODDIR_TEST_DEPENDENCIES) $(ROOTDIR_TEST_DEPENDENCIES))
@@ -144,6 +150,7 @@ LSP_PLUGIN_FW_OBJ                   = \
 
 LSP_PLUGIN_FW_ALL_MFLAGS           += $(foreach dep,$(DEPENDENCIES),-DUSE_$(dep)) 
 LSP_PLUGIN_FW_ALL_CFLAGS           += $(foreach dep,$(DEPENDENCIES), $($(dep)_CFLAGS))
+LSP_PLUGIN_FW_ALL_CFLAGS           += $(foreach feature,$(ENABLED_FEATURES_DEFS), -DWITH_$(feature)_FEATURE)
 
 # Framework settings for host build
 HOST_LSP_PLUGIN_FW_SRC_RES          = $(HOST_LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
@@ -167,6 +174,7 @@ HOST_LSP_PLUGIN_FW_OBJ              = \
 
 HOST_LSP_PLUGIN_FW_ALL_MFLAGS      += $(foreach dep,$(DEPENDENCIES),-DUSE_$(dep)) 
 HOST_LSP_PLUGIN_FW_ALL_CFLAGS      += $(foreach dep,$(DEPENDENCIES), $(HOST_$(dep)_CFLAGS))
+HOST_LSP_PLUGIN_FW_ALL_CFLAGS      += $(foreach feature,$(ENABLED_FEATURES_DEFS), -DWITH_$(feature)_FEATURE)
 
 # Source code location for (cross) build
 CXX_SRC_CORE                = $(call rwildcard, main/core, *.cpp)
@@ -192,7 +200,7 @@ CXX_SRC                     = \
   $(CXX_SRC_UI) \
   $(CXX_SRC_CTL) \
   $(if $(findstring jack,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_JACK)) \
-  $(if $(findstring ladspa,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_LADSPA)) \
+  $(CXX_SRC_WRAP_LADSPA) \
   $(if $(findstring lv2,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_LV2)) \
   $(if $(findstring lv2,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_LV2_UI)) \
   $(if $(findstring vst2,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_VST2)) \
@@ -258,7 +266,7 @@ OBJ                         = \
   $(OBJ_CTL) \
   $(OBJ_UTIL) \
   $(if $(findstring jack,$(ENABLED_FEATURES)),$(OBJ_WRAP_JACK)) \
-  $(if $(findstring ladspa,$(ENABLED_FEATURES)),$(OBJ_WRAP_LADSPA)) \
+  $(OBJ_WRAP_LADSPA) \
   $(if $(findstring lv2,$(ENABLED_FEATURES)),$(OBJ_WRAP_LV2)) \
   $(if $(findstring lv2,$(ENABLED_FEATURES)),$(OBJ_WRAP_LV2_UI)) \
   $(if $(findstring vst2,$(ENABLED_FEATURES)),$(OBJ_WRAP_VST2)) \
@@ -291,7 +299,7 @@ HOST_OBJ                    = \
   $(HOST_OBJ_CTL) \
   $(HOST_OBJ_UTIL) \
   $(if $(findstring jack,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_JACK)) \
-  $(if $(findstring ladspa,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LADSPA)) \
+  $(HOST_OBJ_WRAP_LADSPA) \
   $(if $(findstring lv2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2)) \
   $(if $(findstring lv2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2_UI)) \
   $(if $(findstring vst2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_VST2)) \
@@ -586,7 +594,7 @@ ifeq ($(TEST),1)
     $(HOST_OBJ_PLUG_SHARED) \
     $(HOST_OBJ_PLUG_UI) \
     $(if $(findstring jack,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_JACK)) \
-    $(if $(findstring ladspa,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LADSPA)) \
+    $(HOST_OBJ_WRAP_LADSPA) \
     $(if $(findstring lv2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2)) \
     $(if $(findstring lv2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2UI)) \
     $(if $(findstring vst2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_VST2)) \
@@ -640,8 +648,6 @@ BIN_EXTRA_FILES             = $(foreach dep, $(BIN_EXTRA_SHARED) $(BIN_EXTRA_PLU
   $(wildcard $($(dep)_PATH)/*LICENSE*) \
 )
 
-ALLOWED_FEATURES            = doc jack ladspa lv2 vst2 clap xdg
-ENABLED_FEATURES            = $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
 BUILD_TARGETS               = $(foreach feature,$(ENABLED_FEATURES),$(feature))
 INSTALL_TARGETS             = $(foreach feature,$(ENABLED_FEATURES),install_$(feature))
 UNINSTALL_TARGETS           = $(foreach feature,$(ENABLED_FEATURES),uninstall_$(feature))
