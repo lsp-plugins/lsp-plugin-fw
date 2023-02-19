@@ -23,12 +23,7 @@
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/runtime/system.h>
 
-#ifdef USE_LADSPA
-    #include <ladspa.h>
-#else
-    #include <lsp-plug.in/3rdparty/ladspa/ladspa.h>
-#endif /* USE_LADSPA */
-
+#include <ladspa/ladspa.h>
 
 extern const LADSPA_Descriptor *ladspa_descriptor(unsigned long index);
 

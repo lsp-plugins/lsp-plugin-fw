@@ -33,11 +33,7 @@
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/resource/ILoader.h>
 
-#ifdef USE_LADSPA
-    #include <ladspa.h>
-#else
-    #include <lsp-plug.in/3rdparty/ladspa/ladspa.h>
-#endif /* USE_LADSPA */
+#include <ladspa/ladspa.h>
 
 namespace lsp
 {
