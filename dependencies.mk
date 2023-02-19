@@ -20,7 +20,7 @@
 
 #------------------------------------------------------------------------------
 # Features enabled by default
-DEFAULT_FEATURES = clap doc ladspa lv2 vst2
+DEFAULT_FEATURES = clap doc ladspa lv2 vst2 xdg
 
 #------------------------------------------------------------------------------
 # Plugin dependencies
