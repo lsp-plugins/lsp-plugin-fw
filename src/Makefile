@@ -194,7 +194,7 @@ CXX_SRC                     = \
   $(if $(findstring jack,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_JACK)) \
   $(if $(findstring ladspa,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_LADSPA)) \
   $(if $(findstring lv2,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_LV2)) \
-  $(if $(findstring lv2ui,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_LV2_UI)) \
+  $(if $(findstring lv2,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_LV2_UI)) \
   $(if $(findstring vst2,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_VST2)) \
   $(if $(findstring clap,$(ENABLED_FEATURES)),$(CXX_SRC_WRAP_CLAP)) \
   $(if $(CAIRO_VERSION),$(CXX_SRC_WRAP_CAIRO)) \
@@ -260,7 +260,7 @@ OBJ                         = \
   $(if $(findstring jack,$(ENABLED_FEATURES)),$(OBJ_WRAP_JACK)) \
   $(if $(findstring ladspa,$(ENABLED_FEATURES)),$(OBJ_WRAP_LADSPA)) \
   $(if $(findstring lv2,$(ENABLED_FEATURES)),$(OBJ_WRAP_LV2)) \
-  $(if $(findstring lv2ui,$(ENABLED_FEATURES)),$(OBJ_WRAP_LV2_UI)) \
+  $(if $(findstring lv2,$(ENABLED_FEATURES)),$(OBJ_WRAP_LV2_UI)) \
   $(if $(findstring vst2,$(ENABLED_FEATURES)),$(OBJ_WRAP_VST2)) \
   $(if $(findstring clap,$(ENABLED_FEATURES)),$(OBJ_WRAP_CLAP)) \
   $(if $(CAIRO_VERSION),$(OBJ_WRAP_CAIRO))
@@ -293,7 +293,7 @@ HOST_OBJ                    = \
   $(if $(findstring jack,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_JACK)) \
   $(if $(findstring ladspa,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LADSPA)) \
   $(if $(findstring lv2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2)) \
-  $(if $(findstring lv2ui,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2_UI)) \
+  $(if $(findstring lv2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2_UI)) \
   $(if $(findstring vst2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_VST2)) \
   $(if $(findstring clap,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_CLAP)) \
   $(if $(CAIRO_VERSION),$(HOST_OBJ_WRAP_CAIRO))
@@ -585,11 +585,11 @@ ifeq ($(TEST),1)
     $(HOST_OBJ_PLUG_DSP) \
     $(HOST_OBJ_PLUG_SHARED) \
     $(HOST_OBJ_PLUG_UI) \
-    $(HOST_OBJ_WRAP_JACK) \
-    $(HOST_OBJ_WRAP_LADSPA) \
-    $(HOST_OBJ_WRAP_LV2) \
-    $(HOST_OBJ_WRAP_LV2UI) \
-    $(HOST_OBJ_WRAP_VST2) \
+    $(if $(findstring jack,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_JACK)) \
+    $(if $(findstring ladspa,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LADSPA)) \
+    $(if $(findstring lv2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2)) \
+    $(if $(findstring lv2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2UI)) \
+    $(if $(findstring vst2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_VST2)) \
     $(HOST_UTL_COMMON_OBJ) \
     $(HOST_UTL_VALIDATOR_OBJ) \
     $(HOST_UTL_JACK_MAKE_OBJ) \
