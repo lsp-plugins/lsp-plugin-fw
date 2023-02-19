@@ -257,13 +257,13 @@ OBJ                         = \
   $(OBJ_UI) \
   $(OBJ_CTL) \
   $(OBJ_UTIL) \
-  $(OBJ_WRAP_JACK) \
-  $(OBJ_WRAP_LADSPA) \
-  $(OBJ_WRAP_LV2) \
-  $(OBJ_WRAP_LV2_UI) \
-  $(OBJ_WRAP_VST2) \
-  $(OBJ_WRAP_CLAP) \
-  $(OBJ_WRAP_CAIRO)
+  $(if $(findstring jack,$(ENABLED_FEATURES)),$(OBJ_WRAP_JACK)) \
+  $(if $(findstring ladspa,$(ENABLED_FEATURES)),$(OBJ_WRAP_LADSPA)) \
+  $(if $(findstring lv2,$(ENABLED_FEATURES)),$(OBJ_WRAP_LV2)) \
+  $(if $(findstring lv2ui,$(ENABLED_FEATURES)),$(OBJ_WRAP_LV2_UI)) \
+  $(if $(findstring vst2,$(ENABLED_FEATURES)),$(OBJ_WRAP_VST2)) \
+  $(if $(findstring clap,$(ENABLED_FEATURES)),$(OBJ_WRAP_CLAP)) \
+  $(if $(CAIRO_VERSION),$(OBJ_WRAP_CAIRO))
 
 # Object files for host build
 HOST_OBJ_STUB               = $(patsubst %.cpp, %.o, $(HOST_CXX_SRC_STUB))
@@ -290,13 +290,13 @@ HOST_OBJ                    = \
   $(HOST_OBJ_UI) \
   $(HOST_OBJ_CTL) \
   $(HOST_OBJ_UTIL) \
-  $(HOST_OBJ_WRAP_JACK) \
-  $(HOST_OBJ_WRAP_LADSPA) \
-  $(HOST_OBJ_WRAP_LV2) \
-  $(HOST_OBJ_WRAP_LV2_UI) \
-  $(HOST_OBJ_WRAP_VST2) \
-  $(HOST_OBJ_WRAP_CLAP) \
-  $(HOST_OBJ_WRAP_CAIRO)
+  $(if $(findstring jack,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_JACK)) \
+  $(if $(findstring ladspa,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LADSPA)) \
+  $(if $(findstring lv2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2)) \
+  $(if $(findstring lv2ui,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_LV2_UI)) \
+  $(if $(findstring vst2,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_VST2)) \
+  $(if $(findstring clap,$(ENABLED_FEATURES)),$(HOST_OBJ_WRAP_CLAP)) \
+  $(if $(CAIRO_VERSION),$(HOST_OBJ_WRAP_CAIRO))
 
 ifeq ($(TEST),1)
   CXX_SRC                    += $(CXX_SRC_TEST)
