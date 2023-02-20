@@ -432,7 +432,7 @@ namespace lsp
         if (path == NULL)
             return NULL;
         char *p = strrchr(path, FILE_SEPARATOR_C);
-        if (*p != NULL)
+        if (p != NULL)
             *p = '\0';
 
         return path;
