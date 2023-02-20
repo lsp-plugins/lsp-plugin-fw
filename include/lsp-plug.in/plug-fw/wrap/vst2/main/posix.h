@@ -91,6 +91,25 @@ namespace lsp
         };
     #endif /* ARCH_64BIT */
 
+        static const char *home_locations[] =
+        {
+            ".vst",
+            ".vst2",
+            ".lxvst",
+            "vst",
+            "vst2",
+            "lxvst",
+            NULL
+        };
+
+        static const char *std_locations[] =
+        {
+            "vst",
+            "vst2",
+            "lxvst",
+            NULL
+        };
+
         static void *hInstance = NULL;
         static vst2::create_instance_t factory = NULL;
 
@@ -103,6 +122,7 @@ namespace lsp
             DIR *d = opendir(path);
             if (d == NULL)
                 return NULL;
+            lsp_finally { closedir(d); };
 
             struct dirent *de;
             char *ptr = NULL;
@@ -115,18 +135,17 @@ namespace lsp
             {
                 // Free previously used string
                 if (ptr != NULL)
+                {
                     free(ptr);
+                    ptr = NULL;
+                }
 
                 // Skip dot and dotdot
                 ptr = de->d_name;
                 if ((ptr[0] == '.') && ((ptr[1] == '\0') || ((ptr[1] == '.') && (ptr[2] == '\0'))))
-                {
-                    ptr = NULL;
                     continue;
-                }
 
                 // Allocate path string
-                ptr = NULL;
                 int n = asprintf(&ptr, "%s" FILE_SEPARATOR_S "%s", path, de->d_name);
                 if ((n < 0) || (ptr == NULL))
                     continue;
@@ -157,11 +176,7 @@ namespace lsp
                     {
                         vst2::create_instance_t f = lookup_factory(hInstance, ptr, required, false);
                         if (f != NULL)
-                        {
-                            free(ptr);
-                            closedir(d);
                             return f;
-                        }
                     }
                 }
                 else if (de->d_type == DT_REG)
@@ -172,7 +187,6 @@ namespace lsp
                         continue;
                 #endif /* EXT_ARTIFACT_NAME */
 
-
                     // Skip library if it doesn't contain 'lsp-plugins' in name
                     if (strcasestr(de->d_name, ".so") == NULL)
                         continue;
@@ -180,20 +194,22 @@ namespace lsp
                     lsp_trace("Trying library %s", ptr);
 
                     // Try to load library
-                    void *inst = dlopen (ptr, RTLD_NOW);
+                    void *inst = dlopen(ptr, RTLD_NOW);
                     if (!inst)
                     {
                         lsp_trace("library %s not loaded: %s", ptr, dlerror());
                         continue;
                     }
+                    lsp_finally {
+                        if (inst != NULL)
+                            dlclose(inst);
+                    };
 
                     // Fetch version function
                     module_version_t vf = reinterpret_cast<module_version_t>(dlsym(inst, LSP_VERSION_FUNC_NAME));
                     if (!vf)
                     {
                         lsp_trace("version function %s not found: %s", LSP_VERSION_FUNC_NAME, dlerror());
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
 
@@ -202,8 +218,6 @@ namespace lsp
                     if ((ret == NULL) || (ret->branch == NULL))
                     {
                         lsp_trace("No version or bad version returned, ignoring binary", ret);
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
                     else if ((ret->major != required->major) ||
@@ -216,8 +230,6 @@ namespace lsp
                                 ret->major, ret->minor, ret->micro, ret->branch,
                                 required->major, required->minor, required->micro, required->branch
                             );
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
 
@@ -226,21 +238,17 @@ namespace lsp
                     if (!f)
                     {
                         lsp_trace("function %s not found: %s", VST_MAIN_FUNCTION_STR, dlerror());
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
 
                     lsp_trace("  obtained the library instance: %p, factory function: %p", inst, f);
 
                     *hInstance = inst;
-                    free(ptr);
-                    closedir(d);
+                    inst = NULL;
                     return f;
                 }
             }
 
-            closedir(d);
             return NULL;
         }
 
@@ -251,134 +259,90 @@ namespace lsp
 
             lsp_debug("Trying to find CORE library");
 
-            const char *homedir = getenv("HOME");
-            char *buf = NULL;
-
-            if (homedir == NULL)
+            // Try to lookup the same directory the shared object is located
+            char *libpath = get_library_path();
+            if (libpath != NULL)
             {
-                struct passwd pwd, *result;
-                size_t bufsize;
-
-                bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-                if (bufsize <= 0)           // Value was indeterminate
-                    bufsize = 0x10000;          // Should be more than enough
-
-                // Create buffer and fetch home directory
-                buf = new char[bufsize];
-                if (buf != NULL)
-                {
-                    if (getpwuid_r(getuid(), &pwd, buf, bufsize, &result) == 0)
-                        homedir = result->pw_dir;
-                }
+                lsp_finally { ::free(libpath); };
+                if ((factory = lookup_factory(&hInstance, libpath, required)) != NULL)
+                    return factory;
             }
 
-            // Initialize factory with NULL
-            char path[PATH_MAX];
+            // Allocate temporary path string
+            char *path = static_cast<char *>(malloc(PATH_MAX * sizeof(char)));
+            if (path == NULL)
+                return NULL;
+            lsp_finally { free(path); };
 
-            // Try to lookup home directory
-            if (homedir != NULL)
+            // Try to lookup inside of the home directory
             {
-                lsp_trace("home directory = %s", homedir);
-                if (factory == NULL)
+                // Obtain the home directory
+                const char *homedir = getenv("HOME");
+                char *buf = NULL;
+                lsp_finally {
+                    if (buf != NULL)
+                        free(buf);
+                };
+                if (homedir == NULL)
                 {
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S ".vst", homedir);
-                    factory     = lookup_factory(&hInstance, path, required);
+                    struct passwd pwd, *result;
+                    size_t bufsize;
+
+                    bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+                    if (bufsize <= 0)           // Value was indeterminate
+                        bufsize = 0x10000;      // Should be more than enough
+
+                    // Create buffer and fetch home directory
+                    buf = static_cast<char *>(malloc(bufsize * sizeof(char)));
+                    if (buf != NULL)
+                    {
+                        if (getpwuid_r(getuid(), &pwd, buf, bufsize, &result) == 0)
+                            homedir = result->pw_dir;
+                    }
                 }
-                if (factory == NULL)
+
+                // Try to lookup specific subdirectories inside of the home directory
+                if (homedir != NULL)
                 {
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S ".vst2", homedir);
-                    factory     = lookup_factory(&hInstance, path, required);
-                }
-                if (factory == NULL)
-                {
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S ".lxvst", homedir);
-                    factory     = lookup_factory(&hInstance, path, required);
-                }
-                if (factory == NULL)
-                {
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst", homedir);
-                    factory     = lookup_factory(&hInstance, path, required);
-                }
-                if (factory == NULL)
-                {
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst2", homedir);
-                    factory     = lookup_factory(&hInstance, path, required);
-                }
-                if (factory == NULL)
-                {
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lxvst", homedir);
-                    factory     = lookup_factory(&hInstance, path, required);
+                    lsp_trace("home directory = %s", homedir);
+                    for (const char **subdir = home_locations; (subdir != NULL) && (*subdir != NULL); ++subdir)
+                    {
+                        snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "%s", homedir, *subdir);
+                        if ((factory = lookup_factory(&hInstance, path, required)) != NULL)
+                            return factory;
+                    }
                 }
             }
 
             // Try to lookup standard directories
-            if (factory == NULL)
+            for (const char **p = core_library_paths; (p != NULL) && (*p != NULL); ++p)
             {
-                for (const char **p = core_library_paths; (p != NULL) && (*p != NULL); ++p)
+                for (const char **subdir = home_locations; (subdir != NULL) && (*subdir != NULL); ++subdir)
                 {
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst", *p);
-                    factory     = lookup_factory(&hInstance, path, required);
-                    if (factory != NULL)
-                        break;
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst2", *p);
-                    factory     = lookup_factory(&hInstance, path, required);
-                    if (factory != NULL)
-                        break;
-                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lxvst", *p);
-                    factory     = lookup_factory(&hInstance, path, required);
-                    if (factory != NULL)
-                        break;
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "%s", *p, *subdir);
+                    if ((factory = lookup_factory(&hInstance, path, required)) != NULL)
+                        return factory;
                 }
             }
 
-            // Try to lookup additional directories obtained from file mapping
-            if (factory == NULL)
+            // Try to lookup extended library paths
+            char **paths = get_library_paths(core_library_paths);
+            lsp_finally { free_library_paths(paths); };
+
+            for (char **p = paths; (p != NULL) && (*p != NULL); ++p)
             {
-                char *libpath = get_library_path();
-                if (libpath != NULL)
+                if ((factory = lookup_factory(&hInstance, *p, required)) != NULL)
+                    return factory;
+
+                for (const char **subdir = std_locations; (subdir != NULL) && (*subdir != NULL); ++subdir)
                 {
-                    factory         = lookup_factory(&hInstance, libpath, required);
-                    ::free(libpath);
+                    snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "%s", *p, *subdir);
+                    if ((factory = lookup_factory(&hInstance, path, required)) != NULL)
+                        return factory;
                 }
             }
 
-            if (factory == NULL)
-            {
-                char **paths = get_library_paths(core_library_paths);
-                if (paths != NULL)
-                {
-                    for (char **p = paths; (p != NULL) && (*p != NULL); ++p)
-                    {
-                        factory     = lookup_factory(&hInstance, *p, required);
-                        if (factory != NULL)
-                            break;
-
-                        snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst", *p);
-                        factory     = lookup_factory(&hInstance, path, required);
-                        if (factory != NULL)
-                            break;
-
-                        snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "vst2", *p);
-                        factory     = lookup_factory(&hInstance, path, required);
-                        if (factory != NULL)
-                            break;
-
-                        snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lxvst", *p);
-                        factory     = lookup_factory(&hInstance, path, required);
-                        if (factory != NULL)
-                            break;
-                    }
-
-                    free_library_paths(paths);
-                }
-            }
-
-            // Delete buffer if allocated
-            if (buf != NULL)
-                delete [] buf;
-
-            // Return factory instance (if present)
-            return factory;
+            return NULL;
         }
 
         void free_core_library()

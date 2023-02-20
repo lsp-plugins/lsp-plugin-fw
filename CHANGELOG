@@ -10,6 +10,7 @@
 * Fixed label value update when switching language in the UI.
 * Fixed plugin state out of sync for CLAP plugin format on state restore in REAPER.
 * Added support of named widget groups.
+* Updated VST core library lookup algorithm.
 * Created additinal bundle categories.
 
 === 1.0.9 ===
