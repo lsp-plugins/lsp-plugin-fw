@@ -106,6 +106,10 @@ namespace lsp
 
             struct dirent *de;
             char *ptr = NULL;
+            lsp_finally {
+                if (ptr != NULL)
+                    free(ptr);
+            };
 
             while ((de = readdir(d)) != NULL)
             {
@@ -115,7 +119,7 @@ namespace lsp
 
                 // Skip dot and dotdot
                 ptr = de->d_name;
-                if ((ptr[0] == '.') && ((ptr[1] == '\0') || ((ptr[1] == '.') || (ptr[2] == '\0'))))
+                if ((ptr[0] == '.') && ((ptr[1] == '\0') || ((ptr[1] == '.') && (ptr[2] == '\0'))))
                 {
                     ptr = NULL;
                     continue;
@@ -236,9 +240,6 @@ namespace lsp
                 }
             }
 
-            // Free previously used string, close directory and exit
-            if (ptr != NULL)
-                free(ptr);
             closedir(d);
             return NULL;
         }
