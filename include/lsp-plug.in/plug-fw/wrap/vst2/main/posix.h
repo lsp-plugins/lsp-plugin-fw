@@ -113,6 +113,11 @@ namespace lsp
         static void *hInstance = NULL;
         static vst2::create_instance_t factory = NULL;
 
+        static bool is_dots(const char *name)
+        {
+            return ((name[0] == '.') && ((name[1] == '\0') || ((name[1] == '.') && (name[2] == '\0'))));
+        }
+
         // The factory for creating plugin instances
         static vst2::create_instance_t lookup_factory(void **hInstance, const char *path, const version_t *required, bool subdir = true)
         {
@@ -121,34 +126,44 @@ namespace lsp
             // Try to open directory
             DIR *d = opendir(path);
             if (d == NULL)
+            {
+                lsp_trace("opendir failed");
                 return NULL;
+            }
+            lsp_trace("opendir OK");
             lsp_finally { closedir(d); };
 
             struct dirent *de;
             char *ptr = NULL;
             lsp_finally {
+                lsp_trace("begin free ptr");
                 if (ptr != NULL)
                     free(ptr);
+                lsp_trace("end free ptr");
             };
 
             while ((de = readdir(d)) != NULL)
             {
+                lsp_trace("readdir: %s", de->d_name);
+
                 // Free previously used string
                 if (ptr != NULL)
                 {
+                    lsp_trace("begin free ptr");
                     free(ptr);
                     ptr = NULL;
+                    lsp_trace("end free ptr");
                 }
 
                 // Skip dot and dotdot
-                ptr = de->d_name;
-                if ((ptr[0] == '.') && ((ptr[1] == '\0') || ((ptr[1] == '.') && (ptr[2] == '\0'))))
+                if (is_dots(de->d_name))
                     continue;
 
                 // Allocate path string
                 int n = asprintf(&ptr, "%s" FILE_SEPARATOR_S "%s", path, de->d_name);
                 if ((n < 0) || (ptr == NULL))
                     continue;
+                lsp_trace("full path=%s", ptr);
 
                 // Need to clarify file type?
                 if ((de->d_type == DT_UNKNOWN) || (de->d_type == DT_LNK))
@@ -263,7 +278,11 @@ namespace lsp
             char *libpath = get_library_path();
             if (libpath != NULL)
             {
-                lsp_finally { ::free(libpath); };
+                lsp_finally {
+                    lsp_trace("begin free libpath");
+                    free(libpath);
+                    lsp_trace("end free libpath");
+                };
                 if ((factory = lookup_factory(&hInstance, libpath, required)) != NULL)
                     return factory;
             }
@@ -272,7 +291,11 @@ namespace lsp
             char *path = static_cast<char *>(malloc(PATH_MAX * sizeof(char)));
             if (path == NULL)
                 return NULL;
-            lsp_finally { free(path); };
+            lsp_finally {
+                lsp_trace("begin free path");
+                free(path);
+                lsp_trace("end free path");
+            };
 
             // Try to lookup inside of the home directory
             {
@@ -280,8 +303,10 @@ namespace lsp
                 const char *homedir = getenv("HOME");
                 char *buf = NULL;
                 lsp_finally {
+                    lsp_trace("begin free buf");
                     if (buf != NULL)
                         free(buf);
+                    lsp_trace("end free buf");
                 };
                 if (homedir == NULL)
                 {
@@ -327,7 +352,11 @@ namespace lsp
 
             // Try to lookup extended library paths
             char **paths = get_library_paths(core_library_paths);
-            lsp_finally { free_library_paths(paths); };
+            lsp_finally {
+                lsp_trace("begin free_library_paths");
+                free_library_paths(paths);
+                lsp_trace("end free_library_paths");
+            };
 
             for (char **p = paths; (p != NULL) && (*p != NULL); ++p)
             {
