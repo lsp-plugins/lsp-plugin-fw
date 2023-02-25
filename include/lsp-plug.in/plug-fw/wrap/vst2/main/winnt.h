@@ -408,7 +408,7 @@ namespace lsp
                     if (!library_file_name.set(path, dirent.cFileName))
                         continue;
 
-                    IF_TRACE( debug::log_string trace_library_file_name = library_file_name; );
+                    IF_TRACE( debug::log_string trace_library_file_name = library_file_name.pData; );
                     lsp_trace("Trying library %s", trace_library_file_name.c_str());
 
                     // Try to load library
