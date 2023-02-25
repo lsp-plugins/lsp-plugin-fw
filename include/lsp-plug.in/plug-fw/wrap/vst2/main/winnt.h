@@ -34,9 +34,11 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/defs.h>
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <windows.h>
 #include <winreg.h>
+#include <wctype.h>
 
 namespace lsp
 {
@@ -316,13 +318,149 @@ namespace lsp
             return NULL;
         }
 
+        static bool is_dots(const WCHAR *name)
+        {
+            return ((name[0] == '.') && ((name[1] == '\0') || ((name[1] == '.') && (name[2] == '\0'))));
+        }
+
+    #ifdef EXT_ARTIFACT_NAME
+        static bool contains_artifact_name(const WCHAR *file, const char *name)
+        {
+            if (strlen(EXT_ARTIFACT_NAME) <= 0)
+                return false;
+            for (; *file != '\0'; ++file)
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    if (name[i] == '\0')
+                        return true;
+                    if (towupper(file[i]) != toupper(name[i]))
+                        break;
+                }
+            }
+
+            return false;
+        }
+    #endif /* EXT_ARTIFACT_NAME */
+
+        static bool file_name_is_dll(const WCHAR *name)
+        {
+            size_t len = wcslen(name);
+            if (len < 4)
+                return false;
+            name += len - 4;
+            return (name[0] == '.') &&
+                (towupper(name[1]) == 'D') &&
+                (towupper(name[2]) == 'L') &&
+                (towupper(name[3]) == 'L');
+        }
+
         // The factory for creating plugin instances
         static vst2::create_instance_t lookup_factory(HMODULE *hInstance, const WCHAR *path, const version_t *required, bool subdir = true)
         {
             IF_TRACE( debug::log_string log_path = path; );
             lsp_trace("Searching core library at %s", log_path.c_str());
 
-            // TODO
+            path_string_t pattern;
+            WIN32_FIND_DATAW dirent;
+            if (!pattern.set(path, L"*"))
+                return NULL;
+
+            // Lookup files in folders
+            HANDLE hFD = FindFirstFileW(pattern.pData, &dirent);
+            if (hFD == INVALID_HANDLE_VALUE)
+                return NULL;
+            lsp_finally { FindClose(hFD); };
+
+            do
+            {
+                // Skip dot and dotdot
+                if (is_dots(dirent.cFileName))
+                    continue;
+
+                if (dirent.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                {
+                    if (subdir)
+                    {
+                        path_string_t subdir_name;
+                        if (!subdir_name.set(path, dirent.cFileName))
+                            continue;
+
+                        vst2::create_instance_t f = lookup_factory(hInstance, subdir_name.pData, required, false);
+                        if (f != NULL)
+                            return f;
+                    }
+                }
+                else if (!(dirent.dwFileAttributes & FILE_ATTRIBUTE_DEVICE))
+                {
+                #ifdef EXT_ARTIFACT_NAME
+                    // Skip directory entry if it doesn't contain EXT_ARTIFACT_NAME (for example, 'lsp-plugins') in name
+                    if (!(contains_artifact_name(dirent.cFileName, EXT_ARTIFACT_NAME)))
+                        continue;
+                #endif /* EXT_ARTIFACT_NAME */
+
+                    // Check that file is a shared library
+                    if (!file_name_is_dll(dirent.cFileName))
+                        continue;
+
+                    // Form the full path to the file
+                    path_string_t library_file_name;
+                    if (!library_file_name.set(path, dirent.cFileName))
+                        continue;
+
+                    IF_TRACE( debug::log_string trace_library_file_name = library_file_name; );
+                    lsp_trace("Trying library %s", trace_library_file_name.c_str());
+
+                    // Try to load library
+                    HMODULE hLib = LoadLibraryW(library_file_name.pData);
+                    if (hLib == NULL)
+                        continue;
+                    lsp_finally {
+                        if (hLib != NULL)
+                            FreeLibrary(hLib);
+                    };
+
+                    // Fetch version function
+                    module_version_t vf = reinterpret_cast<module_version_t>(GetProcAddress(hLib, LSP_VERSION_FUNC_NAME));
+                    if (!vf)
+                    {
+                        lsp_trace("version function %s not found: code=%d", LSP_VERSION_FUNC_NAME, int(GetLastError()));
+                        continue;
+                    }
+
+                    // Check package version
+                    const version_t *ret = vf();
+                    if ((ret == NULL) || (ret->branch == NULL))
+                    {
+                        lsp_trace("No version or bad version returned, ignoring binary", ret);
+                        continue;
+                    }
+                    else if ((ret->major != required->major) ||
+                             (ret->minor != required->minor) ||
+                             (ret->micro != required->micro) ||
+                             (strcmp(ret->branch, required->branch) != 0))
+                    {
+                        lsp_trace("wrong version %d.%d.%d '%s' returned, expected %d.%d.%d '%s', ignoring binary",
+                            ret->major, ret->minor, ret->micro, ret->branch,
+                            required->major, required->minor, required->micro, required->branch);
+                        continue;
+                    }
+
+                    // Fetch function
+                    vst2::create_instance_t f = reinterpret_cast<vst2::create_instance_t>(GetProcAddress(hLib, VST_MAIN_FUNCTION_STR));
+                    if (!f)
+                    {
+                        lsp_trace("function %s not found: code=%d", VST_MAIN_FUNCTION_STR, int(GetLastError()));
+                        continue;
+                    }
+
+                    lsp_trace("  obtained the library instance: %p, factory function: %p", hLib, f);
+
+                    *hInstance = hLib;
+                    hLib = NULL;
+                    return f;
+                }
+            } while (FindNextFileW(hFD, &dirent));
 
             return NULL;
         }
