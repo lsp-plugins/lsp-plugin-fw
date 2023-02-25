@@ -19,6 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifdef USE_LIBJACK
+
 #include <jack/jack.h>
 #include <jack/transport.h>
 #include <jack/midiport.h>
@@ -876,3 +878,5 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+#endif /* USE_LIBJACK */

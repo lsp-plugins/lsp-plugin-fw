@@ -19,6 +19,10 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/types.h>
+
+#ifdef USE_LIBCAIRO
+
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/stdlib/math.h>
 
@@ -368,4 +372,5 @@ namespace lsp
     } /* namespace wrap */
 } /* namespace lsp */
 
+#endif /* USE_LIBCAIRO */
 

@@ -98,6 +98,11 @@ LSP_WS_LIB_URL_RO          := https://github.com/lsp-plugins/$(LSP_WS_LIB_NAME).
 LSP_WS_LIB_URL_RW          := git@github.com:lsp-plugins/$(LSP_WS_LIB_NAME).git
 
 # System libraries
+LIBADVAPI_VERSION          := system
+LIBADVAPI_NAME             := libadvapi32
+LIBADVAPI_TYPE             := opt
+LIBADVAPI_LDFLAGS          := -ladvapi32
+
 LIBCAIRO_VERSION           := system
 LIBCAIRO_NAME              := cairo
 LIBCAIRO_TYPE              := pkg

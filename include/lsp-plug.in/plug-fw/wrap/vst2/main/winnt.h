@@ -84,6 +84,16 @@ namespace lsp
                 return true;
             }
 
+            WCHAR *set(WCHAR *value)
+            {
+                size_t cap = wcslen(value) + 1;
+                if (!grow(cap))
+                    return NULL;
+
+                memcpy(&pData[0], value, cap);
+                return pData;
+            }
+
             WCHAR *set(WCHAR *parent, WCHAR *child)
             {
                 size_t len1 = wcslen(parent);
@@ -107,13 +117,29 @@ namespace lsp
             HKEY root;
             const WCHAR *key;
             const WCHAR *value;
+            IF_TRACE( const char *log; )
         };
 
         static const reg_key_t registry_keys[] =
         {
-            { HKEY_LOCAL_MACHINE, L"SOFTWARE\\VST", "VSTPluginsPath" },
-            { HKEY_LOCAL_MACHINE, L"SOFTWARE\\Wow6432Node\\VST", "VSTPluginsPath" },
-            { HKEY_LOCAL_MACHINE, L"SOFTWARE\\LSP\\", "VSTInstallPath" },
+            {
+                HKEY_LOCAL_MACHINE,
+                L"SOFTWARE\\LSP\\",
+                "VSTInstallPath",
+                IF_TRACE( "HKEY_LOCAL_MACHINE\\SOFTWARE\\LSP\\VSTInstallPath", )
+            },
+            {
+                HKEY_LOCAL_MACHINE,
+                L"SOFTWARE\\VST",
+                "VSTPluginsPath",
+                IF_TRACE( "HKEY_LOCAL_MACHINE\\SOFTWARE\\VST\\VSTPluginsPath", )
+            },
+            {
+                HKEY_LOCAL_MACHINE,
+                L"SOFTWARE\\Wow6432Node\\VST",
+                "VSTPluginsPath",
+                IF_TRACE( "HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\VST\\VSTPluginsPath", )
+            },
             { NULL, NULL, NULL }
         };
 
@@ -172,7 +198,7 @@ namespace lsp
                 GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
                 reinterpret_cast<LPCWSTR>(ptr),
                 &hm))
-                return STATUS_NOT_FOUND;
+                return NULL;
 
             // Get the path to the module
             DWORD capacity = PATH_MAX + 1, length = 0;
@@ -207,21 +233,88 @@ namespace lsp
             return dst->pData;
         }
 
-// TODO
-//        static const WCHAR *read_registry(path_string_t *dst, const reg_key_t *key)
-//        {
-//            PHKEY phKey = NULL;
-//            if ((RegOpenKeyW(key->root, key->key, &phKey)) != ERROR_SUCCESS)
-//                return NULL;
-//            lsp_finally { RegCloseKey(phKey); };
-//
-//
-//        }
+        static const WCHAR *read_registry(path_string_t *dst, const reg_key_t *key, size_t index)
+        {
+            DWORD dwType = 0;
+            DWORD cbData = 0;
+
+            // Obtain the size of value associated with the key
+            LSTATUS res = RegGetValueW(
+                key->root, // hkey
+                key->key, // lpSubKey
+                key->value, // lpValue
+                RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_MULTI_SZ | RRF_RT_REG_SZ, // dwFlags
+                &dwType, // pdwType
+                NULL, // pvData
+                &cbData, // pcbData
+            );
+            if (res != ERROR_SUCCESS)
+                return NULL;
+
+            // Allocate the buffer
+            path_string_t tmp;
+            if (!tmp.grow(cbData + 1))
+                return NULL;
+
+            // Now obtain the value
+            res = RegGetValueW(
+                key->root, // hkey
+                key->key, // lpSubKey
+                key->value, // lpValue
+                RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_MULTI_SZ | RRF_RT_REG_SZ, // dwFlags
+                tmp.pData, // pvData
+                &dwType, // pdwType
+                &cbData, // pcbData
+            );
+            if (res != ERROR_SUCCESS)
+                return NULL;
+
+            // Simple string?
+            if (dwType == REG_SZ)
+                return dst->set(parent);
+
+            // String with expanded environment variables?
+            if (dwType == REG_EXPAND_SZ)
+            {
+                // Get the path to the module
+                DWORD capacity = PATH_MAX + 1;
+
+                // Allocate the buffer
+                if (!dst->grow(capacity))
+                    return NULL;
+
+                // Try to obtain the file name
+                size_t length = ::ExpandEnvironmentStringsW(tmp.pData, dst->pData, capacity);
+                if (length < capacity)
+                    return dst->pData;
+
+                // Allocate the buffer again
+                if (!dst->grow(length + 1))
+                    return NULL;
+
+                length = ::ExpandEnvironmentStringsW(tmp.pData, dst->pData, capacity);
+                return (length > 0) ? tmp.pData : NULL;
+            }
+
+            // Multiple strings?
+            WCHAR *ptr = tmp.pData;
+            for (size_t i=0; ; ++i)
+            {
+                if (*ptr == 0)
+                    return NULL;
+                if (i == index)
+                    return tmp.set(ptr);
+                ptr    += wcslen(ptr) + 1;
+            }
+
+            return NULL;
+        }
 
         // The factory for creating plugin instances
         static vst2::create_instance_t lookup_factory(HMODULE *hInstance, const WCHAR *path, const version_t *required, bool subdir = true)
         {
-            lsp_trace("Searching core library at %s", path);
+            IF_TRACE( debug::log_string log_path = path; );
+            lsp_trace("Searching core library at %s", log_path.c_str());
 
             // TODO
 
@@ -248,6 +341,9 @@ namespace lsp
             const WCHAR *homedir = get_home_dir(&dir_str);
             if (homedir != NULL)
             {
+                IF_TRACE( debug::log_string log_homedir = homedir; );
+                lsp_trace("User home directory: %s", log_homedir.c_str());
+
                 path_string_t child;
                 for (const WCHAR **subdir = home_paths; (factory == NULL) && (subdir != NULL); ++subdir)
                 {
@@ -264,21 +360,29 @@ namespace lsp
             const WCHAR *vst_path = get_env_var(&dir_str, L"VST_PATH");
             if (vst_path != NULL)
             {
+                IF_TRACE( debug::log_string log_vst_path = vst_path; );
+                lsp_trace("Environment VST_PATH directory: %s", log_vst_path.c_str());
+
                 if ((factory = lookup_factory(&hLibrary, vst_path, required)) != NULL)
                     return factory;
             }
 
-// TODO
-//            // Try to lookup via registry
-//            for (const reg_key_t *k=registry_keys; (k->key != NULL) && (factory == NULL); ++k)
-//            {
-//                const WCHAR *vst_path = read_registry(&dir_str, k);
-//                if (vst_path != NULL)
-//                {
-//                    if ((factory = lookup_factory(&hLibrary, vst_path, required)) != NULL)
-//                        return factory;
-//                }
-//            }
+            // Try to lookup via registry
+            for (const reg_key_t *k=registry_keys; (k->key != NULL) && (factory == NULL); ++k)
+            {
+                for (size_t index=0; ; ++index)
+                {
+                    const WCHAR *reg_vst_path = read_registry(&dir_str, k);
+                    if (reg_vst_path == NULL)
+                        break;
+
+                    IF_TRACE(debug::log_string log_reg_vst_path = reg_vst_path;);
+                    lsp_trace("Registry %s [%d] directory: %s", k->log, int(index), log_reg_vst_path.c_str());
+
+                    if ((factory = lookup_factory(&hLibrary, reg_vst_path, required)) != NULL)
+                        return factory;
+                }
+            }
 
             // Nothing found
             return NULL;
@@ -334,7 +438,5 @@ VST_MAIN(callback)
     // Return VST AEffect structure
     return effect;
 }
-
-#error "Needs to be implemented"
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_VST2_MAIN_WINNT_H_ */
