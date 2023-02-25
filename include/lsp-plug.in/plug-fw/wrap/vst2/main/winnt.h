@@ -32,6 +32,7 @@
 #include <lsp-plug.in/common/finally.h>
 #include <lsp-plug.in/common/static.h>
 #include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/defs.h>
 
 #include <stdlib.h>
 #include <windows.h>
@@ -75,7 +76,7 @@ namespace lsp
                     return true;
 
                 capacity = ((capacity + PATH_LENGTH_DFL - 1) / PATH_LENGTH_DFL) * PATH_LENGTH_DFL;
-                WCHAR *ptr  = static_cast<WCHAR *>(realloc(sizeof(WCHAR) * capacity));
+                WCHAR *ptr  = static_cast<WCHAR *>(realloc(pData, sizeof(WCHAR) * capacity));
                 if (ptr == NULL)
                     return false;
 
@@ -84,7 +85,7 @@ namespace lsp
                 return true;
             }
 
-            WCHAR *set(WCHAR *value)
+            WCHAR *set(const WCHAR *value)
             {
                 size_t cap = wcslen(value) + 1;
                 if (!grow(cap))
@@ -94,7 +95,7 @@ namespace lsp
                 return pData;
             }
 
-            WCHAR *set(WCHAR *parent, WCHAR *child)
+            WCHAR *set(const WCHAR *parent, const WCHAR *child)
             {
                 size_t len1 = wcslen(parent);
                 size_t len2 = wcslen(child);
@@ -118,29 +119,34 @@ namespace lsp
             const WCHAR *key;
             const WCHAR *value;
             IF_TRACE( const char *log; )
-        };
+        } reg_key_t;
 
         static const reg_key_t registry_keys[] =
         {
             {
                 HKEY_LOCAL_MACHINE,
                 L"SOFTWARE\\LSP\\",
-                "VSTInstallPath",
+                L"VSTInstallPath",
                 IF_TRACE( "HKEY_LOCAL_MACHINE\\SOFTWARE\\LSP\\VSTInstallPath", )
             },
             {
                 HKEY_LOCAL_MACHINE,
                 L"SOFTWARE\\VST",
-                "VSTPluginsPath",
+                L"VSTPluginsPath",
                 IF_TRACE( "HKEY_LOCAL_MACHINE\\SOFTWARE\\VST\\VSTPluginsPath", )
             },
             {
                 HKEY_LOCAL_MACHINE,
                 L"SOFTWARE\\Wow6432Node\\VST",
-                "VSTPluginsPath",
+                L"VSTPluginsPath",
                 IF_TRACE( "HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\VST\\VSTPluginsPath", )
             },
-            { NULL, NULL, NULL }
+            {
+                HKEY_LOCAL_MACHINE,
+                NULL,
+                NULL,
+                IF_TRACE( NULL, )
+            }
         };
 
         static const WCHAR *home_paths[] =
@@ -196,7 +202,7 @@ namespace lsp
             if (!::GetModuleHandleExW(
                 GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
                 GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                reinterpret_cast<LPCWSTR>(ptr),
+                reinterpret_cast<LPCWSTR>(&hLibrary),
                 &hm))
                 return NULL;
 
@@ -246,7 +252,7 @@ namespace lsp
                 RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_MULTI_SZ | RRF_RT_REG_SZ, // dwFlags
                 &dwType, // pdwType
                 NULL, // pvData
-                &cbData, // pcbData
+                &cbData  // pcbData
             );
             if (res != ERROR_SUCCESS)
                 return NULL;
@@ -262,16 +268,16 @@ namespace lsp
                 key->key, // lpSubKey
                 key->value, // lpValue
                 RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_MULTI_SZ | RRF_RT_REG_SZ, // dwFlags
-                tmp.pData, // pvData
                 &dwType, // pdwType
-                &cbData, // pcbData
+                tmp.pData, // pvData
+                &cbData  // pcbData
             );
             if (res != ERROR_SUCCESS)
                 return NULL;
 
             // Simple string?
             if (dwType == REG_SZ)
-                return dst->set(parent);
+                return dst->set(tmp.pData);
 
             // String with expanded environment variables?
             if (dwType == REG_EXPAND_SZ)
@@ -345,9 +351,9 @@ namespace lsp
                 lsp_trace("User home directory: %s", log_homedir.c_str());
 
                 path_string_t child;
-                for (const WCHAR **subdir = home_paths; (factory == NULL) && (subdir != NULL); ++subdir)
+                for (const WCHAR **subdir = home_paths; *subdir != NULL; ++subdir)
                 {
-                    const WCHAR *vst_path = child.set(homedir, subdir);
+                    const WCHAR *vst_path = child.set(homedir, *subdir);
                     if (vst_path != NULL)
                     {
                         if ((factory = lookup_factory(&hLibrary, vst_path, required)) != NULL)
@@ -368,11 +374,11 @@ namespace lsp
             }
 
             // Try to lookup via registry
-            for (const reg_key_t *k=registry_keys; (k->key != NULL) && (factory == NULL); ++k)
+            for (const reg_key_t *k=registry_keys; k->key != NULL; ++k)
             {
                 for (size_t index=0; ; ++index)
                 {
-                    const WCHAR *reg_vst_path = read_registry(&dir_str, k);
+                    const WCHAR *reg_vst_path = read_registry(&dir_str, k, index);
                     if (reg_vst_path == NULL)
                         break;
 
