@@ -48,7 +48,7 @@ MTEST_BEGIN("", respack)
             io::Path outfile;
             io::Path cksum;
 
-            MTEST_ASSERT(resdir.set(tempdir(), "resources") == STATUS_OK)
+            MTEST_ASSERT(resdir.set(tempdir(), "resources") == STATUS_OK);
             MTEST_ASSERT(outfile.fmt("%s/mtest-%s.cpp", tempdir(), full_name()) > 0);
             MTEST_ASSERT(cksum.fmt("%s/mtest-%s-cksum.json", tempdir(), full_name()) > 0);
 
