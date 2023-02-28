@@ -23,6 +23,7 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_VST2_PORTS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -933,7 +934,7 @@ namespace lsp
         class OscPort: public Port
         {
             private:
-                plug::osc_buffer_t     *pFB;
+                core::osc_buffer_t     *pFB;
 
             public:
                 explicit OscPort(const meta::port_t *meta, AEffect *effect, audioMasterCallback callback):
@@ -954,7 +955,7 @@ namespace lsp
 
                 virtual int init()
                 {
-                    pFB     = plug::osc_buffer_t::create(OSC_BUFFER_MAX);
+                    pFB     = core::osc_buffer_t::create(OSC_BUFFER_MAX);
                     return (pFB == NULL) ? STATUS_NO_MEM : STATUS_OK;
                 }
 
@@ -962,7 +963,7 @@ namespace lsp
                 {
                     if (pFB != NULL)
                     {
-                        plug::osc_buffer_t::destroy(pFB);
+                        core::osc_buffer_t::destroy(pFB);
                         pFB     = NULL;
                     }
                 }

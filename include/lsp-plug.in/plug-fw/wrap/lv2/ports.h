@@ -26,6 +26,7 @@
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
@@ -928,7 +929,7 @@ namespace lsp
          class OscPort: public Port
          {
              protected:
-                 plug::osc_buffer_t    *pFB;
+                 core::osc_buffer_t    *pFB;
 
              public:
                  explicit OscPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext, false)
@@ -948,7 +949,7 @@ namespace lsp
 
                  virtual int init()
                  {
-                     pFB = plug::osc_buffer_t::create(OSC_BUFFER_MAX);
+                     pFB = core::osc_buffer_t::create(OSC_BUFFER_MAX);
                      return (pFB == NULL) ? STATUS_NO_MEM : STATUS_OK;
                  }
 
@@ -956,7 +957,7 @@ namespace lsp
                  {
                      if (pFB != NULL)
                      {
-                         plug::osc_buffer_t::destroy(pFB);
+                         core::osc_buffer_t::destroy(pFB);
                          pFB     = NULL;
                      }
                  }

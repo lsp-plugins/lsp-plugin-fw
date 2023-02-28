@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <clap/clap.h>
+#include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/ports.h>
 
@@ -371,7 +372,7 @@ namespace lsp
                 {
                     // Check if there is data for viewing
                     bSyncAgain              = false;
-                    plug::osc_buffer_t *fb  = pPort->buffer<plug::osc_buffer_t>();
+                    core::osc_buffer_t *fb  = pPort->buffer<core::osc_buffer_t>();
 
                     while (true)
                     {
@@ -433,7 +434,7 @@ namespace lsp
 
                 virtual void write(const void *buffer, size_t size) override
                 {
-                    plug::osc_buffer_t *fb = pPort->buffer<plug::osc_buffer_t>();
+                    core::osc_buffer_t *fb = pPort->buffer<core::osc_buffer_t>();
                     if (fb != NULL)
                         fb->submit(buffer, size);
                 }

@@ -23,6 +23,8 @@
 
 #ifdef USE_LIBCAIRO
 
+#include <lsp-plug.in/common/debug.h>
+
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/stdlib/math.h>
 

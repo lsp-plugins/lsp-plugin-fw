@@ -23,6 +23,7 @@
 #include <private/ui/xml/RootNode.h>
 #include <private/ui/xml/Handler.h>
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/mm/InAudioFileStream.h>
 #include <stdarg.h>
 

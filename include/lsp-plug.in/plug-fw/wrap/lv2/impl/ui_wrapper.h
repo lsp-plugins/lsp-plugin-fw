@@ -23,6 +23,7 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_LV2_IMPL_UI_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/static.h>
 
@@ -566,7 +567,7 @@ namespace lsp
                         continue;
 
                     // Submit message to the buffer
-                    plug::osc_buffer_t *buf = p->buffer<plug::osc_buffer_t>();
+                    core::osc_buffer_t *buf = p->buffer<core::osc_buffer_t>();
                     if (buf != NULL)
                         buf->submit(msg_start, msg_size);
                 }

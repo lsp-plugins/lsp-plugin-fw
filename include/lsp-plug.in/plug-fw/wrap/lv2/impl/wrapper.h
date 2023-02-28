@@ -23,6 +23,7 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_LV2_IMPL_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
@@ -744,7 +745,7 @@ namespace lsp
                             continue;
 
                         // Submit message to the buffer
-                        plug::osc_buffer_t *buf = p->buffer<plug::osc_buffer_t>();
+                        core::osc_buffer_t *buf = p->buffer<core::osc_buffer_t>();
                         if (buf != NULL)
                             buf->submit(msg_start, msg_size);
                     }
@@ -1365,7 +1366,7 @@ namespace lsp
 
         void Wrapper::transmit_osc_events(lv2::Port *p)
         {
-            plug::osc_buffer_t *osc = p->buffer<plug::osc_buffer_t>();
+            core::osc_buffer_t *osc = p->buffer<core::osc_buffer_t>();
             if (osc == NULL)  // There are no events ?
                 return;
 

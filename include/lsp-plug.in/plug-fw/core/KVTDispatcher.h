@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ipc/Mutex.h>
+#include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
 namespace lsp
@@ -37,8 +38,8 @@ namespace lsp
                 KVTDispatcher & operator = (const KVTDispatcher &);
 
             protected:
-                plug::osc_buffer_t *pRx;
-                plug::osc_buffer_t *pTx;
+                core::osc_buffer_t *pRx;
+                core::osc_buffer_t *pTx;
                 KVTStorage         *pKVT;
                 ipc::Mutex         *pKVTMutex;
                 uint8_t            *pPacket;
@@ -75,8 +76,8 @@ namespace lsp
                 static status_t     build_message(const char *param_name, const kvt_param_t *param, osc::packet_t *packet, size_t limit);
                 static status_t     build_message(const char *param_name, const kvt_param_t *param, void *data, size_t *size, size_t limit);
         };
-    }
-}
+    } /* namespace core */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CORE_KVTDISPATCHER_H_ */

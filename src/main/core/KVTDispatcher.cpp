@@ -29,8 +29,8 @@ namespace lsp
     {
         KVTDispatcher::KVTDispatcher(KVTStorage *kvt, ipc::Mutex *mutex)
         {
-            pRx         = plug::osc_buffer_t::create(OSC_BUFFER_MAX);
-            pTx         = plug::osc_buffer_t::create(OSC_BUFFER_MAX);
+            pRx         = core::osc_buffer_t::create(OSC_BUFFER_MAX);
+            pTx         = core::osc_buffer_t::create(OSC_BUFFER_MAX);
             pKVT        = kvt;
             pKVTMutex   = mutex;
             pPacket     = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX));
@@ -42,12 +42,12 @@ namespace lsp
         {
             if (pRx != NULL)
             {
-                plug::osc_buffer_t::destroy(pRx);
+                core::osc_buffer_t::destroy(pRx);
                 pRx     = NULL;
             }
             if (pTx != NULL)
             {
-                plug::osc_buffer_t::destroy(pTx);
+                core::osc_buffer_t::destroy(pTx);
                 pTx     = NULL;
             }
             if (pPacket != NULL)
