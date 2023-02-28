@@ -12,6 +12,7 @@
 * Added support of named widget groups.
 * Updated VST core library lookup algorithm.
 * Created additinal bundle categories.
+* plug::osc_buffer_t moved to core::osc_buffer_t.
 * Added --version command line argument to obtain the version of plugins.
 
 === 1.0.9 ===
