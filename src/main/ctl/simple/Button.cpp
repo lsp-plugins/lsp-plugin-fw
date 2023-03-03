@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/common/debug.h>
 
 namespace lsp
 {
@@ -168,7 +169,7 @@ namespace lsp
 
         void Button::commit_value(float value)
         {
-            //lsp_trace("commit value=%f", value);
+            lsp_trace("commit value=%f", value);
             tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
             if (btn == NULL)
                 return;
@@ -190,17 +191,28 @@ namespace lsp
                         btn->down()->set(false);
                 }
                 else if (!meta::is_trigger_port(mdata))
-                    btn->down()->set(fabs(value - max) < fabs(value - min));
+                {
+                    if (bValueSet)
+                        btn->down()->set(fValue == fDflValue);
+                    else
+                        btn->down()->set(fabs(value - max) < fabs(value - min));
+                }
                 else
                 {
                     fValue      = (value >= 0.5f) ? 1.0f : 0.0f;
-                    btn->down()->set(fValue >= 0.5f);
+                    if (bValueSet)
+                        btn->down()->set(fValue == fDflValue);
+                    else
+                        btn->down()->set(fValue >= 0.5f);
                 }
             }
             else
             {
                 fValue      = (value >= 0.5f) ? 1.0f : 0.0f;
-                btn->down()->set(fValue >= 0.5f);
+                if (bValueSet)
+                    btn->down()->set(fValue == fDflValue);
+                else
+                    btn->down()->set(fValue >= 0.5f);
             }
         }
 
@@ -222,7 +234,7 @@ namespace lsp
 
             if (pPort != NULL)
             {
-                //lsp_trace("Setting %s = %f", pPort->id(), value);
+                lsp_trace("Setting %s = %f", pPort->id(), value);
                 pPort->set_value(value);
                 pPort->notify_all();
             }
@@ -239,6 +251,8 @@ namespace lsp
             {
                 if (mdata->unit == meta::U_ENUM)
                     return (bValueSet) ? fDflValue : fValue;
+                else if (bValueSet)
+                    return fDflValue;
             }
 
             // Get minimum and maximum
@@ -252,6 +266,8 @@ namespace lsp
 
                 max     = mdata->min + meta::list_size(mdata->items) - 1.0f;
             }
+            else if (bValueSet)
+                return fDflValue;
 
             float value = fValue + step;
             if (value > max)
