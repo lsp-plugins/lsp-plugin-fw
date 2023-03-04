@@ -23798,7 +23798,8 @@ $(LSP_PLUGIN_FW_BIN)/main/ctl/simple/Button.o: main/ctl/simple/Button.cpp \
  $(LSP_PLUGIN_FW_INC)/lsp-plug.in/plug-fw/ctl/specific/TempoTap.h \
  $(LSP_PLUGIN_FW_INC)/lsp-plug.in/plug-fw/ctl/specific/Rack.h \
  $(LSP_PLUGIN_FW_INC)/lsp-plug.in/plug-fw/ctl/specific/ThreadComboBox.h \
- $(LSP_PLUGIN_FW_INC)/lsp-plug.in/plug-fw/meta/func.h
+ $(LSP_PLUGIN_FW_INC)/lsp-plug.in/plug-fw/meta/func.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/debug.h
 $(LSP_PLUGIN_FW_BIN)/main/ctl/simple/Bevel.o: main/ctl/simple/Bevel.cpp \
  $(LSP_PLUGIN_FW_INC)/lsp-plug.in/plug-fw/ctl.h \
  $(LSP_PLUGIN_FW_INC)/lsp-plug.in/plug-fw/version.h \
