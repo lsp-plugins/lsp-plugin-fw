@@ -1181,6 +1181,9 @@ namespace lsp
                     p->set_default();
                     p->notify_all();
                 }
+
+                if (pUI != NULL)
+                    pUI->reset_settings();
             }
 
             while ((res = parser->next(&param)) == STATUS_OK)
