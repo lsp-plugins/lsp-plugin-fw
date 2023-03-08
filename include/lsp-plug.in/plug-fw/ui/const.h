@@ -41,6 +41,7 @@
 #define UI_DLG_REW_PATH_ID                  "dlg_rew_path"
 #define UI_DLG_HYDROGEN_PATH_ID             "dlg_hydrogen_path"
 #define UI_DLG_LSPC_BUNDLE_PATH_ID          "dlg_lspc_bundle_path"
+#define UI_DLG_SFZ_PATH_ID                  "dlg_sfz_path"
 #define UI_R3D_BACKEND_PORT_ID              "r3d_backend"
 #define UI_LANGUAGE_PORT_ID                 "language"
 #define UI_REL_PATHS_PORT_ID                "use_relative_paths"
@@ -61,6 +62,10 @@
 #define IR_PATH_PORT                        UI_CONFIG_PORT_PREFIX UI_DLG_IR_PATH_ID
 #define CONFIG_PATH_PORT                    UI_CONFIG_PORT_PREFIX UI_DLG_CONFIG_PATH_ID
 #define MODEL3D_PATH_PORT                   UI_CONFIG_PORT_PREFIX UI_DLG_MODEL3D_PATH_ID
+#define REW_PATH_PORT                       UI_CONFIG_PORT_PREFIX UI_DLG_REW_PATH_ID
+#define HYDROGEN_PATH_PORT                  UI_CONFIG_PORT_PREFIX UI_DLG_HYDROGEN_PATH_ID
+#define LSPC_BUNDLE_PATH_PORT               UI_CONFIG_PORT_PREFIX UI_DLG_LSPC_BUNDLE_PATH_ID
+#define SFZ_PATH_PORT                       UI_CONFIG_PORT_PREFIX UI_DLG_SFZ_PATH_ID
 #define R3D_BACKEND_PORT                    UI_CONFIG_PORT_PREFIX UI_R3D_BACKEND_PORT_ID
 #define LANGUAGE_PORT                       UI_CONFIG_PORT_PREFIX UI_LANGUAGE_PORT_ID
 #define REL_PATHS_PORT                      UI_CONFIG_PORT_PREFIX UI_REL_PATHS_PORT_ID

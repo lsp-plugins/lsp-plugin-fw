@@ -54,6 +54,7 @@ namespace lsp
             PATH(UI_DLG_REW_PATH_ID, "Dialog path for importing REW settings files"),
             PATH(UI_DLG_HYDROGEN_PATH_ID, "Dialog path for importing Hydrogen drumkit files"),
             PATH(UI_DLG_LSPC_BUNDLE_PATH_ID, "Dialog path for exporting/importing LSPC bundles"),
+            PATH(UI_DLG_SFZ_PATH_ID, "Dialog path for exporting/importing SFZ files"),
             PATH(UI_DLG_MODEL3D_PATH_ID, "Dialog for saving/loading 3D model files"),
             PATH(UI_DLG_DEFAULT_PATH_ID, "Dialog default path for other files"),
             PATH(UI_R3D_BACKEND_PORT_ID, "Identifier of selected backend for 3D rendering"),
