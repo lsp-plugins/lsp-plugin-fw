@@ -183,7 +183,8 @@ namespace lsp
                 res = STATUS_NOT_FOUND;
 
             if (res != STATUS_OK)
-                fprintf(stderr, "Error loading manifest file, error=%d", int(res));
+                fprintf(stderr, "Error loading manifest file '%s', error=%d",
+                    LSP_BUILTIN_PREFIX "manifest.json", int(res));
 
             return res;
         }
