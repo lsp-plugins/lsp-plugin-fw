@@ -751,9 +751,9 @@ namespace lsp
 
             // Configure the values
             if (l_begin >= 0.0f)
-                l_begin     = lsp_limit(l_begin, 0.0f, length);
+                l_begin     = lsp_limit(l_begin, 0.0f, samples);
             if (l_end >= 0.0f)
-                l_end       = lsp_limit(l_end, 0.0f, length);
+                l_end       = lsp_limit(l_end, 0.0f, samples);
             if (s_end < s_begin)
                 lsp::swap(s_begin, s_end);
             if (l_end < l_begin)
