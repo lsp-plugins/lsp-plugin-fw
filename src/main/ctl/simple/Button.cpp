@@ -154,6 +154,7 @@ namespace lsp
                 set_param(btn->text_clip(), "tclip", name, value);
                 set_param(btn->font_scaling(), "font.scaling", name, value);
                 set_param(btn->font_scaling(), "font.scale", name, value);
+                set_param(btn->mode(), "mode", name, value);
                 set_text_layout(btn->text_layout(), name, value);
 
                 if (set_value(&fDflValue, "value", name, value))
