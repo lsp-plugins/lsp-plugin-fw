@@ -22,10 +22,17 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/util/validator/validator.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/static.h>
 #include <lsp-plug.in/stdlib/stdio.h>
+
+#if defined(USE_LSP_TK_LIB) || defined(LSP_IDE_DEBUG)
+    #define LSP_VALIDATE_PLUGIN_UI
+#endif /* defined(USE_LSP_TK_LIB) || defined(LSP_IDE_DEBUG) */
+
+#ifdef LSP_VALIDATE_PLUGIN_UI
+    #include <lsp-plug.in/plug-fw/ui.h>
+#endif /* USE_LSP_TK_LIB */
 
 namespace lsp
 {
@@ -311,6 +318,7 @@ namespace lsp
                 return;
         }
 
+    #ifdef LSP_VALIDATE_PLUGIN_UI
         const meta::plugin_t *find_ui(const meta::plugin_t *meta)
         {
             for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
@@ -328,6 +336,30 @@ namespace lsp
 
             return NULL;
         }
+
+        void validate_ui(context_t *ctx, const meta::plugin_t *meta)
+        {
+            const meta::plugin_t *ui = find_ui(meta);
+            if (ui == NULL)
+            {
+                if (meta->ui_resource != NULL)
+                    validation_error(ctx, "Plugin uid='%s' has no UI but provides ui_resource='%s'",
+                        meta->uid, meta->ui_resource);
+                if (meta->ui_resource != NULL)
+                    validation_error(ctx, "Plugin uid='%s' has no UI but provides ui_presets='%s'",
+                        meta->uid, meta->ui_presets);
+            }
+            else
+            {
+                if (meta->ui_resource == NULL)
+                    validation_error(ctx, "Plugin uid='%s' has UI but does not provide ui_resource", meta->uid);
+            }
+        }
+    #else
+        void validate_ui(context_t *ctx, const meta::plugin_t *meta)
+        {
+        }
+    #endif /* LSP_VALIDATE_PLUGIN_UI */
 
         void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
         {
@@ -397,8 +429,6 @@ namespace lsp
             else
                 validation_error(ctx, "Not specified bundle for plugin uid='%s'", meta->uid);
 
-            // Validate version
-
             // Validate port groups
             validate_port_groups(ctx, meta);
 
@@ -406,21 +436,7 @@ namespace lsp
             validate_ports(ctx, meta);
 
             // Validate the UI
-            const meta::plugin_t *ui = find_ui(meta);
-            if (ui == NULL)
-            {
-                if (meta->ui_resource != NULL)
-                    validation_error(ctx, "Plugin uid='%s' has no UI but provides ui_resource='%s'",
-                        meta->uid, meta->ui_resource);
-                if (meta->ui_resource != NULL)
-                    validation_error(ctx, "Plugin uid='%s' has no UI but provides ui_presets='%s'",
-                        meta->uid, meta->ui_presets);
-            }
-            else
-            {
-                if (meta->ui_resource == NULL)
-                    validation_error(ctx, "Plugin uid='%s' has UI but does not provide ui_resource", meta->uid);
-            }
+            validate_ui(ctx, meta);
 
             // Call the nested validators for each plugin format
             ladspa::validate_plugin(ctx, meta);
