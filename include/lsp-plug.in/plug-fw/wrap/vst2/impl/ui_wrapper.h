@@ -223,9 +223,6 @@ namespace lsp
             // Terminate idle thread
             terminate_idle_thread();
 
-            // Call parent instance
-            IWrapper::destroy();
-
             // Destroy UI
             if (pUI != NULL)
             {
@@ -234,6 +231,9 @@ namespace lsp
                 delete pUI;
                 pUI = NULL;
             }
+
+            // Call parent instance
+            IWrapper::destroy();
         }
 
         void UIWrapper::terminate_idle_thread()

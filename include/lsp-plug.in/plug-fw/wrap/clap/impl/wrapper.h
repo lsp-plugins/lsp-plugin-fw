@@ -1862,6 +1862,11 @@ namespace lsp
             atomic_add(&nDumpReq, 1);
         }
 
+        void Wrapper::request_settings_update()
+        {
+            bUpdateSettings     = true;
+        }
+
     } /* namespace clap */
 } /* namespace lsp */
 

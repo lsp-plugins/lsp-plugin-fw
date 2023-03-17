@@ -2122,6 +2122,11 @@ namespace lsp
             bQueueDraw = true;
         }
 
+        void Wrapper::request_settings_update()
+        {
+            bUpdateSettings     = true;
+        }
+
     } /* namespace lv2 */
 } /* namespace lsp */
 

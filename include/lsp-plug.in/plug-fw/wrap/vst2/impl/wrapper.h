@@ -1336,6 +1336,11 @@ namespace lsp
         {
             return pSamplePlayer;
         }
+
+        void Wrapper::request_settings_update()
+        {
+            bUpdateSettings     = true;
+        }
     } /* namespace vst2 */
 } /* namespace lsp */
 

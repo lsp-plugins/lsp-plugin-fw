@@ -134,6 +134,7 @@ namespace lsp
                 virtual core::KVTStorage       *kvt_trylock() override;
                 virtual bool                    kvt_release() override;
                 virtual const meta::package_t  *package() const override;
+                virtual void                    request_settings_update() override;
         };
     } /* namespace vst2 */
 } /* namespace lsp */

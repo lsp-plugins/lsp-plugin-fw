@@ -169,6 +169,7 @@ namespace lsp
                 virtual bool                    kvt_release() override;
                 virtual const meta::package_t  *package() const override;
                 virtual void                    state_changed() override;
+                virtual void                    request_settings_update() override;
 
             public:
                 // Miscellaneous functions

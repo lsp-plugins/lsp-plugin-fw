@@ -298,6 +298,10 @@ namespace lsp
             return pPackage;
         }
 
+        void Wrapper::request_settings_update()
+        {
+            bUpdateSettings     = true;
+        }
     } /* namespace ladspa */
 } /* namespace lsp */
 

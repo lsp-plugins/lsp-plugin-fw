@@ -68,7 +68,7 @@ namespace lsp
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader);
-                virtual ~Wrapper();
+                virtual ~Wrapper() override;
 
                 status_t                            init(unsigned long sr);
                 void                                destroy();
@@ -83,9 +83,11 @@ namespace lsp
                 inline void                         deactivate();
 
             public:
-                virtual ipc::IExecutor             *executor();
+                virtual ipc::IExecutor             *executor() override;
 
-                virtual const meta::package_t      *package() const;
+                virtual const meta::package_t      *package() const override;
+
+                virtual void                        request_settings_update() override;
         };
 
     } /* namespace ladspa */

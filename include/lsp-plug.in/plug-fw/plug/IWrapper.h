@@ -115,6 +115,11 @@ namespace lsp
                 virtual void                    state_changed();
 
                 /**
+                 * Request from plugin to call it's update_settings() method when it is possible
+                 */
+                virtual void                    request_settings_update();
+
+                /**
                  * Dump the state of plugin
                  */
                 virtual void                    dump_plugin_state();
