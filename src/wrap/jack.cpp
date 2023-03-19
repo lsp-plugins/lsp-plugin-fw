@@ -19,6 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifdef USE_LIBJACK
+
 #include <jack/jack.h>
 #include <jack/transport.h>
 #include <jack/midiport.h>
@@ -87,6 +89,7 @@ namespace lsp
             void           *parent_id;
             bool            headless;
             bool            list;
+            bool            version;
             lltl::darray<connection_t> routing;
         } cmdline_t;
 
@@ -213,6 +216,7 @@ namespace lsp
             cfg->parent_id      = NULL;
             cfg->headless       = false;
             cfg->list           = false;
+            cfg->version        = false;
 
             // Parse arguments
             int i = 1;
@@ -233,7 +237,9 @@ namespace lsp
                     )
                     printf("  -h, --help                Output help\n");
                     printf("  -hl, --headless           Launch in console only, without UI\n");
-                    printf("  -l, --list                List available plugin identifiers\n");
+                    if (plugin_id == NULL)
+                        printf("  -l, --list                List available plugin identifiers\n");
+                    printf("  -v, --version             Output the version of the software\n");
                     printf("  -x, --connect <src>=<dst> Connect input/output JACK port to another\n");
                     printf("                            input/output JACK port when JACK connection\n");
                     printf("                            is estimated. Multiple options are allowed,\n");
@@ -254,6 +260,8 @@ namespace lsp
                 }
                 else if ((!::strcmp(arg, "--headless")) || (!::strcmp(arg, "-hl")))
                     cfg->headless       = true;
+                else if ((!::strcmp(arg, "--version")) || (!::strcmp(arg, "-v")))
+                    cfg->version        = true;
                 else if ((plugin_id == NULL) && ((!::strcmp(arg, "--list")) || (!::strcmp(arg, "-l"))))
                     cfg->list           = true;
                 else if ((plugin_id == NULL) && (cfg->plugin_id == NULL))
@@ -370,6 +378,31 @@ namespace lsp
             }
 
             return STATUS_OK;
+        }
+
+        const meta::plugin_t *find_plugin(const char *id)
+        {
+            if (id == NULL)
+                return NULL;
+
+            // Lookup plugin identifier among all registered plugin factories
+            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *meta = f->enumerate(i);
+                    if (meta == NULL)
+                        break;
+
+                    // Check plugin identifier
+                    if (!::strcmp(meta->uid, id))
+                        return meta;
+                }
+            }
+
+            // No plugin has been found
+            return NULL;
         }
 
         status_t create_plugin(wrapper_t *w, const char *id)
@@ -497,6 +530,60 @@ namespace lsp
             }
         }
 
+        static status_t output_version(const cmdline_t &cmdline)
+        {
+            // Create the resource loader
+            resource::ILoader *loader = core::create_resource_loader();
+            if (loader == NULL)
+            {
+                lsp_error("No resource loader available");
+                return STATUS_NO_DATA;
+            }
+            lsp_finally { delete loader; };
+
+            // Load package information
+            io::IInStream *is = loader->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
+            if (is == NULL)
+            {
+                lsp_error("No manifest.json found in resources");
+                return STATUS_BAD_STATE;
+            }
+            lsp_finally {
+                is->close();
+                delete is;
+            };
+
+            // Load manifest
+            meta::package_t *manifest = NULL;
+            status_t res = meta::load_manifest(&manifest, is);
+            if (res != STATUS_OK)
+            {
+                lsp_error("Error while reading manifest file, error: %d", int(res));
+                return res;
+            }
+            lsp_finally { meta::free_manifest(manifest); };
+
+            // Find related plugin metadata
+            const meta::plugin_t *plug = find_plugin(cmdline.plugin_id);
+
+            printf("Package name:      %s\n", manifest->artifact_name);
+            printf("Package version:   %d.%d.%d\n",
+                manifest->version.major,
+                manifest->version.minor,
+                manifest->version.micro);
+            if (plug != NULL)
+            {
+                printf("Plugin name:       %s\n", plug->description);
+                printf("Plugin version:    %d.%d.%d\n",
+                    plug->version.major,
+                    plug->version.minor,
+                    plug->version.micro);
+            }
+
+            // Output the version
+            return STATUS_OK;
+        }
+
         static status_t init_wrapper(wrapper_t *w, const cmdline_t &cmdline)
         {
             status_t res;
@@ -507,25 +594,18 @@ namespace lsp
             if ((w->pLoader = core::create_resource_loader()) == NULL)
             {
                 lsp_error("No resource loader available");
-                destroy_wrapper(w);
                 return STATUS_NO_DATA;
             }
 
             // Create plugin module
             if ((res = create_plugin(w, cmdline.plugin_id)) != STATUS_OK)
-            {
-                destroy_wrapper(w);
                 return res;
-            }
 
             // Need to instantiate plugin UI?
             if (!cmdline.headless)
             {
                 if ((res = create_ui(w, cmdline.plugin_id)) != STATUS_OK)
-                {
-                    destroy_wrapper(w);
                     return res;
-                }
             }
 
             #if defined(PLATFORM_WINDOWS)
@@ -542,16 +622,10 @@ namespace lsp
             w->pRouting     = &cmdline.routing;
             w->pWrapper     = new jack::Wrapper(w->pPlugin, w->pLoader);
             if (w->pWrapper == NULL)
-            {
-                destroy_wrapper(w);
                 return STATUS_NO_MEM;
-            }
 
             if ((res = w->pWrapper->init()) != STATUS_OK)
-            {
-                destroy_wrapper(w);
                 return res;
-            }
 
             // Initialize UI wrapper
             if (w->pUI != NULL)
@@ -559,17 +633,11 @@ namespace lsp
                 // Create wrapper
                 w->pUIWrapper   = new jack::UIWrapper(w->pWrapper, w->pLoader, w->pUI);
                 if (w->pUIWrapper == NULL)
-                {
-                    destroy_wrapper(w);
                     return STATUS_NO_MEM;
-                }
 
                 // Initialize wrapper
                 if ((res = w->pUIWrapper->init(NULL)) != STATUS_OK)
-                {
-                    destroy_wrapper(w);
                     return res;
-                }
 
                 // Show the widget
                 tk::Widget * wnd = w->pUI->root();
@@ -732,18 +800,6 @@ extern "C"
     {
         status_t res            = STATUS_OK;
 
-        // Initialize wrapper with empty data
-        jack::wrapper_t *w      = &jack::wrapper;
-        w->nSync                = 0;
-        w->bNotify              = true;
-        w->pLoader              = NULL;
-        w->pPlugin              = NULL;
-        w->pUI                  = NULL;
-        w->pWrapper             = NULL;
-        w->pUIWrapper           = NULL;
-        w->bInterrupt           = false;
-        w->nLastReconnect       = 0;
-
     #ifndef LSP_IDE_DEBUG
         IF_DEBUG( lsp::debug::redirect("lsp-jack-lib.log"); );
     #endif /* LSP_IDE_DEBUG */
@@ -753,6 +809,14 @@ extern "C"
         lsp_finally { destroy_cmdline(&cmdline); };
         if ((res = parse_cmdline(&cmdline, plugin_id, argc, argv)) != STATUS_OK)
             return (res == STATUS_CANCELLED) ? 0 : res;
+
+        // Need just to output version?
+        if (cmdline.version)
+        {
+            if ((res = jack::output_version(cmdline)) != STATUS_OK)
+                return -res;
+            return 0;
+        }
 
         // Need just to list available plugins?
         if (cmdline.list)
@@ -785,13 +849,27 @@ extern "C"
         // Initialize DSP
         dsp::init();
 
+        // Initialize wrapper with empty data
+        jack::wrapper_t *w      = &jack::wrapper;
+        w->nSync                = 0;
+        w->bNotify              = true;
+        w->pLoader              = NULL;
+        w->pPlugin              = NULL;
+        w->pUI                  = NULL;
+        w->pWrapper             = NULL;
+        w->pUIWrapper           = NULL;
+        w->bInterrupt           = false;
+        w->nLastReconnect       = 0;
+
         // Initialize plugin wrapper
         res = jack::init_wrapper(w, cmdline);
-        if (res == STATUS_OK) // Try to launch instantiated objects
-            res = jack::plugin_main(w);
 
-        // Destroy JACK wrapper
-        jack::destroy_wrapper(w);
+        // Destroy JACK wrapper at the end
+        lsp_finally { jack::destroy_wrapper(w); };
+
+        // Launch the main event loop
+        if (res == STATUS_OK)
+            res = jack::plugin_main(w);
 
         // Return result
         return (res == STATUS_OK) ? 0 : -res;
@@ -800,3 +878,5 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+#endif /* USE_LIBJACK */

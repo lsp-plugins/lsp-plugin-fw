@@ -44,6 +44,8 @@ namespace lsp
             pUIMetadata         = NULL;
             pUIFactory          = NULL;
             pUIWrapper          = NULL;
+            nUIReq              = 0;
+            nUIResp             = 0;
             pExt                = NULL;
             pExecutor           = NULL;
 
@@ -51,7 +53,6 @@ namespace lsp
             nDumpReq            = 0;
             nDumpResp           = 0;
 
-            bUIActive           = false;
             bRestartRequested   = false;
             bUpdateSettings     = true;
             pSamplePlayer       = NULL;
@@ -855,14 +856,14 @@ namespace lsp
                 return CLAP_PROCESS_ERROR;
 
             // Update UI activity state
-            bool ui_active = (pUIWrapper != NULL) ? pUIWrapper->ui_active() : false;
-            if (ui_active != bUIActive)
+            const uatomic_t ui_req = nUIReq;
+            if (ui_req != nUIResp)
             {
-                if (ui_active)
-                    pPlugin->activate_ui();
-                else
+                if (pPlugin->ui_active())
                     pPlugin->deactivate_ui();
-                bUIActive   = ui_active;
+                if (pUIWrapper != NULL)
+                    pPlugin->activate_ui();
+                nUIResp     = ui_req;
             }
 
             // Bind audio inputs
@@ -1260,6 +1261,10 @@ namespace lsp
                 }
             }
 
+            // Notify the plugin
+            if (res == STATUS_OK)
+                pPlugin->state_saved();
+
             return res;
         }
 
@@ -1337,6 +1342,7 @@ namespace lsp
 
             // Return result
             pUIWrapper = uw;
+            atomic_add(&nUIReq, 1);
             return pUIWrapper;
         }
 
@@ -1348,6 +1354,7 @@ namespace lsp
             pUIWrapper->destroy();
             delete pUIWrapper;
             pUIWrapper = NULL;
+            atomic_add(&nUIReq, 1);
         }
 
         bool Wrapper::ui_provided()
@@ -1614,7 +1621,14 @@ namespace lsp
             }
 
             // Analyze result
-            return (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
+            res = (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
+            if (res == STATUS_OK)
+            {
+                bUpdateSettings = true;
+                pPlugin->state_loaded();
+            }
+
+            return res;
         }
 
         size_t Wrapper::params_count() const
@@ -1846,6 +1860,11 @@ namespace lsp
         void Wrapper::request_state_dump()
         {
             atomic_add(&nDumpReq, 1);
+        }
+
+        void Wrapper::request_settings_update()
+        {
+            bUpdateSettings     = true;
         }
 
     } /* namespace clap */

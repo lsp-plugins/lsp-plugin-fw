@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
@@ -491,7 +492,7 @@ namespace lsp
 
             // Set-up value
             char buf[TMP_BUF_SIZE];
-            format_value(buf, TMP_BUF_SIZE, mdata, _this->nNote, _this->nDigits, false);
+            meta::format_value(buf, TMP_BUF_SIZE, mdata, _this->nNote, _this->nDigits, false);
             popup->sValue.text()->set_raw(buf);
             popup->sValue.selection()->set_all();
 

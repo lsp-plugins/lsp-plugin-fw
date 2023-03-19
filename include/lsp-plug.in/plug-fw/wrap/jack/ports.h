@@ -31,6 +31,7 @@
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/dsp/dsp.h>
 
+#include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
 
@@ -579,7 +580,7 @@ namespace lsp
         class OscPort: public Port
         {
             private:
-                plug::osc_buffer_t     *pFB;
+                core::osc_buffer_t     *pFB;
 
             public:
                 explicit OscPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
@@ -593,7 +594,7 @@ namespace lsp
 
                 virtual int init()
                 {
-                    pFB = plug::osc_buffer_t::create(OSC_BUFFER_MAX);
+                    pFB = core::osc_buffer_t::create(OSC_BUFFER_MAX);
                     return (pFB == NULL) ? STATUS_NO_MEM : STATUS_OK;
                 }
 
@@ -602,7 +603,7 @@ namespace lsp
                     if (pFB == NULL)
                         return;
 
-                    plug::osc_buffer_t::destroy(pFB);
+                    core::osc_buffer_t::destroy(pFB);
                     pFB     = NULL;
                 }
 

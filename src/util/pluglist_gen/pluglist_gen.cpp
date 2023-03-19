@@ -87,6 +87,7 @@ namespace lsp
             { meta::B_MB_DYNAMICS,      "mb_dynamics" },
             { meta::B_MB_PROCESSING,    "mb_processing" },
             { meta::B_SAMPLERS,         "samplers" },
+            { meta::B_GENERATORS,       "generators" },
             { meta::B_UTILITIES,        "utilities" },
             { -1, NULL }
         };
@@ -182,7 +183,8 @@ namespace lsp
                 res = STATUS_NOT_FOUND;
 
             if (res != STATUS_OK)
-                fprintf(stderr, "Error loading manifest file, error=%d", int(res));
+                fprintf(stderr, "Error loading manifest file '%s', error=%d",
+                    LSP_BUILTIN_PREFIX "manifest.json", int(res));
 
             return res;
         }

@@ -83,7 +83,7 @@ MTEST_BEGIN("", unpack)
     {
         io::Path outdir;
 
-        MTEST_ASSERT(outdir.set(tempdir(), full_name()) == STATUS_OK)
+        MTEST_ASSERT(outdir.set(tempdir(), full_name()) == STATUS_OK);
 
         core::Resources *r = core::Resources::root();
         if (r == NULL)

@@ -1072,6 +1072,11 @@ namespace lsp
         {
             return pSamplePlayer;
         }
+
+        void Wrapper::request_settings_update()
+        {
+            bUpdateSettings     = true;
+        }
     } /* namespace jack */
 } /* namespace lsp */
 

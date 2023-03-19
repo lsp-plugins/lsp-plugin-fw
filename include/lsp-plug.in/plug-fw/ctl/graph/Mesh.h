@@ -67,6 +67,7 @@ namespace lsp
             protected:
                 void                trigger_expr();
                 void                commit_data();
+                static ssize_t      get_strobe_block_size(const float *s, size_t size);
 
             public:
                 explicit Mesh(ui::IWrapper *wrapper, tk::GraphMesh *widget, bool stream);
@@ -79,8 +80,8 @@ namespace lsp
                 virtual void        notify(ui::IPort *port);
                 virtual void        end(ui::UIContext *ctx);
         };
-    } /* namespace lsp */
-} /* namespace ctl */
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

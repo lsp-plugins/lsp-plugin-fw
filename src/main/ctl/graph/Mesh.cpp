@@ -212,6 +212,16 @@ namespace lsp
                 commit_data();
         }
 
+        ssize_t Mesh::get_strobe_block_size(const float *s, size_t size)
+        {
+            for (ssize_t i=size-1; i>=0; --i)
+            {
+                if (s[i] >= 0.5f)
+                    return size - i;
+            }
+            return -1;
+        }
+
         void Mesh::commit_data()
         {
             tk::GraphMesh *gm   = tk::widget_cast<tk::GraphMesh>(wWidget);
@@ -248,6 +258,38 @@ namespace lsp
 
                     // Resize mesh data and set strobe flag
                     data->set_size(dots, bStrobe);
+
+                /* TODO: this may be more correct behaviour since the frame is not full when the strobe signal is emitted
+
+                    if (bStrobe)
+                    {
+                        float *s = data->s();
+                        while (off > 0)
+                        {
+                            // Read the strobe signal
+                            stream->read(nSIndex, s, off, dots);
+                            ssize_t shift = get_strobe_block_size(s, dots);
+                            if (shift >= 0)
+                            {
+                                off = lsp_max(0, ssize_t(off) - shift);
+                                break;
+                            }
+                            else if (dots >= off)
+                            {
+                                off = 0;
+                                break;
+                            }
+                            else
+                                off -= dots;
+
+                            // Read the stream again
+                            stream->read(nSIndex, s, off, dots);
+                        }
+
+                        // Read the stream with last frame kicked off
+                        stream->read(nSIndex, s, off, dots);
+                    }
+                */
 
                     stream->read(nXIndex, data->x(), off, dots);
                     stream->read(nYIndex, data->y(), off, dots);

@@ -431,13 +431,10 @@ namespace lsp
         char *path = ::strdup(dli.dli_fname);
         if (path == NULL)
             return NULL;
-        char *p = strchr(path, '\0');
-        while ((--p) > path)
-            if (*p == FILE_SEPARATOR_C)
-            {
-                *p = '\0';
-                break;
-            }
+        char *p = strrchr(path, FILE_SEPARATOR_C);
+        if (p != NULL)
+            *p = '\0';
+
         return path;
     }
 }

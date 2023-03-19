@@ -23,6 +23,7 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_UI_PORTS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/ports.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 
@@ -294,7 +295,7 @@ namespace lsp
                 {
                     // Check if there is data for viewing
                     bSyncAgain              = false;
-                    plug::osc_buffer_t *fb  = pPort->buffer<plug::osc_buffer_t>();
+                    core::osc_buffer_t *fb  = pPort->buffer<core::osc_buffer_t>();
 
                     while (true)
                     {
@@ -355,7 +356,7 @@ namespace lsp
 
                 virtual void write(const void *buffer, size_t size)
                 {
-                    plug::osc_buffer_t *fb  = pPort->buffer<plug::osc_buffer_t>();
+                    core::osc_buffer_t *fb  = pPort->buffer<core::osc_buffer_t>();
                     if (fb != NULL)
                         fb->submit(buffer, size);
                 }

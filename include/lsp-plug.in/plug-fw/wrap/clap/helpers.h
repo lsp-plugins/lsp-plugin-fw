@@ -45,7 +45,7 @@ namespace lsp
          */
         inline char *clap_strcpy(char *dst, const char *src, size_t len)
         {
-            strncpy(dst, src, len);
+            strncpy(dst, src, len-1);
             dst[len-1] = '\0';
             return dst;
         }

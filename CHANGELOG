@@ -2,6 +2,20 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.10 ===
+* Added shared objects related to 3D rendering to LV2, VST and CLAP packages.
+* Fixed buggy tether for the parameter popup window. 
+* Fixed improper data stream synchronization using LV2:Atom protocol.
+* The layout and text layout are now expressions for the ctl::Text controller.
+* Fixed label value update when switching language in the UI.
+* Fixed plugin state out of sync for CLAP plugin format on state restore in REAPER.
+* Added support of named widget groups.
+* Updated VST core library lookup algorithm.
+* Created additinal bundle categories.
+* plug::osc_buffer_t moved to core::osc_buffer_t.
+* Added --version command line argument to obtain the version of plugins.
+* Updated module versions in dependencies.
+
 === 1.0.9 ===
 * Updated module versions in dependencies.
 

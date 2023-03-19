@@ -63,6 +63,7 @@ namespace lsp
             pClass          = &metadata;
 
             pPort           = NULL;
+            pLangPort       = NULL;
         }
 
         Text::~Text()
@@ -80,7 +81,11 @@ namespace lsp
                 sHValue.init(pWrapper, gt->hvalue());
                 sVValue.init(pWrapper, gt->vvalue());
                 sText.init(pWrapper, gt->text());
+                sLayout.init(pWrapper, gt->layout());
+                sTextLayout.init(pWrapper, gt->text_layout());
             }
+
+            BIND_PORT(pWrapper, pLangPort, LANGUAGE_PORT);
 
             return STATUS_OK;
         }
@@ -93,8 +98,8 @@ namespace lsp
                 bind_port(&pPort, "id", name, value);
 
                 sColor.set("color", name, value);
-                set_layout(gt->layout(), NULL, name, value);
-                set_text_layout(gt->text_layout(), name, value);
+                sLayout.set(name, value);
+                sTextLayout.set(name, value);
 
                 sHValue.set("hval", name, value);
                 sHValue.set("xval", name, value);
@@ -105,6 +110,8 @@ namespace lsp
                 sVValue.set("y", name, value);
 
                 sText.set("text", name, value);
+
+                set_font(gt->font(), "font", name, value);
 
                 set_param(gt->haxis(), "basis", name, value);
                 set_param(gt->haxis(), "xaxis", name, value);
@@ -146,6 +153,8 @@ namespace lsp
 
             if ((pPort == port) && (pPort != NULL))
                 trigger_expr();
+            if ((pLangPort == port) && (pLangPort != NULL))
+                trigger_expr();
         }
 
         void Text::end(ui::UIContext *ctx)
@@ -153,5 +162,6 @@ namespace lsp
             Widget::end(ctx);
             trigger_expr();
         }
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */

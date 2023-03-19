@@ -131,6 +131,8 @@ namespace lsp
 
                 virtual const meta::package_t      *package() const override;
 
+                virtual void                        request_settings_update() override;
+
             public:
                 inline jack_client_t               *client();
                 inline bool                         initialized() const;

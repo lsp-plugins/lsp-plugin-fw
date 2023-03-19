@@ -32,11 +32,7 @@
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
-#ifdef USE_LADSPA
-    #include <ladspa.h>
-#else
-    #include <lsp-plug.in/3rdparty/ladspa/ladspa.h>
-#endif /* USE_LADSPA */
+#include <ladspa/ladspa.h>
 
 #include <lsp-plug.in/plug-fw/wrap/ladspa/ports.h>
 #include <lsp-plug.in/plug-fw/wrap/ladspa/wrapper.h>

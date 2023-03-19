@@ -27,7 +27,6 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/protocol/midi.h>
-#include <lsp-plug.in/protocol/osc.h>
 #include <lsp-plug.in/stdlib/string.h>
 
 #define STREAM_MESH_ALIGN           0x40
@@ -84,7 +83,13 @@ namespace lsp
             }
         } mesh_t;
 
-        // Streaming mesh
+        /**
+         * Streaming mesh. The data structure consists from a long single buffer splitted into
+         * channels. The mesh is incrementally appended with special markers - frames. Each frame
+         * contains information about it's size, position inside of the buffer and the overall
+         * buffer size available for read. Such structure allows to implement some kind of LIFO
+         * with support of partial data read and transfer.
+         */
         typedef struct stream_t
         {
             protected:
@@ -93,7 +98,8 @@ namespace lsp
                     volatile uint32_t   id;         // Unique frame identifier
                     size_t              head;       // Head of the frame
                     size_t              tail;       // The tail of frame
-                    size_t              length;     // The overall length of the frame
+                    size_t              size;       // The size of the frame
+                    size_t              length;     // The overall length of the stream
                 } frame_t;
 
                 size_t                  nFrames;    // Number of frames
@@ -148,16 +154,16 @@ namespace lsp
                  * Get size of the incremental frame block
                  * @return size of the frame block
                  */
-                ssize_t                 get_size(uint32_t frame) const;
+                ssize_t                 get_frame_size(uint32_t frame) const;
 
                 /**
-                 * Get start position of the whole frame (including previously stored data)
+                 * Get start position of the stream (including previous frames)
                  * @return start the start position of the frame
                  */
                 ssize_t                 get_position(uint32_t frame) const;
 
                 /**
-                 * Get the whole length of the frame (including previously stored data)
+                 * Get the whole length of the stream data starting with the specified frame
                  * @param frame frame identifier
                  * @return the length of the whole frame
                  */
@@ -177,7 +183,7 @@ namespace lsp
                 size_t                  add_frame(size_t size);
 
                 /**
-                 * Write data to the channel
+                 * Write data to the currently allocated frame
                  * @param channel channel to write data
                  * @param data source buffer to write
                  * @param off the offset inside the frame
@@ -187,7 +193,18 @@ namespace lsp
                 ssize_t                 write_frame(size_t channel, const float *data, size_t off, size_t count);
 
                 /**
-                 * Read frame data of the last frame
+                 * Read frame data
+                 * @param frame frame identifier
+                 * @param channel channel number
+                 * @param data pointer to store the value
+                 * @param off offset from the beginning of the frame
+                 * @param count number of elements to read
+                 * @return number of elements written or negative error code
+                 */
+                ssize_t                 read_frame(uint32_t frame_id, size_t channel, float *data, size_t off, size_t count);
+
+                /**
+                 * Read the whole stream according to the information stored inside of the last frame
                  * @param channel channel number
                  * @param data destination buffer
                  * @param off offset relative to the beginning of the whole frame
@@ -377,128 +394,6 @@ namespace lsp
             void sort();
         } midi_t;
 
-        /**
-         * Buffer to transfer OSC packets between two threads.
-         * It is safe to use if one thread is reading data and one thread is
-         * submitting data. Otherwise, additional synchronization mechanism
-         * should be used
-         */
-        typedef struct osc_buffer_t
-        {
-            volatile size_t     nSize;
-            size_t              nCapacity;
-            size_t              nHead;
-            size_t              nTail;
-            uint8_t            *pBuffer;
-            uint8_t            *pTempBuf;
-            size_t              nTempSize;
-            void               *pData;
-
-            /**
-             * Clear the buffer
-             */
-            void                clear();
-
-            /**
-             * Get buffer size
-             * @return buffer size
-             */
-            inline size_t       size() const { return nSize; }
-
-            /**
-             * Initialize buffer
-             * @param capacity the buffer capacity
-             * @return status of operation
-             */
-            static osc_buffer_t *create(size_t capacity);
-
-            /**
-             * Destroy the buffer
-             */
-            static void destroy(osc_buffer_t *buf);
-
-            /**
-             * Reserve space for temporary buffer, by default 0x1000 bytes
-             * @return status of operation
-             */
-            status_t    reserve(size_t size);
-
-            /**
-             * Submit OSC packet to the queue
-             * @param data packet data
-             * @param size size of the data
-             * @return status of operation
-             */
-            status_t    submit(const void *data, size_t size);
-
-            /**
-             * Submit OSC packet to the queue
-             * @param data packet data
-             * @param size size of the data
-             * @return status of operation
-             */
-            status_t    submit(const osc::packet_t *packet);
-
-            status_t submit_int32(const char *address, int32_t value);
-            status_t submit_float32(const char *address, float value);
-            status_t submit_string(const char *address, const char *s);
-            status_t submit_blob(const char *address, const void *data, size_t bytes);
-            status_t submit_int64(const char *address, int64_t value);
-            status_t submit_double64(const char *address, double value);
-            status_t submit_time_tag(const char *address, uint64_t value);
-            status_t submit_type(const char *address, const char *s);
-            status_t submit_symbol(const char *address, const char *s);
-            status_t submit_ascii(const char *address, char c);
-            status_t submit_rgba(const char *address, const uint32_t rgba);
-            status_t submit_midi(const char *address, const midi::event_t *event);
-            status_t submit_midi_raw(const char *address, const void *event, size_t bytes);
-            status_t submit_bool(const char *address, bool value);
-            status_t submit_null(const char *address);
-            status_t submit_inf(const char *address);
-
-            /**
-             * Try to send message
-             * @param address message address
-             * @param params message parameters
-             * @param args list of arguments
-             * @return status of operation
-             */
-            status_t    submit_message(const char *address, const char *params...);
-
-            /**
-             * Try to send message
-             * @param ref forge reference
-             * @param address message address
-             * @param params message parameters
-             * @param args list of arguments
-             * @return status of operation
-             */
-            status_t    submit_messagev(const char *address, const char *params, va_list args);
-
-            /**
-             * Fetch OSC packet to the already allocated memory
-             * @param data pointer to store the packet data
-             * @param size pointer to store size of fetched data
-             * @param limit
-             * @return status of operation
-             */
-            status_t    fetch(void *data, size_t *size, size_t limit);
-
-            /**
-             * Fetch OSC packet to the already allocated memory
-             * @param packet pointer to packet structure
-             * @param limit maximum available size of data for the packet
-             * @return status of operation
-             */
-            status_t    fetch(osc::packet_t *packet, size_t limit);
-
-            /**
-             * Skip current message in the buffer
-             * @return number of bytes skipped
-             */
-            size_t      skip();
-        } osc_buffer_t;
-
         // Path port structure
         typedef struct path_t
         {
@@ -602,7 +497,8 @@ namespace lsp
 
             static void init(position_t *pos);
         } position_t;
-    }
-}
+
+    } /* namespace plug */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_PLUG_DATA_H_ */

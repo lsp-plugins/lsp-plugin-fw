@@ -481,6 +481,8 @@ namespace lsp
 
                 if (!strcmp(name, "ui:id"))
                     ctx->widgets()->map(value, wWidget);
+                if (!strcmp(name, "ui:group"))
+                    ctx->widgets()->map_group(value, wWidget);
 
                 if (!strcmp(name, "ui:style"))
                     assign_styles(wWidget, value, true);

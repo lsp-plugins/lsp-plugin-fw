@@ -49,7 +49,7 @@ MTEST_BEGIN("", lv2ttl_gen)
             "some" FILE_SEPARATOR_S "long" FILE_SEPARATOR_S "path" FILE_SEPARATOR_S "lv2-frontend.so"
         };
 
-        MTEST_ASSERT(lsp::lv2ttl_gen::main(sizeof(data)/sizeof(const char *), data) == 0)
+        MTEST_ASSERT(lsp::lv2ttl_gen::main(sizeof(data)/sizeof(const char *), data) == 0);
     }
 
 MTEST_END

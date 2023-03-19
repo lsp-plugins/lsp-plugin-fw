@@ -28,6 +28,7 @@
 #include <lsp-plug.in/io/InSequence.h>
 #include <lsp-plug.in/io/OutFileStream.h>
 #include <lsp-plug.in/io/OutSequence.h>
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/dsp-units/units.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
 #include <lsp-plug.in/runtime/system.h>
@@ -53,6 +54,7 @@ namespace lsp
             PATH(UI_DLG_REW_PATH_ID, "Dialog path for importing REW settings files"),
             PATH(UI_DLG_HYDROGEN_PATH_ID, "Dialog path for importing Hydrogen drumkit files"),
             PATH(UI_DLG_LSPC_BUNDLE_PATH_ID, "Dialog path for exporting/importing LSPC bundles"),
+            PATH(UI_DLG_SFZ_PATH_ID, "Dialog path for exporting/importing SFZ files"),
             PATH(UI_DLG_MODEL3D_PATH_ID, "Dialog for saving/loading 3D model files"),
             PATH(UI_DLG_DEFAULT_PATH_ID, "Dialog default path for other files"),
             PATH(UI_R3D_BACKEND_PORT_ID, "Identifier of selected backend for 3D rendering"),
@@ -1180,6 +1182,9 @@ namespace lsp
                     p->set_default();
                     p->notify_all();
                 }
+
+                if (pUI != NULL)
+                    pUI->reset_settings();
             }
 
             while ((res = parser->next(&param)) == STATUS_OK)

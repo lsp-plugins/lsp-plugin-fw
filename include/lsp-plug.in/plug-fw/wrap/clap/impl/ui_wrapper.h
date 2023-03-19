@@ -118,16 +118,17 @@ namespace lsp
             // Stop the UI thread
             hide();
 
-            // Call parent instance
-            IWrapper::destroy();
-
             // Destroy UI
             if (pUI != NULL)
             {
+                pUI->pre_destroy();
                 pUI->destroy();
                 delete pUI;
                 pUI = NULL;
             }
+
+            // Call parent instance
+            IWrapper::destroy();
         }
 
         clap::UIPort *UIWrapper::create_port(const meta::port_t *port, const char *postfix)

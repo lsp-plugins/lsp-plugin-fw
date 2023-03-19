@@ -120,7 +120,7 @@ namespace lsp
 
                 // Skip dot and dotdot
                 ptr = de->d_name;
-                if ((ptr[0] == '.') && ((ptr[1] == '\0') || ((ptr[1] == '.') || (ptr[2] == '\0'))))
+                if ((ptr[0] == '.') && ((ptr[1] == '\0') || ((ptr[1] == '.') && (ptr[2] == '\0'))))
                 {
                     ptr = NULL;
                     continue;

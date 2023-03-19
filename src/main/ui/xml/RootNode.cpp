@@ -19,6 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
+
 #include <private/ui/xml/RootNode.h>
 #include <private/ui/xml/WidgetNode.h>
 

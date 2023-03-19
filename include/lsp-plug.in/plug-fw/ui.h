@@ -40,6 +40,7 @@
     #include <lsp-plug.in/plug-fw/ui/PathPort.h>
     #include <lsp-plug.in/plug-fw/ui/ValuePort.h>
     #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
+    #include <lsp-plug.in/plug-fw/ui/ProxyPort.h>
 
     #include <lsp-plug.in/plug-fw/ui/Module.h>
     #include <lsp-plug.in/plug-fw/ui/Factory.h>

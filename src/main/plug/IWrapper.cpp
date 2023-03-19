@@ -86,6 +86,10 @@ namespace lsp
         {
         }
 
+        void IWrapper::request_settings_update()
+        {
+        }
+
         void IWrapper::dump_plugin_state()
         {
             if (pPlugin == NULL)

@@ -19,6 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifdef USE_LIBJACK
+
 #include <lsp-plug.in/test-fw/mtest.h>
 
 #include <lsp-plug.in/common/types.h>
@@ -126,3 +128,5 @@ MTEST_BEGIN("", standalone)
     }
 
 MTEST_END
+
+#endif /* USE_LIBJACK */

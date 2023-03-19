@@ -59,6 +59,8 @@ namespace lsp
             pBypass         = NULL;
             bUpdateSettings = true;
             pUIWrapper      = NULL;
+            nUIReq          = 0;
+            nUIResp         = 0;
             pPackage        = NULL;
         }
 
@@ -415,7 +417,11 @@ namespace lsp
 
         void Wrapper::set_ui_wrapper(UIWrapper *ui)
         {
+            if (pUIWrapper == ui)
+                return;
+
             pUIWrapper  = ui;
+            atomic_add(&nUIReq, 1);
         }
 
         UIWrapper *Wrapper::ui_wrapper()
@@ -484,15 +490,14 @@ namespace lsp
             }
 
             // Sync UI state
-            if (pUIWrapper != NULL)
-            {
-                if (!pPlugin->ui_active())
-                    pPlugin->activate_ui();
-            }
-            else
+            const uatomic_t ui_req = nUIReq;
+            if (ui_req != nUIResp)
             {
                 if (pPlugin->ui_active())
                     pPlugin->deactivate_ui();
+                if (pUIWrapper != NULL)
+                    pPlugin->activate_ui();
+                nUIResp     = ui_req;
             }
 
             // Synchronize position
@@ -1008,6 +1013,7 @@ namespace lsp
                 return;
 
             // Call callback
+            bUpdateSettings = true;
             pPlugin->state_loaded();
             lsp_trace("Plugin state has been loaded");
         }
@@ -1329,6 +1335,11 @@ namespace lsp
         core::SamplePlayer *Wrapper::sample_player()
         {
             return pSamplePlayer;
+        }
+
+        void Wrapper::request_settings_update()
+        {
+            bUpdateSettings     = true;
         }
     } /* namespace vst2 */
 } /* namespace lsp */

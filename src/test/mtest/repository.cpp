@@ -32,7 +32,7 @@ MTEST_BEGIN("", repository)
         io::Path resdir;
         io::Path outfile;
 
-        MTEST_ASSERT(resdir.set(tempdir(), "test-resources") == STATUS_OK)
+        MTEST_ASSERT(resdir.set(tempdir(), "test-resources") == STATUS_OK);
         int narg = 0;
         const char *varg[20];
 

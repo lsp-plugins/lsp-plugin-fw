@@ -208,6 +208,7 @@ namespace lsp
                 virtual void                    state_changed() override;
                 virtual const meta::package_t  *package() const override;
                 virtual void                    query_display_draw() override;
+                virtual void                    request_settings_update() override;
         };
     } /* namespace lv2 */
 } /* namespace lsp */

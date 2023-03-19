@@ -43,22 +43,11 @@
 #include <lv2/worker/worker.h>
 
 // Non-official features
-#include <lsp-plug.in/3rdparty/ardour/inline-display.h>
+#include <ardour/inline-display.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ext/osc.h>
+
+// Other header includes
 #include <lsp-plug.in/stdlib/string.h>
-
-// Some definitions that may be lacking in older LV2 headers
-#ifndef LV2_ATOM__Object
-    #define LV2_ATOM__Object            LV2_ATOM_PREFIX "Object"
-#endif /* LV2_ATOM__Object */
-
-#ifndef LV2_STATE__StateChanged
-    #define LV2_STATE__StateChanged     LV2_STATE_PREFIX "StateChanged"
-#endif /* LV2_STATE__StateChanged */
-
-#ifndef LV2_UI__scaleFactor
-    #define LV2_UI__scaleFactor         LV2_UI_PREFIX "scaleFactor"
-#endif /* LV2_UI__scaleFactor */
 
 namespace lsp
 {
