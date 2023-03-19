@@ -14,6 +14,7 @@
 * Created additinal bundle categories.
 * plug::osc_buffer_t moved to core::osc_buffer_t.
 * Added --version command line argument to obtain the version of plugins.
+* Updated module versions in dependencies.
 
 === 1.0.9 ===
 * Updated module versions in dependencies.
