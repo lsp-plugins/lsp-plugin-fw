@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.11 ===
+
+
 === 1.0.10 ===
 * Added shared objects related to 3D rendering to LV2, VST and CLAP packages.
 * Fixed buggy tether for the parameter popup window. 
