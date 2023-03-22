@@ -139,6 +139,10 @@ namespace lsp
             pPort->sync_metadata();
         }
 
+        void ProxyPort::sync_metadata(IPort *port)
+        {
+        }
+
         const char *ProxyPort::id() const
         {
             return sID;
