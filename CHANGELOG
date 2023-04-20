@@ -4,6 +4,7 @@
 
 === 1.0.11 ===
 * Fixed build that disabled CairoCanvas for Inline Display feature.
+* Updated module versions in dependencies.
 
 === 1.0.10 ===
 * Added shared objects related to 3D rendering to LV2, VST and CLAP packages.
