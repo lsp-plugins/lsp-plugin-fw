@@ -67,6 +67,7 @@ namespace lsp
                 virtual void        set_value(float value, size_t flags) override;
                 virtual void        notify_all() override;
                 virtual void        sync_metadata() override;
+                virtual void        sync_metadata(IPort *port) override;
                 virtual const char *id() const override;
 
             public:

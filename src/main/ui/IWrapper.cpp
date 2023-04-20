@@ -910,6 +910,8 @@ namespace lsp
                 const meta::port_t *meta = p->metadata();
                 if (meta == NULL)
                     continue;
+                if (meta::is_out_port(meta))
+                    continue;
                 if (!strcmp(meta->id, UI_LAST_VERSION_PORT_ID))
                     continue;
 
