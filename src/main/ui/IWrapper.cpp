@@ -1504,6 +1504,7 @@ namespace lsp
             // Obtain actual versions of all modules
             lltl::pphash<LSPString, LSPString> versions;
             read_bundle_versions(file, &versions);
+            lsp_finally { drop_bundle_versions(&versions); };
 
             // Write new file
             status_t res = os.open(file, io::File::FM_WRITE_NEW);
