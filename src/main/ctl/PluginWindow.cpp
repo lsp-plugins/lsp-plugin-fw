@@ -85,41 +85,45 @@ namespace lsp
 
         PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget): Window(src, widget)
         {
-            pClass              = &metadata;
+            pClass                      = &metadata;
 
-            bResizable          = false;
+            bResizable                  = false;
 
-            pUserPaths          = NULL;
+            pUserPaths                  = NULL;
 
-            wContent            = NULL;
-            wGreeting           = NULL;
-            wAbout              = NULL;
-            wUserPaths          = NULL;
-            wMenu               = NULL;
-            wUIScaling          = NULL;
-            wFontScaling        = NULL;
-            wResetSettings      = NULL;
-            wExport             = NULL;
-            wImport             = NULL;
-            wPreferHost         = NULL;
-            wKnobScaleEnable    = NULL;
-            wOverrideHydrogen   = NULL;
-            wRelPaths           = NULL;
+            wContent                    = NULL;
+            wGreeting                   = NULL;
+            wAbout                      = NULL;
+            wUserPaths                  = NULL;
+            wMenu                       = NULL;
+            wUIScaling                  = NULL;
+            wFontScaling                = NULL;
+            wResetSettings              = NULL;
+            wExport                     = NULL;
+            wImport                     = NULL;
+            wPreferHost                 = NULL;
+            wKnobScaleEnable            = NULL;
+            wOverrideHydrogen           = NULL;
+            wRelPaths                   = NULL;
+            wInvertVScroll              = NULL;
+            wInvertGraphDotVScroll      = NULL;
 
-            pPVersion           = NULL;
-            pPBypass            = NULL;
-            pPath               = NULL;
-            pR3DBackend         = NULL;
-            pLanguage           = NULL;
-            pRelPaths           = NULL;
-            pUIScaling          = NULL;
-            pUIScalingHost      = NULL;
-            pUIFontScaling      = NULL;
-            pVisualSchema       = NULL;
-            pKnobScaleEnable    = NULL;
-            pOverrideHydrogen   = NULL;
+            pPVersion                   = NULL;
+            pPBypass                    = NULL;
+            pPath                       = NULL;
+            pR3DBackend                 = NULL;
+            pLanguage                   = NULL;
+            pRelPaths                   = NULL;
+            pUIScaling                  = NULL;
+            pUIScalingHost              = NULL;
+            pUIFontScaling              = NULL;
+            pVisualSchema               = NULL;
+            pKnobScaleEnable            = NULL;
+            pOverrideHydrogen           = NULL;
+            pInvertVScroll              = NULL;
+            pInvertGraphDotVScroll      = NULL;
 
-            pConfigSink         = NULL;
+            pConfigSink                 = NULL;
 
             sWndScale.nMFlags           = 0;
             sWndScale.sSize.nLeft       = 0;
@@ -271,6 +275,8 @@ namespace lsp
             BIND_PORT(pWrapper, pVisualSchema, UI_VISUAL_SCHEMA_PORT);
             BIND_PORT(pWrapper, pKnobScaleEnable, UI_ENABLE_KNOB_SCALE_ACTIONS_PORT);
             BIND_PORT(pWrapper, pOverrideHydrogen, UI_OVERRIDE_HYDROGEN_KITS_PORT);
+            BIND_PORT(pWrapper, pInvertVScroll, UI_INVERT_VSCROLL_PORT);
+            BIND_PORT(pWrapper, pInvertGraphDotVScroll, UI_GRAPH_DOT_INVERT_VSCROLL_PORT);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
 
@@ -868,6 +874,21 @@ namespace lsp
                 wOverrideHydrogen->slots()->bind(tk::SLOT_SUBMIT, slot_override_hydrogen_kits_changed, this);
             }
 
+            // Vertical scroll inversion
+            if ((wInvertVScroll = create_menu_item(menu)) != NULL)
+            {
+                wInvertVScroll->type()->set_check();
+                wInvertVScroll->text()->set("actions.ui_behavior.vscroll.invert_global");
+                wInvertVScroll->slots()->bind(tk::SLOT_SUBMIT, slot_invert_vscroll_changed, this);
+            }
+
+            if ((wInvertGraphDotVScroll = create_menu_item(menu)) != NULL)
+            {
+                wInvertGraphDotVScroll->type()->set_check();
+                wInvertGraphDotVScroll->text()->set("actions.ui_behavior.vscroll.invert_graph_dot");
+                wInvertGraphDotVScroll->slots()->bind(tk::SLOT_SUBMIT, slot_invert_graph_dot_vscroll_changed, this);
+            }
+
             return STATUS_OK;
         }
 
@@ -1228,6 +1249,32 @@ namespace lsp
             }
         }
 
+        void PluginWindow::sync_invert_vscroll(ui::IPort *port)
+        {
+            tk::Display *dpy    = wWidget->display();
+            if (dpy == NULL)
+                return;
+
+            bool invert_global  = (pInvertVScroll != NULL) ? pInvertVScroll->value() >= 0.5f : false;
+            bool invert_gdot    = (pInvertGraphDotVScroll != NULL) ? (pInvertGraphDotVScroll->value() >= 0.5f) ^ invert_global : invert_global;
+
+            lsp_trace("mouse vscroll invert: global=%s, graph_dot=%s",
+                (invert_global) ? "true" : "false",
+                (invert_gdot) ? "true" : "false");
+
+            if ((port == pInvertVScroll) && (wInvertVScroll != NULL))
+                wInvertVScroll->checked()->set(invert_global);
+            if ((port == pInvertGraphDotVScroll) && (wInvertGraphDotVScroll != NULL))
+                wInvertGraphDotVScroll->checked()->set(invert_gdot);
+
+            // Set global configuration
+            dpy->schema()->invert_mouse_vscroll()->set(invert_global);
+
+            tk::Style *gdot_style = dpy->schema()->get("GraphDot");
+            if (gdot_style != NULL)
+                gdot_style->set_bool("mouse.vscroll.invert", invert_gdot);
+        }
+
         void PluginWindow::sync_font_scaling()
         {
             tk::Display *dpy    = wWidget->display();
@@ -1353,6 +1400,10 @@ namespace lsp
                 notify(pKnobScaleEnable);
             if (pOverrideHydrogen != NULL)
                 notify(pOverrideHydrogen);
+            if (pInvertVScroll != NULL)
+                notify(pInvertVScroll);
+            if (pInvertGraphDotVScroll != NULL)
+                notify(pInvertGraphDotVScroll);
 
             // Call for parent class method
             Window::end(ctx);
@@ -1374,6 +1425,8 @@ namespace lsp
                 sync_knob_scale_enabled();
             if (port == pOverrideHydrogen)
                 sync_override_hydrogen();
+            if ((port == pInvertVScroll) || (port == pInvertGraphDotVScroll))
+                sync_invert_vscroll(port);
         }
 
         status_t PluginWindow::add(ui::UIContext *ctx, ctl::Widget *child)
@@ -2234,6 +2287,10 @@ namespace lsp
                     _this->pLanguage->notify_all();
                 if (_this->pKnobScaleEnable != NULL)
                     _this->pKnobScaleEnable->notify_all();
+                if (_this->pInvertVScroll != NULL)
+                    _this->pInvertVScroll->notify_all();
+                if (_this->pInvertGraphDotVScroll != NULL)
+                    _this->pInvertGraphDotVScroll->notify_all();
             }
 
             return STATUS_OK;
@@ -2455,6 +2512,42 @@ namespace lsp
             bool checked = _this->wOverrideHydrogen->checked()->get();
             _this->pOverrideHydrogen->set_value((checked) ? 1.0f : 0.0f);
             _this->pOverrideHydrogen->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_invert_vscroll_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+            if (_this->pInvertVScroll == NULL)
+                return STATUS_OK;
+            if (_this->wInvertVScroll == NULL)
+                return STATUS_OK;
+
+            _this->wInvertVScroll->checked()->toggle();
+            bool checked = _this->wInvertVScroll->checked()->get();
+            _this->pInvertVScroll->set_value((checked) ? 1.0f : 0.0f);
+            _this->pInvertVScroll->notify_all();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_invert_graph_dot_vscroll_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+            if (_this->pInvertGraphDotVScroll == NULL)
+                return STATUS_OK;
+            if (_this->wInvertGraphDotVScroll == NULL)
+                return STATUS_OK;
+
+            _this->wInvertGraphDotVScroll->checked()->toggle();
+            bool checked = _this->wInvertGraphDotVScroll->checked()->get();
+            _this->pInvertGraphDotVScroll->set_value((checked) ? 1.0f : 0.0f);
+            _this->pInvertGraphDotVScroll->notify_all();
 
             return STATUS_OK;
         }

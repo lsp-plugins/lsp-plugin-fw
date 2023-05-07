@@ -54,6 +54,8 @@
 #define UI_USER_HYDROGEN_KIT_PATH_ID        "user_hydrogen_kit_path"
 #define UI_OVERRIDE_HYDROGEN_KIT_PATH_ID    "override_hydrogen_kit_path"
 #define UI_OVERRIDE_HYDROGEN_KITS_ID        "override_hydrogen_kits"
+#define UI_INVERT_VSCROLL_ID                "invert_vscroll"
+#define UI_GRAPH_DOT_INVERT_VSCROLL_ID      "invert_graph_dot_vscroll"
 
 #define MSTUD_PORT                          UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                        UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -78,6 +80,8 @@
 #define UI_USER_HYDROGEN_KIT_PATH_PORT      UI_CONFIG_PORT_PREFIX UI_USER_HYDROGEN_KIT_PATH_ID
 #define UI_OVERRIDE_HYDROGEN_KIT_PATH_PORT  UI_CONFIG_PORT_PREFIX UI_OVERRIDE_HYDROGEN_KIT_PATH_ID
 #define UI_OVERRIDE_HYDROGEN_KITS_PORT      UI_CONFIG_PORT_PREFIX UI_OVERRIDE_HYDROGEN_KITS_ID
+#define UI_INVERT_VSCROLL_PORT              UI_CONFIG_PORT_PREFIX UI_INVERT_VSCROLL_ID
+#define UI_GRAPH_DOT_INVERT_VSCROLL_PORT    UI_CONFIG_PORT_PREFIX UI_GRAPH_DOT_INVERT_VSCROLL_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                      "main_menu"

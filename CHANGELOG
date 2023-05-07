@@ -3,7 +3,8 @@
 *******************************************************************************
 
 === 1.0.12 ===
-
+* Added possibility to invert the behaviour of mouse scroll for all widgets or
+  for graph dot widget.
 
 === 1.0.11 ===
 * Fixed build that disabled CairoCanvas for Inline Display feature.

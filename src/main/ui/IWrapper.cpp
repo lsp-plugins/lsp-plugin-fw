@@ -69,6 +69,8 @@ namespace lsp
             PATH(UI_USER_HYDROGEN_KIT_PATH_ID, "User Hydrogen kits path"),
             PATH(UI_OVERRIDE_HYDROGEN_KIT_PATH_ID, "Override Hydrogen kits path"),
             SWITCH(UI_OVERRIDE_HYDROGEN_KITS_ID, "Override Hydrogen kits", 1.0f),
+            SWITCH(UI_INVERT_VSCROLL_ID, "Invert global mouse vertical scroll behaviour", 0.0f),
+            SWITCH(UI_GRAPH_DOT_INVERT_VSCROLL_ID, "Invert mouse vertical scroll behaviour for graph dot widget", 0.0f),
             PORTS_END
         };
 
