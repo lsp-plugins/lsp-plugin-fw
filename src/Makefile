@@ -702,6 +702,7 @@ PACKAGE_TARGETS             = $(foreach feature,$(filter-out xdg,$(ENABLED_FEATU
 # Functional variables
 CXX_FILE                    = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.o,%.cpp, $(@))
 HOST_CXX_FILE               = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.o,%.cpp, $(@))
+DEP_FILE                    = $(patsubst %.o,%.d, $(@))
 
 #------------------------------------------------------------------------------
 # Plugin instance settings
@@ -718,17 +719,6 @@ WRAP_VST2_INC              := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_VST
 OBJ_EXPORT_CFLAGS          := $(VERSION_CFLAGS)
 HOST_OBJ_EXPORT_CFLAGS     := $(VERSION_CFLAGS)
 
-#------------------------------------------------------------------------------
-# Dependencies
-DEP_CXX                 = $(foreach src,$(CXX_SRC),$(patsubst %.cpp,$(LSP_PLUGIN_FW_BIN)/%.d,$(src)))
-DEP_CXX_FILE            = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.d,%.cpp,$(@))
-DEP_DEP_FILE            = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
-DEP_CFLAGS              = $(call query,CFLAGS,$(ALL_DEPENDENCIES))
-
-HOST_DEP_CXX            = $(filter-out $(DEP_CXX), $(foreach src,$(HOST_CXX_SRC),$(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.d,$(src))))
-HOST_DEP_CXX_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.cpp,$(@))
-HOST_DEP_DEP_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
-
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
 .PHONY: jack ladspa dssi lv2 vst2 clap test meta doc
@@ -740,37 +730,6 @@ HOST_DEP_DEP_FILE       = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.d,%.o,$(@))
 .PHONY: $(DEPENDENCIES) $(DEPENDENCIES_BIN)
 .PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL) $(BIN_PACKAGE)
 .PHONY: $(ARTIFACT_XDG_INSTALL_DEPS) $(ARTIFACT_XDG_UNINSTALL_DEPS)
-
-#------------------------------------------------------------------------------
-# Dependencies
-dep_clean:
-
-$(DEP_CXX): dep_clean
-	echo "  dep  [$(ARTIFACT_NAME)] $(DEP_CXX_FILE)"
-	mkdir -p $(dir $(@))
-	$(CXX) -MM -MT "\$$($(ARTIFACT_ID)_BIN)/$(DEP_DEP_FILE)" -MF $(@) $(DEP_CXX_FILE) $(CXXFLAGS) $(CXXDEFS) $(INCLUDE) $(DEP_CFLAGS)
-	
-$(HOST_DEP_CXX): dep_clean
-	echo "  dep  [$(ARTIFACT_NAME)] $(HOST_DEP_CXX_FILE)"
-	mkdir -p $(dir $(@))
-	$(HOST_CXX) -MM -MT "\$$(HOST_$(ARTIFACT_ID)_BIN)/$(HOST_DEP_DEP_FILE)" -MF $(@) $(HOST_DEP_CXX_FILE) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(INCLUDE) $(HOST_DEP_CFLAGS)
-
-depend: $(DEP_CXX) $(HOST_DEP_CXX)
-	$(foreach dep,$(ALL_DEPENDENCIES) $(ARTIFACT_ID),\
-	  $(if $($(dep)_INC), \
-	    $(eval SED_RULES += s/$(shell echo "$($(dep)_INC)" | sed "s/\\//\\\\\//g")/\$$$$\\($(dep)_INC\\)/g;)\
-	  )\
-	  $(if $(HOST_$(dep)_INC), \
-	    $(eval SED_RULES += s/$(shell echo "$(HOST_$(dep)_INC)" | sed "s/\\//\\\\\//g")/\$$$$\\(HOST_$(dep)_INC\\)/g;)\
-	  )\
-	  $(if $($(dep)_BIN), \
-	    $(eval SED_RULES += s/$(shell echo "$($(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\($(dep)_BIN\\)/g;)\
-	  )\
-	  $(if $(HOST_$(dep)_BIN), \
-	    $(eval SED_RULES += s/$(shell echo "$(HOST_$(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\(HOST_$(dep)_BIN\\)/g;)\
-	  )\
-	)
-	cat $(DEP_CXX) $(HOST_DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.d
 
 #------------------------------------------------------------------------------
 # Derived source code libraries
@@ -792,7 +751,7 @@ $(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP) $(HOST_OBJ_PLUG_SHARED) $(HOST_OBJ_PL
 $(OBJ):
 	echo "  $(CXX)  [$(LSP_PLUGIN_FW_NAME)] $(CXX_FILE)"
 	mkdir -p $(dir $@)
-	$(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(CXXDEFS) $(LSP_PLUGIN_FW_ALL_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_ALL_CFLAGS)
+	$(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(CXXDEFS) $(LSP_PLUGIN_FW_ALL_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
 
 $(OBJ_WRAP_JACK): EXT_FLAGS=$(WRAP_JACK_CFLAGS)
 
@@ -813,7 +772,7 @@ $(OBJ_EXPORT): EXT_FLAGS=$(OBJ_EXPORT_CFLAGS)
 $(HOST_OBJ):
 	echo "  $(HOST_CXX)  [$(LSP_PLUGIN_FW_NAME)] $(HOST_CXX_FILE)"
 	mkdir -p $(dir $@)
-	$(HOST_CXX) -o $(@) -c $(HOST_CXX_FILE) -fPIC $(HOST_CXXFLAGS) $(HOST_LSP_PLUGIN_FW_ALL_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_ALL_CFLAGS)
+	$(HOST_CXX) -o $(@) -c $(HOST_CXX_FILE) -fPIC $(HOST_CXXFLAGS) $(HOST_LSP_PLUGIN_FW_ALL_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
 
 $(HOST_OBJ_WRAP_JACK): EXT_FLAGS=$(HOST_WRAP_JACK_CFLAGS)
 
@@ -866,7 +825,7 @@ $(LSP_PLUGIN_FW_OBJ_TEST): $(OBJ_TEST)
 $(LSP_PLUGIN_FW_OBJ_RES): $(HOST_UTL_RESPACK) resources
 	echo "$(notdir $(HOST_UTL_RESPACK)) $(notdir $(LSP_PLUGIN_FW_SRC_RES))"
 	$(HOST_UTL_RESPACK) -o "$(LSP_PLUGIN_FW_SRC_RES)" -i "$(HOST_UTL_RES_PATH)" -c "$(LSP_PLUGIN_FW_SRC_RES_CKSUM)"
-	$(CXX) -o $(@) -c $(LSP_PLUGIN_FW_SRC_RES) -fPIC $(CXXFLAGS) $(CXXDEFS) $(LSP_PLUGIN_FW_ALL_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_ALL_CFLAGS)
+	$(CXX) -o $(@) -c $(LSP_PLUGIN_FW_SRC_RES) -fPIC $(CXXFLAGS) $(CXXDEFS) $(LSP_PLUGIN_FW_ALL_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
 
 $(HOST_LSP_PLUGIN_FW_OBJ_CORE): $(HOST_OBJ_CORE)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_CORE))"
@@ -899,7 +858,7 @@ $(HOST_LSP_PLUGIN_FW_OBJ_TEST): $(HOST_OBJ_TEST)
 $(HOST_LSP_PLUGIN_FW_OBJ_RES): $(HOST_UTL_RESPACK) resources
 	echo "$(notdir $(HOST_UTL_RESPACK)) $(notdir $(HOST_LSP_PLUGIN_FW_SRC_RES))"
 	$(HOST_UTL_RESPACK) -o "$(HOST_LSP_PLUGIN_FW_SRC_RES)" -i "$(HOST_UTL_RES_PATH)" -c "$(HOST_LSP_PLUGIN_FW_SRC_RES_CKSUM)"
-	$(HOST_CXX) -o $(@) -c $(HOST_LSP_PLUGIN_FW_SRC_RES) -fPIC $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_LSP_PLUGIN_FW_ALL_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_ALL_CFLAGS)
+	$(HOST_CXX) -o $(@) -c $(HOST_LSP_PLUGIN_FW_SRC_RES) -fPIC $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_LSP_PLUGIN_FW_ALL_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
 
 #------------------------------------------------------------------------------
 # Utilities
@@ -1243,6 +1202,4 @@ uninstall: $(BIN_UNINSTALL) $(UNINSTALL_TARGETS)
 	@echo "Uninstall OK"
 
 # Dependencies
--include $(CURDIR)/Makefile.d
-
-
+-include $(foreach objfile,$(OBJ) $(HOST_OBJ),$(patsubst %.o,%.d,$(objfile)))
