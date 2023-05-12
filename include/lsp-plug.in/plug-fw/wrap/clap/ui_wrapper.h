@@ -54,6 +54,7 @@ namespace lsp
                 ws::IWindow                    *pTransientFor;  // TransientFor window
                 bool                            bUIInitialized; // UI initialized flag
                 bool                            bRequestProcess;// Request the process() call flag
+                bool                            bUIActive;      // UI is active flag
 
             protected:
                 static status_t                 slot_ui_resize(tk::Widget *sender, void *ptr, void *data);

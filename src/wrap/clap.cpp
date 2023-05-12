@@ -362,10 +362,16 @@ namespace lsp
 
         bool CLAP_ABI ui_set_parent(const clap_plugin_t *plugin, const clap_window_t *window)
         {
-            lsp_trace("plugin = %p, window=%p", plugin, window);
+            lsp_trace("plugin = %p, window=%p data=%p", plugin, window);
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             UIWrapper *uw = w->ui_wrapper();
-            return (uw != NULL) ? uw->set_parent(window) : false;
+
+            lsp_trace("ui_wrapper=%p", uw);
+            bool result = (uw != NULL) ? uw->set_parent(window) : false;
+
+            lsp_trace("plugin = %p, window=%p result=%s", plugin, window, (result) ? "true" : "false");
+
+            return result;
         }
 
         bool CLAP_ABI ui_set_transient(const clap_plugin_t *plugin, const clap_window_t *window)
@@ -460,7 +466,11 @@ namespace lsp
             lsp_finally { dsp::finish(&ctx); };
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
-            return w->activate(sample_rate, min_frames_count, max_frames_count) == STATUS_OK;
+            status_t res = w->activate(sample_rate, min_frames_count, max_frames_count);
+
+            lsp_trace("wrapper=%p, activate result = %d", w, int(res));
+
+            return res == STATUS_OK;
         }
 
         void CLAP_ABI deactivate(const clap_plugin_t *plugin)
