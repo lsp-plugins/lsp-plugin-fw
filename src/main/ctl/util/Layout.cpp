@@ -74,6 +74,14 @@ namespace lsp
             pWrapper->add_schema_listener(this);
         }
 
+        bool Layout::parse_and_apply(ctl::Expression *expr, const char *value)
+        {
+            if (!expr->parse(value))
+                return false;
+            apply_changes();
+            return true;
+        }
+
         bool Layout::set(const char *name, const char *value)
         {
             if (!strcmp(name, "align"))
@@ -96,13 +104,13 @@ namespace lsp
             }
 
             if (!strcmp(name, "halign"))
-                return sHAlign.parse(value);
+                return parse_and_apply(&sHAlign, value);
             if (!strcmp(name, "valign"))
-                return sVAlign.parse(value);
+                return parse_and_apply(&sVAlign, value);
             if (!strcmp(name, "hscale"))
-                return sHScale.parse(value);
+                return parse_and_apply(&sHScale, value);
             if (!strcmp(name, "vscale"))
-                return sVScale.parse(value);
+                return parse_and_apply(&sVScale, value);
 
             return false;
         }
