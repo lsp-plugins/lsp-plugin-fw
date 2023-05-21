@@ -69,6 +69,8 @@ namespace lsp
             PATH(UI_USER_HYDROGEN_KIT_PATH_ID, "User Hydrogen kits path"),
             PATH(UI_OVERRIDE_HYDROGEN_KIT_PATH_ID, "Override Hydrogen kits path"),
             SWITCH(UI_OVERRIDE_HYDROGEN_KITS_ID, "Override Hydrogen kits", 1.0f),
+            SWITCH(UI_INVERT_VSCROLL_ID, "Invert global mouse vertical scroll behaviour", 0.0f),
+            SWITCH(UI_GRAPH_DOT_INVERT_VSCROLL_ID, "Invert mouse vertical scroll behaviour for graph dot widget", 0.0f),
             PORTS_END
         };
 
@@ -1504,6 +1506,7 @@ namespace lsp
             // Obtain actual versions of all modules
             lltl::pphash<LSPString, LSPString> versions;
             read_bundle_versions(file, &versions);
+            lsp_finally { drop_bundle_versions(&versions); };
 
             // Write new file
             status_t res = os.open(file, io::File::FM_WRITE_NEW);

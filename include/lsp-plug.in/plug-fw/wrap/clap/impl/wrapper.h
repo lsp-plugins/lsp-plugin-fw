@@ -861,7 +861,7 @@ namespace lsp
             {
                 if (pPlugin->ui_active())
                     pPlugin->deactivate_ui();
-                if (pUIWrapper != NULL)
+                if ((pUIWrapper != NULL) && (pUIWrapper->ui_active()))
                     pPlugin->activate_ui();
                 nUIResp     = ui_req;
             }
@@ -1342,7 +1342,6 @@ namespace lsp
 
             // Return result
             pUIWrapper = uw;
-            atomic_add(&nUIReq, 1);
             return pUIWrapper;
         }
 
@@ -1354,12 +1353,16 @@ namespace lsp
             pUIWrapper->destroy();
             delete pUIWrapper;
             pUIWrapper = NULL;
-            atomic_add(&nUIReq, 1);
         }
 
         bool Wrapper::ui_provided()
         {
             return (pUIMetadata != NULL) && (pUIFactory != NULL);
+        }
+
+        void Wrapper::ui_visibility_changed()
+        {
+            atomic_add(&nUIReq, 1);
         }
 
         HostExtensions *Wrapper::extensions()

@@ -66,17 +66,25 @@ namespace lsp
             pWrapper->add_schema_listener(this);
         }
 
+        bool TextLayout::parse_and_apply(ctl::Expression *expr, const char *value)
+        {
+            if (!expr->parse(value))
+                return false;
+            apply_changes();
+            return true;
+        }
+
         bool TextLayout::set(const char *name, const char *value)
         {
             if ((!strcmp(name, "htext")) ||
                 (!strcmp(name, "text.halign")) ||
                 (!strcmp(name, "text.h")))
-                return sHAlign.parse(value);
+                return parse_and_apply(&sHAlign, value);
 
             if ((!strcmp(name, "vtext")) ||
                  (!strcmp(name, "text.valign")) ||
                  (!strcmp(name, "text.v")))
-                return sVAlign.parse(value);
+                return parse_and_apply(&sVAlign, value);
 
             return false;
         }

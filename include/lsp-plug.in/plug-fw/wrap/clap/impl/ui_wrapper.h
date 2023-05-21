@@ -47,6 +47,7 @@ namespace lsp
             pTransientFor   = NULL;
             bUIInitialized  = false;
             bRequestProcess = false;
+            bUIActive       = false;
         }
 
         UIWrapper::~UIWrapper()
@@ -105,6 +106,11 @@ namespace lsp
 
         void UIWrapper::destroy()
         {
+            // Update UI status
+            bUIActive       = true;
+            if (pWrapper != NULL)
+                pWrapper->ui_visibility_changed();
+
             // Cleanup UI initialized flag
             bUIInitialized  = false;
 
@@ -377,6 +383,8 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
+            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+
             UIWrapper *this_    = static_cast<UIWrapper *>(ptr);
             tk::Window *wnd     = this_->window();
             if ((wnd == NULL) || (!wnd->visibility()->get()))
@@ -393,11 +401,14 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
         {
+            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
             return STATUS_OK;
         }
 
         status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
         {
+            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+
             UIWrapper *this_    = static_cast<UIWrapper *>(ptr);
             tk::Window *wnd     = this_->window();
 
@@ -411,6 +422,7 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_close(tk::Widget *sender, void *ptr, void *data)
         {
+            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
             UIWrapper *this_ = static_cast<UIWrapper *>(ptr);
             if (this_->pExt != NULL)
                 this_->pExt->gui->closed(this_->pExt->host, false);
@@ -467,25 +479,37 @@ namespace lsp
                 return false;
 
             // Lock the access to the main loop
-            ws::rectangle_t rr;
-            rr.nWidth       = 0;
-            rr.nHeight      = 0;
-
             if (!sMutex.lock())
                 return false;
             lsp_finally { sMutex.unlock(); };
 
             // Obtain the window parameters
-            if (!wnd->visibility()->get())
-                return false;
-            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
-                return false;
+            if (wnd->visibility()->get())
+            {
+                ws::rectangle_t rr;
+                rr.nWidth       = 0;
+                rr.nHeight      = 0;
 
-            // Return result
-            if (width != NULL)
-                *width  = rr.nWidth;
-            if (height != NULL)
-                *height = rr.nHeight;
+                if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
+                    return false;
+
+                // Return result
+                if (width != NULL)
+                    *width  = rr.nWidth;
+                if (height != NULL)
+                    *height = rr.nHeight;
+            }
+            else
+            {
+                ws::size_limit_t sr;
+                wnd->get_size_limits(&sr);
+
+                // Return result
+                if (width != NULL)
+                    *width  = lsp_min(sr.nMinWidth, 32);
+                if (height != NULL)
+                    *height = lsp_min(sr.nMinHeight, 32);
+            }
 
             return true;
         }
@@ -583,7 +607,7 @@ namespace lsp
         bool UIWrapper::set_parent(const clap_window_t *window)
         {
             pParent     = to_native_handle(window);
-            return true;
+            return initialize_ui();
         }
 
         bool UIWrapper::set_transient(const clap_window_t *window)
@@ -659,7 +683,7 @@ namespace lsp
 
         bool UIWrapper::ui_active() const
         {
-            return pUIThread != NULL;
+            return bUIActive;
         }
 
         bool UIWrapper::show()
@@ -691,11 +715,21 @@ namespace lsp
 
             lsp_trace("Successfully started main loop thread");
 
+            // Update UI status
+            bUIActive       = true;
+            if (pWrapper != NULL)
+                pWrapper->ui_visibility_changed();
+
             return true;
         }
 
         bool UIWrapper::hide()
         {
+            // Update UI status
+            bUIActive       = false;
+            if (pWrapper != NULL)
+                pWrapper->ui_visibility_changed();
+
             // Cancel the main loop thread
             if (pUIThread != NULL)
             {

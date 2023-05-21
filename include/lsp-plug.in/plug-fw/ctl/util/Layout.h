@@ -44,6 +44,7 @@ namespace lsp
 
             protected:
                 void            apply_changes();
+                bool            parse_and_apply(ctl::Expression *expr, const char *value);
 
             public:
                 explicit Layout();

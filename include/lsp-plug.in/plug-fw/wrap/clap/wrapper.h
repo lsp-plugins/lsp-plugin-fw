@@ -181,6 +181,7 @@ namespace lsp
                 void                            destroy_ui();
                 inline HostExtensions          *extensions();
                 bool                            ui_provided();
+                void                            ui_visibility_changed();
         };
     } /* namespace clap */
 } /* namespace lsp */

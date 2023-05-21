@@ -114,22 +114,24 @@ namespace lsp
             protected:
                 bool                        bResizable;
 
-                ctl::Window                *pUserPaths;         // User paths controller
+                ctl::Window                *pUserPaths;                 // User paths controller
 
-                tk::WidgetContainer        *wContent;           // The main box containing all widgets
-                tk::Window                 *wGreeting;          // Greeting message window
-                tk::Window                 *wAbout;             // About message window
-                tk::Window                 *wUserPaths;         // User paths configuration
-                tk::Menu                   *wMenu;              // Menu
-                tk::Menu                   *wUIScaling;         // UI Scaling menu
-                tk::Menu                   *wFontScaling;       // UI Scaling menu
-                tk::Menu                   *wResetSettings;     // Reset settings menu
-                tk::FileDialog             *wExport;            // Export settings dialog
-                tk::FileDialog             *wImport;            // Import settings dialog
-                tk::MenuItem               *wPreferHost;        // Prefer host menu item
-                tk::MenuItem               *wKnobScaleEnable;   // Enable knob scale actions
-                tk::MenuItem               *wOverrideHydrogen;  // Override Hydrogen kits feature
-                tk::CheckBox               *wRelPaths;          // Relative path checkbox
+                tk::WidgetContainer        *wContent;                   // The main box containing all widgets
+                tk::Window                 *wGreeting;                  // Greeting message window
+                tk::Window                 *wAbout;                     // About message window
+                tk::Window                 *wUserPaths;                 // User paths configuration
+                tk::Menu                   *wMenu;                      // Menu
+                tk::Menu                   *wUIScaling;                 // UI Scaling menu
+                tk::Menu                   *wFontScaling;               // UI Scaling menu
+                tk::Menu                   *wResetSettings;             // Reset settings menu
+                tk::FileDialog             *wExport;                    // Export settings dialog
+                tk::FileDialog             *wImport;                    // Import settings dialog
+                tk::MenuItem               *wPreferHost;                // Prefer host menu item
+                tk::MenuItem               *wKnobScaleEnable;           // Enable knob scale actions
+                tk::MenuItem               *wOverrideHydrogen;          // Override Hydrogen kits feature
+                tk::CheckBox               *wRelPaths;                  // Relative path checkbox
+                tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
+                tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
 
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
@@ -143,6 +145,8 @@ namespace lsp
                 ui::IPort                  *pVisualSchema;
                 ui::IPort                  *pKnobScaleEnable;
                 ui::IPort                  *pOverrideHydrogen;
+                ui::IPort                  *pInvertVScroll;
+                ui::IPort                  *pInvertGraphDotVScroll;
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
 
@@ -214,6 +218,9 @@ namespace lsp
 
                 static status_t slot_override_hydrogen_kits_changed(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t slot_invert_vscroll_changed(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_invert_graph_dot_vscroll_changed(tk::Widget *sender, void *ptr, void *data);
+
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
                 static tk::FileFilters     *create_config_filters(tk::FileDialog *dlg);
@@ -250,6 +257,7 @@ namespace lsp
                 void                sync_visual_schemas();
                 void                sync_knob_scale_enabled();
                 void                sync_override_hydrogen();
+                void                sync_invert_vscroll(ui::IPort *port);
                 void                apply_user_paths_settings();
                 void                read_path_param(tk::String *value, const char *port_id);
                 void                read_bool_param(tk::Boolean *value, const char *port_id);
