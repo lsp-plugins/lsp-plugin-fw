@@ -7,6 +7,7 @@
   for graph dot widget.
 * Removed Makefile.d. Dependencies are now automatically generated at the build stage.
 * Fixed CLAP UI support for Bitwig Studio.
+* Updated module versions in dependencies.
 
 === 1.0.11 ===
 * Fixed build that disabled CairoCanvas for Inline Display feature.
