@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 авг. 2021 г.
@@ -94,6 +94,9 @@ namespace lsp
                 sX.sEditable.init(pWrapper, gd->heditable());
                 sY.sEditable.init(pWrapper, gd->veditable());
                 sZ.sEditable.init(pWrapper, gd->zeditable());
+                sX.sExpr.init(pWrapper, this);
+                sY.sExpr.init(pWrapper, this);
+                sZ.sExpr.init(pWrapper, this);
 
                 sSize.init(pWrapper, gd->size());
                 sHoverSize.init(pWrapper, gd->hover_size());
@@ -117,7 +120,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Dot::set_param(param_t *p, const char *prefix, const char *name, const char *value)
+        void Dot::set_dot_param(param_t *p, const char *prefix, const char *name, const char *value)
         {
             char s[0x80]; // Should be enough
 
@@ -163,17 +166,29 @@ namespace lsp
             tk::GraphDot *gd = tk::widget_cast<tk::GraphDot>(wWidget);
             if (gd != NULL)
             {
-                set_param(&sX, "hor", name, value);
-                set_param(&sX, "h", name, value);
-                set_param(&sX, "x", name, value);
+                set_dot_param(&sX, "hor", name, value);
+                set_dot_param(&sX, "h", name, value);
+                set_dot_param(&sX, "x", name, value);
 
-                set_param(&sY, "vert", name, value);
-                set_param(&sY, "v", name, value);
-                set_param(&sY, "y", name, value);
+                set_dot_param(&sY, "vert", name, value);
+                set_dot_param(&sY, "v", name, value);
+                set_dot_param(&sY, "y", name, value);
 
-                set_param(&sZ, "scroll", name, value);
-                set_param(&sZ, "s", name, value);
-                set_param(&sZ, "z", name, value);
+                set_dot_param(&sZ, "scroll", name, value);
+                set_dot_param(&sZ, "s", name, value);
+                set_dot_param(&sZ, "z", name, value);
+
+                set_param(gd->haxis(), "basis", name, value);
+                set_param(gd->haxis(), "xaxis", name, value);
+                set_param(gd->haxis(), "ox", name, value);
+
+                set_param(gd->vaxis(), "parallel", name, value);
+                set_param(gd->vaxis(), "yaxis", name, value);
+                set_param(gd->vaxis(), "oy", name, value);
+
+                set_param(gd->origin(), "origin", name, value);
+                set_param(gd->origin(), "center", name, value);
+                set_param(gd->origin(), "o", name, value);
 
                 sSize.set("size", name, value);
                 sHoverSize.set("hover.size", name, value);
@@ -400,6 +415,8 @@ namespace lsp
 
             if (p->nFlags & DF_LOG_SET)
                 xp.flags        = lsp_setflag(p->nFlags, meta::F_LOG, p->nFlags & DF_LOG);
+            else
+                p->nFlags       = lsp_setflag(p->nFlags, DF_LOG, xp.flags & meta::F_LOG);
 
             float min = 0.0f, max = 1.0f, step = 0.01f;
 
@@ -487,7 +504,7 @@ namespace lsp
                 _this->submit_default_values();
             return STATUS_OK;
         }
-    } // namespace ctl
-} // namespace lsp
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

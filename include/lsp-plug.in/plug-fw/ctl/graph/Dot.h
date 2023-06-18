@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 авг. 2021 г.
@@ -92,7 +92,7 @@ namespace lsp
 
             protected:
                 static void         init_param(param_t *p, tk::RangeFloat *value, tk::StepFloat *step);
-                void                set_param(param_t *p, const char *prefix, const char *name, const char *value);
+                void                set_dot_param(param_t *p, const char *prefix, const char *name, const char *value);
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
                 void                submit_values();
@@ -103,20 +103,18 @@ namespace lsp
 
             public:
                 explicit Dot(ui::IWrapper *wrapper, tk::GraphDot *widget);
-                virtual ~Dot();
+                virtual ~Dot() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        notify(ui::IPort *port);
-                virtual void        end(ui::UIContext *ctx);
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        notify(ui::IPort *port) override;
+                virtual void        end(ui::UIContext *ctx) override;
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
-    }
-}
-
-
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_DOT_H_ */
