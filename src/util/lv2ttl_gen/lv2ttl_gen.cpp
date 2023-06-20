@@ -123,7 +123,13 @@ namespace lsp
         {
             if (path == NULL)
                 return path;
-            const char *space = strrchr(path, FILE_SEPARATOR_C);
+
+            // We accept both '/' and '\' file separators
+            const char *space = strrchr(path, '/');
+            if (space != NULL)
+                return &space[1];
+
+            space = strrchr(path, '\\');
             return (space != NULL) ? &space[1] : path;
         }
 
