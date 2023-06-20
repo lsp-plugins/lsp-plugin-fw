@@ -174,7 +174,7 @@ namespace lsp
             settings.environment    = &env;
 
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
 
             // Create the display
