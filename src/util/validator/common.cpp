@@ -312,10 +312,86 @@ namespace lsp
                 validate_ports(ctx, meta, port, NULL);
         }
 
+        const meta::port_group_t *find_port_group(const meta::plugin_t *meta, const char *uid)
+        {
+            for (const meta::port_group_t *pg = meta->port_groups; pg->id != NULL; ++pg)
+                if (!strcmp(pg->id, uid))
+                    return pg;
+            return NULL;
+        }
+
+        const meta::port_t *find_port(const meta::plugin_t *meta, const char *uid)
+        {
+            for (const meta::port_t *p = meta->ports; p->id != NULL; ++p)
+                if (!strcmp(p->id, uid))
+                    return p;
+            return NULL;
+        }
+
         void validate_port_groups(context_t *ctx, const meta::plugin_t *meta)
         {
+            // Validate only if there are some port groups
             if (meta->port_groups == NULL)
                 return;
+
+            // List of visited ports and port groups
+            lltl::phashset<char> visited_ports, visited_groups;
+            lsp_finally {
+                visited_ports.flush();
+                visited_groups.flush();
+            };
+
+            // Process all port groups
+            for (const meta::port_group_t *pg = meta->port_groups; pg->id != NULL; ++pg)
+            {
+                // Check that we did not process group with such name
+                if (!visited_groups.create(const_cast<char *>(pg->id)))
+                {
+                    if (visited_groups.contains(pg->id))
+                        validation_error(ctx, "Plugin uid='%s' has duplicate port group id='%s'",
+                            meta->uid, pg->id);
+                    else
+                        allocation_error(ctx);
+                    continue;
+                }
+
+                // Check that provided parent group identifier is valid
+                if (pg->parent_id != NULL)
+                {
+                    const meta::port_group_t *parent = find_port_group(meta, pg->parent_id);
+                    if (parent == NULL)
+                        validation_error(ctx, "Could not find parent group id='%s' for group id='%s' of plugin uid='%s'",
+                            pg->id, pg->parent_id, meta->uid);
+                }
+
+                // Validate items
+                for (const meta::port_group_item_t *item = pg->items; item->id != NULL; ++item)
+                {
+                    const meta::port_t *p = find_port(meta, item->id);
+                    if (p == NULL)
+                    {
+                        validation_error(ctx, "Port '%s' is listed in group '%s' but does not exist for plugin uid='%s'",
+                            item->id, pg->id, meta->uid);
+                        continue;
+                    }
+
+                    if (!meta::is_audio_port(p))
+                    {
+                        validation_error(ctx, "The role of port '%s' of group '%s' should be R_AUDIO for plugin uid='%s'",
+                            item->id, pg->id, meta->uid);
+                    }
+                    if ((pg->flags & meta::PGF_OUT) && (!meta::is_out_port(p)))
+                    {
+                        validation_error(ctx, "The port '%s' of output group '%s' should also be an output port for plugin uid='%s'",
+                            item->id, pg->id, meta->uid);
+                    }
+                    if ((!(pg->flags & meta::PGF_OUT)) && (!meta::is_in_port(p)))
+                    {
+                        validation_error(ctx, "The port '%s' of input group '%s' should also be an innput port for plugin uid='%s'",
+                            item->id, pg->id, meta->uid);
+                    }
+                }
+            }
         }
 
     #ifdef LSP_VALIDATE_PLUGIN_UI
