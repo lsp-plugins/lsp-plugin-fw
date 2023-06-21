@@ -30,12 +30,116 @@ namespace lsp
         {
             pWrapper    = NULL;
             pProp       = NULL;
+            bEvaluate   = false;
+        }
+
+        LCString::~LCString()
+        {
+            do_destroy();
+        }
+
+        void LCString::do_destroy()
+        {
+            for (lltl::iterator<param_t> it=vParams.values(); it; ++it)
+            {
+                param_t *p = *it;
+                if (p != NULL)
+                    delete p;
+            }
+            vParams.flush();
         }
 
         void LCString::init(ui::IWrapper *wrapper, tk::String *prop)
         {
             pWrapper    = wrapper;
             pProp       = prop;
+        }
+
+        void LCString::destroy()
+        {
+            do_destroy();
+        }
+
+        bool LCString::add_parameter(const char *name, const char *expr)
+        {
+            // If we do not evaluate parameters, just add the parameter as string
+            param_t *p      = new param_t;
+            if (p == NULL)
+                return false;
+
+            // Remember the expression
+            if (!vParams.create(name, p))
+            {
+                delete p;
+                pProp->params()->add_cstring(name, expr);
+                return false;
+            }
+
+            p->sValue.set_utf8(expr);
+            p->bInitialized = false;
+            if (!bEvaluate)
+            {
+                pProp->params()->set_string(name, &p->sValue);
+                return true;
+            }
+
+            // Initialize and parse the expression
+            p->sExpr.init(pWrapper, this);
+            p->bInitialized = true;
+            if (!p->sExpr.parse(&p->sValue))
+            {
+                p->bInitialized = true;
+                pProp->params()->add_string(name, &p->sValue);
+                return false;
+            }
+            p->bInitialized = true;
+
+            // Evaluate the value
+            expr::value_t value;
+            expr::init_value(&value);
+            lsp_finally { expr::destroy_value(&value); };
+
+            // Set the value
+            if (p->sExpr.evaluate(&value) == STATUS_OK)
+                pProp->params()->set(name, &value);
+            else
+                pProp->params()->set_string(name, &p->sValue);
+
+            return true;
+        }
+
+        bool LCString::init_expressions()
+        {
+            // Process all bound expressions
+            size_t updated = 0;
+
+            // Evaluated value
+            expr::value_t value;
+            expr::init_value(&value);
+            lsp_finally { expr::destroy_value(&value); };
+
+            for (lltl::iterator<lltl::pair<char, param_t>> it=vParams.items(); it; ++it)
+            {
+                param_t *p = it->value;
+
+                // Initialize and parse the expression
+                if (p->bInitialized)
+                    continue;
+
+                p->sExpr.init(pWrapper, this);
+                if (!p->sExpr.parse(&p->sValue))
+                    continue;
+                p->bInitialized = true;
+
+                // Evaluate the expression
+                if (p->sExpr.evaluate(&value) == STATUS_OK)
+                    pProp->params()->set(it->key, &value);
+                else
+                    pProp->params()->set_string(it->key, &p->sValue);
+                ++updated;
+            }
+
+            return updated > 0;
         }
 
         bool LCString::set(const char *param, const char *name, const char *value)
@@ -51,7 +155,13 @@ namespace lsp
 
             // Analyze next character
             if (name[0] == ':') // Parameter ("prefix:")?
-                pProp->params()->add_cstring(&name[1], value);
+            {
+                const char *param_name = &name[1];
+                if (strlen(param_name) <= 0)
+                    return false;
+
+                return add_parameter(param_name, value);
+            }
             else if (name[0] == '\0')  // Key?
             {
                 if (strchr(value, '.') == NULL) // Raw value with high probability?
@@ -64,10 +174,40 @@ namespace lsp
                 if (!strcasecmp(value, "true"))
                     bind_metadata(pProp->params());
             }
+            else if ((!strcmp(name, ".eval")) || (!strcmp(name, ".evaluate")))
+            {
+                if (!strcasecmp(value, "true"))
+                {
+                    bEvaluate = true;
+                    init_expressions();
+                }
+            }
             else
                 return false;
 
             return true;
+        }
+
+        void LCString::update_text(ui::IPort *port)
+        {
+            // Evaluated value
+            expr::value_t value;
+            expr::init_value(&value);
+            lsp_finally { expr::destroy_value(&value); };
+
+            // Process all bound expressions
+            for (lltl::iterator<lltl::pair<char, param_t>> it=vParams.items(); it; ++it)
+            {
+                param_t *p = it->value;
+
+                if (!p->sExpr.depends(port))
+                    continue;
+
+                if (p->sExpr.evaluate(&value) == STATUS_OK)
+                    pProp->params()->set(it->key, &value);
+                else
+                    pProp->params()->set_string(it->key, &p->sValue);
+            }
         }
 
         void LCString::bind_metadata(expr::Parameters *params)
@@ -116,7 +256,18 @@ namespace lsp
             );
             params->set_string ("meta_plugin_version", &tmp);
         }
-    }
-}
+
+        void LCString::notify(ui::IPort *port)
+        {
+            update_text(port);
+        }
+
+        void LCString::sync_metadata(ui::IPort *port)
+        {
+            update_text(port);
+        }
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
