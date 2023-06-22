@@ -191,6 +191,15 @@ namespace lsp
             return pWrapper->dump_plugin_state();
         }
 
+        void UIWrapper::main_iteration()
+        {
+            IWrapper::main_iteration();
+
+            // Always call main iteration for the underlying display
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
+        }
+
         status_t UIWrapper::play_file(const char *file, wsize_t position, bool release)
         {
             core::SamplePlayer *p = pWrapper->sample_player();

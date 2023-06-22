@@ -686,6 +686,27 @@ namespace lsp
             return bUIActive;
         }
 
+        void UIWrapper::main_iteration()
+        {
+            // Perform main iteration with locked mutex
+            if (!sMutex.lock())
+                return;
+            lsp_finally { sMutex.unlock(); };
+
+            tranfet_ui_to_dsp();
+            transfer_dsp_to_ui();
+
+            IWrapper::main_iteration();
+
+            // Call main iteration for the underlying display
+            // For windows, we do not need to call main_iteration() because the main
+            // event loop is provided by the hosting application
+        #ifndef PLATFORM_WINDOWS
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
+        #endif /* PLATFORM_WINDOWS */
+        }
+
         bool UIWrapper::show()
         {
             // Lazy initialize the UI ONLY after whe have the parent/transient settings

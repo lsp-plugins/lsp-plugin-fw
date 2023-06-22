@@ -585,10 +585,6 @@ namespace lsp
             if (pUI != NULL)
                 pUI->idle();
 
-            // Call main iteration for the underlying display
-            if (pDisplay != NULL)
-                pDisplay->main_iteration();
-
             if ((nFlags & (F_CONFIG_LOCK | F_CONFIG_DIRTY)) == F_CONFIG_DIRTY)
             {
                 // Save global configuration

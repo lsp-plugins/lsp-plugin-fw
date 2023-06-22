@@ -91,6 +91,8 @@ namespace lsp
 
                 virtual float                   ui_scaling_factor(float scaling) override;
 
+                virtual void                    main_iteration() override;
+
                 virtual bool                    accept_window_size(size_t width, size_t height) override;
 
             public: // CLAP API

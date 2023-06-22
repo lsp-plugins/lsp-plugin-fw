@@ -956,6 +956,14 @@ namespace lsp
 
             // Call the parent wrapper code
             IWrapper::main_iteration();
+
+            // Call main iteration for the underlying display
+            // For windows, we do not need to call main_iteration() because the main
+            // event loop is provided by the hosting application
+        #ifndef PLATFORM_WINDOWS
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
+        #endif /* PLATFORM_WINDOWS */
         }
 
         void UIWrapper::dump_state_request()

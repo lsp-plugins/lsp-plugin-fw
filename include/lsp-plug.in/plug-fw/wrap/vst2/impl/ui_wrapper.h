@@ -272,7 +272,16 @@ namespace lsp
         void UIWrapper::main_iteration()
         {
             transfer_dsp_to_ui();
+
             IWrapper::main_iteration();
+
+            // Call main iteration for the underlying display
+            // For windows, we do not need to call main_iteration() because the main
+            // event loop is provided by the hosting application
+        #ifndef PLATFORM_WINDOWS
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
+        #endif /* PLATFORM_WINDOWS */
         }
 
         const meta::package_t *UIWrapper::package() const
