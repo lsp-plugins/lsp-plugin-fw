@@ -36,6 +36,10 @@
 #include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
+#ifndef PLATFORM_WINDOWS
+    #define LSP_CLAP_OWN_EVENT_LOOP
+#endif /* PLATFORM_WINDOWS */
+
 namespace lsp
 {
     namespace clap
@@ -47,7 +51,6 @@ namespace lsp
             private:
                 clap::Wrapper                  *pWrapper;       // CLAP Wrapper
                 HostExtensions                 *pExt;           // Host extensions
-                ipc::Thread                    *pUIThread;      // Thread that performs the UI event loop
                 float                           fScaling;       // Scaling factor
                 ipc::Mutex                      sMutex;         // Main loop mutex
                 void                           *pParent;        // Parent window handle
@@ -56,14 +59,22 @@ namespace lsp
                 bool                            bRequestProcess;// Request the process() call flag
                 bool                            bUIActive;      // UI is active flag
 
+            #ifdef LSP_CLAP_OWN_EVENT_LOOP
+                ipc::Thread                    *pUIThread;      // Thread that performs the UI event loop
+            #endif /* LSP_CLAP_OWN_EVENT_LOOP */
+
             protected:
                 static status_t                 slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_realized(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_close(tk::Widget *sender, void *ptr, void *data);
+                static status_t                 slot_display_idle(tk::Widget *sender, void *ptr, void *data);
 
-                static status_t                 ui_main_loop(void *arg);
                 static void                    *to_native_handle(const clap_window_t *window);
+
+            #ifdef LSP_CLAP_OWN_EVENT_LOOP
+                static status_t                 ui_main_loop(void *arg);
+            #endif /* LSP_CLAP_OWN_EVENT_LOOP */
 
             protected:
                 clap::UIPort                   *create_port(const meta::port_t *port, const char *postfix);
