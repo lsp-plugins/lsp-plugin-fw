@@ -703,15 +703,20 @@ namespace lsp
             if (wnd == NULL)
                 return false;
 
+            // Show the window
+            wnd->show(pTransientFor);
+
         #ifdef LSP_CLAP_OWN_EVENT_LOOP
             // Launch the main loop thread
             lsp_trace("Creating main loop thread");
             pUIThread   = new ipc::Thread(ui_main_loop, this);
             if (pUIThread == NULL)
+            {
+                lsp_error("Failed to create UI main loop thread");
+                wnd->hide();
                 return false;
+            }
 
-            // Show the window and start the main thread
-            wnd->show(pTransientFor);
             if (pUIThread->start() != STATUS_OK)
             {
                 lsp_error("Failed to start UI main loop thread");
