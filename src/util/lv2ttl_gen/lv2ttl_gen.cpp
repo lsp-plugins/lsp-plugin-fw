@@ -31,7 +31,7 @@ namespace lsp
     namespace lv2ttl_gen
     {
         //-----------------------------------------------------------------------------
-        const plugin_group_t plugin_groups[] =
+        static const plugin_group_t plugin_groups[] =
         {
             { meta::C_DELAY,        "DelayPlugin"       },
             { meta::C_REVERB,       "ReverbPlugin"      },
@@ -73,7 +73,7 @@ namespace lsp
             { -1, NULL }
         };
 
-        const plugin_unit_t plugin_units[] =
+        static const plugin_unit_t plugin_units[] =
         {
             // Predefined LV2 units
             { meta::U_PERCENT,      "pc",               NULL,                   NULL        },
@@ -116,6 +116,33 @@ namespace lsp
             { meta::U_TBYTES,       NULL,               "Terabytes",            "%.2f"      },
 
             { -1, NULL, NULL, NULL }
+        };
+
+        //-----------------------------------------------------------------------------
+        // Port groups and port group elements
+        static const int8_t pg_mono_elements[]      = { meta::PGR_CENTER, -1 };
+        static const int8_t pg_stereo_elements[]    = { meta::PGR_LEFT, meta::PGR_RIGHT, -1 };
+        static const int8_t pg_ms_elements[]        = { meta::PGR_MS_MIDDLE, meta::PGR_MS_SIDE, -1 };
+        static const int8_t pg_3_0_elements[]       = { meta::PGR_LEFT, meta::PGR_RIGHT, meta::PGR_REAR_CENTER, -1 };
+        static const int8_t pg_4_0_elements[]       = { meta::PGR_LEFT, meta::PGR_CENTER, meta::PGR_RIGHT, meta::PGR_REAR_CENTER, -1 };
+        static const int8_t pg_5_0_elements[]       = { meta::PGR_LEFT, meta::PGR_CENTER, meta::PGR_RIGHT, meta::PGR_REAR_LEFT, meta::PGR_REAR_RIGHT, -1 };
+        static const int8_t pg_5_1_elements[]       = { meta::PGR_LEFT, meta::PGR_CENTER, meta::PGR_RIGHT, meta::PGR_REAR_LEFT, meta::PGR_REAR_RIGHT, meta::PGR_LO_FREQ, -1 };
+        static const int8_t pg_6_1_elements[]       = { meta::PGR_LEFT, meta::PGR_CENTER, meta::PGR_RIGHT, meta::PGR_SIDE_LEFT, meta::PGR_SIDE_RIGHT, meta::PGR_REAR_CENTER, meta::PGR_LO_FREQ, -1 };
+        static const int8_t pg_7_1_elements[]       = { meta::PGR_LEFT, meta::PGR_CENTER, meta::PGR_RIGHT, meta::PGR_SIDE_LEFT, meta::PGR_SIDE_RIGHT, meta::PGR_REAR_LEFT, meta::PGR_REAR_RIGHT, meta::PGR_LO_FREQ, -1 };
+        static const int8_t pg_7_1w_elements[]      = { meta::PGR_LEFT, meta::PGR_CENTER_LEFT, meta::PGR_CENTER, meta::PGR_CENTER_RIGHT, meta::PGR_RIGHT, meta::PGR_REAR_LEFT, meta::PGR_REAR_RIGHT, meta::PGR_LO_FREQ, -1 };
+
+        static const int8_t * const pg_elements[] =
+        {
+            pg_mono_elements,       // GRP_MONO
+            pg_stereo_elements,     // GRP_STEREO
+            pg_ms_elements,         // GRP_MS
+            pg_3_0_elements,        // GRP_3_0
+            pg_4_0_elements,        // GRP_4_0
+            pg_5_0_elements,        // GRP_5_0
+            pg_5_1_elements,        // GRP_5_1
+            pg_6_1_elements,        // GRP_6_1
+            pg_7_1_elements,        // GRP_7_1
+            pg_7_1w_elements,       // GRP_7_1W
         };
 
         //-----------------------------------------------------------------------------
@@ -216,6 +243,30 @@ namespace lsp
             cfg->lv2ui_binary = get_filename(cfg->lv2ui_binary);
 
             return STATUS_OK;
+        }
+
+        static const char *group_designation(size_t role)
+        {
+            switch (role)
+            {
+                case meta::PGR_CENTER:          return "center";
+                case meta::PGR_CENTER_LEFT:     return "centerLeft";
+                case meta::PGR_CENTER_RIGHT:    return "centerRight";
+                case meta::PGR_LEFT:            return "left";
+                case meta::PGR_LO_FREQ:         return "lowFrequencyEffects";
+                case meta::PGR_REAR_CENTER:     return "rearCenter";
+                case meta::PGR_REAR_LEFT:       return "rearLeft";
+                case meta::PGR_REAR_RIGHT:      return "rearRight";
+                case meta::PGR_RIGHT:           return "right";
+                case meta::PGR_MS_SIDE:         return "side";
+                case meta::PGR_SIDE_LEFT:       return "sideLeft";
+                case meta::PGR_SIDE_RIGHT:      return "sideRight";
+                case meta::PGR_MS_MIDDLE:       return "center";
+                default:
+                    break;
+            }
+
+            return NULL;
         }
 
         static inline void emit_header(FILE *out, size_t &count, const char *text)
@@ -440,25 +491,7 @@ namespace lsp
                     if (!strcmp(p->id, port->id))
                     {
                         fprintf(out, "\t\tpg:group %s:%s ;\n", LV2TTL_PORT_GROUP_PREFIX, pg->id);
-                        const char *role = NULL;
-                        switch (p->role)
-                        {
-                            case meta::PGR_CENTER:          role = "center";                break;
-                            case meta::PGR_CENTER_LEFT:     role = "centerLeft";            break;
-                            case meta::PGR_CENTER_RIGHT:    role = "centerRight";           break;
-                            case meta::PGR_LEFT:            role = "left";                  break;
-                            case meta::PGR_LO_FREQ:         role = "lowFrequencyEffects";   break;
-                            case meta::PGR_REAR_CENTER:     role = "rearCenter";            break;
-                            case meta::PGR_REAR_LEFT:       role = "rearLeft";              break;
-                            case meta::PGR_REAR_RIGHT:      role = "rearRight";             break;
-                            case meta::PGR_RIGHT:           role = "right";                 break;
-                            case meta::PGR_MS_SIDE:         role = "side";                  break;
-                            case meta::PGR_SIDE_LEFT:       role = "sideLeft";              break;
-                            case meta::PGR_SIDE_RIGHT:      role = "sideRight";             break;
-                            case meta::PGR_MS_MIDDLE:       role = "center";                break;
-                            default:
-                                break;
-                        }
+                        const char *role = group_designation(p->role);
                         if (role != NULL)
                             fprintf(out, "\t\tlv2:designation pg:%s ;\n", role);
                         break;
@@ -585,7 +618,22 @@ namespace lsp
                     }
 
                     fprintf(out, "\tlv2:symbol \"%s\" ;\n", pg->id);
-                    fprintf(out, "\trdfs:label \"%s\"\n", pg->name);
+                    fprintf(out, "\trdfs:label \"%s\" ;\n", pg->name);
+
+                    // Output group elements
+                    const int8_t * element = pg_elements[pg->type];
+                    fprintf(out, "\tpg:element ");
+                    for (int i=0; element[i] >= 0; ++i)
+                    {
+                        if (i > 0)
+                            fprintf(out, " , ");
+                        fprintf(out, "[\n");
+                        fprintf(out, "\t\tlv2:index %d ;\n", i);
+                        fprintf(out, "\t\tlv2:designation pg:%s\n", group_designation(element[i]));
+                        fprintf(out, "\t]");
+                    }
+                    fprintf(out, "\n");
+
                     fprintf(out, "\t.\n\n");
                 }
             }
