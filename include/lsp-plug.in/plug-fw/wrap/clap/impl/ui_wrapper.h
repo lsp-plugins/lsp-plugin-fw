@@ -201,10 +201,32 @@ namespace lsp
     #ifdef LSP_CLAP_OWN_EVENT_LOOP
         status_t UIWrapper::event_loop(void *arg)
         {
-            lsp_trace("Entering main loop");
+            static constexpr size_t FRAME_PERIOD    = 1000 / UI_FRAMES_PER_SECOND;
 
             UIWrapper *self = static_cast<UIWrapper *>(arg);
-            self->pDisplay->main();
+
+            lsp_trace("Entering main loop");
+
+            // Perform main loop
+            system::time_millis_t ctime = system::get_time_millis();
+            while (!ipc::Thread::is_cancelled())
+            {
+                // Measure the time of next frame to appear
+                system::time_millis_t deadline = ctime + FRAME_PERIOD;
+
+                // Perform main iteration with locked mutex
+                if (self->sMutex.lock())
+                {
+                    lsp_finally { self->sMutex.unlock(); };
+                    self->pDisplay->main_iteration();
+                }
+
+                // Wait for the next frame to appear
+                system::time_millis_t ftime = system::get_time_millis();
+                if (ftime < deadline)
+                    self->pDisplay->wait_events(deadline - ftime);
+                ctime   = ftime;
+            }
 
             lsp_trace("Leaving main loop");
 
@@ -729,10 +751,6 @@ namespace lsp
         {
             if (!bUIActive)
                 return;
-
-            if (!sMutex.lock())
-                return;
-            lsp_finally { sMutex.unlock(); };
 
             // Perform main data transfers and state sync
             tranfet_ui_to_dsp();
