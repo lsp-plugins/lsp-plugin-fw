@@ -73,11 +73,13 @@ namespace lsp
                 static void                    *to_native_handle(const clap_window_t *window);
 
             #ifdef LSP_CLAP_OWN_EVENT_LOOP
-                static status_t                 ui_main_loop(void *arg);
+                static status_t                 event_loop(void *arg);
             #endif /* LSP_CLAP_OWN_EVENT_LOOP */
 
             protected:
                 clap::UIPort                   *create_port(const meta::port_t *port, const char *postfix);
+                bool                            start_event_loop();
+                void                            stop_event_loop();
                 void                            tranfet_ui_to_dsp();
                 void                            transfer_dsp_to_ui();
                 bool                            initialize_ui();

@@ -118,6 +118,9 @@ namespace lsp
             if (pWrapper != NULL)
                 pWrapper->ui_visibility_changed();
 
+            // Stop the event loop
+            stop_event_loop();
+
             // Cleanup UI initialized flag
             bUIInitialized  = false;
 
@@ -150,6 +153,64 @@ namespace lsp
                 pDisplay        = NULL;
             }
         }
+
+        bool UIWrapper::start_event_loop()
+        {
+        #ifdef LSP_CLAP_OWN_EVENT_LOOP
+            // Launch the main loop thread
+            lsp_trace("Creating main loop thread");
+            pUIThread   = new ipc::Thread(event_loop, this);
+            if (pUIThread == NULL)
+            {
+                lsp_error("Failed to create UI main loop thread");
+                return false;
+            }
+
+            if (pUIThread->start() != STATUS_OK)
+            {
+                lsp_error("Failed to start UI main loop thread");
+                delete pUIThread;
+                pUIThread = NULL;
+                return false;
+            }
+
+            lsp_trace("Successfully started main loop thread");
+        #endif /* LSP_CLAP_OWN_EVENT_LOOP */
+
+            return true;
+        }
+
+        void UIWrapper::stop_event_loop()
+        {
+        #ifdef LSP_CLAP_OWN_EVENT_LOOP
+            // Cancel the main loop thread
+            if (pUIThread != NULL)
+            {
+                if (pDisplay != NULL)
+                    pDisplay->quit_main();
+
+                pUIThread->cancel();
+                pUIThread->join();
+
+                delete pUIThread;
+                pUIThread = NULL;
+            }
+        #endif /* LSP_CLAP_OWN_EVENT_LOOP */
+        }
+
+    #ifdef LSP_CLAP_OWN_EVENT_LOOP
+        status_t UIWrapper::event_loop(void *arg)
+        {
+            lsp_trace("Entering main loop");
+
+            UIWrapper *self = static_cast<UIWrapper *>(arg);
+            self->pDisplay->main();
+
+            lsp_trace("Leaving main loop");
+
+            return STATUS_OK;
+        }
+    #endif /* LSP_CLAP_OWN_EVENT_LOOP */
 
         clap::UIPort *UIWrapper::create_port(const meta::port_t *port, const char *postfix)
         {
@@ -443,20 +504,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-    #ifdef LSP_CLAP_OWN_EVENT_LOOP
-        status_t UIWrapper::ui_main_loop(void *arg)
-        {
-            lsp_trace("Entering main loop");
-
-            UIWrapper *self = static_cast<UIWrapper *>(arg);
-            self->pDisplay->main();
-
-            lsp_trace("Leaving main loop");
-
-            return STATUS_OK;
-        }
-    #endif /* LSP_CLAP_OWN_EVENT_LOOP */
-
         bool UIWrapper::set_scale(double scale)
         {
             // Scale is in %
@@ -703,31 +750,14 @@ namespace lsp
             if (wnd == NULL)
                 return false;
 
-            // Show the window
+            // Show the window and start event loop
             wnd->show(pTransientFor);
-
-        #ifdef LSP_CLAP_OWN_EVENT_LOOP
-            // Launch the main loop thread
-            lsp_trace("Creating main loop thread");
-            pUIThread   = new ipc::Thread(ui_main_loop, this);
-            if (pUIThread == NULL)
+            bool res    = start_event_loop();
+            if (!res)
             {
-                lsp_error("Failed to create UI main loop thread");
                 wnd->hide();
-                return false;
+                return res;
             }
-
-            if (pUIThread->start() != STATUS_OK)
-            {
-                lsp_error("Failed to start UI main loop thread");
-                wnd->hide();
-                delete pUIThread;
-                pUIThread = NULL;
-                return false;
-            }
-
-            lsp_trace("Successfully started main loop thread");
-        #endif /* LSP_CLAP_OWN_EVENT_LOOP */
 
             // Update UI status
             bUIActive       = true;
@@ -744,19 +774,8 @@ namespace lsp
             if (pWrapper != NULL)
                 pWrapper->ui_visibility_changed();
 
-        #ifdef LSP_CLAP_OWN_EVENT_LOOP
-            // Cancel the main loop thread
-            if (pUIThread != NULL)
-            {
-                pDisplay->quit_main();
-
-                pUIThread->cancel();
-                pUIThread->join();
-
-                delete pUIThread;
-                pUIThread = NULL;
-            }
-        #endif /* LSP_CLAP_OWN_EVENT_LOOP */
+            // Stop the event loop
+            stop_event_loop();
 
             // Do the sync barrier
             sMutex.lock();
