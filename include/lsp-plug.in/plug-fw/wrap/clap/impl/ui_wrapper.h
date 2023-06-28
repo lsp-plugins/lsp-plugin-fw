@@ -150,6 +150,7 @@ namespace lsp
             if (pDisplay != NULL)
             {
                 pDisplay->destroy();
+                delete pDisplay;
                 pDisplay        = NULL;
             }
         }

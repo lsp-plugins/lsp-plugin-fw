@@ -234,6 +234,14 @@ namespace lsp
 
             // Call parent instance
             IWrapper::destroy();
+
+            // Destroy the display
+            if (pDisplay != NULL)
+            {
+                pDisplay->destroy();
+                delete pDisplay;
+                pDisplay        = NULL;
+            }
         }
 
         void UIWrapper::terminate_idle_thread()

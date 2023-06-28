@@ -137,6 +137,14 @@ namespace lsp
             // Destroy data
             IWrapper::destroy();
 
+            // Destroy the display
+            if (pDisplay != NULL)
+            {
+                pDisplay->destroy();
+                delete pDisplay;
+                pDisplay        = NULL;
+            }
+
             // Cleanup ports
             pLatency        = NULL;
 

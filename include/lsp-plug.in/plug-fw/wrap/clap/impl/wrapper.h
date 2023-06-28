@@ -110,10 +110,7 @@ namespace lsp
 
             // Cleanup generated metadata
             for (size_t i=0, n=vGenMetadata.size(); i<n; ++i)
-            {
-                meta::port_t *port = vGenMetadata.uget(i);
-                meta::drop_port_metadata(port);
-            }
+                meta::drop_port_metadata(vGenMetadata.uget(i));
             vGenMetadata.flush();
 
             // Destroy the loader
@@ -536,11 +533,6 @@ namespace lsp
             // Create extensions
             pExt    = new HostExtensions(pHost);
             if (pExt == NULL)
-                return STATUS_NO_MEM;
-
-            // Create resource loader
-            pLoader = core::create_resource_loader();
-            if (pLoader == NULL)
                 return STATUS_NO_MEM;
 
             // Create all possible ports for plugin and validate the state

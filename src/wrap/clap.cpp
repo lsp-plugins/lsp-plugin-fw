@@ -861,6 +861,7 @@ namespace lsp
                             if (loader != NULL)
                                 delete loader;
                         };
+                        lsp_trace("created resource loader %p for plugin %p", loader, plugin);
 
                         // Create the wrapper
                         Wrapper *wrapper    = new Wrapper(plugin, package_manifest, loader, host);
@@ -869,6 +870,8 @@ namespace lsp
                             lsp_warn("Error creating wrapper");
                             return NULL;
                         }
+                        loader              = NULL;
+
                         lsp_finally {
                             if (wrapper != NULL)
                             {
@@ -877,7 +880,6 @@ namespace lsp
                             }
                         };
                         plugin              = NULL;
-                        loader              = NULL;
 
                         // Allocate the plugin handle and fill it
                         clap_plugin_t *h   = static_cast<clap_plugin_t *>(malloc(sizeof(clap_plugin_t)));
