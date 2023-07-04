@@ -113,9 +113,9 @@ namespace lsp
                 go->top()->set(sTop.evaluate_float());
         }
 
-        void Origin::notify(ui::IPort *port)
+        void Origin::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             tk::GraphOrigin *go = tk::widget_cast<tk::GraphOrigin>(wWidget);
             if (go != NULL)
@@ -130,8 +130,6 @@ namespace lsp
         void Origin::reloaded(const tk::StyleSheet *sheet)
         {
             Widget::reloaded(sheet);
-
-
         }
     }
 }

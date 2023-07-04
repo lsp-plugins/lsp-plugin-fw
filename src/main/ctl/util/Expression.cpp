@@ -39,7 +39,7 @@ namespace lsp
         void Expression::on_updated(ui::IPort *port)
         {
             if (pListener != NULL)
-                pListener->notify(port);
+                pListener->notify(port, ui::PORT_NONE);
         }
         
         float Expression::evaluate_float(float dfl)

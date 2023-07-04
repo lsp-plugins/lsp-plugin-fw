@@ -211,12 +211,12 @@ namespace lsp
             update_values();
         }
 
-        void Fraction::notify(ui::IPort *port)
+        void Fraction::notify(ui::IPort *port, size_t flags)
         {
             if ((port == pPort) || (port == pDen))
                 update_values();
 
-            Widget::notify(port);
+            Widget::notify(port, flags);
         }
 
         void Fraction::update_values()
@@ -270,9 +270,9 @@ namespace lsp
                 pDen->set_value(nDenom);
 
             if (pPort != NULL)
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             if (pDen != NULL)
-                pDen->notify_all();
+                pDen->notify_all(ui::PORT_USER_EDIT);
         }
 
         void Fraction::sync_numerator()

@@ -135,9 +135,9 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        void ProgressBar::notify(ui::IPort *port)
+        void ProgressBar::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             if (((pPort != NULL) && (port == pPort)) ||
                 (sMin.depends(port)) ||

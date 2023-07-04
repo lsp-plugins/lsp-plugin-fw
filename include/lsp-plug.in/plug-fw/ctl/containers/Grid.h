@@ -47,15 +47,15 @@ namespace lsp
 
             public:
                 explicit Grid(ui::IWrapper *wrapper, tk::Grid *widget);
-                virtual ~Grid();
+                virtual ~Grid() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_GRID_H_ */

@@ -292,7 +292,7 @@ namespace lsp
             {
                 ui::IPort *port = vPorts.uget(i);
                 if (port != NULL)
-                    port->notify_all();
+                    port->notify_all(ui::PORT_NONE);
             }
         }
 
@@ -1180,7 +1180,7 @@ namespace lsp
                         continue;
 
                     p->set_default();
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
                 }
 
                 if (pUI != NULL)
@@ -1285,7 +1285,7 @@ namespace lsp
                         if ((meta != NULL) && (param.name.equals_ascii(meta->id)))
                         {
                             if (set_port_value(p, &param, port_flags, basedir))
-                                p->notify_all();
+                                p->notify_all(ui::PORT_NONE);
                             break;
                         }
                     }
@@ -1387,7 +1387,7 @@ namespace lsp
                     if ((meta != NULL) && (strcmp(param_name, meta->id) == 0))
                     {
                         if (set_port_value(p, &param, plug::PF_STATE_IMPORT, NULL))
-                            p->notify_all();
+                            p->notify_all(ui::PORT_NONE);
                         break;
                     }
                 }
@@ -1698,7 +1698,7 @@ namespace lsp
             if (s_port != NULL)
             {
                 s_port->write(schema, strlen(schema));
-                s_port->notify_all();
+                s_port->notify_all(ui::PORT_NONE);
             }
 
             return load_visual_schema(schema);
@@ -1902,7 +1902,7 @@ namespace lsp
 
                 // Reset port value to default
                 p->set_default();
-                p->notify_all();
+                p->notify_all(ui::PORT_NONE);
             }
 
             if (pUI != NULL)

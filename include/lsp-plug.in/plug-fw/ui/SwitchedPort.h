@@ -74,22 +74,22 @@ namespace lsp
 
             public:
                 explicit SwitchedPort(IWrapper *wrapper);
-                virtual ~SwitchedPort();
+                virtual ~SwitchedPort() override;
 
                 void            destroy();
 
             public:
                 bool compile(const char *id);
-                virtual const char *id() const;
+                virtual const char *id() const override;
 
             public:
-                virtual void    write(const void *buffer, size_t size);
-                virtual void   *buffer();
-                virtual float   value();
-                virtual float   default_value();
-                virtual void    set_value(float value);
-                virtual void    notify_all();
-                virtual void    notify(IPort *port);
+                virtual void    write(const void *buffer, size_t size) override;
+                virtual void   *buffer() override;
+                virtual float   value() override;
+                virtual float   default_value() override;
+                virtual void    set_value(float value) override;
+                virtual void    notify_all(size_t flags) override;
+                virtual void    notify(IPort *port, size_t flags) override;
         };
 
     } /* namespace ctl */

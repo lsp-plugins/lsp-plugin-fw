@@ -146,7 +146,7 @@ namespace lsp
             return true;
         }
 
-        void Direction::notify(ui::IPort *port)
+        void Direction::notify(ui::IPort *port, size_t flags)
         {
             if (pDirection == NULL)
                 return;

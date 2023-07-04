@@ -46,7 +46,7 @@ namespace lsp
                 return;
 
             fValue = fPending;
-            notify_all();
+            notify_all(ui::PORT_NONE);
         }
 
         float ValuePort::value()

@@ -49,19 +49,19 @@ namespace lsp
 
             public:
                 explicit                Cell(ui::IWrapper *wrapper);
-                virtual                ~Cell();
+                virtual                ~Cell() override;
 
             public:
                 inline size_t           rows() const        { return nRows; }
                 inline size_t           columns() const     { return nCols; }
 
             public:
-                virtual tk::Widget     *widget();
-                virtual void            set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual status_t        add(ui::UIContext *ctx, ctl::Widget *child);
+                virtual tk::Widget     *widget() override;
+                virtual void            set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual status_t        add(ui::UIContext *ctx, ctl::Widget *child) override;
         };
 
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_CELL_H_ */

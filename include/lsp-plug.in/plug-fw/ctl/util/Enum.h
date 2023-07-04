@@ -63,7 +63,7 @@ namespace lsp
                 inline ssize_t  value() const   { return pProp->index();  }
                 virtual void    reloaded(const tk::StyleSheet *sheet);
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_ENUM_H_ */

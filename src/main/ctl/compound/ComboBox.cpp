@@ -133,9 +133,9 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        void ComboBox::notify(ui::IPort *port)
+        void ComboBox::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             if ((port == NULL) || (pPort != port))
                 return;
@@ -231,7 +231,7 @@ namespace lsp
             lsp_trace("index = %d, value=%f", int(index), value);
 
             pPort->set_value(value);
-            pPort->notify_all();
+            pPort->notify_all(ui::PORT_USER_EDIT);
         }
     } /* namespace ctl */
 } /* namespace lsp */

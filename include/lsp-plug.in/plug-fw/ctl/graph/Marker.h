@@ -77,19 +77,18 @@ namespace lsp
 
             public:
                 explicit Marker(ui::IWrapper *wrapper, tk::GraphMarker *widget);
-                virtual ~Marker();
+                virtual ~Marker() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        notify(ui::IPort *port);
-                virtual void        end(ui::UIContext *ctx);
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
+                virtual void        end(ui::UIContext *ctx) override;
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
-    }
-}
-
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_MARKER_H_ */

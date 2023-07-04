@@ -269,28 +269,24 @@ namespace lsp
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);
-                virtual ~PluginWindow();
+                virtual ~PluginWindow() override;
 
                 /** Init widget
                  *
                  */
-                virtual status_t    init();
+                virtual status_t    init() override;
 
                 /**
                  * Destroy widget
                  */
-                virtual void        destroy();
+                virtual void        destroy() override;
 
             public:
-                virtual void        begin(ui::UIContext *ctx);
-
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-
-                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
-
-                virtual void        end(ui::UIContext *ctx);
-
-                virtual void        notify(ui::IPort *port);
+                virtual void        begin(ui::UIContext *ctx) override;
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child) override;
+                virtual void        end(ui::UIContext *ctx) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
         };
     }
 }

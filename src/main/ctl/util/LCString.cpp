@@ -257,7 +257,7 @@ namespace lsp
             params->set_string ("meta_plugin_version", &tmp);
         }
 
-        void LCString::notify(ui::IPort *port)
+        void LCString::notify(ui::IPort *port, size_t flags)
         {
             update_text(port);
         }

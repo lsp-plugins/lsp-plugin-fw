@@ -75,13 +75,13 @@ namespace lsp
 
             public:
                 explicit TempoTap(ui::IWrapper *wrapper, tk::Button *widget);
-                virtual ~TempoTap();
+                virtual ~TempoTap() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        end(ui::UIContext *ctx);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        end(ui::UIContext *ctx) override;
 
         };
     } // namespace ctl

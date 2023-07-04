@@ -111,7 +111,7 @@ namespace lsp
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
                 virtual void        end(ui::UIContext *ctx);
-                virtual void        notify(ui::IPort *port);
+                virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        reloaded(const tk::StyleSheet *sheet);
         };
 

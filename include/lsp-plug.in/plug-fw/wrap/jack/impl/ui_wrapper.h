@@ -390,7 +390,7 @@ namespace lsp
                 jack::UIPort *jup   = vSyncPorts.uget(i);
                 do {
                     if (jup->sync())
-                        jup->notify_all();
+                        jup->notify_all(ui::PORT_NONE);
                 } while (jup->sync_again());
             }
 

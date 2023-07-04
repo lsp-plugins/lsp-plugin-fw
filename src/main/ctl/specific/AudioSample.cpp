@@ -87,7 +87,7 @@ namespace lsp
                 if ((param.name.equals_ascii("file")) && (param.is_string()) && (pSample->pPort != NULL))
                 {
                     pSample->pPort->write(param.v.str, strlen(param.v.str));
-                    pSample->pPort->notify_all();
+                    pSample->pPort->notify_all(ui::PORT_USER_EDIT);
                 }
                 else if (param.is_numeric())
                 {
@@ -96,7 +96,7 @@ namespace lsp
                     if (port != NULL)
                     {
                         port->set_value(param.to_f32());
-                        port->notify_all();
+                        port->notify_all(ui::PORT_USER_EDIT);
                     }
                 }
             }
@@ -158,7 +158,7 @@ namespace lsp
             const char *path = decoded.get_utf8();
 
             pSample->pPort->write(path, strlen(path));
-            pSample->pPort->notify_all();
+            pSample->pPort->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -533,9 +533,9 @@ namespace lsp
             Widget::end(ctx);
         }
 
-        void AudioSample::notify(ui::IPort *port)
+        void AudioSample::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
             if (port == NULL)
                 return;
 
@@ -924,7 +924,7 @@ namespace lsp
             // Write new path as UTF-8 string
             const char *u8path = path.get_utf8();
             pPathPort->write(u8path, strlen(u8path));
-            pPathPort->notify_all();
+            pPathPort->notify_all(ui::PORT_USER_EDIT);
         }
 
         void AudioSample::preview_file()
@@ -952,7 +952,7 @@ namespace lsp
             // Write new path as UTF-8 string
             const char *u8path = path.get_utf8();
             pPort->write(u8path, strlen(u8path));
-            pPort->notify_all();
+            pPort->notify_all(ui::PORT_USER_EDIT);
         }
 
         status_t AudioSample::slot_audio_sample_submit(tk::Widget *sender, void *ptr, void *data)
@@ -1088,7 +1088,7 @@ namespace lsp
             {
                 // Write new path as UTF-8 string
                 _this->pPort->write("", 0);
-                _this->pPort->notify_all();
+                _this->pPort->notify_all(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;

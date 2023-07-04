@@ -96,14 +96,14 @@ namespace lsp
 
             public:
                 explicit MidiNote(ui::IWrapper *wrapper, tk::Indicator *widget);
-                virtual ~MidiNote();
+                virtual ~MidiNote() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        end(ui::UIContext *ctx);
-                virtual void        notify(ui::IPort *port);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        end(ui::UIContext *ctx) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
         };
     } // namespace ctl
 } // namespace lsp

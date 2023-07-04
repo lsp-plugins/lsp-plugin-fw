@@ -362,7 +362,7 @@ namespace lsp
                 clap::UIPort *cup   = static_cast<clap::UIPort *>(vPorts.uget(i));
                 do {
                     if (cup->sync())
-                        cup->notify_all();
+                        cup->notify_all(ui::PORT_NONE);
                 } while (cup->sync_again());
             } // for port_id
 

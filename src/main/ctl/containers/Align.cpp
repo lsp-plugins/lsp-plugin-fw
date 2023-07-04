@@ -122,9 +122,9 @@ namespace lsp
             return (alg != NULL) ? alg->add(child->widget()) : STATUS_BAD_STATE;
         }
 
-        void Align::notify(ui::IPort *port)
+        void Align::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             if ((sHAlign.depends(port)) ||
                 (sVAlign.depends(port)) ||

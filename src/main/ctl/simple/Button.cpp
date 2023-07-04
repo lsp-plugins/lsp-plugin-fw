@@ -237,7 +237,7 @@ namespace lsp
             {
                 lsp_trace("Setting %s = %f", pPort->id(), value);
                 pPort->set_value(value);
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             }
         }
 
@@ -279,9 +279,9 @@ namespace lsp
             return value;
         }
 
-        void Button::notify(ui::IPort *port)
+        void Button::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             if ((port == pPort) && (pPort != NULL))
                 commit_value(pPort->value());

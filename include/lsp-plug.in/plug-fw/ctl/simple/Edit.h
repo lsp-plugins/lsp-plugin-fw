@@ -55,12 +55,12 @@ namespace lsp
 
             public:
                 explicit Edit(ui::IWrapper *wrapper, tk::Edit *widget);
-                virtual ~Edit();
+                virtual ~Edit() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
         };
     } /* namespace ctl */
 } /* namespace lsp */

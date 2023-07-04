@@ -151,9 +151,9 @@ namespace lsp
             led->on()->set(on ^ bInvert);
         }
 
-        void Led::notify(ui::IPort *port)
+        void Led::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             if (sActivity.depends(port))
                 update_value();

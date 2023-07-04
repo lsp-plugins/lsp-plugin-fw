@@ -158,8 +158,9 @@ namespace lsp
                 /** Notify controller about one of port bindings has changed
                  *
                  * @param port port triggered change
+                 * @param flags port modification flags @see notify_flags_t
                  */
-                virtual void        notify(ui::IPort *port);
+                virtual void        notify(ui::IPort *port, size_t flags);
 
                 /**
                  * This method is called when the visual schema has been reloaded

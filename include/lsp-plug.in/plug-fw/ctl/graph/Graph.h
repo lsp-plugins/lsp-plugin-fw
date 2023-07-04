@@ -50,16 +50,16 @@ namespace lsp
 
             public:
                 explicit Graph(ui::IWrapper *wrapper, tk::Graph *widget);
-                virtual ~Graph();
+                virtual ~Graph() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

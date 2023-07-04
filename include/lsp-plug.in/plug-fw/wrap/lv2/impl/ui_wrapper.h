@@ -320,7 +320,7 @@ namespace lsp
             {
                 ui::IPort *p = vPorts.uget(i);
                 if (p != NULL)
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
             }
 
             // Resize UI and show
@@ -625,7 +625,7 @@ namespace lsp
                         if ((p != NULL) && (value->type == p->get_type_urid()))
                         {
                             p->deserialize(value);
-                            p->notify_all();
+                            p->notify_all(ui::PORT_NONE);
                         }
 
                         key     = NULL;
@@ -678,7 +678,7 @@ namespace lsp
                 if (p != NULL)
                 {
                     p->deserialize(obj);
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
                 }
             }
             else if (obj->body.otype == pExt->uridStreamType)
@@ -688,7 +688,7 @@ namespace lsp
                 if (p != NULL)
                 {
                     p->deserialize(obj);
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
                 }
             }
             else if (obj->body.otype == pExt->uridFrameBufferType)
@@ -698,7 +698,7 @@ namespace lsp
                 if (p != NULL)
                 {
                     p->deserialize(obj);
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
                 }
             }
             else if (obj->body.otype == pExt->uridPlayPositionType)
@@ -740,7 +740,7 @@ namespace lsp
                 if (p != NULL)
                 {
                     p->notify(buf, format, size);
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
                 }
             }
             else if ((pExt->nAtomIn >= 0) && (id == size_t(pExt->nAtomIn)))
@@ -942,7 +942,7 @@ namespace lsp
                     if (p == NULL)
                         continue;
                     if (p->sync())
-                        p->notify_all();
+                        p->notify_all(ui::PORT_NONE);
                 }
 
                 // Check that sample rate has changed

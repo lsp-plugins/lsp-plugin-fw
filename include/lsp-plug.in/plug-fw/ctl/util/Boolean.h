@@ -68,8 +68,8 @@ namespace lsp
                 inline bool     value() const   { return pProp->get();  }
                 virtual void    reloaded(const tk::StyleSheet *sheet);
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

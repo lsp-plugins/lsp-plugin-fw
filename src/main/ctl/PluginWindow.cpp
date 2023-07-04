@@ -613,7 +613,7 @@ namespace lsp
                     if ((dpy->schema()->set_lanugage(lang)) == STATUS_OK)
                     {
                         lsp_trace("System language set to: %s", lang);
-                        pLanguage->notify_all();
+                        pLanguage->notify_all(ui::PORT_NONE);
                     }
                 }
             }
@@ -1141,7 +1141,7 @@ namespace lsp
                 if ((backend == NULL) || (strcmp(backend, value)))
                 {
                     sel->ctl->pR3DBackend->write(value, strlen(value));
-                    sel->ctl->pR3DBackend->notify_all();
+                    sel->ctl->pR3DBackend->notify_all(ui::PORT_USER_EDIT);
                 }
             }
 
@@ -1176,7 +1176,7 @@ namespace lsp
             if ((slang == NULL) || (strcmp(slang, dlang)))
             {
                 sel->ctl->pLanguage->write(dlang, strlen(dlang));
-                sel->ctl->pLanguage->notify_all();
+                sel->ctl->pLanguage->notify_all(ui::PORT_USER_EDIT);
             }
 
             lsp_trace("Language has been selected");
@@ -1389,29 +1389,29 @@ namespace lsp
             }
 
             if (pVisualSchema != NULL)
-                notify(pVisualSchema);
+                notify(pVisualSchema, ui::PORT_NONE);
             if (pUIScalingHost != NULL)
-                notify(pUIScalingHost);
+                notify(pUIScalingHost, ui::PORT_NONE);
             if (pUIScaling != NULL)
-                notify(pUIScaling);
+                notify(pUIScaling, ui::PORT_NONE);
             if (pUIFontScaling != NULL)
-                notify(pUIFontScaling);
+                notify(pUIFontScaling, ui::PORT_NONE);
             if (pKnobScaleEnable != NULL)
-                notify(pKnobScaleEnable);
+                notify(pKnobScaleEnable, ui::PORT_NONE);
             if (pOverrideHydrogen != NULL)
-                notify(pOverrideHydrogen);
+                notify(pOverrideHydrogen, ui::PORT_NONE);
             if (pInvertVScroll != NULL)
-                notify(pInvertVScroll);
+                notify(pInvertVScroll, ui::PORT_NONE);
             if (pInvertGraphDotVScroll != NULL)
-                notify(pInvertGraphDotVScroll);
+                notify(pInvertGraphDotVScroll, ui::PORT_NONE);
 
             // Call for parent class method
             Window::end(ctx);
         }
 
-        void PluginWindow::notify(ui::IPort *port)
+        void PluginWindow::notify(ui::IPort *port, size_t flags)
         {
-            Window::notify(port);
+            Window::notify(port, flags);
 
             if (port == pLanguage)
                 sync_language_selection();
@@ -1842,7 +1842,7 @@ namespace lsp
                 if (path != NULL)
                 {
                     _this->pPath->write(path, strlen(path));
-                    _this->pPath->notify_all();
+                    _this->pPath->notify_all(ui::PORT_USER_EDIT);
                 }
             }
 
@@ -1929,7 +1929,7 @@ namespace lsp
                 lsp_trace("Updating last version from %s to %s", v, vstring);
 
                 pPVersion->write(vstring, strlen(vstring));
-                pPVersion->notify_all();
+                pPVersion->notify_all(ui::PORT_NONE);
             }
 
             lsp_trace("Showing greeting dialog");
@@ -1982,7 +1982,7 @@ namespace lsp
                     p->write(path, strlen(path));
                 else
                     p->write("", 0);
-                p->notify_all();
+                p->notify_all(ui::PORT_USER_EDIT);
             }
         }
 
@@ -1992,7 +1992,7 @@ namespace lsp
             if (p != NULL)
             {
                 p->set_value((value->get()) ? 1.0f : 0.0f);
-                p->notify_all();
+                p->notify_all(ui::PORT_USER_EDIT);
             }
         }
 
@@ -2147,9 +2147,9 @@ namespace lsp
                 ssize_t new_value   = _this->pWrapper->ui_scaling_factor(value);
 
                 _this->pUIScaling->set_value(new_value);
-                _this->pUIScaling->notify_all();
+                _this->pUIScaling->notify_all(ui::PORT_USER_EDIT);
             }
-            _this->pUIScalingHost->notify_all();
+            _this->pUIScalingHost->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -2167,8 +2167,8 @@ namespace lsp
             _this->pUIScalingHost->set_value(0.0f);
             _this->pUIScaling->set_value(value);
 
-            _this->pUIScalingHost->notify_all();
-            _this->pUIScaling->notify_all();
+            _this->pUIScalingHost->notify_all(ui::PORT_USER_EDIT);
+            _this->pUIScaling->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -2186,8 +2186,8 @@ namespace lsp
             _this->pUIScalingHost->set_value(0.0f);
             _this->pUIScaling->set_value(value);
 
-            _this->pUIScalingHost->notify_all();
-            _this->pUIScaling->notify_all();
+            _this->pUIScalingHost->notify_all(ui::PORT_USER_EDIT);
+            _this->pUIScaling->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -2204,8 +2204,8 @@ namespace lsp
                 _this->pUIScalingHost->set_value(0.0f);
                 _this->pUIScaling->set_value(sel->scaling);
 
-                _this->pUIScalingHost->notify_all();
-                _this->pUIScaling->notify_all();
+                _this->pUIScalingHost->notify_all(ui::PORT_USER_EDIT);
+                _this->pUIScaling->notify_all(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;
@@ -2221,7 +2221,7 @@ namespace lsp
             value           = lsp_limit(value + FONT_SCALING_FACTOR_STEP, FONT_SCALING_FACTOR_BEGIN, FONT_SCALING_FACTOR_END);
 
             _this->pUIFontScaling->set_value(value);
-            _this->pUIFontScaling->notify_all();
+            _this->pUIFontScaling->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -2236,7 +2236,7 @@ namespace lsp
             value           = lsp_limit(value - FONT_SCALING_FACTOR_STEP, FONT_SCALING_FACTOR_BEGIN, FONT_SCALING_FACTOR_END);
 
             _this->pUIFontScaling->set_value(value);
-            _this->pUIFontScaling->notify_all();
+            _this->pUIFontScaling->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -2251,7 +2251,7 @@ namespace lsp
             if ((_this != NULL) && (_this->pUIFontScaling != NULL))
             {
                 _this->pUIFontScaling->set_value(sel->scaling);
-                _this->pUIFontScaling->notify_all();
+                _this->pUIFontScaling->notify_all(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;
@@ -2275,22 +2275,22 @@ namespace lsp
                 if (_this->pVisualSchema != NULL)
                 {
                     _this->pVisualSchema->write(value, strlen(value));
-                    _this->pVisualSchema->notify_all();
+                    _this->pVisualSchema->notify_all(ui::PORT_USER_EDIT);
                 }
 
                 // Notify other parameters
                 if (_this->pUIFontScaling != NULL)
-                    _this->pUIFontScaling->notify_all();
+                    _this->pUIFontScaling->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pUIScaling != NULL)
-                    _this->pUIScaling->notify_all();
+                    _this->pUIScaling->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pLanguage != NULL)
-                    _this->pLanguage->notify_all();
+                    _this->pLanguage->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pKnobScaleEnable != NULL)
-                    _this->pKnobScaleEnable->notify_all();
+                    _this->pKnobScaleEnable->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pInvertVScroll != NULL)
-                    _this->pInvertVScroll->notify_all();
+                    _this->pInvertVScroll->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pInvertGraphDotVScroll != NULL)
-                    _this->pInvertGraphDotVScroll->notify_all();
+                    _this->pInvertGraphDotVScroll->notify_all(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;
@@ -2475,7 +2475,7 @@ namespace lsp
 
             float value = ck_box->checked()->get() ? 1.0f : 0.0f;
             _this->pRelPaths->set_value(value);
-            _this->pRelPaths->notify_all();
+            _this->pRelPaths->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -2493,7 +2493,7 @@ namespace lsp
             _this->wKnobScaleEnable->checked()->toggle();
             bool checked = _this->wKnobScaleEnable->checked()->get();
             _this->pKnobScaleEnable->set_value((checked) ? 1.0f : 0.0f);
-            _this->pKnobScaleEnable->notify_all();
+            _this->pKnobScaleEnable->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -2511,7 +2511,7 @@ namespace lsp
             _this->wOverrideHydrogen->checked()->toggle();
             bool checked = _this->wOverrideHydrogen->checked()->get();
             _this->pOverrideHydrogen->set_value((checked) ? 1.0f : 0.0f);
-            _this->pOverrideHydrogen->notify_all();
+            _this->pOverrideHydrogen->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -2529,7 +2529,7 @@ namespace lsp
             _this->wInvertVScroll->checked()->toggle();
             bool checked = _this->wInvertVScroll->checked()->get();
             _this->pInvertVScroll->set_value((checked) ? 1.0f : 0.0f);
-            _this->pInvertVScroll->notify_all();
+            _this->pInvertVScroll->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -2547,7 +2547,7 @@ namespace lsp
             _this->wInvertGraphDotVScroll->checked()->toggle();
             bool checked = _this->wInvertGraphDotVScroll->checked()->get();
             _this->pInvertGraphDotVScroll->set_value((checked) ? 1.0f : 0.0f);
-            _this->pInvertGraphDotVScroll->notify_all();
+            _this->pInvertGraphDotVScroll->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }

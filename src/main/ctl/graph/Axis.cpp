@@ -151,9 +151,9 @@ namespace lsp
             return expr->evaluate();
         }
 
-        void Axis::notify(ui::IPort *port)
+        void Axis::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
             if (ga != NULL)

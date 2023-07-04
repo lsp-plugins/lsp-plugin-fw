@@ -41,12 +41,12 @@ namespace lsp
 
             public:
                 explicit PathPort(const meta::port_t *meta, IWrapper *wrapper);
-                virtual ~PathPort();
+                virtual ~PathPort() override;
 
             public:
-                virtual void    write(const void* buffer, size_t size);
+                virtual void    write(const void* buffer, size_t size) override;
 
-                virtual void   *buffer();
+                virtual void   *buffer() override;
         };
 
     } /* namespace ctl */

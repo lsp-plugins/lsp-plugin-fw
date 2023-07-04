@@ -195,9 +195,9 @@ namespace lsp
             bStrobe     = (sStrobe.valid()) ? sStrobe.evaluate_bool(false) : false;
         }
 
-        void Mesh::notify(ui::IPort *port)
+        void Mesh::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             if ((sXIndex.depends(port)) ||
                 (sYIndex.depends(port)) ||

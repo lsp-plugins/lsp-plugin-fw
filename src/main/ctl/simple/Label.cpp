@@ -322,7 +322,7 @@ namespace lsp
                 return false;
 
             pPort->set_value(fv);
-            pPort->notify_all();
+            pPort->notify_all(ui::PORT_USER_EDIT);
             return true;
         }
 
@@ -364,9 +364,9 @@ namespace lsp
             Widget::set(ctx, name, value);
         }
 
-        void Label::notify(ui::IPort *port)
+        void Label::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
             if ((pPort != NULL) && (pPort == port))
                 commit_value();
             if ((pLangPort != NULL) && (pLangPort == port))

@@ -230,9 +230,9 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        void LineSegment::notify(ui::IPort *port)
+        void LineSegment::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             commit_value(&sX, port, false);
             commit_value(&sY, port, false);
@@ -368,7 +368,7 @@ namespace lsp
                 if (p->pPort != NULL)
                 {
                     p->pPort->set_value(value);
-                    p->pPort->notify_all();
+                    p->pPort->notify_all(ui::PORT_USER_EDIT);
                 }
                 return;
             }
@@ -399,7 +399,7 @@ namespace lsp
             }
 
             p->pPort->set_value(value);
-            p->pPort->notify_all();
+            p->pPort->notify_all(ui::PORT_USER_EDIT);
         }
 
         void LineSegment::configure_param(param_t *p, bool axis)

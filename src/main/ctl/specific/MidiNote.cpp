@@ -224,12 +224,12 @@ namespace lsp
         {
             Widget::end(ctx);
 
-            notify(pValue);
+            notify(pValue, ui::PORT_NONE);
         }
 
-        void MidiNote::notify(ui::IPort *port)
+        void MidiNote::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             if ((port != NULL) && (port == pValue))
             {
@@ -300,9 +300,9 @@ namespace lsp
 
             nNote           = value;
             if (pNote != NULL)
-                pNote->notify_all();
+                pNote->notify_all(ui::PORT_USER_EDIT);
             if (pOctave != NULL)
-                pOctave->notify_all();
+                pOctave->notify_all(ui::PORT_USER_EDIT);
         }
 
         status_t MidiNote::slot_submit_value(tk::Widget *sender, void *ptr, void *data)

@@ -98,7 +98,7 @@ namespace lsp
                 virtual void        reloaded(const tk::StyleSheet *sheet);
 
             public:
-                virtual void        notify(ui::IPort *port);
+                virtual void        notify(ui::IPort *port, size_t flags) override;
 
             public:
                 inline const lsp::Color  *value() const   { return pColor->color();   }
@@ -109,8 +109,8 @@ namespace lsp
                 void                set_saturation(float sat);
                 void                set_lightness(float light);
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_COLOR_H_ */

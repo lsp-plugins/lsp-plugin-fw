@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 9 апр. 2021 г.
@@ -46,20 +46,19 @@ namespace lsp
             public:
                 explicit PortResolver();
                 explicit PortResolver(ui::IWrapper *wrapper);
-                virtual ~PortResolver();
+                virtual ~PortResolver() override;
 
                 void                init(ui::IWrapper *wrapper);
 
             public:
+                virtual status_t    resolve(expr::value_t *value, const char *name, size_t num_indexes = 0, const ssize_t *indexes = NULL) override;
+                virtual status_t    resolve(expr::value_t *value, const LSPString *name, size_t num_indexes = 0, const ssize_t *indexes = NULL) override;
+
+            public:
                 virtual status_t    on_resolved(const LSPString *name, ui::IPort *p);
-
                 virtual status_t    on_resolved(const char *name, ui::IPort *p);
-
-                virtual status_t    resolve(expr::value_t *value, const char *name, size_t num_indexes = 0, const ssize_t *indexes = NULL);
-
-                virtual status_t    resolve(expr::value_t *value, const LSPString *name, size_t num_indexes = 0, const ssize_t *indexes = NULL);
         };
-    }
-}
+    } /* namespace ui */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_UI_PORTRESOLVER_H_ */

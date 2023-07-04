@@ -74,11 +74,11 @@ namespace lsp
                 virtual void            set(ui::UIContext *ctx, const char *name, const char *value) override;
                 virtual status_t        add(ui::UIContext *ctx, ctl::Widget *child) override;
                 virtual void            end(ui::UIContext *ctx) override;
-                virtual void            notify(ui::IPort *port) override;
+                virtual void            notify(ui::IPort *port, size_t flags) override;
         };
 
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

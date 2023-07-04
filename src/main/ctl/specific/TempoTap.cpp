@@ -212,7 +212,7 @@ namespace lsp
             if (pPort != NULL)
             {
                 pPort->set_value(fTempo);
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             }
         }
 

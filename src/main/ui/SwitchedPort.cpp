@@ -253,13 +253,13 @@ namespace lsp
                 p->set_value(value);
         }
 
-        void SwitchedPort::notify_all()
+        void SwitchedPort::notify_all(size_t flags)
         {
             IPort *p  = current();
             if (p != NULL)
-                p->notify_all(); // We will receive notify() as subscribers
+                p->notify_all(flags); // We will receive notify() as subscribers
             else
-                IPort::notify_all();
+                IPort::notify_all(flags);
         }
 
         const char *SwitchedPort::id() const
@@ -267,7 +267,7 @@ namespace lsp
             return sName;
         }
 
-        void SwitchedPort::notify(IPort *port)
+        void SwitchedPort::notify(IPort *port, size_t flags)
         {
             // Check that event is not from dimension-control port
             for (size_t i=0; i<nDimensions; ++i)
@@ -275,7 +275,7 @@ namespace lsp
                 if (port == vControls[i])
                 {
                     rebind();
-                    notify_all();
+                    notify_all(flags);
                     return;
                 }
             }
@@ -286,7 +286,7 @@ namespace lsp
                 return;
 
             // Notify all subscribers
-            IPort::notify_all();
+            IPort::notify_all(flags);
         }
 
     } /* namespace ctl */

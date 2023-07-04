@@ -69,10 +69,10 @@ namespace lsp
                 bool                set(const char *prop, const char *name, const char *value);
 
             public:
-                virtual void        notify(ui::IPort *port);
+                virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        reloaded(const tk::StyleSheet *sheet);
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_EMBEDDING_H_ */

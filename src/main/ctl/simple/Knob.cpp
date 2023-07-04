@@ -205,7 +205,7 @@ namespace lsp
                 if (pPort != NULL)
                 {
                     pPort->set_value(value);
-                    pPort->notify_all();
+                    pPort->notify_all(ui::PORT_USER_EDIT);
                 }
                 return;
             }
@@ -234,7 +234,7 @@ namespace lsp
             if (pPort != NULL)
             {
                 pPort->set_value(value);
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             }
         }
 
@@ -250,7 +250,7 @@ namespace lsp
             if (pPort != NULL)
             {
                 pPort->set_value(dfl);
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             }
         }
 
@@ -399,23 +399,23 @@ namespace lsp
                 knob->step()->set_decel(fDStep);
         }
 
-        void Knob::notify(ui::IPort *port)
+        void Knob::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
-            size_t flags = 0;
+            Widget::notify(port, flags);
+            size_t k_flags = 0;
 
             if (sMin.depends(port))
-                flags      |= KF_MIN;
+                k_flags    |= KF_MIN;
             if (sMax.depends(port))
-                flags      |= KF_MAX;
+                k_flags    |= KF_MAX;
             if (pPort != NULL)
             {
                 if (port == pPort)
-                    flags      |= KF_VALUE;
+                    k_flags    |= KF_VALUE;
             }
 
-            if (flags)
-                commit_value(flags);
+            if (k_flags)
+                commit_value(k_flags);
 
             sync_scale_state();
         }

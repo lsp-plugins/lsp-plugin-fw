@@ -332,7 +332,7 @@ namespace lsp
             return true;
         }
 
-        void Color::notify(ui::IPort *port)
+        void Color::notify(ui::IPort *port, size_t flags)
         {
             if (pColor == NULL)
                 return;

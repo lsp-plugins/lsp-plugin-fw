@@ -314,7 +314,7 @@ namespace lsp
                 vst2::UIPort *vup   = static_cast<vst2::UIPort *>(vPorts.uget(i));
                 do {
                     if (vup->sync())
-                        vup->notify_all();
+                        vup->notify_all(ui::PORT_NONE);
                 } while (vup->sync_again());
             } // for port_id
 
@@ -392,7 +392,7 @@ namespace lsp
             {
                 vst2::UIPort  *vp   = static_cast<vst2::UIPort *>(vPorts.uget(i));
                 if (vp != NULL)
-                    vp->notify_all();
+                    vp->notify_all(ui::PORT_NONE);
             }
 
             core::KVTStorage *kvt = kvt_lock();

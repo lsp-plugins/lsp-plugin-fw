@@ -203,12 +203,12 @@ namespace lsp
             Widget::end(ctx);
         }
 
-        void TabControl::notify(ui::IPort *port)
+        void TabControl::notify(ui::IPort *port, size_t flags)
         {
             if (port == NULL)
                 return;
 
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             if (sActive.depends(port))
                 select_active_widget();
@@ -314,7 +314,7 @@ namespace lsp
             lsp_trace("index = %d, value=%f", int(index), value);
 
             pPort->set_value(value);
-            pPort->notify_all();
+            pPort->notify_all(ui::PORT_USER_EDIT);
         }
 
     } /* namespace ctl */

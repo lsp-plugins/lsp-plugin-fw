@@ -233,7 +233,7 @@ namespace lsp
             if (port != NULL)
             {
                 port->set_value(vnew);
-                port->notify_all();
+                port->notify_all(ui::PORT_USER_EDIT);
             }
             else
             {
@@ -253,7 +253,7 @@ namespace lsp
                 if (meta::is_degree_unit(meta->unit))
                     vnew    = vnew * 180.0f / M_PI;
                 port->set_value(vnew);
-                port->notify_all();
+                port->notify_all(ui::PORT_USER_EDIT);
             }
             else
             {
@@ -509,7 +509,7 @@ namespace lsp
             fFov    = sFov.evaluate_float(70.0f);
         }
 
-        void Area3D::notify(ui::IPort *port)
+        void Area3D::notify(ui::IPort *port, size_t flags)
         {
             sync_pov_change(&sPov.x, pPosX, port);
             sync_pov_change(&sPov.y, pPosY, port);

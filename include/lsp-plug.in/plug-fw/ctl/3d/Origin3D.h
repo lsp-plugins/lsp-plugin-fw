@@ -64,16 +64,14 @@ namespace lsp
 
             public:
                 explicit Origin3D(ui::IWrapper *wrapper);
-                virtual ~Origin3D();
+                virtual ~Origin3D() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-
-                virtual void        property_changed(tk::Property *prop);
-
-                virtual bool        submit_foreground(lltl::darray<r3d::buffer_t> *dst);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        property_changed(tk::Property *prop) override;
+                virtual bool        submit_foreground(lltl::darray<r3d::buffer_t> *dst) override;
         };
 
     } /* namespace ctl */

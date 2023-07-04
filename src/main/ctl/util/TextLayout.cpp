@@ -48,7 +48,7 @@ namespace lsp
                 pLayout->set_valign(sVAlign.evaluate_float(0.0f));
         }
 
-        void TextLayout::notify(ui::IPort *port)
+        void TextLayout::notify(ui::IPort *port, size_t flags)
         {
             if ((sHAlign.depends(port)) ||
                 (sVAlign.depends(port)))

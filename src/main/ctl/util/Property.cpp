@@ -107,7 +107,7 @@ namespace lsp
             vDependencies.clear();
         }
 
-        void Property::notify(ui::IPort *port)
+        void Property::notify(ui::IPort *port, size_t flags)
         {
             if (!depends(port))
                 return;
