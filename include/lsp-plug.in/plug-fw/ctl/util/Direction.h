@@ -64,7 +64,7 @@ namespace lsp
 
             public:
                 explicit Direction();
-                virtual ~Direction();
+                virtual ~Direction() override;
 
                 status_t            init(ui::IWrapper *wrapper, tk::Vector2D *direction);
 
@@ -72,7 +72,7 @@ namespace lsp
                 bool                set(const char *param, const char *name, const char *value);
 
                 virtual void        notify(ui::IPort *port, size_t flags) override;
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
     } /* namespace ctl */
 } /* namespace lsp */

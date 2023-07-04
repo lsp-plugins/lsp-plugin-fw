@@ -54,14 +54,14 @@ namespace lsp
 
             public:
                 explicit        Float();
-                virtual         ~Float();
+                virtual         ~Float() override;
 
                 void            init(ui::IWrapper *wrapper, tk::Float *prop);
 
             public:
                 bool            set(const char *prop, const char *name, const char *value);
                 inline float    value() const   { return pProp->get();  }
-                virtual void    reloaded(const tk::StyleSheet *sheet);
+                virtual void    reloaded(const tk::StyleSheet *sheet) override;
         };
     } /* namespace ctl */
 } /* namespace lsp */

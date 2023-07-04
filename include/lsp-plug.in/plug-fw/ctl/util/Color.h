@@ -95,7 +95,7 @@ namespace lsp
                  */
                 void                reload();
 
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
 
             public:
                 virtual void        notify(ui::IPort *port, size_t flags) override;

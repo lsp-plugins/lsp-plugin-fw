@@ -87,7 +87,7 @@ namespace lsp
 
             public:
                 explicit Property();
-                virtual ~Property();
+                virtual ~Property() override;
 
                 void            init(ui::IWrapper *wrapper);
                 virtual void    destroy();

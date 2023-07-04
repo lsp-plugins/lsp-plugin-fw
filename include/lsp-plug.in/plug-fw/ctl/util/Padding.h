@@ -74,10 +74,8 @@ namespace lsp
 
             public:
                 bool                set(const char *param, const char *name, const char *value);
-
                 virtual void        notify(ui::IPort *port, size_t flags) override;
-
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
     } /* namespace ctl */
 } /* namespace lsp */

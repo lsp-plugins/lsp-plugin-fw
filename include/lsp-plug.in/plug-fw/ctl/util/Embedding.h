@@ -70,7 +70,7 @@ namespace lsp
 
             public:
                 virtual void        notify(ui::IPort *port, size_t flags) override;
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
     } /* namespace ctl */
 } /* namespace lsp */

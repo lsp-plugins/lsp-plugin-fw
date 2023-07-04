@@ -59,7 +59,7 @@ namespace lsp
                 ui::IPortListener          *pListener;
 
             protected:
-                virtual void    on_updated(ui::IPort *port);
+                virtual void    on_updated(ui::IPort *port) override;
 
             public:
                 explicit Expression();

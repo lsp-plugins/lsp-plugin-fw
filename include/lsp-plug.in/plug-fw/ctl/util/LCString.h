@@ -76,8 +76,8 @@ namespace lsp
                 bool            set(const char *param, const char *name, const char *value);
 
             public:
-                virtual void notify(ui::IPort *port, size_t flags) override;
-                virtual void sync_metadata(ui::IPort *port) override;
+                virtual void    notify(ui::IPort *port, size_t flags) override;
+                virtual void    sync_metadata(ui::IPort *port) override;
         };
 
     } /* namespace ctl */
