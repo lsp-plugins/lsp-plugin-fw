@@ -57,10 +57,10 @@ namespace lsp
 
                     public:
                         explicit DragInSink(FileButton *button);
-                        virtual ~DragInSink();
+                        virtual ~DragInSink() override;
 
                         void unbind();
-                        virtual status_t    commit_url(const LSPString *url);
+                        virtual status_t    commit_url(const LSPString *url) override;
                 };
 
             protected:

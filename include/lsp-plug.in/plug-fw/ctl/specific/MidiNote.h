@@ -60,10 +60,10 @@ namespace lsp
 
                     public:
                         explicit PopupWindow(MidiNote *label, tk::Display *dpy);
-                        virtual ~PopupWindow();
+                        virtual ~PopupWindow() override;
 
-                        virtual status_t    init();
-                        virtual void        destroy();
+                        virtual status_t    init() override;
+                        virtual void        destroy() override;
                 };
 
             protected:

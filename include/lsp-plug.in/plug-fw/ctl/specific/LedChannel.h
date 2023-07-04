@@ -102,7 +102,7 @@ namespace lsp
                 void                sync_colors();
 
             protected:
-                virtual void        property_changed(tk::Property *prop);
+                virtual void        property_changed(tk::Property *prop) override;
 
             public:
                 explicit LedChannel(ui::IWrapper *wrapper, tk::LedMeterChannel *widget);
