@@ -61,7 +61,7 @@ namespace lsp
 
             public:
                 explicit Embedding();
-                virtual ~Embedding();
+                virtual ~Embedding() override;
 
                 status_t            init(ui::IWrapper *wrapper, tk::Embedding *embed);
 

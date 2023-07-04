@@ -59,7 +59,7 @@ namespace lsp
                 static status_t     slot_combo_submit(tk::Widget *sender, void *ptr, void *data);
 
             protected:
-                void                sync_metadata(ui::IPort *port);
+                virtual void        sync_metadata(ui::IPort *port) override;
                 void                submit_value();
 
             public:

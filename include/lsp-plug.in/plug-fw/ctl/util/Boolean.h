@@ -55,7 +55,7 @@ namespace lsp
                 void            apply_changes();
 
             protected:
-                virtual void    on_updated(ui::IPort *port);
+                virtual void    on_updated(ui::IPort *port) override;
 
             public:
                 explicit        Boolean();

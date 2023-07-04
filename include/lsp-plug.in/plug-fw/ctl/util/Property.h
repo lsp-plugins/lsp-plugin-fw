@@ -57,11 +57,9 @@ namespace lsp
                         explicit PropResolver(Property *prop);
 
                     public:
-                        virtual status_t on_resolved(const LSPString *name, ui::IPort *p);
-
-                        virtual status_t resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes);
-
-                        virtual status_t resolve(expr::value_t *value, const LSPString *name, size_t num_indexes, const ssize_t *indexes);
+                        virtual status_t on_resolved(const LSPString *name, ui::IPort *p) override;
+                        virtual status_t resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes) override;
+                        virtual status_t resolve(expr::value_t *value, const LSPString *name, size_t num_indexes, const ssize_t *indexes) override;
                 };
 
             protected:

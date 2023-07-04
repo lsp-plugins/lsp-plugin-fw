@@ -83,7 +83,7 @@ namespace lsp
 
             public:
                 explicit Color();
-                virtual ~Color();
+                virtual ~Color() override;
 
                 status_t            init(ui::IWrapper *wrapper, tk::Color *color);
 
