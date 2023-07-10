@@ -55,7 +55,9 @@ namespace lsp
                     KF_LOG_SET      = 1 << 8,
                     KF_CYCLIC       = 1 << 9,
                     KF_CYCLIC_SET   = 1 << 10,
-                    KF_VALUE        = 1 << 11
+                    KF_VALUE        = 1 << 11,
+                    KF_METER_MIN    = 1 << 12,
+                    KF_METER_MAX    = 1 << 13
                 };
 
             protected:
@@ -65,8 +67,13 @@ namespace lsp
                 ctl::Color          sHoleColor;
                 ctl::Color          sTipColor;
                 ctl::Color          sBalanceTipColor;
+                ctl::Color          sMeterColor;
+                ctl::Boolean        sMeterVisible;
+
                 ctl::Expression     sMin;
                 ctl::Expression     sMax;
+                ctl::Expression     sMeterMin;
+                ctl::Expression     sMeterMax;
 
                 ui::IPort          *pPort;
                 ui::IPort          *pScaleEnablePort;
