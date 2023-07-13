@@ -84,7 +84,7 @@ namespace lsp
                 virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        end(ui::UIContext *ctx) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_BUTTON_H_ */

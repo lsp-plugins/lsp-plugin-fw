@@ -69,6 +69,7 @@ namespace lsp
                 ctl::Color          sBalanceTipColor;
                 ctl::Color          sMeterColor;
                 ctl::Boolean        sMeterVisible;
+                ctl::Boolean        sEditable;
 
                 ctl::Expression     sMin;
                 ctl::Expression     sMax;
@@ -109,7 +110,7 @@ namespace lsp
                 virtual void        end(ui::UIContext *ctx) override;
         };
     } /* namespace ctl */
-} /* namespace tk */
+} /* namespace lsp */
 
 
 

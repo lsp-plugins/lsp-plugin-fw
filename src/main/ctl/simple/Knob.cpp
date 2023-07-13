@@ -93,6 +93,7 @@ namespace lsp
                 sBalanceTipColor.init(pWrapper, knob->balance_tip_color());
                 sMeterColor.init(pWrapper, knob->meter_color());
                 sMeterVisible.init(pWrapper, knob->meter_active());
+                sEditable.init(pWrapper, knob->editable());
 
                 sMin.init(pWrapper, this);
                 sMax.init(pWrapper, this);
@@ -142,6 +143,8 @@ namespace lsp
                 sMeterVisible.set("meter.visibility", name, value);
                 sMeterVisible.set("meter.v", name, value);
                 sMeterVisible.set("mvisibility", name, value);
+
+                sEditable.set("editable", name, value);
 
                 if (!strcmp(name, "min"))
                 {
