@@ -50,11 +50,11 @@ namespace lsp
                 void            apply_changes();
 
             protected:
-                virtual void    on_updated(ui::IPort *port);
+                virtual void    on_updated(ui::IPort *port) override;
 
             public:
                 explicit        Integer();
-                virtual         ~Integer();
+                virtual         ~Integer() override;
 
                 void            init(ui::IWrapper *wrapper, tk::Integer *prop);
 
@@ -62,10 +62,10 @@ namespace lsp
                 bool            set(const char *prop, const char *name, const char *value);
                 inline ssize_t  value() const   { return pProp->get();  }
 
-                virtual void    reloaded(const tk::StyleSheet *sheet);
+                virtual void    reloaded(const tk::StyleSheet *sheet) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

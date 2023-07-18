@@ -115,9 +115,9 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        void FBuffer::notify(ui::IPort *port)
+        void FBuffer::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             tk::GraphFrameBuffer *fb   = tk::widget_cast<tk::GraphFrameBuffer>(wWidget);
             if ((fb != NULL) && (port != NULL))

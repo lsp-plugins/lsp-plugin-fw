@@ -2,8 +2,8 @@
  * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugin-fw
- * Created on: 18 авг. 2021 г.
+ * This file is part of lsp-plugins-gott-compressor
+ * Created on: 18 июн. 2023 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -28,13 +28,13 @@ namespace lsp
     namespace ctl
     {
         //---------------------------------------------------------------------
-        CTL_FACTORY_IMPL_START(Dot)
+        CTL_FACTORY_IMPL_START(LineSegment)
             status_t res;
 
-            if (!name->equals_ascii("dot"))
+            if (!name->equals_ascii("line"))
                 return STATUS_NOT_FOUND;
 
-            tk::GraphDot *w = new tk::GraphDot(context->display());
+            tk::GraphLineSegment *w = new tk::GraphLineSegment(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
             if ((res = context->widgets()->add(w)) != STATUS_OK)
@@ -46,18 +46,18 @@ namespace lsp
             if ((res = w->init()) != STATUS_OK)
                 return res;
 
-            ctl::Dot *wc    = new ctl::Dot(context->wrapper(), w);
+            ctl::LineSegment *wc    = new ctl::LineSegment(context->wrapper(), w);
             if (wc == NULL)
                 return STATUS_NO_MEM;
 
             *ctl = wc;
             return STATUS_OK;
-        CTL_FACTORY_IMPL_END(Dot)
+        CTL_FACTORY_IMPL_END(LineSegment)
 
         //-----------------------------------------------------------------
-        const ctl_class_t Dot::metadata        = { "Dot", &Widget::metadata };
+        const ctl_class_t LineSegment::metadata        = { "LineSegment", &Widget::metadata };
 
-        Dot::Dot(ui::IWrapper *wrapper, tk::GraphDot *widget): Widget(wrapper, widget)
+        LineSegment::LineSegment(ui::IWrapper *wrapper, tk::GraphLineSegment *widget): Widget(wrapper, widget)
         {
             pClass      = &metadata;
 
@@ -66,11 +66,11 @@ namespace lsp
             init_param(&sZ, widget->zvalue(), widget->zstep());
         }
 
-        Dot::~Dot()
+        LineSegment::~LineSegment()
         {
         }
 
-        void Dot::init_param(param_t *p, tk::RangeFloat *value, tk::StepFloat *step)
+        void LineSegment::init_param(param_t *p, tk::RangeFloat *value, tk::StepFloat *step)
         {
             p->nFlags       = 0;
             p->fMin         = 0.0f;
@@ -84,43 +84,46 @@ namespace lsp
             p->pStep        = step;
         }
 
-        status_t Dot::init()
+        status_t LineSegment::init()
         {
             LSP_STATUS_ASSERT(Widget::init());
 
-            tk::GraphDot *gd = tk::widget_cast<tk::GraphDot>(wWidget);
-            if (gd != NULL)
+            tk::GraphLineSegment *gls = tk::widget_cast<tk::GraphLineSegment>(wWidget);
+            if (gls != NULL)
             {
-                sX.sEditable.init(pWrapper, gd->heditable());
-                sY.sEditable.init(pWrapper, gd->veditable());
-                sZ.sEditable.init(pWrapper, gd->zeditable());
+                sX.sEditable.init(pWrapper, gls->heditable());
+                sY.sEditable.init(pWrapper, gls->veditable());
+                sZ.sEditable.init(pWrapper, gls->zeditable());
                 sX.sExpr.init(pWrapper, this);
                 sY.sExpr.init(pWrapper, this);
                 sZ.sExpr.init(pWrapper, this);
 
-                sSize.init(pWrapper, gd->size());
-                sHoverSize.init(pWrapper, gd->hover_size());
-                sBorderSize.init(pWrapper, gd->border_size());
-                sHoverBorderSize.init(pWrapper, gd->hover_border_size());
-                sGap.init(pWrapper, gd->gap());
-                sHoverGap.init(pWrapper, gd->hover_gap());
+                sSmooth.init(pWrapper, gls->smooth());
+                sWidth.init(pWrapper, gls->width());
+                sHoverWidth.init(pWrapper, gls->hover_width());
+                sLeftBorder.init(pWrapper, gls->left_border());
+                sRightBorder.init(pWrapper, gls->right_border());
+                sHoverLeftBorder.init(pWrapper, gls->hover_left_border());
+                sHoverRightBorder.init(pWrapper, gls->hover_right_border());
+                sBeginX.init(pWrapper, this);
+                sBeginY.init(pWrapper, this);
 
-                sColor.init(pWrapper, gd->color());
-                sHoverColor.init(pWrapper, gd->hover_color());
-                sBorderColor.init(pWrapper, gd->border_color());
-                sHoverBorderColor.init(pWrapper, gd->hover_border_color());
-                sGapColor.init(pWrapper, gd->gap_color());
-                sHoverGapColor.init(pWrapper, gd->hover_gap_color());
+                sColor.init(pWrapper, gls->color());
+                sHoverColor.init(pWrapper, gls->hover_color());
+                sLeftColor.init(pWrapper, gls->border_left_color());
+                sRightColor.init(pWrapper, gls->border_right_color());
+                sHoverLeftColor.init(pWrapper, gls->hover_border_left_color());
+                sHoverRightColor.init(pWrapper, gls->hover_border_right_color());
 
                 // Bind slots
-                gd->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
-                gd->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_dbl_click, this);
+                gls->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
+                gls->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_dbl_click, this);
             }
 
             return STATUS_OK;
         }
 
-        void Dot::set_dot_param(param_t *p, const char *prefix, const char *name, const char *value)
+        void LineSegment::set_segment_param(param_t *p, const char *prefix, const char *name, const char *value)
         {
             char s[0x80]; // Should be enough
 
@@ -161,71 +164,91 @@ namespace lsp
                 p->nFlags      |= DF_DSTEP;
         }
 
-        void Dot::set(ui::UIContext *ctx, const char *name, const char *value)
+        void LineSegment::set(ui::UIContext *ctx, const char *name, const char *value)
         {
-            tk::GraphDot *gd = tk::widget_cast<tk::GraphDot>(wWidget);
-            if (gd != NULL)
+            tk::GraphLineSegment *gls = tk::widget_cast<tk::GraphLineSegment>(wWidget);
+            if (gls != NULL)
             {
-                set_dot_param(&sX, "hor", name, value);
-                set_dot_param(&sX, "h", name, value);
-                set_dot_param(&sX, "x", name, value);
+                set_segment_param(&sX, "hor", name, value);
+                set_segment_param(&sX, "h", name, value);
+                set_segment_param(&sX, "x", name, value);
 
-                set_dot_param(&sY, "vert", name, value);
-                set_dot_param(&sY, "v", name, value);
-                set_dot_param(&sY, "y", name, value);
+                set_segment_param(&sY, "vert", name, value);
+                set_segment_param(&sY, "v", name, value);
+                set_segment_param(&sY, "y", name, value);
 
-                set_dot_param(&sZ, "scroll", name, value);
-                set_dot_param(&sZ, "s", name, value);
-                set_dot_param(&sZ, "z", name, value);
+                set_segment_param(&sZ, "scroll", name, value);
+                set_segment_param(&sZ, "s", name, value);
+                set_segment_param(&sZ, "z", name, value);
 
-                set_param(gd->haxis(), "basis", name, value);
-                set_param(gd->haxis(), "xaxis", name, value);
-                set_param(gd->haxis(), "ox", name, value);
+                set_param(gls->haxis(), "basis", name, value);
+                set_param(gls->haxis(), "xaxis", name, value);
+                set_param(gls->haxis(), "ox", name, value);
 
-                set_param(gd->vaxis(), "parallel", name, value);
-                set_param(gd->vaxis(), "yaxis", name, value);
-                set_param(gd->vaxis(), "oy", name, value);
+                set_param(gls->vaxis(), "parallel", name, value);
+                set_param(gls->vaxis(), "yaxis", name, value);
+                set_param(gls->vaxis(), "oy", name, value);
 
-                set_param(gd->origin(), "origin", name, value);
-                set_param(gd->origin(), "center", name, value);
-                set_param(gd->origin(), "o", name, value);
+                set_param(gls->origin(), "origin", name, value);
+                set_param(gls->origin(), "center", name, value);
+                set_param(gls->origin(), "o", name, value);
 
-                sSize.set("size", name, value);
-                sHoverSize.set("hover.size", name, value);
-                sBorderSize.set("border.size", name, value);
-                sBorderSize.set("bsize", name, value);
-                sHoverBorderSize.set("hover.border.size", name, value);
-                sHoverBorderSize.set("hover.bsize", name, value);
-                sGap.set("gap.size", name, value);
-                sGap.set("gsize", name, value);
-                sHoverGap.set("hover.gap.size", name, value);
-                sHoverGap.set("hover.gsize", name, value);
+                set_expr(&sBeginX, "start.x", name, value);
+                set_expr(&sBeginX, "begin.x", name, value);
+                set_expr(&sBeginX, "sx", name, value);
+
+                set_expr(&sBeginY, "start.y", name, value);
+                set_expr(&sBeginY, "begin.y", name, value);
+                set_expr(&sBeginY, "sy", name, value);
+
+                sSmooth.set("smooth", name, value);
+                sWidth.set("width", name, value);
+                sHoverWidth.set("hwidth", name, value);
+                sLeftBorder.set("lborder", name, value);
+                sLeftBorder.set("left_border", name, value);
+                sRightBorder.set("rborder", name, value);
+                sRightBorder.set("right_border", name, value);
+
+                sHoverLeftBorder.set("hlborder", name, value);
+                sHoverLeftBorder.set("hover_left_border", name, value);
+                sHoverRightBorder.set("hrborder", name, value);
+                sHoverRightBorder.set("hover_right_border", name, value);
 
                 sColor.set("color", name, value);
-                sHoverColor.set("hover.color", name, value);
-                sBorderColor.set("border.color", name, value);
-                sBorderColor.set("bcolor", name, value);
-                sHoverBorderColor.set("hover.border.color", name, value);
-                sHoverBorderColor.set("hover.bcolor", name, value);
-                sGapColor.set("gap.color", name, value);
-                sGapColor.set("gcolor", name, value);
-                sHoverGapColor.set("hover.gap.color", name, value);
-                sHoverGapColor.set("hover.gcolor", name, value);
+                sHoverColor.set("hcolor", name, value);
+                sHoverColor.set("hover_color", name, value);
+                sLeftColor.set("lcolor", name, value);
+                sLeftColor.set("left_color", name, value);
+                sRightColor.set("rcolor", name, value);
+                sRightColor.set("right_color", name, value);
+                sHoverLeftColor.set("hlcolor", name, value);
+                sHoverLeftColor.set("hover_left_color", name, value);
+                sHoverRightColor.set("hrcolor", name, value);
+                sHoverRightColor.set("hover_right_color", name, value);
             }
 
             return Widget::set(ctx, name, value);
         }
 
-        void Dot::notify(ui::IPort *port, size_t flags)
+        void LineSegment::notify(ui::IPort *port, size_t flags)
         {
             Widget::notify(port, flags);
 
             commit_value(&sX, port, false);
             commit_value(&sY, port, false);
             commit_value(&sZ, port, false);
+
+            tk::GraphLineSegment *gls = tk::widget_cast<tk::GraphLineSegment>(wWidget);
+            if (gls != NULL)
+            {
+                if (sBeginX.depends(port))
+                    gls->begin()->set_x(sBeginX.evaluate());
+                if (sBeginY.depends(port))
+                    gls->begin()->set_y(sBeginY.evaluate());
+            }
         }
 
-        void Dot::end(ui::UIContext *ctx)
+        void LineSegment::end(ui::UIContext *ctx)
         {
             Widget::end(ctx);
 
@@ -236,9 +259,18 @@ namespace lsp
             commit_value(&sX, sX.pPort, true);
             commit_value(&sY, sY.pPort, true);
             commit_value(&sZ, sZ.pPort, true);
+
+            tk::GraphLineSegment *gls = tk::widget_cast<tk::GraphLineSegment>(wWidget);
+            if (gls != NULL)
+            {
+                if (sBeginX.valid())
+                    gls->begin()->set_x(sBeginX.evaluate());
+                if (sBeginY.valid())
+                    gls->begin()->set_y(sBeginY.evaluate());
+            }
         }
 
-        void Dot::reloaded(const tk::StyleSheet *sheet)
+        void LineSegment::reloaded(const tk::StyleSheet *sheet)
         {
             Widget::reloaded(sheet);
 
@@ -247,21 +279,21 @@ namespace lsp
             commit_value(&sZ, sZ.pPort, true);
         }
 
-        void Dot::submit_values()
+        void LineSegment::submit_values()
         {
-            tk::GraphDot *gd = tk::widget_cast<tk::GraphDot>(wWidget);
-            if (gd == NULL)
+            tk::GraphLineSegment *gls = tk::widget_cast<tk::GraphLineSegment>(wWidget);
+            if (gls == NULL)
                 return;
 
-            submit_value(&sX, gd->hvalue()->get());
-            submit_value(&sY, gd->vvalue()->get());
-            submit_value(&sZ, gd->zvalue()->get());
+            submit_value(&sX, gls->hvalue()->get());
+            submit_value(&sY, gls->vvalue()->get());
+            submit_value(&sZ, gls->zvalue()->get());
         }
 
-        void Dot::submit_default_values()
+        void LineSegment::submit_default_values()
         {
-            tk::GraphDot *gd = tk::widget_cast<tk::GraphDot>(wWidget);
-            if (gd == NULL)
+            tk::GraphLineSegment *gls = tk::widget_cast<tk::GraphLineSegment>(wWidget);
+            if (gls == NULL)
                 return;
 
             submit_value(&sX, sX.fDefault);
@@ -269,7 +301,7 @@ namespace lsp
             submit_value(&sZ, sZ.fDefault);
         }
 
-        void Dot::commit_value(param_t *p, ui::IPort *port, bool force)
+        void LineSegment::commit_value(param_t *p, ui::IPort *port, bool force)
         {
             float value;
 
@@ -323,7 +355,7 @@ namespace lsp
                 p->pValue->set(value);
         }
 
-        void Dot::submit_value(param_t *p, float value)
+        void LineSegment::submit_value(param_t *p, float value)
         {
             if (!p->sEditable.value())
                 return;
@@ -370,10 +402,10 @@ namespace lsp
             p->pPort->notify_all(ui::PORT_USER_EDIT);
         }
 
-        void Dot::configure_param(param_t *p, bool axis)
+        void LineSegment::configure_param(param_t *p, bool axis)
         {
-            tk::GraphDot *gd = tk::widget_cast<tk::GraphDot>(wWidget);
-            if (gd == NULL)
+            tk::GraphLineSegment *gls = tk::widget_cast<tk::GraphLineSegment>(wWidget);
+            if (gls == NULL)
                 return;
 
             p->nFlags   = lsp_setflag(p->nFlags, DF_AXIS, axis);
@@ -489,22 +521,23 @@ namespace lsp
                 p->pStep->set_decel(p->fDStep);
         }
 
-        status_t Dot::slot_change(tk::Widget *sender, void *ptr, void *data)
+        status_t LineSegment::slot_change(tk::Widget *sender, void *ptr, void *data)
         {
-            Dot *_this          = static_cast<Dot *>(ptr);
+            LineSegment *_this  = static_cast<LineSegment *>(ptr);
             if (_this != NULL)
                 _this->submit_values();
             return STATUS_OK;
         }
 
-        status_t Dot::slot_dbl_click(tk::Widget *sender, void *ptr, void *data)
+        status_t LineSegment::slot_dbl_click(tk::Widget *sender, void *ptr, void *data)
         {
-            Dot *_this          = static_cast<Dot *>(ptr);
+            LineSegment *_this  = static_cast<LineSegment *>(ptr);
             if (_this != NULL)
                 _this->submit_default_values();
             return STATUS_OK;
         }
-    } /* namespace ctl */
-} /* namespace lsp */
+    } // namespace ctl
+} // namespace lsp
+
 
 

@@ -146,7 +146,7 @@ namespace lsp
             return true;
         }
 
-        void Padding::notify(ui::IPort *port)
+        void Padding::notify(ui::IPort *port, size_t flags)
         {
             if (pPadding == NULL)
                 return;

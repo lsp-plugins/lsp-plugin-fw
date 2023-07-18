@@ -131,9 +131,9 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        void ThreadComboBox::notify(ui::IPort *port)
+        void ThreadComboBox::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
             if (cbox == NULL)
@@ -222,7 +222,7 @@ namespace lsp
             lsp_trace("index = %d, value=%f", int(index), v);
 
             pPort->set_value(v);
-            pPort->notify_all();
+            pPort->notify_all(ui::PORT_USER_EDIT);
         }
     } /* namespace ctl */
 } /* namespace lsp */

@@ -57,10 +57,10 @@ namespace lsp
 
                     public:
                         explicit DragInSink(FileButton *button);
-                        virtual ~DragInSink();
+                        virtual ~DragInSink() override;
 
                         void unbind();
-                        virtual status_t    commit_url(const LSPString *url);
+                        virtual status_t    commit_url(const LSPString *url) override;
                 };
 
             protected:
@@ -104,15 +104,15 @@ namespace lsp
 
             public:
                 explicit FileButton(ui::IWrapper *wrapper, tk::FileButton *widget, bool save);
-                virtual ~FileButton();
+                virtual ~FileButton() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        end(ui::UIContext *ctx);
-                virtual void        notify(ui::IPort *port);
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        end(ui::UIContext *ctx) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
 
     } /* namespace ctl */

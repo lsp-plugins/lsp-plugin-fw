@@ -91,8 +91,14 @@ namespace lsp
                 sHoleColor.init(pWrapper, knob->hole_color());
                 sTipColor.init(pWrapper, knob->tip_color());
                 sBalanceTipColor.init(pWrapper, knob->balance_tip_color());
+                sMeterColor.init(pWrapper, knob->meter_color());
+                sMeterVisible.init(pWrapper, knob->meter_active());
+                sEditable.init(pWrapper, knob->editable());
+
                 sMin.init(pWrapper, this);
                 sMax.init(pWrapper, this);
+                sMeterMin.init(pWrapper, this);
+                sMeterMax.init(pWrapper, this);
 
                 // Bind slots
                 knob->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
@@ -126,6 +132,19 @@ namespace lsp
                 sTipColor.set("tip.color", name, value);
                 sBalanceTipColor.set("btcolor", name, value);
                 sBalanceTipColor.set("balance.tip.color", name, value);
+                sMeterColor.set("meter.color", name, value);
+                sMeterColor.set("mcolor", name, value);
+
+                set_expr(&sMeterMin, "meter.min", name, value);
+                set_expr(&sMeterMin, "mmin", name, value);
+                set_expr(&sMeterMax, "meter.max", name, value);
+                set_expr(&sMeterMax, "mmax", name, value);
+
+                sMeterVisible.set("meter.visibility", name, value);
+                sMeterVisible.set("meter.v", name, value);
+                sMeterVisible.set("mvisibility", name, value);
+
+                sEditable.set("editable", name, value);
 
                 if (!strcmp(name, "min"))
                 {
@@ -205,7 +224,7 @@ namespace lsp
                 if (pPort != NULL)
                 {
                     pPort->set_value(value);
-                    pPort->notify_all();
+                    pPort->notify_all(ui::PORT_USER_EDIT);
                 }
                 return;
             }
@@ -234,7 +253,7 @@ namespace lsp
             if (pPort != NULL)
             {
                 pPort->set_value(value);
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             }
         }
 
@@ -250,7 +269,7 @@ namespace lsp
             if (pPort != NULL)
             {
                 pPort->set_value(dfl);
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             }
         }
 
@@ -315,6 +334,7 @@ namespace lsp
 
             float min = 0.0f, max = 1.0f, step = 0.01f, balance = 0.0f;
             float value     = (pPort != NULL) ? pPort->value() : xp.start;
+            float mtr_min = 0.0f, mtr_max = 1.0f;
 
             if (meta::is_gain_unit(p->unit)) // Gain
             {
@@ -323,17 +343,23 @@ namespace lsp
                 min             = (p->flags & meta::F_LOWER) ? p->min : 0.0f;
                 max             = (p->flags & meta::F_UPPER) ? p->max : GAIN_AMP_P_12_DB;
                 float dfl       = (nFlags & KF_BAL_SET) ? fBalance : min;
+                mtr_min         = (sMeterMin.valid()) ? sMeterMin.evaluate_float() : min;
+                mtr_max         = (sMeterMax.valid()) ? sMeterMax.evaluate_float() : min;
 
                 step            = base * log((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f) * 0.1f;
                 double thresh   = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
 
-                min             = (fabs(min)   < thresh) ? (base * log(thresh) - step) : (base * log(min));
-                max             = (fabs(max)   < thresh) ? (base * log(thresh) - step) : (base * log(max));
-                double db_dfl   = (fabs(dfl)   < thresh) ? (base * log(thresh) - step) : (base * log(dfl));
-                value           = (fabs(value) < thresh) ? (base * log(thresh) - step) : (base * log(value));
+                min             = (fabs(min)   < thresh)    ? (base * log(thresh) - step) : (base * log(min));
+                max             = (fabs(max)   < thresh)    ? (base * log(thresh) - step) : (base * log(max));
+                double db_dfl   = (fabs(dfl)   < thresh)    ? (base * log(thresh) - step) : (base * log(dfl));
+                value           = (fabs(value) < thresh)    ? (base * log(thresh) - step) : (base * log(value));
+                mtr_min         = (fabs(mtr_min) < thresh)  ? (base * log(thresh) - step) : (base * log(mtr_min));
+                mtr_max         = (fabs(mtr_max) < thresh)  ? (base * log(thresh) - step) : (base * log(mtr_max));
 
                 balance         = lsp_xlimit(db_dfl, min, max);
                 value           = lsp_xlimit(value, min, max);
+                mtr_min         = lsp_xlimit(mtr_min, min, max);
+                mtr_max         = lsp_xlimit(mtr_max, min, max);
 
                 step           *= 10.0f;
                 fDefaultValue   = base * log(p->start);
@@ -344,8 +370,13 @@ namespace lsp
                 max             = (p->unit == meta::U_ENUM) ? min + meta::list_size(p->items) - 1.0f :
                                   (p->flags & meta::F_UPPER) ? p->max : 1.0f;
                 float dfl       = (nFlags & KF_BAL_SET) ? fBalance : p->min;
+                mtr_min         = (sMeterMin.valid()) ? sMeterMin.evaluate_float() : min;
+                mtr_max         = (sMeterMax.valid()) ? sMeterMax.evaluate_float() : min;
+
                 balance         = lsp_xlimit(dfl, min, max);
                 value           = lsp_xlimit(value, min, max);
+                mtr_min         = lsp_xlimit(mtr_min, min, max);
+                mtr_max         = lsp_xlimit(mtr_max, min, max);
                 ssize_t istep   = (p->flags & meta::F_STEP) ? p->step : 1;
 
                 step            = (istep == 0) ? 1.0f : istep;
@@ -356,13 +387,17 @@ namespace lsp
                 float xmin      = (p->flags & meta::F_LOWER) ? p->min : 0.0f;
                 float xmax      = (p->flags & meta::F_UPPER) ? p->max : GAIN_AMP_P_12_DB;
                 float xdfl      = (nFlags & KF_BAL_SET) ? fBalance : min;
+                float xmtr_min  = (sMeterMin.valid()) ? sMeterMin.evaluate_float() : xmin;
+                float xmtr_max  = (sMeterMax.valid()) ? sMeterMax.evaluate_float() : xmin;
                 float thresh    = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
 
                 step            = log((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f);
-                min             = (fabs(xmin) < thresh)  ? log(thresh) - step : log(xmin);
-                max             = (fabs(xmax) < thresh)  ? log(thresh) - step : log(xmax);
-                float dfl       = (fabs(xdfl) < thresh)  ? log(thresh) - step : log(xdfl);
-                value           = (fabs(value) < thresh) ? log(thresh) - step : log(value);
+                min             = (fabs(xmin) < thresh)     ? log(thresh) - step : log(xmin);
+                max             = (fabs(xmax) < thresh)     ? log(thresh) - step : log(xmax);
+                float dfl       = (fabs(xdfl) < thresh)     ? log(thresh) - step : log(xdfl);
+                value           = (fabs(value) < thresh)    ? log(thresh) - step : log(value);
+                mtr_min         = (fabs(xmtr_min) < thresh) ? log(thresh) - step : log(xmtr_min);
+                mtr_max         = (fabs(xmtr_max) < thresh) ? log(thresh) - step : log(xmtr_max);
 
                 balance         = lsp_xlimit(dfl, min, max);
                 value           = lsp_xlimit(value, min, max);
@@ -375,8 +410,13 @@ namespace lsp
                 min             = (p->flags & meta::F_LOWER) ? p->min : 0.0f;
                 max             = (p->flags & meta::F_UPPER) ? p->max : 1.0f;
                 float dfl       = (nFlags & KF_BAL_SET) ? fBalance : min;
+                mtr_min         = (sMeterMin.valid()) ? sMeterMin.evaluate_float() : min;
+                mtr_max         = (sMeterMax.valid()) ? sMeterMax.evaluate_float() : min;
+
                 balance         = lsp_xlimit(dfl, min, max);
                 value           = lsp_xlimit(value, min, max);
+                mtr_min         = lsp_xlimit(mtr_min, min, max);
+                mtr_max         = lsp_xlimit(mtr_max, min, max);
 
                 step            = (p->flags & meta::F_STEP) ? p->step * 10.0f : (max - min) * 0.1f;
                 fDefaultValue   = p->start;
@@ -390,6 +430,8 @@ namespace lsp
                 knob->value()->set_max(max);
             if (flags & KF_VALUE)
                 knob->value()->set((flags & KF_DFL) ? fDefaultValue : value);
+            knob->meter_min()->set(mtr_min);
+            knob->meter_max()->set(mtr_max);
             knob->step()->set(step);
             knob->balance()->set(balance);
 
@@ -399,23 +441,28 @@ namespace lsp
                 knob->step()->set_decel(fDStep);
         }
 
-        void Knob::notify(ui::IPort *port)
+        void Knob::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
-            size_t flags = 0;
+            Widget::notify(port, flags);
+            size_t k_flags = 0;
 
             if (sMin.depends(port))
-                flags      |= KF_MIN;
+                k_flags    |= KF_MIN;
             if (sMax.depends(port))
-                flags      |= KF_MAX;
+                k_flags    |= KF_MAX;
+            if (sMeterMin.depends(port))
+                k_flags    |= KF_METER_MIN;
+            if (sMeterMax.depends(port))
+                k_flags    |= KF_METER_MAX;
+
             if (pPort != NULL)
             {
                 if (port == pPort)
-                    flags      |= KF_VALUE;
+                    k_flags    |= KF_VALUE;
             }
 
-            if (flags)
-                commit_value(flags);
+            if (k_flags)
+                commit_value(k_flags);
 
             sync_scale_state();
         }

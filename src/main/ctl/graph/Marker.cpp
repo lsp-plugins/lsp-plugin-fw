@@ -208,13 +208,13 @@ namespace lsp
                     return;
 
                 pPort->set_value(v);
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             }
         }
 
-        void Marker::notify(ui::IPort *port)
+        void Marker::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             tk::GraphMarker *gm = tk::widget_cast<tk::GraphMarker>(wWidget);
             if (gm != NULL)

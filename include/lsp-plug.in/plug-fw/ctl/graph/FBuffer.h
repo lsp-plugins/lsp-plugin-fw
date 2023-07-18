@@ -58,18 +58,18 @@ namespace lsp
 
             public:
                 explicit FBuffer(ui::IWrapper *wrapper, tk::GraphFrameBuffer *widget);
-                virtual ~FBuffer();
+                virtual ~FBuffer() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        notify(ui::IPort *port);
-                virtual void        end(ui::UIContext *ctx);
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
+                virtual void        end(ui::UIContext *ctx) override;
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

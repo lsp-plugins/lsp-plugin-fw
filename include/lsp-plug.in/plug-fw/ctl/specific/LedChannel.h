@@ -102,20 +102,20 @@ namespace lsp
                 void                sync_colors();
 
             protected:
-                virtual void        property_changed(tk::Property *prop);
+                virtual void        property_changed(tk::Property *prop) override;
 
             public:
                 explicit LedChannel(ui::IWrapper *wrapper, tk::LedMeterChannel *widget);
-                virtual ~LedChannel();
+                virtual ~LedChannel() override;
 
-                virtual status_t    init();
-                virtual void        destroy();
+                virtual status_t    init() override;
+                virtual void        destroy() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        notify(ui::IPort *port);
-                virtual void        end(ui::UIContext *ctx);
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
+                virtual void        end(ui::UIContext *ctx) override;
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
     } // namespace ctl
 } // namespace lsp

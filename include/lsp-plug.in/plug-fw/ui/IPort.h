@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -118,9 +118,9 @@ namespace lsp
                 virtual void        set_value(float value, size_t flags);
 
                 /** Notify all that port data has been changed
-                 *
+                 * @param flags port notification flags, @see notify_flags_t
                  */
-                virtual void        notify_all();
+                virtual void        notify_all(size_t flags);
 
                 /** Notify all that port metadata has been changed
                  *

@@ -79,7 +79,7 @@ namespace lsp
             settings.environment    = &env;
 
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
 
             // Create the display
@@ -189,6 +189,15 @@ namespace lsp
         void UIWrapper::dump_state_request()
         {
             return pWrapper->dump_plugin_state();
+        }
+
+        void UIWrapper::main_iteration()
+        {
+            IWrapper::main_iteration();
+
+            // Always call main iteration for the underlying display
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
         }
 
         status_t UIWrapper::play_file(const char *file, wsize_t position, bool release)
@@ -381,7 +390,7 @@ namespace lsp
                 jack::UIPort *jup   = vSyncPorts.uget(i);
                 do {
                     if (jup->sync())
-                        jup->notify_all();
+                        jup->notify_all(ui::PORT_NONE);
                 } while (jup->sync_again());
             }
 

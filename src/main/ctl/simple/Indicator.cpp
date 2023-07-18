@@ -68,7 +68,7 @@ namespace lsp
             {
                 pIndicator->parse_format();
                 if (pIndicator->pPort != NULL)
-                    pIndicator->notify(pIndicator->pPort);
+                    pIndicator->notify(pIndicator->pPort, ui::PORT_NONE);
             }
         }
 
@@ -168,9 +168,9 @@ namespace lsp
                 ind->text()->set_raw(&text);
         }
 
-        void Indicator::notify(ui::IPort *port)
+        void Indicator::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
             if ((port == pPort) && (pPort != NULL))
                 commit_value(pPort->value());
         }

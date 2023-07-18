@@ -54,16 +54,16 @@ namespace lsp
 
             public:
                 explicit Origin(ui::IWrapper *wrapper, tk::GraphOrigin *widget);
-                virtual ~Origin();
+                virtual ~Origin() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        notify(ui::IPort *port);
-                virtual void        reloaded(const tk::StyleSheet *sheet);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
+                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_ORIGIN_H_ */

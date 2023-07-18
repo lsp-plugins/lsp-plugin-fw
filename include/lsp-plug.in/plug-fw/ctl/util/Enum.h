@@ -50,20 +50,20 @@ namespace lsp
                 void            apply_changes();
 
             protected:
-                virtual void    on_updated(ui::IPort *port);
+                virtual void    on_updated(ui::IPort *port) override;
 
             public:
                 explicit        Enum();
-                virtual         ~Enum();
+                virtual         ~Enum() override;
 
                 void            init(ui::IWrapper *wrapper, tk::Enum *prop);
 
             public:
                 bool            set(const char *prop, const char *name, const char *value);
                 inline ssize_t  value() const   { return pProp->index();  }
-                virtual void    reloaded(const tk::StyleSheet *sheet);
+                virtual void    reloaded(const tk::StyleSheet *sheet) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_ENUM_H_ */

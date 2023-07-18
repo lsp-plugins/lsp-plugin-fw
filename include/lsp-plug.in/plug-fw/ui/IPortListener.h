@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -34,6 +34,12 @@ namespace lsp
     {
         class IPort;
 
+        enum notify_flags_t
+        {
+            PORT_NONE       = 0,
+            PORT_USER_EDIT  = 1 << 0
+        };
+
         /**
          * Port listener
          */
@@ -47,8 +53,9 @@ namespace lsp
                 /**
                  * Is called when the port value has been changed
                  * @param port port that caused the change
+                 * @param edit indicates that the parameter is changed within the user's edit action, @see notify_flags_t
                  */
-                virtual void notify(IPort *port);
+                virtual void notify(IPort *port, size_t flags);
 
                 /**
                  * Is called when the metadata of port has been changed
@@ -57,7 +64,7 @@ namespace lsp
                 virtual void sync_metadata(IPort *port);
         };
 
-    } /* namespace tk */
+    } /* namespace ui */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_UI_IPORTLISTENER_H_ */

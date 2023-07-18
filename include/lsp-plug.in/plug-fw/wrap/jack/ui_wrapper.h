@@ -80,6 +80,8 @@ namespace lsp
 
                 virtual void                dump_state_request() override;
 
+                virtual void                main_iteration() override;
+
                 virtual const meta::package_t      *package() const override;
 
                 virtual status_t            play_file(const char *file, wsize_t position, bool release) override;

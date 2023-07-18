@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 апр. 2021 г.
@@ -34,7 +34,7 @@ namespace lsp
 
             public:
                 explicit ValuePort(const meta::port_t *meta);
-                virtual ~ValuePort();
+                virtual ~ValuePort() override;
 
             public:
                 void commit_value(float value);
@@ -42,10 +42,10 @@ namespace lsp
                 void sync();
 
             public:
-                virtual float value();
+                virtual float value() override;
         };
 
-    } /* namespace ctl */
+    } /* namespace ui */
 } /* namespace lsp */
 
 

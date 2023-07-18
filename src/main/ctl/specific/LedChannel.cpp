@@ -197,9 +197,9 @@ namespace lsp
             sync_colors();
         }
 
-        void LedChannel::notify(ui::IPort *port)
+        void LedChannel::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             tk::LedMeterChannel *lmc = tk::widget_cast<tk::LedMeterChannel>(wWidget);
             if (lmc != NULL)

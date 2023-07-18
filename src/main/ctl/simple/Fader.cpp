@@ -188,9 +188,9 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        void Fader::notify(ui::IPort *port)
+        void Fader::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             if ((port == pPort) && (pPort != NULL))
                 commit_value(pPort->value());
@@ -320,7 +320,7 @@ namespace lsp
             if (p == NULL)
             {
                 pPort->set_value(value);
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
                 return;
             }
 
@@ -345,7 +345,7 @@ namespace lsp
             }
 
             pPort->set_value(value);
-            pPort->notify_all();
+            pPort->notify_all(ui::PORT_USER_EDIT);
         }
 
         void Fader::set_default_value()
@@ -381,7 +381,7 @@ namespace lsp
             if (pPort != NULL)
             {
                 pPort->set_value(dfl);
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             }
         }
 

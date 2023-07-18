@@ -59,7 +59,7 @@ namespace lsp
                 ui::IPortListener          *pListener;
 
             protected:
-                virtual void    on_updated(ui::IPort *port);
+                virtual void    on_updated(ui::IPort *port) override;
 
             public:
                 explicit Expression();
@@ -85,7 +85,7 @@ namespace lsp
 
                 inline expr::Parameters *params()       { return &sParams; };
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_EXPRESSION_H_ */

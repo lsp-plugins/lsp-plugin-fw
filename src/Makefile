@@ -1014,38 +1014,38 @@ $(ARTIFACT_XDG_INST): install_xdg_msg
 
 install_jack: jack
 	echo "Install jack"
-	mkdir -p "$(DESTDIR)/$(JACK_LIBDIR)"
-	mkdir -p "$(DESTDIR)/$(BINDIR)"
+	mkdir -p "$(DESTDIR)$(JACK_LIBDIR)"
+	mkdir -p "$(DESTDIR)$(BINDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_JACK) "$(DESTDIR)$(JACK_LIBDIR)/"
-	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
+	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(DESTDIR)$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 install_ladspa: ladspa
 	echo "Install ladspa"
-	mkdir -p "$(DESTDIR)/$(LADSPA_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(DESTDIR)/$(LADSPA_LIBDIR)/"
+	mkdir -p "$(DESTDIR)$(LADSPA_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(DESTDIR)$(LADSPA_LIBDIR)/"
 
 install_lv2: lv2
 	echo "Install lv2"
-	mkdir -p "$(DESTDIR)/$(LV2_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_LV2) "$(DESTDIR)/$(LV2_LIBDIR)/"
-	$(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(DESTDIR)/$(LV2_LIBDIR)/"
-	$(HOST_UTL_LV2TTL_GEN) -o "$(DESTDIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" -ui $(ARTIFACT_LIB_LV2_UI)
+	mkdir -p "$(DESTDIR)$(LV2_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_LV2) "$(DESTDIR)$(LV2_LIBDIR)/"
+	$(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(DESTDIR)$(LV2_LIBDIR)/"
+	$(HOST_UTL_LV2TTL_GEN) -o "$(DESTDIR)$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" -ui $(ARTIFACT_LIB_LV2_UI)
 
 install_vst2: vst2
 	echo "Install vst2"
-	mkdir -p "$(DESTDIR)/$(VST2_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)/$(VST2_LIBDIR)/"
-	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(DESTDIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
+	mkdir -p "$(DESTDIR)$(VST2_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)$(VST2_LIBDIR)/"
+	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(DESTDIR)$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
 install_clap: clap
 	echo "Install clap"
-	mkdir -p "$(DESTDIR)/$(CLAP_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(DESTDIR)/$(CLAP_LIBDIR)/"
+	mkdir -p "$(DESTDIR)$(CLAP_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(DESTDIR)$(CLAP_LIBDIR)/"
 
 install_doc: doc
 	echo "Install doc"
-	mkdir -p "$(DESTDIR)/$(DOC_SHAREDDIR)"
-	cp -R $(ARTIFACT_DOC_PATH)/* "$(DESTDIR)/$(DOC_SHAREDDIR)"
+	mkdir -p "$(DESTDIR)$(DOC_SHAREDDIR)"
+	cp -R $(ARTIFACT_DOC_PATH)/* "$(DESTDIR)$(DOC_SHAREDDIR)"
 
 install_xdg_msg:
 	echo "Install xdg"
@@ -1170,28 +1170,28 @@ uninstall_jack:
 	echo "Uninstall jack"
 	-rm -f $(INSTALL) $(DESTDIR)$(JACK_LIBDIR)/$(notdir $(ARTIFACT_LIB_JACK))
 	-rmdir "$(DESTDIR)$(JACK_LIBDIR)" >/dev/null 2>&1
-	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" uninstall DESTDIR="$(DESTDIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
+	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" uninstall DESTDIR="$(DESTDIR)$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
 
 uninstall_ladspa:
 	echo "Uninstall ladspa"
-	-rm -f "$(DESTDIR)/$(LADSPA_LIBDIR)/$(notdir $(ARTIFACT_LIB_LADSPA))"
+	-rm -f "$(DESTDIR)$(LADSPA_LIBDIR)/$(notdir $(ARTIFACT_LIB_LADSPA))"
 
 uninstall_lv2:
 	echo "Uninstall lv2"
-	mkdir -p "$(DESTDIR)/$(LV2_LIBDIR)"
-	-rm -rf "$(DESTDIR)/$(LV2_LIBDIR)"
+	mkdir -p "$(DESTDIR)$(LV2_LIBDIR)"
+	-rm -rf "$(DESTDIR)$(LV2_LIBDIR)"
 
 uninstall_vst2:
 	echo "Uninstall vst2"
-	-rm -rf "$(DESTDIR)/$(VST2_LIBDIR)"
+	-rm -rf "$(DESTDIR)$(VST2_LIBDIR)"
 	
 uninstall_clap:
 	echo "Uninstall clap"
-	-rm -f "$(DESTDIR)/$(CLAP_LIBDIR)/$(notdir $(ARTIFACT_LIB_CLAP))"
+	-rm -f "$(DESTDIR)$(CLAP_LIBDIR)/$(notdir $(ARTIFACT_LIB_CLAP))"
 	
 uninstall_doc:
 	echo "Uninstall doc"
-	-rm -rf "$(DESTDIR)/$(DOC_SHAREDDIR)"
+	-rm -rf "$(DESTDIR)$(DOC_SHAREDDIR)"
 
 uninstall_xdg_msg:
 	echo "Unnstall xdg"

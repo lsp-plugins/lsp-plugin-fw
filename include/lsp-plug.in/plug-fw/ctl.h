@@ -85,6 +85,7 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/Dot.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Mesh.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/FBuffer.h>
+    #include <lsp-plug.in/plug-fw/ctl/graph/LineSegment.h>
 
     #include <lsp-plug.in/plug-fw/ctl/3d/types.h>
     #include <lsp-plug.in/plug-fw/ctl/3d/Area3D.h>

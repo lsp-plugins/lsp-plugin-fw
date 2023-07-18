@@ -80,19 +80,19 @@ namespace lsp
                 status_t            compute_capture_settings(size_t *num_settings, dspu::rt_capture_settings_t *settings);
 
             protected:
-                virtual void        process_data_change(lltl::parray<r3d::buffer_t> *dst);
-                virtual void        process_transform_change();
+                virtual void        process_data_change(lltl::parray<r3d::buffer_t> *dst) override;
+                virtual void        process_transform_change() override;
 
             public:
                 explicit Capture3D(ui::IWrapper *wrapper);
-                virtual ~Capture3D();
+                virtual ~Capture3D() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
 
-                virtual void        property_changed(tk::Property *prop);
+                virtual void        property_changed(tk::Property *prop) override;
         };
 
     } /* namespace ctl */

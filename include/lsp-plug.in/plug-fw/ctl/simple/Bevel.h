@@ -50,12 +50,12 @@ namespace lsp
 
             public:
                 explicit Bevel(ui::IWrapper *wrapper, tk::Bevel *widget);
-                virtual ~Bevel();
+                virtual ~Bevel() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
         };
     }
 }

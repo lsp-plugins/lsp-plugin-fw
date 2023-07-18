@@ -141,7 +141,7 @@ namespace lsp
             }
         }
 
-        void Embedding::notify(ui::IPort *port)
+        void Embedding::notify(ui::IPort *port, size_t flags)
         {
             if (pEmbedding == NULL)
                 return;

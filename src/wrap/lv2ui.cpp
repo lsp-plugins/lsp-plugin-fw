@@ -152,8 +152,10 @@ namespace lsp
         void ui_cleanup(LV2UI_Handle ui)
         {
             lsp_trace("this = %p", ui);
+
             UIWrapper *w = reinterpret_cast<UIWrapper *>(ui);
             w->destroy();
+            delete w;
         }
 
         void ui_port_event(

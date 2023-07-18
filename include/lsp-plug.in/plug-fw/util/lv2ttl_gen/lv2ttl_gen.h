@@ -99,10 +99,6 @@ namespace lsp
         } cmdline_t;
 
         //-----------------------------------------------------------------------------
-        extern const plugin_group_t plugin_groups[];
-
-        extern const plugin_unit_t plugin_units[];
-
         /**
          * Parse command-line arguments
          * @param cfg command line configuration

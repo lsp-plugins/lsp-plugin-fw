@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 23 мая 2021 г.
@@ -26,7 +26,9 @@
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
 
+#include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/ctl/util/Expression.h>
 #include <lsp-plug.in/plug-fw/ctl/util/Property.h>
 #include <lsp-plug.in/expr/Parameters.h>
 
@@ -34,27 +36,52 @@ namespace lsp
 {
     namespace ctl
     {
-        class LCString
+        /**
+         * Localized string controller with parameter substitution
+         */
+        class LCString: public ui::IPortListener
         {
             private:
                 LCString & operator = (const LCString &);
 
             protected:
-                ui::IWrapper   *pWrapper;
-                tk::String     *pProp;
+                typedef struct param_t
+                {
+                    ctl::Expression         sExpr;
+                    LSPString               sValue;
+                    bool                    bInitialized;
+                } param_t;
 
             protected:
+                ui::IWrapper               *pWrapper;
+                tk::String                 *pProp;
+                bool                        bEvaluate;
+                lltl::pphash<char, param_t> vParams;
+
+            protected:
+                void            do_destroy();
                 void            bind_metadata(expr::Parameters *params);
+                void            update_text(ui::IPort *port);
+                bool            add_parameter(const char *name, const char *expr);
+                bool            init_expressions();
 
             public:
                 explicit        LCString();
+                virtual         ~LCString() override;
+
                 void            init(ui::IWrapper *wrapper, tk::String *prop);
+                void            destroy();
 
             public:
                 bool            set(const char *param, const char *name, const char *value);
+
+            public:
+                virtual void    notify(ui::IPort *port, size_t flags) override;
+                virtual void    sync_metadata(ui::IPort *port) override;
         };
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

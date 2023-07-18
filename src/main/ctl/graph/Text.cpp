@@ -147,9 +147,9 @@ namespace lsp
             }
         }
 
-        void Text::notify(ui::IPort *port)
+        void Text::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
 
             if ((pPort == port) && (pPort != NULL))
                 trigger_expr();

@@ -522,7 +522,7 @@ namespace lsp
         {
         }
 
-        void Widget::notify(ui::IPort *port)
+        void Widget::notify(ui::IPort *port, size_t flags)
         {
         }
 

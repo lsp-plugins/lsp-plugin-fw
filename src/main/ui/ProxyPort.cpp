@@ -85,7 +85,7 @@ namespace lsp
             sMetadata.id    = sID;
 
             // Notify about port change
-            IPort::notify_all();
+            IPort::notify_all(ui::PORT_NONE);
         }
 
         void ProxyPort::write(const void *buffer, size_t size)
@@ -128,10 +128,10 @@ namespace lsp
             pPort->set_value(value, flags);
         }
 
-        void ProxyPort::notify_all()
+        void ProxyPort::notify_all(size_t flags)
         {
-            pPort->notify_all();
-            IPort::notify_all();
+            pPort->notify_all(flags);
+            IPort::notify_all(flags);
         }
 
         void ProxyPort::sync_metadata()
@@ -148,10 +148,10 @@ namespace lsp
             return sID;
         }
 
-        void ProxyPort::notify(IPort *port)
+        void ProxyPort::notify(IPort *port, size_t flags)
         {
             if (port == pPort)
-                IPort::notify_all();
+                IPort::notify_all(flags);
         }
 
     } /* namespace ui */

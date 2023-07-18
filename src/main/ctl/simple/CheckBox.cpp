@@ -171,13 +171,13 @@ namespace lsp
             if (pPort != NULL)
             {
                 pPort->set_value(value);
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             }
         }
 
-        void CheckBox::notify(ui::IPort *port)
+        void CheckBox::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
             if ((port == pPort) && (pPort != NULL))
                 commit_value(pPort->value());
         }

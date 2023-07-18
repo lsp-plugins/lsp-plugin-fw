@@ -125,7 +125,7 @@ namespace lsp
             const char *path = decoded.get_utf8();
 
             pButton->pPort->write(path, strlen(path));
-            pButton->pPort->notify_all();
+            pButton->pPort->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }
@@ -337,9 +337,9 @@ namespace lsp
             update_state();
         }
 
-        void FileButton::notify(ui::IPort *port)
+        void FileButton::notify(ui::IPort *port, size_t flags)
         {
-            Widget::notify(port);
+            Widget::notify(port, flags);
             bool update = false;
             if (port != NULL)
             {
@@ -436,7 +436,7 @@ namespace lsp
             // Write new path as UTF-8 string
             const char *u8path = path.get_utf8();
             pPathPort->write(u8path, strlen(u8path));
-            pPathPort->notify_all();
+            pPathPort->notify_all(ui::PORT_USER_EDIT);
         }
 
         void FileButton::commit_file()
@@ -453,13 +453,13 @@ namespace lsp
             {
                 const char *u8path = path.get_utf8();
                 pPort->write(u8path, strlen(u8path));
-                pPort->notify_all();
+                pPort->notify_all(ui::PORT_USER_EDIT);
             }
             // Trigger file save
             if (pCommand != NULL)
             {
                 pCommand->set_value(1.0f);
-                pCommand->notify_all();
+                pCommand->notify_all(ui::PORT_USER_EDIT);
             }
         }
 

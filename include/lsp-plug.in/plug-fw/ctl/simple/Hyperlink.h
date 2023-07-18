@@ -50,12 +50,12 @@ namespace lsp
 
             public:
                 explicit Hyperlink(ui::IWrapper *wrapper, tk::Hyperlink *widget);
-                virtual ~Hyperlink();
+                virtual ~Hyperlink() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
         };
     }
 }

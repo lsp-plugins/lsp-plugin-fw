@@ -174,7 +174,7 @@ namespace lsp
             settings.environment    = &env;
 
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
 
             // Create the display
@@ -234,6 +234,14 @@ namespace lsp
 
             // Call parent instance
             IWrapper::destroy();
+
+            // Destroy the display
+            if (pDisplay != NULL)
+            {
+                pDisplay->destroy();
+                delete pDisplay;
+                pDisplay        = NULL;
+            }
         }
 
         void UIWrapper::terminate_idle_thread()
@@ -272,7 +280,16 @@ namespace lsp
         void UIWrapper::main_iteration()
         {
             transfer_dsp_to_ui();
+
             IWrapper::main_iteration();
+
+            // Call main iteration for the underlying display
+            // For windows, we do not need to call main_iteration() because the main
+            // event loop is provided by the hosting application
+        #ifndef PLATFORM_WINDOWS
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
+        #endif /* PLATFORM_WINDOWS */
         }
 
         const meta::package_t *UIWrapper::package() const
@@ -297,7 +314,7 @@ namespace lsp
                 vst2::UIPort *vup   = static_cast<vst2::UIPort *>(vPorts.uget(i));
                 do {
                     if (vup->sync())
-                        vup->notify_all();
+                        vup->notify_all(ui::PORT_NONE);
                 } while (vup->sync_again());
             } // for port_id
 
@@ -375,7 +392,7 @@ namespace lsp
             {
                 vst2::UIPort  *vp   = static_cast<vst2::UIPort *>(vPorts.uget(i));
                 if (vp != NULL)
-                    vp->notify_all();
+                    vp->notify_all(ui::PORT_NONE);
             }
 
             core::KVTStorage *kvt = kvt_lock();

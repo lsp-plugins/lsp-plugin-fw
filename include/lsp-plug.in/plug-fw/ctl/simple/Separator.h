@@ -48,14 +48,14 @@ namespace lsp
 
             public:
                 explicit Separator(ui::IWrapper *wrapper, tk::Separator *widget, ssize_t orientation);
-                virtual ~Separator();
+                virtual ~Separator() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_SEPARATOR_H_ */

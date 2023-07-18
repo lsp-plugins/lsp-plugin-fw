@@ -243,9 +243,9 @@ namespace lsp
             return Object3D::set(ctx, name, value);
         }
 
-        void Model3D::notify(ui::IPort *port)
+        void Model3D::notify(ui::IPort *port, size_t flags)
         {
-            Object3D::notify(port);
+            Object3D::notify(port, flags);
             if (port == NULL)
                 return;
 

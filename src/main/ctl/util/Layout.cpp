@@ -52,7 +52,7 @@ namespace lsp
                 pLayout->set_vscale(sVScale.evaluate_float(0.0f));
         }
 
-        void Layout::notify(ui::IPort *port)
+        void Layout::notify(ui::IPort *port, size_t flags)
         {
             if ((sHAlign.depends(port)) ||
                 (sVAlign.depends(port)) ||

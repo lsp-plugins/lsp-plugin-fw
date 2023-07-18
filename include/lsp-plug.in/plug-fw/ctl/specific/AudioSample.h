@@ -61,11 +61,11 @@ namespace lsp
 
                     public:
                         explicit DataSink(AudioSample *sample);
-                        virtual ~DataSink();
+                        virtual ~DataSink() override;
 
                     public:
-                        virtual status_t    receive(const LSPString *text, const char *mime);
-                        virtual status_t    error(status_t code);
+                        virtual status_t    receive(const LSPString *text, const char *mime) override;
+                        virtual status_t    error(status_t code) override;
 
                         void        unbind();
                 };
@@ -77,10 +77,10 @@ namespace lsp
 
                     public:
                         explicit DragInSink(AudioSample *sample);
-                        virtual ~DragInSink();
+                        virtual ~DragInSink() override;
 
                         void unbind();
-                        virtual status_t    commit_url(const LSPString *url);
+                        virtual status_t    commit_url(const LSPString *url) override;
                 };
 
             protected:
@@ -178,7 +178,7 @@ namespace lsp
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
                 virtual void        end(ui::UIContext *ctx) override;
-                virtual void        notify(ui::IPort *port) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
 

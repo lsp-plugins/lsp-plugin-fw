@@ -41,12 +41,12 @@ namespace lsp
 
             public:
                 explicit    ControlPort(const meta::port_t *meta, IWrapper *wrapper);
-                virtual    ~ControlPort();
+                virtual    ~ControlPort() override;
 
             public:
-                virtual float   value();
+                virtual float   value() override;
 
-                virtual void    set_value(float value);
+                virtual void    set_value(float value) override;
 
         };
     }

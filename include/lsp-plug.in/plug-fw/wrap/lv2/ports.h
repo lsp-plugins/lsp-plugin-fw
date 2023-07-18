@@ -464,7 +464,7 @@ namespace lsp
                      value       = meta::limit_value(pMetadata, value);
                      if (pMetadata->flags & meta::F_PEAK)
                      {
-                         if (fabs(fValue) < fabs(value))
+                         if (fabsf(fValue) < fabsf(value))
                              fValue = value;
                      }
                      else

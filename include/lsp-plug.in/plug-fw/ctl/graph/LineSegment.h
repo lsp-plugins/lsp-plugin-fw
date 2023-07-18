@@ -2,8 +2,8 @@
  * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugin-fw
- * Created on: 18 авг. 2021 г.
+ * This file is part of lsp-plugins-gott-compressor
+ * Created on: 18 июн. 2023 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_DOT_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_DOT_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_LINESEGMENT_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_LINESEGMENT_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,9 +34,9 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Graph widget that contains another graphic elements
+         * Line segment on the graph widget
          */
-        class Dot: public Widget
+        class LineSegment: public Widget
         {
             public:
                 static const ctl_class_t metadata;
@@ -76,23 +76,26 @@ namespace lsp
                 param_t             sY;
                 param_t             sZ;
 
-                ctl::Integer        sSize;
-                ctl::Integer        sHoverSize;
-                ctl::Integer        sBorderSize;
-                ctl::Integer        sHoverBorderSize;
-                ctl::Integer        sGap;
-                ctl::Integer        sHoverGap;
+                ctl::Boolean        sSmooth;
+                ctl::Integer        sWidth;
+                ctl::Integer        sHoverWidth;
+                ctl::Integer        sLeftBorder;
+                ctl::Integer        sRightBorder;
+                ctl::Integer        sHoverLeftBorder;
+                ctl::Integer        sHoverRightBorder;
+                ctl::Expression     sBeginX;
+                ctl::Expression     sBeginY;
 
                 ctl::Color          sColor;
                 ctl::Color          sHoverColor;
-                ctl::Color          sBorderColor;
-                ctl::Color          sHoverBorderColor;
-                ctl::Color          sGapColor;
-                ctl::Color          sHoverGapColor;
+                ctl::Color          sLeftColor;
+                ctl::Color          sRightColor;
+                ctl::Color          sHoverLeftColor;
+                ctl::Color          sHoverRightColor;
 
             protected:
                 static void         init_param(param_t *p, tk::RangeFloat *value, tk::StepFloat *step);
-                void                set_dot_param(param_t *p, const char *prefix, const char *name, const char *value);
+                void                set_segment_param(param_t *p, const char *prefix, const char *name, const char *value);
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
                 void                submit_values();
@@ -102,8 +105,8 @@ namespace lsp
                 void                commit_value(param_t *p, ui::IPort *port, bool force);
 
             public:
-                explicit Dot(ui::IWrapper *wrapper, tk::GraphDot *widget);
-                virtual ~Dot() override;
+                explicit LineSegment(ui::IWrapper *wrapper, tk::GraphLineSegment *widget);
+                virtual ~LineSegment() override;
 
                 virtual status_t    init() override;
 
@@ -113,8 +116,10 @@ namespace lsp
                 virtual void        end(ui::UIContext *ctx) override;
                 virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
+
     } /* namespace ctl */
 } /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_DOT_H_ */
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_LINESEGMENT_H_ */

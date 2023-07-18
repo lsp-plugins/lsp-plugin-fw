@@ -50,22 +50,21 @@ namespace lsp
                 void            apply_changes();
 
             protected:
-                virtual void    on_updated(ui::IPort *port);
+                virtual void    on_updated(ui::IPort *port) override;
 
             public:
                 explicit        Float();
-                virtual         ~Float();
+                virtual         ~Float() override;
 
                 void            init(ui::IWrapper *wrapper, tk::Float *prop);
 
             public:
                 bool            set(const char *prop, const char *name, const char *value);
                 inline float    value() const   { return pProp->get();  }
-                virtual void    reloaded(const tk::StyleSheet *sheet);
+                virtual void    reloaded(const tk::StyleSheet *sheet) override;
         };
-    }
-}
-
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_UTIL_FLOAT_H_ */

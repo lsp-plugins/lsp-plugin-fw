@@ -28,6 +28,8 @@ namespace lsp
     {
         Module::Module(const meta::plugin_t *meta)
         {
+            lsp_trace("this=%p", this);
+
             pMetadata       = meta;
             pWrapper        = NULL;
             fSampleRate     = -1;
@@ -38,6 +40,7 @@ namespace lsp
 
         Module::~Module()
         {
+            lsp_trace("this=%p", this);
         }
 
         void Module::activate_ui()

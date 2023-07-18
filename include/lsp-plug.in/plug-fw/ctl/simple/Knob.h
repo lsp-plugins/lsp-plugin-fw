@@ -55,7 +55,9 @@ namespace lsp
                     KF_LOG_SET      = 1 << 8,
                     KF_CYCLIC       = 1 << 9,
                     KF_CYCLIC_SET   = 1 << 10,
-                    KF_VALUE        = 1 << 11
+                    KF_VALUE        = 1 << 11,
+                    KF_METER_MIN    = 1 << 12,
+                    KF_METER_MAX    = 1 << 13
                 };
 
             protected:
@@ -65,8 +67,14 @@ namespace lsp
                 ctl::Color          sHoleColor;
                 ctl::Color          sTipColor;
                 ctl::Color          sBalanceTipColor;
+                ctl::Color          sMeterColor;
+                ctl::Boolean        sMeterVisible;
+                ctl::Boolean        sEditable;
+
                 ctl::Expression     sMin;
                 ctl::Expression     sMax;
+                ctl::Expression     sMeterMin;
+                ctl::Expression     sMeterMax;
 
                 ui::IPort          *pPort;
                 ui::IPort          *pScaleEnablePort;
@@ -92,17 +100,17 @@ namespace lsp
 
             public:
                 explicit Knob(ui::IWrapper *wrapper, tk::Knob *widget);
-                virtual ~Knob();
+                virtual ~Knob() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        notify(ui::IPort *port);
-                virtual void        end(ui::UIContext *ctx);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
+                virtual void        end(ui::UIContext *ctx) override;
         };
     } /* namespace ctl */
-} /* namespace tk */
+} /* namespace lsp */
 
 
 

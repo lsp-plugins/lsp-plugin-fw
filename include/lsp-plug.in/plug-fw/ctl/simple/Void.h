@@ -46,15 +46,15 @@ namespace lsp
 
             public:
                 explicit Void(ui::IWrapper *wrapper, tk::Void *widget);
-                virtual ~Void();
+                virtual ~Void() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

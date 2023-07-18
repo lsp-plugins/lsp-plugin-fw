@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/stdlib/string.h>
@@ -138,7 +139,12 @@ namespace lsp
             // Assign the desired property
             switch (index)
             {
-                case C_VALUE:       pColor->set(value->v_str);              break;
+                case C_VALUE:
+                    if (value->v_str != NULL)
+                        pColor->set(value->v_str);
+                    else
+                        lsp_warn("Null value passed as value argument");
+                    break;
                 case C_RGB_R:       pColor->red(value->v_float);            break;
                 case C_RGB_G:       pColor->green(value->v_float);          break;
                 case C_RGB_B:       pColor->blue(value->v_float);           break;
@@ -326,7 +332,7 @@ namespace lsp
             return true;
         }
 
-        void Color::notify(ui::IPort *port)
+        void Color::notify(ui::IPort *port, size_t flags)
         {
             if (pColor == NULL)
                 return;

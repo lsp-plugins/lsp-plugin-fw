@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -95,7 +95,7 @@ namespace lsp
             return (pMetadata != NULL) ? pMetadata->id : NULL;
         }
 
-        void IPort::notify_all()
+        void IPort::notify_all(size_t flags)
         {
             // Prevent from modifying list of listeners at the sync stage
             lltl::parray<IPortListener> listeners;
@@ -105,7 +105,7 @@ namespace lsp
             // Call notify() for all listeners in the list
             size_t count = listeners.size();
             for (size_t i=0; i<count; ++i)
-                listeners.uget(i)->notify(this);
+                listeners.uget(i)->notify(this, flags);
         }
 
         void IPort::sync_metadata()
@@ -120,7 +120,7 @@ namespace lsp
             for (size_t i=0; i<count; ++i)
                 listeners.uget(i)->sync_metadata(this);
         }
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

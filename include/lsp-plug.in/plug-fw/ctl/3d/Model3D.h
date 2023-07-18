@@ -109,20 +109,22 @@ namespace lsp
 
             public:
                 explicit Model3D(ui::IWrapper *wrapper);
-                virtual ~Model3D();
+                virtual ~Model3D() override;
 
-                virtual status_t    init();
-                virtual void        destroy();
+                virtual status_t    init() override;
+                virtual void        destroy() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
-                virtual void        notify(ui::IPort *port);
-                virtual void        end(ui::UIContext *ctx);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
+                virtual void        end(ui::UIContext *ctx) override;
 
-                virtual void        property_changed(tk::Property *prop);
-                virtual bool        submit_background(dspu::bsp::context_t *dst);
+                virtual void        property_changed(tk::Property *prop) override;
+                virtual bool        submit_background(dspu::bsp::context_t *dst) override;
 
-                virtual bool        changed(core::KVTStorage *kvt, const char *id, const core::kvt_param_t *value);
+                virtual bool        changed(core::KVTStorage *kvt, const char *id, const core::kvt_param_t *value) override;
+
+            public:
                 virtual bool        match(const char *id);
 
             public:

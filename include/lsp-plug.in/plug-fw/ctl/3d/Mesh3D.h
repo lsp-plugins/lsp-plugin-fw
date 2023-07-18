@@ -107,24 +107,20 @@ namespace lsp
 
             public:
                 explicit Mesh3D(ui::IWrapper *wrapper);
-                virtual ~Mesh3D();
+                virtual ~Mesh3D() override;
 
-                virtual status_t    init();
-                virtual void        destroy();
+                virtual status_t    init() override;
+                virtual void        destroy() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        property_changed(tk::Property *prop) override;
+                virtual bool        submit_foreground(lltl::darray<r3d::buffer_t> *dst) override;
+                virtual void        query_draw() override;
 
-                virtual void        property_changed(tk::Property *prop);
-
-                virtual bool        submit_foreground(lltl::darray<r3d::buffer_t> *dst);
-
-                virtual void        query_draw();
-
+            public:
                 virtual void        query_data_change();
-
                 virtual void        query_transform_change();
-
                 virtual void        query_color_change();
         };
 

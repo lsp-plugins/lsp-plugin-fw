@@ -54,12 +54,12 @@ namespace lsp
 
             public:
                 explicit Rack(ui::IWrapper *wrapper, tk::RackEars *widget);
-                virtual ~Rack();
+                virtual ~Rack() override;
 
-                virtual status_t    init();
+                virtual status_t    init() override;
 
             public:
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
         };
 
     } /* namespace ctl */

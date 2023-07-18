@@ -137,6 +137,14 @@ namespace lsp
             // Destroy data
             IWrapper::destroy();
 
+            // Destroy the display
+            if (pDisplay != NULL)
+            {
+                pDisplay->destroy();
+                delete pDisplay;
+                pDisplay        = NULL;
+            }
+
             // Cleanup ports
             pLatency        = NULL;
 
@@ -258,7 +266,7 @@ namespace lsp
             settings.environment    = &env;
 
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
 
             // Create the display
@@ -312,7 +320,7 @@ namespace lsp
             {
                 ui::IPort *p = vPorts.uget(i);
                 if (p != NULL)
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
             }
 
             // Resize UI and show
@@ -617,7 +625,7 @@ namespace lsp
                         if ((p != NULL) && (value->type == p->get_type_urid()))
                         {
                             p->deserialize(value);
-                            p->notify_all();
+                            p->notify_all(ui::PORT_NONE);
                         }
 
                         key     = NULL;
@@ -670,7 +678,7 @@ namespace lsp
                 if (p != NULL)
                 {
                     p->deserialize(obj);
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
                 }
             }
             else if (obj->body.otype == pExt->uridStreamType)
@@ -680,7 +688,7 @@ namespace lsp
                 if (p != NULL)
                 {
                     p->deserialize(obj);
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
                 }
             }
             else if (obj->body.otype == pExt->uridFrameBufferType)
@@ -690,7 +698,7 @@ namespace lsp
                 if (p != NULL)
                 {
                     p->deserialize(obj);
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
                 }
             }
             else if (obj->body.otype == pExt->uridPlayPositionType)
@@ -732,7 +740,7 @@ namespace lsp
                 if (p != NULL)
                 {
                     p->notify(buf, format, size);
-                    p->notify_all();
+                    p->notify_all(ui::PORT_NONE);
                 }
             }
             else if ((pExt->nAtomIn >= 0) && (id == size_t(pExt->nAtomIn)))
@@ -934,7 +942,7 @@ namespace lsp
                     if (p == NULL)
                         continue;
                     if (p->sync())
-                        p->notify_all();
+                        p->notify_all(ui::PORT_NONE);
                 }
 
                 // Check that sample rate has changed
@@ -956,6 +964,14 @@ namespace lsp
 
             // Call the parent wrapper code
             IWrapper::main_iteration();
+
+            // Call main iteration for the underlying display
+            // For windows, we do not need to call main_iteration() because the main
+            // event loop is provided by the hosting application
+        #ifndef PLATFORM_WINDOWS
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
+        #endif /* PLATFORM_WINDOWS */
         }
 
         void UIWrapper::dump_state_request()

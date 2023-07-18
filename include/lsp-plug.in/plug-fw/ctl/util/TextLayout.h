@@ -55,7 +55,7 @@ namespace lsp
                 bool            set(const char *name, const char *value);
 
             public:
-                virtual void    notify(ui::IPort *port) override;
+                virtual void    notify(ui::IPort *port, size_t flags) override;
                 virtual void    reloaded(const tk::StyleSheet *sheet) override;
         };
 

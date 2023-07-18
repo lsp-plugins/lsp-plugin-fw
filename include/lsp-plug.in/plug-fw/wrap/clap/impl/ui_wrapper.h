@@ -41,13 +41,16 @@ namespace lsp
         {
             pWrapper        = wrapper;
             pExt            = wrapper->extensions();
-            pUIThread       = NULL;
             fScaling        = -100.0f;
             pParent         = NULL;
             pTransientFor   = NULL;
             bUIInitialized  = false;
             bRequestProcess = false;
             bUIActive       = false;
+
+        #ifdef LSP_CLAP_OWN_EVENT_LOOP
+            pUIThread       = NULL;
+        #endif /* LSP_CLAP_OWN_EVENT_LOOP */
         }
 
         UIWrapper::~UIWrapper()
@@ -83,7 +86,7 @@ namespace lsp
             settings.environment    = &env;
 
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "en_US"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
             LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
 
             // Create the display
@@ -92,6 +95,10 @@ namespace lsp
                 return STATUS_NO_MEM;
             if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
                 return res;
+
+            // Bind the display idle handler
+            pDisplay->slots()->bind(tk::SLOT_IDLE, slot_display_idle, this);
+            pDisplay->set_idle_interval(1000 / UI_FRAMES_PER_SECOND);
 
             // Load visual schema
             if ((res = init_visual_schema()) != STATUS_OK)
@@ -107,9 +114,12 @@ namespace lsp
         void UIWrapper::destroy()
         {
             // Update UI status
-            bUIActive       = true;
+            bUIActive       = false;
             if (pWrapper != NULL)
                 pWrapper->ui_visibility_changed();
+
+            // Stop the event loop
+            stop_event_loop();
 
             // Cleanup UI initialized flag
             bUIInitialized  = false;
@@ -135,7 +145,95 @@ namespace lsp
 
             // Call parent instance
             IWrapper::destroy();
+
+            // Destroy the display
+            if (pDisplay != NULL)
+            {
+                pDisplay->destroy();
+                delete pDisplay;
+                pDisplay        = NULL;
+            }
         }
+
+        bool UIWrapper::start_event_loop()
+        {
+        #ifdef LSP_CLAP_OWN_EVENT_LOOP
+            // Launch the main loop thread
+            lsp_trace("Creating main loop thread");
+            pUIThread   = new ipc::Thread(event_loop, this);
+            if (pUIThread == NULL)
+            {
+                lsp_error("Failed to create UI main loop thread");
+                return false;
+            }
+
+            if (pUIThread->start() != STATUS_OK)
+            {
+                lsp_error("Failed to start UI main loop thread");
+                delete pUIThread;
+                pUIThread = NULL;
+                return false;
+            }
+
+            lsp_trace("Successfully started main loop thread");
+        #endif /* LSP_CLAP_OWN_EVENT_LOOP */
+
+            return true;
+        }
+
+        void UIWrapper::stop_event_loop()
+        {
+        #ifdef LSP_CLAP_OWN_EVENT_LOOP
+            // Cancel the main loop thread
+            if (pUIThread != NULL)
+            {
+                if (pDisplay != NULL)
+                    pDisplay->quit_main();
+
+                pUIThread->cancel();
+                pUIThread->join();
+
+                delete pUIThread;
+                pUIThread = NULL;
+            }
+        #endif /* LSP_CLAP_OWN_EVENT_LOOP */
+        }
+
+    #ifdef LSP_CLAP_OWN_EVENT_LOOP
+        status_t UIWrapper::event_loop(void *arg)
+        {
+            static constexpr size_t FRAME_PERIOD    = 1000 / UI_FRAMES_PER_SECOND;
+
+            UIWrapper *self = static_cast<UIWrapper *>(arg);
+
+            lsp_trace("Entering main loop");
+
+            // Perform main loop
+            system::time_millis_t ctime = system::get_time_millis();
+            while (!ipc::Thread::is_cancelled())
+            {
+                // Measure the time of next frame to appear
+                system::time_millis_t deadline = ctime + FRAME_PERIOD;
+
+                // Perform main iteration with locked mutex
+                if (self->sMutex.lock())
+                {
+                    lsp_finally { self->sMutex.unlock(); };
+                    self->pDisplay->main_iteration();
+                }
+
+                // Wait for the next frame to appear
+                system::time_millis_t ftime = system::get_time_millis();
+                if (ftime < deadline)
+                    self->pDisplay->wait_events(deadline - ftime);
+                ctime   = ftime;
+            }
+
+            lsp_trace("Leaving main loop");
+
+            return STATUS_OK;
+        }
+    #endif /* LSP_CLAP_OWN_EVENT_LOOP */
 
         clap::UIPort *UIWrapper::create_port(const meta::port_t *port, const char *postfix)
         {
@@ -264,7 +362,7 @@ namespace lsp
                 clap::UIPort *cup   = static_cast<clap::UIPort *>(vPorts.uget(i));
                 do {
                     if (cup->sync())
-                        cup->notify_all();
+                        cup->notify_all(ui::PORT_NONE);
                 } while (cup->sync_again());
             } // for port_id
 
@@ -426,42 +524,6 @@ namespace lsp
             UIWrapper *this_ = static_cast<UIWrapper *>(ptr);
             if (this_->pExt != NULL)
                 this_->pExt->gui->closed(this_->pExt->host, false);
-            return STATUS_OK;
-        }
-
-        status_t UIWrapper::ui_main_loop(void *arg)
-        {
-            static constexpr size_t FRAME_PERIOD    = 1000 / UI_FRAMES_PER_SECOND;
-
-            UIWrapper *this_ = static_cast<UIWrapper *>(arg);
-
-            lsp_trace("Entering main loop");
-
-            // Perform main loop
-            system::time_millis_t ctime = system::get_time_millis();
-            while (!ipc::Thread::is_cancelled())
-            {
-                // Measure the time of next frame to appear
-                system::time_millis_t deadline = ctime + FRAME_PERIOD;
-
-                // Perform main iteration with locked mutex
-                if (this_->sMutex.lock())
-                {
-                    lsp_finally { this_->sMutex.unlock(); };
-                    this_->tranfet_ui_to_dsp();
-                    this_->transfer_dsp_to_ui();
-                    this_->main_iteration();
-                }
-
-                // Wait for the next frame to appear
-                system::time_millis_t ftime = system::get_time_millis();
-                if (ftime < deadline)
-                    this_->pDisplay->wait_events(deadline - ftime);
-                ctime   = ftime;
-            }
-
-            lsp_trace("Leaving main loop");
-
             return STATUS_OK;
         }
 
@@ -686,6 +748,17 @@ namespace lsp
             return bUIActive;
         }
 
+        void UIWrapper::main_iteration()
+        {
+            if (!bUIActive)
+                return;
+
+            // Perform main data transfers and state sync
+            tranfet_ui_to_dsp();
+            transfer_dsp_to_ui();
+            IWrapper::main_iteration();
+        }
+
         bool UIWrapper::show()
         {
             // Lazy initialize the UI ONLY after whe have the parent/transient settings
@@ -696,24 +769,14 @@ namespace lsp
             if (wnd == NULL)
                 return false;
 
-            // Launch the main loop thread
-            lsp_trace("Creating main loop thread");
-            pUIThread   = new ipc::Thread(ui_main_loop, this);
-            if (pUIThread == NULL)
-                return false;
-
-            // Show the window and start the main thread
+            // Show the window and start event loop
             wnd->show(pTransientFor);
-            if (pUIThread->start() != STATUS_OK)
+            bool res    = start_event_loop();
+            if (!res)
             {
-                lsp_error("Failed to start UI main loop thread");
                 wnd->hide();
-                delete pUIThread;
-                pUIThread = NULL;
-                return false;
+                return res;
             }
-
-            lsp_trace("Successfully started main loop thread");
 
             // Update UI status
             bUIActive       = true;
@@ -730,15 +793,12 @@ namespace lsp
             if (pWrapper != NULL)
                 pWrapper->ui_visibility_changed();
 
-            // Cancel the main loop thread
-            if (pUIThread != NULL)
-            {
-                pUIThread->cancel();
-                pUIThread->join();
+            // Stop the event loop
+            stop_event_loop();
 
-                delete pUIThread;
-                pUIThread = NULL;
-            }
+            // Do the sync barrier
+            sMutex.lock();
+            lsp_finally { sMutex.unlock(); };
 
             // Hide the window
             tk::Window *wnd = window();
@@ -746,6 +806,15 @@ namespace lsp
                 wnd->hide();
 
             return true;
+        }
+
+        status_t UIWrapper::slot_display_idle(tk::Widget *sender, void *ptr, void *data)
+        {
+            UIWrapper *self = static_cast<UIWrapper *>(ptr);
+            if (self != NULL)
+                self->main_iteration();
+
+            return STATUS_OK;
         }
 
     } /* namespace clap */
