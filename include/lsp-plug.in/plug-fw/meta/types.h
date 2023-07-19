@@ -237,6 +237,7 @@ namespace lsp
             B_DELAYS,
             B_DYNAMICS,
             B_EQUALIZERS,
+            B_EFFECTS,
             B_MB_DYNAMICS,
             B_MB_PROCESSING,
             B_SAMPLERS,
