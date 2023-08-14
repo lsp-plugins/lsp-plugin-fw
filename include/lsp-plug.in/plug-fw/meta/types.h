@@ -198,6 +198,8 @@ namespace lsp
             CF_DISTORTION,
             CF_TRANSIENT_SHAPER,
             CF_COMPRESSOR,
+            CF_EXPANDER,
+            CF_GATE,
             CF_LIMITER,
 
             CF_FLANGER,

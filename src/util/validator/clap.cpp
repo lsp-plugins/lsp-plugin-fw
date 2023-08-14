@@ -54,6 +54,8 @@ namespace lsp
                     case meta::CF_DISTORTION:       return CLAP_PLUGIN_FEATURE_DISTORTION; break;
                     case meta::CF_TRANSIENT_SHAPER: return CLAP_PLUGIN_FEATURE_TRANSIENT_SHAPER; break;
                     case meta::CF_COMPRESSOR:       return CLAP_PLUGIN_FEATURE_COMPRESSOR; break;
+                    case meta::CF_EXPANDER:         return CLAP_PLUGIN_FEATURE_EXPANDER; break;
+                    case meta::CF_GATE:             return CLAP_PLUGIN_FEATURE_GATE; break;
                     case meta::CF_LIMITER:          return CLAP_PLUGIN_FEATURE_LIMITER; break;
                     case meta::CF_FLANGER:          return CLAP_PLUGIN_FEATURE_FLANGER; break;
                     case meta::CF_CHORUS:           return CLAP_PLUGIN_FEATURE_CHORUS; break;
