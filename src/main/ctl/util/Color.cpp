@@ -297,9 +297,6 @@ namespace lsp
             }
 
             // Finally, parse the expression
-//            if (strchr(value, '?') != NULL)
-//                lsp_trace("debug");
-
             if (!e->parse(value, EXPR_FLAGS_NONE))
             {
                 if (idx != C_VALUE)
