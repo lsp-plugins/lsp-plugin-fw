@@ -297,6 +297,9 @@ namespace lsp
             }
 
             // Finally, parse the expression
+//            if (strchr(value, '?') != NULL)
+//                lsp_trace("debug");
+
             if (!e->parse(value, EXPR_FLAGS_NONE))
             {
                 if (idx != C_VALUE)
@@ -308,6 +311,7 @@ namespace lsp
             // And apply the computed value
             expr::value_t cv;
             expr::init_value(&cv);
+            lsp_finally { expr::destroy_value(&cv); };
 
             if (e->evaluate(&cv) == STATUS_OK)
             {
@@ -326,8 +330,6 @@ namespace lsp
                     }
                 }
             }
-
-            expr::destroy_value(&cv);
 
             return true;
         }
