@@ -83,6 +83,7 @@ namespace lsp
             { meta::B_CONVOLUTION,      "convolution" },
             { meta::B_DELAYS,           "delays" },
             { meta::B_DYNAMICS,         "dynamics" },
+            { meta::B_EFFECTS,          "effects" },
             { meta::B_EQUALIZERS,       "equalizers" },
             { meta::B_MB_DYNAMICS,      "mb_dynamics" },
             { meta::B_MB_PROCESSING,    "mb_processing" },

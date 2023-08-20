@@ -198,6 +198,8 @@ namespace lsp
             CF_DISTORTION,
             CF_TRANSIENT_SHAPER,
             CF_COMPRESSOR,
+            CF_EXPANDER,
+            CF_GATE,
             CF_LIMITER,
 
             CF_FLANGER,
@@ -236,6 +238,7 @@ namespace lsp
             B_CONVOLUTION,
             B_DELAYS,
             B_DYNAMICS,
+            B_EFFECTS,
             B_EQUALIZERS,
             B_MB_DYNAMICS,
             B_MB_PROCESSING,

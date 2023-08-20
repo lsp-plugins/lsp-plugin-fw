@@ -308,6 +308,7 @@ namespace lsp
             // And apply the computed value
             expr::value_t cv;
             expr::init_value(&cv);
+            lsp_finally { expr::destroy_value(&cv); };
 
             if (e->evaluate(&cv) == STATUS_OK)
             {
@@ -326,8 +327,6 @@ namespace lsp
                     }
                 }
             }
-
-            expr::destroy_value(&cv);
 
             return true;
         }

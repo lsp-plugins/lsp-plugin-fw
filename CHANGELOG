@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.15 ===
+* Updated module versions in dependencies.
+
 === 1.0.14 ===
 * Several bugfixes in the ctl::Dot controller related to handling logarithmic values.
 * Added possibility to evaluate substituted text values.
