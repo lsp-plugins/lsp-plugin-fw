@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 9 мая 2021 г.
@@ -293,26 +293,23 @@ namespace lsp
             if (btn == NULL)
                 return;
 
-            if (btn != NULL)
+            if (pPort != NULL)
             {
-                if (pPort != NULL)
+                const meta::port_t *mdata = pPort->metadata();
+                if (mdata != NULL)
                 {
-                    const meta::port_t *mdata = pPort->metadata();
-                    if (mdata != NULL)
-                    {
-                        if (meta::is_trigger_port(mdata))
-                            btn->mode()->set_trigger();
-                        else if (mdata->unit != meta::U_ENUM)
-                            btn->mode()->set_toggle();
-                        else if (bValueSet)
-                            btn->mode()->set_toggle();
-                    }
-
-                    commit_value(pPort->value());
+                    if (meta::is_trigger_port(mdata))
+                        btn->mode()->set_trigger();
+                    else if (mdata->unit != meta::U_ENUM)
+                        btn->mode()->set_toggle();
+                    else if (bValueSet)
+                        btn->mode()->set_toggle();
                 }
-                else
-                    commit_value(fValue);
+
+                commit_value(pPort->value());
             }
+            else
+                commit_value(fValue);
 
             Widget::end(ctx);
         }

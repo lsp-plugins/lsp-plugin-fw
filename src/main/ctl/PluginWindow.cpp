@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 13 апр. 2021 г.
@@ -2109,7 +2109,7 @@ namespace lsp
 
             // Create controller
             ctl::Window *wc = new ctl::Window(pWrapper, w);
-            if (ctl == NULL)
+            if (wc == NULL)
                 return STATUS_NO_MEM;
             controllers()->add(wc);
             wc->init();
@@ -2454,7 +2454,7 @@ namespace lsp
             if (ev == NULL)
                 return STATUS_OK;
 
-            _this->sWndScale.nMFlags   &= ~(1 << ev->nCode);
+            _this->sWndScale.nMFlags   &= ~(size_t(1) << ev->nCode);
             if (_this->sWndScale.nMFlags == 0)
                 _this->sWndScale.bActive    = false;
 

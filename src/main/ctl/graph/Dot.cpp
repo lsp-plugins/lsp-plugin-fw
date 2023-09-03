@@ -330,14 +330,11 @@ namespace lsp
             if (p->pPort == NULL)
                 return;
 
-            const meta::port_t *x = (p->pPort != NULL) ? p->pPort->metadata() : NULL;
+            const meta::port_t *x = p->pPort->metadata();
             if (x == NULL)
             {
-                if (p->pPort != NULL)
-                {
-                    p->pPort->set_value(value);
-                    p->pPort->notify_all(ui::PORT_USER_EDIT);
-                }
+                p->pPort->set_value(value);
+                p->pPort->notify_all(ui::PORT_USER_EDIT);
                 return;
             }
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 4 окт. 2021 г.
@@ -278,7 +278,7 @@ namespace lsp
             if (dn == NULL)
                 return;
             dsp::point3d_t *dl  = vLines.append_n(nt * 6); // 1 triangle x 3 lines x 2 vertices
-            if (dp == NULL)
+            if (dl == NULL)
                 return;
 
             const dspu::rt::group_t *grp = groups.array();

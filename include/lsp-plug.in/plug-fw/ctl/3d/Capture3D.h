@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 6 окт. 2021 г.
@@ -85,7 +85,12 @@ namespace lsp
 
             public:
                 explicit Capture3D(ui::IWrapper *wrapper);
+                Capture3D(const Capture3D &) = delete;
+                Capture3D(Capture3D &&) = delete;
                 virtual ~Capture3D() override;
+
+                Capture3D &operator = (const Capture3D &) = delete;
+                Capture3D &operator = (Capture3D &&) = delete;
 
                 virtual status_t    init() override;
 

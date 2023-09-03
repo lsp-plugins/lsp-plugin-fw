@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 окт. 2021 г.
@@ -231,7 +231,7 @@ namespace lsp
             cScaleZ.set("sz", name, value);
             cScaleZ.set("scale.z", name, value);
 
-            if ((!strcmp("kvt.root", name) || (!strcmp("kvt_root", name))))
+            if ((!strcmp("kvt.root", name)) || (!strcmp("kvt_root", name)))
             {
                 sKvtRoot.set_utf8(value);
                 if (!sKvtRoot.ends_with('/'))

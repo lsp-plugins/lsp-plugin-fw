@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 апр. 2021 г.
@@ -40,9 +40,6 @@ namespace lsp
          */
         class Float: public ctl::Property, public ui::ISchemaListener
         {
-            private:
-                Float & operator = (const Float &);
-
             protected:
                 tk::Float      *pProp;
 
@@ -54,7 +51,12 @@ namespace lsp
 
             public:
                 explicit        Float();
+                Float(const Float &) = delete;
+                Float(Float &&) = delete;
                 virtual         ~Float() override;
+
+                Float & operator = (const Float &) = delete;
+                Float & operator = (Float &&) = delete;
 
                 void            init(ui::IWrapper *wrapper, tk::Float *prop);
 

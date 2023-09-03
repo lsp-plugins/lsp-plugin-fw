@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 4 окт. 2021 г.
@@ -99,6 +99,8 @@ namespace lsp
                 lltl::parray<r3d::buffer_t> vBuffers;
 
             protected:
+                void                do_destroy();
+
                 virtual void        process_view_change(const dsp::point3d_t *pov);
                 virtual void        process_color_change();
                 virtual void        process_transform_change();
@@ -107,7 +109,12 @@ namespace lsp
 
             public:
                 explicit Mesh3D(ui::IWrapper *wrapper);
+                Mesh3D(const Mesh3D &) = delete;
+                Mesh3D(Mesh3D &&) = delete;
                 virtual ~Mesh3D() override;
+
+                Mesh3D &operator = (const Mesh3D &) = delete;
+                Mesh3D &operator = (Mesh3D &&) = delete;
 
                 virtual status_t    init() override;
                 virtual void        destroy() override;

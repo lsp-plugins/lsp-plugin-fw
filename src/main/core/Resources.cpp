@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 мар. 2021 г.
@@ -120,6 +120,7 @@ namespace lsp
             {
                 lsp_warn("Failed to initialize directory loader, error=%d", int(res));
                 delete dldr;
+                return NULL;
             }
             dldr->set_enforce(true);
 
@@ -159,7 +160,7 @@ namespace lsp
 
             return pldr;
         }
-    }
-}
+    } /* namespace core */
+} /* namespace lsp */
 
 

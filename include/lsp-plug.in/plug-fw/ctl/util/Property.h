@@ -44,9 +44,6 @@ namespace lsp
          */
         class Property: public ui::IPortListener
         {
-            private:
-                Property & operator = (const Property &);
-
             protected:
                 class PropResolver: public ui::PortResolver
                 {
@@ -85,7 +82,12 @@ namespace lsp
 
             public:
                 explicit Property();
+                Property(const Property &) = delete;
+                Property(Property &&) = delete;
                 virtual ~Property() override;
+
+                Property & operator = (const Property &) = delete;
+                Property & operator = (Property &&) = delete;
 
                 void            init(ui::IWrapper *wrapper);
                 virtual void    destroy();

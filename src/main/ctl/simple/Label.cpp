@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 6 мая 2021 г.
@@ -238,7 +238,7 @@ namespace lsp
             switch (enType)
             {
                 case CTL_LABEL_TEXT:
-                    if ((mdata != NULL) && (mdata->name != NULL))
+                    if (mdata->name != NULL)
                         lbl->text()->set_raw(mdata->name);
                     return;
 
@@ -452,11 +452,14 @@ namespace lsp
         {
             // Get control pointer
             ctl::Label *_this = static_cast<ctl::Label *>(ptr);
-            if ((_this == NULL) || (_this->wPopup == NULL))
+            if (_this == NULL)
                 return STATUS_OK;
 
             // Apply value
             PopupWindow *popup  = _this->wPopup;
+            if (popup == NULL)
+                return STATUS_OK;
+
             LSPString value;
             if (popup->sValue.text()->format(&value) == STATUS_OK)
             {
@@ -466,12 +469,9 @@ namespace lsp
             }
 
             // Hide the popup window
-            if (popup != NULL)
-            {
-                popup->hide();
-                if (popup->queue_destroy() == STATUS_OK)
-                    _this->wPopup  = NULL;
-            }
+            popup->hide();
+            if (popup->queue_destroy() == STATUS_OK)
+                _this->wPopup  = NULL;
 
             return STATUS_OK;
         }
@@ -480,18 +480,18 @@ namespace lsp
         {
             // Get control pointer
             ctl::Label *_this = static_cast<ctl::Label *>(ptr);
-            if ((_this == NULL) || (_this->wPopup == NULL))
+            if (_this == NULL)
+                return STATUS_OK;
+
+            // Get popup window
+            PopupWindow *popup  = _this->wPopup;
+            if (popup == NULL)
                 return STATUS_OK;
 
             // Get port metadata
             const meta::port_t *meta = (_this->pPort != NULL) ? _this->pPort->metadata() : NULL;
             if ((meta == NULL) || (!meta::is_in_port(meta)))
                 return false;
-
-            // Get popup window
-            PopupWindow *popup  = _this->wPopup;
-            if (popup == NULL)
-                return STATUS_OK;
 
             // Validate input
             LSPString value;
@@ -521,7 +521,7 @@ namespace lsp
         {
             // Get control pointer
             ctl::Label *_this = static_cast<ctl::Label *>(ptr);
-            if ((_this == NULL) || (_this->wPopup == NULL))
+            if (_this == NULL)
                 return STATUS_OK;
 
             // Hide the widget and queue for destroy

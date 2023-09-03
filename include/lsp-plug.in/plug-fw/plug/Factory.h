@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -51,9 +51,6 @@ namespace lsp
         class LSP_HIDDEN_MODIFIER Factory
         {
             private:
-                Factory & operator = (const Factory &);
-
-            private:
                 static Factory         *pRoot;
                 Factory                *pNext;
                 factory_func_t          pFunc;
@@ -64,7 +61,12 @@ namespace lsp
                 explicit Factory();
                 explicit Factory(factory_func_t func, const meta::plugin_t **list, size_t items);
                 explicit Factory(factory_func_t func, const meta::plugin_t **list);
+                Factory(const Factory &) = delete;
+                Factory(Factory &&) = delete;
                 virtual ~Factory();
+
+                Factory & operator = (const Factory &) = delete;
+                Factory & operator = (Factory &&) = delete;
 
             public:
                 /**

@@ -121,7 +121,12 @@ namespace lsp
 
             public:
                 explicit Area3D(ui::IWrapper *wrapper, tk::Area3D *widget);
+                Area3D(const Area3D &) = delete;
+                Area3D(Area3D &&) = delete;
                 virtual ~Area3D() override;
+
+                Area3D &operator = (const Area3D &) = delete;
+                Area3D &operator = (Area3D &&) = delete;
 
                 virtual status_t    init() override;
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 мар. 2021 г.
@@ -55,7 +55,12 @@ namespace lsp
                  * @param count the number of resource entries
                  */
                 explicit Resources(const void *data, size_t size, const resource::raw_resource_t *entries, size_t count);
+                Resources(const Resources &) = delete;
+                Resources(Resources &&) = delete;
                 virtual ~Resources();
+
+                Resources & operator = (const Resources &) = delete;
+                Resources & operator = (Resources &&) = delete;
 
             public:
                 /**
@@ -85,6 +90,7 @@ namespace lsp
          */
         LSP_HIDDEN_MODIFIER
         resource::ILoader *create_resource_loader();
+
     } /* namespace core */
 } /* namespace lsp */
 

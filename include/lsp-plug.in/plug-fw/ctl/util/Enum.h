@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 авг. 2021 г.
@@ -40,9 +40,6 @@ namespace lsp
          */
         class Enum: public ctl::Property, public ui::ISchemaListener
         {
-            private:
-                Enum & operator = (const Enum &);
-
             protected:
                 tk::Enum       *pProp;
 
@@ -54,7 +51,12 @@ namespace lsp
 
             public:
                 explicit        Enum();
+                Enum(const Enum &) = delete;
+                Enum(Enum &&) = delete;
                 virtual         ~Enum() override;
+
+                Enum & operator = (const Enum &) = delete;
+                Enum & operator = (Enum &&) = delete;
 
                 void            init(ui::IWrapper *wrapper, tk::Enum *prop);
 

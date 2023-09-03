@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -306,7 +306,7 @@ namespace lsp
                 case osc::PT_NULL:
                 {
                     p.type      = KVT_STRING;
-                    osc::parse_string(&message, &p.str);
+                    res         = osc::parse_string(&message, &p.str);
                     if (res != STATUS_OK)
                         break;
 
@@ -387,7 +387,6 @@ namespace lsp
             return parse_message(kvt, packet->data, packet->size, flags);
         }
 
-
         status_t KVTDispatcher::build_message(const char *kvt_name, const kvt_param_t *p, void *data, size_t *size, size_t limit)
         {
             status_t res;
@@ -455,8 +454,9 @@ namespace lsp
         {
             return build_message(param_name, param, &packet->data, &packet->size, limit);
         }
-    }
-}
+
+    } /* namespace core */
+} /* namespace lsp */
 
 
 

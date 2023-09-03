@@ -71,8 +71,6 @@ namespace lsp
         class IWrapper
         {
             private:
-                IWrapper & operator = (const IWrapper &);
-
                 friend class ControlPort;
                 friend class PathPort;
                 friend class SwitchedPort;
@@ -138,7 +136,12 @@ namespace lsp
 
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
+                IWrapper(const IWrapper &) = delete;
+                IWrapper(IWrapper &&) = delete;
                 virtual ~IWrapper();
+
+                IWrapper & operator = (const IWrapper &) = delete;
+                IWrapper & operator = (IWrapper &&) = delete;
 
                 virtual status_t    init(void *root_widget);
                 virtual void        destroy();

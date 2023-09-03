@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 июл. 2021 г.
@@ -1100,7 +1100,10 @@ namespace lsp
             if (_this == NULL)
                 return STATUS_BAD_ARGUMENTS;
 
-            tk::Display *dpy    = (_this->wWidget != NULL) ? _this->wWidget->display() : NULL;
+            if (_this->wWidget == NULL)
+                return STATUS_BAD_STATE;
+
+            tk::Display *dpy    = _this->wWidget->display();
             if (dpy == NULL)
                 return STATUS_BAD_STATE;
 
@@ -1123,6 +1126,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-    } // namespace ctl
-} // namespace lsp
+    } /* namespace ctl */
+} /* namespace lsp */
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -34,9 +34,6 @@ namespace lsp
     {
         class KVTDispatcher: public ipc::Thread
         {
-            private:
-                KVTDispatcher & operator = (const KVTDispatcher &);
-
             protected:
                 core::osc_buffer_t *pRx;
                 core::osc_buffer_t *pTx;
@@ -52,7 +49,12 @@ namespace lsp
 
             public:
                 explicit KVTDispatcher(KVTStorage *kvt, ipc::Mutex *mutex);
+                KVTDispatcher(const KVTDispatcher &) = delete;
+                KVTDispatcher(KVTDispatcher &&) = delete;
                 virtual ~KVTDispatcher();
+
+                KVTDispatcher & operator = (const KVTDispatcher &) = delete;
+                KVTDispatcher & operator = (KVTDispatcher &) = delete;
 
             public:
                 virtual status_t    run();

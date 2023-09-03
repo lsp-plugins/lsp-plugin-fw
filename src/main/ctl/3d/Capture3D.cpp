@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 6 окт. 2021 г.
@@ -301,7 +301,7 @@ namespace lsp
                 buf->type                   = r3d::PRIMITIVE_LINES;
                 buf->flags                  = 0;
                 buf->width                  = sArrowWidth.get();
-                buf->count                  = sizeof(capture_arrow_indices) / (sizeof(capture_arrow_indices[0]) * 2);
+                buf->count                  = (sizeof(capture_arrow_indices) / sizeof(capture_arrow_indices[0])) / 2;
                 buf->vertex.data            = array_cast<r3d::dot4_t>(&vl[l_offsets[i]]);
                 buf->vertex.stride          = sizeof(dsp::point3d_t);
                 buf->vertex.index           = array_cast<uint32_t>(capture_arrow_indices);

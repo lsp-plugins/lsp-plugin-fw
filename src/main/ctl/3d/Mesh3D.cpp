@@ -87,7 +87,7 @@ namespace lsp
 
         Mesh3D::~Mesh3D()
         {
-            destroy();
+            do_destroy();
         }
 
         status_t Mesh3D::init()
@@ -128,6 +128,12 @@ namespace lsp
         }
 
         void Mesh3D::destroy()
+        {
+            do_destroy();
+            Object3D::destroy();
+        }
+
+        void Mesh3D::do_destroy()
         {
             for (size_t i=0, n=vBuffers.size(); i<n; ++i)
             {
@@ -369,8 +375,6 @@ namespace lsp
                 switch (buf->type)
                 {
                     case r3d::PRIMITIVE_TRIANGLES:
-                        buf->color.dfl = cColor.r3d_color();
-                        break;
                     case r3d::PRIMITIVE_WIREFRAME_TRIANGLES:
                         buf->color.dfl = cColor.r3d_color();
                         break;
