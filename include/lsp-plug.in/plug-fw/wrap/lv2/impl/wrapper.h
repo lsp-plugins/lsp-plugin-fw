@@ -94,6 +94,8 @@ namespace lsp
 
         Wrapper::~Wrapper()
         {
+            do_destroy();
+
             pPlugin         = NULL;
             pExt            = NULL;
             pExecutor       = NULL;
@@ -225,6 +227,11 @@ namespace lsp
         }
 
         void Wrapper::destroy()
+        {
+            do_destroy();
+        }
+
+        void Wrapper::do_destroy()
         {
             // Destroy sample player
             if (pSamplePlayer != NULL)
@@ -605,8 +612,6 @@ namespace lsp
             {
                 // Get port
                 lv2::Port *port = vAllPorts.uget(i);
-                if (port == NULL)
-                    continue;
                 if (port != NULL)
                     port->post_process(samples);
             }

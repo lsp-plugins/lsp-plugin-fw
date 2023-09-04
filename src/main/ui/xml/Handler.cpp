@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -54,6 +54,9 @@ namespace lsp
                 for (ssize_t i=ssize_t(vStack.size()) - 1; i >= 0; --i)
                 {
                     node_t *node = vStack.uget(i);
+                    if (node == NULL)
+                        continue;
+
                     if (node->node != NULL)
                     {
                         delete node->node;
@@ -265,8 +268,8 @@ namespace lsp
                     return STATUS_NO_MEM;
                 return parse(&tmp, root);
             }
-        }
-    }
+        } /* namespace xml */
+    } /* namespace ui */
 } /* namespace lsp */
 
 

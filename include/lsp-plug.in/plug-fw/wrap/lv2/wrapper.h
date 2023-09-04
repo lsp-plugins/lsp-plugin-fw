@@ -143,6 +143,8 @@ namespace lsp
                 void                            receive_atom_object(const LV2_Atom_Event *ev);
                 void                            receive_atoms(size_t samples);
 
+                void                            do_destroy();
+
                 static ssize_t                  compare_ports_by_urid(const lv2::Port *a, const lv2::Port *b);
 
             public:

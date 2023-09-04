@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -180,8 +180,8 @@ namespace lsp
                 xml_event_t *evt        = add_event(EVT_END_ELEMENT);
                 return (evt != NULL) ? evt->add_param(name) : STATUS_NO_MEM;
             }
-        }
-    }
-}
+        } /* namespac xml */
+    } /* namespace ui */
+} /* namespace lsp */
 
 

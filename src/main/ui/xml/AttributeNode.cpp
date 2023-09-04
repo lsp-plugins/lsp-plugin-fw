@@ -61,37 +61,32 @@ namespace lsp
                 for (const LSPString * const *p = atts ; *p != NULL; p += 2)
                 {
                     const LSPString *name   = p[0];
-                    if (name == NULL)
+
+                    // Check for 'ui:recursion" attribute
+                    if (!name->equals_ascii("ui:depth"))
+                        continue;
+
+                    // Check if attribute has already been set
+                    if (depth_set)
                     {
-                        lsp_error("Got NULL attribute name");
+                        lsp_error("Duplicate attribute '%s'", name->get_native());
+                        return STATUS_BAD_FORMAT;
+                    }
+                    depth_set = true;
+
+                    // Parse value
+                    const LSPString *value  = p[1];
+                    if (value == NULL)
+                    {
+                        lsp_error("Got NULL value for attribute '%s'", name->get_native());
                         return STATUS_BAD_ARGUMENTS;
                     }
 
-                    // Check for 'ui:recursion" attribute
-                    if (name->equals_ascii("ui:depth"))
+                    // Evaluate value
+                    if ((res = pContext->eval_int(&depth, value)) != STATUS_OK)
                     {
-                        // Check if attribute has already been set
-                        if (depth_set)
-                        {
-                            lsp_error("Duplicate attribute '%s'", name->get_native());
-                            return STATUS_BAD_FORMAT;
-                        }
-                        depth_set = true;
-
-                        // Parse value
-                        const LSPString *value  = p[1];
-                        if (value == NULL)
-                        {
-                            lsp_error("Got NULL value for attribute '%s'", name->get_native());
-                            return STATUS_BAD_ARGUMENTS;
-                        }
-
-                        // Evaluate value
-                        if ((res = pContext->eval_int(&depth, value)) != STATUS_OK)
-                        {
-                            lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
-                            return res;
-                        }
+                        lsp_error("Could not evaluate expression attribute '%s': %s", name->get_native(), value->get_native());
+                        return res;
                     }
                 }
 

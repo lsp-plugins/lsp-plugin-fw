@@ -99,8 +99,7 @@ namespace lsp
 
         UIWrapper::~UIWrapper()
         {
-            if (sPlayFileName != NULL)
-                free(sPlayFileName);
+            do_destroy();
 
             pUI             = NULL;
             pExt            = NULL;
@@ -116,6 +115,11 @@ namespace lsp
         }
 
         void UIWrapper::destroy()
+        {
+            do_destroy();
+        }
+
+        void UIWrapper::do_destroy()
         {
             // Free playback file name if it is set
             if (sPlayFileName != NULL)
@@ -224,15 +228,15 @@ namespace lsp
             {
                 for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                     create_port(port, NULL);
-            }
 
-            // Create atom transport
-            if (pExt->atom_supported())
-            {
-                size_t buffer_size = lv2_all_port_sizes(meta->ports, true, false);
-                if (meta->extensions & meta::E_FILE_PREVIEW)
-                    buffer_size        += PATH_MAX + 0x100;
-                pExt->ui_create_atom_transport(vExtPorts.size(), buffer_size);
+                // Create atom transport
+                if (pExt->atom_supported())
+                {
+                    size_t buffer_size = lv2_all_port_sizes(meta->ports, true, false);
+                    if (meta->extensions & meta::E_FILE_PREVIEW)
+                        buffer_size        += PATH_MAX + 0x100;
+                    pExt->ui_create_atom_transport(vExtPorts.size(), buffer_size);
+                }
             }
 
             // Add stub for latency reporting
@@ -510,6 +514,7 @@ namespace lsp
         {
             if (!bConnected)
                 return;
+            lsp_finally { bConnected = false; };
 
             lsp_trace("UI has been deactivated");
             if (pExt != NULL)
@@ -522,7 +527,6 @@ namespace lsp
                 }
                 else
                     pExt->ui_disconnect_from_plugin();
-                bConnected = false;
             }
         }
 

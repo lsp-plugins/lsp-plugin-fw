@@ -133,7 +133,6 @@ namespace lsp
                 LV2_URID                uridDumpState;
                 LV2_URID                uridPathType;
                 LV2_URID                uridMidiEventType;
-                LV2_URID                uridKvtKeys;
                 LV2_URID                uridKvtObject;
                 LV2_URID                uridKvtType;
                 LV2_URID                uridKvtEntryType;
@@ -294,6 +293,8 @@ namespace lsp
 
                     if (map != NULL)
                         lv2_atom_forge_init(&forge, map);
+                    else
+                        bzero(&forge, sizeof(forge));
 
                     uridAtomTransfer            = map_uri(LV2_ATOM__atomTransfer);
                     uridEventTransfer           = map_uri(LV2_ATOM__eventTransfer);
@@ -395,7 +396,7 @@ namespace lsp
                     if (opts != NULL)
                     {
                         lsp_trace("Decoding passed options");
-                        while ((opts->key != 0) && (opts->value != 0))
+                        while ((opts->key != 0) && (opts->value != NULL))
                         {
                             lsp_trace("context = %d (%s), subject=%d, key = %d (%s), size = %d, type=%d (%s), value=%p",
                                     int(opts->context),
@@ -412,8 +413,7 @@ namespace lsp
 
                             // Update Rate for the UI
                             if ((opts->context == LV2_OPTIONS_INSTANCE) &&
-                                (opts->key == uridUpdateRate) &&
-                                (opts->value != NULL))
+                                (opts->key == uridUpdateRate))
                             {
                                 if ((opts->type == forge.Float) && (opts->size == sizeof(float)))
                                     fUIRefreshRate  = *reinterpret_cast<const float *>(opts->value);
@@ -428,7 +428,7 @@ namespace lsp
                                 lsp_trace("UI refresh rate has been set to %f", fUIRefreshRate);
                             }
 
-                            if ((opts->context == LV2_OPTIONS_INSTANCE) && (opts->value != NULL))
+                            if (opts->context == LV2_OPTIONS_INSTANCE)
                             {
                                 if (opts->key == uridMaxBlockLength)
                                 {
@@ -447,8 +447,7 @@ namespace lsp
                             }
 
                             if ((opts->context == LV2_OPTIONS_INSTANCE) &&
-                                (opts->key == uridMaxBlockLength) &&
-                                (opts->value != NULL))
+                                (opts->key == uridMaxBlockLength))
                             {
                                 ssize_t blk_len = nMaxBlockLength;
                                 if ((opts->type == forge.Int) && (opts->size == sizeof(int32_t)))

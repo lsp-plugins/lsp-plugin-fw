@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 апр. 2021 г.
@@ -39,11 +39,18 @@ namespace lsp
 
         void PathPort::write(const void* buffer, size_t size)
         {
+            // Check that someone has passed NULL as buffer argument
+            if (buffer == NULL)
+            {
+                buffer      = "";
+                size        = 0;
+            }
+
             // Check that attribute didn't change
             if ((size == strlen(sPath)) && (memcmp(sPath, buffer, size) == 0))
                 return;
 
-            if ((buffer != NULL) && (size > 0))
+            if (size > 0)
             {
                 size_t copy     = (size >= PATH_MAX) ? PATH_MAX-1 : size;
                 memcpy(sPath, buffer, size);
@@ -62,7 +69,7 @@ namespace lsp
             return sPath;
         }
 
-    } /* namespace ctl */
+    } /* namespace ui */
 } /* namespace lsp */
 
 

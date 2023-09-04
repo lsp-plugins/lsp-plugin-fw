@@ -831,13 +831,11 @@ namespace lsp
                          {
                              const LV2_URID *urid    = reinterpret_cast<const LV2_URID *>(path);
                              path                = pExt->unmap_urid(*urid);
-                             if (path != NULL)
-                                 count               = ::strnlen(path, PATH_MAX-1);
+                             count               = ::strnlen(path, PATH_MAX-1);
                          }
                          else if ((type != pExt->uridPathType) && (type != pExt->forge.String))
                          {
-                             if (path != NULL)
-                                 lsp_trace("Invalid type: %d = %s", int(type), pExt->unmap_urid(type));
+                             lsp_trace("Invalid type: %d = %s", int(type), pExt->unmap_urid(type));
                              path                    = NULL;
                          }
                      }

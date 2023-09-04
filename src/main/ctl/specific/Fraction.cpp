@@ -173,19 +173,19 @@ namespace lsp
 
             if (pDen != NULL)
             {
-                const meta::port_t *p = (pDen != NULL) ? pDen->metadata() : NULL;
+                const meta::port_t *p = pDen->metadata();
                 if (p == NULL)
                     return;
 
                 if (p->flags & meta::F_LOWER)
                     nDenomMin   = p->min;
-                if ((p->unit == meta::U_ENUM) && (p->unit == meta::U_ENUM))
+                if (meta::is_enum_unit(p->unit))
                     nDenomMax   = nDenomMin + meta::list_size(p->items);
                 else if (p->flags & meta::F_UPPER)
                     nDenomMax   = p->max;
 
                 // Generate denominator list
-                if (p->unit == meta::U_ENUM)
+                if (meta::is_enum_unit(p->unit))
                 {
                     for (ssize_t i=nDenomMin; i<=nDenomMax; ++i)
                         add_list_item(dl, i, p->items[i].text);

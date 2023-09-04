@@ -43,9 +43,7 @@ namespace lsp
 
         Wrapper::~Wrapper()
         {
-            pExecutor       = NULL;
-            nLatencyID      = -1;
-            pLatency        = NULL;
+            do_destroy();
         }
 
         status_t Wrapper::init(unsigned long sr)
@@ -96,6 +94,11 @@ namespace lsp
 
         void Wrapper::destroy()
         {
+            do_destroy();
+        }
+
+        void Wrapper::do_destroy()
+        {
             // Clear all ports
             for (size_t i=0; i < vAllPorts.size(); ++i)
             {
@@ -124,7 +127,9 @@ namespace lsp
 
             // Destroy package
             meta::free_manifest(pPackage);
-            pPackage    = NULL;
+            pPackage        = NULL;
+            nLatencyID      = -1;
+            pLatency        = NULL;
         }
 
         ladspa::Port *Wrapper::create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port)

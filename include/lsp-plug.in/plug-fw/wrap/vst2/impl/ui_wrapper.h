@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 дек. 2021 г.
@@ -46,6 +46,7 @@ namespace lsp
 
         UIWrapper::~UIWrapper()
         {
+            do_destroy();
         }
 
         vst2::UIPort *UIWrapper::create_port(const meta::port_t *port, const char *postfix)
@@ -212,13 +213,15 @@ namespace lsp
             }
 
             // Call the post-initialization routine
-            if (res == STATUS_OK)
-                res = pUI->post_init();
-
-            return res;
+            return pUI->post_init();
         }
 
         void UIWrapper::destroy()
+        {
+            do_destroy();
+        }
+
+        void UIWrapper::do_destroy()
         {
             // Terminate idle thread
             terminate_idle_thread();
@@ -574,7 +577,5 @@ namespace lsp
         }
     } /* namespace vst2 */
 } /* namespace lsp */
-
-
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_VST2_IMPL_UI_WRAPPER_H_ */

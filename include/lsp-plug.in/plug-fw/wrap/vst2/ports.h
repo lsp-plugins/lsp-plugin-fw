@@ -733,6 +733,7 @@ namespace lsp
                     Port(meta, effect, callback)
                 {
                     sQueue.clear();
+                    bzero(vEvents, sizeof(vEvents));
 
                     // Allocate buffer for VST MIDI events
                     size_t evt_size = align_size(sizeof(VstEvents) + MIDI_EVENTS_MAX * sizeof(VstMidiEvent *), DEFAULT_ALIGN);

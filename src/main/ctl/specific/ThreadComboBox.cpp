@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 окт. 2021 г.
@@ -134,19 +134,17 @@ namespace lsp
         void ThreadComboBox::notify(ui::IPort *port, size_t flags)
         {
             Widget::notify(port, flags);
+            if (pPort != port)
+                return;
 
             tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
             if (cbox == NULL)
                 return;
 
-            if ((pPort == port) && (cbox != NULL))
-            {
-                ssize_t index = pPort->value();
-
-                tk::ListBoxItem *selected = cbox->items()->get(index - 1);
-                if (selected != NULL)
-                    cbox->selected()->set(selected);
-            }
+            ssize_t index = pPort->value();
+            tk::ListBoxItem *selected = cbox->items()->get(index - 1);
+            if (selected != NULL)
+                cbox->selected()->set(selected);
         }
 
         void ThreadComboBox::end(ui::UIContext *ctx)

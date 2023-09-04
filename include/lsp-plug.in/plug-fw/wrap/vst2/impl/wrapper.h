@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 дек. 2021 г.
@@ -507,10 +507,10 @@ namespace lsp
             for (size_t i=0, n=vAudioPorts.size(); i<n; ++i)
             {
                 vst2::AudioPort *port = vAudioPorts.uget(i);
-                float *data = (meta::is_audio_in_port(port->metadata())) ? *(inputs++) : *(outputs++);
                 if (port == NULL)
                     continue;
 
+                float *data = (meta::is_audio_in_port(port->metadata())) ? *(inputs++) : *(outputs++);
                 port->bind(data);
                 port->sanitize_before(samples);
             }
@@ -1343,8 +1343,5 @@ namespace lsp
         }
     } /* namespace vst2 */
 } /* namespace lsp */
-
-
-
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_VST2_IMPL_WRAPPER_H_ */

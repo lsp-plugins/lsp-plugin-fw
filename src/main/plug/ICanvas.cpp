@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -35,7 +35,15 @@ namespace lsp
 
         ICanvas::~ICanvas()
         {
-            destroy();
+            do_destroy();
+        }
+
+        void ICanvas::do_destroy()
+        {
+            sData.nWidth    = 0;
+            sData.nHeight   = 0;
+            sData.nStride   = 0;
+            sData.pData     = NULL;
         }
 
         bool ICanvas::init(size_t width, size_t height)
@@ -45,10 +53,7 @@ namespace lsp
 
         void ICanvas::destroy()
         {
-            sData.nWidth    = 0;
-            sData.nHeight   = 0;
-            sData.nStride   = 0;
-            sData.pData     = NULL;
+            do_destroy();
         }
 
         void ICanvas::set_color(float r, float g, float b, float a)
@@ -149,6 +154,7 @@ namespace lsp
         void ICanvas::sync()
         {
         }
-    }
+
+    } /* namespace plug */
 } /* namespace lsp */
 

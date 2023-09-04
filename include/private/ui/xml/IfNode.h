@@ -42,7 +42,6 @@ namespace lsp
                     IfNode(const IfNode &);
 
                 protected:
-                    UIContext              *pContext;
                     Handler                 sHandler;
                     bool                    bPass;
 

@@ -301,12 +301,13 @@ namespace lsp
             size_t cap  = *capacity;
             if ((s == NULL) || (cap < (len + 1)))
             {
-                cap     = align_size(len + 1, 32);
-                s       = static_cast<char *>(realloc(s, sizeof(char *) * cap));
-                if (s == NULL)
+                cap         = align_size(len + 1, 32);
+                char *ns    = static_cast<char *>(realloc(s, sizeof(char *) * cap));
+                if (ns == NULL)
                     return STATUS_NO_MEM;
 
-                *buf        = s;
+                s           = ns;
+                *buf        = ns;
                 *capacity   = cap;
             }
 

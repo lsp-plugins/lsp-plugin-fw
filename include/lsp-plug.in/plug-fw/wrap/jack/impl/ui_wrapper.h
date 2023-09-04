@@ -107,11 +107,8 @@ namespace lsp
                 }
             }
 
-            // Call the post-initialization routine
-            if (res == STATUS_OK)
-                res = pUI->post_init();
-            // Show the 'jack' state indicator
-            if (res == STATUS_OK)
+            // Call the post-initialization routine and show the 'jack' state indicator
+            if ((res = pUI->post_init()) == STATUS_OK)
             {
                 pJackStatus = tk::widget_cast<tk::Label>(controller()->widgets()->find("jack_status"));
                 if (pJackStatus != NULL)

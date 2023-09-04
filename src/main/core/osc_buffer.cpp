@@ -327,12 +327,9 @@ namespace lsp
 
         size_t osc_buffer_t::skip()
         {
-            if (nSize <= sizeof(uint32_t))
-                return 0;
-
             size_t bufsz    = nSize;
             if (bufsz < sizeof(uint32_t))
-                return STATUS_NO_DATA;
+                return 0;
 
             size_t ihead    = nHead;
             uint32_t *head  = reinterpret_cast<uint32_t *>(&pBuffer[ihead]);

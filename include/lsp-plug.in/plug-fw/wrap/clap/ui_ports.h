@@ -106,9 +106,6 @@ namespace lsp
                         return false;
 
                     clap::ParameterPort *port = static_cast<clap::ParameterPort *>(pPort);
-                    if (port == NULL)
-                        return false;
-
                     uatomic_t sid   = port->sid();
                     if (sid == nSID)
                         return false;

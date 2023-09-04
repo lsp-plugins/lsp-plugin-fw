@@ -40,7 +40,7 @@ namespace lsp
 
         enum serial_flags_t
         {
-            FLAG_PRIVATE    = 0,
+            FLAG_PRIVATE    = 1 << 0,
         };
 
         enum serial_types_t

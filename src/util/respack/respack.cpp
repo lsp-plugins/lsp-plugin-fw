@@ -552,8 +552,7 @@ namespace lsp
             // Skip file creation
             if ((res == STATUS_OK) && (!skip_file_creation))
             {
-                if (res == STATUS_OK)
-                    res     = create_resource_file(ctx, cfg->dst_file);
+                res     = create_resource_file(ctx, cfg->dst_file);
                 if (res == STATUS_OK)
                     res     = compress_data(ctx, &path);
                 if (res == STATUS_OK)

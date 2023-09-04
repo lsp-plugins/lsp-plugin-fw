@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 мая 2021 г.
@@ -219,8 +219,7 @@ namespace lsp
             p->version.micro    = 0;
             p->version.branch   = NULL;
 
-            if (res == STATUS_OK)
-                res = fetch_string(&p->artifact, "artifact", &jo);
+            res = fetch_string(&p->artifact, "artifact", &jo);
             if (res == STATUS_OK)
                 res = fetch_string(&p->artifact_name, "artifact_name", &jo);
             if (res == STATUS_OK)
@@ -269,7 +268,8 @@ namespace lsp
             drop_string(&pkg->version.branch);
             free(pkg);
         }
-    }
-}
+
+    } /* namespace lsp */
+} /* namespace meta */
 
 
