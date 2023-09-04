@@ -303,8 +303,8 @@ namespace lsp
             }
 
             // Call the post-initialization routine
-            if (res == STATUS_OK)
-                res = pUI->post_init();
+            if ((res = pUI->post_init()) != STATUS_OK)
+                return res;
 
             // Initialize size of root window
             ws::size_limit_t sr;
