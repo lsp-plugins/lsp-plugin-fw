@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 нояб. 2021 г.
@@ -819,12 +819,15 @@ namespace lsp
 
                  virtual void restore()
                  {
+                     char tmp_path[PATH_MAX];
+
                      lsp_trace("restore port id=%s, urid=%d (%s)", pMetadata->id, urid, get_uri());
+
                      size_t count            = 0;
                      uint32_t type           = -1;
-
                      const char *path        = reinterpret_cast<const char *>(pExt->retrieve_value(urid, &type, &count));
                      char *mapped            = NULL;
+
                      if (path != NULL)
                      {
                          if (type == pExt->forge.URID)
@@ -843,7 +846,6 @@ namespace lsp
                      if ((path != NULL) && (count > 0))
                      {
                          // Save path as temporary variable
-                         char tmp_path[PATH_MAX];
                          ::strncpy(tmp_path, path, count);
                          tmp_path[count] = '\0';
                          path        = tmp_path;

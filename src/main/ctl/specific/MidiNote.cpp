@@ -326,12 +326,9 @@ namespace lsp
             }
 
             // Hide the popup window
-            if (popup != NULL)
-            {
-                popup->hide();
-                if (popup->queue_destroy() == STATUS_OK)
-                    _this->wPopup  = NULL;
-            }
+            popup->hide();
+            if (popup->queue_destroy() == STATUS_OK)
+                _this->wPopup  = NULL;
 
             return STATUS_OK;
         }

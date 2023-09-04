@@ -198,7 +198,10 @@ namespace lsp
             // Get plugin metadata
             const meta::plugin_t *meta  = pUI->metadata();
             if (meta == NULL)
-                lsp_warn("NO PLUGIN METADATA FOUND");
+            {
+                lsp_warn("No plugin metadata found");
+                return STATUS_BAD_STATE;
+            }
 
             status_t res;
 
@@ -224,19 +227,16 @@ namespace lsp
             pOscBuffer      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX + sizeof(LV2_Atom)));
 
             // Perform all port bindings
-            if (meta != NULL)
-            {
-                for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
-                    create_port(port, NULL);
+            for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
+                create_port(port, NULL);
 
-                // Create atom transport
-                if (pExt->atom_supported())
-                {
-                    size_t buffer_size = lv2_all_port_sizes(meta->ports, true, false);
-                    if (meta->extensions & meta::E_FILE_PREVIEW)
-                        buffer_size        += PATH_MAX + 0x100;
-                    pExt->ui_create_atom_transport(vExtPorts.size(), buffer_size);
-                }
+            // Create atom transport
+            if (pExt->atom_supported())
+            {
+                size_t buffer_size = lv2_all_port_sizes(meta->ports, true, false);
+                if (meta->extensions & meta::E_FILE_PREVIEW)
+                    buffer_size        += PATH_MAX + 0x100;
+                pExt->ui_create_atom_transport(vExtPorts.size(), buffer_size);
             }
 
             // Add stub for latency reporting

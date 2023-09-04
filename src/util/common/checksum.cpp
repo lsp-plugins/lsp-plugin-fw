@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 25 дек. 2021 г.
@@ -316,7 +316,7 @@ namespace lsp
 
         status_t read_checksums(checksum_list_t *list, const io::Path *file)
         {
-            status_t res, res2;
+            status_t res;
             checksum_list_t tmp;
             json::Parser p;
 
@@ -324,9 +324,7 @@ namespace lsp
                 return res;
 
             res = do_load_checksums(&tmp, &p);
-            res2 = p.close();
-            if (res == STATUS_OK)
-                res = res2;
+            res = update_status(res, p.close());
 
             if (res == STATUS_OK)
                 tmp.swap(list);

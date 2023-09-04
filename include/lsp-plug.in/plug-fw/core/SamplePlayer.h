@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 дек. 2022 г.
@@ -38,9 +38,6 @@ namespace lsp
          */
         class SamplePlayer
         {
-            private:
-                SamplePlayer & operator = (const SamplePlayer &);
-
             protected:
                 class LoadTask: public ipc::ITask
                 {
@@ -109,7 +106,12 @@ namespace lsp
 
             public:
                 explicit SamplePlayer(const meta::plugin_t *meta);
+                SamplePlayer(const SamplePlayer &) = delete;
+                SamplePlayer(SamplePlayer &&) = delete;
                 ~SamplePlayer();
+
+                SamplePlayer & operator = (const SamplePlayer &) = delete;
+                SamplePlayer & operator = (SamplePlayer &&) = delete;
 
                 void    init(plug::IWrapper *wrapper, plug::IPort **ports, size_t count);
                 void    destroy();

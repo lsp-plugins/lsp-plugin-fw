@@ -45,9 +45,7 @@ namespace lsp
 
         UIWrapper::~UIWrapper()
         {
-            pPlugin         = NULL;
-            pWrapper        = NULL;
-            pJackStatus     = NULL;
+            do_destroy();
         }
 
         status_t UIWrapper::init(void *root_widget)
@@ -136,7 +134,7 @@ namespace lsp
             return res;
         }
 
-        void UIWrapper::destroy()
+        void UIWrapper::do_destroy()
         {
             pJackStatus = NULL;
 
@@ -161,6 +159,14 @@ namespace lsp
                 delete pDisplay;
                 pDisplay    = NULL;
             }
+
+            pPlugin         = NULL;
+            pWrapper        = NULL;
+        }
+
+        void UIWrapper::destroy()
+        {
+            do_destroy();
         }
 
         core::KVTStorage *UIWrapper::kvt_lock()

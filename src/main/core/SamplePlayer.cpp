@@ -81,6 +81,7 @@ namespace lsp
             nFileLength     = 0;
 
             sFileName[0]    = '\0';
+            sReqFileName[0] = '\0';
             nReqPosition    = 0;
             bReqRelease     = false;
             nUpdateReq      = 0;
