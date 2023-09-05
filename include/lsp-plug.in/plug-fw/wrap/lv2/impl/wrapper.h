@@ -250,6 +250,7 @@ namespace lsp
                 delete pKVTDispatcher;
 
                 sKVT.unbind(&sKVTListener);
+                pKVTDispatcher          = NULL;
             }
 
             // Drop surface
