@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 27 сент. 2021 г.
@@ -530,7 +530,7 @@ namespace lsp
                 return STATUS_BAD_ARGUMENTS;
 
             Area3D *_this     = static_cast<Area3D *>(ptr);
-            return (_this != NULL) ? _this->render(static_cast<ws::IR3DBackend *>(data)) : STATUS_BAD_ARGUMENTS;
+            return _this->render(static_cast<ws::IR3DBackend *>(data));
         }
 
         status_t Area3D::slot_mouse_down(tk::Widget *sender, void *ptr, void *data)
@@ -538,7 +538,7 @@ namespace lsp
             if ((ptr == NULL) || (data == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            Area3D *_this     = static_cast<Area3D *>(ptr);
+            Area3D *_this       = static_cast<Area3D *>(ptr);
             ws::event_t *ev     = static_cast<ws::event_t *>(data);
 
             if (_this->nBMask == 0)
@@ -549,7 +549,7 @@ namespace lsp
                 _this->sOldPov      = _this->sPov;
             }
 
-            _this->nBMask |= (1 << ev->nCode);
+            _this->nBMask      |= (1 << ev->nCode);
 
             return STATUS_OK;
         }
@@ -559,13 +559,13 @@ namespace lsp
             if ((ptr == NULL) || (data == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            Area3D *_this     = static_cast<Area3D *>(ptr);
+            Area3D *_this       = static_cast<Area3D *>(ptr);
             ws::event_t *ev     = static_cast<ws::event_t *>(data);
 
             if (_this->nBMask == 0)
                 return STATUS_OK;
 
-            _this->nBMask &= ~(1 << ev->nCode);
+            _this->nBMask      &= ~(size_t(1) << ev->nCode);
             if (_this->nBMask == 0)
             {
                 if (ev->nCode == ws::MCB_MIDDLE)

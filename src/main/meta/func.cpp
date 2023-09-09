@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -311,10 +311,13 @@ namespace lsp
             string_bytes            = align_size(string_bytes, DEFAULT_ALIGN);
             elements                = align_size(to_copy, DEFAULT_ALIGN);
             size_t allocate         = string_bytes + elements;
+
             uint8_t *ptr            = static_cast<uint8_t *>(malloc(allocate));
-            port_t *meta            = reinterpret_cast<port_t *>(ptr);
+            if (ptr == NULL)
+                return NULL;
 
             // Copy port metadata
+            port_t *meta            = reinterpret_cast<port_t *>(ptr);
             ::memcpy(meta, metadata, to_copy);
 
             // Update identifiers if needed

@@ -554,6 +554,7 @@ namespace lsp
             public:
                 explicit FrameBufferPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
                 {
+                    bzero(&sFB, sizeof(sFB));
                 }
 
                 virtual ~FrameBufferPort()

@@ -76,6 +76,7 @@ namespace lsp
 
                 void                        receive_atom(const LV2_Atom_Object * atom);
                 void                        receive_raw_osc_packet(const void *data, size_t size);
+                void                        do_destroy();
 
                 static ssize_t              compare_ports_by_urid(const lv2::UIPort *a, const lv2::UIPort *b);
                 static ssize_t              compare_abstract_ports_by_urid(const ui::IPort *a, const ui::IPort *b);

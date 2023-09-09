@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 дек. 2021 г.
@@ -51,6 +51,14 @@ namespace lsp
         //-------------------------------------------------------------------------
         constexpr size_t PATH_LENGTH_DFL     = PATH_MAX * 2;
 
+        static inline size_t wchar_count(const WCHAR *str)
+        {
+            size_t count=0;
+            while (*(str++) != '\0')
+                ++count;
+            return count;
+        }
+
         typedef struct path_string_t
         {
             WCHAR      *pData;
@@ -89,26 +97,26 @@ namespace lsp
 
             WCHAR *set(const WCHAR *value)
             {
-                size_t cap = wcslen(value) + 1;
+                size_t cap = wchar_count(value) + 1;
                 if (!grow(cap))
                     return NULL;
 
-                memcpy(&pData[0], value, cap);
+                memcpy(&pData[0], value, cap*sizeof(WCHAR));
                 return pData;
             }
 
             WCHAR *set(const WCHAR *parent, const WCHAR *child)
             {
-                size_t len1 = wcslen(parent);
-                size_t len2 = wcslen(child);
+                size_t len1 = wchar_count(parent);
+                size_t len2 = wchar_count(child);
                 size_t cap = len1 + len2 + 2;
                 if (!grow(cap))
                     return NULL;
 
-                memcpy(&pData[0], parent, len1);
+                memcpy(&pData[0], parent, len1*sizeof(WCHAR));
                 pData[len1] = '\\';
-                memcpy(&pData[len1 + 1], child, len2);
-                pData[len1 + len2 + 1] = '0';
+                memcpy(&pData[len1 + 1], child, len2*sizeof(WCHAR));
+                pData[len1 + len2 + 1] = '\0';
 
                 return pData;
             }
@@ -127,7 +135,7 @@ namespace lsp
         {
             {
                 HKEY_LOCAL_MACHINE,
-                L"SOFTWARE\\LSP\\",
+                L"SOFTWARE\\LSP",
                 L"VSTInstallPath",
                 IF_TRACE( "HKEY_LOCAL_MACHINE\\SOFTWARE\\LSP\\VSTInstallPath", )
             },
@@ -241,79 +249,99 @@ namespace lsp
             return dst->pData;
         }
 
+        static const DWORD reg_key_search_flags[] =
+        {
+            RRF_RT_REG_EXPAND_SZ | RRF_NOEXPAND,
+            RRF_RT_REG_SZ,
+            RRF_RT_REG_MULTI_SZ
+        };
+
         static const WCHAR *read_registry(path_string_t *dst, const reg_key_t *key, size_t index)
         {
             DWORD dwType = 0;
             DWORD cbData = 0;
 
-            // Obtain the size of value associated with the key
-            LSTATUS res = RegGetValueW(
-                key->root, // hkey
-                key->key, // lpSubKey
-                key->value, // lpValue
-                RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_MULTI_SZ | RRF_RT_REG_SZ, // dwFlags
-                &dwType, // pdwType
-                NULL, // pvData
-                &cbData  // pcbData
-            );
-            if (res != ERROR_SUCCESS)
-                return NULL;
-
-            // Allocate the buffer
-            path_string_t tmp;
-            if (!tmp.grow(cbData + 1))
-                return NULL;
-
-            // Now obtain the value
-            res = RegGetValueW(
-                key->root, // hkey
-                key->key, // lpSubKey
-                key->value, // lpValue
-                RRF_RT_REG_EXPAND_SZ | RRF_RT_REG_MULTI_SZ | RRF_RT_REG_SZ, // dwFlags
-                &dwType, // pdwType
-                tmp.pData, // pvData
-                &cbData  // pcbData
-            );
-            if (res != ERROR_SUCCESS)
-                return NULL;
-
-            // Simple string?
-            if (dwType == REG_SZ)
-                return dst->set(tmp.pData);
-
-            // String with expanded environment variables?
-            if (dwType == REG_EXPAND_SZ)
+            for (size_t i=0; i<sizeof(reg_key_search_flags)/sizeof(reg_key_search_flags[0]); ++i)
             {
-                // Get the path to the module
-                DWORD capacity = PATH_MAX + 1;
+                const DWORD flags = reg_key_search_flags[i];
+
+                // Obtain the size of value associated with the key
+                LSTATUS res = RegGetValueW(
+                    key->root, // hkey
+                    key->key, // lpSubKey
+                    key->value, // lpValue
+                    flags, // dwFlags
+                    NULL, // pdwType
+                    NULL, // pvData
+                    &cbData  // pcbData
+                );
+                if (res != ERROR_SUCCESS)
+                    continue;
 
                 // Allocate the buffer
-                if (!dst->grow(capacity))
+                path_string_t tmp;
+                if (!tmp.grow(((cbData + sizeof(WCHAR) - 1)/sizeof(WCHAR)) + 1))
                     return NULL;
 
-                // Try to obtain the file name
-                size_t length = ::ExpandEnvironmentStringsW(tmp.pData, dst->pData, capacity);
-                if (length < capacity)
-                    return dst->pData;
+                // Now obtain the value
+                res = RegGetValueW(
+                    key->root, // hkey
+                    key->key, // lpSubKey
+                    key->value, // lpValue
+                    flags, // dwFlags
+                    &dwType, // pdwType
+                    tmp.pData, // pvData
+                    &cbData  // pcbData
+                );
+                if (res != ERROR_SUCCESS)
+                    continue;
 
-                // Allocate the buffer again
-                if (!dst->grow(length + 1))
-                    return NULL;
+                switch (dwType)
+                {
+                    case REG_SZ: // Simple string
+                        return dst->set(tmp.pData);
 
-                length = ::ExpandEnvironmentStringsW(tmp.pData, dst->pData, capacity);
-                return (length > 0) ? tmp.pData : NULL;
-            }
+                    case REG_EXPAND_SZ:
+                    {
+                        // Get the path to the module
+                        DWORD capacity = PATH_MAX + 1;
 
-            // Multiple strings?
-            WCHAR *ptr = tmp.pData;
-            for (size_t i=0; ; ++i)
-            {
-                if (*ptr == 0)
-                    return NULL;
-                if (i == index)
-                    return tmp.set(ptr);
-                ptr    += wcslen(ptr) + 1;
-            }
+                        // Allocate the buffer
+                        if (!dst->grow(capacity))
+                            return NULL;
+
+                        // Try to obtain the file name
+                        size_t length = ::ExpandEnvironmentStringsW(tmp.pData, dst->pData, capacity);
+                        if (length < capacity)
+                            return dst->pData;
+
+                        // Allocate the buffer again
+                        if (!dst->grow(length + 1))
+                            return NULL;
+
+                        length = ::ExpandEnvironmentStringsW(tmp.pData, dst->pData, capacity);
+                        return (length > 0) ? dst->pData : NULL;
+                    }
+
+                    case REG_MULTI_SZ:
+                    {
+                        // Multiple strings?
+                        const WCHAR *ptr = tmp.pData;
+                        for (size_t i=0; ; ++i)
+                        {
+                            if (*ptr == '\0')
+                                return NULL;
+                            if (i == index)
+                                return dst->set(ptr);
+                            ptr    += wchar_count(ptr) + 1;
+                        }
+                        break;
+                    }
+
+                    default:
+                        break;
+                }
+            } // for i
 
             return NULL;
         }

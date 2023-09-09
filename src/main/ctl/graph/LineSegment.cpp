@@ -2,7 +2,7 @@
  * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins-gott-compressor
+ * This file is part of lsp-plugin-fw
  * Created on: 18 июн. 2023 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
@@ -362,14 +362,11 @@ namespace lsp
             if (p->pPort == NULL)
                 return;
 
-            const meta::port_t *x = (p->pPort != NULL) ? p->pPort->metadata() : NULL;
+            const meta::port_t *x = p->pPort->metadata();
             if (x == NULL)
             {
-                if (p->pPort != NULL)
-                {
-                    p->pPort->set_value(value);
-                    p->pPort->notify_all(ui::PORT_USER_EDIT);
-                }
+                p->pPort->set_value(value);
+                p->pPort->notify_all(ui::PORT_USER_EDIT);
                 return;
             }
 

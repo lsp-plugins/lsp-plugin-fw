@@ -88,11 +88,9 @@ namespace lsp
             p->bInitialized = true;
             if (!p->sExpr.parse(&p->sValue))
             {
-                p->bInitialized = true;
                 pProp->params()->add_string(name, &p->sValue);
                 return false;
             }
-            p->bInitialized = true;
 
             // Evaluate the value
             expr::value_t value;

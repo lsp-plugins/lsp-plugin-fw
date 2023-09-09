@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 3 окт. 2021 г.
@@ -79,6 +79,24 @@ namespace lsp
             {
                 sColor[i].listener(&sProperties);
                 sLength[i].listener(&sProperties);
+            }
+
+            for (size_t i=0; i<6; ++i)
+            {
+                r3d::dot4_t *dot    = &vAxisLines[i];
+                dot->x              = 0.0f;
+                dot->y              = 0.0f;
+                dot->z              = 0.0f;
+                dot->w              = 1.0f;
+            }
+
+            for (size_t i=0; i<6; ++i)
+            {
+                r3d::color_t *col   = &vAxisColors[i];
+                col->r              = 0.0f;
+                col->g              = 0.0f;
+                col->b              = 0.0f;
+                col->a              = 0.0f;
             }
         }
 
@@ -185,7 +203,7 @@ namespace lsp
             return true;
         }
 
-    } // namespace ctl
-} // namespace lsp
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

@@ -55,7 +55,7 @@ namespace lsp
 
         UIWrapper::~UIWrapper()
         {
-            destroy();
+            do_destroy();
         }
 
         status_t UIWrapper::init(void *root_widget)
@@ -112,6 +112,11 @@ namespace lsp
         }
 
         void UIWrapper::destroy()
+        {
+            do_destroy();
+        }
+
+        void UIWrapper::do_destroy()
         {
             // Update UI status
             bUIActive       = false;
@@ -732,14 +737,11 @@ namespace lsp
             }
 
             // Call the post-initialization routine
-            if (res == STATUS_OK)
-            {
-                lsp_trace("Doing post-init");
-                res = pUI->post_init();
-            }
-
+            lsp_trace("Doing post-init");
+            res = pUI->post_init();
             bUIInitialized = (res == STATUS_OK);
             lsp_trace("bUIInitialized = %d, res=%d", int(bUIInitialized), int(res));
+
             return bUIInitialized;
         }
 

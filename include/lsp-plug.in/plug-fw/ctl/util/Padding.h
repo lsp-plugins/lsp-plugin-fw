@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 13 мая 2021 г.
@@ -68,12 +68,18 @@ namespace lsp
 
             public:
                 explicit Padding();
-                virtual ~Padding();
+                Padding(const Padding &) = delete;
+                Padding(Padding &&) = delete;
+                virtual ~Padding() override;
+
+                Padding &operator = (const Padding &) = delete;
+                Padding &operator = (Padding &) = delete;
 
                 status_t            init(ui::IWrapper *wrapper, tk::Padding *padding);
 
             public:
                 bool                set(const char *param, const char *name, const char *value);
+
                 virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };

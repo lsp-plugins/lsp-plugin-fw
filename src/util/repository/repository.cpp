@@ -468,7 +468,7 @@ namespace lsp
 
         status_t preprocess_xml(const LSPString *src, const io::Path *dst)
         {
-            status_t res, res2;
+            status_t res;
             xml::PullParser p;
             io::OutFileStream ofs;
             io::OutSequence os;
@@ -478,28 +478,22 @@ namespace lsp
             {
                 if ((res = ofs.open(dst, io::File::FM_WRITE_NEW)) == STATUS_OK)
                 {
-                    if ((res = os.wrap(&ofs, false, "UTF-8") == STATUS_OK))
+                    if ((res = os.wrap(&ofs, false, "UTF-8")) == STATUS_OK)
                     {
                         // Do XML processing
                         res = do_xml_processing(&p, &os);
                     }
 
                     // Close output sequence
-                    res2 = os.close();
-                    if (res == STATUS_OK)
-                        res = res2;
+                    res = update_status(res, os.close());
                 }
 
                 // Close output file
-                res2 = ofs.close();
-                if (res == STATUS_OK)
-                    res = res2;
+                res = update_status(res, ofs.close());
             }
 
             // Close XML file
-            res2 = p.close();
-            if (res == STATUS_OK)
-                res = res2;
+            res = update_status(res, p.close());
 
             return res;
         }
@@ -1346,6 +1340,7 @@ namespace lsp
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->strict = true;
+                    strict_set  = true;
                 }
                 else if ((!::strcmp(arg, "--no-strict")) || (!::strcmp(arg, "-ns")))
                 {
@@ -1355,6 +1350,7 @@ namespace lsp
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->strict = false;
+                    strict_set  = true;
                 }
                 else if ((!::strcmp(arg, "--define")) || (!::strcmp(arg, "-d")))
                 {

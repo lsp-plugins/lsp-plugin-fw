@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 мая 2021 г.
@@ -263,22 +263,22 @@ namespace lsp
                 else if (*p != ',')
                     return (*p == '\0');
 
+                ++p;
                 if (enFormat == FT_INT)
                     return (*p == '\0');
 
-                p++;
                 if (parse_long(p, &p, &digits))
                     item->precision = (digits < 0) ? 0 : digits;
 
                 if (*p == '!')
                 {
                     nFlags     |= IF_FIXED_PREC;
-                    p++;
+                    ++p;
                 }
                 else if (*p == '+')
                 {
                     nFlags     |= IF_TOLERANCE;
-                    p++;
+                    ++p;
                 }
 
                 return (*p == '\0');
@@ -841,7 +841,7 @@ namespace lsp
 
             return true;
         }
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

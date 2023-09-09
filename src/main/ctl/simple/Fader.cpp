@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 июл. 2021 г.
@@ -355,7 +355,7 @@ namespace lsp
                 return;
 
             const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
-            float dfl   = (p != NULL) ? pPort->default_value() : fDefaultValue;
+            float dfl   = (pPort != NULL) ? pPort->default_value() : fDefaultValue;
             float value = dfl;
 
             if (p != NULL)
@@ -437,8 +437,8 @@ namespace lsp
             return STATUS_OK;
         }
 
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

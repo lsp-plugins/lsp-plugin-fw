@@ -31,6 +31,8 @@ namespace lsp
 {
     namespace core
     {
+        constexpr size_t DEFAULT_TEMP_BUFFER_SIZE   = 0x1000;
+
         //-------------------------------------------------------------------------
         // osc_buffer_t methods
         osc_buffer_t *osc_buffer_t::create(size_t capacity)
@@ -38,7 +40,7 @@ namespace lsp
             if (capacity % sizeof(uint32_t))
                 return NULL;
 
-            uint8_t *tmp        = reinterpret_cast<uint8_t *>(malloc(0x1000));
+            uint8_t *tmp        = reinterpret_cast<uint8_t *>(malloc(DEFAULT_TEMP_BUFFER_SIZE));
             if (tmp == NULL)
                 return NULL;
 
@@ -60,7 +62,7 @@ namespace lsp
             res->nTail          = 0;
             res->pBuffer        = ptr;
             res->pTempBuf       = tmp;
-            res->nTempSize      = 0x1000;
+            res->nTempSize      = DEFAULT_TEMP_BUFFER_SIZE;
             res->pData          = data;
 
             return res;
@@ -68,12 +70,15 @@ namespace lsp
 
         void osc_buffer_t::destroy(osc_buffer_t *buf)
         {
+            if (buf == NULL)
+                return;
+
             if (buf->pTempBuf != NULL)
             {
                 free(buf->pTempBuf);
                 buf->pTempBuf   = NULL;
             }
-            if ((buf != NULL) && (buf->pData != NULL))
+            if (buf->pData != NULL)
                 free_aligned(buf->pData);
         }
 
@@ -265,17 +270,11 @@ namespace lsp
             if (res == STATUS_OK)
                 res     = osc::forge_message(&sframe, address, params, args);
 
-            status_t res2   = osc::forge_end(&sframe);
-            if (res == STATUS_OK)
-                res = res2;
-
+            res     = update_status(res, osc::forge_end(&sframe));
             if (res == STATUS_OK)
                 res         = osc::forge_close(&packet, &forge);
 
-            res2   = osc::forge_destroy(&forge);
-            if (res == STATUS_OK)
-                res = res2;
-
+            res     = update_status(res, osc::forge_destroy(&forge));
             return (res == STATUS_OK) ? submit(&packet) : res;
         }
 
@@ -328,12 +327,9 @@ namespace lsp
 
         size_t osc_buffer_t::skip()
         {
-            if (nSize <= sizeof(uint32_t))
-                return 0;
-
             size_t bufsz    = nSize;
             if (bufsz < sizeof(uint32_t))
-                return STATUS_NO_DATA;
+                return 0;
 
             size_t ihead    = nHead;
             uint32_t *head  = reinterpret_cast<uint32_t *>(&pBuffer[ihead]);
@@ -348,6 +344,7 @@ namespace lsp
 
             return psize;
         }
+
     } /* namespace core */
 } /* namespace lsp */
 

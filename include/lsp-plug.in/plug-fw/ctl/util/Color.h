@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 апр. 2021 г.
@@ -42,9 +42,6 @@ namespace lsp
          */
         class Color: public ui::IPortListener, public ui::ISchemaListener
         {
-            private:
-                Color & operator = (const Color &);
-
             protected:
                 enum component_t
                 {
@@ -83,7 +80,12 @@ namespace lsp
 
             public:
                 explicit Color();
+                Color(const Color &) = delete;
+                Color(Color &&) = delete;
                 virtual ~Color() override;
+
+                Color & operator = (const Color &) = delete;
+                Color & operator = (Color &&) = delete;
 
                 status_t            init(ui::IWrapper *wrapper, tk::Color *color);
 

@@ -328,8 +328,7 @@ namespace lsp
                 }
 
                 grp->vPorts[i]  = static_cast<clap::AudioPort *>(p);
-                if (p != NULL)
-                    list->premove(p);
+                list->premove(p);
             }
 
             return grp;
@@ -1449,14 +1448,12 @@ namespace lsp
                             return res;
                     }
 
-                    if (res == STATUS_OK)
-                    {
-                        p->blob.ctype   = ctype;
-                        p->blob.data    = data;
-                        p->blob.size    = size;
-                        ctype           = NULL;
-                        data            = NULL;
-                    }
+                    p->blob.ctype   = ctype;
+                    p->blob.data    = data;
+                    p->blob.size    = size;
+                    ctype           = NULL;
+                    data            = NULL;
+
                     break;
                 }
                 default:

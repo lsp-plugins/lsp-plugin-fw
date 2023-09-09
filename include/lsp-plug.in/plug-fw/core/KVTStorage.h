@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -177,8 +177,6 @@ namespace lsp
         class KVTStorage
         {
             private:
-                KVTStorage & operator = (const KVTStorage &);
-
                 friend class KVTIterator;
 
                 enum iterator_mode_t
@@ -279,7 +277,12 @@ namespace lsp
 
             public:
                 explicit KVTStorage(char separator = '/');
+                KVTStorage(const KVTStorage &) = delete;
+                KVTStorage(KVTStorage &&) = delete;
                 ~KVTStorage();
+
+                KVTStorage & operator = (const KVTStorage &) = delete;
+                KVTStorage & operator = (KVTStorage &&) = delete;
 
                 void                    destroy();
                 status_t                clear();
@@ -490,10 +493,13 @@ namespace lsp
                 friend class KVTStorage;
 
             protected:
-                KVTIterator & operator = (const KVTIterator &);
-
                 explicit KVTIterator(KVTStorage *storage, KVTStorage::kvt_node_t *node, KVTStorage::iterator_mode_t mode);
+                KVTIterator(const KVTIterator &) = delete;
+                KVTIterator(KVTIterator &&) = delete;
                 virtual ~KVTIterator();
+
+                KVTIterator & operator = (const KVTIterator &) = delete;
+                KVTIterator & operator = (KVTIterator &&) = delete;
 
             public:
                 /**
@@ -559,7 +565,7 @@ namespace lsp
         inline void     kvt_dump_parameter(const char *fmt, const kvt_param_t *param...) {}
     #endif
 
-    }
-}
+    } /* namespace core */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CORE_KVTSTORAGE_H_ */

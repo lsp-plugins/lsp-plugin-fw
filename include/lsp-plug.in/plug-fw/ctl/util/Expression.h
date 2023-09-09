@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 апр. 2021 г.
@@ -52,9 +52,6 @@ namespace lsp
          */
         class Expression: public ctl::Property
         {
-            private:
-                Expression & operator = (const Expression &);
-
             protected:
                 ui::IPortListener          *pListener;
 
@@ -63,6 +60,11 @@ namespace lsp
 
             public:
                 explicit Expression();
+                Expression(const Expression &) = delete;
+                Expression(Expression &&) = delete;
+
+                Expression & operator = (const Expression &) = delete;
+                Expression & operator = (Expression &&) = delete;
 
                 void            init(ui::IWrapper *wrapper, ui::IPortListener *listener);
 

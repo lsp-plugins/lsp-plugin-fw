@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -39,7 +39,7 @@ namespace lsp
     namespace ui
     {
         class UIContext;
-    }
+    } /* namespace ui */
 
     namespace ctl
     {
@@ -81,7 +81,6 @@ namespace lsp
             protected:
                 static const char  *match_prefix(const char *prefix, const char *name);
 
-//                static bool         set_padding(tk::Padding *pad, const char *param, const char *name, const char *value);
                 static bool         set_allocation(tk::Allocation *alloc, const char *name, const char *value);
                 static bool         set_constraints(tk::SizeConstraints *c, const char *name, const char *value);
                 static bool         set_layout(tk::Layout *l, const char *param, const char *name, const char *value);
@@ -106,13 +105,19 @@ namespace lsp
                 static bool         set_value(LSPString *v, const char *param, const char *name, const char *value);
 
             protected:
+                void                do_destroy();
                 bool                bind_port(ui::IPort **port, const char *param, const char *name, const char *value);
 
                 virtual void        property_changed(tk::Property *prop);
 
             public:
                 explicit Widget(ui::IWrapper *wrapper, tk::Widget *widget);
+                Widget(const Widget &) = delete;
+                Widget(Widget &&) = delete;
                 virtual ~Widget();
+
+                Widget &operator = (const Widget &) = delete;
+                Widget &operator = (Widget &&) = delete;
 
                 /** Initialize widget controller
                  *
@@ -238,7 +243,7 @@ namespace lsp
                 return ((w != NULL) && (w->instance_of(&Target::metadata))) ? static_cast<const Target *>(w) : NULL;
             }
 
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_WIDGET_H_ */

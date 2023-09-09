@@ -108,6 +108,7 @@ namespace lsp
                 fprintf(stderr, "Error creating file '%s', code=%d\n", file->as_native(), code);
                 return STATUS_IO_ERROR;
             }
+            lsp_finally { fclose(out); };
 
             // Write to file
             fprintf(out,    "//------------------------------------------------------------------------------\n");
@@ -134,9 +135,6 @@ namespace lsp
             fprintf(out,    "#define LSP_PLUG_IN_VST2_MAIN_IMPL\n");
             fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/vst2/main.h>\n");
             fprintf(out,    "#undef LSP_PLUG_IN_VST2_MAIN_IMPL\n");
-
-            // Close file
-            fclose(out);
 
             return STATUS_OK;
         }
@@ -229,6 +227,7 @@ namespace lsp
                 fprintf(stderr, "Error creating file %s, errno=%d\n", path.as_native(), code);
                 return STATUS_IO_ERROR;
             }
+            lsp_finally { fclose(out); };
 
             fprintf(out, "# Automatically generated makefile, do not edit\n");
             fprintf(out, "\n");
@@ -313,9 +312,6 @@ namespace lsp
             fprintf(out, "\n");
             fprintf(out, "# Dependencies\n");
             fprintf(out, "-include Makefile.d\n");
-
-            // Close file
-            fclose(out);
 
             return 0;
         }

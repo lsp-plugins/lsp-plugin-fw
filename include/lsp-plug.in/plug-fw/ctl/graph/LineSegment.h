@@ -2,7 +2,7 @@
  * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins-gott-compressor
+ * This file is part of lsp-plugin-fw
  * Created on: 18 июн. 2023 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify

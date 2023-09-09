@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 30 июл. 2021 г.
@@ -105,8 +105,8 @@ namespace lsp
                 virtual void        end(ui::UIContext *ctx) override;
                 virtual void        notify(ui::IPort *port, size_t flags) override;
         };
-    } // namespace ctl
-} // namespace lsp
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

@@ -734,7 +734,7 @@ namespace lsp
                     if (asprintf(&tmp, "%d.%d.%d",
                         int(LSP_MODULE_VERSION_MAJOR(meta->version)),
                         int(LSP_MODULE_VERSION_MINOR(meta->version)),
-                        int(LSP_MODULE_VERSION_MICRO(meta->version)) >= 0))
+                        int(LSP_MODULE_VERSION_MICRO(meta->version))) >= 0)
                         d->version          = tmp;
 
                     if (manifest != NULL)

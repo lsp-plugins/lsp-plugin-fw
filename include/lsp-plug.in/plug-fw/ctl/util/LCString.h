@@ -41,9 +41,6 @@ namespace lsp
          */
         class LCString: public ui::IPortListener
         {
-            private:
-                LCString & operator = (const LCString &);
-
             protected:
                 typedef struct param_t
                 {
@@ -67,7 +64,12 @@ namespace lsp
 
             public:
                 explicit        LCString();
+                LCString(const LCString &) = delete;
+                LCString(LCString &&) = delete;
                 virtual         ~LCString() override;
+
+                LCString &operator = (const LCString &) = delete;
+                LCString &operator = (LCString &&) = delete;
 
                 void            init(ui::IWrapper *wrapper, tk::String *prop);
                 void            destroy();

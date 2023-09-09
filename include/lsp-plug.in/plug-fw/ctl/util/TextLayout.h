@@ -46,7 +46,12 @@ namespace lsp
 
             public:
                 explicit TextLayout();
+                TextLayout(const TextLayout &) = delete;
+                TextLayout(TextLayout &&) = delete;
                 virtual ~TextLayout() override;
+
+                TextLayout &operator = (const TextLayout &) = delete;
+                TextLayout &operator = (TextLayout &&) = delete;
 
             public:
                 void            init(ui::IWrapper *wrapper, tk::TextLayout *layout);

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 апр. 2021 г.
@@ -40,9 +40,6 @@ namespace lsp
          */
         class Integer: public ctl::Property, public ui::ISchemaListener
         {
-            private:
-                Integer & operator = (const Integer &);
-
             protected:
                 tk::Integer    *pProp;
 
@@ -54,7 +51,12 @@ namespace lsp
 
             public:
                 explicit        Integer();
+                Integer(const Integer &) = delete;
+                Integer(Integer &&) = delete;
                 virtual         ~Integer() override;
+
+                Integer & operator = (const Integer &) = delete;
+                Integer & operator = (Integer &&) = delete;
 
                 void            init(ui::IWrapper *wrapper, tk::Integer *prop);
 

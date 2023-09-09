@@ -99,8 +99,7 @@ namespace lsp
 
         UIWrapper::~UIWrapper()
         {
-            if (sPlayFileName != NULL)
-                free(sPlayFileName);
+            do_destroy();
 
             pUI             = NULL;
             pExt            = NULL;
@@ -116,6 +115,11 @@ namespace lsp
         }
 
         void UIWrapper::destroy()
+        {
+            do_destroy();
+        }
+
+        void UIWrapper::do_destroy()
         {
             // Free playback file name if it is set
             if (sPlayFileName != NULL)
@@ -194,7 +198,10 @@ namespace lsp
             // Get plugin metadata
             const meta::plugin_t *meta  = pUI->metadata();
             if (meta == NULL)
-                lsp_warn("NO PLUGIN METADATA FOUND");
+            {
+                lsp_warn("No plugin metadata found");
+                return STATUS_BAD_STATE;
+            }
 
             status_t res;
 
@@ -220,11 +227,8 @@ namespace lsp
             pOscBuffer      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX + sizeof(LV2_Atom)));
 
             // Perform all port bindings
-            if (meta != NULL)
-            {
-                for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
-                    create_port(port, NULL);
-            }
+            for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
+                create_port(port, NULL);
 
             // Create atom transport
             if (pExt->atom_supported())
@@ -299,8 +303,8 @@ namespace lsp
             }
 
             // Call the post-initialization routine
-            if (res == STATUS_OK)
-                res = pUI->post_init();
+            if ((res = pUI->post_init()) != STATUS_OK)
+                return res;
 
             // Initialize size of root window
             ws::size_limit_t sr;
@@ -510,6 +514,7 @@ namespace lsp
         {
             if (!bConnected)
                 return;
+            lsp_finally { bConnected = false; };
 
             lsp_trace("UI has been deactivated");
             if (pExt != NULL)
@@ -522,7 +527,6 @@ namespace lsp
                 }
                 else
                     pExt->ui_disconnect_from_plugin();
-                bConnected = false;
             }
         }
 

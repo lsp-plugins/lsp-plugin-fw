@@ -52,6 +52,7 @@ namespace lsp
             protected:
                 void                            transfer_dsp_to_ui();
                 void                            terminate_idle_thread();
+                void                            do_destroy();
                 vst2::UIPort                   *create_port(const meta::port_t *port, const char *postfix);
 
             public:

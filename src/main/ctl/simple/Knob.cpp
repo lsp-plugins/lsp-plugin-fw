@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 мая 2021 г.
@@ -260,17 +260,11 @@ namespace lsp
         void Knob::set_default_value()
         {
             tk::Knob *knob = tk::widget_cast<tk::Knob>(wWidget);
-            if (knob == NULL)
+            if ((knob == NULL) || (pPort == NULL))
                 return;
 
-            const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
-            float dfl   = (p != NULL) ? pPort->default_value() : fDefaultValue;
-
-            if (pPort != NULL)
-            {
-                pPort->set_value(dfl);
-                pPort->notify_all(ui::PORT_USER_EDIT);
-            }
+            pPort->set_default();
+            pPort->notify_all(ui::PORT_USER_EDIT);
         }
 
         void Knob::sync_scale_state()

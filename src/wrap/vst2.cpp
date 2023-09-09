@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 дек. 2021 г.
@@ -579,7 +579,7 @@ namespace lsp
                         get_parameter_properties(m, reinterpret_cast<VstParameterProperties *>(ptr));
                         v = 1;
                     }
-                    else if ((opcode == effCanBeAutomated) && (!(m->flags & meta::F_OUT)))
+                    else if (!(m->flags & meta::F_OUT))
                         v = 1;
 
                     break;
@@ -920,16 +920,12 @@ namespace lsp
                 }
             }
 
-            // No plugin has been found?
+            // Check that plugin instance is available
             if (plugin == NULL)
             {
                 lsp_error("Unknown plugin identifier: '%s'", uid);
                 return NULL;
             }
-
-            // Check that plugin instance is available
-            if (plugin == NULL)
-                return NULL;
 
             const meta::plugin_t *meta = plugin->metadata();
             lsp_trace("Instantiated plugin %s - %s", meta->name, meta->description);

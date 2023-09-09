@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -1076,8 +1076,11 @@ namespace lsp
             for (size_t i=0, n=kv.size(); i<n; ++i)
             {
                 const LSPString *name = kv.uget(i);
+                if (name == NULL)
+                    return STATUS_UNKNOWN_ERR;
+
                 const LSPString *value = (!version_key.equals(name)) ? versions->get(name) : &version_value;
-                if ((name == NULL) || (value == NULL))
+                if (value == NULL)
                     return STATUS_UNKNOWN_ERR;
 
                 lsp_trace("Export version: %s=%s", name->get_native(), value->get_native());
@@ -1544,8 +1547,7 @@ namespace lsp
                 return res;
 
             // Export bundle versions
-            if (res == STATUS_OK)
-                res = s.write_comment(config_separator);
+            res = s.write_comment(config_separator);
             if (res == STATUS_OK)
                 res = s.write_comment("Recently used versions of bundles");
             if ((res = export_bundle_versions(&s, versions)) != STATUS_OK)
@@ -1554,10 +1556,7 @@ namespace lsp
                 return res;
 
             // Write footer
-            if (res == STATUS_OK)
-                res = s.write_comment(config_separator);
-
-            return res;
+            return s.write_comment(config_separator);
         }
 
         void IWrapper::position_updated(const plug::position_t *pos)

@@ -196,6 +196,7 @@ namespace lsp
                 fprintf(stderr, "Error creating file %s, errno=%d\n", path.as_native(), code);
                 return STATUS_IO_ERROR;
             }
+            lsp_finally { fclose(out); };
 
             fprintf(out, "# Automatically generated makefile, do not edit\n");
             fprintf(out, "\n");
@@ -284,9 +285,6 @@ namespace lsp
             fprintf(out, "\n");
             fprintf(out, "# Dependencies\n");
             fprintf(out, "-include Makefile.d\n");
-
-            // Close file
-            fclose(out);
 
             return 0;
         }

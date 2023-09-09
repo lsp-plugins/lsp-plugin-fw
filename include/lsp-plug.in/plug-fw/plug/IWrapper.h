@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -44,9 +44,6 @@ namespace lsp
          */
         class IWrapper
         {
-            private:
-                IWrapper & operator = (const IWrapper &);
-
             protected:
                 plug::Module               *pPlugin;
                 resource::ILoader          *pLoader;
@@ -58,7 +55,12 @@ namespace lsp
 
             public:
                 explicit IWrapper(Module *plugin, resource::ILoader *loader);
+                IWrapper(const IWrapper &) = delete;
+                IWrapper(IWrapper &&) = delete;
                 virtual ~IWrapper();
+
+                IWrapper & operator = (const IWrapper &) = delete;
+                IWrapper & operator = (IWrapper &&) = delete;
 
             public:
                 /**
@@ -137,7 +139,7 @@ namespace lsp
                 const meta::plugin_t           *metadata() const;
 
         };
-    }
+    } /* namespace plug */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_PLUG_IWRAPPER_H_ */

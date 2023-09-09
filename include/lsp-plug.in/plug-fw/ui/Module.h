@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -44,9 +44,6 @@ namespace lsp
          */
         class Module
         {
-            private:
-                Module &operator = (const Module &);
-
             protected:
                 const meta::plugin_t               *pMetadata;
                 IWrapper                           *pWrapper;
@@ -58,7 +55,12 @@ namespace lsp
 
             public:
                 explicit Module(const meta::plugin_t *meta);
+                Module(const Module &) = delete;
+                Module(Module &&) = delete;
                 virtual ~Module();
+
+                Module &operator = (const Module &) = delete;
+                Module &operator = (Module &&) = delete;
 
                 /** Initialize UI
                  *
@@ -121,7 +123,8 @@ namespace lsp
                  */
                 void                            position_updated(const plug::position_t *pos);
         };
-    }
-}
+
+    } /* namespace ui */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_UI_MODULE_H_ */

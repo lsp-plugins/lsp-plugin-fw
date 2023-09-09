@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 апр. 2021 г.
@@ -45,9 +45,6 @@ namespace lsp
          */
         class Boolean: public ctl::Property, public ui::ISchemaListener
         {
-            private:
-                Boolean & operator = (const Boolean &);
-
             protected:
                 tk::Boolean    *pProp;
 
@@ -59,7 +56,12 @@ namespace lsp
 
             public:
                 explicit        Boolean();
+                Boolean(const Boolean &) = delete;
+                Boolean(Boolean &&) = delete;
                 virtual        ~Boolean() override;
+
+                Boolean & operator = (const Boolean &) = delete;
+                Boolean & operator = (Boolean &&) = delete;
 
                 void            init(ui::IWrapper *wrapper, tk::Boolean *prop);
 

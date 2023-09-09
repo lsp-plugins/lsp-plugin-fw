@@ -65,6 +65,7 @@ namespace lsp
 
             protected:
                 ladspa::Port                       *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port);
+                void                                do_destroy();
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader);

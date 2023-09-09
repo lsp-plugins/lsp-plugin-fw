@@ -83,6 +83,7 @@ namespace lsp
                 void                            tranfet_ui_to_dsp();
                 void                            transfer_dsp_to_ui();
                 bool                            initialize_ui();
+                void                            do_destroy();
 
             public:
                 explicit UIWrapper(ui::Module *ui, clap::Wrapper *wrapper);

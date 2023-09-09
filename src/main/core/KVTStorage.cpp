@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -552,11 +552,14 @@ namespace lsp
         KVTStorage::kvt_gcparam_t *KVTStorage::copy_parameter(const kvt_param_t *src, size_t flags)
         {
             kvt_gcparam_t *gcp  = reinterpret_cast<kvt_gcparam_t *>(::malloc(sizeof(kvt_gcparam_t)));
+            if (gcp == NULL)
+                return NULL;
+
             gcp->flags          = flags & (KVT_PRIVATE | KVT_TRANSIENT);
             gcp->next           = NULL;
 
             kvt_param_t *dst    = gcp;
-            *dst = *src;
+            *dst                = *src; // Make copy
 
             if (flags & KVT_DELEGATE)
                 return gcp;
@@ -1635,18 +1638,17 @@ namespace lsp
             sFake.idlen     = 0;
             sFake.parent    = node;
             sFake.refs      = 0;
-            sFake.children  = NULL;
             sFake.param     = NULL;
             sFake.pending   = 0;
             sFake.gc.next   = (node != NULL) ? &node->gc : NULL;
             sFake.gc.prev   = NULL;
             sFake.gc.node   = NULL;
-            sFake.tx.next   = (node != NULL) ? &node->tx : NULL;
-            sFake.tx.prev   = NULL;
-            sFake.tx.node   = NULL;
             sFake.rx.next   = (node != NULL) ? &node->rx : NULL;
             sFake.rx.prev   = NULL;
             sFake.rx.node   = NULL;
+            sFake.tx.next   = (node != NULL) ? &node->tx : NULL;
+            sFake.tx.prev   = NULL;
+            sFake.tx.node   = NULL;
             sFake.children  = NULL;
             sFake.nchildren = 0;
             sFake.capacity  = 0;
@@ -1742,7 +1744,7 @@ namespace lsp
                         return STATUS_NOT_FOUND;
                     }
 
-                    lnk         = (pCurr != NULL) ? pCurr->tx.next : NULL;
+                    lnk         = pCurr->tx.next;
                     pNext       = (lnk != NULL) ? lnk->node : NULL;
                     break;
                 }
@@ -1758,7 +1760,7 @@ namespace lsp
                         return STATUS_NOT_FOUND;
                     }
 
-                    lnk         = (pCurr != NULL) ? pCurr->rx.next : NULL;
+                    lnk         = pCurr->rx.next;
                     pNext       = (lnk != NULL) ? lnk->node : NULL;
                     break;
                 }
@@ -1774,7 +1776,7 @@ namespace lsp
                         return STATUS_NOT_FOUND;
                     }
 
-                    lnk         = (pCurr != NULL) ? pCurr->gc.next : NULL;
+                    lnk         = pCurr->gc.next;
                     pNext       = (lnk != NULL) ? lnk->node : NULL;
                     break;
                 }
@@ -2225,7 +2227,8 @@ namespace lsp
             va_end(vlst);
         }
     #endif /* LSP_TRACE */
-    }
+
+    } /* namespace core */
 } /* namespace lsp */
 
 

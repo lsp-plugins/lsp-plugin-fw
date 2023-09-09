@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -79,8 +79,11 @@ namespace lsp
                     const LSPString *name   = atts[0];
                     const LSPString *value  = atts[1];
 
-                    if ((name == NULL) || (value == NULL))
-                        continue;
+                    if (value == NULL)
+                    {
+                        lsp_error("Not defined value for attribute '%s'", name->get_native());
+                        return STATUS_CORRUPTED;
+                    }
 
                     // Parse different parameter for 'for' loop
                     if (name->equals_ascii("id"))
@@ -319,8 +322,8 @@ namespace lsp
                 return (res == STATUS_OK) ? pContext->pop_scope() : res;
             }
 
-        }
-    }
-}
+        } /* namespac xml */
+    } /* namespace ui */
+} /* namespace lsp */
 
 

@@ -53,6 +53,9 @@ namespace lsp
                 lltl::parray<jack::UIPort>      vSyncPorts;         // Ports for synchronization
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
+            protected:
+                void                        do_destroy();
+
             public:
                 explicit UIWrapper(jack::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui);
                 virtual ~UIWrapper() override;

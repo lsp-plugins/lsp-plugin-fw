@@ -48,7 +48,12 @@ namespace lsp
 
             public:
                 explicit Layout();
+                Layout(const Layout &) = delete;
+                Layout(Layout &&) = delete;
                 virtual ~Layout() override;
+
+                Layout &operator = (const Layout &) = delete;
+                Layout &operator = (Layout &&) = delete;
 
             public:
                 void            init(ui::IWrapper *wrapper, tk::Layout *layout);

@@ -64,7 +64,12 @@ namespace lsp
 
             public:
                 explicit Origin3D(ui::IWrapper *wrapper);
+                Origin3D(const Origin3D &) = delete;
+                Origin3D(Origin3D &&) = delete;
                 virtual ~Origin3D() override;
+
+                Origin3D &operator = (const Origin3D &) = delete;
+                Origin3D &operator = (Origin3D &&) = delete;
 
                 virtual status_t    init() override;
 

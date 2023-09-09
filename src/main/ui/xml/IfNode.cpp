@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -44,13 +44,11 @@ namespace lsp
                 Node(ctx, parent),
                 sHandler(ctx->wrapper()->resources(), parent)
             {
-                pContext    = ctx;
                 bPass       = true;
             }
 
             IfNode::~IfNode()
             {
-                pContext    = NULL;
             }
 
             status_t IfNode::enter(const LSPString * const *atts)
@@ -63,8 +61,11 @@ namespace lsp
                     const LSPString *name   = atts[0];
                     const LSPString *value  = atts[1];
 
-                    if ((name == NULL) || (value == NULL))
-                        continue;
+                    if (value == NULL)
+                    {
+                        lsp_error("Undefined value for attribute: %s", name->get_utf8());
+                        return STATUS_CORRUPTED;
+                    }
 
                     if (name->equals_ascii("test"))
                     {
@@ -115,9 +116,9 @@ namespace lsp
                 return STATUS_OK;
             }
 
-        }
-    }
-}
+        } /* namespace xml */
+    } /* namespace ui */
+} /* namespace lsp */
 
 
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 2 окт. 2021 г.
@@ -73,7 +73,12 @@ namespace lsp
 
             public:
                 explicit Object3D(ui::IWrapper *wrapper);
+                Object3D(const Object3D &) = delete;
+                Object3D(Object3D &&) = delete;
                 virtual ~Object3D();
+
+                Object3D &operator = (const Object3D &) = delete;
+                Object3D &operator = (Object3D &&) = delete;
 
                 virtual status_t    init();
 

@@ -95,6 +95,9 @@ namespace lsp
             }
 
             // Obtain plugin metadata
+            if (pPlugin == NULL)
+                return STATUS_BAD_STATE;
+
             const meta::plugin_t *meta = pPlugin->metadata();
             if (meta == NULL)
                 return STATUS_BAD_STATE;
@@ -111,8 +114,7 @@ namespace lsp
             vSortedPorts.qsort(cmp_port_identifiers);
 
             // Initialize plugin and UI
-            if (pPlugin != NULL)
-                pPlugin->init(this, plugin_ports.array());
+            pPlugin->init(this, plugin_ports.array());
 
             // Create sample player if required
             if (meta->extensions & meta::E_FILE_PREVIEW)
