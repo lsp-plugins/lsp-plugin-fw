@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 14 мая 2021 г.
@@ -46,6 +46,7 @@ namespace lsp
                 ctl::Boolean        sSmooth;
                 ctl::Float          sMin;
                 ctl::Float          sMax;
+                ctl::Float          sZero;
                 ctl::Expression     sDx;
                 ctl::Expression     sDy;
                 ctl::Expression     sAngle;
@@ -63,7 +64,12 @@ namespace lsp
 
             public:
                 explicit Axis(ui::IWrapper *wrapper, tk::GraphAxis *widget);
+                Axis(const Axis &) = delete;
+                Axis(Axis &&) = delete;
                 virtual ~Axis() override;
+
+                Axis & operator = (const Axis &) = delete;
+                Axis & operator = (Axis &&) = delete;
 
                 virtual status_t    init() override;
 

@@ -77,6 +77,7 @@ namespace lsp
             U_GAIN_AMP,             // Gain (amplitude amplification)
             U_GAIN_POW,             // Gain (power amplification)
             U_NEPER,                // Nepers
+            U_LUFS,                 // LUFS (loudness units full scale)
 
             // Degrees
             U_DEG,                  // Degrees

@@ -78,6 +78,7 @@ namespace lsp
             { "G",      "units.gain" },
             { "G",      "units.gain" },
             { "Np",     "units.neper" },
+            { "LUFS",   "units.lufs" },
 
             { "°",      "units.deg" },
             { "°C",     "units.degc" },
@@ -809,6 +810,9 @@ namespace lsp
                         {
                             case U_DB:
                                 break;
+                            case U_LUFS:
+                                value   = dspu::db_to_lufs(value);
+                                break;
                             case U_GAIN_POW:
                                 value   = dspu::db_to_power(value);
                                 break;
@@ -818,6 +822,33 @@ namespace lsp
                             case U_GAIN_AMP:
                             default:
                                 value   = dspu::db_to_gain(value);
+                                break;
+                        }
+                    }
+                }
+                if (check_match(text, "lufs"))
+                {
+                    text       += 4;
+
+                    // The input is in decibels, convert to desired metadata type
+                    if (!inf)
+                    {
+                        switch (meta->unit)
+                        {
+                            case U_DB:
+                                value   = dspu::lufs_to_db(value);
+                                break;
+                            case U_LUFS:
+                                break;
+                            case U_GAIN_POW:
+                                value   = dspu::lufs_to_power(value);
+                                break;
+                            case U_NEPER:
+                                value   = dspu::lufs_to_neper(value);
+                                break;
+                            case U_GAIN_AMP:
+                            default:
+                                value   = dspu::lufs_to_gain(value);
                                 break;
                         }
                     }
@@ -839,6 +870,9 @@ namespace lsp
                             case U_DB:
                                 value   = dspu::neper_to_db(value);
                                 break;
+                            case U_LUFS:
+                                value   = dspu::neper_to_lufs(value);
+                                break;
                             case U_GAIN_AMP:
                             default:
                                 value   = dspu::neper_to_gain(value);
@@ -858,6 +892,9 @@ namespace lsp
                         {
                             case U_DB:
                                 value   = (value < thresh) ? -INFINITY : dspu::gain_to_db(value);
+                                break;
+                            case U_LUFS:
+                                value   = (value < thresh) ? -INFINITY : dspu::gain_to_lufs(value);
                                 break;
                             case U_NEPER:
                                 thresh  = dspu::db_to_neper(thresh);
@@ -1246,7 +1283,7 @@ namespace lsp
                 return parse_bool(dst, text, meta);
             else if (meta->unit == U_ENUM)
                 return parse_enum(dst, text, meta);
-            else if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW) || (meta->unit == U_DB) || (meta->unit == U_NEPER))
+            else if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW) || (meta->unit == U_DB) || (meta->unit == U_NEPER) || (meta->unit == U_LUFS))
                 return parse_decibels(dst, text, meta, units);
             else if ((meta->unit == U_HZ) || (meta->unit == U_KHZ) || (meta->unit == U_MHZ))
                 return parse_frequency(dst, text, meta, units);
