@@ -694,8 +694,8 @@ namespace lsp
                         if ((pp != NULL) && (pp->clap_set_value(ev->value)))
                         {
                             lsp_trace("port changed (set): %s, offset=%d", pp->metadata()->id, int(offset));
-                            if (pExt->state != NULL)
-                                pExt->state->mark_dirty(pHost);
+//                            if (pExt->state != NULL)
+//                                pExt->state->mark_dirty(pHost);
                             bUpdateSettings     = true;
                         }
                         break;
@@ -710,8 +710,8 @@ namespace lsp
                         if ((pp != NULL) && (pp->clap_mod_value(ev->amount)))
                         {
                             lsp_trace("port changed (mod): %s, offset=%d", pp->metadata()->id, int(offset));
-                            if (pExt->state != NULL)
-                                pExt->state->mark_dirty(pHost);
+//                            if (pExt->state != NULL)
+//                                pExt->state->mark_dirty(pHost);
                             bUpdateSettings     = true;
                         }
                         break;
@@ -1513,7 +1513,7 @@ namespace lsp
             if (magic != clap::LSP_CLAP_MAGIC)
             {
                 lsp_warn("Invalid state header signature");
-                return res;
+                return STATUS_NO_DATA;
             }
             // Read version
             if ((res = read_fully(is, &version)) != STATUS_OK)
@@ -1525,7 +1525,7 @@ namespace lsp
             if (version != clap::LSP_CLAP_VERSION)
             {
                 lsp_warn("Unsupported version %d", int(version));
-                return res;
+                return STATUS_NO_DATA;
             }
 
             // Lock the KVT
@@ -1667,7 +1667,7 @@ namespace lsp
             info->max_value     = max;
             info->default_value = dfl;
 
-            lsp_trace("id=%s, min=%f, max=%f, dfl=%f", meta->id, min, max, dfl);
+            lsp_trace("id=%s, min=%f (0), max=%f (1), dfl=%f (%f)", meta->id, min, max, meta->start, dfl);
 
             return STATUS_OK;
         }
@@ -1730,18 +1730,28 @@ namespace lsp
             // Get the parameter port
             plug::IPort *p = find_param(param_id);
             if (p == NULL)
+            {
+                lsp_warn("parameter %d not found", int(param_id));
                 return STATUS_NOT_FOUND;
+            }
             const meta::port_t *meta = p->metadata();
             if (meta == NULL)
+            {
+                lsp_warn("metadata for port %p is not present", p);
                 return STATUS_BAD_STATE;
+            }
 
             float parsed = 0.0f;
             status_t res = meta::parse_value(&parsed, text, meta, true);
             if (res != STATUS_OK)
+            {
+                lsp_warn("parse_value for port id=\"%s\" name=\"%s\", text=\"%s\" failed with code %d",
+                    meta->id, meta->name, text, int(res));
                 return res;
+            }
 
             parsed      = meta::limit_value(meta, parsed);
-            lsp_trace("parsed = %f", parsed);
+            lsp_trace("port id=\"%s\" parsed = %f", meta->id, parsed);
 
             if (value != NULL)
             {
@@ -1777,8 +1787,8 @@ namespace lsp
                         if ((pp != NULL) && (pp->clap_set_value(ev->value)))
                         {
                             lsp_trace("port changed (set): %s, offset=%d", pp->metadata()->id, int(hdr->time));
-                            if (pExt->state != NULL)
-                                pExt->state->mark_dirty(pHost);
+//                            if (pExt->state != NULL)
+//                                pExt->state->mark_dirty(pHost);
                             bUpdateSettings     = true;
                         }
                         break;
@@ -1793,8 +1803,8 @@ namespace lsp
                         if ((pp != NULL) && (pp->clap_mod_value(ev->amount)))
                         {
                             lsp_trace("port changed (mod): %s, offset=%d", pp->metadata()->id, int(hdr->time));
-                            if (pExt->state != NULL)
-                                pExt->state->mark_dirty(pHost);
+//                            if (pExt->state != NULL)
+//                                pExt->state->mark_dirty(pHost);
                             bUpdateSettings     = true;
                         }
                         break;

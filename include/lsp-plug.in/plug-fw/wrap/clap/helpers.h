@@ -367,6 +367,8 @@ namespace lsp
             else if (meta->unit == meta::U_BOOL)
             {
                 value = (value >= (min + max) * 0.5f) ? 1.0f : 0.0f;
+                min             = 0.0f;
+                max             = 1.0f;
             }
             else
             {
@@ -376,7 +378,9 @@ namespace lsp
                     value  = truncf(value);
 
                 // Normalize value
-                value = (max != min) ? (value - min) / (max - min) : 0.0f;
+                value           = (max != min) ? (value - min) / (max - min) : 0.0f;
+                min             = 0.0f;
+                max             = 1.0f;
             }
 
             if (min_value != NULL)

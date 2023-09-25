@@ -266,13 +266,15 @@ namespace lsp
             {
                 if (port->max > port->min)
                 {
-                    value = port->min + fmodf(value - port->min, port->max - port->min);
+                    if ((value > port->max) || (value < port->min))
+                        value   = port->min + fmodf(value - port->min, port->max - port->min);
                     if (value < port->min)
                         value  += port->max - port->min;
                 }
                 else if (port->min > port->max)
                 {
-                    value = port->max + fmodf(value - port->max, port->min - port->max);
+                    if ((value > port->min) || (value < port->max))
+                        value = port->max + fmodf(value - port->max, port->min - port->max);
                     if (value < port->max)
                         value  += port->min - port->max;
                 }
@@ -826,7 +828,7 @@ namespace lsp
                         }
                     }
                 }
-                if (check_match(text, "lufs"))
+                else if (check_match(text, "lufs"))
                 {
                     text       += 4;
 
