@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2021 г.
@@ -155,9 +155,11 @@ namespace lsp
             // Cleanup generated metadata
             for (size_t i=0; i<vGenMetadata.size(); ++i)
             {
-                lsp_trace("destroy generated port metadata %p", vGenMetadata[i]);
-                drop_port_metadata(vGenMetadata[i]);
+                meta::port_t *p = vGenMetadata.uget(i);
+                lsp_trace("destroy generated port metadata %p", p);
+                drop_port_metadata(p);
             }
+            vGenMetadata.flush();
 
             vExtPorts.flush();
             vMeshPorts.flush();

@@ -4,6 +4,7 @@
 
 === 1.0.18 ===
 * Fixed parameter ranges for CLAP plugin wrapper.
+* Fixed double free of generated port metadata.
 * Added LUFS units to metadata.
 * Added support of 'zero' property by the Axis controller.
 
