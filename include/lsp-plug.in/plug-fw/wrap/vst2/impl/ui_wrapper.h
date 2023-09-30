@@ -36,12 +36,15 @@ namespace lsp
             IWrapper(ui, wrapper->resources())
         {
             pWrapper        = wrapper;
-            pIdleThread     = NULL;
             nKeyState       = 0;
             sRect.top       = 0;
             sRect.left      = 0;
             sRect.bottom    = 0;
             sRect.right     = 0;
+
+        #ifdef LSP_VST2_ALT_EVENT_LOOP
+            pIdleThread     = NULL;
+        #endif /* LSP_VST2_ALT_EVENT_LOOP */
         }
 
         UIWrapper::~UIWrapper()
@@ -185,6 +188,10 @@ namespace lsp
             if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
                 return res;
 
+            // Bind the display idle handler
+            pDisplay->slots()->bind(tk::SLOT_IDLE, slot_display_idle, this);
+            pDisplay->set_idle_interval(1000 / UI_FRAMES_PER_SECOND);
+
             // Load visual schema
             if ((res = init_visual_schema()) != STATUS_OK)
                 return res;
@@ -224,7 +231,7 @@ namespace lsp
         void UIWrapper::do_destroy()
         {
             // Terminate idle thread
-            terminate_idle_thread();
+            stop_event_loop();
 
             // Destroy UI
             if (pUI != NULL)
@@ -245,19 +252,6 @@ namespace lsp
                 delete pDisplay;
                 pDisplay        = NULL;
             }
-        }
-
-        void UIWrapper::terminate_idle_thread()
-        {
-            // Terminate idle thread if it is present
-            if (pIdleThread == NULL)
-                return;
-
-            pIdleThread->cancel();
-            pIdleThread->join();
-
-            delete pIdleThread;
-            pIdleThread     = NULL;
         }
 
         core::KVTStorage *UIWrapper::kvt_lock()
@@ -283,16 +277,7 @@ namespace lsp
         void UIWrapper::main_iteration()
         {
             transfer_dsp_to_ui();
-
             IWrapper::main_iteration();
-
-            // Call main iteration for the underlying display
-            // For windows, we do not need to call main_iteration() because the main
-            // event loop is provided by the hosting application
-        #ifndef PLATFORM_WINDOWS
-            if (pDisplay != NULL)
-                pDisplay->main_iteration();
-        #endif /* PLATFORM_WINDOWS */
         }
 
         const meta::package_t *UIWrapper::package() const
@@ -385,6 +370,86 @@ namespace lsp
                 notify_play_position(sp->position(), sp->sample_length());
         }
 
+    #ifdef LSP_VST2_ALT_EVENT_LOOP
+        status_t UIWrapper::event_loop(void *arg)
+        {
+            static constexpr size_t FRAME_PERIOD    = 1000 / UI_FRAMES_PER_SECOND;
+
+            UIWrapper *self = static_cast<UIWrapper *>(arg);
+
+            lsp_trace("Entering main loop");
+
+            // Perform main loop
+            system::time_millis_t ctime = system::get_time_millis();
+            while (!ipc::Thread::is_cancelled())
+            {
+                // Measure the time of next frame to appear
+                system::time_millis_t deadline = ctime + FRAME_PERIOD;
+
+                // Perform main iteration with locked mutex
+                if (self->sMutex.lock())
+                {
+                    lsp_finally { self->sMutex.unlock(); };
+                    self->pDisplay->main_iteration();
+                }
+
+                // Wait for the next frame to appear
+                system::time_millis_t ftime = system::get_time_millis();
+                if (ftime < deadline)
+                    self->pDisplay->wait_events(deadline - ftime);
+                ctime   = ftime;
+            }
+
+            lsp_trace("Leaving main loop");
+
+            return STATUS_OK;
+        }
+    #endif /* LSP_VST2_ALT_EVENT_LOOP */
+
+        bool UIWrapper::start_event_loop()
+        {
+        #ifdef LSP_VST2_ALT_EVENT_LOOP
+            // Launch the main loop thread
+            lsp_trace("Creating main event loop thread");
+            pIdleThread   = new ipc::Thread(event_loop, this);
+            if (pIdleThread == NULL)
+            {
+                lsp_error("Failed to create UI main loop thread");
+                return false;
+            }
+
+            if (pIdleThread->start() != STATUS_OK)
+            {
+                lsp_error("Failed to start UI main loop thread");
+                delete pIdleThread;
+                pIdleThread = NULL;
+                return false;
+            }
+
+            lsp_trace("Successfully started main loop thread");
+        #endif /* LSP_VST2_ALT_EVENT_LOOP */
+
+            return true;
+        }
+
+        void UIWrapper::stop_event_loop()
+        {
+        #ifdef LSP_VST2_ALT_EVENT_LOOP
+            // Terminate idle thread if it is present
+            if (pIdleThread != NULL)
+            {
+                if (pDisplay != NULL)
+                    pDisplay->quit_main();
+
+                pIdleThread->cancel();
+                pIdleThread->join();
+
+                delete pIdleThread;
+                pIdleThread     = NULL;
+            }
+        #endif /* LSP_VST2_ALT_EVENT_LOOP */
+        }
+
         bool UIWrapper::show_ui()
         {
             // Reset key state
@@ -407,23 +472,37 @@ namespace lsp
             transfer_dsp_to_ui();
 
             // Show the UI window
-            window()->show();
-
-            // Launch the idle thread (workaround for some hosts)
-            pIdleThread = new ipc::Thread(eff_edit_idle, this);
-            if (pIdleThread == NULL)
+            tk::Window *wnd  = window();
+            if (wnd == NULL)
                 return false;
-            pIdleThread->start();
+
+            // Show the window and start event loop
+            wnd->show();
+            bool res    = start_event_loop();
+            if (!res)
+            {
+                wnd->hide();
+                return res;
+            }
 
             return true;
         }
 
         void UIWrapper::hide_ui()
         {
+        #ifdef LSP_VST2_ALT_EVENT_LOOP
+            // Stop the event loop
+            stop_event_loop();
+
+            // Do the sync barrier
+            sMutex.lock();
+            lsp_finally { sMutex.unlock(); };
+        #endif /* LSP_VST2_ALT_EVENT_LOOP */
+
+            // Hide the window
             tk::Window *wnd     = window();
             if (wnd != NULL)
                 wnd->hide();
-            terminate_idle_thread();
         }
 
         void UIWrapper::resize_ui()
@@ -450,10 +529,19 @@ namespace lsp
         void UIWrapper::idle_ui()
         {
             // Terminate the idle thread if it has been launched previously
-            terminate_idle_thread();
+            stop_event_loop();
 
-            // Call the processing of main iteration
-            main_iteration();
+            // Call main iteration for the underlying display
+            // For windows, we do not need to call main_iteration() because the main
+            // event loop is provided by the hosting application
+        #ifndef PLATFORM_WINDOWS
+            if (sMutex.lock())
+            {
+                lsp_finally { sMutex.unlock(); };
+                if (pDisplay != NULL)
+                    pDisplay->main_iteration();
+            }
+        #endif /* PLATFORM_WINDOWS */
         }
 
         ERect *UIWrapper::ui_rect()
@@ -482,6 +570,15 @@ namespace lsp
         {
             UIWrapper *wrapper = static_cast<UIWrapper *>(ptr);
             wrapper->resize_ui();
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::slot_display_idle(tk::Widget *sender, void *ptr, void *data)
+        {
+            UIWrapper *self = static_cast<UIWrapper *>(ptr);
+            if (self != NULL)
+                self->main_iteration();
+
             return STATUS_OK;
         }
 
