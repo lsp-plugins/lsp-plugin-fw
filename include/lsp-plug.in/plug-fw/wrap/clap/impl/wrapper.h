@@ -363,7 +363,7 @@ namespace lsp
 
         status_t Wrapper::generate_audio_port_groups(const meta::plugin_t *meta)
         {
-            // Generate mofifiable lists of input and output ports
+            // Generate modifiable lists of input and output ports
             lltl::parray<plug::IPort> ins, outs;
             for (size_t i=0, n=vAllPorts.size(); i < n; ++i)
             {
@@ -379,14 +379,12 @@ namespace lsp
             }
 
             // Try to create ports using port groups
-            audio_group_t *in_main = NULL, *out_main = NULL;
-            for (const meta::port_group_t *pg = (meta != NULL) ? meta->port_groups : NULL;
-                (pg != NULL) && (pg->id != NULL);
-                ++pg)
+            audio_group_t *in_main = NULL, *out_main = NULL, *grp = NULL;
+            const meta::port_group_t *port_groups = (meta != NULL) ? meta->port_groups : NULL;
+            for (const meta::port_group_t *pg = port_groups; (pg != NULL) && (pg->id != NULL); ++pg)
             {
                 // Create group and add to list
-                audio_group_t *grp  = create_audio_group(pg, &ins, &outs);
-                if (grp == NULL)
+                if ((grp  = create_audio_group(pg, &ins, &outs)) == NULL)
                     return STATUS_NO_MEM;
 
                 // Add the group to list or keep as a separate pointer because CLAP
@@ -431,6 +429,56 @@ namespace lsp
                 }
             }
 
+            // We need to create main audio groups anyway
+            if ((ins.size() > 0) && (!in_main))
+            {
+                if ((grp = alloc_audio_group(ins.size())) == NULL)
+                    return STATUS_NO_MEM;
+
+                // Initialize the audio group
+                grp->nType          = meta::GRP_MONO;
+                grp->nFlags         = CLAP_AUDIO_PORT_REQUIRES_COMMON_SAMPLE_SIZE | CLAP_AUDIO_PORT_IS_MAIN;
+                grp->nInPlace       = -1;
+                grp->sName          = "main_in";
+                grp->nPorts         = ins.size();
+                for (size_t i=0, n=ins.size(); i<n; ++i)
+                    grp->vPorts[i]      = static_cast<clap::AudioPort *>(ins.uget(i));
+
+                if (!vAudioIn.add(grp))
+                {
+                    destroy_audio_group(grp);
+                    return STATUS_NO_MEM;
+                }
+                in_main             = grp;
+
+                lsp_trace("Created default main input group id=%s for %d ports", grp->sName, grp->nPorts);
+            }
+
+            if ((outs.size() > 0) && (!out_main))
+            {
+                audio_group_t *grp  = alloc_audio_group(outs.size());
+                if (grp == NULL)
+                    return STATUS_NO_MEM;
+
+                // Initialize the audio group
+                grp->nType          = meta::GRP_MONO;
+                grp->nFlags         = CLAP_AUDIO_PORT_REQUIRES_COMMON_SAMPLE_SIZE | CLAP_AUDIO_PORT_IS_MAIN;
+                grp->nInPlace       = -1;
+                grp->sName          = "main_out";
+                grp->nPorts         = outs.size();
+                for (size_t i=0, n=outs.size(); i<n; ++i)
+                    grp->vPorts[i]      = static_cast<clap::AudioPort *>(outs.uget(i));
+
+                if (!vAudioIn.add(grp))
+                {
+                    destroy_audio_group(grp);
+                    return STATUS_NO_MEM;
+                }
+                out_main            = grp;
+
+                lsp_trace("Created default main output group id=%s for %d ports", grp->sName, grp->nPorts);
+            }
+
             // Do some optimizations for the host
             if ((in_main != NULL) && (out_main != NULL) && (in_main->nPorts == out_main->nPorts))
             {
@@ -438,24 +486,32 @@ namespace lsp
                 out_main->nInPlace  = vAudioIn.index_of(in_main);
             }
 
-            // Create the rest input ports
+            // Create the rest input ports if they do not belong to any audio group
             for (size_t i=0, n=ins.size(); i<n; ++i)
             {
                 plug::IPort *p      = ins.uget(i);
                 audio_group_t *grp  = create_audio_group(p);
                 if (grp == NULL)
                     return STATUS_NO_MEM;
-                vAudioIn.add(grp);
+                if (!vAudioIn.add(grp))
+                {
+                    destroy_audio_group(grp);
+                    return STATUS_NO_MEM;
+                }
             }
 
-            // Create the rest output ports
+            // Create the rest output ports if they do not belong to any audio group
             for (size_t i=0, n=outs.size(); i<n; ++i)
             {
                 plug::IPort *p      = outs.uget(i);
                 audio_group_t *grp  = create_audio_group(p);
                 if (grp == NULL)
                     return STATUS_NO_MEM;
-                vAudioOut.add(grp);
+                if (!vAudioOut.add(grp))
+                {
+                    destroy_audio_group(grp);
+                    return STATUS_NO_MEM;
+                }
             }
 
             return STATUS_OK;
