@@ -135,9 +135,55 @@ namespace lsp
                         CLAP_PLUGIN_FEATURE_NOTE_EFFECT, CLAP_PLUGIN_FEATURE_ANALYZER);
             }
 
+            size_t count_ports(const meta::port_group_t *pg)
+            {
+                size_t count = 0;
+                if (pg == NULL)
+                    return count;
+                for (const meta::port_group_item_t *it = pg->items; (it != NULL) && (it->id != NULL); ++it)
+                {
+                    ++count;
+                }
+                return count;
+            }
+
+            void validate_groups(context_t *ctx, const meta::plugin_t *meta)
+            {
+                const meta::port_group_t *main_in = NULL;
+                const meta::port_group_t *main_out = NULL;
+
+                // Check port groups
+                if (meta->port_groups == NULL)
+                    validation_error(ctx, "Plugin uid='%s' has no defined port groups", meta->uid);
+
+                // Iterate over main groups and check the designation to main
+                for (const meta::port_group_t *pg = meta->port_groups; (pg != NULL) && (pg->id != NULL); ++pg)
+                {
+                    if (!(pg->flags & meta::PGF_MAIN))
+                        continue;
+
+                    if (pg->flags & meta::PGF_OUT)
+                    {
+                        if (main_out != NULL)
+                            validation_error(ctx, "Plugin uid='%s' has duplicate output main group id='%s', previous is: id='%s'", meta->uid, pg->id, main_out->id);
+                        if (count_ports(pg) <= 0)
+                            validation_error(ctx, "Plugin uid='%s' output port group id='%s' has no members", meta->uid, pg->id);
+                        main_out    = pg;
+                    }
+                    else
+                    {
+                        if (main_in!= NULL)
+                            validation_error(ctx, "Plugin uid='%s' has duplicate input main group id='%s', previous is: id='%s'", meta->uid, pg->id, main_in->id);
+                        if (count_ports(pg) <= 0)
+                            validation_error(ctx, "Plugin uid='%s' input port group id='%s', has no members", meta->uid, pg->id);
+                        main_in     = pg;
+                    }
+                }
+            }
+
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
-                // Validate VST 2.x identifier
+                // Validate CLAP identifier
                 if (meta->clap_uid == NULL)
                 {
                     if (meta->clap_features != NULL)
@@ -155,6 +201,9 @@ namespace lsp
 
                 // Validate features
                 validate_features(ctx, meta);
+
+                // Validate port groups
+                validate_groups(ctx, meta);
             }
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)
