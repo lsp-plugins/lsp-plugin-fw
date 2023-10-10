@@ -195,9 +195,11 @@ namespace lsp
             // Cleanup generated metadata
             for (size_t i=0; i<vGenMetadata.size(); ++i)
             {
-                lsp_trace("destroy generated port metadata %p", vGenMetadata[i]);
-                drop_port_metadata(vGenMetadata[i]);
+                meta::port_t *p = vGenMetadata.uget(i);
+                lsp_trace("destroy generated port metadata %p", p);
+                drop_port_metadata(p);
             }
+            vGenMetadata.flush();
 
             // Destroy manifest
             if (pPackage != NULL)

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 дек. 2021 г.
@@ -26,7 +26,12 @@
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/ui_ports.h>
+#include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/ipc/Thread.h>
+
+#ifndef PLATFORM_WINDOWS
+    #define LSP_VST2_ALT_EVENT_LOOP
+#endif /* PLATFORM_WINDOWS */
 
 namespace lsp
 {
@@ -40,18 +45,27 @@ namespace lsp
                 vst2::Wrapper                      *pWrapper;       // VST Wrapper
                 size_t                              nKeyState;      // State of the keys
                 ERect                               sRect;
+            #ifdef LSP_VST2_ALT_EVENT_LOOP
+                ipc::Mutex                          sMutex;         // UI barrier mutex
                 ipc::Thread                        *pIdleThread;    // Thread that simulates effEditIdle
+            #endif /* LSP_VST2_ALT_EVENT_LOOP */
 
             protected:
                 static status_t                 slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_realize(tk::Widget *sender, void *ptr, void *data);
+                static status_t                 slot_display_idle(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t                 eff_edit_idle(void *arg);
 
+            #ifdef LSP_VST2_ALT_EVENT_LOOP
+                static status_t                 event_loop(void *arg);
+            #endif /* LSP_VST2_ALT_EVENT_LOOP */
+
             protected:
                 void                            transfer_dsp_to_ui();
-                void                            terminate_idle_thread();
+                bool                            start_event_loop();
+                void                            stop_event_loop();
                 void                            do_destroy();
                 vst2::UIPort                   *create_port(const meta::port_t *port, const char *postfix);
 

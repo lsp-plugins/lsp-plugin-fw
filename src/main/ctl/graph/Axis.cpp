@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 14 мая 2021 г.
@@ -78,6 +78,7 @@ namespace lsp
                 sSmooth.init(pWrapper, ga->smooth());
                 sMin.init(pWrapper, ga->min());
                 sMax.init(pWrapper, ga->max());
+                sZero.init(pWrapper, ga->zero());
                 sDx.init(pWrapper, this);
                 sDy.init(pWrapper, this);
                 sAngle.init(pWrapper, this);
@@ -117,6 +118,7 @@ namespace lsp
                 sSmooth.set("smooth", name, value);
                 sMin.set("min", name, value);
                 sMax.set("max", name, value);
+                sZero.set("zero", name, value);
             }
 
             return Widget::set(ctx, name, value);
@@ -218,7 +220,7 @@ namespace lsp
             Widget::reloaded(sheet);
             trigger_expr();
         }
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

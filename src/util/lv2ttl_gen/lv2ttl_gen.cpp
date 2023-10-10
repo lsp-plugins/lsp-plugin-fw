@@ -108,6 +108,7 @@ namespace lsp
             { meta::U_DEG_R,        NULL,               "degrees Rankine",      "%.2f"      },
 
             { meta::U_NEPER,        NULL,               "Neper",                "%.2f"      },
+            { meta::U_LUFS,         NULL,               "LUFS",                 "%.2f"      },
 
             { meta::U_BYTES,        NULL,               "Bytes",                "%.0f"      },
             { meta::U_KBYTES,       NULL,               "Kilobytes",            "%.2f"      },

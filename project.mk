@@ -24,4 +24,4 @@ ARTIFACT_NAME               = lsp-plugin-fw
 ARTIFACT_DESC               = LSP Plugin Framework for building LSP Plugins
 ARTIFACT_HEADERS            = lsp-plug.in
 ARTIFACT_EXPORT_ALL         = 1
-ARTIFACT_VERSION            = 1.0.17
+ARTIFACT_VERSION            = 1.0.18

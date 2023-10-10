@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 апр. 2021 г.
@@ -196,7 +196,8 @@ namespace lsp
             }
             return STATUS_OK;
         }
-    }
-}
+
+    } /* namespace core */
+} /* namespace lsp */
 
 
