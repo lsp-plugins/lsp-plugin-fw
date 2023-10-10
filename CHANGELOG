@@ -8,6 +8,7 @@
 * Fixed double free of generated port metadata.
 * Added LUFS units to metadata.
 * Added support of 'zero' property by the Axis controller.
+* Updated module versions in dependencies.
 
 === 1.0.17 ===
 * Updated module versions in dependencies.
