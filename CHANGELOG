@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.19 ===
+* Updated module versions in dependencies.
+
 === 1.0.18 ===
 * Fixed VST2 plugin crash on UI close in OBS Studio.
 * Fixed parameter ranges for CLAP plugin wrapper.
