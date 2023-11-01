@@ -145,8 +145,6 @@ namespace lsp
                             flags  |= config::SF_PREC_LONG;
                         if (meta::is_decibel_unit(meta->unit))
                         {
-                            flags  |= config::SF_DECIBELS;
-
                             if (meta->unit == meta::U_DB)
                             {
                                 if (v < -250.0f)
@@ -156,6 +154,8 @@ namespace lsp
                             }
                             else
                             {
+                                flags  |= config::SF_DECIBELS;
+
                                 if (fabsf(v) > 1e+40)
                                     v   = +INFINITY;
                                 else if (fabsf(v) < 1e-40)
