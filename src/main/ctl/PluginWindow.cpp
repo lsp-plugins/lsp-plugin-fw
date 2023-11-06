@@ -1286,6 +1286,18 @@ namespace lsp
                 gdot_style->set_bool("mouse.vscroll.invert", invert_gdot);
         }
 
+        void PluginWindow::sync_zoomable_spectrum()
+        {
+            tk::Display *dpy    = wWidget->display();
+            if (dpy == NULL)
+                return;
+
+            bool zoomable  = (pZoomableSpectrum != NULL) ? pZoomableSpectrum->value() >= 0.5f : false;
+
+            if (wZoomableSpectrum != NULL)
+                wZoomableSpectrum->checked()->set(zoomable);
+        }
+
         void PluginWindow::sync_font_scaling()
         {
             tk::Display *dpy    = wWidget->display();
@@ -1415,6 +1427,8 @@ namespace lsp
                 notify(pInvertVScroll, ui::PORT_NONE);
             if (pInvertGraphDotVScroll != NULL)
                 notify(pInvertGraphDotVScroll, ui::PORT_NONE);
+            if (pZoomableSpectrum != NULL)
+                notify(pZoomableSpectrum, ui::PORT_NONE);
 
             // Call for parent class method
             Window::end(ctx);
@@ -1438,6 +1452,8 @@ namespace lsp
                 sync_override_hydrogen();
             if ((port == pInvertVScroll) || (port == pInvertGraphDotVScroll))
                 sync_invert_vscroll(port);
+            if (port == pZoomableSpectrum)
+                sync_zoomable_spectrum();
         }
 
         status_t PluginWindow::add(ui::UIContext *ctx, ctl::Widget *child)
@@ -2302,6 +2318,8 @@ namespace lsp
                     _this->pInvertVScroll->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pInvertGraphDotVScroll != NULL)
                     _this->pInvertGraphDotVScroll->notify_all(ui::PORT_USER_EDIT);
+                if (_this->pZoomableSpectrum != NULL)
+                    _this->pZoomableSpectrum->notify_all(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;

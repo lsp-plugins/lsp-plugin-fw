@@ -261,6 +261,7 @@ namespace lsp
                 void                sync_knob_scale_enabled();
                 void                sync_override_hydrogen();
                 void                sync_invert_vscroll(ui::IPort *port);
+                void                sync_zoomable_spectrum();
                 void                apply_user_paths_settings();
                 void                read_path_param(tk::String *value, const char *port_id);
                 void                read_bool_param(tk::Boolean *value, const char *port_id);
