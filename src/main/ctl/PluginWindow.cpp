@@ -107,6 +107,7 @@ namespace lsp
             wRelPaths                   = NULL;
             wInvertVScroll              = NULL;
             wInvertGraphDotVScroll      = NULL;
+            wZoomableSpectrum           = NULL;
 
             pPVersion                   = NULL;
             pPBypass                    = NULL;
@@ -122,6 +123,7 @@ namespace lsp
             pOverrideHydrogen           = NULL;
             pInvertVScroll              = NULL;
             pInvertGraphDotVScroll      = NULL;
+            pZoomableSpectrum           = NULL;
 
             pConfigSink                 = NULL;
 
@@ -277,6 +279,7 @@ namespace lsp
             BIND_PORT(pWrapper, pOverrideHydrogen, UI_OVERRIDE_HYDROGEN_KITS_PORT);
             BIND_PORT(pWrapper, pInvertVScroll, UI_INVERT_VSCROLL_PORT);
             BIND_PORT(pWrapper, pInvertGraphDotVScroll, UI_GRAPH_DOT_INVERT_VSCROLL_PORT);
+            BIND_PORT(pWrapper, pZoomableSpectrum, UI_ZOOMABLE_SPECTRUM_GRAPH_PORT);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
 
@@ -887,6 +890,14 @@ namespace lsp
                 wInvertGraphDotVScroll->type()->set_check();
                 wInvertGraphDotVScroll->text()->set("actions.ui_behavior.vscroll.invert_graph_dot");
                 wInvertGraphDotVScroll->slots()->bind(tk::SLOT_SUBMIT, slot_invert_graph_dot_vscroll_changed, this);
+            }
+
+            // Auto scale spectrum
+            if ((wZoomableSpectrum = create_menu_item(menu)) != NULL)
+            {
+                wZoomableSpectrum->type()->set_check();
+                wZoomableSpectrum->text()->set("actions.ui_behavior.enable_zoomable_spectrum");
+                wZoomableSpectrum->slots()->bind(tk::SLOT_SUBMIT, slot_zoomable_spectrum_changed, this);
             }
 
             return STATUS_OK;
@@ -2548,6 +2559,24 @@ namespace lsp
             bool checked = _this->wInvertGraphDotVScroll->checked()->get();
             _this->pInvertGraphDotVScroll->set_value((checked) ? 1.0f : 0.0f);
             _this->pInvertGraphDotVScroll->notify_all(ui::PORT_USER_EDIT);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_zoomable_spectrum_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+            if (_this->pZoomableSpectrum == NULL)
+                return STATUS_OK;
+            if (_this->wZoomableSpectrum == NULL)
+                return STATUS_OK;
+
+            _this->wZoomableSpectrum->checked()->toggle();
+            bool checked = _this->wZoomableSpectrum->checked()->get();
+            _this->pZoomableSpectrum->set_value((checked) ? 1.0f : 0.0f);
+            _this->pZoomableSpectrum->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }

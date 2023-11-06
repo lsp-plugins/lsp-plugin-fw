@@ -90,6 +90,8 @@ namespace lsp
                 sSmooth.init(pWrapper, gm->smooth());
                 sFill.init(pWrapper, gm->fill());
                 sStrobes.init(pWrapper, gm->strobes());
+                sXAxis.init(pWrapper, gm->haxis());
+                sYAxis.init(pWrapper, gm->vaxis());
 
                 sColor.init(pWrapper, gm->color());
                 sFillColor.init(pWrapper, gm->fill_color());
@@ -115,20 +117,20 @@ namespace lsp
                 set_param(gm->origin(), "center", name, value);
                 set_param(gm->origin(), "o", name, value);
 
-                set_param(gm->haxis(), "haxis", name, value);
-                set_param(gm->haxis(), "xaxis", name, value);
-                set_param(gm->haxis(), "basis", name, value);
-                set_param(gm->haxis(), "ox", name, value);
-
-                set_param(gm->vaxis(), "vaxis", name, value);
-                set_param(gm->vaxis(), "yaxis", name, value);
-                set_param(gm->vaxis(), "parallel", name, value);
-                set_param(gm->vaxis(), "oy", name, value);
-
                 sWidth.set("width", name, value);
                 sSmooth.set("smooth", name, value);
                 sFill.set("fill", name, value);
                 sStrobes.set("strobes", name, value);
+
+                sXAxis.set("haxis", name, value);
+                sXAxis.set("xaxis", name, value);
+                sXAxis.set("basis", name, value);
+                sXAxis.set("ox", name, value);
+
+                sYAxis.set("vaxis", name, value);
+                sYAxis.set("yaxis", name, value);
+                sYAxis.set("parallel", name, value);
+                sYAxis.set("oy", name, value);
 
                 sColor.set("color", name, value);
                 sFillColor.set("fill.color", name, value);

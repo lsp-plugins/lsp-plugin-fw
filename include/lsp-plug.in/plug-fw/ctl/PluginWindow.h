@@ -132,6 +132,7 @@ namespace lsp
                 tk::CheckBox               *wRelPaths;                  // Relative path checkbox
                 tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
                 tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
+                tk::MenuItem               *wZoomableSpectrum;          // Automatic scaling mode of the frequency graph
 
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
@@ -147,6 +148,7 @@ namespace lsp
                 ui::IPort                  *pOverrideHydrogen;
                 ui::IPort                  *pInvertVScroll;
                 ui::IPort                  *pInvertGraphDotVScroll;
+                ui::IPort                  *pZoomableSpectrum;
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
 
@@ -220,6 +222,7 @@ namespace lsp
 
                 static status_t slot_invert_vscroll_changed(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_invert_graph_dot_vscroll_changed(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_zoomable_spectrum_changed(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
