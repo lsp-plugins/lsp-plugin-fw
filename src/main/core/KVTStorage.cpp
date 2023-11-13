@@ -1152,7 +1152,7 @@ namespace lsp
 
         status_t KVTStorage::unbind(KVTListener *listener)
         {
-            if (!vListeners.premove(listener))
+            if (!vListeners.qpremove(listener))
                 return STATUS_NOT_BOUND;
 
             listener->detached(this);

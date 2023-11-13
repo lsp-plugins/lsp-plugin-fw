@@ -122,6 +122,10 @@ namespace lsp
             // Flush list of 'Schema reloaded' handlers
             vSchemaListeners.flush();
 
+//            // Unbind all listeners for ports
+//            for (lltl::iterator<IPort> it=vPorts.values(); it; ++it)
+//                it->unbind_all();
+
             // Destroy window controller if present
             if (pWindow != NULL)
             {
@@ -333,7 +337,7 @@ namespace lsp
         {
             if (listener == NULL)
                 return STATUS_BAD_ARGUMENTS;
-            return (vKvtListeners.premove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
+            return (vKvtListeners.qpremove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
         }
 
         bool IWrapper::kvt_release()
@@ -1748,11 +1752,15 @@ namespace lsp
                 return res;
 
             // Notify all listeners in reverse order
-            for (size_t i=vSchemaListeners.size(); i > 0; )
+            lltl::parray<ISchemaListener> listeners;
+            if (vSchemaListeners.values(&listeners))
             {
-                ISchemaListener *listener = vSchemaListeners.uget(--i);
-                if (listener != NULL)
-                    listener->reloaded(sheet);
+                for (size_t i=0, n=listeners.size(); i < n; ++i)
+                {
+                    ISchemaListener *listener = listeners.uget(i);
+                    if (listener != NULL)
+                        listener->reloaded(sheet);
+                }
             }
 
             return res;
@@ -1872,12 +1880,12 @@ namespace lsp
             if (vSchemaListeners.contains(listener))
                 return STATUS_ALREADY_EXISTS;
 
-            return (vSchemaListeners.add(listener)) ? STATUS_OK : STATUS_NO_MEM;
+            return (vSchemaListeners.put(listener)) ? STATUS_OK : STATUS_NO_MEM;
         }
 
         status_t IWrapper::remove_schema_listener(ui::ISchemaListener *listener)
         {
-            return (vSchemaListeners.premove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
+            return (vSchemaListeners.remove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
         }
 
         expr::Variables *IWrapper::global_variables()
@@ -1937,7 +1945,7 @@ namespace lsp
                 return STATUS_BAD_ARGUMENTS;
             if (!vPlayListeners.contains(listener))
                 return STATUS_NOT_BOUND;
-            if (!vPlayListeners.premove(listener))
+            if (!vPlayListeners.qpremove(listener))
                 return STATUS_NO_MEM;
             return STATUS_OK;
         }

@@ -37,14 +37,12 @@ namespace lsp
 
         void IPort::bind(IPortListener *listener)
         {
-            if (vListeners.index_of(listener) >= 0)
-                return;
-            vListeners.add(listener);
+            vListeners.put(listener);
         }
 
         void IPort::unbind(IPortListener *listener)
         {
-            vListeners.premove(listener);
+            vListeners.remove(listener);
         }
 
         void IPort::unbind_all()
@@ -99,7 +97,7 @@ namespace lsp
         {
             // Prevent from modifying list of listeners at the sync stage
             lltl::parray<IPortListener> listeners;
-            if (!listeners.set(&vListeners))
+            if (!vListeners.values(&listeners))
                 return;
 
             // Call notify() for all listeners in the list
@@ -112,7 +110,7 @@ namespace lsp
         {
             // Prevent from modifying list of listeners at the sync stage
             lltl::parray<IPortListener> listeners;
-            if (!listeners.set(&vListeners))
+            if (!vListeners.values(&listeners))
                 return;
 
             // Call sync_metadata() for all listeners in the list
