@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 апр. 2021 г.
@@ -21,24 +21,13 @@
 
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/stdlib/locale.h>
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/stdlib/stdlib.h>
 
-#include <locale.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
-
-#define UPDATE_LOCALE(out_var, lc, value) \
-       char *out_var = setlocale(lc, NULL); \
-       if (out_var != NULL) \
-       { \
-           size_t ___len = strlen(out_var) + 1; \
-           char *___copy = static_cast<char *>(alloca(___len)); \
-           memcpy(___copy, out_var, ___len); \
-           out_var = ___copy; \
-       } \
-       setlocale(lc, value);
 
 namespace lsp
 {
@@ -83,7 +72,8 @@ namespace lsp
 
         bool parse_float(const char *arg, float *res)
         {
-            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+            SET_LOCALE_SCOPED(LC_NUMERIC, "C");
+
             errno = 0;
             char *end   = NULL;
 
@@ -107,9 +97,6 @@ namespace lsp
                 success = (*end == '\0');
             }
 
-            if (saved_locale != NULL)
-                setlocale(LC_NUMERIC, saved_locale);
-
             if ((res != NULL) && (success))
                 *res        = value;
             return success;
@@ -117,7 +104,8 @@ namespace lsp
 
         bool parse_double(const char *arg, double *res)
         {
-            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
+            SET_LOCALE_SCOPED(LC_NUMERIC, "C");
+
             errno = 0;
             char *end       = NULL;
             arg             = skip_whitespace(arg);
@@ -139,9 +127,6 @@ namespace lsp
                 end     = skip_whitespace(end);
                 success = (*end == '\0');
             }
-
-            if (saved_locale != NULL)
-                setlocale(LC_NUMERIC, saved_locale);
 
             if ((res != NULL) && (success))
                 *res        = value;
@@ -279,7 +264,7 @@ namespace lsp
 
             return STATUS_OK;
         }
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
