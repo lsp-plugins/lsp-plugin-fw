@@ -409,6 +409,7 @@ namespace lsp
         {
             const char             *name;           // Plugin name
             const char             *description;    // Plugin description
+            const char             *vst2_name;      // VST 2.x plugin name
             const char             *acronym;        // Plugin acronym
             const person_t         *developer;      // Developer
             const char             *uid;            // Unique character identifier of plugin
