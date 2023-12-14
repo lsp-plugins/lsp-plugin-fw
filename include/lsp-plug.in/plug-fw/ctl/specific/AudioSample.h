@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 июл. 2021 г.
@@ -87,6 +87,7 @@ namespace lsp
                 ui::IPort          *pPort;
                 ui::IPort          *pMeshPort;
                 ui::IPort          *pPathPort;
+                ui::IPort          *pFileTypePort;
                 tk::FileDialog     *pDialog;
                 ctl::Widget        *pFilePreview;
                 tk::Menu           *pMenu;
@@ -170,7 +171,12 @@ namespace lsp
 
             public:
                 explicit AudioSample(ui::IWrapper *wrapper, tk::AudioSample *widget);
+                AudioSample(const AudioSample &) = delete;
+                AudioSample(AudioSample &&) = delete;
                 virtual ~AudioSample() override;
+
+                AudioSample & operator = (const AudioSample &) = delete;
+                AudioSample & operator = (AudioSample &&) = delete;
 
                 virtual status_t    init() override;
                 virtual void        destroy() override;

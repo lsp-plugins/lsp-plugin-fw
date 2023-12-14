@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 сент. 2021 г.
@@ -70,6 +70,7 @@ namespace lsp
                 ui::IPort          *pCommand;       // Port that triggers command for save/load operation
                 ui::IPort          *pProgress;      // Port that indicates the loading progress
                 ui::IPort          *pPathPort;      // Port that contains the current navigation path of file dialog
+                ui::IPort          *pFileTypePort;  // Port that contains the current selected file type
 
                 DragInSink         *pDragInSink;
                 tk::FileDialog     *pDialog;
@@ -104,7 +105,12 @@ namespace lsp
 
             public:
                 explicit FileButton(ui::IWrapper *wrapper, tk::FileButton *widget, bool save);
+                FileButton(const FileButton &) = delete;
+                FileButton(FileButton &&) = delete;
                 virtual ~FileButton() override;
+
+                FileButton & operator = (const FileButton &) = delete;
+                FileButton & operator = (FileButton &&) = delete;
 
                 virtual status_t    init() override;
 

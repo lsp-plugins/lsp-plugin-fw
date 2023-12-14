@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 13 апр. 2021 г.
@@ -41,10 +41,6 @@ namespace lsp
         {
             public:
                 static const ctl_class_t metadata;
-
-            private:
-                PluginWindow & operator = (const PluginWindow &);
-                PluginWindow(const PluginWindow &);
 
             private:
                 static const tk::tether_t top_tether[];
@@ -137,6 +133,7 @@ namespace lsp
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
                 ui::IPort                  *pPath;
+                ui::IPort                  *pFileType;
                 ui::IPort                  *pR3DBackend;
                 ui::IPort                  *pLanguage;
                 ui::IPort                  *pRelPaths;
@@ -273,7 +270,12 @@ namespace lsp
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);
+                PluginWindow(const PluginWindow &) = delete;
+                PluginWindow(PluginWindow &&) = delete;
                 virtual ~PluginWindow() override;
+
+                PluginWindow & operator = (const PluginWindow &) = delete;
+                PluginWindow & operator = (PluginWindow &&) = delete;
 
                 /** Init widget
                  *
@@ -292,8 +294,8 @@ namespace lsp
                 virtual void        end(ui::UIContext *ctx) override;
                 virtual void        notify(ui::IPort *port, size_t flags) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

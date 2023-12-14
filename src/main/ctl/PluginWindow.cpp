@@ -112,6 +112,7 @@ namespace lsp
             pPVersion                   = NULL;
             pPBypass                    = NULL;
             pPath                       = NULL;
+            pFileType                   = NULL;
             pR3DBackend                 = NULL;
             pLanguage                   = NULL;
             pRelPaths                   = NULL;
@@ -267,6 +268,7 @@ namespace lsp
             // Bind ports
             BIND_PORT(pWrapper, pPVersion, VERSION_PORT);
             BIND_PORT(pWrapper, pPath, CONFIG_PATH_PORT);
+            BIND_PORT(pWrapper, pFileType, CONFIG_FTYPE_PORT);
             BIND_PORT(pWrapper, pPBypass, meta::PORT_NAME_BYPASS);
             BIND_PORT(pWrapper, pR3DBackend, R3D_BACKEND_PORT);
             BIND_PORT(pWrapper, pLanguage, LANGUAGE_PORT);
@@ -1841,36 +1843,58 @@ namespace lsp
         status_t PluginWindow::slot_fetch_path(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if ((_this == NULL) || (_this->pPath == NULL))
+            if (_this == NULL)
                 return STATUS_BAD_STATE;
 
             tk::FileDialog *dlg = tk::widget_cast<tk::FileDialog>(sender);
             if (dlg == NULL)
                 return STATUS_OK;
 
-            dlg->path()->set_raw(_this->pPath->buffer<char>());
+            // Set-up path
+            if (_this->pPath != NULL)
+            {
+                dlg->path()->set_raw(_this->pPath->buffer<char>());
+            }
+            // Set-up file type
+            if (_this->pFileType != NULL)
+            {
+                size_t filter = _this->pFileType->value();
+                if (filter < dlg->filter()->size())
+                    dlg->selected_filter()->set(filter);
+            }
+
             return STATUS_OK;
         }
 
         status_t PluginWindow::slot_commit_path(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if ((_this == NULL) || (_this->pPath == NULL))
+            if (_this == NULL)
                 return STATUS_BAD_STATE;
 
             tk::FileDialog *dlg = tk::widget_cast<tk::FileDialog>(sender);
             if (dlg == NULL)
                 return STATUS_OK;
 
-            LSPString tmp_path;
-            if (dlg->path()->format(&tmp_path) == STATUS_OK)
+            // Update file path
+            if (_this->pPath != NULL)
             {
-                const char *path = tmp_path.get_utf8();
-                if (path != NULL)
+                LSPString tmp_path;
+                if (dlg->path()->format(&tmp_path) == STATUS_OK)
                 {
-                    _this->pPath->write(path, strlen(path));
-                    _this->pPath->notify_all(ui::PORT_USER_EDIT);
+                    const char *path = tmp_path.get_utf8();
+                    if (path != NULL)
+                    {
+                        _this->pPath->write(path, strlen(path));
+                        _this->pPath->notify_all(ui::PORT_USER_EDIT);
+                    }
                 }
+            }
+            // Update filter
+            if (_this->pFileType != NULL)
+            {
+                _this->pFileType->set_value(dlg->selected_filter()->get());
+                _this->pFileType->notify_all(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;
