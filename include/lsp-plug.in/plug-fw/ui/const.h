@@ -66,6 +66,7 @@
 #define UI_INVERT_VSCROLL_ID                "invert_vscroll"
 #define UI_GRAPH_DOT_INVERT_VSCROLL_ID      "invert_graph_dot_vscroll"
 #define UI_ZOOMABLE_SPECTRUM_GRAPH_ID       "zoomable_spectrum_graph"
+#define UI_FILTER_POINT_THICK_ID            "filter_point_thickness"
 
 #define MSTUD_PORT                          UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                        UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -102,6 +103,7 @@
 #define UI_INVERT_VSCROLL_PORT              UI_CONFIG_PORT_PREFIX UI_INVERT_VSCROLL_ID
 #define UI_GRAPH_DOT_INVERT_VSCROLL_PORT    UI_CONFIG_PORT_PREFIX UI_GRAPH_DOT_INVERT_VSCROLL_ID
 #define UI_ZOOMABLE_SPECTRUM_GRAPH_PORT     UI_CONFIG_PORT_PREFIX UI_ZOOMABLE_SPECTRUM_GRAPH_ID
+#define UI_FILTER_POINT_THICK_PORT          UI_CONFIG_PORT_PREFIX UI_FILTER_POINT_THICK_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                      "main_menu"

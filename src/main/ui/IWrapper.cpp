@@ -44,6 +44,16 @@ namespace lsp
     // Metadata for the wrapper
     namespace meta
     {
+        static const port_item_t filter_point_thickness_modes[]=
+        {
+            { "Thinnest",       "filter.point_thick.thinnest" },
+            { "Thin",           "filter.point_thick.thin" },
+            { "Normal",         "filter.point_thick.normal" },
+            { "Semibold",       "filter.point_thick.semibold" },
+            { "Bold",           "filter.point_thick.bold" },
+            { NULL,             NULL }
+        };
+
         static const meta::port_t config_metadata[] =
         {
             SWITCH(UI_MOUNT_STUD_PORT_ID, "Visibility of mount studs in the UI", 1.0f),
@@ -81,6 +91,7 @@ namespace lsp
             SWITCH(UI_INVERT_VSCROLL_ID, "Invert global mouse vertical scroll behaviour", 0.0f),
             SWITCH(UI_GRAPH_DOT_INVERT_VSCROLL_ID, "Invert mouse vertical scroll behaviour for graph dot widget", 0.0f),
             SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Enables the automatic scaling mode of the frequency graph", 1.0f),
+            COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", 1.0f, filter_point_thickness_modes),
             PORTS_END
         };
 
