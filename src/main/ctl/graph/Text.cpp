@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 17 мая 2021 г.
@@ -124,6 +124,10 @@ namespace lsp
                 set_param(gt->origin(), "origin", name, value);
                 set_param(gt->origin(), "center", name, value);
                 set_param(gt->origin(), "o", name, value);
+
+                set_param(gt->priority(), "priority", name, value);
+                set_param(gt->priority_group(), "priority_group", name, value);
+                set_param(gt->priority_group(), "pgroup", name, value);
 
                 set_param(gt->text_adjust(), "text.adjust", name, value);
             }

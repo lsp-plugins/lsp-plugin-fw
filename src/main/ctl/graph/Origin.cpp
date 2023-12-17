@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 14 мая 2021 г.
@@ -93,6 +93,10 @@ namespace lsp
                     (set_expr(&sTop, "vpos", name, value)))
                     go->top()->set(sTop.evaluate_float());
 
+                set_param(go->priority(), "priority", name, value);
+                set_param(go->priority_group(), "priority_group", name, value);
+                set_param(go->priority_group(), "pgroup", name, value);
+
                 sSmooth.set("smooth", name, value);
                 sRadius.set("radius", name, value);
                 sColor.set("color", name, value);
@@ -131,5 +135,6 @@ namespace lsp
         {
             Widget::reloaded(sheet);
         }
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */

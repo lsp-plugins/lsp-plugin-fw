@@ -7,6 +7,7 @@
 * Code updates that could cause potential problems related to using another
   decimal point for floating-point number formatting.
 * Added support of storing current file type selection in file dialogs.
+* Implemented widget overrides by priority on the graph widget.
 
 === 1.0.20 ===
 * Updated module versions in dependencies.

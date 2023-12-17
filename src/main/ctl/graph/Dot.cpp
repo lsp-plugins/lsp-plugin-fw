@@ -190,6 +190,10 @@ namespace lsp
                 set_param(gd->origin(), "center", name, value);
                 set_param(gd->origin(), "o", name, value);
 
+                set_param(gd->priority(), "priority", name, value);
+                set_param(gd->priority_group(), "priority_group", name, value);
+                set_param(gd->priority_group(), "pgroup", name, value);
+
                 sSize.set("size", name, value);
                 sHoverSize.set("hover.size", name, value);
                 sBorderSize.set("border.size", name, value);
