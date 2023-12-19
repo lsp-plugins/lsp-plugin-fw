@@ -1291,7 +1291,7 @@ namespace lsp
                 if (p->flags & F_INT)
                     f_step      = (p->flags & F_STEP) ? p->step : 1.0f;
                 else
-                    f_step      = (p->flags & F_STEP) ? p->step : (f_max - f_min) * 0.001;
+                    f_step      = (p->flags & F_STEP) ? p->step : (f_max - f_min) * 0.001f;
             }
 
             if (min != NULL)

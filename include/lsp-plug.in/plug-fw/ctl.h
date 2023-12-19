@@ -97,6 +97,7 @@
     #include <lsp-plug.in/plug-fw/ctl/3d/Model3D.h>
 
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/DryWetLink.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/FileButton.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/Fraction.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedChannel.h>

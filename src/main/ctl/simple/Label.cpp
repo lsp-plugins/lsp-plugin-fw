@@ -552,23 +552,25 @@ namespace lsp
             ws::code_t key = tk::KeyboardHandler::translate_keypad(ev->nCode);
 
             PopupWindow *popup  = _this->wPopup;
-            if (key == ws::WSK_RETURN)
-            {
-                // Deploy new value
-                LSPString value;
-                if (popup->sValue.text()->format(&value) == STATUS_OK)
-                {
-                    if (!_this->apply_value(&value))
-                        return STATUS_OK;
-                }
-            }
-
             if ((key == ws::WSK_RETURN) || (key == ws::WSK_ESCAPE))
             {
                 popup->hide();
+
+                // Deploy new value
+                if (key == ws::WSK_RETURN)
+                {
+                    LSPString value;
+                    if (popup->sValue.text()->format(&value) == STATUS_OK)
+                    {
+                        if (!_this->apply_value(&value))
+                            return STATUS_OK;
+                    }
+                }
+
                 if (popup->queue_destroy() == STATUS_OK)
                     _this->wPopup  = NULL;
             }
+
             return STATUS_OK;
         }
 

@@ -113,7 +113,7 @@ namespace lsp
 
                 /** Set single float value
                  *
-                 * @param flags additional control flags
+                 * @param flags additional control flags @see port_flags_t
                  */
                 virtual void        set_value(float value, size_t flags);
 
