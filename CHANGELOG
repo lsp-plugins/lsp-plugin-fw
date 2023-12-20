@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.22 ===
+
+
 === 1.0.21 ===
 * Fixed configuration file serialization.
 * Code updates that could cause potential problems related to using another
