@@ -21,10 +21,11 @@
 
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
-#include <lsp-plug.in/stdlib/string.h>
-#include <lsp-plug.in/stdlib/stdio.h>
-#include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/stdlib/locale.h>
+#include <lsp-plug.in/stdlib/math.h>
+#include <lsp-plug.in/stdlib/stdio.h>
+#include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/dsp-units/const.h>
 #include <lsp-plug.in/dsp-units/units.h>
 
@@ -604,17 +605,6 @@ namespace lsp
                 format_float(buf, len, meta, value, precision, units);
         }
 
-#define UPDATE_LOCALE(out_var, lc, value) \
-        char *out_var = setlocale(lc, NULL); \
-        if (out_var != NULL) \
-        { \
-            size_t ___len = strlen(out_var) + 1; \
-            char *___copy = static_cast<char *>(alloca(___len)); \
-            memcpy(___copy, out_var, ___len); \
-            out_var = ___copy; \
-        } \
-        setlocale(lc, value);
-
         status_t parse_bool(float *dst, const char *text, const port_t *meta)
         {
             text    = skip_blank(text);
@@ -663,11 +653,7 @@ namespace lsp
             else
             {
                 // Update locale
-                UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
-                lsp_finally {
-                    if (saved_locale != NULL)
-                        ::setlocale(LC_NUMERIC, saved_locale);
-                };
+                SET_LOCALE_SCOPED(LC_NUMERIC, "C");
 
                 // Parse the floating-point value
                 errno       = 0;
@@ -715,11 +701,7 @@ namespace lsp
             }
 
             // The value was not found. Try to parse as floating-point
-            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
-            lsp_finally {
-                if (saved_locale != NULL)
-                    ::setlocale(LC_NUMERIC, saved_locale);
-            };
+            SET_LOCALE_SCOPED(LC_NUMERIC, "C");
 
             // Parse the floating-point value
             errno       = 0;
@@ -780,11 +762,7 @@ namespace lsp
             }
             else
             {
-                UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
-                lsp_finally {
-                    if (saved_locale != NULL)
-                        ::setlocale(LC_NUMERIC, saved_locale);
-                };
+                SET_LOCALE_SCOPED(LC_NUMERIC, "C");
 
                 // Parse the floating-point value
                 errno       = 0;
@@ -1032,11 +1010,7 @@ namespace lsp
                 return res;
 
             // Update locale
-            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
-            lsp_finally {
-                if (saved_locale != NULL)
-                    ::setlocale(LC_NUMERIC, saved_locale);
-            };
+            SET_LOCALE_SCOPED(LC_NUMERIC, "C");
 
             // Parse the floating-point value
             text        = skip_blank(text);
@@ -1114,11 +1088,7 @@ namespace lsp
         status_t parse_time(float *dst, const char *text, const port_t *meta, bool units)
         {
             // Update locale
-            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
-            lsp_finally {
-                if (saved_locale != NULL)
-                    ::setlocale(LC_NUMERIC, saved_locale);
-            };
+            SET_LOCALE_SCOPED(LC_NUMERIC, "C");
 
             // Parse the floating-point value
             text        = skip_blank(text);
@@ -1211,11 +1181,7 @@ namespace lsp
         status_t parse_int(float *dst, const char *text, const port_t *meta, bool units)
         {
             // Update locale
-            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
-            lsp_finally {
-                if (saved_locale != NULL)
-                    ::setlocale(LC_NUMERIC, saved_locale);
-            };
+            SET_LOCALE_SCOPED(LC_NUMERIC, "C");
 
             // Parse the integer value
             errno       = 0;
@@ -1243,11 +1209,7 @@ namespace lsp
         status_t parse_float(float *dst, const char *text, const port_t *meta, bool units)
         {
             // Update locale
-            UPDATE_LOCALE(saved_locale, LC_NUMERIC, "C");
-            lsp_finally {
-                if (saved_locale != NULL)
-                    ::setlocale(LC_NUMERIC, saved_locale);
-            };
+            SET_LOCALE_SCOPED(LC_NUMERIC, "C");
 
             // Parse the floating-point value
             errno       = 0;
@@ -1329,7 +1291,7 @@ namespace lsp
                 if (p->flags & F_INT)
                     f_step      = (p->flags & F_STEP) ? p->step : 1.0f;
                 else
-                    f_step      = (p->flags & F_STEP) ? p->step : (f_max - f_min) * 0.001;
+                    f_step      = (p->flags & F_STEP) ? p->step : (f_max - f_min) * 0.001f;
             }
 
             if (min != NULL)

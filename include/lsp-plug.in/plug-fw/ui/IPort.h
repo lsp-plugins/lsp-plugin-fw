@@ -28,7 +28,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
-#include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/ptrset.h>
 
 namespace lsp
 {
@@ -43,7 +43,7 @@ namespace lsp
         {
             protected:
                 const meta::port_t             *pMetadata;
-                lltl::parray<IPortListener>     vListeners;
+                lltl::ptrset<IPortListener>     vListeners;
 
             public:
                 explicit IPort(const meta::port_t *meta);
@@ -113,7 +113,7 @@ namespace lsp
 
                 /** Set single float value
                  *
-                 * @param flags additional control flags
+                 * @param flags additional control flags @see port_flags_t
                  */
                 virtual void        set_value(float value, size_t flags);
 

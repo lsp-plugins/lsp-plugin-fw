@@ -108,6 +108,10 @@ namespace lsp
                 set_param(ga->origin(), "center", name, value);
                 set_param(ga->origin(), "o", name, value);
 
+                set_param(ga->priority(), "priority", name, value);
+                set_param(ga->priority_group(), "priority_group", name, value);
+                set_param(ga->priority_group(), "pgroup", name, value);
+
                 if (set_param(ga->log_scale(), "log", name, value))
                     bLogSet     = true;
                 if (set_param(ga->log_scale(), "logarithmic", name, value))

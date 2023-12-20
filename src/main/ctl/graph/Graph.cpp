@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 13 мая 2021 г.
@@ -113,7 +113,8 @@ namespace lsp
             tk::Graph *gr   = tk::widget_cast<tk::Graph>(wWidget);
             return (gr != NULL) ? gr->add(child->widget()) : STATUS_BAD_STATE;
         }
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

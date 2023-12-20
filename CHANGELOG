@@ -2,6 +2,15 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.21 ===
+* Fixed configuration file serialization.
+* Code updates that could cause potential problems related to using another
+  decimal point for floating-point number formatting.
+* Added support of storing current file type selection in file dialogs.
+* Added support of variable size of filter dots.
+* Implemented widget overrides by priority on the graph widget.
+* Updated module versions in dependencies.
+
 === 1.0.20 ===
 * Updated module versions in dependencies.
 

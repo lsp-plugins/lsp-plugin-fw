@@ -170,7 +170,7 @@ namespace lsp
 
         void Button::commit_value(float value)
         {
-            lsp_trace("commit value=%f", value);
+//            lsp_trace("commit value=%f", value);
             tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
             if (btn == NULL)
                 return;

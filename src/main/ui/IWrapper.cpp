@@ -44,19 +44,38 @@ namespace lsp
     // Metadata for the wrapper
     namespace meta
     {
+        static const port_item_t filter_point_thickness_modes[]=
+        {
+            { "Thinnest",       "filter.point_thick.thinnest" },
+            { "Thin",           "filter.point_thick.thin" },
+            { "Normal",         "filter.point_thick.normal" },
+            { "Semibold",       "filter.point_thick.semibold" },
+            { "Bold",           "filter.point_thick.bold" },
+            { NULL,             NULL }
+        };
+
         static const meta::port_t config_metadata[] =
         {
             SWITCH(UI_MOUNT_STUD_PORT_ID, "Visibility of mount studs in the UI", 1.0f),
             PATH(UI_LAST_VERSION_PORT_ID, "Last version of the product installed"),
             PATH(UI_DLG_SAMPLE_PATH_ID, "Dialog path for selecting sample files"),
+            INT_CONTROL_RANGE(UI_DLG_SAMPLE_FTYPE_ID, "Dialog file type for selecting sample files", U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_IR_PATH_ID, "Dialog path for selecting impulse response files"),
+            INT_CONTROL_RANGE(UI_DLG_IR_FTYPE_ID, "Dialog file type for selecting impulse response files", U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_CONFIG_PATH_ID, "Dialog path for saving/loading configuration files"),
+            INT_CONTROL_RANGE(UI_DLG_CONFIG_FTYPE_ID, "Dialog file type for saving/loading configuration files", U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_REW_PATH_ID, "Dialog path for importing REW settings files"),
+            INT_CONTROL_RANGE(UI_DLG_REW_FTYPE_ID, "Dialog file type for importing REW settings files", U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_HYDROGEN_PATH_ID, "Dialog path for importing Hydrogen drumkit files"),
+            INT_CONTROL_RANGE(UI_DLG_HYDROGEN_FTYPE_ID, "Dialog file type for importing Hydrogen drumkit files", U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_LSPC_BUNDLE_PATH_ID, "Dialog path for exporting/importing LSPC bundles"),
+            INT_CONTROL_RANGE(UI_DLG_LSPC_BUNDLE_FTYPE_ID, "Dialog file type for exporting/importing LSPC bundles", U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_SFZ_PATH_ID, "Dialog path for exporting/importing SFZ files"),
+            INT_CONTROL_RANGE(UI_DLG_SFZ_FTYPE_ID, "Dialog file type for exporting/importing SFZ files", U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_MODEL3D_PATH_ID, "Dialog for saving/loading 3D model files"),
+            INT_CONTROL_RANGE(UI_DLG_MODEL3D_FTYPE_ID, "Dialog file type for saving/loading 3D model files", U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_DEFAULT_PATH_ID, "Dialog default path for other files"),
+            INT_CONTROL_RANGE(UI_DLG_DEFAULT_FTYPE_ID, "Dialog default file type for other files", U_NONE, 0, 100, 0, 1),
             PATH(UI_R3D_BACKEND_PORT_ID, "Identifier of selected backend for 3D rendering"),
             PATH(UI_LANGUAGE_PORT_ID, "Selected language identifier for the UI interface"),
             SWITCH(UI_REL_PATHS_PORT_ID, "Use relative paths when exporting configuration file", 0.0f),
@@ -71,6 +90,8 @@ namespace lsp
             SWITCH(UI_OVERRIDE_HYDROGEN_KITS_ID, "Override Hydrogen kits", 1.0f),
             SWITCH(UI_INVERT_VSCROLL_ID, "Invert global mouse vertical scroll behaviour", 0.0f),
             SWITCH(UI_GRAPH_DOT_INVERT_VSCROLL_ID, "Invert mouse vertical scroll behaviour for graph dot widget", 0.0f),
+            SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Enables the automatic scaling mode of the frequency graph", 1.0f),
+            COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", 1.0f, filter_point_thickness_modes),
             PORTS_END
         };
 
@@ -120,6 +141,10 @@ namespace lsp
 
             // Flush list of 'Schema reloaded' handlers
             vSchemaListeners.flush();
+
+//            // Unbind all listeners for ports
+//            for (lltl::iterator<IPort> it=vPorts.values(); it; ++it)
+//                it->unbind_all();
 
             // Destroy window controller if present
             if (pWindow != NULL)
@@ -332,7 +357,7 @@ namespace lsp
         {
             if (listener == NULL)
                 return STATUS_BAD_ARGUMENTS;
-            return (vKvtListeners.premove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
+            return (vKvtListeners.qpremove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
         }
 
         bool IWrapper::kvt_release()
@@ -1747,11 +1772,15 @@ namespace lsp
                 return res;
 
             // Notify all listeners in reverse order
-            for (size_t i=vSchemaListeners.size(); i > 0; )
+            lltl::parray<ISchemaListener> listeners;
+            if (vSchemaListeners.values(&listeners))
             {
-                ISchemaListener *listener = vSchemaListeners.uget(--i);
-                if (listener != NULL)
-                    listener->reloaded(sheet);
+                for (size_t i=0, n=listeners.size(); i < n; ++i)
+                {
+                    ISchemaListener *listener = listeners.uget(i);
+                    if (listener != NULL)
+                        listener->reloaded(sheet);
+                }
             }
 
             return res;
@@ -1871,12 +1900,12 @@ namespace lsp
             if (vSchemaListeners.contains(listener))
                 return STATUS_ALREADY_EXISTS;
 
-            return (vSchemaListeners.add(listener)) ? STATUS_OK : STATUS_NO_MEM;
+            return (vSchemaListeners.put(listener)) ? STATUS_OK : STATUS_NO_MEM;
         }
 
         status_t IWrapper::remove_schema_listener(ui::ISchemaListener *listener)
         {
-            return (vSchemaListeners.premove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
+            return (vSchemaListeners.remove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
         }
 
         expr::Variables *IWrapper::global_variables()
@@ -1936,7 +1965,7 @@ namespace lsp
                 return STATUS_BAD_ARGUMENTS;
             if (!vPlayListeners.contains(listener))
                 return STATUS_NOT_BOUND;
-            if (!vPlayListeners.premove(listener))
+            if (!vPlayListeners.qpremove(listener))
                 return STATUS_NO_MEM;
             return STATUS_OK;
         }

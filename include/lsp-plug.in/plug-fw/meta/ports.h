@@ -123,6 +123,8 @@
     { id, label, U_GAIN_AMP, R_METER, F_OUT | F_LOG | F_UPPER | F_LOWER | F_PEAK, 0, max, dfl, 0, NULL, NULL }
 #define METER_OUT_GAIN(id, label, max) \
     { id, label, U_GAIN_AMP, R_METER, F_OUT | F_LOG | F_UPPER | F_LOWER, 0, max, 0.0f, 0, NULL, NULL }
+#define LUFS_METER(id, label, max) \
+    { id, label, U_LUFS, R_METER, F_OUT | F_UPPER | F_LOWER, -72.0f, max, 0.0f, 0, NULL, NULL }
 #define METER_GAIN10(id, label)  METER_GAIN(id, label, 10.0f)
 #define METER_GAIN20(id, label)  METER_GAIN(id, label, 20.0f)
 #define METER_PERCENT(id, label)  { id, label, U_PERCENT, R_METER, F_OUT | F_UPPER | F_LOWER, 0.0f, 100.0f, 0.0f, 0.1f, NULL, NULL }

@@ -501,7 +501,7 @@ namespace lsp
                     if (m != NULL)
                     {
                         char *dst = reinterpret_cast<char *>(ptr);
-                        vst_strncpy(dst, m->description, kVstMaxEffectNameLen);
+                        vst_strncpy(dst, m->vst2_name, kVstMaxEffectNameLen);
                         dst[kVstMaxEffectNameLen - 1] = '\0';
                         lsp_trace("effect_string = %s", dst);
                         v = 1;

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 13 апр. 2021 г.
@@ -41,10 +41,6 @@ namespace lsp
         {
             public:
                 static const ctl_class_t metadata;
-
-            private:
-                PluginWindow & operator = (const PluginWindow &);
-                PluginWindow(const PluginWindow &);
 
             private:
                 static const tk::tether_t top_tether[];
@@ -96,6 +92,14 @@ namespace lsp
                     ssize_t             nMouseY;
                 } window_scale_t;
 
+                typedef struct enum_menu_t
+                {
+                    PluginWindow       *pWnd;
+                    tk::Menu           *pMenu;
+                    ui::IPort          *pPort;
+                    lltl::parray<tk::MenuItem>  vItems;
+                } enum_menu_t;
+
                 class ConfigSink: public tk::TextDataSink
                 {
                     private:
@@ -132,10 +136,13 @@ namespace lsp
                 tk::CheckBox               *wRelPaths;                  // Relative path checkbox
                 tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
                 tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
+                tk::MenuItem               *wZoomableSpectrum;          // Automatic scaling mode of the frequency graph
+                tk::Menu                   *wFilterPointThickness;      // Filter point thickness submenu
 
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
                 ui::IPort                  *pPath;
+                ui::IPort                  *pFileType;
                 ui::IPort                  *pR3DBackend;
                 ui::IPort                  *pLanguage;
                 ui::IPort                  *pRelPaths;
@@ -147,10 +154,12 @@ namespace lsp
                 ui::IPort                  *pOverrideHydrogen;
                 ui::IPort                  *pInvertVScroll;
                 ui::IPort                  *pInvertGraphDotVScroll;
+                ui::IPort                  *pZoomableSpectrum;
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
 
                 window_scale_t              sWndScale;
+                enum_menu_t                 sFilterPointThickness;
 
                 lltl::parray<backend_sel_t> vBackendSel;
                 lltl::parray<lang_sel_t>    vLangSel;
@@ -220,11 +229,15 @@ namespace lsp
 
                 static status_t slot_invert_vscroll_changed(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_invert_graph_dot_vscroll_changed(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_zoomable_spectrum_changed(tk::Widget *sender, void *ptr, void *data);
+
+                static status_t slot_submit_enum_menu_item(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
                 static tk::FileFilters     *create_config_filters(tk::FileDialog *dlg);
                 static ssize_t              compare_presets(const resource::resource_t *a, const resource::resource_t *b);
+                void                init_enum_menu(enum_menu_t *menu);
 
             protected:
                 void                do_destroy();
@@ -238,6 +251,7 @@ namespace lsp
                 tk::Hyperlink      *create_hlink(tk::WidgetContainer *dst, const char *url, const char *text, const expr::Parameters *params, const char *style_name);
                 tk::MenuItem       *create_menu_item(tk::Menu *dst);
                 tk::Menu           *create_menu();
+                tk::Menu           *create_enum_menu(enum_menu_t *em, tk::Menu *parent, const char *label);
                 status_t            create_dialog_window(ctl::Window **ctl, tk::Window **dst, const char *path);
 
                 status_t            init_r3d_support(tk::Menu *menu);
@@ -258,6 +272,9 @@ namespace lsp
                 void                sync_knob_scale_enabled();
                 void                sync_override_hydrogen();
                 void                sync_invert_vscroll(ui::IPort *port);
+                void                sync_zoomable_spectrum();
+                void                sync_filter_point_thickness();
+                void                sync_enum_menu(enum_menu_t *menu, ui::IPort *port);
                 void                apply_user_paths_settings();
                 void                read_path_param(tk::String *value, const char *port_id);
                 void                read_bool_param(tk::Boolean *value, const char *port_id);
@@ -269,7 +286,12 @@ namespace lsp
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);
+                PluginWindow(const PluginWindow &) = delete;
+                PluginWindow(PluginWindow &&) = delete;
                 virtual ~PluginWindow() override;
+
+                PluginWindow & operator = (const PluginWindow &) = delete;
+                PluginWindow & operator = (PluginWindow &&) = delete;
 
                 /** Init widget
                  *
@@ -288,8 +310,8 @@ namespace lsp
                 virtual void        end(ui::UIContext *ctx) override;
                 virtual void        notify(ui::IPort *port, size_t flags) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

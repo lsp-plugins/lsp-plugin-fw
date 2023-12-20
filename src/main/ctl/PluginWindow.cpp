@@ -107,10 +107,12 @@ namespace lsp
             wRelPaths                   = NULL;
             wInvertVScroll              = NULL;
             wInvertGraphDotVScroll      = NULL;
+            wZoomableSpectrum           = NULL;
 
             pPVersion                   = NULL;
             pPBypass                    = NULL;
             pPath                       = NULL;
+            pFileType                   = NULL;
             pR3DBackend                 = NULL;
             pLanguage                   = NULL;
             pRelPaths                   = NULL;
@@ -122,6 +124,9 @@ namespace lsp
             pOverrideHydrogen           = NULL;
             pInvertVScroll              = NULL;
             pInvertGraphDotVScroll      = NULL;
+            pZoomableSpectrum           = NULL;
+
+            init_enum_menu(&sFilterPointThickness);
 
             pConfigSink                 = NULL;
 
@@ -223,6 +228,13 @@ namespace lsp
             wPreferHost     = NULL;
         }
 
+        void PluginWindow::init_enum_menu(enum_menu_t *menu)
+        {
+            menu->pWnd      = this;
+            menu->pMenu     = NULL;
+            menu->pPort     = NULL;
+        }
+
         void PluginWindow::bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler)
         {
             tk::Widget *w = widgets()->find(uid);
@@ -265,6 +277,7 @@ namespace lsp
             // Bind ports
             BIND_PORT(pWrapper, pPVersion, VERSION_PORT);
             BIND_PORT(pWrapper, pPath, CONFIG_PATH_PORT);
+            BIND_PORT(pWrapper, pFileType, CONFIG_FTYPE_PORT);
             BIND_PORT(pWrapper, pPBypass, meta::PORT_NAME_BYPASS);
             BIND_PORT(pWrapper, pR3DBackend, R3D_BACKEND_PORT);
             BIND_PORT(pWrapper, pLanguage, LANGUAGE_PORT);
@@ -277,6 +290,8 @@ namespace lsp
             BIND_PORT(pWrapper, pOverrideHydrogen, UI_OVERRIDE_HYDROGEN_KITS_PORT);
             BIND_PORT(pWrapper, pInvertVScroll, UI_INVERT_VSCROLL_PORT);
             BIND_PORT(pWrapper, pInvertGraphDotVScroll, UI_GRAPH_DOT_INVERT_VSCROLL_PORT);
+            BIND_PORT(pWrapper, pZoomableSpectrum, UI_ZOOMABLE_SPECTRUM_GRAPH_PORT);
+            BIND_PORT(pWrapper, sFilterPointThickness.pPort, UI_FILTER_POINT_THICK_PORT);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
 
@@ -526,6 +541,66 @@ namespace lsp
                 menu->destroy();
                 delete menu;
                 return NULL;
+            }
+
+            return menu;
+        }
+
+        tk::Menu *PluginWindow::create_enum_menu(enum_menu_t *em, tk::Menu *parent, const char *label)
+        {
+            // Obtain port metadata
+            lltl::parray<tk::MenuItem> list;
+            const meta::port_t *meta = (em->pPort != NULL) ? em->pPort->metadata() : NULL;
+            if ((meta == NULL) || (!meta::is_enum_unit(meta->unit)))
+                return NULL;
+
+            // Create root menu
+            tk::Menu *menu = create_menu();
+            if (menu == NULL)
+                return menu;
+
+            // Add items from the enumeration
+            LSPString lc_key;
+            for (const meta::port_item_t *item = meta->items; item->text != NULL; ++item)
+            {
+                // Create submenu item
+                tk::MenuItem *mi            = create_menu_item(menu);
+                if (item == NULL)
+                    return NULL;
+
+                // Set the text value
+                mi->type()->set_radio();
+                if (item->lc_key != NULL)
+                {
+                    if (!lc_key.set_ascii("lists."))
+                        return NULL;
+                    if (!lc_key.append_ascii(item->lc_key))
+                        return NULL;
+                    mi->text()->set(&lc_key);
+                }
+                else
+                    mi->text()->set_raw(item->text);
+
+                // Bind slots
+                mi->slots()->bind(tk::SLOT_SUBMIT, slot_submit_enum_menu_item, em);
+
+                // Add to list
+                if (!list.add(mi))
+                    return NULL;
+            }
+
+            // Return result
+            list.swap(em->vItems);
+
+            // Add to parent
+            if (parent != NULL)
+            {
+                tk::MenuItem *item          = create_menu_item(parent);
+                if (item != NULL)
+                {
+                    item->text()->set(label);
+                    item->menu()->set(menu);
+                }
             }
 
             return menu;
@@ -888,6 +963,17 @@ namespace lsp
                 wInvertGraphDotVScroll->text()->set("actions.ui_behavior.vscroll.invert_graph_dot");
                 wInvertGraphDotVScroll->slots()->bind(tk::SLOT_SUBMIT, slot_invert_graph_dot_vscroll_changed, this);
             }
+
+            // Auto scale spectrum
+            if ((wZoomableSpectrum = create_menu_item(menu)) != NULL)
+            {
+                wZoomableSpectrum->type()->set_check();
+                wZoomableSpectrum->text()->set("actions.ui_behavior.enable_zoomable_spectrum");
+                wZoomableSpectrum->slots()->bind(tk::SLOT_SUBMIT, slot_zoomable_spectrum_changed, this);
+            }
+            
+            // Thickness of the enum menu item
+            wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
 
             return STATUS_OK;
         }
@@ -1275,6 +1361,38 @@ namespace lsp
                 gdot_style->set_bool("mouse.vscroll.invert", invert_gdot);
         }
 
+        void PluginWindow::sync_zoomable_spectrum()
+        {
+            tk::Display *dpy    = wWidget->display();
+            if (dpy == NULL)
+                return;
+
+            bool zoomable  = (pZoomableSpectrum != NULL) ? pZoomableSpectrum->value() >= 0.5f : false;
+
+            if (wZoomableSpectrum != NULL)
+                wZoomableSpectrum->checked()->set(zoomable);
+        }
+
+        void PluginWindow::sync_enum_menu(enum_menu_t *menu, ui::IPort *port)
+        {
+            if ((port == NULL) || (port != menu->pPort))
+                return;
+            const meta::port_t *meta = menu->pPort->metadata();
+            if (meta == NULL)
+                return;
+
+            tk::Display *dpy    = wWidget->display();
+            if (dpy == NULL)
+                return;
+
+            const ssize_t index = menu->pPort->value() - meta->min;
+            for (lltl::iterator<tk::MenuItem> it = menu->vItems.values(); it; ++it)
+            {
+                tk::MenuItem *mi = it.get();
+                mi->checked()->set(ssize_t(it.index()) == index);
+            }
+        }
+
         void PluginWindow::sync_font_scaling()
         {
             tk::Display *dpy    = wWidget->display();
@@ -1404,6 +1522,10 @@ namespace lsp
                 notify(pInvertVScroll, ui::PORT_NONE);
             if (pInvertGraphDotVScroll != NULL)
                 notify(pInvertGraphDotVScroll, ui::PORT_NONE);
+            if (pZoomableSpectrum != NULL)
+                notify(pZoomableSpectrum, ui::PORT_NONE);
+            if (sFilterPointThickness.pPort != NULL)
+                notify(sFilterPointThickness.pPort, ui::PORT_NONE);
 
             // Call for parent class method
             Window::end(ctx);
@@ -1427,6 +1549,10 @@ namespace lsp
                 sync_override_hydrogen();
             if ((port == pInvertVScroll) || (port == pInvertGraphDotVScroll))
                 sync_invert_vscroll(port);
+            if (port == pZoomableSpectrum)
+                sync_zoomable_spectrum();
+
+            sync_enum_menu(&sFilterPointThickness, port);
         }
 
         status_t PluginWindow::add(ui::UIContext *ctx, ctl::Widget *child)
@@ -1814,36 +1940,58 @@ namespace lsp
         status_t PluginWindow::slot_fetch_path(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if ((_this == NULL) || (_this->pPath == NULL))
+            if (_this == NULL)
                 return STATUS_BAD_STATE;
 
             tk::FileDialog *dlg = tk::widget_cast<tk::FileDialog>(sender);
             if (dlg == NULL)
                 return STATUS_OK;
 
-            dlg->path()->set_raw(_this->pPath->buffer<char>());
+            // Set-up path
+            if (_this->pPath != NULL)
+            {
+                dlg->path()->set_raw(_this->pPath->buffer<char>());
+            }
+            // Set-up file type
+            if (_this->pFileType != NULL)
+            {
+                size_t filter = _this->pFileType->value();
+                if (filter < dlg->filter()->size())
+                    dlg->selected_filter()->set(filter);
+            }
+
             return STATUS_OK;
         }
 
         status_t PluginWindow::slot_commit_path(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if ((_this == NULL) || (_this->pPath == NULL))
+            if (_this == NULL)
                 return STATUS_BAD_STATE;
 
             tk::FileDialog *dlg = tk::widget_cast<tk::FileDialog>(sender);
             if (dlg == NULL)
                 return STATUS_OK;
 
-            LSPString tmp_path;
-            if (dlg->path()->format(&tmp_path) == STATUS_OK)
+            // Update file path
+            if (_this->pPath != NULL)
             {
-                const char *path = tmp_path.get_utf8();
-                if (path != NULL)
+                LSPString tmp_path;
+                if (dlg->path()->format(&tmp_path) == STATUS_OK)
                 {
-                    _this->pPath->write(path, strlen(path));
-                    _this->pPath->notify_all(ui::PORT_USER_EDIT);
+                    const char *path = tmp_path.get_utf8();
+                    if (path != NULL)
+                    {
+                        _this->pPath->write(path, strlen(path));
+                        _this->pPath->notify_all(ui::PORT_USER_EDIT);
+                    }
                 }
+            }
+            // Update filter
+            if (_this->pFileType != NULL)
+            {
+                _this->pFileType->set_value(dlg->selected_filter()->get());
+                _this->pFileType->notify_all(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;
@@ -2291,6 +2439,10 @@ namespace lsp
                     _this->pInvertVScroll->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pInvertGraphDotVScroll != NULL)
                     _this->pInvertGraphDotVScroll->notify_all(ui::PORT_USER_EDIT);
+                if (_this->pZoomableSpectrum != NULL)
+                    _this->pZoomableSpectrum->notify_all(ui::PORT_USER_EDIT);
+                if (_this->sFilterPointThickness.pPort != NULL)
+                    _this->sFilterPointThickness.pPort->notify_all(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;
@@ -2548,6 +2700,48 @@ namespace lsp
             bool checked = _this->wInvertGraphDotVScroll->checked()->get();
             _this->pInvertGraphDotVScroll->set_value((checked) ? 1.0f : 0.0f);
             _this->pInvertGraphDotVScroll->notify_all(ui::PORT_USER_EDIT);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_zoomable_spectrum_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+            if (_this->pZoomableSpectrum == NULL)
+                return STATUS_OK;
+            if (_this->wZoomableSpectrum == NULL)
+                return STATUS_OK;
+
+            _this->wZoomableSpectrum->checked()->toggle();
+            bool checked = _this->wZoomableSpectrum->checked()->get();
+            _this->pZoomableSpectrum->set_value((checked) ? 1.0f : 0.0f);
+            _this->pZoomableSpectrum->notify_all(ui::PORT_USER_EDIT);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_submit_enum_menu_item(tk::Widget *sender, void *ptr, void *data)
+        {
+            enum_menu_t *em = static_cast<enum_menu_t *>(ptr);
+            if ((em == NULL) || (em->pPort == NULL))
+                return STATUS_OK;
+            tk::MenuItem *mi = tk::widget_cast<tk::MenuItem>(sender);
+            if (mi == NULL)
+                return STATUS_OK;
+            ssize_t index = em->vItems.index_of(mi);
+            if (index < 0)
+                return STATUS_OK;
+            const meta::port_t *meta = em->pPort->metadata();
+            if (meta == NULL)
+                return STATUS_OK;
+
+            float value = meta->min + index;
+            lsp_trace("id = %s, index = %d, value=%f", meta->id, int(index), value);
+
+            em->pPort->set_value(value);
+            em->pPort->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }

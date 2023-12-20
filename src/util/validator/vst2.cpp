@@ -40,6 +40,12 @@ namespace lsp
                     validation_error(ctx, "Plugin uid='%s' has invalid VST 2.x identifier '%s', should be 4 characters",
                         meta->uid, meta->vst2_uid);
 
+                // Validate VST 2.x plugin name
+                size_t name_len = strlen(meta->vst2_name);
+                if (name_len >= kVstMaxEffectNameLen)
+                    validation_error(ctx, "Plugin uid='%s' has too long VST 2.x name '%s', of %d characters, but only %d characters are permitted",
+                        meta->uid, meta->vst2_name, int(name_len), int(kVstMaxEffectNameLen-1));
+
                 // Check conflicts
                 const meta::plugin_t *clash = ctx->vst2_ids.get(meta->vst2_uid);
                 if (clash != NULL)

@@ -47,6 +47,8 @@ namespace lsp
                 ctl::Boolean        sSmooth;
                 ctl::Boolean        sFill;
                 ctl::Integer        sStrobes;
+                ctl::Integer        sXAxis;
+                ctl::Integer        sYAxis;
 
                 ctl::Color          sColor;
                 ctl::Color          sFillColor;

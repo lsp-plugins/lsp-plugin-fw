@@ -182,6 +182,7 @@ namespace lsp
             pPort           = NULL;
             pMeshPort       = NULL;
             pPathPort       = NULL;
+            pFileTypePort   = NULL;
             pDialog         = NULL;
             pFilePreview    = NULL;
             pMenu           = NULL;
@@ -406,6 +407,8 @@ namespace lsp
                 bind_port(&pMeshPort, "mesh.id", name, value);
                 bind_port(&pPathPort, "path.id", name, value);
                 bind_port(&pPathPort, "path_id", name, value);
+                bind_port(&pFileTypePort, "ftype.id", name, value);
+                bind_port(&pFileTypePort, "ftype_id", name, value);
 
                 set_expr(&sStatus, "status", name, value);
                 set_expr(&sHeadCut, "head_cut", name, value);
@@ -892,9 +895,18 @@ namespace lsp
             }
 
             // Configure the dialog
-            const char *path = (pPathPort != NULL) ? pPathPort->buffer<char>() : NULL;
-            if (path != NULL)
-                pDialog->path()->set_raw(path);
+            if (pPathPort != NULL)
+            {
+                const char *path = pPathPort->buffer<char>();
+                if (path != NULL)
+                    pDialog->path()->set_raw(path);
+            }
+            if (pFileTypePort != NULL)
+            {
+                size_t ftype    = pFileTypePort->value();
+                if (ftype < pDialog->filter()->size())
+                    pDialog->selected_filter()->set(ftype);
+            }
 
             ctl::AudioFilePreview *pw = ctl::ctl_cast<ctl::AudioFilePreview>(pFilePreview);
             if ((pw != NULL) && (bLoadPreview))
@@ -911,20 +923,31 @@ namespace lsp
 
         void AudioSample::update_path()
         {
-            if ((pPathPort == NULL) || (pDialog == NULL))
-                return;
-
-            // Obtain the current path from dialog
-            LSPString path;
-            if (pDialog->path()->format(&path) != STATUS_OK)
-                return;
-            if (path.length() <= 0)
+            if (pDialog == NULL)
                 return;
 
             // Write new path as UTF-8 string
-            const char *u8path = path.get_utf8();
-            pPathPort->write(u8path, strlen(u8path));
-            pPathPort->notify_all(ui::PORT_USER_EDIT);
+            if (pPathPort != NULL)
+            {
+                // Obtain the current path from dialog
+                LSPString path;
+                status_t res = pDialog->path()->format(&path);
+                if ((res == STATUS_OK) && (path.length() > 0))
+                {
+                    const char *u8path = path.get_utf8();
+                    if (u8path == NULL)
+                        u8path          = "";
+                    pPathPort->write(u8path, strlen(u8path));
+                    pPathPort->notify_all(ui::PORT_USER_EDIT);
+                }
+            }
+
+            // Write file type as integer
+            if (pFileTypePort != NULL)
+            {
+                pFileTypePort->set_value(pDialog->selected_filter()->get());
+                pFileTypePort->notify_all(ui::PORT_USER_EDIT);
+            }
         }
 
         void AudioSample::preview_file()

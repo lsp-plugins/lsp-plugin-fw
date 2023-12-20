@@ -272,6 +272,7 @@ namespace lsp
                 return STATUS_DISCONNECTED;
             }
             jack_nframes_t sr           = jack_get_sample_rate(pClient);
+            lsp_info("JACK sample rate is %d Hz", int(sr));
             pPlugin->set_sample_rate(sr);
             if (pSamplePlayer != NULL)
                 pSamplePlayer->set_sample_rate(sr);

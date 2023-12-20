@@ -193,6 +193,10 @@ namespace lsp
                 set_param(gls->origin(), "center", name, value);
                 set_param(gls->origin(), "o", name, value);
 
+                set_param(gls->priority(), "priority", name, value);
+                set_param(gls->priority_group(), "priority_group", name, value);
+                set_param(gls->priority_group(), "pgroup", name, value);
+
                 set_expr(&sBeginX, "start.x", name, value);
                 set_expr(&sBeginX, "begin.x", name, value);
                 set_expr(&sBeginX, "sx", name, value);
@@ -533,8 +537,9 @@ namespace lsp
                 _this->submit_default_values();
             return STATUS_OK;
         }
-    } // namespace ctl
-} // namespace lsp
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 
