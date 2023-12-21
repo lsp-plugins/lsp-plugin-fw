@@ -937,6 +937,9 @@ namespace lsp
                 return STATUS_NO_MEM;
             item->menu()->set(menu);
 
+            // Thickness of the enum menu item
+            wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
+
             // Create menu items
             if ((wKnobScaleEnable = create_menu_item(menu)) != NULL)
             {
@@ -974,9 +977,6 @@ namespace lsp
                 wZoomableSpectrum->text()->set("actions.ui_behavior.enable_zoomable_spectrum");
                 wZoomableSpectrum->slots()->bind(tk::SLOT_SUBMIT, slot_zoomable_spectrum_changed, this);
             }
-
-            // Thickness of the enum menu item
-            wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
 
             return STATUS_OK;
         }
