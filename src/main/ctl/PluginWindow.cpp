@@ -359,6 +359,8 @@ namespace lsp
                 itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_ui_manual, this);
                 wMenu->add(itm);
 
+                init_presets(wMenu);
+
                 // Add separator
                 itm     = new tk::MenuItem(dpy);
                 widgets()->add(itm);
@@ -431,13 +433,6 @@ namespace lsp
                 itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_user_paths_dialog, this);
                 wMenu->add(itm);
 
-                // Add separator
-                itm     = new tk::MenuItem(dpy);
-                widgets()->add(itm);
-                itm->init();
-                itm->type()->set_separator();
-                wMenu->add(itm);
-
                 // Create 'Dump state' menu item if supported
                 if (meta->extensions & meta::E_DUMP_STATE)
                 {
@@ -449,11 +444,12 @@ namespace lsp
                     wMenu->add(itm);
                 }
 
-                // Create UI behaviour menu
-                init_ui_behaviour(wMenu);
-
-                // Create language selection menu
-                init_i18n_support(wMenu);
+                // Add separator
+                itm     = new tk::MenuItem(dpy);
+                widgets()->add(itm);
+                itm->init();
+                itm->type()->set_separator();
+                wMenu->add(itm);
 
                 // Create UI scaling menu
                 init_scaling_support(wMenu);
@@ -464,11 +460,15 @@ namespace lsp
                 // Create schema selection support menu
                 init_visual_schema_support(wMenu);
 
+                // Create language selection menu
+                init_i18n_support(wMenu);
+
                 // Add support of 3D rendering backend switch
                 if (meta->extensions & meta::E_3D_BACKEND)
                     init_r3d_support(wMenu);
 
-                init_presets(wMenu);
+                // Create UI behaviour menu
+                init_ui_behaviour(wMenu);
             }
 
             return STATUS_OK;
@@ -974,7 +974,7 @@ namespace lsp
                 wZoomableSpectrum->text()->set("actions.ui_behavior.enable_zoomable_spectrum");
                 wZoomableSpectrum->slots()->bind(tk::SLOT_SUBMIT, slot_zoomable_spectrum_changed, this);
             }
-            
+
             // Thickness of the enum menu item
             wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
 
