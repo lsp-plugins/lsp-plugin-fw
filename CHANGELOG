@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.22 ===
-
+* Added helper functions to ui::Module.
 
 === 1.0.21 ===
 * Fixed configuration file serialization.
