@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/test-fw/mtest.h>
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/util/lv2ttl_gen/lv2ttl_gen.h>
 #include <lsp-plug.in/runtime/system.h>
 
@@ -31,7 +32,7 @@ MTEST_BEGIN("", lv2ttl_gen)
         // Pass the path to resource directory
         io::Path resdir;
         resdir.set(tempdir(), "resources");
-        system::set_env_var("LSP_RESOURCE_PATH", resdir.as_string());
+        system::set_env_var(LSP_RESOURCE_PATH_VAR, resdir.as_string());
 
         // Call the gen_ttl tool
         io::Path outdir;

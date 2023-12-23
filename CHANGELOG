@@ -4,6 +4,7 @@
 
 === 1.0.22 ===
 * Added helper functions to ui::Module.
+* Added possibility to build and launch without builtin resources.
 
 === 1.0.21 ===
 * Fixed configuration file serialization.

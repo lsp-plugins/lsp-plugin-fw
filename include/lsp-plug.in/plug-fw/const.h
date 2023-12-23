@@ -51,5 +51,12 @@
 
 // Prefix for built-in resource
 #define LSP_BUILTIN_PREFIX                  "builtin://"
+#define LSP_RESOURCE_PATH_VAR               "LSP_RESOURCE_PATH"
+
+#ifdef LSP_IDE_DEBUG
+    #ifndef LSP_NO_BUILTIN_RESOURCES
+        #define LSP_NO_BUILTIN_RESOURCES
+    #endif /* LSP_NO_BUILTIN_RESOURCES */
+#endif /* LSP_IDE_DEBUG */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CONST_H_ */
