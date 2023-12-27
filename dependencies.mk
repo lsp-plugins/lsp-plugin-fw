@@ -20,7 +20,7 @@
 
 #------------------------------------------------------------------------------
 # Features enabled by default
-DEFAULT_FEATURES = clap doc ladspa lv2 vst2 xdg
+DEFAULT_FEATURES = clap doc ladspa lv2 vst2 vst3 xdg
 
 #------------------------------------------------------------------------------
 # Plugin dependencies
@@ -89,6 +89,11 @@ DEPENDENCIES_VST2 = \
 DEPENDENCIES_VST2_WRAP = \
   LSP_COMMON_LIB \
   LSP_3RD_PARTY
+
+# VST3 dependencies
+DEPENDENCIES_VST3 = \
+  $(DEPENDENCIES_COMMON) \
+  $(DEPENDENCIES_COMMON_UI)
 
 #------------------------------------------------------------------------------
 # Linux-specific dependencies
@@ -169,6 +174,16 @@ LINUX_DEPENDENCIES_VST2 = \
 
 LINUX_DEPENDENCIES_VST2_WRAP = \
   LIBDL
+  
+# VST3 dependencies
+LINUX_DEPENDENCIES_VST3 = \
+  LIBPTHREAD \
+  LIBDL \
+  LIBSNDFILE \
+  LIBX11 \
+  LIBXRANDR \
+  LIBCAIRO \
+  LIBFREETYPE
 
 ifeq ($(PLATFORM),Linux)
   DEFAULT_FEATURES         += jack
@@ -274,6 +289,16 @@ BSD_DEPENDENCIES_VST2 = \
 
 BSD_DEPENDENCIES_VST2_WRAP = \
   LIBDL
+
+# VST3 dependencies
+BSD_DEPENDENCIES_VST3 = \
+  LIBPTHREAD \
+  LIBDL \
+  LIBSNDFILE \
+  LIBX11 \
+  LIBXRANDR \
+  LIBCAIRO \
+  LIBFREETYPE
 
 ifeq ($(PLATFORM),BSD)
   DEFAULT_FEATURES         += jack
@@ -403,6 +428,19 @@ WINDOWS_DEPENDENCIES_VST2 = \
 WINDOWS_DEPENDENCIES_VST2_WRAP = \
   LIBADVAPI
 
+# VST3 dependencies
+WINDOWS_DEPENDENCIES_VST2 = \
+  LIBSHLWAPI \
+  LIBWINMM \
+  LIBMSACM \
+  LIBMPR \
+  LIBGDI32 \
+  LIBD2D1 \
+  LIBOLE \
+  LIBWINCODEC \
+  LIBDWRITE \
+  LIBUUID
+
 ifeq ($(PLATFORM),Windows)
   DEFAULT_FEATURES         += jack
   
@@ -439,6 +477,7 @@ DEPENDENCIES = \
   $(DEPENDENCIES_LV2_UI) \
   $(DEPENDENCIES_LV2TTL_GEN) \
   $(DEPENDENCIES_VST2) \
+  $(DEPENDENCIES_VST3) \
   $(DEPENDENCIES_CLAP)
 
 #------------------------------------------------------------------------------
@@ -460,6 +499,7 @@ ALL_DEPENDENCIES = \
   $(DEPENDENCIES_LV2_UI) \
   $(DEPENDENCIES_LV2TTL_GEN) \
   $(DEPENDENCIES_VST2) \
+  $(DEPENDENCIES_VST3) \
   \
   $(LINUX_DEPENDENCIES_COMMON) \
   $(LINUX_DEPENDENCIES_COMMON_UI) \
@@ -475,6 +515,7 @@ ALL_DEPENDENCIES = \
   $(LINUX_DEPENDENCIES_LV2_UI) \
   $(LINUX_DEPENDENCIES_LV2TTL_GEN) \
   $(LINUX_DEPENDENCIES_VST2) \
+  $(LINUX_DEPENDENCIES_VST3) \
   \
   $(BSD_DEPENDENCIES_COMMON) \
   $(BSD_DEPENDENCIES_COMMON_UI) \
@@ -490,6 +531,7 @@ ALL_DEPENDENCIES = \
   $(BSD_DEPENDENCIES_LV2_UI) \
   $(BSD_DEPENDENCIES_LV2TTL_GEN) \
   $(BSD_DEPENDENCIES_VST2) \
+  $(BSD_DEPENDENCIES_VST3) \
   \
   $(WINDOWS_DEPENDENCIES_COMMON) \
   $(WINDOWS_DEPENDENCIES_COMMON_UI) \
@@ -504,5 +546,6 @@ ALL_DEPENDENCIES = \
   $(WINDOWS_DEPENDENCIES_LV2) \
   $(WINDOWS_DEPENDENCIES_LV2_UI) \
   $(WINDOWS_DEPENDENCIES_LV2TTL_GEN) \
-  $(WINDOWS_DEPENDENCIES_VST2)
+  $(WINDOWS_DEPENDENCIES_VST2) \
+  $(WINDOWS_DEPENDENCIES_VST3)
 
