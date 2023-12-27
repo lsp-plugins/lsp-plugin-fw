@@ -29,6 +29,7 @@
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -135,9 +136,10 @@ namespace lsp
             if (ci == NULL)
                 return STATUS_NO_MEM;
 
-            const Steinberg::TUID cid = INLINE_UID(0, 0, 0, 0); // TODO: insert plugin UID
+            status_t res = parse_tuid(ci->cid, meta->vst3_uid);
+            if (res != STATUS_OK)
+                return res;
 
-            memcpy(ci->cid, cid, sizeof(cid));
             ci->cardinality = Steinberg::PClassInfo::kManyInstances;
             Steinberg::strncpy8(ci->category, "", Steinberg::PClassInfo::kCategorySize); // TODO: insert category
             Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
@@ -151,7 +153,6 @@ namespace lsp
             if (ci == NULL)
                 return STATUS_NO_MEM;
 
-            const Steinberg::TUID cid = INLINE_UID(0, 0, 0, 0); // TODO: insert plugin UID
             char version_str[32];
             snprintf(
                 version_str,
@@ -161,7 +162,10 @@ namespace lsp
                 int(meta->version.minor),
                 int(meta->version.micro));
 
-            memcpy(ci->cid, cid, sizeof(cid));
+            status_t res = parse_tuid(ci->cid, meta->vst3_uid);
+            if (res != STATUS_OK)
+                return res;
+
             ci->cardinality = Steinberg::PClassInfo::kManyInstances;
             Steinberg::strncpy8(ci->category, "", Steinberg::PClassInfo::kCategorySize); // TODO: insert category
             Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
@@ -182,9 +186,10 @@ namespace lsp
                 return STATUS_NO_MEM;
 
             LSPString tmp;
-            const Steinberg::TUID cid = INLINE_UID(0, 0, 0, 0); // TODO: insert plugin UID
+            status_t res = parse_tuid(ci->cid, meta->vst3_uid);
+            if (res != STATUS_OK)
+                return res;
 
-            memcpy(ci->cid, cid, sizeof(cid));
             ci->cardinality = Steinberg::PClassInfo::kManyInstances;
             Steinberg::strncpy8(ci->category, "", Steinberg::PClassInfo::kCategorySize); // TODO: insert category
             if (!tmp.set_utf8(meta->description))
