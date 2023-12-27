@@ -23,10 +23,12 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_VST3_FACTORY_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
-
 #include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/core/Resources.h>
 
 #include <steinberg/vst3.h>
 
@@ -42,10 +44,18 @@ namespace lsp
         {
             protected:
                 volatile uatomic_t                      nRefCounter;
+                resource::ILoader                      *pLoader;
                 Steinberg::PFactoryInfo                 sFactoryInfo;
                 lltl::darray<Steinberg::PClassInfo>     vClassInfo;
                 lltl::darray<Steinberg::PClassInfo2>    vClassInfo2;
                 lltl::darray<Steinberg::PClassInfoW>    vClassInfoW;
+
+            protected:
+                void fill_factory_info(const meta::package_t *manifest);
+                status_t fill_plugin_info(const meta::package_t *manifest);
+                status_t create_class_info(const meta::package_t *manifest, const meta::plugin_t *meta);
+                status_t create_class_info2(const meta::package_t *manifest, const meta::plugin_t *meta);
+                status_t create_class_infow(const meta::package_t *manifest, const meta::plugin_t *meta);
 
             public:
                 PluginFactory();

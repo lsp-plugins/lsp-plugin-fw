@@ -92,10 +92,9 @@ namespace lsp
 
         void drop_factory()
         {
-            lsp_trace("destroying plugin factory %p", plugin_factory);
+            lsp_trace("releasing plugin factory %p", plugin_factory);
 
-            plugin_factory->destroy();
-            delete plugin_factory;
+            plugin_factory->release();
             plugin_factory = NULL;
         };
 
