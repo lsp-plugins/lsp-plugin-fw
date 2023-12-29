@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/util/validator/validator.h>
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/test-fw/mtest.h>
@@ -31,11 +32,11 @@ MTEST_BEGIN("", validator)
     MTEST_MAIN
     {
         // Pass the path to resource directory
-    #ifdef LSP_IDE_DEBUG
+    #ifdef LSP_NO_BUILTIN_RESOURCES
         io::Path resdir;
         resdir.set(tempdir(), "resources");
-        system::set_env_var("LSP_RESOURCE_PATH", resdir.as_string());
-    #endif /* LSP_IDE_DEBUG */
+        system::set_env_var(LSP_RESOURCE_PATH_VAR, resdir.as_string());
+    #endif /* LSP_NO_BUILTIN_RESOURCES */
 
         const char *data[]=
         {

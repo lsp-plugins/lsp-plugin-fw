@@ -28,10 +28,83 @@
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/lltl/parray.h>
 
+#include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
 
+#include <private/test/repository.h>
+
 MTEST_BEGIN("", standalone)
+
+    typedef struct config_t
+    {
+        bool add_resource_path;
+        const char *plugin_id;
+        const char *resource_path;
+        lltl::parray<char> args;
+    } config_t;
+
+    void parse_cmdline(config_t *cfg, int argc, const char **argv)
+    {
+        enum params
+        {
+            STOP_ARGS,
+            PLUGIN_ID,
+            EXT_RESOURCES,
+            RESOURCE_PATH,
+        };
+        size_t flags = 0;
+
+        #ifdef LSP_NO_BUILTIN_RESOURCES
+            cfg->add_resource_path = true;
+        #else
+            cfg->add_resource_path = false;
+        #endif /* LSP_NO_BUILTIN_RESOURCES */
+        cfg->plugin_id = NULL;
+        cfg->resource_path = NULL;
+
+        cfg->args.add(const_cast<char *>(full_name()));
+        for (ssize_t i=0; i < argc; )
+        {
+            const char *arg = argv[i++];
+
+            if (!(flags & (1 << STOP_ARGS)))
+            {
+                if (!strcmp(arg, "--external-resources"))
+                {
+                    if (flags & (1 << EXT_RESOURCES))
+                        MTEST_FAIL_MSG("Parameter '%s' already was specified", arg);
+
+                    cfg->add_resource_path = true;
+                    flags |= (1 << EXT_RESOURCES);
+                }
+                else if (!strcmp(arg, "--resource-path"))
+                {
+                    if (flags & (1 << RESOURCE_PATH))
+                        MTEST_FAIL_MSG("Parameter '%s' already was specified", arg);
+                    if (i >= argc)
+                        MTEST_FAIL_MSG("The path is required after '%s' option", arg);
+
+                    cfg->resource_path = argv[i++];
+                    flags |= (1 << RESOURCE_PATH);
+                }
+                else if (!(flags & (1 << PLUGIN_ID)))
+                {
+                    cfg->plugin_id          = arg;
+                    flags |= (1 << PLUGIN_ID);
+                }
+                else
+                {
+                    cfg->args.add(const_cast<char *>(arg));
+                    flags |= (1 << STOP_ARGS);
+                }
+            }
+            else
+            {
+                cfg->args.add(const_cast<char *>(arg));
+            }
+        }
+    }
 
     void plugin_not_found(const char *id, lltl::parray<meta::plugin_t> *list)
     {
@@ -83,18 +156,22 @@ MTEST_BEGIN("", standalone)
 
     MTEST_MAIN
     {
+        // Parse config
+        config_t cfg;
+        parse_cmdline(&cfg, argc, argv);
+
         // Obtain list of plugins
         lltl::parray<meta::plugin_t> list;
         const meta::plugin_t *plugin = NULL;
         MTEST_ASSERT(enumerate_plugins(&list) == STATUS_OK);
-        if (argc <= 0)
+        if (!cfg.plugin_id)
             plugin_not_found(NULL, &list);
 
         // Check that plugin exists
         for (size_t i=0, n=list.size(); i<n; ++i)
         {
             const meta::plugin_t *meta = list.uget(i);
-            if (!strcmp(meta->uid, argv[0]))
+            if (!strcmp(meta->uid, cfg.plugin_id))
             {
                 plugin = meta;
                 break;
@@ -102,28 +179,31 @@ MTEST_BEGIN("", standalone)
         }
 
         if (plugin == NULL)
-            plugin_not_found(argv[0], &list);
+            plugin_not_found(cfg.plugin_id, &list);
 
         // Form the list of arguments
-        printf("Preparing to call JACK_MAIN_FUNCION\n");
-        const char ** args = reinterpret_cast<const char **>(alloca(argc * sizeof(const char *)));
-        MTEST_ASSERT(args != NULL);
-
-        args[0] = full_name();
-        for (ssize_t i=1; i < argc; ++i)
-            args[i] = argv[i];
-
         printf("Calling JACK_MAIN_FUNCTION\n");
 
         // Pass the path to resource directory
-    #ifdef LSP_IDE_DEBUG
-        io::Path resdir;
-        resdir.set(tempdir(), "resources");
-        system::set_env_var("LSP_RESOURCE_PATH", resdir.as_string());
-    #endif /* LSP_IDE_DEBUG */
+        if (cfg.add_resource_path)
+        {
+            if (!cfg.resource_path)
+            {
+                io::Path resdir;
+                resdir.set(tempdir(), "resources");
+
+            #ifndef LSP_NO_BUILTIN_RESOURCES
+                make_repository(&resdir);
+            #endif /* LSP_NO_BUILTIN_RESOURCES */
+
+                system::set_env_var(LSP_RESOURCE_PATH_VAR, resdir.as_string());
+            }
+            else
+                system::set_env_var(LSP_RESOURCE_PATH_VAR, cfg.resource_path);
+        }
 
         // Call the main function
-        int result = JACK_MAIN_FUNCTION(argv[0], argc, args);
+        int result = JACK_MAIN_FUNCTION(cfg.plugin_id, cfg.args.size(), const_cast<const char **>(cfg.args.array()));
         MTEST_ASSERT(result == 0);
     }
 

@@ -1,6 +1,6 @@
 #
-# Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
-#           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+# Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+#           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
 #
 # This file is part of lsp-tk-lib
 #
@@ -54,8 +54,15 @@ else
   override HOST                    =
 endif
 
-ALLOWED_FEATURES            = doc jack ladspa lv2 vst2 clap xdg
+ALLOWED_FEATURES            = clap doc jack ladspa lv2 vst2 xdg
+INTERNAL_FEATURES           =
+ifeq ($(TEST),1)
+  INTERNAL_FEATURES            += test
+endif
 ENABLED_FEATURES            = $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
+INTERNAL_FEATURES          += \
+  $(call fcheck,$(ALLOWED_FEATURES),$(ENABLED_FEATURES),meta validate)
+
 ENABLED_FEATURES_DEFS      := $(foreach feature,$(ENABLED_FEATURES),$(shell echo "$(feature)" | tr a-z A-Z))
 
 # Setup test dependencies
@@ -72,7 +79,7 @@ HOST_DEPENDENCIES_TEST_UI       = $(DEPENDENCIES_TEST_UI)
 MERGED_DEPENDENCIES             = \
   $(DEPENDENCIES_COMMON) \
   $(DEPENDENCIES_TEST) \
-  $(call fcheck,jack lv2 vst2 clap,$(ENABLED_FEATURES),\
+  $(call fcheck,clap jack lv2 test vst2,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),\
     $(DEPENDENCIES_COMMON_UI) \
     $(DEPENDENCIES_TEST_UI) \
     $(DEPENDENCIES_BIN) \
@@ -80,7 +87,7 @@ MERGED_DEPENDENCIES             = \
   $(call fcheck,clap,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_CLAP) \
   ) \
-  $(call fcheck,jack,$(ENABLED_FEATURES), \
+  $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
     $(DEPENDENCIES_JACK) \
     $(DEPENDENCIES_JACK_UI) \
     $(DEPENDENCIES_JACK_WRAP) \
@@ -177,7 +184,7 @@ LSP_PLUGIN_FW_OBJ                   = \
   $(LSP_PLUGIN_FW_OBJ_CORE) \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
-  $(call fcheck,jack lv2 vst2 clap, \
+  $(call fcheck,clap jack lv2 test vst2,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
     $(LSP_PLUGIN_FW_OBJ_UI)\
     $(LSP_PLUGIN_FW_OBJ_CTL) \
   )
@@ -203,7 +210,7 @@ HOST_LSP_PLUGIN_FW_OBJ              = \
   $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
   $(HOST_LSP_PLUGIN_FW_OBJ_META) \
   $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(call fcheck,jack lv2 vst2 clap, \
+  $(call fcheck,clap jack lv2 test vst2,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
     $(HOST_LSP_PLUGIN_FW_OBJ_UI) \
     $(HOST_LSP_PLUGIN_FW_OBJ_CTL) \
   )
@@ -235,7 +242,7 @@ CXX_SRC                     = \
   $(CXX_SRC_DSP) \
   $(CXX_SRC_UI) \
   $(CXX_SRC_CTL) \
-  $(call fcheck,jack,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_JACK)) \
+  $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(CXX_SRC_WRAP_JACK)) \
   $(CXX_SRC_WRAP_LADSPA) \
   $(call fcheck,lv2,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_LV2)) \
   $(call fcheck,lv2,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_LV2_UI)) \
@@ -267,7 +274,7 @@ HOST_CXX_SRC                = \
   $(HOST_CXX_SRC_DSP) \
   $(HOST_CXX_SRC_UI) \
   $(HOST_CXX_SRC_CTL) \
-  $(call fcheck,jack,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_JACK)) \
+  $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(HOST_CXX_SRC_WRAP_JACK)) \
   $(HOST_CXX_SRC_WRAP_LADSPA) \
   $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_LV2)) \
   $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_LV2_UI)) \
@@ -301,7 +308,7 @@ OBJ                         = \
   $(OBJ_UI) \
   $(OBJ_CTL) \
   $(OBJ_UTIL) \
-  $(call fcheck,jack,$(ENABLED_FEATURES),$(OBJ_WRAP_JACK)) \
+  $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(OBJ_WRAP_JACK)) \
   $(OBJ_WRAP_LADSPA) \
   $(call fcheck,lv2,$(ENABLED_FEATURES),$(OBJ_WRAP_LV2)) \
   $(call fcheck,lv2,$(ENABLED_FEATURES),$(OBJ_WRAP_LV2_UI)) \
@@ -334,7 +341,7 @@ HOST_OBJ                    = \
   $(HOST_OBJ_UI) \
   $(HOST_OBJ_CTL) \
   $(HOST_OBJ_UTIL) \
-  $(call fcheck,jack,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_JACK)) \
+  $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(HOST_OBJ_WRAP_JACK)) \
   $(HOST_OBJ_WRAP_LADSPA) \
   $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2)) \
   $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2_UI)) \
@@ -370,15 +377,17 @@ HOST_UTL_VALIDATOR_OBJS         = \
   $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
   $(HOST_LSP_PLUGIN_FW_OBJ_META) \
   $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(call fcheck,jack lv2 vst2 clap,$(ENABLED_FEATURES), \
+  $(call fcheck,clap jack lv2 test vst2,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
     $(HOST_LSP_PLUGIN_FW_OBJ_UI) \
     $(HOST_LSP_PLUGIN_FW_OBJ_CTL) \
   ) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
+  $(call fcheck,clap jack lv2 vst2,$(ENABLED_FEATURES), \
+    $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
+  ) \
   $(HOST_OBJ_PLUG_META) \
   $(HOST_OBJ_PLUG_DSP) \
   $(HOST_OBJ_PLUG_SHARED) \
-  $(call fcheck,jack lv2 vst2 clap,$(ENABLED_FEATURES), \
+  $(call fcheck,clap jack lv2 test vst2,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
     $(HOST_OBJ_PLUG_UI) \
   ) \
   $(HOST_UTL_VALIDATOR_OBJ) \
@@ -630,14 +639,14 @@ ifeq ($(TEST),1)
     $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
     $(HOST_LSP_PLUGIN_FW_OBJ_UI) \
     $(HOST_LSP_PLUGIN_FW_OBJ_CTL) \
-    $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
+    $(call fcheck,clap jack ladspa lv2 vst2,$(ENABLED_FEATURES),$(HOST_LSP_PLUGIN_FW_OBJ_RES)) \
     $(HOST_LSP_PLUGIN_FW_OBJ_TEST) \
     $(if $(LIBCAIRO_VERSION),$(HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO)) \
     $(HOST_OBJ_PLUG_META) \
     $(HOST_OBJ_PLUG_DSP) \
     $(HOST_OBJ_PLUG_SHARED) \
     $(HOST_OBJ_PLUG_UI) \
-    $(call fcheck,jack,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_JACK)) \
+    $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(HOST_OBJ_WRAP_JACK)) \
     $(HOST_OBJ_WRAP_LADSPA) \
     $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2)) \
     $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2UI)) \
@@ -693,7 +702,7 @@ BIN_EXTRA_FILES             = $(foreach dep, $(BIN_EXTRA_SHARED) $(BIN_EXTRA_PLU
   $(wildcard $($(dep)_PATH)/*LICENSE*) \
 )
 
-BUILD_TARGETS               = $(foreach feature,$(ENABLED_FEATURES),$(feature))
+BUILD_TARGETS               = $(foreach feature,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(feature))
 INSTALL_TARGETS             = $(foreach feature,$(ENABLED_FEATURES),install_$(feature))
 UNINSTALL_TARGETS           = $(foreach feature,$(ENABLED_FEATURES),uninstall_$(feature))
 PACKAGE_TARGETS             = $(foreach feature,$(filter-out xdg,$(ENABLED_FEATURES)),package_$(feature))
@@ -1001,7 +1010,7 @@ xdg:
 
 test: $(ARTIFACT_BIN_TEST)
 
-all: test meta validate $(BUILD_TARGETS)
+all: $(BUILD_TARGETS)
 
 #------------------------------------------------------------------------------
 # Installation
