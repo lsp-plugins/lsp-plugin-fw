@@ -28,10 +28,10 @@
 #include <lsp-plug.in/common/static.h>
 #include <lsp-plug.in/common/types.h>
 
-
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
-
+#include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/impl/wrapper.h>
 
 #define VST3_LOG_FILE   "lsp-vst3.log"
 
@@ -54,11 +54,10 @@ namespace lsp
 
         Steinberg::IPluginFactory *get_plugin_factory()
         {
-            PluginFactory *factory;
             if (!library.initialized())
             {
                 // Create new factory and set trigger for disposal
-                factory         = new PluginFactory();
+                PluginFactory *factory      = new PluginFactory();
                 if (factory == NULL)
                     return NULL;
                 lsp_finally {
@@ -83,19 +82,16 @@ namespace lsp
             }
 
             // Return the obtained factory
-            factory = plugin_factory;
-            factory->addRef();
+            Steinberg::IPluginFactory *result = safe_acquire<Steinberg::IPluginFactory>(plugin_factory);
+            lsp_trace("returning factory %p", result);
 
-            lsp_trace("returning factory %p", factory);
-            return factory;
+            return result;
         }
 
         void drop_factory()
         {
             lsp_trace("releasing plugin factory %p", plugin_factory);
-
-            plugin_factory->release();
-            plugin_factory = NULL;
+            safe_release(plugin_factory);
         };
 
         //---------------------------------------------------------------------

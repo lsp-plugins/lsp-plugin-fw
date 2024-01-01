@@ -2,21 +2,21 @@
  * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins-comp-delay
+ * This file is part of lsp-plugin-fw
  * Created on: 27 дек. 2023 г.
  *
- * lsp-plugins-comp-delay is free software: you can redistribute it and/or modify
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * lsp-plugins-comp-delay is distributed in the hope that it will be useful,
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with lsp-plugins-comp-delay. If not, see <https://www.gnu.org/licenses/>.
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_VST3_IMPL_FACTORY_H_
@@ -33,6 +33,8 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -501,27 +503,17 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginFactory::queryInterface(const Steinberg::TUID _iid, void **obj)
         {
-            void *res = NULL;
-
             // Cast to the requested interface
-            if (Steinberg::iidEqual(_iid, Steinberg::FUnknown_iid))
-                res = static_cast<Steinberg::FUnknown *>(this);
-            else if (Steinberg::iidEqual(_iid, Steinberg::IPluginFactory_iid))
-                res = static_cast<Steinberg::IPluginFactory *>(this);
-            else if (Steinberg::iidEqual(_iid, Steinberg::IPluginFactory2_iid))
-                res = static_cast<Steinberg::IPluginFactory2 *>(this);
-            else if (Steinberg::iidEqual(_iid, Steinberg::IPluginFactory3_iid))
-                res = static_cast<Steinberg::IPluginFactory3 *>(this);
+            if (Steinberg::iidEqual(_iid, Steinberg::FUnknown::iid))
+                return cast_interface<Steinberg::FUnknown>(this, obj);
+            if (Steinberg::iidEqual(_iid, Steinberg::IPluginFactory::iid))
+                return cast_interface<Steinberg::IPluginFactory>(this, obj);
+            if (Steinberg::iidEqual(_iid, Steinberg::IPluginFactory2::iid))
+                return cast_interface<Steinberg::IPluginFactory2>(this, obj);
+            if (Steinberg::iidEqual(_iid, Steinberg::IPluginFactory3::iid))
+                return cast_interface<Steinberg::IPluginFactory3>(this, obj);
 
-            // Return result
-            if (res != NULL)
-            {
-                addRef();
-                *obj    = res;
-                return Steinberg::kResultOk;
-            }
-
-            return Steinberg::kNoInterface;
+            return no_interface(obj);
         }
 
         Steinberg::uint32 PLUGIN_API PluginFactory::addRef()
@@ -599,8 +591,62 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginFactory::createInstance(Steinberg::FIDString cid, Steinberg::FIDString _iid, void **obj)
         {
-            // TODO: create plugin instance
-            return Steinberg::kNotImplemented;
+            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *plug_meta = f->enumerate(i);
+                    if (plug_meta == NULL)
+                        break;
+
+                    FUnknown *instance = NULL;
+
+                    // Need to create plugin wrapper?
+                    if (memcmp(plug_meta->vst3_uid, cid, sizeof(Steinberg::TUID)) == 0)
+                    {
+                        // Allocate plugin module
+                        plug::Module *module = f->create(plug_meta);
+                        if (module == NULL)
+                            return Steinberg::kOutOfMemory;
+                        lsp_finally {
+                            if (module != NULL)
+                                delete module;
+                        };
+
+                        // Allocate wrapper
+                        Wrapper *w  = new Wrapper(this, module, pLoader);
+                        if (w == NULL)
+                            return Steinberg::kOutOfMemory;
+                        module      = NULL; // Force module to be destroyed by the wrapper
+                        lsp_finally {
+                            safe_release(w);
+                        };
+
+                        // Query interface and return
+                        return w->queryInterface(_iid, obj);
+                    }
+
+                    // Need to create UI wrapper?
+                    if (memcmp(plug_meta->vst3ui_uid, cid, sizeof(Steinberg::TUID)) == 0)
+                    {
+                        // TODO: create UI wrapper
+                    }
+
+                    if (instance == NULL)
+                        continue;
+                    lsp_finally {
+                        instance->release();
+                    };
+
+                    // Query the desired interface
+                    if (instance->queryInterface(_iid, obj) == Steinberg::kResultOk)
+                        return Steinberg::kResultOk;
+                }
+            }
+
+            *obj = NULL;
+            return Steinberg::kNoInterface;
         }
 
     } /* namespace vst3 */

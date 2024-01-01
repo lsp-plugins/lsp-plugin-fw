@@ -2,21 +2,21 @@
  * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins-comp-delay
+ * This file is part of lsp-plugin-fw
  * Created on: 28 дек. 2023 г.
  *
- * lsp-plugins-comp-delay is free software: you can redistribute it and/or modify
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * lsp-plugins-comp-delay is distributed in the hope that it will be useful,
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with lsp-plugins-comp-delay. If not, see <https://www.gnu.org/licenses/>.
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_VST3_HELPERS_H_
@@ -99,6 +99,64 @@ namespace lsp
             }
 
             return STATUS_INVALID_UID;
+        }
+
+        /**
+         * Perform safe acquire of Steinberg::FUnknown object
+         *
+         * @tparam V type to which cast the original pointer
+         * @param ptr pointer to acquire
+         * @return pointer to the object
+         */
+        template <class T>
+        inline T *safe_acquire(T *ptr)
+        {
+            if (ptr == NULL)
+                return NULL;
+
+            ptr->addRef();
+            return ptr;
+        }
+
+        /**
+         * Perform safe release of Steinberg::FUnknown object
+         * @tparam T type of the class derived from Steinberg::FUnknown
+         * @param ptr field that stores the pointer, is automatically reset to NULL.
+         */
+        template <class T>
+        inline void safe_release(T * &ptr)
+        {
+            if (ptr == NULL)
+                return;
+
+            ptr->release();
+            ptr = NULL;
+        }
+
+        /**
+         * Implement the cast operation for the queryInterface call.
+         * @tparam V destination type of pointer to cast
+         * @param ptr original pointer to cast
+         * @param obj destination to store pointer
+         * @return Steinberg::kResultOk
+         */
+        template <class T, class V>
+        inline Steinberg::tresult cast_interface(V *ptr, void **obj)
+        {
+            ptr->addRef();
+            *obj = static_cast<T *>(ptr);
+            return Steinberg::kResultOk;
+        }
+
+        /**
+         * Return the value when it is not possible to implement queryInterface call.
+         * @param obj destination to store pointer
+         * @return Steinberg::kNoInterface
+         */
+        inline Steinberg::tresult no_interface(void **obj)
+        {
+            *obj = NULL;
+            return Steinberg::kNoInterface;
         }
 
     } /* namespace vst3 */
