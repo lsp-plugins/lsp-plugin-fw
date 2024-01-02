@@ -1094,6 +1094,29 @@ namespace lsp
             io::Path path;
             LSPString tmp;
 
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set_raw("Initial preset");
+            // item->text()->set("actions.reset_settings");
+            // TODO: Add confirmation dialog here
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->type()->set_separator();
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set("actions.import_settings_from_file");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_file, this);
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set("actions.import_settings_from_clipboard");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_clipboard, this);
+
+            // if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            // item->text()->set("*Open presets folder*");
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->type()->set_separator();
+
             for (size_t i=0, n=presets.size(); i<n; ++i)
             {
                 // Enumerate next backend information
