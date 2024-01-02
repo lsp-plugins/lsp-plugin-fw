@@ -267,6 +267,16 @@ namespace lsp
             Window::set(ctx, name, value);
         }
 
+        void PluginWindow::set_preset_button_text(const char *text)
+        {
+            tk::Button *presetButton = tk::widget_cast<tk::Button>(widgets()->find("trg_presets_menu"));
+
+            if (presetButton != NULL)
+            {
+                presetButton->text()->set_raw(text);
+            }
+        }
+
         status_t PluginWindow::init()
         {
             Window::init();
@@ -363,7 +373,7 @@ namespace lsp
                 itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_ui_manual, this);
                 wMenu->add(itm);
 
-                init_presets(wMenu, true);
+                // init_presets(wMenu, true);
                 init_presets(wPresets, false);
 
                 // Add separator
@@ -1298,14 +1308,7 @@ namespace lsp
             if ((sender == NULL) || (sel == NULL) || (sel->ctl == NULL) || (sel->item == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            tk::Button *presetButton = tk::widget_cast<tk::Button>(sel->ctl->widgets()->find("trg_presets_menu"));
-
-            if (presetButton != NULL)
-            {
-                LSPString tmp;
-                sel->item->text()->format(&tmp);
-                presetButton->text()->set_raw(&tmp);
-            }
+            sel->ctl->set_preset_button_text(sel->item->text()->raw()->get_utf8());
 
             lsp_trace("Loading preset %s", sel->location.get_native());
             size_t flags = ui::IMPORT_FLAG_PRESET;
@@ -1779,6 +1782,7 @@ namespace lsp
         status_t PluginWindow::slot_confirm_reset_settings(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            __this->set_preset_button_text("Select preset");
             return __this->pWrapper->reset_settings();
         }
 

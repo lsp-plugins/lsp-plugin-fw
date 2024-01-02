@@ -284,6 +284,8 @@ namespace lsp
                 void                commit_bool_param(tk::Boolean *value, const char *port_id);
                 void                bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler);
 
+                void                set_preset_button_text(const char *text);
+
                 status_t            init_context(ui::UIContext *ctx);
 
             public:
