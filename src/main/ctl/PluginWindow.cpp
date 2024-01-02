@@ -310,7 +310,7 @@ namespace lsp
                 wnd->actions()->deny(ws::WA_RESIZE);
 
             LSP_STATUS_ASSERT(create_main_menu());
-            LSP_STATUS_ASSERT(create_reset_settings_menu());
+            // LSP_STATUS_ASSERT(create_reset_settings_menu());
 
             // Bind event handlers
             wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
@@ -432,6 +432,14 @@ namespace lsp
                     child->text()->set("actions.import_settings_from_clipboard");
                     child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_clipboard, this);
                     submenu->add(child);
+
+                    child = new tk::MenuItem(dpy);
+                    widgets()->add(child);
+                    child->init();
+                    child->text()->set("actions.reset_settings");
+                    // TODO: Add confirmation dialog here
+                    child->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
+                    submenu->add(child);
                 }
 
                 itm     = new tk::MenuItem(dpy);
@@ -482,31 +490,31 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::create_reset_settings_menu()
-        {
-            tk::Window *wnd             = tk::widget_cast<tk::Window>(wWidget);
-            tk::Display *dpy            = wnd->display();
+        // status_t PluginWindow::create_reset_settings_menu()
+        // {
+        //     tk::Window *wnd             = tk::widget_cast<tk::Window>(wWidget);
+        //     tk::Display *dpy            = wnd->display();
 
-            // Initialize menu
-            wResetSettings              = new tk::Menu(dpy);
-            widgets()->add(WUID_RESET_SETTINGS_MENU, wResetSettings);
-            wResetSettings->init();
-            inject_style(wResetSettings, "PluginWindow::ResetMenu");
+        //     // Initialize menu
+        //     wResetSettings              = new tk::Menu(dpy);
+        //     widgets()->add(WUID_RESET_SETTINGS_MENU, wResetSettings);
+        //     wResetSettings->init();
+        //     inject_style(wResetSettings, "PluginWindow::ResetMenu");
 
-            // Initialize menu items
-            {
-                // Add 'Reset' menu item
-                tk::MenuItem *itm       = new tk::MenuItem(dpy);
-                widgets()->add(itm);
-                itm->init();
-                itm->text()->set("actions.reset");
-                inject_style(itm, "PluginWindow::ResetMenu::Reset");
-                itm->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
-                wResetSettings->add(itm);
-            }
+        //     // Initialize menu items
+        //     {
+        //         // Add 'Reset' menu item
+        //         tk::MenuItem *itm       = new tk::MenuItem(dpy);
+        //         widgets()->add(itm);
+        //         itm->init();
+        //         itm->text()->set("actions.reset");
+        //         inject_style(itm, "PluginWindow::ResetMenu::Reset");
+        //         itm->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
+        //         wResetSettings->add(itm);
+        //     }
 
-            return STATUS_OK;
-        }
+        //     return STATUS_OK;
+        // }
 
         tk::MenuItem *PluginWindow::create_menu_item(tk::Menu *dst)
         {
