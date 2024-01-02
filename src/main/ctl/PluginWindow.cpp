@@ -1301,6 +1301,15 @@ namespace lsp
             if ((sender == NULL) || (sel == NULL) || (sel->ctl == NULL) || (sel->item == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
+            tk::Button *presetButton = tk::widget_cast<tk::Button>(sel->ctl->widgets()->find("trg_presets_menu"));
+
+            if (presetButton != NULL)
+            {
+                LSPString tmp;
+                sel->item->text()->format(&tmp);
+                presetButton->text()->set_raw(&tmp);
+            }
+
             lsp_trace("Loading preset %s", sel->location.get_native());
             size_t flags = ui::IMPORT_FLAG_PRESET;
             if (sel->patch)
