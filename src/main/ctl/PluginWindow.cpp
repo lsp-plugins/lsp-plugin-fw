@@ -96,6 +96,7 @@ namespace lsp
             wAbout                      = NULL;
             wUserPaths                  = NULL;
             wMenu                       = NULL;
+            wPresets                    = NULL;
             wUIScaling                  = NULL;
             wFontScaling                = NULL;
             wResetSettings              = NULL;
@@ -225,6 +226,7 @@ namespace lsp
             wAbout          = NULL;
             wUserPaths      = NULL;
             wMenu           = NULL;
+            wPresets        = NULL;
             wResetSettings  = NULL;
             wExport         = NULL;
             wImport         = NULL;
@@ -341,6 +343,11 @@ namespace lsp
             widgets()->add(WUID_MAIN_MENU, wMenu);
             wMenu->init();
 
+            // TODO: Move to a separate method
+            wPresets = new tk::Menu(dpy);
+            widgets()->add(WUID_PRESETS_MENU, wPresets);
+            wPresets->init();
+
             // Initialize menu items
             {
                 // Add 'Plugin manual' menu item
@@ -359,7 +366,8 @@ namespace lsp
                 itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_ui_manual, this);
                 wMenu->add(itm);
 
-                init_presets(wMenu);
+                init_presets(wMenu, true);
+                init_presets(wPresets, false);
 
                 // Add separator
                 itm     = new tk::MenuItem(dpy);
@@ -1034,7 +1042,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::init_presets(tk::Menu *menu)
+        status_t PluginWindow::init_presets(tk::Menu *menu, bool add_submenu)
         {
             status_t res;
             if (menu == NULL)
@@ -1050,17 +1058,22 @@ namespace lsp
             if (presets.is_empty())
                 return STATUS_OK;
 
-            // Create submenu item
-            tk::MenuItem *item          = create_menu_item(menu);
-            if (item == NULL)
-                return STATUS_NO_MEM;
-            item->text()->set("actions.load_preset");
+            tk::MenuItem *item;
 
-            // Create submenu
-            menu                        = create_menu();
-            if (menu == NULL)
-                return STATUS_NO_MEM;
-            item->menu()->set(menu);
+            if (add_submenu)
+            {
+                // Create submenu item
+                item          = create_menu_item(menu);
+                if (item == NULL)
+                    return STATUS_NO_MEM;
+                item->text()->set("actions.load_preset");
+
+                // Create submenu
+                menu                        = create_menu();
+                if (menu == NULL)
+                    return STATUS_NO_MEM;
+                item->menu()->set(menu);
+            }
 
             preset_sel_t *sel;
             io::Path path;
@@ -1483,6 +1496,7 @@ namespace lsp
 
             // Header menu
             bind_trigger("trg_main_menu", tk::SLOT_SUBMIT, slot_show_main_menu);
+            bind_trigger("trg_presets_menu", tk::SLOT_SUBMIT, slot_show_presets_menu);
             bind_trigger("trg_export_settings", tk::SLOT_SUBMIT, slot_export_settings_to_file);
             bind_trigger("trg_import_settings", tk::SLOT_SUBMIT, slot_import_settings_from_file);
             bind_trigger("trg_reset_settings", tk::SLOT_SUBMIT, slot_reset_settings);
@@ -1835,6 +1849,12 @@ namespace lsp
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
             return __this->show_menu(__this->wMenu, sender, data);
+        }
+
+        status_t PluginWindow::slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            return __this->show_menu(__this->wPresets, sender, data);
         }
 
         status_t PluginWindow::slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data)

@@ -125,6 +125,7 @@ namespace lsp
                 tk::Window                 *wAbout;                     // About message window
                 tk::Window                 *wUserPaths;                 // User paths configuration
                 tk::Menu                   *wMenu;                      // Menu
+                tk::Menu                   *wPresets;                   // Presets menu
                 tk::Menu                   *wUIScaling;                 // UI Scaling menu
                 tk::Menu                   *wFontScaling;               // UI Scaling menu
                 tk::Menu                   *wResetSettings;             // Reset settings menu
@@ -175,6 +176,7 @@ namespace lsp
                 static status_t slot_greeting_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_about_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data);
 
@@ -264,7 +266,7 @@ namespace lsp
                 status_t            init_font_scaling_support(tk::Menu *menu);
                 status_t            init_visual_schema_support(tk::Menu *menu);
                 status_t            init_ui_behaviour(tk::Menu *menu);
-                status_t            init_presets(tk::Menu *menu);
+                status_t            init_presets(tk::Menu *menu, bool add_submenu);
                 status_t            scan_presets(const char *location, lltl::darray<resource::resource_t> *presets);
                 status_t            create_main_menu();
                 status_t            create_reset_settings_menu();
