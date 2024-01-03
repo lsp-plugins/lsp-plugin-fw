@@ -30,8 +30,11 @@
 
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/impl/ui_wrapper.h>
 
 #define VST3_LOG_FILE   "lsp-vst3.log"
 

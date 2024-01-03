@@ -29,12 +29,14 @@
 #include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -122,13 +124,16 @@ namespace lsp
                     if (plug_meta == NULL)
                         break;
 
-                    // We have new plugin record, create class info for this plugin
-                    if ((res = create_class_info(manifest, plug_meta)) != STATUS_OK)
-                        return res;
-                    if ((res = create_class_info2(manifest, plug_meta)) != STATUS_OK)
-                        return res;
-                    if ((res = create_class_infow(manifest, plug_meta)) != STATUS_OK)
-                        return res;
+                    if (plug_meta->vst3_uid != NULL)
+                    {
+                        // We have new plugin record, create class info for this plugin
+                        if ((res = create_class_info(manifest, plug_meta)) != STATUS_OK)
+                            return res;
+                        if ((res = create_class_info2(manifest, plug_meta)) != STATUS_OK)
+                            return res;
+                        if ((res = create_class_infow(manifest, plug_meta)) != STATUS_OK)
+                            return res;
+                    }
                 }
             }
 
@@ -331,7 +336,6 @@ namespace lsp
 
         status_t PluginFactory::create_class_info(const meta::package_t *manifest, const meta::plugin_t *meta)
         {
-
             status_t res;
 
             // Generate class info for processor
@@ -346,16 +350,19 @@ namespace lsp
             Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
 
             // Generate class info for controller
-            ci = vClassInfo.add();
-            if (ci == NULL)
-                return STATUS_NO_MEM;
+            if (meta->vst3ui_uid != NULL)
+            {
+                ci = vClassInfo.add();
+                if (ci == NULL)
+                    return STATUS_NO_MEM;
 
-            if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
-                return res;
+                if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
+                    return res;
 
-            ci->cardinality = Steinberg::PClassInfo::kManyInstances;
-            Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
-            Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
+                ci->cardinality = Steinberg::PClassInfo::kManyInstances;
+                Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
+                Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
+            }
 
             return STATUS_OK;
         }
@@ -394,22 +401,25 @@ namespace lsp
             Steinberg::strncpy8(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfo2::kVersionSize);
 
             // Generate class info for controller
-            ci = vClassInfo2.add();
-            if (ci == NULL)
-                return STATUS_NO_MEM;
+            if (meta->vst3ui_uid != NULL)
+            {
+                ci = vClassInfo2.add();
+                if (ci == NULL)
+                    return STATUS_NO_MEM;
 
-            if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
-                return res;
+                if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
+                    return res;
 
-            ci->cardinality = Steinberg::PClassInfo::kManyInstances;
-            Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
-            Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
+                ci->cardinality = Steinberg::PClassInfo::kManyInstances;
+                Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
+                Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
 
-            ci->classFlags = 0;
-            Steinberg::strncpy8(ci->subCategories, "", Steinberg::PClassInfo2::kSubCategoriesSize);
-            Steinberg::strncpy8(ci->vendor, manifest->brand, Steinberg::PClassInfo2::kVendorSize);
-            Steinberg::strncpy8(ci->version, version_str, Steinberg::PClassInfo2::kVersionSize);
-            Steinberg::strncpy8(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfo2::kVersionSize);
+                ci->classFlags = 0;
+                Steinberg::strncpy8(ci->subCategories, "", Steinberg::PClassInfo2::kSubCategoriesSize);
+                Steinberg::strncpy8(ci->vendor, manifest->brand, Steinberg::PClassInfo2::kVendorSize);
+                Steinberg::strncpy8(ci->version, version_str, Steinberg::PClassInfo2::kVersionSize);
+                Steinberg::strncpy8(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfo2::kVersionSize);
+            }
 
             return STATUS_OK;
         }
@@ -458,32 +468,35 @@ namespace lsp
             Steinberg::str8ToStr16(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfoW::kVersionSize);
 
             // Generate class info for controller
-            ci = vClassInfoW.add();
-            if (ci == NULL)
-                return STATUS_NO_MEM;
+            if (meta->vst3ui_uid != NULL)
+            {
+                ci = vClassInfoW.add();
+                if (ci == NULL)
+                    return STATUS_NO_MEM;
 
-            if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
-                return res;
+                if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
+                    return res;
 
-            ci->cardinality = Steinberg::PClassInfo::kManyInstances;
-            Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
-            if (!tmp.set_utf8(meta->description))
-                return STATUS_NO_MEM;
-            Steinberg::strncpy16(
-                ci->name,
-                reinterpret_cast<const Steinberg::char16 *>(tmp.get_utf16()),
-                Steinberg::PClassInfo::kNameSize);
+                ci->cardinality = Steinberg::PClassInfo::kManyInstances;
+                Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
+                if (!tmp.set_utf8(meta->description))
+                    return STATUS_NO_MEM;
+                Steinberg::strncpy16(
+                    ci->name,
+                    reinterpret_cast<const Steinberg::char16 *>(tmp.get_utf16()),
+                    Steinberg::PClassInfo::kNameSize);
 
-            ci->classFlags = 0;
-            Steinberg::strncpy8(ci->subCategories, "", Steinberg::PClassInfo2::kSubCategoriesSize);
-            if (!tmp.set_utf8(manifest->brand))
-                return STATUS_NO_MEM;
-            Steinberg::strncpy16(
-                ci->vendor,
-                reinterpret_cast<const Steinberg::char16 *>(tmp.get_utf16()),
-                Steinberg::PClassInfoW::kVendorSize);
-            Steinberg::str8ToStr16(ci->version, version_str, Steinberg::PClassInfoW::kVersionSize);
-            Steinberg::str8ToStr16(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfoW::kVersionSize);
+                ci->classFlags = 0;
+                Steinberg::strncpy8(ci->subCategories, "", Steinberg::PClassInfo2::kSubCategoriesSize);
+                if (!tmp.set_utf8(manifest->brand))
+                    return STATUS_NO_MEM;
+                Steinberg::strncpy16(
+                    ci->vendor,
+                    reinterpret_cast<const Steinberg::char16 *>(tmp.get_utf16()),
+                    Steinberg::PClassInfoW::kVendorSize);
+                Steinberg::str8ToStr16(ci->version, version_str, Steinberg::PClassInfoW::kVersionSize);
+                Steinberg::str8ToStr16(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfoW::kVersionSize);
+            }
 
             return STATUS_OK;
         }
@@ -591,6 +604,7 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginFactory::createInstance(Steinberg::FIDString cid, Steinberg::FIDString _iid, void **obj)
         {
+            // Watch plugin factories first
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
             {
                 for (size_t i=0; ; ++i)
@@ -599,49 +613,64 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-
-                    FUnknown *instance = NULL;
-
-                    // Need to create plugin wrapper?
-                    if (memcmp(plug_meta->vst3_uid, cid, sizeof(Steinberg::TUID)) == 0)
-                    {
-                        // Allocate plugin module
-                        plug::Module *module = f->create(plug_meta);
-                        if (module == NULL)
-                            return Steinberg::kOutOfMemory;
-                        lsp_finally {
-                            if (module != NULL)
-                                delete module;
-                        };
-
-                        // Allocate wrapper
-                        Wrapper *w  = new Wrapper(this, module, pLoader);
-                        if (w == NULL)
-                            return Steinberg::kOutOfMemory;
-                        module      = NULL; // Force module to be destroyed by the wrapper
-                        lsp_finally {
-                            safe_release(w);
-                        };
-
-                        // Query interface and return
-                        return w->queryInterface(_iid, obj);
-                    }
-
-                    // Need to create UI wrapper?
-                    if (memcmp(plug_meta->vst3ui_uid, cid, sizeof(Steinberg::TUID)) == 0)
-                    {
-                        // TODO: create UI wrapper
-                    }
-
-                    if (instance == NULL)
+                    if (memcmp(plug_meta->vst3_uid, cid, sizeof(Steinberg::TUID)) != 0)
                         continue;
+
+                    // UID matched, allocate plugin module
+                    plug::Module *module = f->create(plug_meta);
+                    if (module == NULL)
+                        return Steinberg::kOutOfMemory;
                     lsp_finally {
-                        instance->release();
+                        if (module != NULL)
+                            delete module;
                     };
 
-                    // Query the desired interface
-                    if (instance->queryInterface(_iid, obj) == Steinberg::kResultOk)
-                        return Steinberg::kResultOk;
+                    // Allocate wrapper
+                    Wrapper *w  = new Wrapper(this, module, pLoader);
+                    if (w == NULL)
+                        return Steinberg::kOutOfMemory;
+                    module      = NULL; // Force module to be destroyed by the wrapper
+                    lsp_finally {
+                        safe_release(w);
+                    };
+
+                    // Query interface and return
+                    return w->queryInterface(_iid, obj);
+                }
+            }
+
+            // Watch UI factories next
+            for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *plug_meta = f->enumerate(i);
+                    if (plug_meta == NULL)
+                        break;
+                    if (memcmp(plug_meta->vst3ui_uid, cid, sizeof(Steinberg::TUID)) != 0)
+                        continue;
+
+                    // UID matched, allocate plugin module
+                    ui::Module *module = f->create(plug_meta);
+                    if (module == NULL)
+                        return Steinberg::kOutOfMemory;
+                    lsp_finally {
+                        if (module != NULL)
+                            delete module;
+                    };
+
+                    // Allocate wrapper
+                    UIWrapper *w  = new UIWrapper(this, module, pLoader);
+                    if (w == NULL)
+                        return Steinberg::kOutOfMemory;
+                    module      = NULL; // Force module to be destroyed by the wrapper
+                    lsp_finally {
+                        safe_release(w);
+                    };
+
+                    // Query interface and return
+                    return w->queryInterface(_iid, obj);
                 }
             }
 

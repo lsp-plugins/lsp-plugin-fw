@@ -69,7 +69,7 @@ namespace lsp
          * @param str string to parse (different forms of TUID available)
          * @return status of operation
          */
-        inline status_t parse_tuid(Steinberg::TUID & tuid, const char *str)
+        inline status_t parse_tuid(Steinberg::TUID tuid, const char *str)
         {
             size_t len = strlen(str);
 
