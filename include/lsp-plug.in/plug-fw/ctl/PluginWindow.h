@@ -121,6 +121,7 @@ namespace lsp
                 ctl::Window                *pUserPaths;                 // User paths controller
 
                 tk::WidgetContainer        *wContent;                   // The main box containing all widgets
+                tk::Window                 *wPresetsW;                   // Greeting message window
                 tk::Window                 *wGreeting;                  // Greeting message window
                 tk::Window                 *wAbout;                     // About message window
                 tk::Window                 *wUserPaths;                 // User paths configuration
@@ -174,6 +175,7 @@ namespace lsp
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_window_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_greeting_close(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_presets_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_about_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
@@ -183,6 +185,7 @@ namespace lsp
                 static status_t slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_about(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_presets_window(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
@@ -247,6 +250,7 @@ namespace lsp
             protected:
                 void                do_destroy();
                 status_t            set_greeting_timer();
+                status_t            show_presets_window();
                 status_t            show_greeting_window();
                 status_t            show_user_paths_window();
                 status_t            fmt_package_version(LSPString &pkgver);

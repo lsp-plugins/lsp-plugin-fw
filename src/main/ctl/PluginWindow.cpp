@@ -92,6 +92,7 @@ namespace lsp
             pUserPaths                  = NULL;
 
             wContent                    = NULL;
+            wPresetsW                   = NULL;
             wGreeting                   = NULL;
             wAbout                      = NULL;
             wUserPaths                  = NULL;
@@ -222,6 +223,7 @@ namespace lsp
             pUserPaths      = NULL;
 
             wContent        = NULL;
+            wPresetsW       = NULL;
             wGreeting       = NULL;
             wAbout          = NULL;
             wUserPaths      = NULL;
@@ -1104,6 +1106,12 @@ namespace lsp
             item->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
 
             if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set_raw("Presets window sketch");
+            // item->text()->set("actions.reset_settings");
+            // TODO: Add confirmation dialog here
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_show_presets_window, this);
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
             item->type()->set_separator();
 
             if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
@@ -1880,6 +1888,15 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::slot_show_presets_window(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            if (__this != NULL)
+                __this->show_presets_window();
+
+            return STATUS_OK;
+        }
+
         status_t PluginWindow::slot_debug_dump(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
@@ -1970,6 +1987,14 @@ namespace lsp
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
             if (__this->wGreeting != NULL)
                 __this->wGreeting->visibility()->set(false);
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_presets_close(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            if (__this->wPresetsW != NULL)
+                __this->wPresetsW->visibility()->set(false);
             return STATUS_OK;
         }
 
@@ -2133,6 +2158,52 @@ namespace lsp
             PluginWindow *self = static_cast<PluginWindow *>(arg);
             self->wGreetingTimer.cancel();
             self->show_greeting_window();
+            return STATUS_OK;
+        }
+        status_t PluginWindow::show_presets_window()
+        {
+            status_t res;
+            LSPString key, value;
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
+            if (wnd == NULL)
+                return STATUS_BAD_STATE;
+
+            // Get default dictionary
+            const meta::package_t *pkg  = pWrapper->package();
+            const meta::plugin_t *meta  = pWrapper->ui()->metadata();
+
+            LSPString pkgver, plugver;
+            pkgver.fmt_ascii("%d.%d.%d",
+                    int(pkg->version.major),
+                    int(pkg->version.minor),
+                    int(pkg->version.micro)
+            );
+            if (pkg->version.branch)
+                pkgver.fmt_append_utf8("-%s", pkg->version.branch);
+
+            plugver.fmt_ascii("%d.%d.%d",
+                    int(LSP_MODULE_VERSION_MAJOR(meta->version)),
+                    int(LSP_MODULE_VERSION_MINOR(meta->version)),
+                    int(LSP_MODULE_VERSION_MICRO(meta->version))
+            );
+
+            lsp_trace("Showing presets dialog");
+
+            if (wPresetsW == NULL)
+            {
+                ctl::Window *ctl = NULL;
+                res = create_dialog_window(&ctl, &wPresetsW, LSP_BUILTIN_PREFIX "ui/presets.xml");
+                if (res != STATUS_OK)
+                    return res;
+
+                // Bind slots
+                tk::Widget *btn = ctl->widgets()->find("submit");
+                if (btn != NULL)
+                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_presets_close, this);
+                wPresetsW->slots()->bind(tk::SLOT_CLOSE, slot_presets_close, this);
+            }
+
+            wPresetsW->show(wnd);
             return STATUS_OK;
         }
 
