@@ -45,11 +45,12 @@ namespace lsp
     namespace vst3
     {
 
-        UIWrapper::UIWrapper(PluginFactory *factory, ui::Module *plugin, resource::ILoader *loader):
+        UIWrapper::UIWrapper(PluginFactory *factory, ui::Module *plugin, resource::ILoader *loader, const meta::package_t *package):
             ui::IWrapper(plugin, loader)
         {
             nRefCounter     = 1;
             pFactory        = safe_acquire(factory);
+            pPackage        = package;
             pHostContext    = NULL;
             pPeerConnection = NULL;
         }
@@ -146,25 +147,21 @@ namespace lsp
 
         Steinberg::int32 PLUGIN_API UIWrapper::getBusCount(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            return 0;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getBusInfo(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::BusInfo & bus /*out*/)
         {
-            // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getRoutingInfo(Steinberg::Vst::RoutingInfo & inInfo, Steinberg::Vst::RoutingInfo & outInfo /*out*/)
         {
-            // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::activateBus(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::TBool state)
         {
-            // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 
@@ -304,6 +301,57 @@ namespace lsp
             return Steinberg::kNotImplemented;
         }
 
+        core::KVTStorage *UIWrapper::kvt_lock()
+        {
+            // TODO: implement this
+            return NULL;
+        }
+
+        core::KVTStorage *UIWrapper::kvt_trylock()
+        {
+            // TODO: implement this
+            return NULL;
+        }
+
+        bool UIWrapper::kvt_release()
+        {
+            // TODO: implement this
+            return false;
+        }
+
+        void UIWrapper::dump_state_request()
+        {
+
+        }
+
+        const meta::package_t *UIWrapper::package() const
+        {
+            // TODO: implement this
+            return pPackage;
+        }
+
+        status_t UIWrapper::play_file(const char *file, wsize_t position, bool release)
+        {
+            // TODO: implement this
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        float UIWrapper::ui_scaling_factor(float scaling)
+        {
+            // TODO: implement this
+            return 0.0f;
+        }
+
+        void UIWrapper::main_iteration()
+        {
+            // TODO: implement this
+        }
+
+        bool UIWrapper::accept_window_size(size_t width, size_t height)
+        {
+            // TODO: implement this
+            return true;
+        }
 
     } /* namespace vst3 */
 } /* namespace lsp */

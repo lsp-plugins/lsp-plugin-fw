@@ -69,12 +69,14 @@ namespace lsp
         class AudioPort: public Port
         {
             protected:
-                float      *pBind;                      // Bound buffer
-                float      *pBuffer;                    // The original buffer passed by the host OR sanitized buffer
-                uint32_t    nOffset;                    // The relative offset from the beginning of the buffer
-                uint32_t    nBufSize;                   // The actual current buffer size
-                uint32_t    nBufCap;                    // The quantized capacity of the buffer
-                bool        bZero;
+                float                      *pBind;      // Bound buffer
+                float                      *pBuffer;    // The original buffer passed by the host OR sanitized buffer
+                uint32_t                    nOffset;    // The relative offset from the beginning of the buffer
+                uint32_t                    nBufSize;   // The actual current buffer size
+                uint32_t                    nBufCap;    // The quantized capacity of the buffer
+                Steinberg::Vst::Speaker     nSpeaker;   // Associated speaker
+                bool                        bActive;    // Activity flag
+                bool                        bZero;      // Indicator that data in the buffer is zeroed out
 
             public:
                 explicit AudioPort(const meta::port_t *meta) : Port(meta)
@@ -84,6 +86,8 @@ namespace lsp
                     nOffset     = 0;
                     nBufSize    = 0;
                     nBufCap     = 0;
+                    nSpeaker    = Steinberg::Vst::kSpeakerM;
+                    bActive     = true;
                     bZero       = false;
                 }
 
@@ -97,6 +101,12 @@ namespace lsp
                 };
 
             public:
+                inline Steinberg::Vst::Speaker      speaker() const         { return nSpeaker;  }
+                inline void                         set_speaker(Steinberg::Vst::Speaker id)     { nSpeaker = id; }
+                inline bool                         active() const          { return bActive;   }
+                inline void                         set_active(bool active) { bActive = active; }
+
+            public:
                 virtual void *buffer() override
                 {
                     return &pBind[nOffset];
@@ -108,9 +118,9 @@ namespace lsp
                 }
 
             public:
-                // Activate the port, issued by the plugin activate() method
+                // Setup the port
                 // Allocates enough space for data sanitize.
-                bool activate(size_t min_frames_count, size_t max_frames_count)
+                bool setup(size_t min_frames_count, size_t max_frames_count)
                 {
                     // Check that capacity matches
                     size_t capacity = align_size(max_frames_count, 16);
@@ -142,7 +152,7 @@ namespace lsp
                         pBind       = (ptr != NULL) ? ptr : pBuffer;
                     else // if (meta::is_in_port(pMetadata))
                     {
-                        if (ptr != NULL)
+                        if ((ptr != NULL) && (bActive))
                             dsp::sanitize2(pBuffer, ptr, samples);
                         else if (pBind != NULL)
                             dsp::fill_zero(pBuffer, nBufCap);

@@ -96,17 +96,11 @@ namespace lsp
                 virtual core::KVTStorage       *kvt_lock() override;
                 virtual core::KVTStorage       *kvt_trylock() override;
                 virtual bool                    kvt_release() override;
-
                 virtual void                    dump_state_request() override;
-
                 virtual const meta::package_t  *package() const override;
-
                 virtual status_t                play_file(const char *file, wsize_t position, bool release) override;
-
                 virtual float                   ui_scaling_factor(float scaling) override;
-
                 virtual void                    main_iteration() override;
-
                 virtual bool                    accept_window_size(size_t width, size_t height) override;
 
             public: // CLAP API

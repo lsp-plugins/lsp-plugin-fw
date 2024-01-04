@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MODULES_LSP_PLUGIN_FW_INCLUDE_LSP_PLUG_IN_PLUG_FW_WRAP_VST3_IMPL_WRAPPER_H_
-#define MODULES_LSP_PLUGIN_FW_INCLUDE_LSP_PLUG_IN_PLUG_FW_WRAP_VST3_IMPL_WRAPPER_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_VST3_IMPL_WRAPPER_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_VST3_IMPL_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 
@@ -44,15 +44,19 @@ namespace lsp
 {
     namespace vst3
     {
-        Wrapper::Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader):
+        Wrapper::Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package):
             IWrapper(plugin, loader)
         {
             nRefCounter     = 1;
             pFactory        = safe_acquire(factory);
+            pPackage        = package;
             pHostContext    = NULL;
             pPeerConnection = NULL;
-            pEventIn        = NULL;
-            pEventOut       = NULL;
+            pEventsIn       = NULL;
+            pEventsOut      = NULL;
+
+            nActLatency     = 0;
+            nRepLatency     = 0;
         }
 
         Wrapper::~Wrapper()
@@ -134,6 +138,12 @@ namespace lsp
             return bus;
         }
 
+        void Wrapper::free_audio_bus(audio_bus_t *bus)
+        {
+            if (bus != NULL)
+                free(bus);
+        }
+
         Wrapper::event_bus_t *Wrapper::alloc_event_bus(const char *name, size_t ports)
         {
             LSPString tmp;
@@ -159,6 +169,12 @@ namespace lsp
             return bus;
         }
 
+        void Wrapper::free_event_bus(event_bus_t *bus)
+        {
+            if (bus != NULL)
+                free(bus);
+        }
+
         plug::IPort *Wrapper::find_port(const char *id, lltl::parray<plug::IPort> *list)
         {
             for (size_t i=0, n=list->size(); i<n; ++i)
@@ -171,22 +187,22 @@ namespace lsp
             return NULL;
         }
 
-        ssize_t Wrapper::compare_audio_channels(const audio_channel_t *a, const audio_channel_t *b)
+        ssize_t Wrapper::compare_audio_ports_by_speaker(const vst3::AudioPort *a, const vst3::AudioPort *b)
         {
-            if (a->nSpeaker > b->nSpeaker)
+            if (a->speaker() > b->speaker())
                 return 1;
-            return (a->nSpeaker < b->nSpeaker) ? -1 : 0;
+            return (a->speaker() < b->speaker()) ? -1 : 0;
         }
 
         Wrapper::audio_bus_t *Wrapper::create_audio_bus(const meta::port_group_t *meta, lltl::parray<plug::IPort> *ins, lltl::parray<plug::IPort> *outs)
         {
-            lltl::darray<audio_channel_t> channels;
+            lltl::parray<vst3::AudioPort> channels;
 
             // Form the list of channels sorted according to the speaker ordering bits
             lltl::parray<plug::IPort> *list = (meta->flags & meta::PGF_OUT) ? outs : ins;
             for (const meta::port_group_item_t *item = meta->items; (item != NULL) && (item->id != NULL); ++item)
             {
-                // Find port
+                // Find port and add to list
                 plug::IPort *p  = find_port(item->id, list);
                 if (p == NULL)
                 {
@@ -195,66 +211,107 @@ namespace lsp
                     return NULL;
                 }
 
-                // Create new channel record
-                audio_channel_t *c = channels.add();
-                if (c == NULL)
+                vst3::AudioPort *xp = static_cast<vst3::AudioPort *>(p);
+                if (!channels.add(xp))
                     return NULL;
 
-                c->pPort            = static_cast<vst3::AudioPort *>(p);
+                // Set-up speaker role
+                Steinberg::Vst::Speaker speaker = Steinberg::Vst::kSpeakerM;
                 switch (item->role)
                 {
                     case meta::PGR_CENTER:
-                        c->nSpeaker     = (meta->type == meta::GRP_MONO) ? Steinberg::Vst::kSpeakerM : Steinberg::Vst::kSpeakerC;
+                        speaker = (meta->type == meta::GRP_MONO) ? Steinberg::Vst::kSpeakerM : Steinberg::Vst::kSpeakerC;
                         break;
-                    case meta::PGR_CENTER_LEFT:     c->nSpeaker     = Steinberg::Vst::kSpeakerLc;   break;
-                    case meta::PGR_CENTER_RIGHT:    c->nSpeaker     = Steinberg::Vst::kSpeakerRc;   break;
-                    case meta::PGR_LEFT:            c->nSpeaker     = Steinberg::Vst::kSpeakerL;    break;
-                    case meta::PGR_LO_FREQ:         c->nSpeaker     = Steinberg::Vst::kSpeakerLfe;  break;
-                    case meta::PGR_REAR_CENTER:     c->nSpeaker     = Steinberg::Vst::kSpeakerTrc;  break;
-                    case meta::PGR_REAR_LEFT:       c->nSpeaker     = Steinberg::Vst::kSpeakerTrl;  break;
-                    case meta::PGR_REAR_RIGHT:      c->nSpeaker     = Steinberg::Vst::kSpeakerTrr;  break;
-                    case meta::PGR_RIGHT:           c->nSpeaker     = Steinberg::Vst::kSpeakerR;    break;
-                    case meta::PGR_SIDE_LEFT:       c->nSpeaker     = Steinberg::Vst::kSpeakerSl;   break;
-                    case meta::PGR_SIDE_RIGHT:      c->nSpeaker     = Steinberg::Vst::kSpeakerSr;   break;
-                    case meta::PGR_MS_SIDE:         c->nSpeaker     = Steinberg::Vst::kSpeakerC;    break;
-                    case meta::PGR_MS_MIDDLE:       c->nSpeaker     = Steinberg::Vst::kSpeakerS;    break;
+                    case meta::PGR_CENTER_LEFT:     speaker     = Steinberg::Vst::kSpeakerLc;   break;
+                    case meta::PGR_CENTER_RIGHT:    speaker     = Steinberg::Vst::kSpeakerRc;   break;
+                    case meta::PGR_LEFT:            speaker     = Steinberg::Vst::kSpeakerL;    break;
+                    case meta::PGR_LO_FREQ:         speaker     = Steinberg::Vst::kSpeakerLfe;  break;
+                    case meta::PGR_REAR_CENTER:     speaker     = Steinberg::Vst::kSpeakerTrc;  break;
+                    case meta::PGR_REAR_LEFT:       speaker     = Steinberg::Vst::kSpeakerTrl;  break;
+                    case meta::PGR_REAR_RIGHT:      speaker     = Steinberg::Vst::kSpeakerTrr;  break;
+                    case meta::PGR_RIGHT:           speaker     = Steinberg::Vst::kSpeakerR;    break;
+                    case meta::PGR_SIDE_LEFT:       speaker     = Steinberg::Vst::kSpeakerSl;   break;
+                    case meta::PGR_SIDE_RIGHT:      speaker     = Steinberg::Vst::kSpeakerSr;   break;
+                    case meta::PGR_MS_SIDE:         speaker     = Steinberg::Vst::kSpeakerC;    break;
+                    case meta::PGR_MS_MIDDLE:       speaker     = Steinberg::Vst::kSpeakerS;    break;
                     default:
                         lsp_error("Unsupported role %d for channel '%s' in group '%s'",
                             int(item->role), item->id, meta->id);
                         return NULL;
                 }
+                xp->set_speaker(speaker);
 
                 // Exclude port from list
                 list->premove(p);
             }
-            channels.qsort(compare_audio_channels);
+            channels.qsort(compare_audio_ports_by_speaker);
 
             // Allocate the audio group object
-            audio_bus_t *grp    = alloc_audio_bus(meta->id, channels.size());
-            if (grp == NULL)
+            audio_bus_t *bus    = alloc_audio_bus(meta->id, channels.size());
+            if (bus == NULL)
                 return NULL;
             lsp_finally {
-                if (grp != NULL)
-                    free(grp);
+                free_audio_bus(bus);
             };
 
             // Fill the audio bus data
-            grp->nType          = meta->type;
-            grp->nPorts         = channels.size();
-            grp->nBusType       = (meta->flags & meta::PGF_SIDECHAIN) ? Steinberg::Vst::kAux : Steinberg::Vst::kMain;
+            bus->nType          = meta->type;
+            bus->nPorts         = channels.size();
+            bus->nCurrArr       = 0;
+            bus->nMinArr        = 0;
+            bus->nBusType       = (meta->flags & meta::PGF_SIDECHAIN) ? Steinberg::Vst::kAux : Steinberg::Vst::kMain;
 
-            for (size_t i=0; i<grp->nPorts; ++i)
+            for (size_t i=0; i<bus->nPorts; ++i)
             {
-                audio_channel_t *c   = channels.uget(i);
-                if (c == NULL)
-                    return NULL;
-                grp->vPorts[i]       = c->pPort;
+                vst3::AudioPort *xp = channels.uget(i);
+                bus->nFullArr      |= xp->speaker();
+                bus->nMinArr       |= (meta::is_optional_port(xp->metadata())) ? 0 : xp->speaker();
+                bus->vPorts[i]      = xp;
             }
+            bus->nCurrArr       = bus->nFullArr;
+
+            return release_ptr(bus);
+        }
+
+        Wrapper::audio_bus_t *Wrapper::create_audio_bus(plug::IPort *port)
+        {
+            const meta::port_t *meta = (port != NULL) ? port->metadata() : NULL;
+            if (meta == NULL)
+                return NULL;
+
+            // Allocate the audio group object
+            audio_bus_t *grp    = alloc_audio_bus(meta->id, 1);
+            if (grp == NULL)
+                return NULL;
+            lsp_finally {
+                free_audio_bus(grp);
+            };
+
+            // Fill the audio bus data
+            vst3::AudioPort *xp = static_cast<vst3::AudioPort *>(port);
+
+            grp->nType          = meta::GRP_MONO;
+            grp->nPorts         = 1;
+            grp->nCurrArr       = xp->speaker();
+            grp->nMinArr        = (meta::is_optional_port(meta)) ? 0 : xp->speaker();
+            grp->nFullArr       = grp->nCurrArr;
+            grp->nBusType       = Steinberg::Vst::kMain;
+            grp->vPorts[0]      = xp;
 
             return release_ptr(grp);
         }
 
-        bool Wrapper::create_audio_busses()
+        void Wrapper::update_port_activity(audio_bus_t *bus)
+        {
+            const Steinberg::Vst::SpeakerArrangement arr    = (bus->bActive) ? bus->nCurrArr : 0;
+            for (size_t i=0; i<bus->nPorts; ++i)
+            {
+                vst3::AudioPort *p  = bus->vPorts[i];
+                p->set_active(p->speaker() & arr);
+            }
+        }
+
+        bool Wrapper::create_busses()
         {
             // Obtain plugin metadata
             const meta::plugin_t *meta = (pPlugin != NULL) ? pPlugin->metadata() : NULL;
@@ -294,8 +351,7 @@ namespace lsp
                 if ((grp = create_audio_bus(pg, &ins, &outs)) == NULL)
                     return false;
                 lsp_finally {
-                    if (grp != NULL)
-                        free(grp);
+                    free_audio_bus(grp);
                 };
 
                 // Add the group to list or keep as a separate pointer because CLAP
@@ -343,7 +399,81 @@ namespace lsp
                 grp     = NULL;
             }
 
-            // TODO: handle creation of busses for other ports
+            // Create mono audio busses for non-assigned ports
+            for (lltl::iterator<plug::IPort> it = ins.values(); it; ++it)
+            {
+                plug::IPort *p = it.get();
+                if ((grp = create_audio_bus(p)) == NULL)
+                    return false;
+                lsp_finally {
+                    free_audio_bus(grp);
+                };
+
+                if (!vAudioIn.add(grp))
+                    return false;
+                grp     = NULL;
+            }
+
+            for (lltl::iterator<plug::IPort> it = outs.values(); it; ++it)
+            {
+                plug::IPort *p = it.get();
+                if ((grp = create_audio_bus(p)) == NULL)
+                    return false;
+                lsp_finally {
+                    free_audio_bus(grp);
+                };
+
+                if (!vAudioOut.add(grp))
+                    return false;
+                grp     = NULL;
+            }
+
+            // Create MIDI busses
+            if (midi_ins.size() > 0)
+            {
+                // Allocate the audio group object
+                event_bus_t *ev     = alloc_event_bus("events_in", midi_ins.size());
+                if (grp == NULL)
+                    return NULL;
+                lsp_finally {
+                    free_event_bus(ev);
+                };
+
+                // Fill the audio bus data
+                ev->nPorts          = midi_ins.size();
+
+                for (size_t i=0, n=midi_ins.size(); i<n; ++i)
+                {
+                    plug::IPort *p      = midi_ins.uget(i);
+                    if (p == NULL)
+                        return false;
+                    ev->vPorts[i]      = p;
+                }
+                pEventsIn           = release_ptr(ev);
+            }
+
+            if (midi_outs.size() > 0)
+            {
+                // Allocate the audio group object
+                event_bus_t *ev     = alloc_event_bus("events_out", midi_outs.size());
+                if (grp == NULL)
+                    return NULL;
+                lsp_finally {
+                    free_event_bus(ev);
+                };
+
+                // Fill the audio bus data
+                ev->nPorts          = midi_outs.size();
+
+                for (size_t i=0, n=midi_outs.size(); i<n; ++i)
+                {
+                    plug::IPort *p      = midi_outs.uget(i);
+                    if (p == NULL)
+                        return false;
+                    ev->vPorts[i]      = p;
+                }
+                pEventsOut          = release_ptr(ev);
+            }
 
             return true;
         }
@@ -354,7 +484,7 @@ namespace lsp
                 return Steinberg::kResultFalse;
             pHostContext    = safe_acquire(context);
 
-            if (!create_audio_busses())
+            if (!create_busses())
                 return Steinberg::kInternalError;
 
             // TODO: implement this
@@ -371,6 +501,19 @@ namespace lsp
                 pPeerConnection->disconnect(this);
                 safe_release(pPeerConnection);
             }
+
+            // Release busses
+            for (lltl::iterator<audio_bus_t> it = vAudioIn.values(); it; ++it)
+                free_audio_bus(it.get());
+            for (lltl::iterator<audio_bus_t> it = vAudioOut.values(); it; ++it)
+                free_audio_bus(it.get());
+            free_event_bus(pEventsIn);
+            free_event_bus(pEventsOut);
+
+            vAudioIn.flush();
+            vAudioOut.flush();
+            pEventsIn   = NULL;
+            pEventsOut  = NULL;
 
             // TODO: implement this
             return Steinberg::kNotImplemented;
@@ -399,25 +542,139 @@ namespace lsp
 
         Steinberg::int32 PLUGIN_API Wrapper::getBusCount(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            if (type == Steinberg::Vst::kAudio)
+            {
+                if (dir == Steinberg::Vst::kInput)
+                    return vAudioIn.size();
+                else if (dir == Steinberg::Vst::kOutput)
+                    return vAudioOut.size();
+            }
+            else if (type == Steinberg::Vst::kEvent)
+            {
+                if (dir == Steinberg::Vst::kInput)
+                    return (pEventsIn != NULL) ? 1 : 0;
+                else if (dir == Steinberg::Vst::kOutput)
+                    return (pEventsOut != NULL) ? 1 : 0;
+            }
+
+            return 0;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::getBusInfo(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::BusInfo & bus /*out*/)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            if (type == Steinberg::Vst::kAudio)
+            {
+                if (dir == Steinberg::Vst::kInput)
+                {
+                    if ((index < 0) || (size_t(index) >= vAudioIn.size()))
+                        return Steinberg::kInvalidArgument;
+
+                    audio_bus_t *b = vAudioIn.uget(index);
+                    if (b == NULL)
+                        return Steinberg::kInternalError;
+
+                    bus.mediaType       = type;
+                    bus.direction       = dir;
+                    bus.channelCount    = b->nPorts;
+                    bus.busType         = b->nBusType;
+                    bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
+                    Steinberg::strncpy16(bus.name, b->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
+
+                    return Steinberg::kResultTrue;
+                }
+                else if (dir == Steinberg::Vst::kOutput)
+                {
+                    if ((index < 0) || (size_t(index) >= vAudioOut.size()))
+                        return Steinberg::kInvalidArgument;
+
+                    audio_bus_t *b = vAudioOut.uget(index);
+                    if (b == NULL)
+                        return Steinberg::kInternalError;
+
+                    bus.mediaType       = type;
+                    bus.direction       = dir;
+                    bus.channelCount    = b->nPorts;
+                    bus.busType         = b->nBusType;
+                    bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
+                    Steinberg::strncpy16(bus.name, b->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
+
+                    return Steinberg::kResultTrue;
+                }
+            }
+            else if (type == Steinberg::Vst::kEvent)
+            {
+                if (dir == Steinberg::Vst::kInput)
+                {
+                    if ((index != 0) || (pEventsIn == NULL))
+                        return Steinberg::kInvalidArgument;
+
+                    bus.mediaType       = type;
+                    bus.direction       = dir;
+                    bus.channelCount    = pEventsIn->nPorts;
+                    bus.busType         = Steinberg::Vst::kMain;
+                    bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
+                    Steinberg::strncpy16(bus.name, pEventsIn->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
+
+                    return Steinberg::kResultTrue;
+                }
+                else if (dir == Steinberg::Vst::kOutput)
+                {
+                    if ((index != 0) || (pEventsOut == NULL))
+                        return Steinberg::kInvalidArgument;
+
+                    bus.mediaType       = type;
+                    bus.direction       = dir;
+                    bus.channelCount    = pEventsOut->nPorts;
+                    bus.busType         = Steinberg::Vst::kMain;
+                    bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
+                    Steinberg::strncpy16(bus.name, pEventsOut->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
+
+                    return Steinberg::kResultTrue;
+                }
+            }
+
+            return Steinberg::kInvalidArgument;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::getRoutingInfo(Steinberg::Vst::RoutingInfo & inInfo, Steinberg::Vst::RoutingInfo & outInfo /*out*/)
         {
-            // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::activateBus(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::TBool state)
         {
-            // TODO: implement this
+            if (index < 0)
+                return Steinberg::kInvalidArgument;
+
+            if (type == Steinberg::Vst::kAudio)
+            {
+                audio_bus_t *bus =
+                    (dir == Steinberg::Vst::kInput) ? vAudioIn.get(index) :
+                    (dir == Steinberg::Vst::kOutput) ? vAudioOut.get(index) :
+                    NULL;
+                if (bus == NULL)
+                    return Steinberg::kInvalidArgument;
+
+                bus->bActive    = state;
+                update_port_activity(bus);
+
+                return Steinberg::kResultTrue;
+            }
+            else if (type == Steinberg::Vst::kEvent)
+            {
+                if (index != 0)
+                    return Steinberg::kInvalidArgument;;
+                event_bus_t *bus =
+                    (dir == Steinberg::Vst::kInput) ? pEventsIn :
+                    (dir == Steinberg::Vst::kOutput) ? pEventsOut :
+                    NULL;
+                if (bus == NULL)
+                    return Steinberg::kInvalidArgument;
+
+                bus->bActive    = state;
+                return Steinberg::kResultTrue;
+            }
+
             return Steinberg::kNotImplemented;
         }
 
@@ -483,10 +740,58 @@ namespace lsp
             return Steinberg::kNotImplemented;
         }
 
-        Steinberg::tresult PLUGIN_API Wrapper::setBusArrangements(Steinberg::Vst::SpeakerArrangement* inputs, Steinberg::int32 numIns, Steinberg::Vst::SpeakerArrangement* outputs, Steinberg::int32 numOuts)
+        Steinberg::tresult PLUGIN_API Wrapper::setBusArrangements(Steinberg::Vst::SpeakerArrangement *inputs, Steinberg::int32 numIns, Steinberg::Vst::SpeakerArrangement* outputs, Steinberg::int32 numOuts)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            if (numIns < 0 || numOuts < 0)
+                return Steinberg::kInvalidArgument;
+
+            if ((size_t(numIns) > vAudioIn.size()) ||
+                (size_t(numOuts) > vAudioOut.size()))
+                return Steinberg::kResultFalse;
+
+            // Check that we allow several ports to be disabled
+            for (ssize_t i=0; i < numIns; ++i)
+            {
+                const audio_bus_t *bus = vAudioIn.get(i);
+                if (bus == NULL)
+                    return Steinberg::kInvalidArgument;
+
+                const Steinberg::Vst::SpeakerArrangement arr = inputs[i];
+                if ((arr & (~bus->nFullArr)) != 0)
+                    return Steinberg::kInvalidArgument;
+                if ((bus->nMinArr & arr) != bus->nMinArr)
+                    return Steinberg::kResultFalse;
+            }
+
+            for (ssize_t i=0; i < numOuts; ++i)
+            {
+                const audio_bus_t *bus = vAudioOut.get(i);
+                if (bus == NULL)
+                    return Steinberg::kInvalidArgument;
+
+                const Steinberg::Vst::SpeakerArrangement arr = outputs[i];
+                if ((arr & (~bus->nFullArr)) != 0)
+                    return Steinberg::kInvalidArgument;
+                if ((bus->nMinArr & arr) != bus->nMinArr)
+                    return Steinberg::kResultFalse;
+            }
+
+            // Apply new configuration
+            for (ssize_t i=0; i < numIns; ++i)
+            {
+                audio_bus_t *bus    = vAudioIn.get(i);
+                bus->nCurrArr       = inputs[i];
+                update_port_activity(bus);
+            }
+
+            for (ssize_t i=0; i < numOuts; ++i)
+            {
+                audio_bus_t *bus    = vAudioOut.get(i);
+                bus->nCurrArr       = outputs[i];
+                update_port_activity(bus);
+            }
+
+            return Steinberg::kResultTrue;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::getBusArrangement(Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::SpeakerArrangement & arr)
@@ -497,14 +802,15 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::canProcessSampleSize(Steinberg::int32 symbolicSampleSize)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            // We support only 32-bit float samples
+            return (symbolicSampleSize == Steinberg::Vst::kSample32) ? Steinberg::kResultTrue : Steinberg::kResultFalse;
         }
 
         Steinberg::uint32 PLUGIN_API Wrapper::getLatencySamples()
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            uint32_t latency    = nActLatency;
+            nRepLatency         = latency;
+            return latency;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::setupProcessing(Steinberg::Vst::ProcessSetup & setup)
@@ -537,8 +843,47 @@ namespace lsp
             return 0;
         }
 
+        ipc::IExecutor *Wrapper::executor()
+        {
+            // TODO: implement this
+            return NULL;
+        }
+
+        core::KVTStorage *Wrapper::kvt_lock()
+        {
+            // TODO: implement this
+            return NULL;
+        }
+
+        core::KVTStorage *Wrapper::kvt_trylock()
+        {
+            // TODO: implement this
+            return NULL;
+        }
+
+        bool Wrapper::kvt_release()
+        {
+            // TODO: implement this
+            return false;
+        }
+
+        void Wrapper::state_changed()
+        {
+            // TODO: implement this
+        }
+
+        void Wrapper::request_settings_update()
+        {
+            // TODO: implement this
+        }
+
+        const meta::package_t *Wrapper::package() const
+        {
+            return pPackage;
+        }
+
     } /* namespace vst3 */
 } /* namespace lsp */
 
 
-#endif /* MODULES_LSP_PLUGIN_FW_INCLUDE_LSP_PLUG_IN_PLUG_FW_WRAP_VST3_IMPL_WRAPPER_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_VST3_IMPL_WRAPPER_H_ */

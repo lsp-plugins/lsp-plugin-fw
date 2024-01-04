@@ -50,6 +50,7 @@ namespace lsp
         {
             nRefCounter         = 1;
             pLoader             = NULL;
+            pPackage            = NULL;
         }
 
         PluginFactory::~PluginFactory()
@@ -99,6 +100,9 @@ namespace lsp
             fill_factory_info(manifest);
             if ((res = fill_plugin_info(manifest)) != STATUS_OK)
                 return res;
+
+            // Remember the package
+            pPackage    = release_ptr(manifest);
 
             return STATUS_OK;
         }
@@ -509,6 +513,8 @@ namespace lsp
                 pLoader = NULL;
             }
 
+            free_manifest(pPackage);
+
             vClassInfo.flush();
             vClassInfo2.flush();
             vClassInfoW.flush();
@@ -626,7 +632,7 @@ namespace lsp
                     };
 
                     // Allocate wrapper
-                    Wrapper *w  = new Wrapper(this, module, pLoader);
+                    Wrapper *w  = new Wrapper(this, module, pLoader, pPackage);
                     if (w == NULL)
                         return Steinberg::kOutOfMemory;
                     module      = NULL; // Force module to be destroyed by the wrapper
@@ -661,7 +667,7 @@ namespace lsp
                     };
 
                     // Allocate wrapper
-                    UIWrapper *w  = new UIWrapper(this, module, pLoader);
+                    UIWrapper *w  = new UIWrapper(this, module, pLoader, pPackage);
                     if (w == NULL)
                         return Steinberg::kOutOfMemory;
                     module      = NULL; // Force module to be destroyed by the wrapper

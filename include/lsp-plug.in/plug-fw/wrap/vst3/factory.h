@@ -47,6 +47,7 @@ namespace lsp
             protected:
                 volatile uatomic_t                      nRefCounter;
                 resource::ILoader                      *pLoader;
+                meta::package_t                        *pPackage;
                 Steinberg::PFactoryInfo                 sFactoryInfo;
                 lltl::darray<Steinberg::PClassInfo>     vClassInfo;
                 lltl::darray<Steinberg::PClassInfo2>    vClassInfo2;

@@ -130,6 +130,11 @@ namespace lsp
             return (p != NULL) && (p->role == R_STREAM);
         }
 
+        static inline bool is_optional_port(const port_t *p)
+        {
+            return (p != NULL) && (p->flags & F_OPTIONAL);
+        }
+
         /**
          * Get name of the unit
          * @param unit unit_t unit

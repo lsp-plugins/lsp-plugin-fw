@@ -53,17 +53,29 @@ namespace lsp
             protected:
                 volatile uatomic_t                  nRefCounter;            // Reference counter
                 PluginFactory                      *pFactory;               // Reference to the factory
+                const meta::package_t              *pPackage;
                 Steinberg::FUnknown                *pHostContext;           // Host context
                 Steinberg::Vst::IConnectionPoint   *pPeerConnection;        // Peer connection
 
             public:
-                explicit UIWrapper(PluginFactory *factory, ui::Module *ui, resource::ILoader *loader);
+                explicit UIWrapper(PluginFactory *factory, ui::Module *ui, resource::ILoader *loader, const meta::package_t *package);
                 UIWrapper(const UIWrapper &) = delete;
                 UIWrapper(UIWrapper &&) = delete;
                 virtual ~UIWrapper() override;
 
                 UIWrapper & operator = (const UIWrapper &) = delete;
                 UIWrapper & operator = (UIWrapper &&) = delete;
+
+            public: // ui::Wrapper
+                virtual core::KVTStorage           *kvt_lock() override;
+                virtual core::KVTStorage           *kvt_trylock() override;
+                virtual bool                        kvt_release() override;
+                virtual void                        dump_state_request() override;
+                virtual const meta::package_t      *package() const override;
+                virtual status_t                    play_file(const char *file, wsize_t position, bool release) override;
+                virtual float                       ui_scaling_factor(float scaling) override;
+                virtual void                        main_iteration() override;
+                virtual bool                        accept_window_size(size_t width, size_t height) override;
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult          PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;

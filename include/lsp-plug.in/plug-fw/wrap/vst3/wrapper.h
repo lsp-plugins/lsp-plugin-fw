@@ -52,64 +52,78 @@ namespace lsp
             public Steinberg::Vst::IProcessContextRequirements
         {
             protected:
-                typedef struct audio_channel_t
-                {
-                    vst3::AudioPort                *pPort;      // Port
-                    Steinberg::Vst::Speaker         nSpeaker;   // Associated speaker
-                } audio_channel_t;
-
                 typedef struct audio_bus_t
                 {
                     meta::port_group_type_t         nType;      // Type of the group (MONO, STEREO, etc)
-                    Steinberg::CStringW            *sName;      // Bus name
+                    Steinberg::char16              *sName;      // Bus name
                     size_t                          nPorts;     // Bus ports
                     Steinberg::Vst::BusType         nBusType;   // Bus type
+                    Steinberg::Vst::SpeakerArrangement nCurrArr;// Current bus arrangement
+                    Steinberg::Vst::SpeakerArrangement nMinArr; // Minimum allowed bus arrangement
+                    Steinberg::Vst::SpeakerArrangement nFullArr;// Maximum allowed bus arrangement
                     bool                            bActive;    // Bus is active
                     vst3::AudioPort                *vPorts[];   // List of ports related to the audio bus
                 } audio_bus_t;
 
                 typedef struct event_bus_t
                 {
-                    meta::port_group_type_t         nType;      // Type of the group (MONO, STEREO, etc)
-                    Steinberg::CStringW            *sName;      // Bus name
+                    Steinberg::char16              *sName;      // Bus name
                     size_t                          nPorts;     // Bus ports
                     bool                            bActive;    // Bus is active
-                    vst3::AudioPort                *vPorts[];   // List of ports related to the audio bus
+                    plug::IPort                    *vPorts[];   // List of ports related to the audio bus
                 } event_bus_t;
 
             protected:
                 volatile uatomic_t                  nRefCounter;            // Reference counter
                 PluginFactory                      *pFactory;               // Reference to the factory
+                const meta::package_t              *pPackage;               // Package information
                 Steinberg::FUnknown                *pHostContext;           // Host context
                 Steinberg::Vst::IConnectionPoint   *pPeerConnection;        // Peer connection
                 lltl::parray<plug::IPort>           vAllPorts;              // All possible plugin ports
                 lltl::parray<audio_bus_t>           vAudioIn;               // Input audio busses
                 lltl::parray<audio_bus_t>           vAudioOut;              // Output audio busses
-                event_bus_t                        *pEventIn;               // Input event bus
-                event_bus_t                        *pEventOut;              // Output event bus
+                event_bus_t                        *pEventsIn;              // Input event bus
+                event_bus_t                        *pEventsOut;             // Output event bus
+
+                uint32_t                            nActLatency;            // Actual latency (in samples)
+                uint32_t                            nRepLatency;            // Last reported latency (in samples)
 
             protected:
                 static audio_bus_t         *alloc_audio_bus(const char *name, size_t ports);
+                static void                 free_audio_bus(audio_bus_t *bus);
                 static audio_bus_t         *create_audio_bus(const meta::port_group_t *meta,
                                                              lltl::parray<plug::IPort> *ins,
                                                              lltl::parray<plug::IPort> *outs);
+                static audio_bus_t         *create_audio_bus(plug::IPort *port);
+                static void                 update_port_activity(audio_bus_t *bus);
 
                 static event_bus_t         *alloc_event_bus(const char *name, size_t ports);
+                static void                 free_event_bus(event_bus_t *bus);
 
                 static plug::IPort         *find_port(const char *id, lltl::parray<plug::IPort> *list);
-                static ssize_t              compare_audio_channels(const audio_channel_t *a, const audio_channel_t *b);
+                static ssize_t              compare_audio_ports_by_speaker(const vst3::AudioPort *a, const vst3::AudioPort *b);
 
             protected:
-                bool                        create_audio_busses();
+                bool                        create_busses();
 
             public:
-                explicit Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader);
+                explicit Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package);
                 Wrapper(const IWrapper &) = delete;
                 Wrapper(IWrapper &&) = delete;
                 virtual ~Wrapper() override;
 
                 Wrapper & operator = (const Wrapper &) = delete;
                 Wrapper & operator = (Wrapper &&) = delete;
+
+
+            public: // IWrapper
+                virtual ipc::IExecutor         *executor() override;
+                virtual core::KVTStorage       *kvt_lock() override;
+                virtual core::KVTStorage       *kvt_trylock() override;
+                virtual bool                    kvt_release() override;
+                virtual void                    state_changed() override;
+                virtual void                    request_settings_update() override;
+                virtual const meta::package_t  *package() const override;
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult  PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;
@@ -141,7 +155,7 @@ namespace lsp
 
             public: // Steinberg::vst::IAudioProcessor
                 virtual Steinberg::tresult  PLUGIN_API setBusArrangements(Steinberg::Vst::SpeakerArrangement *inputs, Steinberg::int32 numIns, Steinberg::Vst::SpeakerArrangement *outputs, Steinberg::int32 numOuts) override;
-                virtual Steinberg::tresult  PLUGIN_API getBusArrangement(Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::SpeakerArrangement& arr) override;
+                virtual Steinberg::tresult  PLUGIN_API getBusArrangement(Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::SpeakerArrangement &arr) override;
                 virtual Steinberg::tresult  PLUGIN_API canProcessSampleSize(Steinberg::int32 symbolicSampleSize) override;
                 virtual Steinberg::uint32   PLUGIN_API getLatencySamples() override;
                 virtual Steinberg::tresult  PLUGIN_API setupProcessing(Steinberg::Vst::ProcessSetup & setup) override;

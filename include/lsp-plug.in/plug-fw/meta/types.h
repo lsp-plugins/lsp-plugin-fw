@@ -127,6 +127,7 @@ namespace lsp
             F_PEAK          = (1 << 9),     // Peak flag
             F_CYCLIC        = (1 << 10),    // Cyclic flag
             F_EXT           = (1 << 11),    // Extended range
+            F_OPTIONAL      = (1 << 12),    // Optional port, can be disabled by host
         };
 
         enum plugin_class_t
