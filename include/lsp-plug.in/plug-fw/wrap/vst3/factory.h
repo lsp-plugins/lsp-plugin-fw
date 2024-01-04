@@ -59,7 +59,6 @@ namespace lsp
                 status_t create_class_info(const meta::package_t *manifest, const meta::plugin_t *meta);
                 status_t create_class_info2(const meta::package_t *manifest, const meta::plugin_t *meta);
                 status_t create_class_infow(const meta::package_t *manifest, const meta::plugin_t *meta);
-                status_t make_plugin_categories(LSPString *dst, const meta::plugin_t *meta);
 
             public:
                 PluginFactory();

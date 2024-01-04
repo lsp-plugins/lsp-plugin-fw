@@ -236,6 +236,7 @@ namespace lsp
             ladspa::validate_port(ctx, meta, port);
             lv2::validate_port(ctx, meta, port);
             vst2::validate_port(ctx, meta, port);
+            vst3::validate_port(ctx, meta, port);
             jack::validate_port(ctx, meta, port);
             clap::validate_port(ctx, meta, port);
 
@@ -518,6 +519,7 @@ namespace lsp
             ladspa::validate_plugin(ctx, meta);
             lv2::validate_plugin(ctx, meta);
             vst2::validate_plugin(ctx, meta);
+            vst3::validate_plugin(ctx, meta);
             jack::validate_plugin(ctx, meta);
             clap::validate_plugin(ctx, meta);
         }

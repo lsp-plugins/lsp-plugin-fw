@@ -77,6 +77,12 @@ namespace lsp
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
         } /* namespace vst2 */
 
+        namespace vst3
+        {
+            void validate_plugin(context_t *ctx, const meta::plugin_t *meta);
+            void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
+        } /* namespace vst3 */
+
         namespace jack
         {
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta);

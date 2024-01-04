@@ -493,6 +493,14 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::terminate()
         {
+            // Destroy plugin
+            if (pPlugin != NULL)
+            {
+                delete pPlugin;
+                pPlugin         = NULL;
+            }
+
+            // Release host context
             safe_release(pHostContext);
 
             // Release the peer connection if host didn't disconnect us previously.
@@ -536,7 +544,6 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::setIoMode(Steinberg::Vst::IoMode mode)
         {
-            // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 

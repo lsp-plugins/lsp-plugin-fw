@@ -54,7 +54,7 @@ namespace lsp
                 else if (!ctx->vst2_ids.create(meta->vst2_uid, const_cast<meta::plugin_t *>(meta)))
                     allocation_error(ctx);
 
-                // Validate versionb
+                // Validate version
                 size_t micro = LSP_MODULE_VERSION_MICRO(meta->version);
                 if (micro > VST_VERSION_MICRO_MAX)
                     validation_error(ctx,
