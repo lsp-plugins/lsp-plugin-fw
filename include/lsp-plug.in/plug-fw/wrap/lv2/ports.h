@@ -227,9 +227,10 @@ namespace lsp
          class AudioPort: public Port
          {
              protected:
-                 float      *pBuffer;
-                 float      *pData;
-                 float      *pSanitized;
+                 float     *pBuffer;
+                 float     *pData;
+                 float     *pSanitized;
+                 bool       bZero;
 
              public:
                  explicit AudioPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext, false)
@@ -237,6 +238,7 @@ namespace lsp
                      pBuffer        = NULL;
                      pData          = NULL;
                      pSanitized     = NULL;
+                     bZero          = NULL;
 
                      if (meta::is_in_port(pMetadata))
                      {
@@ -275,7 +277,17 @@ namespace lsp
                      // Sanitize plugin's input if possible
                      if (pSanitized != NULL)
                      {
-                         dsp::sanitize2(pSanitized, pBuffer, samples);
+                         if (pBuffer != NULL)
+                         {
+                             dsp::sanitize2(pSanitized, pBuffer, samples);
+                             bZero      = false;
+                         }
+                         else if (!bZero)
+                         {
+                             // This is optional sidechain port that is connectionOptional?
+                             dsp::fill_zero(pSanitized, pExt->nMaxBlockLength);
+                             bZero      = true;
+                         }
                          pBuffer      = pSanitized;
                      }
                  }

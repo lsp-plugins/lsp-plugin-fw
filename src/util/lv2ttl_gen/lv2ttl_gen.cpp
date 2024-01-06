@@ -580,6 +580,7 @@ namespace lsp
             // Output port groups
             const meta::person_t *dev = m.developer;
             const meta::port_group_t *pg_main_in = NULL, *pg_main_out = NULL;
+            lltl::phashset<char> sidechain_ports;
 
             if (requirements & REQ_PORT_GROUPS)
             {
@@ -609,7 +610,13 @@ namespace lsp
                         fprintf(out, "\ta pg:%s ;\n", grp_dir);
 
                     if (pg->flags & meta::PGF_SIDECHAIN)
+                    {
                         fprintf(out, "\tpg:sideChainOf %s:%s ;\n", LV2TTL_PORT_GROUP_PREFIX, pg->parent_id);
+
+                        for (const meta::port_group_item_t *pi = pg->items; (pi != NULL) && (pi->id != NULL); ++pi)
+                            sidechain_ports.create(const_cast<char *>(pi->id));
+                    }
+
                     if (pg->flags & meta::PGF_MAIN)
                     {
                         if (pg->flags & meta::PGF_OUT)
@@ -796,6 +803,13 @@ namespace lsp
 
                 size_t p_prop = 0;
 
+                if ((p->role == meta::R_AUDIO) && (sidechain_ports.contains(p->id)))
+                {
+                    emit_header(out, p_prop, "\t\tlv2:portProperty");
+                    emit_option(out, p_prop, true, "pp:connectionOptional");
+                    emit_option(out, p_prop, true, "pp:isSideChain");
+                }
+
                 if (p->flags & meta::F_LOG)
                 {
                     emit_header(out, p_prop, "\t\tlv2:portProperty");
@@ -880,8 +894,8 @@ namespace lsp
                     {
                         emit_header(out, p_prop, "\t\tlv2:portProperty");
                         emit_option(out, p_prop, true, "pp:hasStrictBounds");
-                        emit_end(out, p_prop);
                     }
+                    emit_end(out, p_prop);
 
                     if (p->flags & meta::F_LOWER)
                         fprintf(out, "\t\tlv2:minimum %.6f ;\n", p->min);
