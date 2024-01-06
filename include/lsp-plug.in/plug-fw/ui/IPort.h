@@ -36,6 +36,12 @@ namespace lsp
     {
         class IPortListener;
 
+        enum notify_flags_t
+        {
+            PORT_NONE       = 0,
+            PORT_USER_EDIT  = 1 << 0
+        };
+
         /**
          * Interface for UI port that can hold different types of data
          */
@@ -110,6 +116,13 @@ namespace lsp
                  * @param value value to set
                  */
                 virtual void        set_value(float value);
+
+                /** Set single float value
+                 *
+                 * @param value value to set
+                 * @param nofity_flags port notification flags, @see notify_flags_t
+                 */
+                virtual void        set_value_notify(float value, size_t notify_flags = ui::PORT_USER_EDIT);
 
                 /** Set single float value
                  *

@@ -83,6 +83,12 @@ namespace lsp
         {
         }
 
+        void IPort::set_value_notify(float value, size_t notify_flags)
+        {
+            set_value(value);
+            notify_all(notify_flags);
+        }
+
         void IPort::set_value(float value, size_t flags)
         {
             set_value(value);
