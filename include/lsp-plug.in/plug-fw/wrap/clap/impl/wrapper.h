@@ -50,6 +50,7 @@ namespace lsp
             pExecutor           = NULL;
 
             nLatency            = 0;
+            nTailSize           = 0;
             nDumpReq            = 0;
             nDumpResp           = 0;
 
@@ -1066,6 +1067,14 @@ namespace lsp
                 pHost->request_callback(pHost);
             }
 
+            // Report the size of the plugin's tail.
+            ssize_t tail_size = pPlugin->tail_size();
+            if (nTailSize != tail_size)
+            {
+                nTailSize               = tail_size;
+                pExt->tail->changed(pHost);
+            }
+
             return CLAP_PROCESS_CONTINUE;
         }
 
@@ -1336,6 +1345,13 @@ namespace lsp
                 pPlugin->state_saved();
 
             return res;
+        }
+
+        // CLAP tail extension
+        uint32_t Wrapper::tail_size() const
+        {
+            ssize_t tail_size = pPlugin->tail_size();
+            return (tail_size < 0) ? UINT32_MAX : tail_size;
         }
 
         clap::Port *Wrapper::find_by_id(const char *id)

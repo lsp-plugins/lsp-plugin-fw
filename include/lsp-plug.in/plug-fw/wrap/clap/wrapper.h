@@ -69,6 +69,7 @@ namespace lsp
                 clap::HostExtensions           *pExt;               // CLAP Extensions
                 ipc::IExecutor                 *pExecutor;          // Executor service
                 ssize_t                         nLatency;           // The actual plugin latency
+                ssize_t                         nTailSize;          // Tail size
                 uatomic_t                       nDumpReq;           // State dump request counter
                 uatomic_t                       nDumpResp;          // State dump response counter
 
@@ -160,6 +161,10 @@ namespace lsp
                 // CLAP state extension
                 status_t        save_state(const clap_ostream_t *os);
                 status_t        load_state(const clap_istream_t *is);
+
+            public:
+                // CLAP tail extension
+                uint32_t        tail_size() const;
 
             public:
                 // plug::IWrapper methods

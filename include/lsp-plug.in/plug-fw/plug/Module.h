@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -50,8 +50,10 @@ namespace lsp
                 const meta::plugin_t       *pMetadata;
                 IWrapper                   *pWrapper;
 
-                long                        fSampleRate;
-                ssize_t                     nLatency;
+                uint32_t                    fSampleRate;
+                uint32_t                    nLatency;
+                int32_t                     nTailSize;
+
                 bool                        bActivated;
                 bool                        bUIActive;
 
@@ -77,81 +79,152 @@ namespace lsp
                 virtual void                destroy();
 
             public:
+                /**
+                 * Get plugin's metadata
+                 * @return plugin's metadata
+                 */
                 const meta::plugin_t       *metadata() const                { return pMetadata;         }
-                inline ssize_t              latency() const                 { return nLatency;          }
+
+                /**
+                 * Get the plugin's latency. The latency can be issued by some buffers that need to gather some
+                 * audio data before starting the processing. For example, look-ahead compressors, FFT processors,
+                 * linear-phase filters, etc. Delays should not report the latency because they
+                 * @return plugin's latency in samples
+                 */
+                inline size_t               latency() const                 { return nLatency;          }
                 inline void                 set_latency(ssize_t latency)    { nLatency = latency;       }
 
+                /**
+                 * Get the plugin's post-processing tail size (for example, reverb can report it's tail size.
+                 * The plugin can have infinite tail, for example, when using some feed-back features
+                 * (like feed-back delay).
+                 * @return plugin's post-processing tail size in samples, 0 if no tail, negative for infinite tail.
+                 */
+                inline ssize_t              tail_size() const               { return nTailSize;         }
+
+                /**
+                 * Report the plugin's post-processing tail size in samples.
+                 * @param tail post-processing tail size in samples, 0 if no tail, negative for infinite tail.
+                 */
+                inline void                 set_tail_size(ssize_t tail)     { nTailSize = tail;         }
+
+                /**
+                 * Set the plugin's actual sample rate. The plugin is safe for allocating some data or call some
+                 * blocking functions.
+                 * @param sr sample rate.
+                 */
                 void                        set_sample_rate(long sr);
 
+                /**
+                 * Get current sample rate of the plugin
+                 * @return current sample rate of the plugin
+                 */
                 inline long                 get_sample_rate() const         { return fSampleRate;       }
-                inline bool                 active() const                  { return bActivated;        }
-                inline bool                 ui_active() const               { return bUIActive;         }
 
-                inline IWrapper            *wrapper()                       { return pWrapper;          }
-
-                void                        activate_ui();
-                void                        deactivate_ui();
+                /**
+                 * Called when the plugin is activated by the host
+                 */
                 void                        activate();
+
+                /**
+                 * Called when the plugin is deactivated by the host
+                 */
                 void                        deactivate();
 
+                /**
+                 * Check current activity state of the plugin.
+                 * @return true if plugin is active
+                 */
+                inline bool                 active() const                  { return bActivated;        }
+
+                /**
+                 * Return the pointer to the wrapper which wraps the plugin into some plugin format and
+                 * provides additional functions for interaction with the host and UI.
+                 * @return pointer to the plugin wraper.
+                 */
+                inline IWrapper            *wrapper()                       { return pWrapper;          }
+
+                /**
+                 * Called when the host starts the plugin's UI
+                 */
+                void                        activate_ui();
+
+                /**
+                 * Called when the host closes the plugin's UI
+                 */
+                void                        deactivate_ui();
+
+                /**
+                 * Check that plugin's UI is active
+                 * @return true if plugin's UI is active
+                 */
+                inline bool                 ui_active() const               { return bUIActive;         }
+
             public:
-                /** Update sample rate of data processing
+                /** Update sample rate of data processing. The plugin is safe for allocating some data or call some
+                 * blocking functions.
                  *
                  * @param sr new sample rate
                  */
                 virtual void                update_sample_rate(long sr);
 
-                /** Triggered plugin activation
-                 *
+                /**
+                 * Handle plugin activation event. Consider this method is called from realtime thread.
                  */
                 virtual void                activated();
 
-                /** Triggered UI activation
-                 *
+                /**
+                 * Handle plugin deactivation event. Consider this method is called from realtime thread.
                  */
-                virtual void                ui_activated();
+                virtual void                deactivated();
 
-                /** Triggered input port change, need to update configuration
-                 *
+                /**
+                 * Triggered input port change, need to update configuration
                  */
                 virtual void                update_settings();
 
-                /** Report current time position for plugin
+                /**
+                 * Report current time position for plugin
                  *
                  * @param pos current time position
                  * @return true if need to call for plugin setting update
                  */
                 virtual bool                set_position(const position_t *pos);
 
-                /** Process data
+                /**
+                 * Process data. Called from realtime thread and can not issue any locks nor
+                 * memory allocations nor system library calls except the calls that guarantee to
+                 * be lock-free and of limited estimated execution time.
                  *
                  * @param samples number of samples to process
                  */
                 virtual void                process(size_t samples);
 
-                /** Draw inline display on canvas
+                /**
+                 * Draw inline display on canvas. This method is not called from the realtime thread
+                 * and can issue synchronization locks and memory allocations.
                  * This feature will not work unless E_INLINE_DISPLAY extension is
-                 * specified in plugin's metadata
+                 * specified in plugin's metadata.
                  *
-                 * @param cv canvas
+                 * @param cv canvas for drawing plugin's inline display data
                  * @param width maximum canvas width
                  * @param height maximum canvas height
                  * @return status of operation
                  */
                 virtual bool                inline_display(ICanvas *cv, size_t width, size_t height);
 
-                /** Triggered UI deactivation
-                 *
+                /**
+                 * Handle UI activation event. Consider this method is called from realtime thread.
+                 */
+                virtual void                ui_activated();
+
+                /**
+                 * Handle UI deactivation event. Consider this method is called from realtime thread.
                  */
                 virtual void                ui_deactivated();
 
-                /** Triggered plugin deactivation
-                 *
-                 */
-                virtual void                deactivated();
-
                 /**
-                 * Lock the KVT storage
+                 * Lock the KVT storage. Do not use this method in realtime thread. Use kvt_try_lock instead.
                  * @return pointer to KVT storage or NULL
                  */
                 virtual core::KVTStorage   *kvt_lock();
@@ -167,13 +240,13 @@ namespace lsp
                  */
                 virtual void                kvt_release();
 
-                /** Callback for case when plugin's state has been saved
-                 *
+                /**
+                 * Callback for case when plugin's state has been saved
                  */
                 virtual void                state_saved();
 
-                /** Callback for case when plugin's state has been loaded
-                 *
+                /**
+                 * Callback for case when plugin's state has been loaded
                  */
                 virtual void                state_loaded();
 
