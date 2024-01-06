@@ -47,16 +47,17 @@ namespace lsp
         Wrapper::Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package):
             IWrapper(plugin, loader)
         {
-            nRefCounter     = 1;
-            pFactory        = safe_acquire(factory);
-            pPackage        = package;
-            pHostContext    = NULL;
-            pPeerConnection = NULL;
-            pEventsIn       = NULL;
-            pEventsOut      = NULL;
+            nRefCounter         = 1;
+            pFactory            = safe_acquire(factory);
+            pPackage            = package;
+            pHostContext        = NULL;
+            pPeerConnection     = NULL;
+            pEventsIn           = NULL;
+            pEventsOut          = NULL;
 
-            nActLatency     = 0;
-            nRepLatency     = 0;
+            nActLatency         = 0;
+            nRepLatency         = 0;
+            bUpdateSettings     = true;
         }
 
         Wrapper::~Wrapper()
@@ -523,6 +524,15 @@ namespace lsp
             pEventsIn   = NULL;
             pEventsOut  = NULL;
 
+            // Destroy ports
+            for (lltl::iterator<plug::IPort> it = vAllPorts.values(); it; ++it)
+            {
+                plug::IPort *port = it.get();
+                if (port != NULL)
+                    delete port;
+            }
+            vAllPorts.flush();
+
             // TODO: implement this
             return Steinberg::kNotImplemented;
         }
@@ -803,8 +813,16 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::getBusArrangement(Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::SpeakerArrangement & arr)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            if (index < 0)
+                return Steinberg::kInvalidArgument;
+            audio_bus_t *bus    = (dir == Steinberg::Vst::kInput) ? vAudioIn.get(index) :
+                                  (dir == Steinberg::Vst::kOutput) ? vAudioOut.get(index) :
+                                  NULL;
+            if (bus == NULL)
+                return Steinberg::kInvalidArgument;
+
+            arr                 = bus->nCurrArr;
+            return Steinberg::kResultTrue;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::canProcessSampleSize(Steinberg::int32 symbolicSampleSize)
@@ -822,13 +840,58 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::setupProcessing(Steinberg::Vst::ProcessSetup & setup)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            // Check that processing mode is valid
+            switch (setup.processMode)
+            {
+                case Steinberg::Vst::kRealtime:
+                case Steinberg::Vst::kPrefetch:
+                case Steinberg::Vst::kOffline:
+                    break;
+                default:
+                    return Steinberg::kInvalidArgument;
+            }
+
+            // We do not accept any sample format except 32-bit float
+            if (setup.symbolicSampleSize != Steinberg::Vst::kSample32)
+                return Steinberg::kInvalidArgument;
+
+            // Save new sample rate
+            size_t sample_rate = setup.sampleRate;
+            if (sample_rate > MAX_SAMPLE_RATE)
+            {
+                lsp_warn(
+                    "Unsupported sample rate: %f, maximum supported sample rate is %ld",
+                    sample_rate,
+                    long(MAX_SAMPLE_RATE));
+                sample_rate  = MAX_SAMPLE_RATE;
+            }
+            pPlugin->set_sample_rate(sample_rate);
+
+            // Adjust block size for input and output audio ports
+            for (lltl::iterator<audio_bus_t> it = vAudioIn.values(); it; ++it)
+            {
+                audio_bus_t *bus = it.get();
+                if (bus == NULL)
+                    continue;
+                for (size_t i=0; i<bus->nPorts; ++i)
+                    bus->vPorts[i]->setup(setup.maxSamplesPerBlock);
+            }
+
+            for (lltl::iterator<audio_bus_t> it = vAudioOut.values(); it; ++it)
+            {
+                audio_bus_t *bus = it.get();
+                if (bus == NULL)
+                    continue;
+                for (size_t i=0; i<bus->nPorts; ++i)
+                    bus->vPorts[i]->setup(setup.maxSamplesPerBlock);
+            }
+
+            return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::setProcessing(Steinberg::TBool state)
         {
-            // TODO: implement this
+            // This is almost useless
             return Steinberg::kNotImplemented;
         }
 
@@ -840,8 +903,14 @@ namespace lsp
 
         Steinberg::uint32 PLUGIN_API Wrapper::getTailSamples()
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            if (pPlugin == NULL)
+                return Steinberg::kInternalError;
+
+            ssize_t tail_size = pPlugin->tail_size();
+            if (tail_size < 0)
+                return Steinberg::Vst::kInfiniteTail;
+
+            return (tail_size > 0) ? tail_size : Steinberg::Vst::kInfiniteTail;
         }
 
         Steinberg::uint32 PLUGIN_API Wrapper::getProcessContextRequirements()

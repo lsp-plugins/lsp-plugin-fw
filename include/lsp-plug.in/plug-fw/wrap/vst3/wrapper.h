@@ -87,6 +87,7 @@ namespace lsp
 
                 uint32_t                            nActLatency;            // Actual latency (in samples)
                 uint32_t                            nRepLatency;            // Last reported latency (in samples)
+                bool                                bUpdateSettings;        // Indicator that settings should be updated
 
             protected:
                 static audio_bus_t         *alloc_audio_bus(const char *name, size_t ports);

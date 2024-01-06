@@ -120,7 +120,7 @@ namespace lsp
             public:
                 // Setup the port
                 // Allocates enough space for data sanitize.
-                bool setup(size_t min_frames_count, size_t max_frames_count)
+                bool setup(size_t max_frames_count)
                 {
                     // Check that capacity matches
                     size_t capacity = align_size(max_frames_count, 16);
