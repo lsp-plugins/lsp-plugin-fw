@@ -34,12 +34,6 @@ namespace lsp
     {
         class IPort;
 
-        enum notify_flags_t
-        {
-            PORT_NONE       = 0,
-            PORT_USER_EDIT  = 1 << 0
-        };
-
         /**
          * Port listener
          */
