@@ -290,7 +290,7 @@ namespace lsp
         {
             // Allocate the audio group object
             size_t szof_group   = sizeof(audio_group_t);
-            size_t szof_ports   = sizeof(plug::IPort) * ports;
+            size_t szof_ports   = sizeof(plug::IPort *) * ports;
             size_t szof         = align_size(szof_group + szof_ports, DEFAULT_ALIGN);
             audio_group_t *grp  = static_cast<audio_group_t *>(malloc(szof));
             if (grp != NULL)

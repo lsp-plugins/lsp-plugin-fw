@@ -57,13 +57,13 @@ namespace lsp
 
                 /** Serialize the state of the port to the chunk
                  *
-                 * @param chunk chunk to perform serialization
+                 * @param os output stream to perform serialization
                  */
                 virtual status_t serialize(const clap_ostream_t *os) { return STATUS_OK; }
 
                 /** Serialize the state of the port to the chunk
                  *
-                 * @param chunk chunk to perform serialization
+                 * @param is input stream to perform deserialization
                  */
                 virtual status_t deserialize(const clap_istream_t *is) { return STATUS_OK; }
         };
@@ -76,9 +76,10 @@ namespace lsp
             protected:
                 float      *pBind;              // Bound buffer
                 float      *pBuffer;            // The original buffer passed by the host OR sanitized buffer
-                size_t      nOffset;            // The relative offset from the beginning of the buffer
-                size_t      nBufSize;           // The actual current buffer size
-                size_t      nBufCap;            // The quantized capacity of the buffer
+                uint32_t    nOffset;            // The relative offset from the beginning of the buffer
+                uint32_t    nBufSize;           // The actual current buffer size
+                uint32_t    nBufCap;            // The quantized capacity of the buffer
+                bool        bZero;              // Buffer contains zero data
 
             public:
                 explicit AudioPort(const meta::port_t *meta) : Port(meta)
@@ -88,6 +89,7 @@ namespace lsp
                     nOffset     = 0;
                     nBufSize    = 0;
                     nBufCap     = 0;
+                    bZero       = false;
                 }
 
                 virtual ~AudioPort() override
@@ -144,7 +146,16 @@ namespace lsp
                         pBind       = (ptr != NULL) ? ptr : pBuffer;
                     else // if (meta::is_in_port(pMetadata))
                     {
-                        dsp::sanitize2(pBuffer, ptr, samples);
+                        if (ptr != NULL)
+                        {
+                            dsp::sanitize2(pBuffer, ptr, samples);
+                            bZero       = false;
+                        }
+                        else if (!bZero)
+                        {
+                            dsp::fill_zero(pBuffer, nBufCap);
+                            bZero       = true;
+                        }
                         pBind       = pBuffer;
                     }
 
