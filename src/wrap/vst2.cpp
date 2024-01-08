@@ -374,6 +374,12 @@ namespace lsp
                         break;
 
                     case meta::C_INSTRUMENT:
+                    case meta::C_DRUM:
+                    case meta::C_EXTERNAL:
+                    case meta::C_PIANO:
+                    case meta::C_SAMPLER:
+                    case meta::C_SYNTH:
+                    case meta::C_SYNTH_SAMPLER:
                         result = kPlugCategSynth;
                         break;
 

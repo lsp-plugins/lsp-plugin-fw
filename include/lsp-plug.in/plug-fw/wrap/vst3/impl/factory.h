@@ -26,9 +26,12 @@
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
@@ -101,7 +104,7 @@ namespace lsp
             Steinberg::strncpy8(sFactoryInfo.vendor, manifest->brand, Steinberg::PFactoryInfo::kNameSize);
             Steinberg::strncpy8(sFactoryInfo.url, manifest->site, Steinberg::PFactoryInfo::kURLSize);
             Steinberg::strncpy8(sFactoryInfo.email, manifest->email, Steinberg::PFactoryInfo::kEmailSize);
-            sFactoryInfo.flags = Steinberg::PFactoryInfo::kUnicode;
+            sFactoryInfo.flags = Steinberg::Vst::kDefaultFactoryFlags;
         }
 
         status_t PluginFactory::fill_plugin_info(const meta::package_t *manifest)
@@ -130,18 +133,226 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginFactory::make_plugin_categories(LSPString *dst, const meta::plugin_t *meta)
+        {
+            LSPString tmp;
+            bool is_instrument = false;
+            lltl::phashset<char> visited;
+
+            // Scan features (part 1)
+            for (const int *c = meta->classes; (c != NULL) && (c >= 0); ++c)
+            {
+                Steinberg::Vst::CString code = NULL;
+
+                switch (*c)
+                {
+                    case meta::C_DELAY:
+                        code = Steinberg::Vst::PlugType::kFxDelay;
+                        break;
+                    case meta::C_REVERB:
+                        code = Steinberg::Vst::PlugType::kFxReverb;
+                        break;
+                    case meta::C_DISTORTION:
+                    case meta::C_WAVESHAPER:
+                    case meta::C_AMPLIFIER:
+                    case meta::C_SIMULATOR:
+                        code = Steinberg::Vst::PlugType::kFxDistortion;
+                        break;
+                    case meta::C_DYNAMICS:
+                    case meta::C_COMPRESSOR:
+                    case meta::C_ENVELOPE:
+                    case meta::C_EXPANDER:
+                    case meta::C_GATE:
+                    case meta::C_LIMITER:
+                        code = Steinberg::Vst::PlugType::kFxDynamics;
+                        break;
+                    case meta::C_FILTER:
+                    case meta::C_ALLPASS:
+                    case meta::C_BANDPASS:
+                    case meta::C_COMB:
+                    case meta::C_HIGHPASS:
+                    case meta::C_LOWPASS:
+                        code = Steinberg::Vst::PlugType::kFxFilter;
+                        break;
+                    case meta::C_EQ:
+                    case meta::C_MULTI_EQ:
+                    case meta::C_PARA_EQ:
+                        code = Steinberg::Vst::PlugType::kFxEQ;
+                        break;
+                    case meta::C_GENERATOR:
+                    case meta::C_OSCILLATOR:
+                        code = Steinberg::Vst::PlugType::kFxGenerator;
+                        break;
+                    case meta::C_CONSTANT:
+                    case meta::C_SPECTRAL:
+                    case meta::C_UTILITY:
+                    case meta::C_CONVERTER:
+                    case meta::C_FUNCTION:
+                    case meta::C_MIXER:
+                        code = Steinberg::Vst::PlugType::kFxTools;
+                        break;
+                    case meta::C_INSTRUMENT:
+                        code = Steinberg::Vst::PlugType::kInstrument;
+                        is_instrument   = true;
+                        break;
+                    case meta::C_DRUM:
+                        code = Steinberg::Vst::PlugType::kInstrumentDrum;
+                        is_instrument   = true;
+                        break;
+                    case meta::C_EXTERNAL:
+                        code = Steinberg::Vst::PlugType::kInstrumentExternal;
+                        is_instrument   = true;
+                        break;
+                    case meta::C_PIANO:
+                        code = Steinberg::Vst::PlugType::kInstrumentPiano;
+                        is_instrument   = true;
+                        break;
+                    case meta::C_SAMPLER:
+                        code = Steinberg::Vst::PlugType::kInstrumentSampler;
+                        is_instrument   = true;
+                        break;
+                    case meta::C_SYNTH_SAMPLER:
+                        code = Steinberg::Vst::PlugType::kInstrumentSynthSampler;
+                        is_instrument   = true;
+                        break;
+                    case meta::C_MODULATOR:
+                    case meta::C_CHORUS:
+                    case meta::C_FLANGER:
+                    case meta::C_PHASER:
+                        code = Steinberg::Vst::PlugType::kFxModulation;
+                        break;
+                    case meta::C_SPATIAL:
+                        code = Steinberg::Vst::PlugType::kFxSpatial;
+                        break;
+                    case meta::C_PITCH:
+                        code = Steinberg::Vst::PlugType::kFxPitchShift;
+                        break;
+                    case meta::C_ANALYSER:
+                        code = Steinberg::Vst::PlugType::kFxAnalyzer;
+                        break;
+                    default:
+                        break;
+                }
+
+                if ((code == NULL) || (!visited.create(const_cast<char *>(code))))
+                    continue;
+
+                if (!tmp.is_empty())
+                {
+                    if (!tmp.append('|'))
+                        return STATUS_NO_MEM;
+                }
+                if (!tmp.append_ascii(code))
+                    return STATUS_NO_MEM;
+            }
+
+            // Scan additional features (part 2)
+            for (const int *f=meta->clap_features; *f >= 0; ++f)
+            {
+                Steinberg::Vst::CString code = NULL;
+
+                switch (*f)
+                {
+                    case meta::CF_INSTRUMENT:
+                        code = Steinberg::Vst::PlugType::kInstrument;
+                        is_instrument   = true;
+                        break;
+                    case meta::CF_SYNTHESIZER:
+                        code = Steinberg::Vst::PlugType::kInstrumentSynth;
+                        is_instrument   = true;
+                        break;
+                    case meta::CF_SAMPLER:
+                        code = Steinberg::Vst::PlugType::kInstrumentSampler;
+                        is_instrument   = true;
+                        break;
+                    case meta::CF_DRUM:
+                    case meta::CF_DRUM_MACHINE:
+                        code = Steinberg::Vst::PlugType::kInstrumentDrum;
+                        is_instrument   = true;
+                        break;
+                    case meta::CF_FILTER:
+                        code = Steinberg::Vst::PlugType::kFxFilter;
+                        break;
+                    case meta::CF_MONO:
+                        code = Steinberg::Vst::PlugType::kMono;
+                        break;
+                    case meta::CF_STEREO:
+                        code = Steinberg::Vst::PlugType::kStereo;
+                        break;
+                    case meta::CF_SURROUND:
+                        code = Steinberg::Vst::PlugType::kSurround;
+                        break;
+                    case meta::CF_AMBISONIC:
+                        code = Steinberg::Vst::PlugType::kAmbisonics;
+                        break;
+                    default:
+                        break;
+                }
+
+                if ((code == NULL) || (!visited.create(const_cast<char *>(code))))
+                    continue;
+
+                if (!tmp.is_empty())
+                {
+                    if (!tmp.append('|'))
+                        return STATUS_NO_MEM;
+                }
+                if (!tmp.append_ascii(code))
+                    return STATUS_NO_MEM;
+            }
+
+            // Add Fx/Instrument if there is no categorization
+            if (tmp.is_empty())
+            {
+                // Check for MIDI ports present in metadata
+                if (!is_instrument)
+                {
+                    for (const meta::port_t *p = meta->ports; (p != NULL) && (p->id != NULL); ++p)
+                    {
+                        if (meta::is_midi_out_port(p))
+                        {
+                            is_instrument   = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Generate Fx/Instrument
+                if (!tmp.append_ascii((is_instrument) ? Steinberg::Vst::PlugType::kInstrument : Steinberg::Vst::PlugType::kFx))
+                    return STATUS_NO_MEM;
+            }
+
+            tmp.swap(dst);
+
+            return STATUS_OK;
+        }
+
         status_t PluginFactory::create_class_info(const meta::package_t *manifest, const meta::plugin_t *meta)
         {
+
+            status_t res;
+
+            // Generate class info for processor
             Steinberg::PClassInfo *ci = vClassInfo.add();
             if (ci == NULL)
                 return STATUS_NO_MEM;
 
-            status_t res = parse_tuid(ci->cid, meta->vst3_uid);
-            if (res != STATUS_OK)
+            if ((res = parse_tuid(ci->cid, meta->vst3_uid)) != STATUS_OK)
+                return res;
+            ci->cardinality = Steinberg::PClassInfo::kManyInstances;
+            Steinberg::strncpy8(ci->category, kVstAudioEffectClass, Steinberg::PClassInfo::kCategorySize);
+            Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
+
+            // Generate class info for controller
+            ci = vClassInfo.add();
+            if (ci == NULL)
+                return STATUS_NO_MEM;
+
+            if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
                 return res;
 
             ci->cardinality = Steinberg::PClassInfo::kManyInstances;
-            Steinberg::strncpy8(ci->category, "", Steinberg::PClassInfo::kCategorySize); // TODO: insert category
+            Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
             Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
 
             return STATUS_OK;
@@ -149,10 +360,8 @@ namespace lsp
 
         status_t PluginFactory::create_class_info2(const meta::package_t *manifest, const meta::plugin_t *meta)
         {
-            Steinberg::PClassInfo2 *ci = vClassInfo2.add();
-            if (ci == NULL)
-                return STATUS_NO_MEM;
-
+            status_t res;
+            LSPString tmp;
             char version_str[32];
             snprintf(
                 version_str,
@@ -162,36 +371,70 @@ namespace lsp
                 int(meta->version.minor),
                 int(meta->version.micro));
 
-            status_t res = parse_tuid(ci->cid, meta->vst3_uid);
-            if (res != STATUS_OK)
+            // Generate class info for processor
+            Steinberg::PClassInfo2 *ci = vClassInfo2.add();
+            if (ci == NULL)
+                return STATUS_NO_MEM;
+
+            if ((res = parse_tuid(ci->cid, meta->vst3_uid)) != STATUS_OK)
+                return res;
+            if ((res = make_plugin_categories(&tmp, meta)) != STATUS_OK)
                 return res;
 
             ci->cardinality = Steinberg::PClassInfo::kManyInstances;
-            Steinberg::strncpy8(ci->category, "", Steinberg::PClassInfo::kCategorySize); // TODO: insert category
+            Steinberg::strncpy8(ci->category, kVstAudioEffectClass, Steinberg::PClassInfo::kCategorySize);
             Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
 
-            ci->classFlags = 0; // TODO: find out more about flags
-            Steinberg::strncpy8(ci->subCategories, "", Steinberg::PClassInfo2::kSubCategoriesSize); // TODO: insert subcategories
+            ci->classFlags = Steinberg::Vst::kDistributable;
+            Steinberg::strncpy8(ci->subCategories, tmp.get_ascii(), Steinberg::PClassInfo2::kSubCategoriesSize);
             Steinberg::strncpy8(ci->vendor, manifest->brand, Steinberg::PClassInfo2::kVendorSize);
             Steinberg::strncpy8(ci->version, version_str, Steinberg::PClassInfo2::kVersionSize);
-            Steinberg::strncpy8(ci->sdkVersion, VST3_SDK_VERSION, Steinberg::PClassInfo2::kVersionSize);
+            Steinberg::strncpy8(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfo2::kVersionSize);
+
+            // Generate class info for controller
+            ci = vClassInfo2.add();
+            if (ci == NULL)
+                return STATUS_NO_MEM;
+
+            if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
+                return res;
+
+            ci->cardinality = Steinberg::PClassInfo::kManyInstances;
+            Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
+            Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
+
+            ci->classFlags = 0;
+            Steinberg::strncpy8(ci->subCategories, "", Steinberg::PClassInfo2::kSubCategoriesSize);
+            Steinberg::strncpy8(ci->vendor, manifest->brand, Steinberg::PClassInfo2::kVendorSize);
+            Steinberg::strncpy8(ci->version, version_str, Steinberg::PClassInfo2::kVersionSize);
+            Steinberg::strncpy8(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfo2::kVersionSize);
 
             return STATUS_OK;
         }
 
         status_t PluginFactory::create_class_infow(const meta::package_t *manifest, const meta::plugin_t *meta)
         {
+            status_t res;
+            LSPString tmp;
+            char version_str[32];
+            snprintf(
+                version_str,
+                sizeof(version_str),
+                "%d.%d.%d",
+                int(meta->version.major),
+                int(meta->version.minor),
+                int(meta->version.micro));
+
+            // Generate class info for processor
             Steinberg::PClassInfoW *ci = vClassInfoW.add();
             if (ci == NULL)
                 return STATUS_NO_MEM;
 
-            LSPString tmp;
-            status_t res = parse_tuid(ci->cid, meta->vst3_uid);
-            if (res != STATUS_OK)
+            if ((res = parse_tuid(ci->cid, meta->vst3_uid)) != STATUS_OK)
                 return res;
 
             ci->cardinality = Steinberg::PClassInfo::kManyInstances;
-            Steinberg::strncpy8(ci->category, "", Steinberg::PClassInfo::kCategorySize); // TODO: insert category
+            Steinberg::strncpy8(ci->category, kVstAudioEffectClass, Steinberg::PClassInfo::kCategorySize);
             if (!tmp.set_utf8(meta->description))
                 return STATUS_NO_MEM;
             Steinberg::strncpy16(
@@ -199,23 +442,46 @@ namespace lsp
                 reinterpret_cast<const Steinberg::char16 *>(tmp.get_utf16()),
                 Steinberg::PClassInfo::kNameSize);
 
-            ci->classFlags = 0; // TODO: find out more about flags
-            Steinberg::strncpy8(ci->subCategories, "", Steinberg::PClassInfoW::kSubCategoriesSize); // TODO: insert subcategories
+            ci->classFlags = Steinberg::Vst::kDistributable;
+            if ((res = make_plugin_categories(&tmp, meta)) != STATUS_OK)
+                return res;
+            Steinberg::strncpy8(ci->subCategories, tmp.get_ascii(), Steinberg::PClassInfo2::kSubCategoriesSize);
             if (!tmp.set_utf8(manifest->brand))
                 return STATUS_NO_MEM;
             Steinberg::strncpy16(
                 ci->vendor,
                 reinterpret_cast<const Steinberg::char16 *>(tmp.get_utf16()),
                 Steinberg::PClassInfoW::kVendorSize);
-            if (tmp.fmt_ascii("%d.%d.%d", int(meta->version.major), int(meta->version.minor),int(meta->version.micro)) <= 0)
+            Steinberg::str8ToStr16(ci->version, version_str, Steinberg::PClassInfoW::kVersionSize);
+            Steinberg::str8ToStr16(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfoW::kVersionSize);
+
+            // Generate class info for controller
+            ci = vClassInfoW.add();
+            if (ci == NULL)
+                return STATUS_NO_MEM;
+
+            if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
+                return res;
+
+            ci->cardinality = Steinberg::PClassInfo::kManyInstances;
+            Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
+            if (!tmp.set_utf8(meta->description))
                 return STATUS_NO_MEM;
             Steinberg::strncpy16(
-                ci->version,
+                ci->name,
                 reinterpret_cast<const Steinberg::char16 *>(tmp.get_utf16()),
-                Steinberg::PClassInfoW::kVersionSize);
-            Steinberg::str8ToStr16(
-                ci->sdkVersion, VST3_SDK_VERSION,
-                Steinberg::PClassInfoW::kVersionSize);
+                Steinberg::PClassInfo::kNameSize);
+
+            ci->classFlags = 0;
+            Steinberg::strncpy8(ci->subCategories, "", Steinberg::PClassInfo2::kSubCategoriesSize);
+            if (!tmp.set_utf8(manifest->brand))
+                return STATUS_NO_MEM;
+            Steinberg::strncpy16(
+                ci->vendor,
+                reinterpret_cast<const Steinberg::char16 *>(tmp.get_utf16()),
+                Steinberg::PClassInfoW::kVendorSize);
+            Steinberg::str8ToStr16(ci->version, version_str, Steinberg::PClassInfoW::kVersionSize);
+            Steinberg::str8ToStr16(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfoW::kVersionSize);
 
             return STATUS_OK;
         }
