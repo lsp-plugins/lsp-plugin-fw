@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
@@ -56,6 +57,12 @@ namespace lsp
             { meta::C_GENERATOR,    "GeneratorPlugin"   },
             { meta::C_CONSTANT,     "ConstantPlugin"    },
             { meta::C_INSTRUMENT,   "InstrumentPlugin"  },
+            { meta::C_DRUM,         "InstrumentPlugin"  },
+            { meta::C_EXTERNAL,     "InstrumentPlugin"  },
+            { meta::C_PIANO,        "InstrumentPlugin"  },
+            { meta::C_SAMPLER,      "InstrumentPlugin"  },
+            { meta::C_SYNTH,        "InstrumentPlugin"  },
+            { meta::C_SYNTH_SAMPLER,"InstrumentPlugin"  },
             { meta::C_OSCILLATOR,   "OscillatorPlugin"  },
             { meta::C_MODULATOR,    "ModulatorPlugin"   },
             { meta::C_CHORUS,       "ChorusPlugin"      },
@@ -302,6 +309,8 @@ namespace lsp
         {
             size_t count = 0, emitted = 0;
 
+            lltl::phashset<char> visited;
+
             emit_header(out, count, "\ta");
             for (const int *c = m.classes; ((c != NULL) && ((*c) >= 0)); ++c)
             {
@@ -310,10 +319,14 @@ namespace lsp
                 {
                     if (grp->id == *c)
                     {
-                        if (count++)
-                            fputs(", ", out);
-                        fprintf(out, "lv2:%s", grp->name);
-                        ++emitted;
+                        // Prevent from duplicated values
+                        if (visited.create(const_cast<char *>(grp->name)))
+                        {
+                            if (count++)
+                                fputs(", ", out);
+                            fprintf(out, "lv2:%s", grp->name);
+                            ++emitted;
+                        }
                         break;
                     }
                 }
