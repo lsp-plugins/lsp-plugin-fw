@@ -336,7 +336,8 @@ namespace lsp
                 return;
 
             // List of visited ports and port groups
-            lltl::phashset<char> visited_ports, visited_groups;
+            lltl::phashset<char> visited_groups;
+            lltl::pphash<char, char> visited_ports;
             lsp_finally {
                 visited_ports.flush();
                 visited_groups.flush();
@@ -366,6 +367,8 @@ namespace lsp
                 }
 
                 // Validate items
+                uint32_t role_mask = 0;
+
                 for (const meta::port_group_item_t *item = pg->items; item->id != NULL; ++item)
                 {
                     const meta::port_t *p = find_port(meta, item->id);
@@ -376,6 +379,7 @@ namespace lsp
                         continue;
                     }
 
+                    // Check that port type and direction matches the port group
                     if (!meta::is_audio_port(p))
                     {
                         validation_error(ctx, "The role of port '%s' of group '%s' should be R_AUDIO for plugin uid='%s'",
@@ -388,9 +392,33 @@ namespace lsp
                     }
                     if ((!(pg->flags & meta::PGF_OUT)) && (!meta::is_in_port(p)))
                     {
-                        validation_error(ctx, "The port '%s' of input group '%s' should also be an innput port for plugin uid='%s'",
+                        validation_error(ctx, "The port '%s' of input group '%s' should also be an input port for plugin uid='%s'",
                             item->id, pg->id, meta->uid);
                     }
+
+                    // Check for ambiguity of port roles within the group
+                    if (role_mask & (1 << item->role))
+                    {
+                        validation_error(ctx, "The port '%s' of group '%s' has ambiguous role. That means, that there is already port with such role present in the group for plugin uid='%s'",
+                            item->id, pg->id, meta->uid);
+                    }
+                    else
+                        role_mask  |= (1 << item->role);
+
+                    // Ensure that each port has unique group assignment
+                    char *port_group = visited_ports.get(item->id);
+                    if (port_group != NULL)
+                    {
+                        validation_error(
+                            ctx,
+                            "The port '%s' is defined as a part of group '%s' but also belongs to group '%s' for plugin uid='%s'. Ports should have unique group assignments.",
+                            item->id, pg->id, port_group, meta->uid);
+                    }
+                    else if (!visited_ports.create(item->id, const_cast<char *>(pg->id)))
+                        validation_error(
+                            ctx,
+                            "Could not remember group '%s' for port '%s' of plugin uid='%s'.",
+                            pg->id, item->id, meta->uid);
                 }
             }
         }
