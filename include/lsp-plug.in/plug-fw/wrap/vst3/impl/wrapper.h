@@ -55,10 +55,9 @@ namespace lsp
             pEventsIn           = NULL;
             pEventsOut          = NULL;
             pSamplePlayer       = NULL;
+            pLatencyOut         = NULL;
 
             nMaxSamplesPerBlock = 0;
-            nActLatency         = 0;
-            nRepLatency         = 0;
             bUpdateSettings     = true;
         }
 
@@ -200,6 +199,15 @@ namespace lsp
         }
 
         ssize_t Wrapper::compare_in_param_ports(const vst3::InParamPort *a, const vst3::InParamPort *b)
+        {
+            const Steinberg::Vst::ParamID a_id = a->parameter_id();
+            const Steinberg::Vst::ParamID b_id = b->parameter_id();
+
+            return (a_id > b_id) ? 1 :
+                   (a_id < b_id) ? -1 : 0;
+        }
+
+        ssize_t Wrapper::compare_out_param_ports(const vst3::OutParamPort *a, const vst3::OutParamPort *b)
         {
             const Steinberg::Vst::ParamID a_id = a->parameter_id();
             const Steinberg::Vst::ParamID b_id = b->parameter_id();
@@ -509,6 +517,7 @@ namespace lsp
             if (create_ports(&plugin_ports, meta) != STATUS_OK)
                 return Steinberg::kInternalError;
             vParamIn.qsort(compare_in_param_ports);
+            vParamOut.qsort(compare_out_param_ports);
 
             // Generate audio busses
             if (!create_busses(meta))
@@ -879,9 +888,7 @@ namespace lsp
 
         Steinberg::uint32 PLUGIN_API Wrapper::getLatencySamples()
         {
-            uint32_t latency    = nActLatency;
-            nRepLatency         = latency;
-            return latency;
+            return pPlugin->latency();
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::setupProcessing(Steinberg::Vst::ProcessSetup & setup)
@@ -1097,6 +1104,22 @@ namespace lsp
             }
         }
 
+        void Wrapper::transmit_output_parameters(Steinberg::Vst::IParameterChanges *changes)
+        {
+            Steinberg::int32 index = 0;
+
+            for (size_t i=0, n=vParamOut.size(); i<n; ++i)
+            {
+                vst3::OutParamPort *p = vParamOut.uget(i);
+                if ((p == NULL) || (!p->changed()))
+                    continue;
+
+                Steinberg::Vst::IParamValueQueue *queue = changes->addParameterData(p->parameter_id(), index);
+                if ((queue != NULL) && (queue->addPoint(0, p->value(), index) == Steinberg::kResultOk))
+                    p->commit();
+            }
+        }
+
         Steinberg::tresult PLUGIN_API Wrapper::process(Steinberg::Vst::ProcessData & data)
         {
             // We do not support any samples except 32-bit floating-point values
@@ -1119,6 +1142,14 @@ namespace lsp
                 vst3::InParamPort *p = vParamIn.uget(i);
                 if (p != NULL)
                     p->set_change_index(0);
+            }
+
+            // Reset output port state
+            for (size_t i=0, n=vParamOut.size(); i<n; ++i)
+            {
+                vst3::OutParamPort *p = vParamOut.uget(i);
+                if (p != NULL)
+                    p->set_empty();
             }
 
             for (int32_t frame=0; frame < data.numSamples; )
@@ -1171,7 +1202,12 @@ namespace lsp
                 }
             }
 
-            // TODO: output parameters
+            // Report latency
+            if (pLatencyOut != NULL)
+                pLatencyOut->set_value(pPlugin->latency());
+
+            // Transmit all outgoing information
+            transmit_output_parameters(data.outputParameterChanges);
 
             return Steinberg::kResultOk;
         }

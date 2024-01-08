@@ -86,16 +86,16 @@ namespace lsp
                 lltl::parray<audio_bus_t>           vAudioIn;               // Input audio busses
                 lltl::parray<audio_bus_t>           vAudioOut;              // Output audio busses
                 lltl::parray<vst3::InParamPort>     vParamIn;               // Input parameter ports
+                lltl::parray<vst3::OutParamPort>    vParamOut;              // Output parameter ports
                 event_bus_t                        *pEventsIn;              // Input event bus
                 event_bus_t                        *pEventsOut;             // Output event bus
                 core::SamplePlayer                 *pSamplePlayer;          // Sample player
+                vst3::OutParamPort                 *pLatencyOut;            // Output latency port
 
                 core::KVTStorage                    sKVT;                   // KVT storage
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
 
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
-                uint32_t                            nActLatency;            // Actual latency (in samples)
-                uint32_t                            nRepLatency;            // Last reported latency (in samples)
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
 
             protected:
@@ -116,6 +116,7 @@ namespace lsp
                 static ssize_t              compare_audio_ports_by_speaker(const vst3::AudioPort *a, const vst3::AudioPort *b);
 
                 static ssize_t              compare_in_param_ports(const vst3::InParamPort *a, const vst3::InParamPort *b);
+                static ssize_t              compare_out_param_ports(const vst3::OutParamPort *a, const vst3::OutParamPort *b);
 
             protected:
                 status_t                    create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta);
@@ -123,6 +124,7 @@ namespace lsp
                 void                        sync_position(Steinberg::Vst::ProcessContext *pctx, size_t frame);
                 size_t                      prepare_block(int32_t frame, Steinberg::Vst::ProcessData *pdata);
                 vst3::InParamPort          *input_parameter(Steinberg::Vst::ParamID id);
+                void                        transmit_output_parameters(Steinberg::Vst::IParameterChanges *changes);
 
             public:
                 explicit Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package);

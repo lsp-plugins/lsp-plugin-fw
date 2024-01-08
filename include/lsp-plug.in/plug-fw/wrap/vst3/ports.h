@@ -28,6 +28,7 @@
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/stdlib/math.h>
 
 #include <steinberg/vst3.h>
 
@@ -246,18 +247,55 @@ namespace lsp
                 inline void     set_change_index(uint32_t index)    { nChangeIndex = index; }
 
             public:
-                virtual bool pre_process(size_t samples)
-                {
-                    nChangeIndex    = 0;
-                    return false;
-                }
-
-            public:
                 bool commit_value(float value)
                 {
                     bool changed    = fValue != value;
                     fValue          = value;
                     return changed;
+                }
+        };
+
+        class OutParamPort: public ParameterPort
+        {
+            protected:
+                float           fOldValue;  // Old value
+                bool            bEmpty;     // Parameter does not contaiin any data since last process() call
+
+            public:
+                explicit OutParamPort(const meta::port_t *meta) : ParameterPort(meta)
+                {
+                    fOldValue       = fValue;
+                    bEmpty          = true;
+                }
+
+                OutParamPort(const OutParamPort &) = delete;
+                OutParamPort(OutParamPort &&) = delete;
+
+                OutParamPort & operator = (const OutParamPort &) = delete;
+                OutParamPort & operator = (OutParamPort &&) = delete;
+
+            public:
+                inline void     set_empty()         { bEmpty    = true;             }
+                inline bool     changed() const     { return fOldValue != fValue;   }
+                inline void     commit()            { fOldValue = fValue;           }
+
+            public:
+                virtual void    set_value(float value) override
+                {
+                    value       = meta::limit_value(pMetadata, value);
+
+                    if (pMetadata->flags & meta::F_PEAK)
+                    {
+                        if (bEmpty)
+                        {
+                            fValue      = value;
+
+                        }
+                        else if (fabsf(fValue) < fabsf(value))
+                            fValue  = value;
+                    }
+                    else
+                        fValue = value;
                 }
         };
 
