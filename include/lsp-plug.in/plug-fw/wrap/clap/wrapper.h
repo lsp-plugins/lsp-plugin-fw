@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 дек. 2022 г.
@@ -84,7 +84,7 @@ namespace lsp
                 core::KVTStorage                sKVT;               // KVT storage
                 ipc::Mutex                      sKVTMutex;          // KVT storage access mutex
 
-                bool                            bRestartRequested;  // Flag that indicates that the plugin restart was requested
+                bool                            bLatencyChanged;    // Flag that indicates that the plugin restart was requested
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
 
@@ -143,7 +143,7 @@ namespace lsp
 
             public:
                 // CLAP latency extension
-                size_t          latency() const;
+                size_t          latency();
 
             public:
                 // CLAP audio port extension

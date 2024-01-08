@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 дек. 2022 г.
@@ -53,7 +53,7 @@ namespace lsp
             nDumpReq            = 0;
             nDumpResp           = 0;
 
-            bRestartRequested   = false;
+            bLatencyChanged     = false;
             bUpdateSettings     = true;
             pSamplePlayer       = NULL;
         }
@@ -621,7 +621,7 @@ namespace lsp
         {
             // Clear the flag that the restart has been requested
             sPosition.sampleRate= sample_rate;
-            bRestartRequested   = false;
+            bLatencyChanged     = false;
             bUpdateSettings     = true;
 
             if (sample_rate > MAX_SAMPLE_RATE)
@@ -658,24 +658,29 @@ namespace lsp
                 }
             }
 
+            // Call plugin for activation
+            pPlugin->activate();
+
             return STATUS_OK;
         }
 
         void Wrapper::deactivate()
         {
+            // Call plugin for deactivation
+            pPlugin->deactivate();
+
             // Set the actual latency
             nLatency            = pPlugin->latency();
+            bLatencyChanged     = false;
         }
 
         status_t Wrapper::start_processing()
         {
-            pPlugin->activate();
             return STATUS_OK;
         }
 
         void Wrapper::stop_processing()
         {
-            pPlugin->deactivate();
         }
 
         void Wrapper::reset()
@@ -1049,15 +1054,16 @@ namespace lsp
                     g->vPorts[j]->unbind();
             }
 
-            // Report the latency
+            // Check that latency has changed
             // From CLAP documentation:
             // The latency is only allowed to change if the plugin is deactivated.
             // If the plugin is activated, call host->request_restart()
+            // [main thread]
             ssize_t latency = pPlugin->latency();
-            if ((latency != nLatency) && (!bRestartRequested))
+            if ((latency != nLatency) && (!bLatencyChanged))
             {
-                pHost->request_restart(pHost);
-                bRestartRequested       = true;
+                bLatencyChanged       = true;
+                pHost->request_callback(pHost);
             }
 
             return CLAP_PROCESS_CONTINUE;
@@ -1070,11 +1076,24 @@ namespace lsp
 
         void Wrapper::on_main_thread()
         {
+            if (pPlugin->active())
+            {
+                // Request plugin restart if latency has changed
+                // From CLAP documentation:
+                // The latency is only allowed to change if the plugin is deactivated.
+                // If the plugin is activated, call host->request_restart()
+                // [main thread]
+                if (bLatencyChanged)
+                    pHost->request_restart(pHost);
+            }
         }
 
-        size_t Wrapper::latency() const
+        size_t Wrapper::latency()
         {
-            return nLatency;
+            size_t latency      = pPlugin->latency();
+            nLatency            = latency;
+            bLatencyChanged     = false;
+            return latency;
         }
 
         size_t Wrapper::has_note_ports() const
