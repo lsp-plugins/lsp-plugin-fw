@@ -26,8 +26,10 @@
 
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/data.h>
 #include <lsp-plug.in/stdlib/math.h>
 
 #include <steinberg/vst3.h>
@@ -296,6 +298,197 @@ namespace lsp
                     }
                     else
                         fValue = value;
+                }
+        };
+
+        class PortGroup: public InParamPort
+        {
+            private:
+                size_t                  nCols;
+                size_t                  nRows;
+
+            public:
+                explicit PortGroup(const meta::port_t *meta) : InParamPort(meta)
+                {
+                    nCols               = meta::port_list_size(meta->members);
+                    nRows               = meta::list_size(meta->items);
+                }
+
+                virtual ~PortGroup() override
+                {
+                    nCols               = 0;
+                    nRows               = 0;
+                }
+
+                PortGroup(const PortGroup &) = delete;
+                PortGroup(PortGroup &&) = delete;
+
+                PortGroup & operator = (const PortGroup &) = delete;
+                PortGroup & operator = (PortGroup &&) = delete;
+
+            public:
+                virtual float value() override
+                {
+                    return fValue;
+                }
+
+            public:
+                inline size_t rows() const      { return nRows;     }
+                inline size_t cols() const      { return nCols;     }
+                inline size_t curr_row() const  { return fValue;    }
+        };
+
+        class MeshPort: public Port
+        {
+            private:
+                plug::mesh_t       *pMesh;
+
+            public:
+                explicit MeshPort(const meta::port_t *meta) :
+                    Port(meta)
+                {
+                    pMesh   = vst3::create_mesh(meta);
+                }
+
+                virtual ~MeshPort() override
+                {
+                    vst3::destroy_mesh(pMesh);
+                    pMesh = NULL;
+                }
+
+                MeshPort(const MeshPort &) = delete;
+                MeshPort(MeshPort &&) = delete;
+
+                MeshPort & operator = (const MeshPort &) = delete;
+                MeshPort & operator = (MeshPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return pMesh;
+                }
+        };
+
+        class StreamPort: public Port
+        {
+            private:
+                plug::stream_t     *pStream;
+
+            public:
+                explicit StreamPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    pStream     = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
+                }
+
+                virtual ~StreamPort() override
+                {
+                    if (pStream != NULL)
+                    {
+                        plug::stream_t::destroy(pStream);
+                        pStream     = NULL;
+                    }
+                }
+
+                StreamPort(const StreamPort &) = delete;
+                StreamPort(StreamPort &&) = delete;
+
+                StreamPort & operator = (const StreamPort &) = delete;
+                StreamPort & operator = (StreamPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return pStream;
+                }
+        };
+
+        class FrameBufferPort: public Port
+        {
+            private:
+                plug::frame_buffer_t    sFB;
+
+            public:
+                explicit FrameBufferPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    sFB.init(pMetadata->start, pMetadata->step);
+                }
+
+                virtual ~FrameBufferPort() override
+                {
+                    sFB.destroy();
+                }
+
+                FrameBufferPort(const FrameBufferPort &) = delete;
+                FrameBufferPort(FrameBufferPort &&) = delete;
+
+                FrameBufferPort & operator = (const FrameBufferPort &) = delete;
+                FrameBufferPort & operator = (FrameBufferPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return &sFB;
+                }
+        };
+
+        class PathPort: public Port
+        {
+            private:
+                vst3::path_t    sPath;
+
+            public:
+                explicit PathPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    sPath.init();
+                }
+
+                PathPort(const PathPort &) = delete;
+                PathPort(PathPort &&) = delete;
+
+                PathPort & operator = (const PathPort &) = delete;
+                PathPort & operator = (PathPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return static_cast<plug::path_t *>(&sPath);
+                }
+        };
+
+        class OscPort: public Port
+        {
+            private:
+                core::osc_buffer_t     *pFB;
+
+            public:
+                explicit OscPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    pFB     = core::osc_buffer_t::create(OSC_BUFFER_MAX);
+                }
+
+                virtual ~OscPort() override
+                {
+                    if (pFB != NULL)
+                    {
+                        core::osc_buffer_t::destroy(pFB);
+                        pFB     = NULL;
+                    }
+                }
+
+                OscPort(const OscPort &) = delete;
+                OscPort(OscPort &&) = delete;
+
+                PathPort & operator = (const PathPort &) = delete;
+                PathPort & operator = (PathPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return pFB;
                 }
         };
 

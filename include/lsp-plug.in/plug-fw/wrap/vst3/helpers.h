@@ -24,10 +24,12 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -187,6 +189,176 @@ namespace lsp
             }
 
             return res;
+        }
+
+        /**
+         * Write the constant-sized block to the CLAP output streem
+         * @param os VST3 output stream
+         * @param buf buffer that should be written
+         * @param size size of buffer to write
+         * @return status of operation
+         */
+        inline status_t write_fully(Steinberg::IBStream *os, const void *buf, size_t size)
+        {
+            uint8_t *ptr = const_cast<uint8_t *>(static_cast<const uint8_t *>(buf));
+            Steinberg::int32 written = 0;
+            for (size_t offset = 0; offset < size; )
+            {
+                Steinberg::tresult res = os->write(&ptr[offset], size - offset, &written);
+                if (res != Steinberg::kResultOk)
+                    return STATUS_IO_ERROR;
+                offset         += written;
+            }
+            return STATUS_OK;
+        }
+
+        /**
+         * Write simple data type to the CLAP output stream
+         * @param os VST3 output stream
+         * @param value value to write
+         * @return status of operation
+         */
+        template <class T>
+        inline status_t write_fully(Steinberg::IBStream *os, const T &value)
+        {
+            T tmp   = CPU_TO_LE(value);
+            return write_fully(os, &tmp, sizeof(tmp));
+        }
+
+        /**
+         * Read the constant-sized block from the CLAP input streem
+         * @param is VST3 input stream
+         * @param buf target buffer to read the data to
+         * @param size size of buffer to read
+         * @return status of operation
+         */
+        inline status_t read_fully(Steinberg::IBStream *is, void *buf, size_t size)
+        {
+            uint8_t *ptr = static_cast<uint8_t *>(buf);
+            Steinberg::int32 read = 0;
+            for (size_t offset = 0; offset < size; )
+            {
+                Steinberg::tresult res = is->read(&ptr[offset], size - offset, &read);
+                if ((res != Steinberg::kResultOk) || (read <= 0))
+                {
+                    if (read < 0)
+                        return STATUS_IO_ERROR;
+                    return (offset > 0) ? STATUS_CORRUPTED : STATUS_EOF;
+                }
+                offset         += read;
+            }
+            return STATUS_OK;
+        }
+
+        /**
+         * Read simple data type from the CLAP input stream
+         * @param is VST3 input stream
+         * @param value value to write
+         * @return status of operation
+         */
+        template <class T>
+        inline status_t read_fully(Steinberg::IBStream *is, T *value)
+        {
+            T tmp;
+            status_t res = read_fully(is, &tmp, sizeof(tmp));
+            if (res == STATUS_OK)
+                *value      = LE_TO_CPU(tmp);
+            return STATUS_OK;
+        }
+
+        inline status_t write_varint(Steinberg::IBStream *os, size_t value)
+        {
+            Steinberg::int32 written = 0;
+            do {
+                uint8_t b   = (value >= 0x80) ? 0x80 | (value & 0x7f) : value;
+                value     >>= 7;
+
+                Steinberg::tresult res = os->write(&b, sizeof(b), &written);
+                if ((res != Steinberg::kResultOk) || (written < 0))
+                    return STATUS_IO_ERROR;
+            } while (value > 0);
+
+            return STATUS_OK;
+        }
+
+        /**
+         * Write string to VST3 output stream
+         * @param os VST3 output stream
+         * @param s NULL-terminated string to write
+         * @return number of actual bytes written or negative error code
+         */
+        inline status_t write_string(Steinberg::IBStream *os, const char *s)
+        {
+            size_t len = strlen(s);
+
+            // Write variable-sized string length
+            status_t res = write_varint(os, len);
+            if (res != STATUS_OK)
+                return res;
+
+            // Write the payload data
+            return write_fully(os, s, len);
+        }
+
+        /**
+         * Read the variable-sized integer
+         * @param is input stream to perform read
+         * @param value the pointer to store the read value
+         * @return status of operation
+         */
+        inline status_t read_varint(Steinberg::IBStream *is, size_t *value)
+        {
+            // Read variable-sized string length
+            size_t len = 0, shift = 0;
+            Steinberg::int32 read;
+            while (true)
+            {
+                uint8_t b;
+                Steinberg::tresult res = is->read(&b, sizeof(b), &read);
+                if ((res != Steinberg::kResultOk) || (read < 0))
+                {
+                    if (read < 0)
+                        return STATUS_IO_ERROR;
+                    return (shift > 0) ? STATUS_CORRUPTED : STATUS_EOF;
+                }
+
+                // Commit part of the value to the result variable
+                len    |= size_t(b & 0x7f) << shift;
+                if (!(b & 0x80)) // Last byte in the sequence?
+                    break;
+                shift += 7;
+                if (shift > ((sizeof(size_t) * 8) - 7))
+                    return STATUS_OVERFLOW;
+            }
+
+            *value = len;
+            return STATUS_OK;
+        }
+
+        /**
+         * Read the string from the VST3 input stream
+         * @param is VST3 input stream
+         * @param buf buffer to store the string
+         * @param maxlen the maximum available string length. @note The value should consider
+         *        that the destination buffer holds at least one more character for NULL-terminating
+         *        character
+         * @return number of actual bytes read or negative error code
+         */
+        inline status_t read_string(Steinberg::IBStream *is, char *buf, size_t maxlen)
+        {
+            // Read variable-sized string length
+            size_t len = 0;
+            status_t res = read_varint(is, &len);
+            if (res != STATUS_OK)
+                return res;
+            if (len > maxlen)
+                return STATUS_OVERFLOW;
+
+            // Read the payload data
+            res = read_fully(is, buf, len);
+            if (res == STATUS_OK)
+                buf[len]  = '\0';
+            return STATUS_OK;
         }
 
         /**
@@ -390,6 +562,43 @@ namespace lsp
 
             return STATUS_OK;
         }
+
+        inline plug::mesh_t *create_mesh(const meta::port_t *meta)
+        {
+            size_t buffers      = meta->step;
+            size_t buf_size     = meta->start * sizeof(float);
+            size_t mesh_size    = sizeof(plug::mesh_t) + sizeof(float *) * buffers;
+
+            // Align values to 64-byte boundaries
+            buf_size            = align_size(buf_size, 0x40);
+            mesh_size           = align_size(mesh_size, 0x40);
+
+            // Allocate pointer
+            uint8_t *ptr        = static_cast<uint8_t *>(malloc(mesh_size + buf_size * buffers));
+            if (ptr == NULL)
+                return NULL;
+
+            // Initialize references
+            plug::mesh_t *mesh  = reinterpret_cast<plug::mesh_t *>(ptr);
+            mesh->nState        = plug::M_EMPTY;
+            mesh->nBuffers      = 0;
+            mesh->nItems        = 0;
+            ptr                += mesh_size;
+            for (size_t i=0; i<buffers; ++i)
+            {
+                mesh->pvData[i]     = reinterpret_cast<float *>(ptr);
+                ptr                += buf_size;
+            }
+
+            return mesh;
+        }
+
+        inline void destroy_mesh(plug::mesh_t *mesh)
+        {
+            if (mesh != NULL)
+                free(mesh);
+        }
+
     } /* namespace vst3 */
 } /* namespace lsp */
 

@@ -561,10 +561,8 @@ namespace lsp
 
             // Release the peer connection if host didn't disconnect us previously.
             if (pPeerConnection != NULL)
-            {
                 pPeerConnection->disconnect(this);
-                safe_release(pPeerConnection);
-            }
+            safe_release(pPeerConnection);
 
             // Release busses
             for (lltl::iterator<audio_bus_t> it = vAudioIn.values(); it; ++it)
