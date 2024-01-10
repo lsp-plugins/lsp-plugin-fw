@@ -87,6 +87,11 @@ namespace lsp
                 lltl::parray<audio_bus_t>           vAudioOut;              // Output audio busses
                 lltl::parray<vst3::InParamPort>     vParamIn;               // Input parameter ports
                 lltl::parray<vst3::OutParamPort>    vParamOut;              // Output parameter ports
+                lltl::parray<vst3::MeshPort>        vMeshes;                // Mesh ports
+                lltl::parray<vst3::FrameBufferPort> vFBuffers;              // Frame buffer ports
+                lltl::parray<vst3::StreamPort>      vStreams;               // Streaming ports
+                lltl::parray<vst3::PathPort>        vPathPorts;             // Path ports
+                lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata for virtual ports
                 event_bus_t                        *pEventsIn;              // Input event bus
                 event_bus_t                        *pEventsOut;             // Output event bus
                 core::SamplePlayer                 *pSamplePlayer;          // Sample player
@@ -119,6 +124,7 @@ namespace lsp
                 static ssize_t              compare_out_param_ports(const vst3::OutParamPort *a, const vst3::OutParamPort *b);
 
             protected:
+                void                        create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 status_t                    create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta);
                 bool                        create_busses(const meta::plugin_t *meta);
                 void                        sync_position(Steinberg::Vst::ProcessContext *pctx, size_t frame);

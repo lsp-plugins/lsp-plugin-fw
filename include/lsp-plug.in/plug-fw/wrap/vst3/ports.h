@@ -189,6 +189,35 @@ namespace lsp
                 }
         };
 
+        class MidiPort: public Port
+        {
+            protected:
+                plug::midi_t    sQueue;             // MIDI event buffer
+
+            public:
+                explicit MidiPort(const meta::port_t *meta): Port(meta)
+                {
+                    sQueue.clear();
+                }
+
+            public:
+                virtual void *buffer()
+                {
+                    return &sQueue;
+                }
+
+            public:
+                inline void clear()
+                {
+                    sQueue.clear();
+                }
+
+                inline bool push(const midi::event_t *me)
+                {
+                    return sQueue.push(me);
+                }
+        };
+
         class ParameterPort: public Port
         {
             protected:
@@ -214,17 +243,6 @@ namespace lsp
             public:
                 virtual float value() override { return fValue; }
                 virtual void *buffer() override { return NULL; }
-
-                /** Pre-process port state before processor execution
-                 * @param samples number of estimated samples to process
-                 * @return true if port value has been externally modified
-                 */
-                virtual bool pre_process(size_t samples);
-
-                /** Post-process port state after processor execution
-                 * @param samples number of samples processed by plugin
-                 */
-                virtual void post_process(size_t samples);
         };
 
         class InParamPort: public ParameterPort

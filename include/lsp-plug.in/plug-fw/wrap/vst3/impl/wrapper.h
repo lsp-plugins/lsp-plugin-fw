@@ -495,9 +495,140 @@ namespace lsp
             return true;
         }
 
+        void Wrapper::create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix)
+        {
+            vst3::Port *cp      = NULL;
+
+            switch (port->role)
+            {
+                case meta::R_MESH:
+                {
+                    vst3::MeshPort *p       = new vst3::MeshPort(port);
+                    vMeshes.add(p);
+                    cp                      = p;
+                    break;
+                }
+
+                case meta::R_FBUFFER:
+                {
+                    vst3::FrameBufferPort *p= new vst3::FrameBufferPort(port);
+                    vFBuffers.add(p);
+                    cp                      = p;
+                    break;
+                }
+
+                case meta::R_STREAM:
+                {
+                    vst3::StreamPort *p     = new vst3::StreamPort(port);
+                    vStreams.add(p);
+                    cp                      = p;
+                    break;
+                }
+
+                case meta::R_MIDI:
+                    // MIDI ports will be organized into groups after instantiation of all ports
+                    cp                      = new vst3::MidiPort(port);
+                    break;
+
+                case meta::R_AUDIO:
+                    // Audio ports will be organized into groups after instantiation of all ports
+                    cp = new vst3::AudioPort(port);
+                    break;
+
+                case meta::R_OSC:
+                    cp                      = new vst3::OscPort(port);
+                    break;
+
+                case meta::R_PATH:
+                {
+                    vst3::PathPort *p       = new vst3::PathPort(port);
+                    vPathPorts.add(p);
+                    cp                      = p;
+                    break;
+                }
+
+                case meta::R_CONTROL:
+                case meta::R_BYPASS:
+                {
+                    vst3::InParamPort *p    = new vst3::InParamPort(port);
+                    vParamIn.add(p);
+                    cp  = p;
+                    break;
+                }
+
+                case meta::R_METER:
+                {
+                    vst3::OutParamPort *p   = new vst3::OutParamPort(port);
+                    vParamOut.add(p);
+                    cp                      = p;
+                    break;
+                }
+
+                case meta::R_PORT_SET:
+                {
+                    LSPString postfix_str;
+                    vst3::PortGroup *pg     = new vst3::PortGroup(port);
+                    vAllPorts.add(pg);
+                    vParamIn.add(pg);
+                    plugin_ports->add(pg);
+
+                    for (size_t row=0; row<pg->rows(); ++row)
+                    {
+                        // Generate postfix
+                        postfix_str.fmt_ascii("%s_%d", (postfix != NULL) ? postfix : "", int(row));
+                        const char *port_post   = postfix_str.get_ascii();
+
+                        // Clone port metadata
+                        meta::port_t *cm        = meta::clone_port_metadata(port->members, port_post);
+                        if (cm != NULL)
+                        {
+                            vGenMetadata.add(cm);
+
+                            for (; cm->id != NULL; ++cm)
+                            {
+                                if (meta::is_growing_port(cm))
+                                    cm->start    = cm->min + ((cm->max - cm->min) * row) / float(pg->rows());
+                                else if (meta::is_lowering_port(cm))
+                                    cm->start    = cm->max - ((cm->max - cm->min) * row) / float(pg->rows());
+
+                                create_port(plugin_ports, cm, port_post);
+                            }
+                        }
+                    }
+
+                    break;
+                }
+
+                default:
+                    break;
+            }
+
+            if (cp != NULL)
+            {
+                #ifdef LSP_DEBUG
+                    const char *src_id = cp->metadata()->id;
+                    for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+                    {
+                        plug::IPort *p = vAllPorts.uget(i);
+                        if (!strcmp(src_id, p->metadata()->id))
+                            lsp_error("ERROR: port %s already defined", src_id);
+                    }
+                #endif /* LSP_DEBUG */
+
+                vAllPorts.add(cp);
+                plugin_ports->add(cp);
+            }
+        }
+
         status_t Wrapper::create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta)
         {
-            // TODO: implement this
+            lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
+            for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
+                create_port(plugin_ports, port, NULL);
+
+            vParamIn.qsort(compare_in_param_ports);
+            vParamOut.qsort(compare_out_param_ports);
+
             return STATUS_OK;
         }
 
@@ -516,8 +647,6 @@ namespace lsp
             lltl::parray<plug::IPort> plugin_ports;
             if (create_ports(&plugin_ports, meta) != STATUS_OK)
                 return Steinberg::kInternalError;
-            vParamIn.qsort(compare_in_param_ports);
-            vParamOut.qsort(compare_out_param_ports);
 
             // Generate audio busses
             if (!create_busses(meta))
@@ -572,11 +701,6 @@ namespace lsp
             free_event_bus(pEventsIn);
             free_event_bus(pEventsOut);
 
-            vAudioIn.flush();
-            vAudioOut.flush();
-            pEventsIn   = NULL;
-            pEventsOut  = NULL;
-
             // Destroy ports
             for (lltl::iterator<plug::IPort> it = vAllPorts.values(); it; ++it)
             {
@@ -585,6 +709,25 @@ namespace lsp
                     delete port;
             }
             vAllPorts.flush();
+            vAudioIn.flush();
+            vAudioOut.flush();
+            vParamIn.flush();
+            vParamOut.flush();
+            vMeshes.flush();
+            vFBuffers.flush();
+            vStreams.flush();
+            vPathPorts.flush();
+            pEventsIn   = NULL;
+            pEventsOut  = NULL;
+
+            // Cleanup generated metadata
+            for (size_t i=0, n=vGenMetadata.size(); i<n; ++i)
+            {
+                meta::port_t *p = vGenMetadata.uget(i);
+                lsp_trace("destroy generated port metadata %p", p);
+                meta::drop_port_metadata(p);
+            }
+            vGenMetadata.flush();
 
             // TODO: implement this
             return Steinberg::kNotImplemented;
