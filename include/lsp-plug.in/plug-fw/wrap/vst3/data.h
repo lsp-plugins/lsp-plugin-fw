@@ -74,8 +74,8 @@ namespace lsp
             uint8_t             nXFlags;
             atomic_t            nLock;
 
-            char                sPath[PATH_MAX];
-            char                sQPath[PATH_MAX];
+            char                sPath[PATH_MAX*2];
+            char                sQPath[PATH_MAX*2];
             lsp_utf16_t         sAPath[PATH_MAX];
 
             virtual void init() override
@@ -112,8 +112,8 @@ namespace lsp
 
                 if (nFlags & F_QPATH)
                 {
-                    strncpy(sPath, sQPath, PATH_MAX);
-                    sPath[PATH_MAX-1]   = '\0';
+                    strncpy(sPath, sQPath, PATH_MAX*2);
+                    sPath[PATH_MAX*2-1] = '\0';
                     sQPath[0]           = '\0';
                     nFlags              = F_PENDING;
                     return true;
@@ -129,7 +129,7 @@ namespace lsp
                     return false;
 
                 // Transform string and update flags
-                if (!lsp::utf16_to_utf8(sPath, sAPath, PATH_MAX))
+                if (!lsp::utf16le_to_utf8(sPath, sAPath, PATH_MAX*2))
                     sPath[0]            = '\0';
 
                 nXFlags             = 0;
@@ -160,7 +160,7 @@ namespace lsp
                 char *dst           = ((nFlags & (F_PENDING | F_ACCEPTED)) == (F_PENDING | F_ACCEPTED)) ? sQPath : sPath;
 
                 // Deserialize as DSP request
-                status_t res = read_string(is, dst, PATH_MAX-1);
+                status_t res = read_string(is, dst, PATH_MAX*2-1);
                 if (res != STATUS_OK)
                     return res;
 
@@ -169,7 +169,7 @@ namespace lsp
 
             void submit(const char *path, size_t len, size_t flags)
             {
-                const size_t count  = lsp_min(len, size_t(PATH_MAX-1));
+                const size_t count  = lsp_min(len, size_t(PATH_MAX*2-1));
 
                 // Write DSP request
                 ::strncpy(sPath, path, count);

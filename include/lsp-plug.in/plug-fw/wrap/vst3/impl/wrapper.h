@@ -965,7 +965,7 @@ namespace lsp
                 return NULL;
             }
 
-            if (!lsp::utf16_to_utf8(buf, u16key, size))
+            if (!lsp::utf16le_to_utf8(buf, u16key, size))
             {
                 lsp_warn("Could not parse UTF-16 identifier of parameter");
                 return NULL;
@@ -1039,6 +1039,53 @@ namespace lsp
             {
                 lsp_trace("Received DeactivateUI");
                 atomic_add(&nUICounter, -1);
+            }
+            else if (!strcmp(message_id, "PlaySample"))
+            {
+                lsp_trace("Received PlaySample");
+                lsp_utf16_t *u16buf = static_cast<lsp_utf16_t *>(malloc(PATH_MAX * sizeof(lsp_utf16_t) + PATH_MAX*2));
+                if (u16buf != NULL)
+                {
+                    lsp_warn("Failed to allocate memory for UTF-16 buffer");
+                    return Steinberg::kResultFalse;
+                }
+                lsp_finally { free(u16buf); };
+                char *file = reinterpret_cast<char *>(&u16buf[PATH_MAX]);
+                double release = 0.0f;
+                int64_t position = 0;
+
+                // Read message content
+                Steinberg::tresult res = atts->getString(
+                    "file",
+                    static_cast<Steinberg::Vst::TChar *>(u16buf),
+                    PATH_MAX * sizeof(lsp_utf16_t));
+                if (res != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'file'");
+                    return Steinberg::kResultFalse;
+                }
+                res = atts->getInt("position", position);
+                if (res != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'position'");
+                    return Steinberg::kResultFalse;
+                }
+
+                res = atts->getFloat("release", release);
+                if (res != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'release'");
+                    return Steinberg::kResultFalse;
+                }
+                if (!utf16le_to_utf8(file, u16buf, PATH_MAX*2))
+                {
+                    lsp_warn("Failed to convert UTF-16 string to UTF-8");
+                    return Steinberg::kResultFalse;
+                }
+
+                // Request sample player for playback
+                if (pSamplePlayer != NULL)
+                    pSamplePlayer->play_sample(file, position, release > 0.5f);
             }
 
             return Steinberg::kResultOk;
