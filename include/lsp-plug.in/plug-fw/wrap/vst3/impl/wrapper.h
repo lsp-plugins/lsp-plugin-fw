@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/io/charset.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/const.h>
@@ -57,6 +58,7 @@ namespace lsp
             pSamplePlayer       = NULL;
             pLatencyOut         = NULL;
 
+            nUICounter          = 0;
             nMaxSamplesPerBlock = 0;
             bUpdateSettings     = true;
         }
@@ -543,6 +545,7 @@ namespace lsp
                 {
                     vst3::PathPort *p       = new vst3::PathPort(port);
                     vPathPorts.add(p);
+                    vVirtMapping.create(port->id, p);
                     cp                      = p;
                     break;
                 }
@@ -551,7 +554,10 @@ namespace lsp
                 case meta::R_BYPASS:
                 {
                     vst3::InParamPort *p    = new vst3::InParamPort(port);
-                    vParamIn.add(p);
+                    if (postfix != NULL)
+                        vVirtMapping.create(port->id, p);
+                    else
+                        vParamIn.add(p);
                     cp  = p;
                     break;
                 }
@@ -570,6 +576,7 @@ namespace lsp
                     vst3::PortGroup *pg     = new vst3::PortGroup(port);
                     vAllPorts.add(pg);
                     vParamIn.add(pg);
+                    vVirtMapping.create(port->id, pg);
                     plugin_ports->add(pg);
 
                     for (size_t row=0; row<pg->rows(); ++row)
@@ -717,6 +724,7 @@ namespace lsp
             vFBuffers.flush();
             vStreams.flush();
             vPathPorts.flush();
+            vVirtMapping.flush();
             pEventsIn   = NULL;
             pEventsOut  = NULL;
 
@@ -947,10 +955,93 @@ namespace lsp
             return Steinberg::kResultOk;
         }
 
+        const char *Wrapper::read_port_id(Steinberg::Vst::IAttributeList *atts, char *buf, size_t size)
+        {
+            lsp_utf16_t u16key[8];
+
+            if (atts->getString("id", reinterpret_cast<Steinberg::Vst::TChar *>(u16key), sizeof(u16key)) != Steinberg::kResultOk)
+            {
+                lsp_warn("Message does not contain parameter identifier");
+                return NULL;
+            }
+
+            if (!lsp::utf16_to_utf8(buf, u16key, size))
+            {
+                lsp_warn("Could not parse UTF-16 identifier of parameter");
+                return NULL;
+            }
+
+            return buf;
+        }
+
         Steinberg::tresult PLUGIN_API Wrapper::notify(Steinberg::Vst::IMessage *message)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            // Obtain the message data
+            if (message == NULL)
+                return Steinberg::kInvalidArgument;
+            const char *message_id = reinterpret_cast<const char *>(message->getMessageID());
+            if (message_id == NULL)
+                return Steinberg::kInvalidArgument;
+            Steinberg::Vst::IAttributeList *atts = message->getAttributes();
+            if (atts == NULL)
+                return Steinberg::kInvalidArgument;
+
+            // Analyze the message
+            constexpr size_t key_length = 16;
+            char u8key[key_length];
+
+            if (!strcmp(message_id, "Path"))
+            {
+                lsp_trace("Received Path message");
+
+                const char *port_id = read_port_id(atts, u8key, key_length);
+                if (port_id != NULL)
+                {
+                    // Obtain the destination port
+                    vst3::Port *p = vVirtMapping.get(port_id);
+                    if ((p == NULL) || (!meta::is_path_port(p->metadata())))
+                    {
+                        lsp_warn("Invalid path port specified: %s", port_id);
+                        return Steinberg::kResultFalse;
+                    }
+
+                    // Submit new port value
+                    vst3::PathPort *pp = static_cast<vst3::PathPort *>(p);
+                    pp->submit(atts);
+                }
+            }
+            else if (!strcmp(message_id, "VParam"))
+            {
+                lsp_trace("Received VParam message");
+
+                const char *port_id = read_port_id(atts, u8key, key_length);
+                if (port_id != NULL)
+                {
+                    // Obtain the destination port
+                    vst3::Port *p = vVirtMapping.get(port_id);
+                    if ((p == NULL) || (!meta::is_control_port(p->metadata())))
+                    {
+                        lsp_warn("Invalid parameters port specified: %s", port_id);
+                        return Steinberg::kResultFalse;
+                    }
+
+                    // Submit new port value
+                    vst3::InParamPort *pp = static_cast<vst3::InParamPort *>(p);
+                    pp->submit(atts);
+                }
+            }
+            else if (!strcmp(message_id, "ActivtateUI"))
+            {
+                lsp_trace("Received ActivateUI message");
+                atomic_add(&nUICounter, 1);
+            }
+            else if (!strcmp(message_id, "DeactivtateUI message"))
+            {
+                lsp_trace("Received DeactivateUI");
+                atomic_add(&nUICounter, -1);
+            }
+
+            return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::setBusArrangements(Steinberg::Vst::SpeakerArrangement *inputs, Steinberg::int32 numIns, Steinberg::Vst::SpeakerArrangement* outputs, Steinberg::int32 numOuts)
@@ -1268,9 +1359,9 @@ namespace lsp
                 return Steinberg::kInternalError;
 
             // Update UI activity state
-            if ((pPeerConnection != NULL) && (!pPlugin->ui_active()))
+            if ((nUICounter > 0) && (!pPlugin->ui_active()))
                 pPlugin->activate_ui();
-            else if ((pPeerConnection == NULL) && (pPlugin->ui_active()))
+            else if ((nUICounter <= 0) && (pPlugin->ui_active()))
                 pPlugin->deactivate_ui();
 
             // Bind audio buffers
@@ -1283,6 +1374,8 @@ namespace lsp
                 vst3::InParamPort *p = vParamIn.uget(i);
                 if (p != NULL)
                     p->set_change_index(0);
+                if (p->check_pending())
+                    bUpdateSettings     = true;
             }
 
             // Reset output port state

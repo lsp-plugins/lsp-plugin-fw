@@ -27,6 +27,7 @@
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
@@ -91,6 +92,7 @@ namespace lsp
                 lltl::parray<vst3::FrameBufferPort> vFBuffers;              // Frame buffer ports
                 lltl::parray<vst3::StreamPort>      vStreams;               // Streaming ports
                 lltl::parray<vst3::PathPort>        vPathPorts;             // Path ports
+                lltl::pphash<char, vst3::Port>      vVirtMapping;           // Virtual input port mapping
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata for virtual ports
                 event_bus_t                        *pEventsIn;              // Input event bus
                 event_bus_t                        *pEventsOut;             // Output event bus
@@ -100,6 +102,7 @@ namespace lsp
                 core::KVTStorage                    sKVT;                   // KVT storage
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
 
+                uatomic_t                           nUICounter;             // UI counter
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
 
@@ -122,6 +125,7 @@ namespace lsp
 
                 static ssize_t              compare_in_param_ports(const vst3::InParamPort *a, const vst3::InParamPort *b);
                 static ssize_t              compare_out_param_ports(const vst3::OutParamPort *a, const vst3::OutParamPort *b);
+                static const char          *read_port_id(Steinberg::Vst::IAttributeList *atts, char *buf, size_t size);
 
             protected:
                 void                        create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -397,17 +397,18 @@ namespace lsp
         // Path port structure
         typedef struct path_t
         {
-            /** Virtual destructor
-             *
+            /**
+             * Virtual destructor
              */
             virtual ~path_t();
 
-            /** Initialize path
-             *
+            /**
+             * Initialize path
              */
             virtual void init();
 
-            /** Get actual path
+            /**
+             * Get actual path (UTF-8 string)
              *
              * @return actual path
              */
@@ -419,29 +420,32 @@ namespace lsp
              */
             virtual size_t flags() const;
 
-            /** Check if there is pending request
+            /**
+             * Check if there is pending request
              *
              * @return true if there is a pending state-change request
              */
             virtual bool pending();
 
-            /** Accept the pending request for path change,
+            /**
+             * Accept the pending request for path change,
              * the port of the path will not trigger as changed
              * until commit() is called
              */
             virtual void accept();
 
-            /** Check if there is accepted request
+            /**
+             * Check if there is accepted request
              *
              * @return true if there is accepted request
              */
             virtual bool accepted();
 
-            /** The state change request was processed,
+            /**
+             * The state change request was processed,
              * the port is ready to receive new events,
              * this method SHOULD be called ONLY AFTER
              * we don't need the value stored in this primitive
-             *
              */
             virtual void commit();
         } path_t;

@@ -248,12 +248,14 @@ namespace lsp
         class InParamPort: public ParameterPort
         {
             protected:
+                float                   fPending;
                 uint32_t                nChangeIndex;   // The current index of a change in a queue
 
             public:
                 explicit InParamPort(const meta::port_t *meta) : ParameterPort(meta)
                 {
-                    nChangeIndex    = 0;
+                    fPending            = fValue;
+                    nChangeIndex        = 0;
                 }
 
                 InParamPort(const InParamPort &) = delete;
@@ -263,15 +265,31 @@ namespace lsp
                 InParamPort & operator = (InParamPort &&) = delete;
 
             public:
-                inline uint32_t change_index() const   { return nChangeIndex; }
+                inline uint32_t change_index() const    { return nChangeIndex;          }
                 inline void     set_change_index(uint32_t index)    { nChangeIndex = index; }
 
-            public:
+                bool check_pending()
+                {
+                    float pending = fValue;
+                    if (fPending == pending)
+                        return false;
+                    fValue          = pending;
+                    return true;
+                }
+
                 bool commit_value(float value)
                 {
                     bool changed    = fValue != value;
                     fValue          = value;
+                    fPending        = value;
                     return changed;
+                }
+
+                void submit(Steinberg::Vst::IAttributeList *list)
+                {
+                    double value;
+                    if (list->getFloat("value", value) == Steinberg::kResultOk)
+                        fPending        = value;
                 }
         };
 
@@ -468,6 +486,9 @@ namespace lsp
 
                 PathPort & operator = (const PathPort &) = delete;
                 PathPort & operator = (PathPort &&) = delete;
+
+            public:
+                inline void submit(Steinberg::Vst::IAttributeList *list) { sPath.submit(list); }
 
             public:
                 virtual void *buffer() override

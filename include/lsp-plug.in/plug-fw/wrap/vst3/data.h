@@ -25,6 +25,8 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/io/charset.h>
+#include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 
@@ -60,57 +62,86 @@ namespace lsp
             {
                 F_PENDING       = 1 << 0,
                 F_ACCEPTED      = 1 << 1,
-                F_QUEUED        = 1 << 2
+                F_QPATH         = 1 << 2
             };
 
-            size_t      nFlags;
+            enum xflags_t
+            {
+                XF_APATH        = 1 << 0
+            };
 
-            char        sPath[PATH_MAX];
-            char        sQPath[PATH_MAX];
+            uint8_t             nFlags;
+            uint8_t             nXFlags;
+            atomic_t            nLock;
 
-            virtual void init()
+            char                sPath[PATH_MAX];
+            char                sQPath[PATH_MAX];
+            lsp_utf16_t         sAPath[PATH_MAX];
+
+            virtual void init() override
             {
                 nFlags          = 0;
+                nXFlags         = 0;
+                atomic_init(nLock);
                 sPath[0]        = '\0';
                 sQPath[0]       = '\0';
+                sAPath[0]       = 0;
             }
 
-            virtual const char *path() const
+            virtual const char *path() const override
             {
                 return sPath;
             }
 
-            virtual size_t flags() const
+            virtual size_t flags() const override
             {
                 return nFlags;
             }
 
-            virtual void accept()
+            virtual void accept() override
             {
                 if (nFlags & F_PENDING)
                     nFlags     |= F_ACCEPTED;
             }
 
-            virtual void commit()
+            virtual bool pending() override
             {
-                if (nFlags & F_QUEUED)
+                // Check accepted flags
+                if (nFlags & F_PENDING)
+                    return !(nFlags & F_ACCEPTED);
+
+                if (nFlags & F_QPATH)
                 {
                     strncpy(sPath, sQPath, PATH_MAX);
                     sPath[PATH_MAX-1]   = '\0';
                     sQPath[0]           = '\0';
                     nFlags              = F_PENDING;
+                    return true;
                 }
-                else if (nFlags & (F_PENDING | F_ACCEPTED))
-                    nFlags              = 0;
-            }
 
-            virtual bool pending()
-            {
-                // Check accepted flags
-                if (!(nFlags & F_PENDING))
+                // Check for pending request
+                if (!atomic_trylock(nLock))
+                    return false;
+                lsp_finally {atomic_unlock(nLock); };
+
+                // Update state of the DSP
+                if (!(nXFlags & XF_APATH))
                     return false;
 
-                return !(nFlags & F_ACCEPTED);
+                // Transform string and update flags
+                if (!lsp::utf16_to_utf8(sPath, sAPath, PATH_MAX))
+                    sPath[0]            = '\0';
+
+                nXFlags             = 0;
+                nFlags              = F_PENDING;
+
+                return true;
+            }
+
+            virtual void commit() override
+            {
+                if (nFlags & (F_PENDING | F_ACCEPTED))
+                    nFlags             &= ~(F_PENDING | F_ACCEPTED);
             }
 
             virtual bool accepted()
@@ -138,19 +169,42 @@ namespace lsp
 
             void submit(const char *path, size_t len, size_t flags)
             {
-                char *dst           = ((nFlags & (F_PENDING | F_ACCEPTED)) == (F_PENDING | F_ACCEPTED)) ? sQPath : sPath;
                 const size_t count  = lsp_min(len, size_t(PATH_MAX-1));
 
                 // Write DSP request
-                ::strncpy(dst, path, count);
-                dst[count]          = '\0';
-                if (dst == sQPath)
-                    nFlags             |= F_QUEUED;
+                ::strncpy(sPath, path, count);
+                sPath[count]        = '\0';
+                nFlags             |= F_QPATH;
+            }
+
+            void submit(Steinberg::Vst::IAttributeList *atts)
+            {
+                while (true)
+                {
+                    // Try to acquire critical section
+                    if (atomic_trylock(nLock))
+                    {
+                        lsp_finally { atomic_unlock(nLock); };
+
+                        // Write DSP request
+                        Steinberg::tresult res = atts->getString(
+                            "value",
+                            reinterpret_cast<Steinberg::Vst::TChar *>(sAPath),
+                            PATH_MAX * sizeof(lsp_utf16_t));
+                        if (res != Steinberg::kResultOk)
+                            sAPath[0]       = 0;
+                        nXFlags = XF_APATH;
+                        break;
+                    }
+
+                    // Wait for a while (10 milliseconds)
+                    ipc::Thread::sleep(10);
+                }
             }
 
         } path_t;
 
-    } /* namespace clap */
+    } /* namespace vst3 */
 } /* namespace lsp */
 
 
