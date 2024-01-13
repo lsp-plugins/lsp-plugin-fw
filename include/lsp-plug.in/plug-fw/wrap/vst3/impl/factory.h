@@ -25,6 +25,8 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/ipc/NativeExecutor.h>
+#include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/const.h>
@@ -49,8 +51,12 @@ namespace lsp
         PluginFactory::PluginFactory()
         {
             nRefCounter         = 1;
+            nRefExecutor        = 0;
             pLoader             = NULL;
+            pExecutor           = NULL;
+            pDataSync           = NULL;
             pPackage            = NULL;
+            pActiveSync         = NULL;
         }
 
         PluginFactory::~PluginFactory()
@@ -488,6 +494,183 @@ namespace lsp
 
             *obj = NULL;
             return Steinberg::kNoInterface;
+        }
+
+        ipc::IExecutor *PluginFactory::acquire_executor()
+        {
+            if (!sMutex.lock())
+                return NULL;
+            lsp_finally { sMutex.unlock(); };
+
+            // Try to perform quick access
+            if (pExecutor != NULL)
+            {
+                ++nRefExecutor;
+                return pExecutor;
+            }
+
+            // Create executor
+            ipc::NativeExecutor *executor = new ipc::NativeExecutor();
+            if (executor == NULL)
+                return NULL;
+            lsp_trace("Allocated executor=%p", executor);
+
+            // Launch executor
+            status_t res = executor->start();
+            if (res != STATUS_OK)
+            {
+                lsp_trace("Failed to start executor=%p, code=%d", executor, int(res));
+                delete executor;
+                return NULL;
+            }
+
+            // Update status
+            ++nRefExecutor;
+            return pExecutor = executor;
+        }
+
+        void PluginFactory::release_executor()
+        {
+            if (!sMutex.lock())
+                return;
+            lsp_finally { sMutex.unlock(); };
+
+            if ((--nRefExecutor) > 0)
+                return;
+            if (pExecutor == NULL)
+                return;
+
+            lsp_trace("Destroying executor pExecutor=%p", pExecutor);
+            pExecutor->shutdown();
+            delete pExecutor;
+            pExecutor   = NULL;
+        }
+
+        status_t PluginFactory::register_data_sync(IDataSync *sync)
+        {
+            if (sync == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            // Add record to the queue
+            {
+                sDataMutex.lock();
+                lsp_finally { sDataMutex.unlock(); };
+
+                // Try to perform quick addition
+                if (!vDataSync.put(sync))
+                    return STATUS_NO_MEM;
+            }
+
+            // Ensure that data synchronization thread is already running
+            sMutex.lock();
+            lsp_finally { sMutex.unlock(); };
+            if (pDataSync != NULL)
+                return STATUS_OK;
+
+            // Remove the record from queue if data sync thread fails to start
+            lsp_finally {
+                if (sync != NULL)
+                {
+                    sDataMutex.lock();
+                    lsp_finally { sDataMutex.unlock(); };
+                    vDataSync.remove(sync);
+                }
+            };
+
+            // Start data synchronization thread
+            pDataSync       = new ipc::Thread(this);
+            if (pDataSync == NULL)
+                return STATUS_NO_MEM;
+            status_t res    = pDataSync->start();
+            if (res == STATUS_OK)
+                sync            = NULL;
+
+            return res;
+        }
+
+        status_t PluginFactory::unregister_data_sync(IDataSync *sync)
+        {
+            if (sync == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            // Try to remove data from queue
+            {
+                sDataMutex.lock();
+                lsp_finally { sDataMutex.unlock(); };
+
+                if (!vDataSync.remove(sync))
+                    return STATUS_NOT_FOUND;
+
+                while (pActiveSync == sync)
+                {
+                    // sDataMutex.wait();       // TODO: add conditional wait
+                    ipc::Thread::sleep(1);     // TODO: replace this with proper solution
+                }
+
+                if (vDataSync.size() > 0)
+                    return STATUS_OK;
+            }
+
+            // Need to stop synchronization thread
+            sMutex.lock();
+            lsp_finally { sMutex.unlock(); };
+            if (pDataSync == NULL)
+                return STATUS_OK;
+
+            pDataSync->cancel();
+            pDataSync->join();
+            delete pDataSync;
+            pDataSync       = NULL;
+
+            return STATUS_OK;
+        }
+
+        status_t PluginFactory::run()
+        {
+            lltl::parray<IDataSync> list;
+
+            while (!ipc::Thread::is_cancelled())
+            {
+                // Measure the start time
+                system::time_millis_t time = system::get_time_millis();
+
+                // Form the list of items for processing
+                {
+                    sDataMutex.lock();
+                    lsp_finally { sDataMutex.unlock(); };
+                    vDataSync.values(&list);
+                }
+
+                // Process each item
+                for (lltl::iterator<IDataSync> it=list.values(); it; ++it)
+                {
+                    // Obtain the sync object
+                    IDataSync *dsync    = it.get();
+                    if (dsync == NULL)
+                        continue;
+
+                    // Ensure that item is still valid and lock it
+                    {
+                        sDataMutex.lock();
+                        lsp_finally { sDataMutex.unlock(); };
+                        if (!vDataSync.contains(dsync))
+                            continue;
+                        pActiveSync     = dsync;
+                    }
+
+                    // Now dsync object is locked, perform processing
+                    dsync->sync_data();
+
+                    // Finally, unlock the data sync
+                    pActiveSync     = NULL;
+                }
+
+                // Wait for a while
+                const system::time_millis_t delay = lsp_min(system::get_time_millis() - time, 40u);
+                ipc::Thread::sleep(delay);
+            }
+
+            return STATUS_OK;
         }
 
     } /* namespace vst3 */

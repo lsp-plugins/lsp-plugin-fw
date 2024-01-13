@@ -64,6 +64,9 @@ namespace lsp
                 pUI         = NULL;
             }
 
+            // Remove self from synchronization list
+            pFactory->unregister_data_sync(this);
+
             // Release factory
             safe_release(pFactory);
         }
@@ -111,6 +114,12 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::initialize(Steinberg::FUnknown *context)
         {
+            // Add self to the synchronization list
+            status_t res = pFactory->register_data_sync(this);
+            if (res != STATUS_OK)
+                return Steinberg::kInternalError;
+
+            // Acquire host context
             if (pHostContext != NULL)
                 return Steinberg::kResultFalse;
             pHostContext    = safe_acquire(context);
@@ -121,6 +130,10 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::terminate()
         {
+            // Unregister data sync
+            pFactory->unregister_data_sync(this);
+
+            // Release host context
             safe_release(pHostContext);
 
             // Release the peer connection if host didn't disconnect us previously.
@@ -321,7 +334,6 @@ namespace lsp
 
         void UIWrapper::dump_state_request()
         {
-
         }
 
         const meta::package_t *UIWrapper::package() const
@@ -351,6 +363,10 @@ namespace lsp
         {
             // TODO: implement this
             return true;
+        }
+
+        void UIWrapper::sync_data()
+        {
         }
 
     } /* namespace vst3 */

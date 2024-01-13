@@ -33,6 +33,7 @@
 
 #include <steinberg/vst3.h>
 
+#include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 
 namespace lsp
@@ -44,6 +45,7 @@ namespace lsp
         #include <steinberg/vst3/base/WarningsPush.h>
         class UIWrapper:
             public ui::IWrapper,
+            public IDataSync,
             public Steinberg::IDependent,
             public Steinberg::Vst::IComponent,
             public Steinberg::Vst::IConnectionPoint,
@@ -76,6 +78,9 @@ namespace lsp
                 virtual float                       ui_scaling_factor(float scaling) override;
                 virtual void                        main_iteration() override;
                 virtual bool                        accept_window_size(size_t width, size_t height) override;
+
+            public: // vst3::IDataSync
+                virtual void                        sync_data() override;
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult          PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;

@@ -26,11 +26,18 @@
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/ipc/Mutex.h>
+#include <lsp-plug.in/ipc/Thread.h>
+#include <lsp-plug.in/ipc/IExecutor.h>
 #include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/ptrset.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 
 #include <steinberg/vst3.h>
+
+#include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 
 namespace lsp
 {
@@ -42,12 +49,22 @@ namespace lsp
          * Plugin factory. Scans plugin metadata at initialization stage and prepares
          * coresponding VST3 data structures.
          */
-        class PluginFactory: public Steinberg::IPluginFactory3
+        class PluginFactory:
+            public Steinberg::IPluginFactory3,
+            public ipc::IRunnable
         {
             protected:
-                volatile uatomic_t                      nRefCounter;
-                resource::ILoader                      *pLoader;
-                meta::package_t                        *pPackage;
+                volatile uatomic_t                      nRefCounter;    // Reference counter
+                uatomic_t                               nRefExecutor;   // Number of references to the executor
+                ipc::Mutex                              sMutex;         // Mutex for managing factory state
+                ipc::Mutex                              sDataMutex;     // Mutex for managing data synchronization primitives
+                resource::ILoader                      *pLoader;        // Resource loader
+                ipc::IExecutor                         *pExecutor;      // Offline task executor
+                ipc::Thread                            *pDataSync;      // Synchronization thread
+                meta::package_t                        *pPackage;       // Package manifest
+                volatile IDataSync                     *pActiveSync;    // Active data sync
+                lltl::ptrset<IDataSync>                 vDataSync;      // List of objects for synchronization
+
                 Steinberg::PFactoryInfo                 sFactoryInfo;
                 lltl::darray<Steinberg::PClassInfo>     vClassInfo;
                 lltl::darray<Steinberg::PClassInfo2>    vClassInfo2;
@@ -71,6 +88,15 @@ namespace lsp
 
                 status_t    init();
                 void        destroy();
+
+            public:
+                ipc::IExecutor                         *acquire_executor();
+                void                                    release_executor();
+                status_t                                register_data_sync(IDataSync *sync);
+                status_t                                unregister_data_sync(IDataSync *sync);
+
+            public: // ipc::IRunnable
+                virtual status_t                        run();
 
             public: // FUnknown
                 virtual Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;

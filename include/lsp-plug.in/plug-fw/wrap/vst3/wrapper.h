@@ -28,6 +28,7 @@
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
+#include <lsp-plug.in/ipc/IExecutor.h>
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
@@ -37,6 +38,7 @@
 
 #include <steinberg/vst3.h>
 
+#include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ports.h>
 
@@ -49,6 +51,7 @@ namespace lsp
         #include <steinberg/vst3/base/WarningsPush.h>
         class Wrapper:
             public plug::IWrapper,
+            public IDataSync,
             public Steinberg::IDependent,
             public Steinberg::Vst::IComponent,
             public Steinberg::Vst::IConnectionPoint,
@@ -83,6 +86,7 @@ namespace lsp
                 const meta::package_t              *pPackage;               // Package information
                 Steinberg::FUnknown                *pHostContext;           // Host context
                 Steinberg::Vst::IConnectionPoint   *pPeerConnection;        // Peer connection
+                ipc::IExecutor                     *pExecutor;              // Offline task executor
                 lltl::parray<plug::IPort>           vAllPorts;              // All possible plugin ports
                 lltl::parray<audio_bus_t>           vAudioIn;               // Input audio busses
                 lltl::parray<audio_bus_t>           vAudioOut;              // Output audio busses
@@ -145,7 +149,7 @@ namespace lsp
                 Wrapper & operator = (const Wrapper &) = delete;
                 Wrapper & operator = (Wrapper &&) = delete;
 
-            public: // IWrapper
+            public: // plug::IWrapper
                 virtual ipc::IExecutor         *executor() override;
                 virtual core::KVTStorage       *kvt_lock() override;
                 virtual core::KVTStorage       *kvt_trylock() override;
@@ -153,6 +157,9 @@ namespace lsp
                 virtual void                    state_changed() override;
                 virtual void                    request_settings_update() override;
                 virtual const meta::package_t  *package() const override;
+
+            public: // vst3::IDataSync
+                virtual void                        sync_data() override;
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult  PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;

@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LSP_PLUG_IN_PLUG_FW_WRAP_VST3_DATA_H_
-#define _LSP_PLUG_IN_PLUG_FW_WRAP_VST3_DATA_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_VST3_DATA_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_VST3_DATA_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 
@@ -207,7 +207,4 @@ namespace lsp
     } /* namespace vst3 */
 } /* namespace lsp */
 
-
-
-
-#endif /* _LSP_PLUG_IN_PLUG_FW_WRAP_VST3_DATA_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_VST3_DATA_H_ */

@@ -53,6 +53,7 @@ namespace lsp
             pPackage            = package;
             pHostContext        = NULL;
             pPeerConnection     = NULL;
+            pExecutor           = NULL;
             pEventsIn           = NULL;
             pEventsOut          = NULL;
             pSamplePlayer       = NULL;
@@ -71,6 +72,9 @@ namespace lsp
                 delete pPlugin;
                 pPlugin         = NULL;
             }
+
+            // Remove self from synchronization list
+            pFactory->unregister_data_sync(this);
 
             // Release factory
             safe_release(pFactory);
@@ -641,6 +645,23 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::initialize(Steinberg::FUnknown *context)
         {
+            // Add self to the synchronization list
+            status_t res = pFactory->register_data_sync(this);
+            if (res != STATUS_OK)
+                return Steinberg::kInternalError;
+            ipc::IExecutor *executor    = pFactory->acquire_executor();
+            if (executor != NULL)
+            {
+                // Create wrapper around native executor
+                pExecutor           = new vst3::Executor(executor);
+                if (pExecutor == NULL)
+                {
+                    pFactory->release_executor();
+                    return Steinberg::kInternalError;
+                }
+            }
+
+            // Release host context
             if (pHostContext != NULL)
                 return Steinberg::kResultFalse;
             pHostContext    = safe_acquire(context);
@@ -677,6 +698,16 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::terminate()
         {
+            // Remove self from synchronization list
+            pFactory->unregister_data_sync(this);
+            if (pExecutor != NULL)
+            {
+                lsp_finally { pFactory->release_executor(); };
+                pExecutor->shutdown();
+                delete pExecutor;
+                pExecutor       = NULL;
+            }
+
             // Destroy sample player
             if (pSamplePlayer != NULL)
             {
@@ -1057,7 +1088,7 @@ namespace lsp
                 // Read message content
                 Steinberg::tresult res = atts->getString(
                     "file",
-                    static_cast<Steinberg::Vst::TChar *>(u16buf),
+                    reinterpret_cast<Steinberg::Vst::TChar *>(u16buf),
                     PATH_MAX * sizeof(lsp_utf16_t));
                 if (res != Steinberg::kResultOk)
                 {
@@ -1516,8 +1547,7 @@ namespace lsp
 
         ipc::IExecutor *Wrapper::executor()
         {
-            // TODO: implement this
-            return NULL;
+            return pExecutor;
         }
 
         core::KVTStorage *Wrapper::kvt_lock()
@@ -1548,6 +1578,10 @@ namespace lsp
         const meta::package_t *Wrapper::package() const
         {
             return pPackage;
+        }
+
+        void Wrapper::sync_data()
+        {
         }
 
     } /* namespace vst3 */
