@@ -238,7 +238,7 @@ namespace lsp
                      pBuffer        = NULL;
                      pData          = NULL;
                      pSanitized     = NULL;
-                     bZero          = NULL;
+                     bZero          = false;
 
                      if (meta::is_in_port(pMetadata))
                      {
