@@ -88,7 +88,7 @@ namespace lsp
             pWrapper        = wrapper;
         }
 
-        void Module::set_sample_rate(long sr)
+        void Module::set_sample_rate(uint32_t sr)
         {
             if (fSampleRate == sr)
                 return;

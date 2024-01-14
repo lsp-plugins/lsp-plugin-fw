@@ -113,13 +113,20 @@ namespace lsp
                  * blocking functions.
                  * @param sr sample rate.
                  */
-                void                        set_sample_rate(long sr);
+                void                        set_sample_rate(uint32_t sr);
+
+                /**
+                 * Get current sample rate of the plugin
+                 * @deprecated use sample_rate() instead
+                 * @return current sample rate of the plugin
+                 */
+                inline uint32_t             get_sample_rate() const         { return fSampleRate;       }
 
                 /**
                  * Get current sample rate of the plugin
                  * @return current sample rate of the plugin
                  */
-                inline long                 get_sample_rate() const         { return fSampleRate;       }
+                inline uint32_t             sample_rate() const             { return fSampleRate;       }
 
                 /**
                  * Called when the plugin is activated by the host
