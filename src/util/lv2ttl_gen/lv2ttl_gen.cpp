@@ -819,8 +819,8 @@ namespace lsp
                 if ((p->role == meta::R_AUDIO) && (sidechain_ports.contains(p->id)))
                 {
                     emit_header(out, p_prop, "\t\tlv2:portProperty");
-                    emit_option(out, p_prop, true, "pp:connectionOptional");
-                    emit_option(out, p_prop, true, "pp:isSideChain");
+                    emit_option(out, p_prop, true, "lv2:connectionOptional");
+                    emit_option(out, p_prop, true, "lv2:isSideChain");
                 }
 
                 if (p->flags & meta::F_LOG)
@@ -1001,13 +1001,15 @@ namespace lsp
                     fprintf(out, "\t\tlv2:index %d ;\n", int(port_id));
                     fprintf(out, "\t\tlv2:symbol \"%s\" ;\n", p->id);
                     fprintf(out, "\t\tlv2:name \"%s\" ;\n", p->name);
+                    fprintf(out, "\t\tlv2:designation lv2:latency ;\n");
                     fprintf(out, "\t\trdfs:comment \"DSP -> Host latency report\" ;\n");
 
-                    if ((p->flags & (meta::F_LOWER | meta::F_UPPER)) == (meta::F_LOWER | meta::F_UPPER))
-                        fprintf(out, "\t\tlv2:portProperty pp:hasStrictBounds ;\n");
-                    if (p->flags & meta::F_INT)
-                        fprintf(out, "\t\tlv2:portProperty lv2:integer ;\n");
-                    fprintf(out, "\t\tlv2:portProperty lv2:reportsLatency ;\n");
+                    size_t p_prop = 0;
+                    emit_header(out, p_prop, "\t\tlv2:portProperty");
+                    emit_option(out, p_prop, (p->flags & (meta::F_LOWER | meta::F_UPPER)) == (meta::F_LOWER | meta::F_UPPER), "pp:hasStrictBounds");
+                    emit_option(out, p_prop, p->flags & meta::F_INT, "lv2:integer");
+                    emit_option(out, p_prop, true, "lv2:reportsLatency");
+                    emit_end(out, p_prop);
 
                     if (p->flags & meta::F_LOWER)
                         fprintf(out, "\t\tlv2:minimum %d ;\n", int(p->min));
