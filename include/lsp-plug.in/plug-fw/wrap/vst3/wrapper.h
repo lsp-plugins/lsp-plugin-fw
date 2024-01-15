@@ -27,8 +27,11 @@
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
+#include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
 #include <steinberg/vst3.h>
@@ -82,9 +85,15 @@ namespace lsp
                 lltl::parray<plug::IPort>           vAllPorts;              // All possible plugin ports
                 lltl::parray<audio_bus_t>           vAudioIn;               // Input audio busses
                 lltl::parray<audio_bus_t>           vAudioOut;              // Output audio busses
+                lltl::parray<vst3::InParamPort>     vParamIn;               // Input parameter ports
                 event_bus_t                        *pEventsIn;              // Input event bus
                 event_bus_t                        *pEventsOut;             // Output event bus
+                core::SamplePlayer                 *pSamplePlayer;          // Sample player
 
+                core::KVTStorage                    sKVT;                   // KVT storage
+                ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
+
+                uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
                 uint32_t                            nActLatency;            // Actual latency (in samples)
                 uint32_t                            nRepLatency;            // Last reported latency (in samples)
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
@@ -96,6 +105,8 @@ namespace lsp
                                                              lltl::parray<plug::IPort> *ins,
                                                              lltl::parray<plug::IPort> *outs);
                 static audio_bus_t         *create_audio_bus(plug::IPort *port);
+                static void                 bind_bus_buffers(lltl::parray<audio_bus_t> *busses, Steinberg::Vst::AudioBusBuffers *buffers, size_t num_buffers, size_t num_samples);
+                static void                 advance_bus_buffers(lltl::parray<audio_bus_t> *busses, size_t samples);
                 static void                 update_port_activity(audio_bus_t *bus);
 
                 static event_bus_t         *alloc_event_bus(const char *name, size_t ports);
@@ -104,8 +115,14 @@ namespace lsp
                 static plug::IPort         *find_port(const char *id, lltl::parray<plug::IPort> *list);
                 static ssize_t              compare_audio_ports_by_speaker(const vst3::AudioPort *a, const vst3::AudioPort *b);
 
+                static ssize_t              compare_in_param_ports(const vst3::InParamPort *a, const vst3::InParamPort *b);
+
             protected:
-                bool                        create_busses();
+                status_t                    create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta);
+                bool                        create_busses(const meta::plugin_t *meta);
+                void                        sync_position(Steinberg::Vst::ProcessContext *pctx, size_t frame);
+                size_t                      prepare_block(int32_t frame, Steinberg::Vst::ProcessData *pdata);
+                vst3::InParamPort          *input_parameter(Steinberg::Vst::ParamID id);
 
             public:
                 explicit Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package);
@@ -115,7 +132,6 @@ namespace lsp
 
                 Wrapper & operator = (const Wrapper &) = delete;
                 Wrapper & operator = (Wrapper &&) = delete;
-
 
             public: // IWrapper
                 virtual ipc::IExecutor         *executor() override;

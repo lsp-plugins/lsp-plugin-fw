@@ -163,6 +163,33 @@ namespace lsp
         }
 
         /**
+         * Hash the string value and return the hash value as a VST parameter identifier
+         * @param str string to hash
+         * @return clap identifier as a result of hashing
+         */
+        inline Steinberg::Vst::ParamID gen_parameter_id(const char *str)
+        {
+            constexpr size_t num_primes = 8;
+            static const uint16_t primes[num_primes] = {
+                0x80ab, 0x815f, 0x8d41, 0x9161,
+                0x9463, 0x9b77, 0xabc1, 0xb567,
+            };
+
+            size_t prime_id = 0;
+            size_t len      = strlen(str);
+            Steinberg::Vst::ParamID res = len * primes[prime_id];
+
+            for (size_t i=0; i<len; ++i)
+            {
+                prime_id        = (prime_id + 1) % num_primes;
+                res             = Steinberg::Vst::ParamID(res << 7) | Steinberg::Vst::ParamID((res >> (sizeof(Steinberg::Vst::ParamID) * 8 - 7)) & 0x7f); // rotate 7 bits left
+                res            += uint8_t(str[i]) * Steinberg::Vst::ParamID(primes[prime_id]);
+            }
+
+            return res;
+        }
+
+        /**
          * Make plugin categories
          *
          * @param dst destination string to store plugin categories

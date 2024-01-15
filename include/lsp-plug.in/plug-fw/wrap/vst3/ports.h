@@ -43,6 +43,11 @@ namespace lsp
                 {
                 }
 
+                Port(const Port &) = delete;
+                Port(Port &&) = delete;
+                Port & operator = (const Port &) = delete;
+                Port & operator = (Port &&) = delete;
+
             public:
                 /**
                  * Ensure that port is serializable
@@ -90,6 +95,8 @@ namespace lsp
                     bActive     = true;
                     bZero       = false;
                 }
+                AudioPort(const AudioPort &) = delete;
+                AudioPort(AudioPort &&) = delete;
 
                 virtual ~AudioPort() override
                 {
@@ -99,6 +106,9 @@ namespace lsp
                         pBuffer = NULL;
                     }
                 };
+
+                AudioPort & operator = (const AudioPort &) = delete;
+                AudioPort & operator = (AudioPort &&) = delete;
 
             public:
                 inline Steinberg::Vst::Speaker      speaker() const         { return nSpeaker;  }
@@ -173,6 +183,81 @@ namespace lsp
                     pBind       = NULL;
                     nBufSize    = 0;
                     nOffset     = 0;
+                }
+        };
+
+        class ParameterPort: public Port
+        {
+            protected:
+                float                   fValue; // The actual value of the port
+                Steinberg::Vst::ParamID nID;    // Unique identifier of the port
+
+            public:
+                explicit ParameterPort(const meta::port_t *meta) : Port(meta)
+                {
+                    fValue              = meta->start;
+                    nID                 = vst3::gen_parameter_id(meta->id);
+                }
+
+                ParameterPort(const ParameterPort &) = delete;
+                ParameterPort(ParameterPort &&) = delete;
+
+                ParameterPort & operator = (const ParameterPort &) = delete;
+                ParameterPort & operator = (ParameterPort &&) = delete;
+
+            public:
+                inline Steinberg::Vst::ParamID parameter_id() const { return nID; }
+
+            public:
+                virtual float value() override { return fValue; }
+                virtual void *buffer() override { return NULL; }
+
+                /** Pre-process port state before processor execution
+                 * @param samples number of estimated samples to process
+                 * @return true if port value has been externally modified
+                 */
+                virtual bool pre_process(size_t samples);
+
+                /** Post-process port state after processor execution
+                 * @param samples number of samples processed by plugin
+                 */
+                virtual void post_process(size_t samples);
+        };
+
+        class InParamPort: public ParameterPort
+        {
+            protected:
+                uint32_t                nChangeIndex;   // The current index of a change in a queue
+
+            public:
+                explicit InParamPort(const meta::port_t *meta) : ParameterPort(meta)
+                {
+                    nChangeIndex    = 0;
+                }
+
+                InParamPort(const InParamPort &) = delete;
+                InParamPort(InParamPort &&) = delete;
+
+                InParamPort & operator = (const InParamPort &) = delete;
+                InParamPort & operator = (InParamPort &&) = delete;
+
+            public:
+                inline uint32_t change_index() const   { return nChangeIndex; }
+                inline void     set_change_index(uint32_t index)    { nChangeIndex = index; }
+
+            public:
+                virtual bool pre_process(size_t samples)
+                {
+                    nChangeIndex    = 0;
+                    return false;
+                }
+
+            public:
+                bool commit_value(float value)
+                {
+                    bool changed    = fValue != value;
+                    fValue          = value;
+                    return changed;
                 }
         };
 

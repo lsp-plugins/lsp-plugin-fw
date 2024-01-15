@@ -54,7 +54,9 @@ namespace lsp
             pPeerConnection     = NULL;
             pEventsIn           = NULL;
             pEventsOut          = NULL;
+            pSamplePlayer       = NULL;
 
+            nMaxSamplesPerBlock = 0;
             nActLatency         = 0;
             nRepLatency         = 0;
             bUpdateSettings     = true;
@@ -190,9 +192,20 @@ namespace lsp
 
         ssize_t Wrapper::compare_audio_ports_by_speaker(const vst3::AudioPort *a, const vst3::AudioPort *b)
         {
-            if (a->speaker() > b->speaker())
-                return 1;
-            return (a->speaker() < b->speaker()) ? -1 : 0;
+            const Steinberg::Vst::Speaker sp_a = a->speaker();
+            const Steinberg::Vst::Speaker sp_b = b->speaker();
+
+            return (sp_a > sp_b) ? 1 :
+                   (sp_a < sp_b) ? -1 : 0;
+        }
+
+        ssize_t Wrapper::compare_in_param_ports(const vst3::InParamPort *a, const vst3::InParamPort *b)
+        {
+            const Steinberg::Vst::ParamID a_id = a->parameter_id();
+            const Steinberg::Vst::ParamID b_id = b->parameter_id();
+
+            return (a_id > b_id) ? 1 :
+                   (a_id < b_id) ? -1 : 0;
         }
 
         Wrapper::audio_bus_t *Wrapper::create_audio_bus(const meta::port_group_t *meta, lltl::parray<plug::IPort> *ins, lltl::parray<plug::IPort> *outs)
@@ -312,32 +325,27 @@ namespace lsp
             }
         }
 
-        bool Wrapper::create_busses()
+        bool Wrapper::create_busses(const meta::plugin_t *meta)
         {
-            // Obtain plugin metadata
-            const meta::plugin_t *meta = (pPlugin != NULL) ? pPlugin->metadata() : NULL;
-            if (meta == NULL)
-                return false;
-
             // Generate modifiable lists of input and output ports
             lltl::parray<plug::IPort> ins, outs, midi_ins, midi_outs;
             for (size_t i=0, n=vAllPorts.size(); i < n; ++i)
             {
                 plug::IPort *p = vAllPorts.uget(i);
-                const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
-                if (meta == NULL)
+                const meta::port_t *port = (p != NULL) ? p->metadata() : NULL;
+                if (port == NULL)
                     continue;
 
-                if (meta::is_audio_port(meta))
+                if (meta::is_audio_port(port))
                 {
-                    if (meta::is_in_port(meta))
+                    if (meta::is_in_port(port))
                         ins.add(p);
                     else
                         outs.add(p);
                 }
-                else if (meta::is_midi_port(meta))
+                else if (meta::is_midi_port(port))
                 {
-                    if (meta::is_in_port(meta))
+                    if (meta::is_in_port(port))
                         midi_ins.add(p);
                     else
                         midi_outs.add(p);
@@ -479,14 +487,44 @@ namespace lsp
             return true;
         }
 
+        status_t Wrapper::create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta)
+        {
+            // TODO: implement this
+            return STATUS_OK;
+        }
+
         Steinberg::tresult PLUGIN_API Wrapper::initialize(Steinberg::FUnknown *context)
         {
             if (pHostContext != NULL)
                 return Steinberg::kResultFalse;
             pHostContext    = safe_acquire(context);
 
-            if (!create_busses())
+            // Obtain plugin metadata
+            const meta::plugin_t *meta = (pPlugin != NULL) ? pPlugin->metadata() : NULL;
+            if (meta == NULL)
                 return Steinberg::kInternalError;
+
+            // Create all possible ports for plugin and validate the state
+            lltl::parray<plug::IPort> plugin_ports;
+            if (create_ports(&plugin_ports, meta) != STATUS_OK)
+                return Steinberg::kInternalError;
+            vParamIn.qsort(compare_in_param_ports);
+
+            // Generate audio busses
+            if (!create_busses(meta))
+                return Steinberg::kInternalError;
+
+            // Initialize plugin
+            pPlugin->init(this, plugin_ports.array());
+
+            // Create sample player if required
+            if (meta->extensions & meta::E_FILE_PREVIEW)
+            {
+                pSamplePlayer       = new core::SamplePlayer(meta);
+                if (pSamplePlayer == NULL)
+                    return STATUS_NO_MEM;
+                pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
+            }
 
             // TODO: implement this
             return Steinberg::kNotImplemented;
@@ -494,6 +532,14 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::terminate()
         {
+            // Destroy sample player
+            if (pSamplePlayer != NULL)
+            {
+                pSamplePlayer->destroy();
+                delete pSamplePlayer;
+                pSamplePlayer = NULL;
+            }
+
             // Destroy plugin
             if (pPlugin != NULL)
             {
@@ -866,8 +912,11 @@ namespace lsp
                 sample_rate  = MAX_SAMPLE_RATE;
             }
             pPlugin->set_sample_rate(sample_rate);
+            if (pSamplePlayer != NULL)
+                pSamplePlayer->set_sample_rate(sample_rate);
 
             // Adjust block size for input and output audio ports
+            nMaxSamplesPerBlock     = setup.maxSamplesPerBlock;
             for (lltl::iterator<audio_bus_t> it = vAudioIn.values(); it; ++it)
             {
                 audio_bus_t *bus = it.get();
@@ -895,10 +944,236 @@ namespace lsp
             return Steinberg::kNotImplemented;
         }
 
+        void Wrapper::sync_position(Steinberg::Vst::ProcessContext *pctx, size_t frame)
+        {
+            sPosition.sampleRate            = pPlugin->sample_rate();
+            sPosition.speed                 = 1.0f;
+            sPosition.frame                 = frame;
+            if ((pctx != NULL) && (pctx->state & Steinberg::Vst::ProcessContext::kTimeSigValid))
+            {
+                sPosition.numerator             = pctx->timeSigNumerator;
+                sPosition.denominator           = pctx->timeSigDenominator;
+            }
+            else
+            {
+                sPosition.numerator             = 4.0;
+                sPosition.denominator           = 4.0;
+            }
+            if (pctx->state & Steinberg::Vst::ProcessContext::kTempoValid)
+                sPosition.beatsPerMinute        = pctx->tempo;
+            else
+                sPosition.beatsPerMinute        = BPM_DEFAULT;
+            sPosition.beatsPerMinuteChange  = 0.0f;
+            sPosition.ticksPerBeat          = DEFAULT_TICKS_PER_BEAT;
+
+            if ((pctx->state & Steinberg::Vst::ProcessContext::kProjectTimeMusicValid) &&
+                (pctx->state & Steinberg::Vst::ProcessContext::kBarPositionValid))
+            {
+                double uppqPos                  = (pctx->projectTimeMusic - pctx->barPositionMusic) * pctx->timeSigDenominator * 0.25;
+                sPosition.tick                  = sPosition.ticksPerBeat * (uppqPos - int64_t(uppqPos));
+            }
+            else
+                sPosition.tick                  = 0.0;
+        }
+
+        vst3::InParamPort *Wrapper::input_parameter(Steinberg::Vst::ParamID id)
+        {
+            // Perform binary search agains list of ports sorted in ascending order of VST parameter identifier
+            ssize_t first = 0, last = vParamIn.size() - 1;
+            while (first <= last)
+            {
+                const ssize_t middle = (first + last) >> 1;
+                vst3::InParamPort *port = vParamIn.uget(middle);
+                const Steinberg::Vst::ParamID port_id = port->parameter_id();
+
+                if (id < port_id)
+                    last    = middle - 1;
+                else if (id > port_id)
+                    first   = middle + 1;
+                else
+                    return port;
+            }
+            return NULL;
+        }
+
+        size_t Wrapper::prepare_block(int32_t frame, Steinberg::Vst::ProcessData *data)
+        {
+            // Obtain number of parameters
+            Steinberg::Vst::IParameterChanges *changes = data->inputParameterChanges;
+            size_t num_params = (changes != NULL) ? changes->getParameterCount() : 0;
+            if (num_params <= 0)
+                return data->numSamples - frame;
+
+            int32_t first_change = data->numSamples;
+            Steinberg::int32 sampleOffset;
+            Steinberg::Vst::ParamValue value;
+
+            // Pass 1: find the most recent change in change queues
+            for (size_t i=0; i<num_params; ++i)
+            {
+                Steinberg::Vst::IParamValueQueue *queue = changes->getParameterData(i);
+                vst3::InParamPort *port = input_parameter(queue->getParameterId());
+                if (port == NULL)
+                    continue;
+
+                // Lookup for the first change
+                for (ssize_t index = port->change_index(), changes = queue->getPointCount(); index < changes; )
+                {
+                    if (queue->getPoint(index, sampleOffset, value) != Steinberg::kResultOk)
+                        break;
+
+                    if (sampleOffset < frame)
+                        port->set_change_index(++index);
+                    else
+                    {
+                        first_change = lsp_min(first_change, sampleOffset);
+                        break;
+                    }
+                }
+            }
+
+            // Pass 2: adjust port values accoding to the pending changes
+            for (size_t i=0; i<num_params; ++i)
+            {
+                Steinberg::Vst::IParamValueQueue *queue = changes->getParameterData(i);
+                vst3::InParamPort *port = input_parameter(queue->getParameterId());
+                if (port == NULL)
+                    continue;
+
+                // Obtain the change point
+                const ssize_t index = port->change_index();
+                if (index >= queue->getPointCount())
+                    continue;
+                if (queue->getPoint(index, sampleOffset, value) != Steinberg::kResultOk)
+                    continue;
+
+                // The value has changed?
+                if (sampleOffset <= first_change)
+                {
+                    port->set_change_index(index + 1);  // We already can move the change index forward
+                    if (port->commit_value(value))
+                        bUpdateSettings     = true;
+                }
+            }
+
+            return first_change - frame;
+        }
+
+        void Wrapper::bind_bus_buffers(lltl::parray<audio_bus_t> *busses, Steinberg::Vst::AudioBusBuffers *buffers, size_t num_buffers, size_t num_samples)
+        {
+            for (size_t i=0, n=busses->size(); i<n; ++i)
+            {
+                audio_bus_t *bus = busses->uget(i);
+                if (i < num_buffers)
+                {
+                    Steinberg::Vst::Sample32 **sbuffers = buffers[i].channelBuffers32;
+                    for (size_t j=0; j<bus->nPorts; ++j)
+                    {
+                        vst3::AudioPort *p = bus->vPorts[j];
+                        if (bus->nCurrArr & p->speaker())
+                            p->bind(*(sbuffers++), num_samples);
+                        else
+                            p->bind(NULL, num_samples);
+                    }
+                }
+                else
+                {
+                    for (size_t j=0; j<bus->nPorts; ++j)
+                    {
+                        vst3::AudioPort *p = bus->vPorts[j];
+                        p->bind(NULL, num_samples);
+                    }
+                }
+            }
+        }
+
+        void Wrapper::advance_bus_buffers(lltl::parray<audio_bus_t> *busses, size_t samples)
+        {
+            for (size_t i=0, n=busses->size(); i<n; ++i)
+            {
+                audio_bus_t *bus = busses->uget(i);
+                for (size_t j=0; j<bus->nPorts; ++j)
+                    bus->vPorts[j]->post_process(samples);
+            }
+        }
+
         Steinberg::tresult PLUGIN_API Wrapper::process(Steinberg::Vst::ProcessData & data)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            // We do not support any samples except 32-bit floating-point values
+            if (data.symbolicSampleSize != Steinberg::Vst::kSample32)
+                return Steinberg::kInternalError;
+
+            // Update UI activity state
+            if ((pPeerConnection != NULL) && (!pPlugin->ui_active()))
+                pPlugin->activate_ui();
+            else if ((pPeerConnection == NULL) && (pPlugin->ui_active()))
+                pPlugin->deactivate_ui();
+
+            // Bind audio buffers
+            bind_bus_buffers(&vAudioIn, data.inputs, data.numInputs, data.numSamples);
+            bind_bus_buffers(&vAudioOut, data.outputs, data.numOutputs, data.numSamples);
+
+            // Reset change indices for parameters
+            for (size_t i=0, n=vParamIn.size(); i<n; ++i)
+            {
+                vst3::InParamPort *p = vParamIn.uget(i);
+                if (p != NULL)
+                    p->set_change_index(0);
+            }
+
+            for (int32_t frame=0; frame < data.numSamples; )
+            {
+                // Cleanup stat of input and output MIDI ports
+                if (pEventsIn != NULL)
+                {
+//                    TODO
+//                    for (size_t i=0; i<pEventsIn->nPorts; ++i)
+//                        pEventsIn->vPorts[i]->clear();
+                }
+                if (pEventsOut != NULL)
+                {
+//                    TODO
+//                    for (size_t i=0; i<pEventsOut->nPorts; ++i)
+//                        pEventsOut->vPorts[i]->clear();
+                }
+
+                // Prepare event block
+                size_t block_size = prepare_block(frame, &data);
+//                lsp_trace("block size=%d", int(block_size));
+                for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+                    vAllPorts.uget(i)->pre_process(block_size);
+
+                // Update the settings for the plugin
+                sync_position(data.processContext, frame);
+                if (bUpdateSettings)
+                {
+                    lsp_trace("Updating settings");
+                    pPlugin->update_settings();
+                    bUpdateSettings     = false;
+                }
+
+                // Call the plugin for processing
+                if (block_size > 0)
+                {
+                    pPlugin->process(block_size);
+
+                    // Call the sampler for processing
+                    if (pSamplePlayer != NULL)
+                        pSamplePlayer->process(block_size);
+
+                    // Do the post-processing stuff
+                    // TODO: generate_output_events(frame, process);
+
+                    // Advance audio ports and update processing offset
+                    advance_bus_buffers(&vAudioIn, block_size);
+                    advance_bus_buffers(&vAudioOut, block_size);
+                    frame      += block_size;
+                }
+            }
+
+            // TODO: output parameters
+
+            return Steinberg::kResultOk;
         }
 
         Steinberg::uint32 PLUGIN_API Wrapper::getTailSamples()
@@ -915,8 +1190,11 @@ namespace lsp
 
         Steinberg::uint32 PLUGIN_API Wrapper::getProcessContextRequirements()
         {
-            // TODO: implement this
-            return 0;
+            return
+                Steinberg::Vst::IProcessContextRequirements::kNeedProjectTimeMusic |
+                Steinberg::Vst::IProcessContextRequirements::kNeedBarPositionMusic |
+                Steinberg::Vst::IProcessContextRequirements::kNeedTempo |
+                Steinberg::Vst::IProcessContextRequirements::kNeedTimeSignature;
         }
 
         ipc::IExecutor *Wrapper::executor()
@@ -927,20 +1205,17 @@ namespace lsp
 
         core::KVTStorage *Wrapper::kvt_lock()
         {
-            // TODO: implement this
-            return NULL;
+            return (sKVTMutex.lock()) ? &sKVT : NULL;
         }
 
         core::KVTStorage *Wrapper::kvt_trylock()
         {
-            // TODO: implement this
-            return NULL;
+            return (sKVTMutex.try_lock()) ? &sKVT : NULL;
         }
 
         bool Wrapper::kvt_release()
         {
-            // TODO: implement this
-            return false;
+            return sKVTMutex.unlock();
         }
 
         void Wrapper::state_changed()
@@ -950,7 +1225,7 @@ namespace lsp
 
         void Wrapper::request_settings_update()
         {
-            // TODO: implement this
+            bUpdateSettings     = true;
         }
 
         const meta::package_t *Wrapper::package() const
