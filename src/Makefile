@@ -943,7 +943,7 @@ validate: $(HOST_UTL_VALIDATOR)
 
 resources: $(HOST_UTL_REPOSITORY)
 	echo "  $(HOST_UTL_REPOSITORY)"
-	$(HOST_UTL_REPOSITORY) -o "$(HOST_UTL_RES_PATH)" $(LSP_PLUGIN_FW_OBJ_VARS) -m "$(ROOTDIR)/res/manifest.json" "$(ROOTDIR)" "$(ROOTDIR)/modules/*"
+	$(HOST_UTL_REPOSITORY) -o "$(HOST_UTL_RES_PATH)" $(LSP_PLUGIN_FW_OBJ_VARS) -m "$(ROOTDIR)/res/manifest.json" "$(ROOTDIR)" "$(call pathconv,$(ROOTDIR))/modules/*"
 
 jack: $(HOST_UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK) $(DEPENDENCIES_BIN)
 	echo "  $(notdir $(HOST_UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_JACK_PATH))"
