@@ -125,14 +125,14 @@ namespace lsp
                     return &pBind[nOffset];
                 }
 
-                virtual void post_process(size_t samples) override
-                {
-                    nOffset    += samples;
-                }
-
             public:
-                // Setup the port
-                // Allocates enough space for data sanitize.
+                /**
+                 * Setup the port.
+                 * Allocates enough space for data sanitize.
+                 *
+                 * @param max_frames_count maximum possible frames per one process() call
+                 * @return false if we have troubles with memory
+                 */
                 bool setup(size_t max_frames_count)
                 {
                     // Check that capacity matches
@@ -155,7 +155,11 @@ namespace lsp
                     return true;
                 }
 
-                // Bind the audio port and perform sanitize for input ports
+                /**
+                 * Bind the audio port and perform sanitize for input ports
+                 * @param ptr buffer to bind
+                 * @param samples size of buffer
+                 */
                 void bind(float *ptr, size_t samples)
                 {
 //                    lsp_trace("id=%s, pBind=%p, pBuffer=%p, ptr=%p, samples=%d",
@@ -176,7 +180,9 @@ namespace lsp
                     nOffset     = 0;
                 }
 
-                // Unbind the audio port and perform sanitize for output ports
+                /**
+                 * Unbind the audio port and perform sanitize for output ports
+                 */
                 void unbind()
                 {
                     // Sanitize plugin's output if possible
@@ -186,6 +192,15 @@ namespace lsp
                     pBind       = NULL;
                     nBufSize    = 0;
                     nOffset     = 0;
+                }
+
+                /**
+                 * Advance read position by the specified amount of samples
+                 * @param samples number of samples to advance
+                 */
+                inline void advance(size_t samples)
+                {
+                    nOffset    += samples;
                 }
         };
 
@@ -270,8 +285,8 @@ namespace lsp
 
                 bool check_pending()
                 {
-                    float pending = fValue;
-                    if (fPending == pending)
+                    float pending = fPending;
+                    if (fValue == pending)
                         return false;
                     fValue          = pending;
                     return true;
@@ -285,11 +300,9 @@ namespace lsp
                     return changed;
                 }
 
-                void submit(Steinberg::Vst::IAttributeList *list)
+                void submit(double value)
                 {
-                    double value;
-                    if (list->getFloat("value", value) == Steinberg::kResultOk)
-                        fPending        = value;
+                    fPending        = value;
                 }
         };
 
@@ -486,9 +499,6 @@ namespace lsp
 
                 PathPort & operator = (const PathPort &) = delete;
                 PathPort & operator = (PathPort &&) = delete;
-
-            public:
-                inline void submit(Steinberg::Vst::IAttributeList *list) { sPath.submit(list); }
 
             public:
                 virtual void *buffer() override

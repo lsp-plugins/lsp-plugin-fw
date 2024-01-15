@@ -40,6 +40,7 @@
 
 #include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/string_buf.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ports.h>
 
 namespace lsp
@@ -85,6 +86,7 @@ namespace lsp
                 PluginFactory                      *pFactory;               // Reference to the factory
                 const meta::package_t              *pPackage;               // Package information
                 Steinberg::FUnknown                *pHostContext;           // Host context
+                Steinberg::Vst::IHostApplication   *pHostApplication;       // Host application
                 Steinberg::Vst::IConnectionPoint   *pPeerConnection;        // Peer connection
                 ipc::IExecutor                     *pExecutor;              // Offline task executor
                 lltl::parray<plug::IPort>           vAllPorts;              // All possible plugin ports
@@ -92,7 +94,7 @@ namespace lsp
                 lltl::parray<audio_bus_t>           vAudioOut;              // Output audio busses
                 lltl::parray<vst3::InParamPort>     vParamIn;               // Input parameter ports
                 lltl::parray<vst3::OutParamPort>    vParamOut;              // Output parameter ports
-                lltl::parray<vst3::MeshPort>        vMeshes;                // Mesh ports
+                lltl::parray<plug::IPort>           vMeshes;                // Mesh ports
                 lltl::parray<vst3::FrameBufferPort> vFBuffers;              // Frame buffer ports
                 lltl::parray<vst3::StreamPort>      vStreams;               // Streaming ports
                 lltl::parray<vst3::PathPort>        vPathPorts;             // Path ports
@@ -103,6 +105,8 @@ namespace lsp
                 core::SamplePlayer                 *pSamplePlayer;          // Sample player
                 vst3::OutParamPort                 *pLatencyOut;            // Output latency port
 
+                vst3::string_buf                    sNotifyBuf;             // Notify buffer
+                vst3::string_buf                    sSyncBuf;               // Sync buffer
                 core::KVTStorage                    sKVT;                   // KVT storage
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
 
@@ -129,7 +133,6 @@ namespace lsp
 
                 static ssize_t              compare_in_param_ports(const vst3::InParamPort *a, const vst3::InParamPort *b);
                 static ssize_t              compare_out_param_ports(const vst3::OutParamPort *a, const vst3::OutParamPort *b);
-                static const char          *read_port_id(Steinberg::Vst::IAttributeList *atts, char *buf, size_t size);
 
             protected:
                 void                        create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);

@@ -25,8 +25,10 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/io/charset.h>
 #include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -136,6 +138,28 @@ namespace lsp
 
             ptr->release();
             ptr = NULL;
+        }
+
+        /**
+         * Perform safe acquire of Steinberg::FUnknown object casted to some another interface
+         *
+         * @tparam V type to which cast the original pointer
+         * @param ptr pointer to acquire
+         * @return pointer to the object
+         */
+        template <class T, class V>
+        inline T *safe_query_iface(V *ptr)
+        {
+            if (ptr == NULL)
+                return NULL;
+
+            Steinberg::TUID iid;
+            V::iid.toTUID(iid);
+            T *result   = NULL;
+            if (ptr->queryInterface(iid, reinterpret_cast<void **>(&result)) == Steinberg::kResultOk)
+                return result;
+
+            return NULL;
         }
 
         /**
@@ -597,6 +621,38 @@ namespace lsp
         {
             if (mesh != NULL)
                 free(mesh);
+        }
+
+        /**
+         * Helper function to allocate a message
+         * @param host IHostApplication instance
+         */
+        inline Steinberg::Vst::IMessage *alloc_message(Steinberg::Vst::IHostApplication *host)
+        {
+            Steinberg::TUID iid;
+            Steinberg::Vst::IMessage::iid.toTUID(iid);
+            Steinberg::Vst::IMessage* m = NULL;
+            if (host->createInstance (iid, iid, reinterpret_cast<void **>(&m)) == Steinberg::kResultOk)
+                return m;
+            return NULL;
+        }
+
+        inline Steinberg::Vst::TChar *to_tchar(lsp_utf16_t *str)
+        {
+            return reinterpret_cast<Steinberg::Vst::TChar *>(str);
+        }
+
+        inline const Steinberg::Vst::TChar *to_tchar(const lsp_utf16_t *str)
+        {
+            return reinterpret_cast<const Steinberg::Vst::TChar *>(str);
+        }
+
+        inline size_t strnlen_u16(const lsp_utf16_t *str, size_t len)
+        {
+            for (size_t i=0; i<len; ++i)
+                if (str[i] == 0)
+                    return i - 1;
+            return len;
         }
 
     } /* namespace vst3 */

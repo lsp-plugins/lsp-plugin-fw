@@ -52,6 +52,7 @@ namespace lsp
             pFactory            = safe_acquire(factory);
             pPackage            = package;
             pHostContext        = NULL;
+            pHostApplication    = NULL;
             pPeerConnection     = NULL;
             pExecutor           = NULL;
             pEventsIn           = NULL;
@@ -664,7 +665,8 @@ namespace lsp
             // Release host context
             if (pHostContext != NULL)
                 return Steinberg::kResultFalse;
-            pHostContext    = safe_acquire(context);
+            pHostContext        = safe_acquire(context);
+            pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
 
             // Obtain plugin metadata
             const meta::plugin_t *meta = (pPlugin != NULL) ? pPlugin->metadata() : NULL;
@@ -725,6 +727,7 @@ namespace lsp
 
             // Release host context
             safe_release(pHostContext);
+            safe_release(pHostApplication);
 
             // Release the peer connection if host didn't disconnect us previously.
             if (pPeerConnection != NULL)
@@ -986,25 +989,6 @@ namespace lsp
             return Steinberg::kResultOk;
         }
 
-        const char *Wrapper::read_port_id(Steinberg::Vst::IAttributeList *atts, char *buf, size_t size)
-        {
-            lsp_utf16_t u16key[8];
-
-            if (atts->getString("id", reinterpret_cast<Steinberg::Vst::TChar *>(u16key), sizeof(u16key)) != Steinberg::kResultOk)
-            {
-                lsp_warn("Message does not contain parameter identifier");
-                return NULL;
-            }
-
-            if (!lsp::utf16le_to_utf8(buf, u16key, size))
-            {
-                lsp_warn("Could not parse UTF-16 identifier of parameter");
-                return NULL;
-            }
-
-            return buf;
-        }
-
         Steinberg::tresult PLUGIN_API Wrapper::notify(Steinberg::Vst::IMessage *message)
         {
             // Obtain the message data
@@ -1018,48 +1002,71 @@ namespace lsp
                 return Steinberg::kInvalidArgument;
 
             // Analyze the message
-            constexpr size_t key_length = 16;
-            char u8key[key_length];
+            Steinberg::tresult res;
+            Steinberg::int64 byte_order = BYTEORDER;
 
             if (!strcmp(message_id, "Path"))
             {
                 lsp_trace("Received Path message");
 
-                const char *port_id = read_port_id(atts, u8key, key_length);
-                if (port_id != NULL)
+                // Get endianess
+                if ((res = atts->getInt("endian", byte_order)) != Steinberg::kResultOk)
                 {
-                    // Obtain the destination port
-                    vst3::Port *p = vVirtMapping.get(port_id);
-                    if ((p == NULL) || (!meta::is_path_port(p->metadata())))
-                    {
-                        lsp_warn("Invalid path port specified: %s", port_id);
-                        return Steinberg::kResultFalse;
-                    }
-
-                    // Submit new port value
-                    vst3::PathPort *pp = static_cast<vst3::PathPort *>(p);
-                    pp->submit(atts);
+                    lsp_warn("Failed to read property 'endian'");
+                    return Steinberg::kResultFalse;
                 }
+
+                // Get port identifier
+                const char *id = sNotifyBuf.get_string(atts, "id", byte_order);
+                if (id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Find path port
+                vst3::Port *p = vVirtMapping.get(id);
+                if ((p == NULL) || (!meta::is_path_port(p->metadata())))
+                {
+                    lsp_warn("Invalid path port specified: %s", id);
+                    return Steinberg::kResultFalse;
+                }
+
+                // Get the path data
+                const char *in_path = sNotifyBuf.get_string(atts, "value", byte_order);
+                if (in_path == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Submit path data
+                vst3::path_t *path = static_cast<vst3::path_t *>(p->buffer<plug::path_t>());
+                if (path != NULL)
+                    path->submit_async(in_path);
             }
-            else if (!strcmp(message_id, "VParam"))
+            else if (!strcmp(message_id, "Param"))
             {
                 lsp_trace("Received VParam message");
 
-                const char *port_id = read_port_id(atts, u8key, key_length);
-                if (port_id != NULL)
-                {
-                    // Obtain the destination port
-                    vst3::Port *p = vVirtMapping.get(port_id);
-                    if ((p == NULL) || (!meta::is_control_port(p->metadata())))
-                    {
-                        lsp_warn("Invalid parameters port specified: %s", port_id);
-                        return Steinberg::kResultFalse;
-                    }
+                // Get port identifier
+                const char *id = sNotifyBuf.get_string(atts, "id", byte_order);
+                if (id == NULL)
+                    return Steinberg::kResultFalse;
 
-                    // Submit new port value
-                    vst3::InParamPort *pp = static_cast<vst3::InParamPort *>(p);
-                    pp->submit(atts);
+                // Obtain the destination port
+                vst3::Port *p = vVirtMapping.get(id);
+                if ((p == NULL) || (!meta::is_control_port(p->metadata())))
+                {
+                    lsp_warn("Invalid virtual parameter port specified: %s", id);
+                    return Steinberg::kResultFalse;
                 }
+
+                // Read value
+                double value = 0.0f;
+                if ((res = atts->getFloat("value", value)) != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'value'");
+                    return Steinberg::kResultFalse;
+                }
+
+                // Submit new port value
+                vst3::InParamPort *pp = static_cast<vst3::InParamPort *>(p);
+                pp->submit(value);
             }
             else if (!strcmp(message_id, "ActivtateUI"))
             {
@@ -1074,43 +1081,32 @@ namespace lsp
             else if (!strcmp(message_id, "PlaySample"))
             {
                 lsp_trace("Received PlaySample");
-                lsp_utf16_t *u16buf = static_cast<lsp_utf16_t *>(malloc(PATH_MAX * sizeof(lsp_utf16_t) + PATH_MAX*2));
-                if (u16buf != NULL)
-                {
-                    lsp_warn("Failed to allocate memory for UTF-16 buffer");
-                    return Steinberg::kResultFalse;
-                }
-                lsp_finally { free(u16buf); };
-                char *file = reinterpret_cast<char *>(&u16buf[PATH_MAX]);
-                double release = 0.0f;
-                int64_t position = 0;
 
-                // Read message content
-                Steinberg::tresult res = atts->getString(
-                    "file",
-                    reinterpret_cast<Steinberg::Vst::TChar *>(u16buf),
-                    PATH_MAX * sizeof(lsp_utf16_t));
-                if (res != Steinberg::kResultOk)
+                // Get endianess
+                if ((res = atts->getInt("endian", byte_order)) != Steinberg::kResultOk)
                 {
-                    lsp_warn("Failed to read property 'file'");
+                    lsp_warn("Failed to read property 'endian'");
                     return Steinberg::kResultFalse;
                 }
-                res = atts->getInt("position", position);
-                if (res != Steinberg::kResultOk)
+
+                // Get file name
+                const char *file = sNotifyBuf.get_string(atts, "file", byte_order);
+                if (file == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Get play position
+                int64_t position = 0;
+                if ((res = atts->getInt("position", position)) != Steinberg::kResultOk)
                 {
                     lsp_warn("Failed to read property 'position'");
                     return Steinberg::kResultFalse;
                 }
 
-                res = atts->getFloat("release", release);
-                if (res != Steinberg::kResultOk)
+                // Get release flag
+                double release = 0.0f;
+                if ((res = atts->getFloat("release", release)) != Steinberg::kResultOk)
                 {
                     lsp_warn("Failed to read property 'release'");
-                    return Steinberg::kResultFalse;
-                }
-                if (!utf16le_to_utf8(file, u16buf, PATH_MAX*2))
-                {
-                    lsp_warn("Failed to convert UTF-16 string to UTF-8");
                     return Steinberg::kResultFalse;
                 }
 
@@ -1410,7 +1406,7 @@ namespace lsp
             {
                 audio_bus_t *bus = busses->uget(i);
                 for (size_t j=0; j<bus->nPorts; ++j)
-                    bus->vPorts[j]->post_process(samples);
+                    bus->vPorts[j]->advance(samples);
             }
         }
 
@@ -1582,6 +1578,57 @@ namespace lsp
 
         void Wrapper::sync_data()
         {
+            // We have nothing to do if we can not allocate messages nor notify peer
+            if ((pHostApplication == NULL) || (pPeerConnection == NULL))
+                return;
+
+            // Synchronize meshes
+            for (lltl::iterator<plug::IPort> it = vMeshes.values(); it; ++it)
+            {
+                // Check that we have data in mesh
+                plug::mesh_t *mesh = it->buffer<plug::mesh_t>();
+                if ((mesh == NULL) || (!mesh->containsData()))
+                    continue;
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    continue;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID("Mesh");
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write endianess
+                if (list->setInt("endian", BYTEORDER) != Steinberg::kResultOk)
+                    continue;
+                // Write number of buffers
+                if (list->setInt("buffers", mesh->nBuffers) != Steinberg::kResultOk)
+                    continue;
+                // Write number of elements per buffer
+                if (list->setInt("items", mesh->nItems) != Steinberg::kResultOk)
+                    continue;
+
+                // Encode data for each buffer
+                Steinberg::char8 key[16];
+                bool encoded = true;
+                for (size_t i=0; i<mesh->nBuffers; ++i)
+                {
+                    snprintf(key, sizeof(key), "data[%d]", int(i));
+                    if (list->setBinary(key, mesh->pvData[i], mesh->nItems * sizeof(float)) != Steinberg::kResultOk)
+                    {
+                        encoded     = false;
+                        break;
+                    }
+                }
+                if (!encoded)
+                    continue;
+
+                // Finally, we're ready to send message
+                if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
+                    mesh->cleanup();
+            }
         }
 
     } /* namespace vst3 */

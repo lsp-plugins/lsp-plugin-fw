@@ -70,13 +70,13 @@ namespace lsp
                 XF_APATH        = 1 << 0
             };
 
-            uint8_t             nFlags;
-            uint8_t             nXFlags;
-            atomic_t            nLock;
+            uint8_t             nFlags;                 // Current state of path primitive
+            volatile uint8_t    nXFlags;                // Async request status
+            atomic_t            nLock;                  // Atomic lock variable for async access
 
-            char                sPath[PATH_MAX*2];
-            char                sQPath[PATH_MAX*2];
-            lsp_utf16_t         sAPath[PATH_MAX];
+            char                sPath[PATH_MAX*2];      // Current path value
+            char                sQPath[PATH_MAX*2];     // Pending path value (sync request)
+            char                sAPath[PATH_MAX*2];     // Pending path value (async request)
 
             virtual void init() override
             {
@@ -119,19 +119,17 @@ namespace lsp
                     return true;
                 }
 
-                // Check for pending request
+                // Check that we have pending async request
+                if (!(nXFlags & XF_APATH))
+                    return false;
                 if (!atomic_trylock(nLock))
                     return false;
                 lsp_finally {atomic_unlock(nLock); };
 
-                // Update state of the DSP
-                if (!(nXFlags & XF_APATH))
-                    return false;
-
-                // Transform string and update flags
-                if (!lsp::utf16le_to_utf8(sPath, sAPath, PATH_MAX*2))
-                    sPath[0]            = '\0';
-
+                // Copy data
+                strncpy(sPath, sAPath, PATH_MAX*2);
+                sPath[PATH_MAX*2-1] = '\0';
+                sAPath[0]           = '\0';
                 nXFlags             = 0;
                 nFlags              = F_PENDING;
 
@@ -177,7 +175,7 @@ namespace lsp
                 nFlags             |= F_QPATH;
             }
 
-            void submit(Steinberg::Vst::IAttributeList *atts)
+            void submit_async(const char *path)
             {
                 while (true)
                 {
@@ -186,14 +184,10 @@ namespace lsp
                     {
                         lsp_finally { atomic_unlock(nLock); };
 
-                        // Write DSP request
-                        Steinberg::tresult res = atts->getString(
-                            "value",
-                            reinterpret_cast<Steinberg::Vst::TChar *>(sAPath),
-                            PATH_MAX * sizeof(lsp_utf16_t));
-                        if (res != Steinberg::kResultOk)
-                            sAPath[0]       = 0;
-                        nXFlags = XF_APATH;
+                        // Write Async request
+                        ::strncpy(sQPath, path, PATH_MAX*2);
+                        sAPath[PATH_MAX*2-1]    = '\0';
+                        nXFlags                 = XF_APATH;
                         break;
                     }
 
