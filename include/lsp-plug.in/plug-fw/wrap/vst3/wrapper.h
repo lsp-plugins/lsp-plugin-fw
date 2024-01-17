@@ -95,8 +95,8 @@ namespace lsp
                 lltl::parray<vst3::InParamPort>     vParamIn;               // Input parameter ports
                 lltl::parray<vst3::OutParamPort>    vParamOut;              // Output parameter ports
                 lltl::parray<plug::IPort>           vMeshes;                // Mesh ports
-                lltl::parray<vst3::FrameBufferPort> vFBuffers;              // Frame buffer ports
-                lltl::parray<vst3::StreamPort>      vStreams;               // Streaming ports
+                lltl::parray<plug::IPort>           vFBuffers;              // Frame buffer ports
+                lltl::parray<plug::IPort>           vStreams;               // Streaming ports
                 lltl::parray<vst3::PathPort>        vPathPorts;             // Path ports
                 lltl::pphash<char, vst3::Port>      vVirtMapping;           // Virtual input port mapping
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata for virtual ports
@@ -162,7 +162,7 @@ namespace lsp
                 virtual const meta::package_t  *package() const override;
 
             public: // vst3::IDataSync
-                virtual void                        sync_data() override;
+                virtual void                    sync_data() override;
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult  PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;

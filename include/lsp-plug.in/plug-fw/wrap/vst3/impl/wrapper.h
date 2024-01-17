@@ -989,135 +989,6 @@ namespace lsp
             return Steinberg::kResultOk;
         }
 
-        Steinberg::tresult PLUGIN_API Wrapper::notify(Steinberg::Vst::IMessage *message)
-        {
-            // Obtain the message data
-            if (message == NULL)
-                return Steinberg::kInvalidArgument;
-            const char *message_id = reinterpret_cast<const char *>(message->getMessageID());
-            if (message_id == NULL)
-                return Steinberg::kInvalidArgument;
-            Steinberg::Vst::IAttributeList *atts = message->getAttributes();
-            if (atts == NULL)
-                return Steinberg::kInvalidArgument;
-
-            // Analyze the message
-            Steinberg::tresult res;
-            Steinberg::int64 byte_order = BYTEORDER;
-
-            if (!strcmp(message_id, "Path"))
-            {
-                lsp_trace("Received Path message");
-
-                // Get endianess
-                if ((res = atts->getInt("endian", byte_order)) != Steinberg::kResultOk)
-                {
-                    lsp_warn("Failed to read property 'endian'");
-                    return Steinberg::kResultFalse;
-                }
-
-                // Get port identifier
-                const char *id = sNotifyBuf.get_string(atts, "id", byte_order);
-                if (id == NULL)
-                    return Steinberg::kResultFalse;
-
-                // Find path port
-                vst3::Port *p = vVirtMapping.get(id);
-                if ((p == NULL) || (!meta::is_path_port(p->metadata())))
-                {
-                    lsp_warn("Invalid path port specified: %s", id);
-                    return Steinberg::kResultFalse;
-                }
-
-                // Get the path data
-                const char *in_path = sNotifyBuf.get_string(atts, "value", byte_order);
-                if (in_path == NULL)
-                    return Steinberg::kResultFalse;
-
-                // Submit path data
-                vst3::path_t *path = static_cast<vst3::path_t *>(p->buffer<plug::path_t>());
-                if (path != NULL)
-                    path->submit_async(in_path);
-            }
-            else if (!strcmp(message_id, "Param"))
-            {
-                lsp_trace("Received VParam message");
-
-                // Get port identifier
-                const char *id = sNotifyBuf.get_string(atts, "id", byte_order);
-                if (id == NULL)
-                    return Steinberg::kResultFalse;
-
-                // Obtain the destination port
-                vst3::Port *p = vVirtMapping.get(id);
-                if ((p == NULL) || (!meta::is_control_port(p->metadata())))
-                {
-                    lsp_warn("Invalid virtual parameter port specified: %s", id);
-                    return Steinberg::kResultFalse;
-                }
-
-                // Read value
-                double value = 0.0f;
-                if ((res = atts->getFloat("value", value)) != Steinberg::kResultOk)
-                {
-                    lsp_warn("Failed to read property 'value'");
-                    return Steinberg::kResultFalse;
-                }
-
-                // Submit new port value
-                vst3::InParamPort *pp = static_cast<vst3::InParamPort *>(p);
-                pp->submit(value);
-            }
-            else if (!strcmp(message_id, "ActivtateUI"))
-            {
-                lsp_trace("Received ActivateUI message");
-                atomic_add(&nUICounter, 1);
-            }
-            else if (!strcmp(message_id, "DeactivtateUI message"))
-            {
-                lsp_trace("Received DeactivateUI");
-                atomic_add(&nUICounter, -1);
-            }
-            else if (!strcmp(message_id, "PlaySample"))
-            {
-                lsp_trace("Received PlaySample");
-
-                // Get endianess
-                if ((res = atts->getInt("endian", byte_order)) != Steinberg::kResultOk)
-                {
-                    lsp_warn("Failed to read property 'endian'");
-                    return Steinberg::kResultFalse;
-                }
-
-                // Get file name
-                const char *file = sNotifyBuf.get_string(atts, "file", byte_order);
-                if (file == NULL)
-                    return Steinberg::kResultFalse;
-
-                // Get play position
-                int64_t position = 0;
-                if ((res = atts->getInt("position", position)) != Steinberg::kResultOk)
-                {
-                    lsp_warn("Failed to read property 'position'");
-                    return Steinberg::kResultFalse;
-                }
-
-                // Get release flag
-                double release = 0.0f;
-                if ((res = atts->getFloat("release", release)) != Steinberg::kResultOk)
-                {
-                    lsp_warn("Failed to read property 'release'");
-                    return Steinberg::kResultFalse;
-                }
-
-                // Request sample player for playback
-                if (pSamplePlayer != NULL)
-                    pSamplePlayer->play_sample(file, position, release > 0.5f);
-            }
-
-            return Steinberg::kResultOk;
-        }
-
         Steinberg::tresult PLUGIN_API Wrapper::setBusArrangements(Steinberg::Vst::SpeakerArrangement *inputs, Steinberg::int32 numIns, Steinberg::Vst::SpeakerArrangement* outputs, Steinberg::int32 numOuts)
         {
             if (numIns < 0 || numOuts < 0)
@@ -1576,16 +1447,178 @@ namespace lsp
             return pPackage;
         }
 
+        Steinberg::tresult PLUGIN_API Wrapper::notify(Steinberg::Vst::IMessage *message)
+        {
+            // Obtain the message data
+            if (message == NULL)
+                return Steinberg::kInvalidArgument;
+            const char *message_id = reinterpret_cast<const char *>(message->getMessageID());
+            if (message_id == NULL)
+                return Steinberg::kInvalidArgument;
+            Steinberg::Vst::IAttributeList *atts = message->getAttributes();
+            if (atts == NULL)
+                return Steinberg::kInvalidArgument;
+
+            // Analyze the message
+            Steinberg::tresult res;
+            Steinberg::int64 byte_order = BYTEORDER;
+
+            if (!strcmp(message_id, "Path"))
+            {
+                lsp_trace("Received Path message");
+
+                // Get endianess
+                if ((res = atts->getInt("endian", byte_order)) != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'endian'");
+                    return Steinberg::kResultFalse;
+                }
+
+                // Get port identifier
+                const char *id = sNotifyBuf.get_string(atts, "id", byte_order);
+                if (id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Find path port
+                vst3::Port *p = vVirtMapping.get(id);
+                if ((p == NULL) || (!meta::is_path_port(p->metadata())))
+                {
+                    lsp_warn("Invalid path port specified: %s", id);
+                    return Steinberg::kResultFalse;
+                }
+
+                // Get the path data
+                const char *in_path = sNotifyBuf.get_string(atts, "value", byte_order);
+                if (in_path == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Submit path data
+                vst3::path_t *path = static_cast<vst3::path_t *>(p->buffer<plug::path_t>());
+                if (path != NULL)
+                    path->submit_async(in_path);
+            }
+            else if (!strcmp(message_id, "Param"))
+            {
+                lsp_trace("Received VParam message");
+
+                // Get port identifier
+                const char *id = sNotifyBuf.get_string(atts, "id", byte_order);
+                if (id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Obtain the destination port
+                vst3::Port *p = vVirtMapping.get(id);
+                if ((p == NULL) || (!meta::is_control_port(p->metadata())))
+                {
+                    lsp_warn("Invalid virtual parameter port specified: %s", id);
+                    return Steinberg::kResultFalse;
+                }
+
+                // Read value
+                double value = 0.0f;
+                if ((res = atts->getFloat("value", value)) != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'value'");
+                    return Steinberg::kResultFalse;
+                }
+
+                // Submit new port value
+                vst3::InParamPort *pp = static_cast<vst3::InParamPort *>(p);
+                pp->submit(value);
+            }
+            else if (!strcmp(message_id, "ActivtateUI"))
+            {
+                lsp_trace("Received ActivateUI message");
+                atomic_add(&nUICounter, 1);
+
+                // Force frame buffers to sync with UI
+                for (lltl::iterator<plug::IPort> it=vFBuffers.values(); it; ++it)
+                {
+                    // Get the frame buffer data
+                    vst3::FrameBufferPort *fb_port = static_cast<vst3::FrameBufferPort *>(it.get());
+                    if (fb_port == NULL)
+                        continue;
+                    plug::frame_buffer_t *fb = it->buffer<plug::frame_buffer_t>();
+                    if (fb == NULL)
+                        continue;
+
+                    fb_port->set_row_id(fb->next_rowid() - fb->rows());
+                }
+
+                // Force streams to sync with UI
+                for (lltl::iterator<plug::IPort> it=vStreams.values(); it; ++it)
+                {
+                    // Get the frame buffer data
+                    vst3::StreamPort *s_port = static_cast<vst3::StreamPort *>(it.get());
+                    if (s_port == NULL)
+                        continue;
+                    plug::stream_t *s = it->buffer<plug::stream_t>();
+                    if (s == NULL)
+                        continue;
+
+                    s_port->set_frame_id(s->frame_id() - s->frames());
+                }
+            }
+            else if (!strcmp(message_id, "DeactivtateUI message"))
+            {
+                lsp_trace("Received DeactivateUI");
+                atomic_add(&nUICounter, -1);
+            }
+            else if (!strcmp(message_id, "PlaySample"))
+            {
+                lsp_trace("Received PlaySample");
+
+                // Get endianess
+                if ((res = atts->getInt("endian", byte_order)) != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'endian'");
+                    return Steinberg::kResultFalse;
+                }
+
+                // Get file name
+                const char *file = sNotifyBuf.get_string(atts, "file", byte_order);
+                if (file == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Get play position
+                int64_t position = 0;
+                if ((res = atts->getInt("position", position)) != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'position'");
+                    return Steinberg::kResultFalse;
+                }
+
+                // Get release flag
+                double release = 0.0f;
+                if ((res = atts->getFloat("release", release)) != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'release'");
+                    return Steinberg::kResultFalse;
+                }
+
+                // Request sample player for playback
+                if (pSamplePlayer != NULL)
+                    pSamplePlayer->play_sample(file, position, release > 0.5f);
+            }
+
+            return Steinberg::kResultOk;
+        }
+
         void Wrapper::sync_data()
         {
             // We have nothing to do if we can not allocate messages nor notify peer
             if ((pHostApplication == NULL) || (pPeerConnection == NULL))
                 return;
 
+            Steinberg::char8 key[16];
+
             // Synchronize meshes
             for (lltl::iterator<plug::IPort> it = vMeshes.values(); it; ++it)
             {
                 // Check that we have data in mesh
+                vst3::MeshPort *m_port = static_cast<vst3::MeshPort *>(it.get());
+                if (m_port == NULL)
+                    continue;
                 plug::mesh_t *mesh = it->buffer<plug::mesh_t>();
                 if ((mesh == NULL) || (!mesh->containsData()))
                     continue;
@@ -1603,6 +1636,9 @@ namespace lsp
                 // Write endianess
                 if (list->setInt("endian", BYTEORDER) != Steinberg::kResultOk)
                     continue;
+                // Write identifier of the mesh port
+                if (!sSyncBuf.set_string(list, "id", m_port->metadata()->id))
+                    continue;
                 // Write number of buffers
                 if (list->setInt("buffers", mesh->nBuffers) != Steinberg::kResultOk)
                     continue;
@@ -1611,7 +1647,6 @@ namespace lsp
                     continue;
 
                 // Encode data for each buffer
-                Steinberg::char8 key[16];
                 bool encoded = true;
                 for (size_t i=0; i<mesh->nBuffers; ++i)
                 {
@@ -1628,6 +1663,174 @@ namespace lsp
                 // Finally, we're ready to send message
                 if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
                     mesh->cleanup();
+            }
+
+            // Synchronize frame buffers
+            for (lltl::iterator<plug::IPort> it=vFBuffers.values(); it; ++it)
+            {
+                // Get the frame buffer data
+                vst3::FrameBufferPort *fb_port = static_cast<vst3::FrameBufferPort *>(it.get());
+                if (fb_port == NULL)
+                    continue;
+                plug::frame_buffer_t *fb = it->buffer<plug::frame_buffer_t>();
+                if (fb == NULL)
+                    continue;
+
+                // Serialize not more than 4 rows
+                size_t delta = fb->next_rowid() - fb_port->row_id();
+                uint32_t first_row = (delta > fb->rows()) ? fb->next_rowid() - fb->rows() : fb_port->row_id();
+                if (delta > FRAMEBUFFER_BULK_MAX)
+                    delta = FRAMEBUFFER_BULK_MAX;
+                uint32_t last_row = first_row + delta;
+
+                lsp_trace("id = %s, first=%d, last=%d", fb_port->metadata()->id, int(first_row), int(last_row));
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    continue;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID("FrameBuffer");
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write endianess
+                if (list->setInt("endian", BYTEORDER) != Steinberg::kResultOk)
+                    continue;
+                // Write identifier of the frame buffer port
+                if (!sSyncBuf.set_string(list, "id", fb_port->metadata()->id))
+                    continue;
+                // Write number of rows
+                if (list->setInt("rows", fb->rows()) != Steinberg::kResultOk)
+                    continue;
+                // Write number of columns
+                if (list->setInt("cols", fb->cols()) != Steinberg::kResultOk)
+                    continue;
+                // Write number of first row
+                if (list->setInt("first_row_id", first_row) != Steinberg::kResultOk)
+                    continue;
+                // Write number of last row
+                if (list->setInt("last_row_id", last_row) != Steinberg::kResultOk)
+                    continue;
+
+                // Encode data for each row
+                bool encoded = true;
+                for (size_t i=0; first_row != last_row; ++i, ++first_row)
+                {
+                    snprintf(key, sizeof(key), "row[%d]", int(i));
+                    if (list->setBinary(key, fb->get_row(first_row), fb->cols() * sizeof(float)) != Steinberg::kResultOk)
+                    {
+                        encoded     = false;
+                        break;
+                    }
+                }
+                if (!encoded)
+                    continue;
+
+                // Finally, we're ready to send message
+                if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
+                    fb_port->set_row_id(first_row);
+            }
+
+            // Synchronize streams
+            for (lltl::iterator<plug::IPort> it=vStreams.values(); it; ++it)
+            {
+                // Get the frame buffer data
+                vst3::StreamPort *s_port = static_cast<vst3::StreamPort *>(it.get());
+                if (s_port == NULL)
+                    continue;
+                plug::stream_t *s        = it->buffer<plug::stream_t>();
+                if (s == NULL)
+                    continue;
+
+                // Serialize not more than number of predefined frames
+                uint32_t frame_id  = s_port->frame_id();
+                uint32_t src_id    = s->frame_id();
+                uint32_t delta     = src_id - s->frame_id();
+                if (delta == 0)
+                    continue;
+
+                size_t num_frames  = s->frames();
+                uint32_t last_id   = src_id + 1;
+                if (delta > num_frames)
+                {
+                    delta              = num_frames;
+                    frame_id           = last_id - num_frames;
+                }
+                if (delta > STREAM_BULK_MAX)
+                    last_id            = frame_id + STREAM_BULK_MAX;
+                size_t nbuffers     = s->channels();
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    continue;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID("Stream");
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write endianess
+                if (list->setInt("endian", BYTEORDER) != Steinberg::kResultOk)
+                    continue;
+                // Write identifier of the frame buffer port
+                if (!sSyncBuf.set_string(list, "id", s_port->metadata()->id))
+                    continue;
+                // Write number of rows
+                if (list->setInt("buffers", nbuffers) != Steinberg::kResultOk)
+                    continue;
+
+                // Forge vectors
+                size_t frames = 0;
+                bool encoded = true;
+                for ( ; frame_id != last_id; ++frame_id)
+                {
+                    ssize_t frame_size = s->get_frame_size(frame_id);
+                    if (frame_size < 0)
+                        continue;
+
+                    // Forge frame number
+                    snprintf(key, sizeof(key), "frame_id[%d]", int(frames));
+                    if (list->setInt(key, frame_id) != Steinberg::kResultOk)
+                    {
+                        encoded = false;
+                        break;
+                    }
+                    snprintf(key, sizeof(key), "frame_size[%d]", int(frames));
+                    if (list->setInt(key, frame_size) != Steinberg::kResultOk)
+                    {
+                        encoded = false;
+                        break;
+                    }
+
+                    // Forge vectors
+                    for (size_t i=0; i < nbuffers; ++i)
+                    {
+                        float *data = s_port->read_frame(frame_id, i, 0, frame_size);
+
+                        snprintf(key, sizeof(key), "data[%d][%d]", int(frames), int(i));
+                        if (list->setBinary(key, data, frame_size * sizeof(float)) != Steinberg::kResultOk)
+                        {
+                            encoded     = false;
+                            break;
+                        }
+                    }
+                    if (!encoded)
+                        break;
+
+                    // Increment number of frames
+                    ++frames;
+                }
+
+                if (!encoded)
+                    continue;
+                if (list->setInt("frames", frames) != Steinberg::kResultOk)
+                    continue;
+
+                // Update current RowID
+                s_port->set_frame_id(frame_id);
             }
         }
 

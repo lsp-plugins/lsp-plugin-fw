@@ -422,12 +422,16 @@ namespace lsp
         {
             private:
                 plug::stream_t     *pStream;
+                float              *pData;
+                uint32_t            nFrameID;
 
             public:
                 explicit StreamPort(const meta::port_t *meta):
                     Port(meta)
                 {
                     pStream     = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
+                    pData       = reinterpret_cast<float *>(::malloc(sizeof(float) * STREAM_MAX_FRAME_SIZE));
+                    nFrameID    = 0;
                 }
 
                 virtual ~StreamPort() override
@@ -436,6 +440,11 @@ namespace lsp
                     {
                         plug::stream_t::destroy(pStream);
                         pStream     = NULL;
+                    }
+                    if (pData != NULL)
+                    {
+                        free(pData);
+                        pData       = NULL;
                     }
                 }
 
@@ -450,18 +459,30 @@ namespace lsp
                 {
                     return pStream;
                 }
+
+            public:
+                inline uint32_t frame_id() const        { return nFrameID;      }
+                void set_frame_id(uint32_t frame_id)    { nFrameID = frame_id;  }
+
+                inline float *read_frame(uint32_t frame_id, size_t channel, size_t off, size_t count)
+                {
+                    ssize_t res = pStream->read_frame(frame_id, channel, pData, off, count);
+                    return (res >= 0) ? pData : NULL;
+                }
         };
 
         class FrameBufferPort: public Port
         {
             private:
                 plug::frame_buffer_t    sFB;
+                uint32_t                nRowID;
 
             public:
                 explicit FrameBufferPort(const meta::port_t *meta):
                     Port(meta)
                 {
                     sFB.init(pMetadata->start, pMetadata->step);
+                    nRowID              = 0;
                 }
 
                 virtual ~FrameBufferPort() override
@@ -480,6 +501,10 @@ namespace lsp
                 {
                     return &sFB;
                 }
+
+            public:
+                inline uint32_t row_id() const          { return nRowID;    }
+                void set_row_id(uint32_t row_id)        { nRowID = row_id;  }
         };
 
         class PathPort: public Port
