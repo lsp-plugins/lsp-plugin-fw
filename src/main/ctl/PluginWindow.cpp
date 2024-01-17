@@ -1068,11 +1068,7 @@ namespace lsp
             // Enumerate presets
             lltl::darray<resource::resource_t> presets;
             const meta::plugin_t *metadata = pWrapper->ui()->metadata();
-            if ((metadata == NULL) || (metadata->ui_presets == NULL))
-                return STATUS_OK;
-            if (scan_presets(metadata->ui_presets, &presets) != STATUS_OK)
-                return STATUS_OK;
-            if (presets.is_empty())
+            if ((metadata == NULL))
                 return STATUS_OK;
 
             tk::MenuItem *item;
@@ -1121,6 +1117,11 @@ namespace lsp
 
             // if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
             // item->text()->set("*Open presets folder*");
+
+            if (scan_presets(metadata->ui_presets, &presets) != STATUS_OK)
+                return STATUS_OK;
+            if (presets.is_empty())
+                return STATUS_OK;
 
             if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
             item->type()->set_separator();
