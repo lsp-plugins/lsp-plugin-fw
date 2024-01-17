@@ -52,13 +52,13 @@ namespace lsp
 
             private:
                 LV2_Worker_Schedule        *sched;      // Schedule interface
-                volatile atomic_t           queued;     // Number of queued tasks
+//                volatile atomic_t           queued;     // Number of queued tasks
 
             public:
                 Executor(LV2_Worker_Schedule *schedule)
                 {
                     sched       = schedule;
-                    atomic_init(queued);
+//                    atomic_init(queued);
                 }
                 Executor(const Executor &) = delete;
                 Executor(Executor &&) = delete;
@@ -83,7 +83,7 @@ namespace lsp
                     change_task_state(task, ipc::ITask::TS_SUBMITTED);
                     if (sched->schedule_work(sched->handle, sizeof(task_descriptor_t), &descr) == LV2_WORKER_SUCCESS)
                     {
-                        atomic_add(&queued, 1);
+//                        atomic_add(&queued, 1);
                         return true;
                     }
 
@@ -92,12 +92,14 @@ namespace lsp
                     return false;
                 }
 
-                virtual void shutdown() override
-                {
-                    // We need to wait until all offline tasks have been executed
-                    while (queued > 0)
-                        ipc::Thread::sleep(10);
-                }
+// This is too hacky workaround for that hosts that run tasks even if plugin was terminated
+// in practice, it doesn't work. But let's see
+//                virtual void shutdown() override
+//                {
+//                    // We need to wait until all offline tasks have been executed
+//                    while (queued > 0)
+//                        ipc::Thread::sleep(10);
+//                }
 
             public:
                 inline void run_job(
@@ -115,7 +117,7 @@ namespace lsp
                         return;
 
                     // Run task
-                    lsp_finally { atomic_add(&queued, -1); };
+//                    lsp_finally { atomic_add(&queued, -1); };
                     run_task(descr->task);
                 }
         };
