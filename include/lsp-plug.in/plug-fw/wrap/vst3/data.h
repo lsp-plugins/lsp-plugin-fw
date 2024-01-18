@@ -24,11 +24,11 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/io/charset.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 
 #include <steinberg/vst3.h>
 
@@ -36,6 +36,8 @@ namespace lsp
 {
     namespace vst3
     {
+        constexpr const char *STATE_SIGNATURE = "LSPS";
+
         enum serial_flags_t
         {
             FLAG_PRIVATE    = 1 << 0,
@@ -43,6 +45,7 @@ namespace lsp
 
         enum serial_types_t
         {
+            TYPE_UNKNOWN    = '\0',
             TYPE_INT32      = 'i',
             TYPE_UINT32     = 'u',
             TYPE_INT64      = 'I',
@@ -145,24 +148,6 @@ namespace lsp
             virtual bool accepted()
             {
                 return nFlags & F_ACCEPTED;
-            }
-
-            status_t serialize(Steinberg::IBStream *os)
-            {
-                ssize_t res = write_string(os, sPath);
-                return (res < 0) ? -res : STATUS_OK;
-            }
-
-            status_t deserialize(Steinberg::IBStream *is)
-            {
-                char *dst           = ((nFlags & (F_PENDING | F_ACCEPTED)) == (F_PENDING | F_ACCEPTED)) ? sQPath : sPath;
-
-                // Deserialize as DSP request
-                status_t res = read_string(is, dst, PATH_MAX*2-1);
-                if (res != STATUS_OK)
-                    return res;
-
-                return STATUS_OK;
             }
 
             void submit(const char *path, size_t len, size_t flags)

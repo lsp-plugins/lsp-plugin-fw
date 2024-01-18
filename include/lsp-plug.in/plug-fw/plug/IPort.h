@@ -94,11 +94,17 @@ namespace lsp
                 virtual void post_process(size_t samples);
 
             public:
-                /** Get port metadata
-                 *
+                /**
+                 * Get port metadata
                  * @return port metadata
                  */
                 inline const meta::port_t *metadata() const { return pMetadata; };
+
+                /**
+                 * Get port identifier
+                 * @return port identifier
+                 */
+                inline const char *id() const               { return (pMetadata != NULL) ? pMetadata->id : NULL; }
 
                 /** Get buffer casted to specified type
                  *

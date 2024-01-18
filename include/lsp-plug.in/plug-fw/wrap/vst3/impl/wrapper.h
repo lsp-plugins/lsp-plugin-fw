@@ -33,6 +33,7 @@
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/data.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
@@ -949,10 +950,136 @@ namespace lsp
             return Steinberg::kResultOk;
         }
 
+        status_t Wrapper::save_kvt_parameters_v1(Steinberg::IBStream *os, core::KVTStorage *kvt)
+        {
+            status_t res;
+            const core::kvt_param_t *p = NULL;
+
+            // Read the whole KVT storage
+            core::KVTIterator *it = kvt->enum_all();
+            while (it->next() == STATUS_OK)
+            {
+                // Get parameter
+                res             = it->get(&p);
+                if (res == STATUS_NOT_FOUND) // Not a parameter
+                    continue;
+                else if (res != STATUS_OK)
+                {
+                    lsp_warn("it->get() returned %d", int(res));
+                    return res;
+                }
+                else if (it->is_transient()) // Skip transient parameters
+                    continue;
+
+                // Privacy flag
+                uint8_t flags   = 0;
+                if (it->is_private())
+                    flags          |= vst3::FLAG_PRIVATE;
+
+                const char *name = it->name();
+                if (name == NULL)
+                {
+                    lsp_trace("it->name() returned NULL");
+                    return STATUS_CORRUPTED;
+                }
+
+                kvt_dump_parameter("Saving state of KVT parameter: %s = ", p, name);
+
+                // Serialize parameter name and flags
+                size_t name_len = strlen(name);
+                if ((res = write_fully(os, name, name_len)) != STATUS_OK)
+                {
+                    lsp_warn("Failed to save KVT parameter name for id = %s", name);
+                    return res;
+                }
+
+                // Successful status?
+                if ((res = write_kvt_param(os, name, p, flags)) != STATUS_OK)
+                {
+                    lsp_warn("KVT parameter serialization failed id=%s", name);
+                    return res;
+                }
+            } // while
+
+            return STATUS_OK;
+        }
+
+        status_t Wrapper::save_state_v1(Steinberg::IBStream *os)
+        {
+            status_t res;
+            const uint16_t endianess = 0x55aa;
+            const uint16_t version = 1;
+
+            // Write header
+            if ((res = write_fully(os, STATE_SIGNATURE, 4)) != STATUS_OK)
+                return res;
+            if ((res = write_fully(os, &endianess, sizeof(endianess))) != STATUS_OK)
+                return res;
+            if ((res = write_fully(os, &version, sizeof(version))) != STATUS_OK)
+                return res;
+
+            // Write parameters
+            for (lltl::iterator<vst3::InParamPort> it = vParamIn.values(); it; ++it)
+            {
+                vst3::InParamPort *p = it.get();
+                const char *id = (p != NULL) ? p->id() : NULL;
+                if (id == NULL)
+                    continue;
+
+                lsp_trace("Saving state of parameter: %s = %f", id, p->value());
+                if ((res = write_value(os, id, p->value())) != STATUS_OK)
+                    return res;
+            }
+
+            // Write virtual parameters
+            for (lltl::iterator<vst3::Port> it = vVirtMapping.values(); it; ++it)
+            {
+                vst3::Port *p = it.get();
+                const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
+                if ((meta == NULL) || (meta->id == NULL))
+                    continue;
+
+                if (meta::is_control_port(meta))
+                {
+                    lsp_trace("Saving state of virtual parameter: %s = %f", meta->id, p->value());
+
+                    if ((res = write_value(os, meta->id, p->value())) != STATUS_OK)
+                        return res;
+                }
+                else if (meta::is_path_port(meta))
+                {
+                    path_t *path = p->buffer<path_t>();
+                    if (path == NULL)
+                        return STATUS_CORRUPTED;
+
+                    lsp_trace("Saving state of path parameter: %s = %s", meta->id, path->path());
+
+                    const char *path_value = path->path();
+                    if ((res = write_value(os, meta->id, path_value)) != STATUS_OK)
+                        return res;
+                }
+                else
+                    return STATUS_CORRUPTED;
+            }
+
+            // Save state of all KVT parameters
+            if (sKVTMutex.lock())
+            {
+                lsp_finally { sKVTMutex.unlock(); };
+                res = save_kvt_parameters_v1(os, &sKVT);
+                sKVT.gc();
+            }
+
+            if (res == STATUS_OK)
+                pPlugin->state_saved();
+
+            return res;
+        }
+
         Steinberg::tresult PLUGIN_API Wrapper::setState(Steinberg::IBStream *state)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            status_t res = save_state_v1(state);
+            return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::getState(Steinberg::IBStream *state)
@@ -1832,6 +1959,8 @@ namespace lsp
                 // Update current RowID
                 s_port->set_frame_id(frame_id);
             }
+
+            // TODO: synchronize KVT state
         }
 
     } /* namespace vst3 */

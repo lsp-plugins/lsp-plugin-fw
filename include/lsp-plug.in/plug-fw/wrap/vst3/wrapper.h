@@ -142,6 +142,8 @@ namespace lsp
                 size_t                      prepare_block(int32_t frame, Steinberg::Vst::ProcessData *pdata);
                 vst3::InParamPort          *input_parameter(Steinberg::Vst::ParamID id);
                 void                        transmit_output_parameters(Steinberg::Vst::IParameterChanges *changes);
+                status_t                    save_kvt_parameters_v1(Steinberg::IBStream *os, core::KVTStorage *kvt);
+                status_t                    save_state_v1(Steinberg::IBStream *os);
 
             public:
                 explicit Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package);

@@ -36,6 +36,8 @@
 #include <lsp-plug.in/stdlib/string.h>
 
 #include <steinberg/vst3.h>
+#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/data.h>
 
 namespace lsp
 {
@@ -386,6 +388,33 @@ namespace lsp
         }
 
         /**
+         * Write floating-point value to the stream
+         * @param is output stream
+         * @param key parameter name
+         * @param value parameter value
+         * @return status of operation
+         */
+        template <class T>
+        inline status_t write_value(Steinberg::IBStream *is, const char *key, const T value)
+        {
+            size_t len = strlen(key);
+            status_t res = write_fully(is, key, len + 1);
+            if (res == STATUS_OK)
+                res = write_fully(is, &value, sizeof(T));
+            return res;
+        }
+
+        template <>
+        inline status_t write_value(Steinberg::IBStream *is, const char *key, const char *value)
+        {
+            size_t len = strlen(key);
+            status_t res = write_fully(is, key, len + 1);
+            if (res == STATUS_OK)
+                res = write_string(is, value);
+            return res;
+        }
+
+        /**
          * Make plugin categories
          *
          * @param dst destination string to store plugin categories
@@ -653,6 +682,83 @@ namespace lsp
                 if (str[i] == 0)
                     return i - 1;
             return len;
+        }
+
+        inline uint8_t encode_param_type(core::kvt_param_type_t type)
+        {
+            switch (type)
+            {
+                case core::KVT_INT32:   return TYPE_INT32;
+                case core::KVT_UINT32:  return TYPE_UINT32;
+                case core::KVT_INT64:   return TYPE_INT64;
+                case core::KVT_UINT64:  return TYPE_UINT64;
+                case core::KVT_FLOAT32: return TYPE_FLOAT32;
+                case core::KVT_FLOAT64: return TYPE_FLOAT64;
+                case core::KVT_STRING:  return TYPE_STRING;
+                case core::KVT_BLOB:    return TYPE_BLOB;
+                default:                break;
+            }
+            return TYPE_UNKNOWN;
+        }
+
+        inline status_t write_kvt_param(Steinberg::IBStream *os, const char *name, const core::kvt_param_t *p, uint8_t flags)
+        {
+            status_t res;
+
+            if ((res = write_fully(os, &flags, sizeof(flags))) != STATUS_OK)
+                return res;
+            uint8_t type = encode_param_type(p->type);
+            if ((res = write_fully(os, &type, sizeof(type))) != STATUS_OK)
+                return res;
+
+            // Serialize parameter according to it's type
+            switch (type)
+            {
+                case core::KVT_INT32:
+                    res = write_fully(os, &p->i32, sizeof(p->i32));
+                    break;
+                case core::KVT_UINT32:
+                    res = write_fully(os, &p->u32, sizeof(p->u32));
+                    break;
+                case core::KVT_INT64:
+                    res = write_fully(os, &p->i64, sizeof(p->i64));
+                    break;
+                case core::KVT_UINT64:
+                    res = write_fully(os, &p->u64, sizeof(p->u64));
+                    break;
+                case core::KVT_FLOAT32:
+                    res = write_fully(os, &p->f32, sizeof(p->f32));
+                    break;
+                case core::KVT_FLOAT64:
+                    res = write_fully(os, &p->f64, sizeof(p->f64));
+                    break;
+                case core::KVT_STRING:
+                {
+                    const char *str = (p->str != NULL) ? p->str : "";
+                    res = write_string(os, str);
+                    break;
+                }
+                case core::KVT_BLOB:
+                {
+                    if ((p->blob.size > 0) && (p->blob.data == NULL))
+                    {
+                        lsp_warn("Non-empty blob with NULL data pointer for KVT parameter id=%s", name);
+                        return STATUS_INVALID_VALUE;
+                    }
+
+                    const char *ctype = (p->blob.ctype != NULL) ? p->blob.ctype : "";
+                    res = write_string(os, ctype);
+                    if ((res == STATUS_OK) && (p->blob.size > 0))
+                        res = write_fully(os, p->blob.data, p->blob.size);
+                    break;
+                }
+
+                default:
+                    lsp_trace("KVT serialization failed: unknown parameter type for id=%s", name);
+                    return STATUS_BAD_TYPE;
+            }
+
+            return STATUS_OK;
         }
 
     } /* namespace vst3 */

@@ -751,7 +751,7 @@ namespace lsp
                     // Successful status?
                     if (res != STATUS_OK)
                     {
-                        lsp_trace("it->name() returned NULL");
+                        lsp_trace("KVT serialization failed");
                         break;
                     }
 
