@@ -169,34 +169,9 @@ namespace lsp
 
         status_t KVTDispatcher::run()
         {
-            size_t changes;
-
             while (!cancelled())
             {
-                changes     = 0;
-
-                // Lock KVT storage and perform transfer
-                pKVTMutex->lock();
-                if (nClients > 0)
-                {
-                    if (nTxRequest > 0)
-                    {
-                        lsp_trace("Setting all KVT parameters as required for transfer");
-                        pKVT->touch_all(KVT_TX);
-                        atomic_add(&nTxRequest, -1);
-                    }
-
-                    changes    += receive_changes();    // Perform receive first
-                    changes    += transmit_changes();   // Perform transmit then
-                }
-                else
-                {
-                    pTx->clear();
-                    pRx->clear();
-                }
-                pKVT->gc();                         // Perform garbage collection
-                pKVTMutex->unlock();
-
+                ssize_t changes     = iterate();
                 if (changes <= 0)
                     Thread::sleep(100);     // No changes? Sleep for a while
             }
@@ -204,6 +179,36 @@ namespace lsp
             return STATUS_OK;
         }
 
+        ssize_t KVTDispatcher::iterate()
+        {
+            ssize_t changes     = 0;
+
+            // Lock KVT storage and perform transfer
+            if (!pKVTMutex->lock())
+                return changes;
+            lsp_finally { pKVTMutex->unlock(); };
+
+            if (nClients > 0)
+            {
+                if (nTxRequest > 0)
+                {
+                    lsp_trace("Setting all KVT parameters as required for transfer");
+                    pKVT->touch_all(KVT_TX);
+                    atomic_add(&nTxRequest, -1);
+                }
+
+                changes    += receive_changes();    // Perform receive first
+                changes    += transmit_changes();   // Perform transmit then
+            }
+            else
+            {
+                pTx->clear();
+                pRx->clear();
+            }
+            pKVT->gc();                         // Perform garbage collection
+
+            return changes;
+        }
 
         status_t KVTDispatcher::submit(const void *data, size_t size)
         {

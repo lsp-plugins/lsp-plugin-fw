@@ -31,6 +31,7 @@
 #include <lsp-plug.in/ipc/IExecutor.h>
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
@@ -81,6 +82,20 @@ namespace lsp
                     plug::IPort                    *vPorts[];   // List of ports related to the audio bus
                 } event_bus_t;
 
+                class VST3KVTListener: public core::KVTListener
+                {
+                    private:
+                        vst3::Wrapper              *pWrapper;
+
+                    public:
+                        explicit VST3KVTListener(vst3::Wrapper *wrapper) { pWrapper = wrapper; }
+
+                    public:
+                        virtual void created(core::KVTStorage *storage, const char *id, const core::kvt_param_t *param, size_t pending);
+                        virtual void changed(core::KVTStorage *storage, const char *id, const core::kvt_param_t *oval, const core::kvt_param_t *nval, size_t pending);
+                        virtual void removed(core::KVTStorage *storage, const char *id, const core::kvt_param_t *param, size_t pending);
+                };
+
             protected:
                 volatile uatomic_t                  nRefCounter;            // Reference counter
                 PluginFactory                      *pFactory;               // Reference to the factory
@@ -109,6 +124,9 @@ namespace lsp
                 vst3::string_buf                    sSyncBuf;               // Sync buffer
                 core::KVTStorage                    sKVT;                   // KVT storage
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
+                VST3KVTListener                     sKVTListener;           // KVT state listener
+                core::KVTDispatcher                *pKVTDispatcher;         // KVT dispatcher
+                uint8_t                            *pOscPacket;             // OSC packet data
 
                 uatomic_t                           nUICounter;             // UI counter
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block

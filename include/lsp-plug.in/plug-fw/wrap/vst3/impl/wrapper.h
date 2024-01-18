@@ -46,8 +46,26 @@ namespace lsp
 {
     namespace vst3
     {
+        //---------------------------------------------------------------------
+        void Wrapper::VST3KVTListener::created(core::KVTStorage *storage, const char *id, const core::kvt_param_t *param, size_t pending)
+        {
+            pWrapper->state_changed();
+        }
+
+        void Wrapper::VST3KVTListener::changed(core::KVTStorage *storage, const char *id, const core::kvt_param_t *oval, const core::kvt_param_t *nval, size_t pending)
+        {
+            pWrapper->state_changed();
+        }
+
+        void Wrapper::VST3KVTListener::removed(core::KVTStorage *storage, const char *id, const core::kvt_param_t *param, size_t pending)
+        {
+            pWrapper->state_changed();
+        }
+
+        //---------------------------------------------------------------------
         Wrapper::Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package):
-            IWrapper(plugin, loader)
+            IWrapper(plugin, loader),
+            sKVTListener(this)
         {
             nRefCounter         = 1;
             pFactory            = safe_acquire(factory);
@@ -60,6 +78,9 @@ namespace lsp
             pEventsOut          = NULL;
             pSamplePlayer       = NULL;
             pLatencyOut         = NULL;
+
+            pKVTDispatcher      = NULL;
+            pOscPacket          = NULL;
 
             nUICounter          = 0;
             nMaxSamplesPerBlock = 0;
@@ -683,6 +704,18 @@ namespace lsp
             if (!create_busses(meta))
                 return Steinberg::kInternalError;
 
+            // Allocate OSC packet data
+            pOscPacket      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX));
+            if (pOscPacket == NULL)
+                return Steinberg::kOutOfMemory;
+            if (meta->extensions & meta::E_KVT_SYNC)
+            {
+                lsp_trace("Binding KVT listener");
+                sKVT.bind(&sKVTListener);
+                lsp_trace("Creating KVT dispatcher...");
+                pKVTDispatcher         = new core::KVTDispatcher(&sKVT, &sKVTMutex);
+            }
+
             // Initialize plugin
             pPlugin->init(this, plugin_ports.array());
 
@@ -724,6 +757,13 @@ namespace lsp
             {
                 delete pPlugin;
                 pPlugin         = NULL;
+            }
+
+            // Delete temporary buffer for OSC serialization
+            if (pOscPacket != NULL)
+            {
+                ::free(pOscPacket);
+                pOscPacket = NULL;
             }
 
             // Release host context
@@ -1098,6 +1138,8 @@ namespace lsp
 
             // Save the peer connection
             pPeerConnection = safe_acquire(other);
+            if (pKVTDispatcher != NULL)
+                pKVTDispatcher->connect_client();
 
             return Steinberg::kResultOk;
         }
@@ -1112,6 +1154,8 @@ namespace lsp
 
             // Reset the peer connection
             safe_release(pPeerConnection);
+            if (pKVTDispatcher != NULL)
+                pKVTDispatcher->disconnect_client();
 
             return Steinberg::kResultOk;
         }
@@ -1960,7 +2004,54 @@ namespace lsp
                 s_port->set_frame_id(frame_id);
             }
 
-            // TODO: synchronize KVT state
+            // Transmit KVT state
+            if (pKVTDispatcher != NULL)
+            {
+                size_t size = 0;
+                bool encoded = true;
+
+                while (encoded)
+                {
+                    pKVTDispatcher->iterate();
+                    status_t res = pKVTDispatcher->fetch(pOscPacket, &size, OSC_PACKET_MAX);
+
+                    switch (res)
+                    {
+                        case STATUS_OK:
+                        {
+                            lsp_trace("Transmitting OSC packet of %d bytes", int(size));
+                            osc::dump_packet(pOscPacket, size);
+
+                            // Allocate new message
+                            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                            if (msg == NULL)
+                                continue;
+                            lsp_finally { safe_release(msg); };
+
+                            // Initialize the message
+                            msg->setMessageID("KVT");
+                            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                            encoded = list->setBinary("data", pOscPacket, size) == Steinberg::kResultOk;
+                            break;
+                        }
+
+                        case STATUS_OVERFLOW:
+                            lsp_warn("Received too big OSC packet, skipping");
+                            pKVTDispatcher->skip();
+                            break;
+
+                        case STATUS_NO_DATA:
+                            encoded = false;
+                            break;
+
+                        default:
+                            lsp_warn("Received error while deserializing KVT changes: %d", int(res));
+                            encoded = false;;
+                            break;
+                    }
+                }
+            }
         }
 
     } /* namespace vst3 */
