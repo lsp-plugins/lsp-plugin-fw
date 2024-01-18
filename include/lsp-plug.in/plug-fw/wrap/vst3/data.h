@@ -74,8 +74,11 @@ namespace lsp
             };
 
             uint8_t             nFlags;                 // Current state of path primitive
-            volatile uint8_t    nXFlags;                // Async request status
+            volatile uint8_t    nAFlags;                // Async request status
             atomic_t            nLock;                  // Atomic lock variable for async access
+            uint32_t            nPathFlags;             // Path flags
+            uint32_t            nPPathFlags;            // Pending path flags
+            uint32_t            nAPathFlags;            // Asynchronous pending path flags
 
             char                sPath[PATH_MAX*2];      // Current path value
             char                sQPath[PATH_MAX*2];     // Pending path value (sync request)
@@ -84,7 +87,7 @@ namespace lsp
             virtual void init() override
             {
                 nFlags          = 0;
-                nXFlags         = 0;
+                nAFlags         = 0;
                 atomic_init(nLock);
                 sPath[0]        = '\0';
                 sQPath[0]       = '\0';
@@ -98,7 +101,7 @@ namespace lsp
 
             virtual size_t flags() const override
             {
-                return nFlags;
+                return nPathFlags;
             }
 
             virtual void accept() override
@@ -118,12 +121,13 @@ namespace lsp
                     strncpy(sPath, sQPath, PATH_MAX*2);
                     sPath[PATH_MAX*2-1] = '\0';
                     sQPath[0]           = '\0';
+                    nPathFlags          = nPPathFlags;
                     nFlags              = F_PENDING;
                     return true;
                 }
 
                 // Check that we have pending async request
-                if (!(nXFlags & XF_APATH))
+                if (!(nAFlags & XF_APATH))
                     return false;
                 if (!atomic_trylock(nLock))
                     return false;
@@ -133,7 +137,8 @@ namespace lsp
                 strncpy(sPath, sAPath, PATH_MAX*2);
                 sPath[PATH_MAX*2-1] = '\0';
                 sAPath[0]           = '\0';
-                nXFlags             = 0;
+                nAFlags             = 0;
+                nPathFlags          = nAPathFlags;
                 nFlags              = F_PENDING;
 
                 return true;
@@ -157,10 +162,11 @@ namespace lsp
                 // Write DSP request
                 ::strncpy(sPath, path, count);
                 sPath[count]        = '\0';
+                nPathFlags          = flags;
                 nFlags             |= F_QPATH;
             }
 
-            void submit_async(const char *path)
+            void submit_async(const char *path, size_t flags)
             {
                 while (true)
                 {
@@ -172,7 +178,8 @@ namespace lsp
                         // Write Async request
                         ::strncpy(sQPath, path, PATH_MAX*2);
                         sAPath[PATH_MAX*2-1]    = '\0';
-                        nXFlags                 = XF_APATH;
+                        nAFlags                 = XF_APATH;
+                        nAPathFlags             = flags;
                         break;
                     }
 

@@ -193,7 +193,7 @@ namespace lsp
         /**
          * Hash the string value and return the hash value as a VST parameter identifier
          * @param str string to hash
-         * @return clap identifier as a result of hashing
+         * @return VST3 identifier as a result of hashing
          */
         inline Steinberg::Vst::ParamID gen_parameter_id(const char *str)
         {
@@ -218,7 +218,7 @@ namespace lsp
         }
 
         /**
-         * Write the constant-sized block to the CLAP output streem
+         * Write the constant-sized block to the VST3 output streem
          * @param os VST3 output stream
          * @param buf buffer that should be written
          * @param size size of buffer to write
@@ -239,20 +239,7 @@ namespace lsp
         }
 
         /**
-         * Write simple data type to the CLAP output stream
-         * @param os VST3 output stream
-         * @param value value to write
-         * @return status of operation
-         */
-        template <class T>
-        inline status_t write_fully(Steinberg::IBStream *os, const T &value)
-        {
-            T tmp   = CPU_TO_LE(value);
-            return write_fully(os, &tmp, sizeof(tmp));
-        }
-
-        /**
-         * Read the constant-sized block from the CLAP input streem
+         * Read the constant-sized block from the VST3 input streem
          * @param is VST3 input stream
          * @param buf target buffer to read the data to
          * @param size size of buffer to read
@@ -277,7 +264,7 @@ namespace lsp
         }
 
         /**
-         * Read simple data type from the CLAP input stream
+         * Read simple data type from the VST3 input stream
          * @param is VST3 input stream
          * @param value value to write
          * @return status of operation
@@ -362,6 +349,34 @@ namespace lsp
         }
 
         /**
+         * Write floating-point value to the stream
+         * @param is output stream
+         * @param key parameter name
+         * @param value parameter value
+         * @return status of operation
+         */
+        template <class T>
+        inline status_t write_value(Steinberg::IBStream *is, const char *key, const T value)
+        {
+            status_t res = write_string(is, key);
+            if (res == STATUS_OK)
+            {
+                T tmp   = CPU_TO_LE(value);
+                res     = write_fully(is, &tmp, sizeof(T));
+            }
+            return res;
+        }
+
+        template <>
+        inline status_t write_value(Steinberg::IBStream *is, const char *key, const char *value)
+        {
+            status_t res = write_string(is, key);
+            if (res == STATUS_OK)
+                res = write_string(is, value);
+            return res;
+        }
+
+        /**
          * Read the string from the VST3 input stream
          * @param is VST3 input stream
          * @param buf buffer to store the string
@@ -388,30 +403,43 @@ namespace lsp
         }
 
         /**
-         * Write floating-point value to the stream
-         * @param is output stream
-         * @param key parameter name
-         * @param value parameter value
-         * @return status of operation
+         * Read the string from the VST3 input stream
+         * @param is VST3 input stream
+         * @param buf pointer to variable to store the pointer to the string. The previous value will be
+         *   reallocated if there is not enough capacity. Should be freed by caller after use even if the
+         *   execution was unsuccessful.
+         * @param capacity the pointer to variable that contains the current capacity of the string
+         * @return number of actual bytes read or negative error code
          */
-        template <class T>
-        inline status_t write_value(Steinberg::IBStream *is, const char *key, const T value)
+        inline status_t read_string(Steinberg::IBStream *is, char **buf, size_t *capacity)
         {
-            size_t len = strlen(key);
-            status_t res = write_fully(is, key, len + 1);
-            if (res == STATUS_OK)
-                res = write_fully(is, &value, sizeof(T));
-            return res;
-        }
+            // Read variable-sized string length
+            size_t len = 0;
+            status_t res = read_varint(is, &len);
+            if (res != STATUS_OK)
+                return res;
 
-        template <>
-        inline status_t write_value(Steinberg::IBStream *is, const char *key, const char *value)
-        {
-            size_t len = strlen(key);
-            status_t res = write_fully(is, key, len + 1);
+            // Reallocate memory if there is not enough space
+            char *s     = *buf;
+            size_t cap  = *capacity;
+            if ((s == NULL) || (cap < (len + 1)))
+            {
+                cap         = align_size(len + 1, 32);
+                char *ns    = static_cast<char *>(realloc(s, sizeof(char *) * cap));
+                if (ns == NULL)
+                    return STATUS_NO_MEM;
+
+                s           = ns;
+                *buf        = ns;
+                *capacity   = cap;
+            }
+
+            // Read the payload data
+            res = read_fully(is, s, len);
             if (res == STATUS_OK)
-                res = write_string(is, value);
-            return res;
+                s[len]      = '\0';
+
+            return STATUS_OK;
         }
 
         /**
@@ -701,7 +729,7 @@ namespace lsp
             return TYPE_UNKNOWN;
         }
 
-        inline status_t write_kvt_param(Steinberg::IBStream *os, const char *name, const core::kvt_param_t *p, uint8_t flags)
+        inline status_t write_kvt_value(Steinberg::IBStream *os, const core::kvt_param_t *p, uint8_t flags)
         {
             status_t res;
 
@@ -742,7 +770,7 @@ namespace lsp
                 {
                     if ((p->blob.size > 0) && (p->blob.data == NULL))
                     {
-                        lsp_warn("Non-empty blob with NULL data pointer for KVT parameter id=%s", name);
+                        lsp_warn("Non-empty blob with NULL data pointer for KVT parameter");
                         return STATUS_INVALID_VALUE;
                     }
 
@@ -754,11 +782,148 @@ namespace lsp
                 }
 
                 default:
-                    lsp_trace("KVT serialization failed: unknown parameter type for id=%s", name);
+                    lsp_trace("KVT serialization failed: unknown parameter type");
                     return STATUS_BAD_TYPE;
             }
 
             return STATUS_OK;
+        }
+
+        inline void destroy_kvt_value(core::kvt_param_t *p)
+        {
+            switch (p->type)
+            {
+                case core::KVT_STRING:
+                {
+                    if (p->str != NULL)
+                    {
+                        free(const_cast<char *>(p->str));
+                        p->str          = NULL;
+                    }
+                    break;
+                }
+                case core::KVT_BLOB:
+                {
+                    if (p->blob.ctype != NULL)
+                    {
+                        free(const_cast<char *>(p->blob.ctype));
+                        p->blob.ctype   = NULL;
+                    }
+                    if (p->blob.data != NULL)
+                    {
+                        free(const_cast<void *>(p->blob.data));
+                        p->blob.data    = NULL;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            p->type = core::KVT_ANY;
+        }
+
+        inline status_t read_kvt_value(Steinberg::IBStream *is, const char *name, core::kvt_param_t *p)
+        {
+            status_t res;
+            uint8_t type = 0;
+
+            p->type = core::KVT_ANY;
+
+            // Read the type
+            if ((res = read_fully(is, &type)) != STATUS_OK)
+            {
+                lsp_warn("Failed to read type for port id=%s", name);
+                return res;
+            }
+
+            lsp_trace("Parameter type: '%c'", char(p->type));
+
+            switch (type)
+            {
+                case vst3::TYPE_INT32:
+                    p->type         = core::KVT_INT32;
+                    res             = read_fully(is, &p->i32);
+                    break;
+                case vst3::TYPE_UINT32:
+                    p->type         = core::KVT_UINT32;
+                    res             = read_fully(is, &p->u32);
+                    break;
+                case vst3::TYPE_INT64:
+                    p->type         = core::KVT_INT64;
+                    res             = read_fully(is, &p->i64);
+                    break;
+                case vst3::TYPE_UINT64:
+                    p->type         = core::KVT_UINT64;
+                    res             = read_fully(is, &p->u64);
+                    break;
+                case vst3::TYPE_FLOAT32:
+                    p->type         = core::KVT_FLOAT32;
+                    res             = read_fully(is, &p->f32);
+                    break;
+                case vst3::TYPE_FLOAT64:
+                    p->type         = core::KVT_FLOAT64;
+                    res             = read_fully(is, &p->f64);
+                    break;
+                case vst3::TYPE_STRING:
+                {
+                    char *str       = NULL;
+                    size_t cap      = 0;
+
+                    p->type         = core::KVT_STRING;
+                    p->str          = NULL;
+                    res             = read_string(is, &str, &cap);
+                    if (res == STATUS_OK)
+                        p->str      = str;
+                    break;
+                }
+                case vst3::TYPE_BLOB:
+                {
+                    uint32_t size   = 0;
+                    char *ctype     = NULL;
+                    uint8_t *data   = NULL;
+                    size_t cap      = 0;
+
+                    lsp_finally {
+                        if (ctype != NULL)
+                            free(ctype);
+                        if (data != NULL)
+                            free(data);
+                    };
+
+                    p->type         = core::KVT_BLOB;
+                    p->blob.ctype   = NULL;
+                    p->blob.data    = NULL;
+                    if ((res = read_fully(is, &size)) != STATUS_OK)
+                        return res;
+                    lsp_trace("BLOB size: %d (0x%x)", int(size), int(size));
+                    if ((res = read_string(is, &ctype, &cap)) != STATUS_OK)
+                        return res;
+                    lsp_trace("BLOB content type: %s", ctype);
+
+                    if (size > 0)
+                    {
+                        data            = static_cast<uint8_t *>(malloc(size));
+                        if (data == NULL)
+                            return STATUS_NO_MEM;
+                        if ((res = read_fully(is, data, size)) != STATUS_OK)
+                            return res;
+                    }
+
+                    p->blob.ctype   = ctype;
+                    p->blob.data    = data;
+                    p->blob.size    = size;
+                    ctype           = NULL;
+                    data            = NULL;
+
+                    break;
+                }
+                default:
+                    lsp_warn("Unknown KVT parameter type: %d ('%c') for id=%s", type, type, name);
+                    break;
+            }
+
+            return res;
         }
 
     } /* namespace vst3 */

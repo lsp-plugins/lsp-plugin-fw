@@ -265,12 +265,14 @@ namespace lsp
             protected:
                 float                   fPending;
                 uint32_t                nChangeIndex;   // The current index of a change in a queue
+                bool                    bVirtual;
 
             public:
-                explicit InParamPort(const meta::port_t *meta) : ParameterPort(meta)
+                explicit InParamPort(const meta::port_t *meta, bool virt) : ParameterPort(meta)
                 {
                     fPending            = fValue;
                     nChangeIndex        = 0;
+                    bVirtual            = virt;
                 }
 
                 InParamPort(const InParamPort &) = delete;
@@ -282,6 +284,7 @@ namespace lsp
             public:
                 inline uint32_t change_index() const    { return nChangeIndex;          }
                 inline void     set_change_index(uint32_t index)    { nChangeIndex = index; }
+                inline bool     is_virtual() const      { return bVirtual;              }
 
                 bool check_pending()
                 {
@@ -357,7 +360,7 @@ namespace lsp
                 size_t                  nRows;
 
             public:
-                explicit PortGroup(const meta::port_t *meta) : InParamPort(meta)
+                explicit PortGroup(const meta::port_t *meta, bool virt) : InParamPort(meta, virt)
                 {
                     nCols               = meta::port_list_size(meta->members);
                     nRows               = meta::list_size(meta->items);

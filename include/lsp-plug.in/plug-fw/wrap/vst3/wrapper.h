@@ -113,7 +113,7 @@ namespace lsp
                 lltl::parray<plug::IPort>           vFBuffers;              // Frame buffer ports
                 lltl::parray<plug::IPort>           vStreams;               // Streaming ports
                 lltl::parray<vst3::PathPort>        vPathPorts;             // Path ports
-                lltl::pphash<char, vst3::Port>      vVirtMapping;           // Virtual input port mapping
+                lltl::pphash<char, vst3::Port>      vParamMapping;          // Virtual input port mapping
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata for virtual ports
                 event_bus_t                        *pEventsIn;              // Input event bus
                 event_bus_t                        *pEventsOut;             // Output event bus
@@ -161,7 +161,8 @@ namespace lsp
                 vst3::InParamPort          *input_parameter(Steinberg::Vst::ParamID id);
                 void                        transmit_output_parameters(Steinberg::Vst::IParameterChanges *changes);
                 status_t                    save_kvt_parameters_v1(Steinberg::IBStream *os, core::KVTStorage *kvt);
-                status_t                    save_state_v1(Steinberg::IBStream *os);
+                status_t                    save_state(Steinberg::IBStream *os);
+                status_t                    load_state(Steinberg::IBStream *is);
 
             public:
                 explicit Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package);

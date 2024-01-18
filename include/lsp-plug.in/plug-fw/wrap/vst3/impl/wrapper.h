@@ -572,7 +572,7 @@ namespace lsp
                 {
                     vst3::PathPort *p       = new vst3::PathPort(port);
                     vPathPorts.add(p);
-                    vVirtMapping.create(port->id, p);
+                    vParamMapping.create(port->id, p);
                     cp                      = p;
                     break;
                 }
@@ -580,11 +580,10 @@ namespace lsp
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
                 {
-                    vst3::InParamPort *p    = new vst3::InParamPort(port);
-                    if (postfix != NULL)
-                        vVirtMapping.create(port->id, p);
-                    else
+                    vst3::InParamPort *p    = new vst3::InParamPort(port, postfix != NULL);
+                    if (postfix == NULL)
                         vParamIn.add(p);
+                    vParamMapping.create(port->id, p);
                     cp  = p;
                     break;
                 }
@@ -600,10 +599,11 @@ namespace lsp
                 case meta::R_PORT_SET:
                 {
                     LSPString postfix_str;
-                    vst3::PortGroup *pg     = new vst3::PortGroup(port);
+                    vst3::PortGroup *pg     = new vst3::PortGroup(port, postfix != NULL);
                     vAllPorts.add(pg);
-                    vParamIn.add(pg);
-                    vVirtMapping.create(port->id, pg);
+                    if (postfix == NULL)
+                        vParamIn.add(pg);
+                    vParamMapping.create(port->id, pg);
                     plugin_ports->add(pg);
 
                     for (size_t row=0; row<pg->rows(); ++row)
@@ -799,7 +799,7 @@ namespace lsp
             vFBuffers.flush();
             vStreams.flush();
             vPathPorts.flush();
-            vVirtMapping.flush();
+            vParamMapping.flush();
             pEventsIn   = NULL;
             pEventsOut  = NULL;
 
@@ -1034,7 +1034,7 @@ namespace lsp
                 }
 
                 // Successful status?
-                if ((res = write_kvt_param(os, name, p, flags)) != STATUS_OK)
+                if ((res = write_kvt_value(os, p, flags)) != STATUS_OK)
                 {
                     lsp_warn("KVT parameter serialization failed id=%s", name);
                     return res;
@@ -1044,35 +1044,19 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t Wrapper::save_state_v1(Steinberg::IBStream *os)
+        status_t Wrapper::save_state(Steinberg::IBStream *os)
         {
             status_t res;
-            const uint16_t endianess = 0x55aa;
-            const uint16_t version = 1;
+            const uint16_t version      = 1;
 
             // Write header
             if ((res = write_fully(os, STATE_SIGNATURE, 4)) != STATUS_OK)
-                return res;
-            if ((res = write_fully(os, &endianess, sizeof(endianess))) != STATUS_OK)
                 return res;
             if ((res = write_fully(os, &version, sizeof(version))) != STATUS_OK)
                 return res;
 
             // Write parameters
-            for (lltl::iterator<vst3::InParamPort> it = vParamIn.values(); it; ++it)
-            {
-                vst3::InParamPort *p = it.get();
-                const char *id = (p != NULL) ? p->id() : NULL;
-                if (id == NULL)
-                    continue;
-
-                lsp_trace("Saving state of parameter: %s = %f", id, p->value());
-                if ((res = write_value(os, id, p->value())) != STATUS_OK)
-                    return res;
-            }
-
-            // Write virtual parameters
-            for (lltl::iterator<vst3::Port> it = vVirtMapping.values(); it; ++it)
+            for (lltl::iterator<vst3::Port> it = vParamMapping.values(); it; ++it)
             {
                 vst3::Port *p = it.get();
                 const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
@@ -1116,16 +1100,146 @@ namespace lsp
             return res;
         }
 
+        status_t Wrapper::load_state(Steinberg::IBStream *is)
+        {
+            status_t res;
+            char signature[4];
+            uint16_t version;
+
+            // Read and validate signature
+            if ((res = read_fully(is, &signature[0], 4)) != STATUS_OK)
+            {
+                lsp_warn("Can not read state signature");
+                return STATUS_CORRUPTED;
+            }
+            if (memcmp(signature, STATE_SIGNATURE, 4) != 0)
+            {
+                lsp_warn("Invalid state signature");
+                return STATUS_CORRUPTED;
+            }
+
+            // Read and validate version
+            if ((res = read_fully(is, &version)) != STATUS_OK)
+            {
+                lsp_warn("Failed to read serial version");
+                return STATUS_CORRUPTED;
+            }
+            if (version != 1)
+            {
+                lsp_warn("Unsupported serial version %d", int(version));
+                return STATUS_CORRUPTED;
+            }
+
+            // Lock the KVT
+            if (!sKVTMutex.lock())
+            {
+                lsp_warn("Failed to lock KVT");
+                return STATUS_UNKNOWN_ERR;
+            }
+            lsp_finally {
+                sKVT.gc();
+                sKVTMutex.unlock();
+            };
+            sKVT.clear();
+
+            // Read the state
+            lsp_debug("Reading state...");
+            char *name = NULL;
+            size_t name_cap = 0;
+            lsp_finally {
+                if (name != NULL)
+                    free(name);
+            };
+
+            // Read and parse the record
+            while ((res = read_string(is, &name, &name_cap)) == STATUS_OK)
+            {
+                core::kvt_param_t p;
+                p.type  = core::KVT_ANY;
+                lsp_finally {
+                    destroy_kvt_value(&p);
+                };
+
+                lsp_trace("Parameter name: %s", name);
+
+                if (name[0] != '/')
+                {
+                    // Try to find virtual port
+                    vst3::Port *p           = vParamMapping.get(name);
+                    if (p != NULL)
+                    {
+                        const meta::port_t *meta = p->metadata();
+                        if (meta::is_control_port(meta))
+                        {
+                            vst3::InParamPort *pp = static_cast<vst3::InParamPort *>(p);
+                            float v = 0.0f;
+                            if ((res = read_fully(is, &v)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", name);
+                                return res;
+                            }
+                            pp->submit(v);
+                        }
+                        else if (meta::is_path_port(meta))
+                        {
+                            path_t *xp  = p->buffer<path_t>();
+                            xp->submit(name, strlen(name), plug::PF_STATE_RESTORE);
+                        }
+                    }
+                    else
+                        lsp_warn("Missing port id=%s, skipping", name);
+                }
+                else
+                {
+                    // Read the KVT parameter flags
+                    uint8_t flags = 0;
+                    if ((res = read_fully(is, &flags)) != STATUS_OK)
+                    {
+                        lsp_warn("Failed to resolve flags for parameter id=%s", name);
+                        return res;
+                    }
+
+                    lsp_trace("Parameter flags: 0x%x", int(flags));
+                    if ((res = read_kvt_value(is, name, &p)) != STATUS_OK)
+                    {
+                        lsp_warn("Failed to read value for KVT parameter id=%s, code=%d", name, int(res));
+                        return res;
+                    }
+
+                    // This is KVT port
+                    if (p.type != core::KVT_ANY)
+                    {
+                        size_t kflags = core::KVT_TX;
+                        if (flags & vst3::FLAG_PRIVATE)
+                            kflags     |= core::KVT_PRIVATE;
+
+                        kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
+                        sKVT.put(name, &p, kflags);
+                    }
+                }
+            }
+
+            // Analyze result
+            res = (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
+            if (res == STATUS_OK)
+            {
+                bUpdateSettings = true;
+                pPlugin->state_loaded();
+            }
+
+            return STATUS_OK;
+        }
+
         Steinberg::tresult PLUGIN_API Wrapper::setState(Steinberg::IBStream *state)
         {
-            status_t res = save_state_v1(state);
+            status_t res = load_state(state);
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::getState(Steinberg::IBStream *state)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            status_t res = save_state(state);
+            return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::connect(Steinberg::Vst::IConnectionPoint *other)
@@ -1651,10 +1765,18 @@ namespace lsp
                     return Steinberg::kResultFalse;
 
                 // Find path port
-                vst3::Port *p = vVirtMapping.get(id);
+                vst3::Port *p = vParamMapping.get(id);
                 if ((p == NULL) || (!meta::is_path_port(p->metadata())))
                 {
                     lsp_warn("Invalid path port specified: %s", id);
+                    return Steinberg::kResultFalse;
+                }
+
+                // Get the path flags
+                Steinberg::int64 flags = 0;
+                if ((res = atts->getInt("flags", flags)) != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'flags'");
                     return Steinberg::kResultFalse;
                 }
 
@@ -1666,7 +1788,7 @@ namespace lsp
                 // Submit path data
                 vst3::path_t *path = static_cast<vst3::path_t *>(p->buffer<plug::path_t>());
                 if (path != NULL)
-                    path->submit_async(in_path);
+                    path->submit_async(in_path, flags);
             }
             else if (!strcmp(message_id, "Param"))
             {
@@ -1678,10 +1800,16 @@ namespace lsp
                     return Steinberg::kResultFalse;
 
                 // Obtain the destination port
-                vst3::Port *p = vVirtMapping.get(id);
+                vst3::Port *p = vParamMapping.get(id);
                 if ((p == NULL) || (!meta::is_control_port(p->metadata())))
                 {
                     lsp_warn("Invalid virtual parameter port specified: %s", id);
+                    return Steinberg::kResultFalse;
+                }
+                vst3::InParamPort *pp = static_cast<vst3::InParamPort *>(p);
+                if (!pp->is_virtual())
+                {
+                    lsp_warn("Not a virtual parameter: %s", id);
                     return Steinberg::kResultFalse;
                 }
 
@@ -1694,7 +1822,6 @@ namespace lsp
                 }
 
                 // Submit new port value
-                vst3::InParamPort *pp = static_cast<vst3::InParamPort *>(p);
                 pp->submit(value);
             }
             else if (!strcmp(message_id, "ActivtateUI"))
