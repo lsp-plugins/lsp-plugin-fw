@@ -36,7 +36,18 @@ namespace lsp
 {
     namespace vst3
     {
-        constexpr const char *STATE_SIGNATURE = "LSPS";
+        constexpr const char *STATE_SIGNATURE               = "LSPS";
+
+        constexpr const char *ID_MSG_VIRTUAL_PARAMETER      = "VParam";
+        constexpr const char *ID_MSG_VIRTUAL_METER          = "VMeter";
+        constexpr const char *ID_MSG_PATH                   = "Path";
+        constexpr const char *ID_MSG_MESH                   = "Mesh";
+        constexpr const char *ID_MSG_FRAMEBUFFER            = "FrameBuffer";
+        constexpr const char *ID_MSG_STREAM                 = "Stream";
+        constexpr const char *ID_MSG_KVT                    = "KVT";
+        constexpr const char *ID_MSG_ACTIVATE_UI            = "UIActivate";
+        constexpr const char *ID_MSG_DEACTIVATE_UI          = "UIDeactivate";
+        constexpr const char *ID_MSG_PLAY_SAMPLE            = "PlaySample";
 
         enum serial_flags_t
         {
@@ -80,9 +91,9 @@ namespace lsp
             uint32_t            nPPathFlags;            // Pending path flags
             uint32_t            nAPathFlags;            // Asynchronous pending path flags
 
-            char                sPath[PATH_MAX*2];      // Current path value
-            char                sQPath[PATH_MAX*2];     // Pending path value (sync request)
-            char                sAPath[PATH_MAX*2];     // Pending path value (async request)
+            char                sPath[MAX_PATH_LEN];    // Current path value
+            char                sQPath[MAX_PATH_LEN];   // Pending path value (sync request)
+            char                sAPath[MAX_PATH_LEN];   // Pending path value (async request)
 
             virtual void init() override
             {
@@ -118,11 +129,11 @@ namespace lsp
 
                 if (nFlags & F_QPATH)
                 {
-                    strncpy(sPath, sQPath, PATH_MAX*2);
-                    sPath[PATH_MAX*2-1] = '\0';
-                    sQPath[0]           = '\0';
-                    nPathFlags          = nPPathFlags;
-                    nFlags              = F_PENDING;
+                    strncpy(sPath, sQPath, MAX_PATH_LEN);
+                    sPath[MAX_PATH_LEN-1]   = '\0';
+                    sQPath[0]               = '\0';
+                    nPathFlags              = nPPathFlags;
+                    nFlags                  = F_PENDING;
                     return true;
                 }
 
@@ -134,12 +145,12 @@ namespace lsp
                 lsp_finally {atomic_unlock(nLock); };
 
                 // Copy data
-                strncpy(sPath, sAPath, PATH_MAX*2);
-                sPath[PATH_MAX*2-1] = '\0';
-                sAPath[0]           = '\0';
-                nAFlags             = 0;
-                nPathFlags          = nAPathFlags;
-                nFlags              = F_PENDING;
+                strncpy(sPath, sAPath, MAX_PATH_LEN);
+                sPath[MAX_PATH_LEN-1]   = '\0';
+                sAPath[0]               = '\0';
+                nAFlags                 = 0;
+                nPathFlags              = nAPathFlags;
+                nFlags                  = F_PENDING;
 
                 return true;
             }
@@ -157,7 +168,7 @@ namespace lsp
 
             void submit(const char *path, size_t len, size_t flags)
             {
-                const size_t count  = lsp_min(len, size_t(PATH_MAX*2-1));
+                const size_t count  = lsp_min(len, size_t(MAX_PATH_LEN - 1));
 
                 // Write DSP request
                 ::strncpy(sPath, path, count);
@@ -176,8 +187,8 @@ namespace lsp
                         lsp_finally { atomic_unlock(nLock); };
 
                         // Write Async request
-                        ::strncpy(sQPath, path, PATH_MAX*2);
-                        sAPath[PATH_MAX*2-1]    = '\0';
+                        ::strncpy(sQPath, path, MAX_PATH_LEN);
+                        sAPath[MAX_PATH_LEN-1]  = '\0';
                         nAFlags                 = XF_APATH;
                         nAPathFlags             = flags;
                         break;

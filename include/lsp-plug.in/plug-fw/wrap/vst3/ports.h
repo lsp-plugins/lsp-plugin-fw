@@ -332,6 +332,7 @@ namespace lsp
                 inline void     set_empty()         { bEmpty    = true;             }
                 inline bool     changed() const     { return fOldValue != fValue;   }
                 inline void     commit()            { fOldValue = fValue;           }
+                inline void     make_changed()      { fOldValue = fValue + 1.0f;    }
 
             public:
                 virtual void    set_value(float value) override
@@ -343,7 +344,7 @@ namespace lsp
                         if (bEmpty)
                         {
                             fValue      = value;
-
+                            bEmpty      = false;
                         }
                         else if (fabsf(fValue) < fabsf(value))
                             fValue  = value;

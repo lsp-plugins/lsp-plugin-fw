@@ -109,6 +109,7 @@ namespace lsp
                 lltl::parray<audio_bus_t>           vAudioOut;              // Output audio busses
                 lltl::parray<vst3::InParamPort>     vParamIn;               // Input parameter ports
                 lltl::parray<vst3::OutParamPort>    vParamOut;              // Output parameter ports
+                lltl::parray<vst3::OutParamPort>    vVParamOut;             // Virtual output parameter ports
                 lltl::parray<plug::IPort>           vMeshes;                // Mesh ports
                 lltl::parray<plug::IPort>           vFBuffers;              // Frame buffer ports
                 lltl::parray<plug::IPort>           vStreams;               // Streaming ports
@@ -128,7 +129,8 @@ namespace lsp
                 core::KVTDispatcher                *pKVTDispatcher;         // KVT dispatcher
                 uint8_t                            *pOscPacket;             // OSC packet data
 
-                uatomic_t                           nUICounter;             // UI counter
+                uatomic_t                           nUICounterReq;          // UI counter request
+                uatomic_t                           nUICounterResp;         // Actual number of UIs
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
 
@@ -163,6 +165,7 @@ namespace lsp
                 status_t                    save_kvt_parameters_v1(Steinberg::IBStream *os, core::KVTStorage *kvt);
                 status_t                    save_state(Steinberg::IBStream *os);
                 status_t                    load_state(Steinberg::IBStream *is);
+                void                        toggle_ui_state();
 
             public:
                 explicit Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package);

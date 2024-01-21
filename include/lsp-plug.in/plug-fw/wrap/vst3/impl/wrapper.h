@@ -82,7 +82,8 @@ namespace lsp
             pKVTDispatcher      = NULL;
             pOscPacket          = NULL;
 
-            nUICounter          = 0;
+            nUICounterReq       = 0;
+            nUICounterResp      = 0;
             nMaxSamplesPerBlock = 0;
             bUpdateSettings     = true;
         }
@@ -591,7 +592,10 @@ namespace lsp
                 case meta::R_METER:
                 {
                     vst3::OutParamPort *p   = new vst3::OutParamPort(port);
-                    vParamOut.add(p);
+                    if (postfix == NULL)
+                        vParamOut.add(p);
+                    else
+                        vVParamOut.add(p);
                     cp                      = p;
                     break;
                 }
@@ -1063,7 +1067,7 @@ namespace lsp
                 if ((meta == NULL) || (meta->id == NULL))
                     continue;
 
-                if (meta::is_control_port(meta))
+                if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)))
                 {
                     lsp_trace("Saving state of virtual parameter: %s = %f", meta->id, p->value());
 
@@ -1169,7 +1173,7 @@ namespace lsp
                     if (p != NULL)
                     {
                         const meta::port_t *meta = p->metadata();
-                        if (meta::is_control_port(meta))
+                        if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)))
                         {
                             vst3::InParamPort *pp = static_cast<vst3::InParamPort *>(p);
                             float v = 0.0f;
@@ -1582,6 +1586,65 @@ namespace lsp
             }
         }
 
+        void Wrapper::toggle_ui_state()
+        {
+            uatomic_t counter = nUICounterReq;
+            if (counter == nUICounterResp)
+                return;
+
+            if (counter <= 0)
+            {
+                if (pPlugin->ui_active())
+                    pPlugin->deactivate_ui();
+                return;
+            }
+
+            // Notify UI
+            if (!pPlugin->ui_active())
+                pPlugin->activate_ui();
+
+            // Force virtual meters to sync
+            for (lltl::iterator<vst3::OutParamPort> it = vVParamOut.values(); it; ++it)
+                it->make_changed();
+
+            // Force meshes to sync with UI
+            for (lltl::iterator<plug::IPort> it=vMeshes.values(); it; ++it)
+            {
+                plug::mesh_t *m = it->buffer<plug::mesh_t>();
+                if (m == NULL)
+                    continue;
+                m->cleanup();
+            }
+
+            // Force frame buffers to sync with UI
+            for (lltl::iterator<plug::IPort> it=vFBuffers.values(); it; ++it)
+            {
+                // Get the frame buffer data
+                vst3::FrameBufferPort *fb_port = static_cast<vst3::FrameBufferPort *>(it.get());
+                if (fb_port == NULL)
+                    continue;
+                plug::frame_buffer_t *fb = it->buffer<plug::frame_buffer_t>();
+                if (fb == NULL)
+                    continue;
+
+                fb_port->set_row_id(fb->next_rowid() - fb->rows());
+            }
+
+            // Force streams to sync with UI
+            for (lltl::iterator<plug::IPort> it=vStreams.values(); it; ++it)
+            {
+                // Get the frame buffer data
+                vst3::StreamPort *s_port = static_cast<vst3::StreamPort *>(it.get());
+                if (s_port == NULL)
+                    continue;
+                plug::stream_t *s = it->buffer<plug::stream_t>();
+                if (s == NULL)
+                    continue;
+
+                s_port->set_frame_id(s->frame_id() - s->frames());
+            }
+        }
+
         Steinberg::tresult PLUGIN_API Wrapper::process(Steinberg::Vst::ProcessData & data)
         {
             // We do not support any samples except 32-bit floating-point values
@@ -1589,10 +1652,7 @@ namespace lsp
                 return Steinberg::kInternalError;
 
             // Update UI activity state
-            if ((nUICounter > 0) && (!pPlugin->ui_active()))
-                pPlugin->activate_ui();
-            else if ((nUICounter <= 0) && (pPlugin->ui_active()))
-                pPlugin->deactivate_ui();
+            toggle_ui_state();
 
             // Bind audio buffers
             bind_bus_buffers(&vAudioIn, data.inputs, data.numInputs, data.numSamples);
@@ -1746,9 +1806,9 @@ namespace lsp
 
             // Analyze the message
             Steinberg::tresult res;
-            Steinberg::int64 byte_order = BYTEORDER;
+            Steinberg::int64 byte_order = VST3_BYTEORDER;
 
-            if (!strcmp(message_id, "Path"))
+            if (!strcmp(message_id, ID_MSG_PATH))
             {
                 lsp_trace("Received Path message");
 
@@ -1790,7 +1850,7 @@ namespace lsp
                 if (path != NULL)
                     path->submit_async(in_path, flags);
             }
-            else if (!strcmp(message_id, "Param"))
+            else if (!strcmp(message_id, vst3::ID_MSG_VIRTUAL_PARAMETER))
             {
                 lsp_trace("Received VParam message");
 
@@ -1801,7 +1861,7 @@ namespace lsp
 
                 // Obtain the destination port
                 vst3::Port *p = vParamMapping.get(id);
-                if ((p == NULL) || (!meta::is_control_port(p->metadata())))
+                if ((p == NULL) || (!meta::is_control_port(p->metadata())) || (!meta::is_bypass_port(p->metadata())))
                 {
                     lsp_warn("Invalid virtual parameter port specified: %s", id);
                     return Steinberg::kResultFalse;
@@ -1824,45 +1884,17 @@ namespace lsp
                 // Submit new port value
                 pp->submit(value);
             }
-            else if (!strcmp(message_id, "ActivtateUI"))
+            else if (!strcmp(message_id, vst3::ID_MSG_ACTIVATE_UI))
             {
                 lsp_trace("Received ActivateUI message");
-                atomic_add(&nUICounter, 1);
-
-                // Force frame buffers to sync with UI
-                for (lltl::iterator<plug::IPort> it=vFBuffers.values(); it; ++it)
-                {
-                    // Get the frame buffer data
-                    vst3::FrameBufferPort *fb_port = static_cast<vst3::FrameBufferPort *>(it.get());
-                    if (fb_port == NULL)
-                        continue;
-                    plug::frame_buffer_t *fb = it->buffer<plug::frame_buffer_t>();
-                    if (fb == NULL)
-                        continue;
-
-                    fb_port->set_row_id(fb->next_rowid() - fb->rows());
-                }
-
-                // Force streams to sync with UI
-                for (lltl::iterator<plug::IPort> it=vStreams.values(); it; ++it)
-                {
-                    // Get the frame buffer data
-                    vst3::StreamPort *s_port = static_cast<vst3::StreamPort *>(it.get());
-                    if (s_port == NULL)
-                        continue;
-                    plug::stream_t *s = it->buffer<plug::stream_t>();
-                    if (s == NULL)
-                        continue;
-
-                    s_port->set_frame_id(s->frame_id() - s->frames());
-                }
+                atomic_add(&nUICounterReq, 1);
             }
-            else if (!strcmp(message_id, "DeactivtateUI message"))
+            else if (!strcmp(message_id, vst3::ID_MSG_DEACTIVATE_UI))
             {
-                lsp_trace("Received DeactivateUI");
-                atomic_add(&nUICounter, -1);
+                lsp_trace("Received Deactivate UI message");
+                atomic_add(&nUICounterReq, -1);
             }
-            else if (!strcmp(message_id, "PlaySample"))
+            else if (!strcmp(message_id, vst3::ID_MSG_PLAY_SAMPLE))
             {
                 lsp_trace("Received PlaySample");
 
@@ -1910,6 +1942,38 @@ namespace lsp
 
             Steinberg::char8 key[16];
 
+            // Synchronize virtual meters
+            for (lltl::iterator<vst3::OutParamPort> it = vVParamOut.values(); it; ++it)
+            {
+                vst3::OutParamPort *pp = it.get();
+                if (!pp->changed())
+                    continue;
+                const meta::port_t *meta = pp->metadata();
+                if (meta == NULL)
+                    continue;
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID(vst3::ID_MSG_VIRTUAL_METER);
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write port identifier
+                if (!sNotifyBuf.set_string(list, "id", meta->id))
+                    return;
+                // Write the actual value
+                if (list->setFloat("value", pp->value()) != Steinberg::kResultOk)
+                    return;
+
+                // Finally, we're ready to send message
+                pp->commit();
+                pPeerConnection->notify(msg);
+            }
+
             // Synchronize meshes
             for (lltl::iterator<plug::IPort> it = vMeshes.values(); it; ++it)
             {
@@ -1928,11 +1992,11 @@ namespace lsp
                 lsp_finally { safe_release(msg); };
 
                 // Initialize the message
-                msg->setMessageID("Mesh");
+                msg->setMessageID(vst3::ID_MSG_MESH);
                 Steinberg::Vst::IAttributeList *list = msg->getAttributes();
 
                 // Write endianess
-                if (list->setInt("endian", BYTEORDER) != Steinberg::kResultOk)
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
                     continue;
                 // Write identifier of the mesh port
                 if (!sSyncBuf.set_string(list, "id", m_port->metadata()->id))
@@ -1990,11 +2054,11 @@ namespace lsp
                 lsp_finally { safe_release(msg); };
 
                 // Initialize the message
-                msg->setMessageID("FrameBuffer");
+                msg->setMessageID(vst3::ID_MSG_FRAMEBUFFER);
                 Steinberg::Vst::IAttributeList *list = msg->getAttributes();
 
                 // Write endianess
-                if (list->setInt("endian", BYTEORDER) != Steinberg::kResultOk)
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
                     continue;
                 // Write identifier of the frame buffer port
                 if (!sSyncBuf.set_string(list, "id", fb_port->metadata()->id))
@@ -2067,11 +2131,11 @@ namespace lsp
                 lsp_finally { safe_release(msg); };
 
                 // Initialize the message
-                msg->setMessageID("Stream");
+                msg->setMessageID(vst3::ID_MSG_STREAM);
                 Steinberg::Vst::IAttributeList *list = msg->getAttributes();
 
                 // Write endianess
-                if (list->setInt("endian", BYTEORDER) != Steinberg::kResultOk)
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
                     continue;
                 // Write identifier of the frame buffer port
                 if (!sSyncBuf.set_string(list, "id", s_port->metadata()->id))
@@ -2146,7 +2210,7 @@ namespace lsp
                     {
                         case STATUS_OK:
                         {
-                            lsp_trace("Transmitting OSC packet of %d bytes", int(size));
+                            lsp_trace("Transmitting KVT-related OSC packet of %d bytes", int(size));
                             osc::dump_packet(pOscPacket, size);
 
                             // Allocate new message
@@ -2156,7 +2220,7 @@ namespace lsp
                             lsp_finally { safe_release(msg); };
 
                             // Initialize the message
-                            msg->setMessageID("KVT");
+                            msg->setMessageID(vst3::ID_MSG_KVT);
                             Steinberg::Vst::IAttributeList *list = msg->getAttributes();
 
                             encoded = list->setBinary("data", pOscPacket, size) == Steinberg::kResultOk;

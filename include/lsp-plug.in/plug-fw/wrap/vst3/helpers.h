@@ -686,6 +686,9 @@ namespace lsp
          */
         inline Steinberg::Vst::IMessage *alloc_message(Steinberg::Vst::IHostApplication *host)
         {
+            if (host == NULL)
+                return NULL;
+
             Steinberg::TUID iid;
             Steinberg::Vst::IMessage::iid.toTUID(iid);
             Steinberg::Vst::IMessage* m = NULL;

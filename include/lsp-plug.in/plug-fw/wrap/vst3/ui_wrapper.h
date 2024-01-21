@@ -33,8 +33,10 @@
 
 #include <steinberg/vst3.h>
 
-#include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/string_buf.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/ui_ports.h>
 
 namespace lsp
 {
@@ -45,7 +47,7 @@ namespace lsp
         #include <steinberg/vst3/base/WarningsPush.h>
         class UIWrapper:
             public ui::IWrapper,
-            public IDataSync,
+            public IPortChangeHandler,
             public Steinberg::IDependent,
             public Steinberg::Vst::IComponent,
             public Steinberg::Vst::IConnectionPoint,
@@ -57,7 +59,17 @@ namespace lsp
                 PluginFactory                      *pFactory;               // Reference to the factory
                 const meta::package_t              *pPackage;
                 Steinberg::FUnknown                *pHostContext;           // Host context
+                Steinberg::Vst::IHostApplication   *pHostApplication;       // Host application
                 Steinberg::Vst::IConnectionPoint   *pPeerConnection;        // Peer connection
+                Steinberg::Vst::IComponentHandler  *pComponentHandler;      // Component handler
+                Steinberg::Vst::IComponentHandler2 *pComponentHandler2;     // Component handler (version 2)
+                Steinberg::Vst::IComponentHandler3 *pComponentHandler3;     // Component handler (version 3)
+
+                lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
+                vst3::string_buf                    sNotifyBuf;             // Notify buffer
+
+            protected:
+                vst3::UIPort                       *create_port(const meta::port_t *port, const char *postfix);
 
             public:
                 explicit UIWrapper(PluginFactory *factory, ui::Module *ui, resource::ILoader *loader, const meta::package_t *package);
@@ -67,6 +79,9 @@ namespace lsp
 
                 UIWrapper & operator = (const UIWrapper &) = delete;
                 UIWrapper & operator = (UIWrapper &&) = delete;
+
+                virtual status_t                    init(void *root_widget) override;
+                virtual void                        destroy() override;
 
             public: // ui::Wrapper
                 virtual core::KVTStorage           *kvt_lock() override;
@@ -79,8 +94,8 @@ namespace lsp
                 virtual void                        main_iteration() override;
                 virtual bool                        accept_window_size(size_t width, size_t height) override;
 
-            public: // vst3::IDataSync
-                virtual void                        sync_data() override;
+            public: // vst3::IPortChangeHandler
+                virtual void                        port_write(ui::IPort *port, size_t flags) override;
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult          PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;

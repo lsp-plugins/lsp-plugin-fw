@@ -48,27 +48,162 @@ namespace lsp
         UIWrapper::UIWrapper(PluginFactory *factory, ui::Module *plugin, resource::ILoader *loader, const meta::package_t *package):
             ui::IWrapper(plugin, loader)
         {
-            nRefCounter     = 1;
-            pFactory        = safe_acquire(factory);
-            pPackage        = package;
-            pHostContext    = NULL;
-            pPeerConnection = NULL;
+            nRefCounter         = 1;
+            pFactory            = safe_acquire(factory);
+            pPackage            = package;
+            pHostContext        = NULL;
+            pHostApplication    = NULL;
+            pPeerConnection     = NULL;
+            pComponentHandler   = NULL;
+            pComponentHandler2  = NULL;
+            pComponentHandler3  = NULL;
         }
 
         UIWrapper::~UIWrapper()
         {
-            // Destroy plugin
+            destroy();
+
+            // Release factory
+            safe_release(pFactory);
+        }
+
+        vst3::UIPort *UIWrapper::create_port(const meta::port_t *port, const char *postfix)
+        {
+            // Find the matching port for the backend
+            vst3::UIPort *vup = NULL;
+
+            switch (port->role)
+            {
+                case meta::R_AUDIO: // Stub port
+                    lsp_trace("creating stub audio port %s", port->id);
+                    vup = new vst3::UIPort(port);
+                    break;
+
+                case meta::R_MESH:
+                    lsp_trace("creating mesh port %s", port->id);
+                    vup = new vst3::UIMeshPort(port);
+                    break;
+
+                case meta::R_STREAM:
+                    lsp_trace("creating stream port %s", port->id);
+                    vup = new vst3::UIStreamPort(port);
+                    break;
+
+                case meta::R_FBUFFER:
+                    lsp_trace("creating fbuffer port %s", port->id);
+                    vup = new vst3::UIFrameBufferPort(port);
+                    break;
+
+                case meta::R_OSC:
+                    break;
+
+                case meta::R_PATH:
+                    lsp_trace("creating path port %s", port->id);
+                    vup = new vst3::UIPathPort(port, this);
+                    break;
+
+                case meta::R_CONTROL:
+                case meta::R_BYPASS:
+                    lsp_trace("creating control port %s", port->id);
+                    vup     = new vst3::UIInParamPort(port, this, postfix != NULL);
+                    break;
+
+                case meta::R_METER:
+                    lsp_trace("creating meter port %s", port->id);
+                    vup     = new vst3::UIOutParamPort(port);
+                    break;
+
+                case meta::R_PORT_SET:
+                {
+                    char postfix_buf[MAX_PARAM_ID_BYTES];
+                    lsp_trace("creating port group %s", port->id);
+                    vst3::UIPortGroup *upg = new vst3::UIPortGroup(port, this, postfix != NULL);
+
+                    // Add immediately port group to list
+                    vPorts.add(upg);
+
+                    // Add nested ports
+                    for (size_t row=0; row<upg->rows(); ++row)
+                    {
+                        // Generate postfix
+                        snprintf(postfix_buf, sizeof(postfix_buf)-1, "%s_%d", (postfix != NULL) ? postfix : "", int(row));
+
+                        // Clone port metadata
+                        meta::port_t *cm    = clone_port_metadata(port->members, postfix_buf);
+                        if (cm == NULL)
+                            continue;
+
+                        vGenMetadata.add(cm);
+
+                        // Create nested ports
+                        for (; cm->id != NULL; ++cm)
+                        {
+                            if (meta::is_growing_port(cm))
+                                cm->start       = cm->min + ((cm->max - cm->min) * row) / float(upg->rows());
+                            else if (meta::is_lowering_port(cm))
+                                cm->start       = cm->max - ((cm->max - cm->min) * row) / float(upg->rows());
+
+                            // Create port
+                            create_port(cm, postfix_buf);
+                        }
+                    }
+
+                    break;
+                }
+
+                default:
+                    break;
+            }
+
+            // Add port to the list of UI ports
+            if (vup != NULL)
+                vPorts.add(vup);
+
+            return vup;
+        }
+
+        status_t UIWrapper::init(void *root_widget)
+        {
+            status_t res;
+
+            // Get plugin metadata
+            const meta::plugin_t *meta  = pUI->metadata();
+            if (meta == NULL)
+            {
+                lsp_warn("No plugin metadata found");
+                return STATUS_BAD_STATE;
+            }
+
+            // Perform all port bindings
+            for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
+                create_port(port, NULL);
+
+            // Initialize wrapper
+            if ((res = ui::IWrapper::init(root_widget)) != STATUS_OK)
+                return res;
+
+            return STATUS_OK;
+        }
+
+        void UIWrapper::destroy()
+        {
+            // Destroy plugin UI
             if (pUI != NULL)
             {
                 delete pUI;
                 pUI         = NULL;
             }
 
-            // Remove self from synchronization list
-            pFactory->unregister_data_sync(this);
+            ui::IWrapper::destroy();
 
-            // Release factory
-            safe_release(pFactory);
+            // Cleanup generated metadata
+            for (size_t i=0; i<vGenMetadata.size(); ++i)
+            {
+                meta::port_t *p = vGenMetadata.uget(i);
+                lsp_trace("destroy generated port metadata %p", p);
+                drop_port_metadata(p);
+            }
+            vGenMetadata.flush();
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::queryInterface(const Steinberg::TUID _iid, void **obj)
@@ -114,27 +249,29 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::initialize(Steinberg::FUnknown *context)
         {
-            // Add self to the synchronization list
-            status_t res = pFactory->register_data_sync(this);
-            if (res != STATUS_OK)
-                return Steinberg::kInternalError;
+            status_t res;
 
             // Acquire host context
             if (pHostContext != NULL)
                 return Steinberg::kResultFalse;
-            pHostContext    = safe_acquire(context);
 
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            pHostContext        = safe_acquire(context);
+            pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
+
+            // Initialize
+            res = init(NULL);
+
+            return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::terminate()
         {
-            // Unregister data sync
-            pFactory->unregister_data_sync(this);
-
             // Release host context
             safe_release(pHostContext);
+            safe_release(pHostApplication);
+            safe_release(pComponentHandler);
+            safe_release(pComponentHandler2);
+            safe_release(pComponentHandler3);
 
             // Release the peer connection if host didn't disconnect us previously.
             if (pPeerConnection != NULL)
@@ -143,8 +280,7 @@ namespace lsp
                 safe_release(pPeerConnection);
             }
 
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getControllerClassId(Steinberg::TUID classId)
@@ -154,7 +290,6 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::setIoMode(Steinberg::Vst::IoMode mode)
         {
-            // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 
@@ -286,8 +421,20 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::setComponentHandler(Steinberg::Vst::IComponentHandler *handler)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            if (pComponentHandler == handler)
+                return Steinberg::kResultTrue;
+
+            safe_release(pComponentHandler);
+            safe_release(pComponentHandler2);
+            safe_release(pComponentHandler3);
+
+            pComponentHandler = handler;
+            if (pComponentHandler != NULL)
+            {
+                pComponentHandler2 = safe_query_iface<Steinberg::Vst::IComponentHandler2>(pComponentHandler);
+                pComponentHandler3 = safe_query_iface<Steinberg::Vst::IComponentHandler3>(pComponentHandler);
+            }
+            return Steinberg::kResultTrue;
         }
 
         Steinberg::IPlugView * PLUGIN_API UIWrapper::createView(Steinberg::FIDString name)
@@ -365,8 +512,84 @@ namespace lsp
             return true;
         }
 
-        void UIWrapper::sync_data()
+        void UIWrapper::port_write(ui::IPort *port, size_t flags)
         {
+            const meta::port_t *meta = port->metadata();
+            if (meta::is_control_port(meta))
+            {
+                vst3::UIInParamPort *ip = static_cast<vst3::UIInParamPort *>(port);
+                if (ip->is_virtual())
+                {
+                    // Check that we are available to send messages
+                    if (pPeerConnection == NULL)
+                        return;
+
+                    // Allocate new message
+                    Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                    if (msg == NULL)
+                        return;
+                    lsp_finally { safe_release(msg); };
+
+                    // Initialize the message
+                    msg->setMessageID(vst3::ID_MSG_VIRTUAL_PARAMETER);
+                    Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                    // Write port identifier
+                    if (!sNotifyBuf.set_string(list, "id", meta->id))
+                        return;
+                    // Write flags
+                    if (list->setInt("flags", flags) != Steinberg::kResultOk)
+                        return;
+                    // Write the actual value
+                    if (list->setFloat("value", ip->value()) != Steinberg::kResultOk)
+                        return;
+
+                    // Finally, we're ready to send message
+                    pPeerConnection->notify(msg);
+                }
+                else
+                {
+                    if (pComponentHandler == NULL)
+                        return;
+
+                    const Steinberg::Vst::ParamID param_id = ip->parameter_id();
+                    pComponentHandler->beginEdit(param_id);
+                    pComponentHandler->performEdit(param_id, ip->vst_value());
+                    pComponentHandler->endEdit(param_id);
+                }
+            }
+            else if (meta::is_path_port(meta))
+            {
+                // Check that we are available to send messages
+                if (pPeerConnection == NULL)
+                    return;
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID(vst3::ID_MSG_PATH);
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write port identifier
+                if (!sNotifyBuf.set_string(list, "id", meta->id))
+                    return;
+                // Write endianess
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                    return;
+                // Write the actual value
+                if (list->setFloat("flags", flags) != Steinberg::kResultOk)
+                    return;
+                // Write port identifier
+                if (!sNotifyBuf.set_string(list, "value", meta->id))
+                    return;
+
+                // Finally, we're ready to send message
+                pPeerConnection->notify(msg);
+            }
         }
 
     } /* namespace vst3 */

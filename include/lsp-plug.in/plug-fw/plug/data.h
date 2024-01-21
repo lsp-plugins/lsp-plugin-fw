@@ -35,6 +35,12 @@
 #define FRAMEBUFFER_BULK_MAX        0x10
 #define MESH_REFRESH_RATE           20
 
+#ifdef PLATFORM_WINDOWS
+    #define MAX_PATH_LEN                (PATH_MAX * 2)
+#else
+    #define MAX_PATH_LEN                PATH_MAX
+#endif /* PLATFORM_WINDOWS */
+
 namespace lsp
 {
     namespace plug

@@ -105,6 +105,11 @@ namespace lsp
             return (p != NULL) && (p->role == R_CONTROL);
         }
 
+        static inline bool is_bypass_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_BYPASS);
+        }
+
         static inline bool is_meter_port(const port_t *p)
         {
             return (p != NULL) && (p->role == R_METER);
