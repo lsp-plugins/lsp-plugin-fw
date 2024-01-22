@@ -57,6 +57,7 @@ namespace lsp
             pComponentHandler   = NULL;
             pComponentHandler2  = NULL;
             pComponentHandler3  = NULL;
+            nLatency            = 0;
         }
 
         UIWrapper::~UIWrapper()
@@ -65,6 +66,15 @@ namespace lsp
 
             // Release factory
             safe_release(pFactory);
+        }
+
+        ssize_t UIWrapper::compare_param_ports(const vst3::UIParameterPort *a, const vst3::UIParameterPort *b)
+        {
+            const Steinberg::Vst::ParamID a_id = a->parameter_id();
+            const Steinberg::Vst::ParamID b_id = b->parameter_id();
+
+            return (a_id > b_id) ? 1 :
+                   (a_id < b_id) ? -1 : 0;
         }
 
         vst3::UIPort *UIWrapper::create_port(const meta::port_t *port, const char *postfix)
@@ -104,14 +114,17 @@ namespace lsp
 
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
-                    lsp_trace("creating control port %s", port->id);
-                    vup     = new vst3::UIInParamPort(port, this, postfix != NULL);
-                    break;
-
                 case meta::R_METER:
-                    lsp_trace("creating meter port %s", port->id);
-                    vup     = new vst3::UIOutParamPort(port);
+                {
+                    lsp_trace("creating parameter port %s", port->id);
+                    vst3::UIParameterPort *p    = new vst3::UIParameterPort(port, this, postfix != NULL);
+                    if (postfix != NULL)
+                        vParams.add(p);
+                    else
+                        vParamMapping.create(port->id, p);
+                    vup = p;
                     break;
+                }
 
                 case meta::R_PORT_SET:
                 {
@@ -162,6 +175,23 @@ namespace lsp
             return vup;
         }
 
+        vst3::UIParameterPort *UIWrapper::find_param(Steinberg::Vst::ParamID param_id)
+        {
+            ssize_t first=0, last = vParams.size() - 1;
+            while (first <= last)
+            {
+                size_t center           = size_t(first + last) >> 1;
+                vst3::UIParameterPort *p= vParams.uget(center);
+                if (param_id == p->parameter_id())
+                    return p;
+                else if (param_id < p->parameter_id())
+                    last    = center - 1;
+                else
+                    first   = center + 1;
+            }
+            return NULL;
+        }
+
         status_t UIWrapper::init(void *root_widget)
         {
             status_t res;
@@ -177,6 +207,7 @@ namespace lsp
             // Perform all port bindings
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(port, NULL);
+            vParams.qsort(compare_param_ports);
 
             // Initialize wrapper
             if ((res = ui::IWrapper::init(root_widget)) != STATUS_OK)
@@ -193,6 +224,10 @@ namespace lsp
                 delete pUI;
                 pUI         = NULL;
             }
+
+            // Remove port bindings
+            vParams.flush();
+            vParamMapping.flush();
 
             ui::IWrapper::destroy();
 
@@ -361,8 +396,281 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::notify(Steinberg::Vst::IMessage *message)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            // Obtain the message data
+            if (message == NULL)
+                return Steinberg::kInvalidArgument;
+            const char *message_id = reinterpret_cast<const char *>(message->getMessageID());
+            if (message_id == NULL)
+                return Steinberg::kInvalidArgument;
+            Steinberg::Vst::IAttributeList *atts = message->getAttributes();
+            if (atts == NULL)
+                return Steinberg::kInvalidArgument;
+
+            // Analyze the message
+            Steinberg::char8 key[32];
+            Steinberg::int64 byte_order = VST3_BYTEORDER;
+
+            if (!strcmp(message_id, ID_MSG_LATENCY))
+            {
+                Steinberg::int64 latency = 0;
+
+                // Write the actual value
+                if (atts->getInt("value", latency) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                if (nLatency != latency)
+                {
+                    nLatency    = latency;
+                    pComponentHandler->restartComponent(Steinberg::Vst::RestartFlags::kLatencyChanged);
+                }
+            }
+            else if (!strcmp(message_id, ID_MSG_VIRTUAL_METER))
+            {
+                // Read endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Read identifier of the meter port
+                const char *param_id = sNotifyBuf.get_string(atts, "id", byte_order);
+                if (param_id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Get actual value
+                double value = 0.0;
+                if (atts->getFloat("value", value) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Deploy value to the port
+                vst3::UIParameterPort *p = vParamMapping.get(param_id);
+                if ((p == NULL) || (!p->is_virtual()))
+                    return Steinberg::kResultFalse;
+
+                p->commit_value(value);
+                p->notify_all(ui::PORT_NONE);
+            }
+            else if (!strcmp(message_id, ID_MSG_MESH))
+            {
+                // Read endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Read identifier of the mesh port
+                const char *param_id = sNotifyBuf.get_string(atts, "id", byte_order);
+                if (param_id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Get port and validate it's type
+                ui::IPort *port = port_by_id(param_id);
+                if (port == NULL)
+                    return Steinberg::kResultFalse;
+                const meta::port_t *meta = port->metadata();
+                if ((meta == NULL) || (!meta::is_mesh_port(meta)))
+                    return Steinberg::kResultFalse;
+
+                // Read number of buffers
+                Steinberg::int64 buffers = 0;
+                if (atts->getInt("buffers", buffers) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if ((buffers < 0) || (buffers > meta->step))
+                    return Steinberg::kResultFalse;
+
+                // Read number of elements per buffer
+                Steinberg::int64 items = 0;
+                if (atts->setInt("items", items) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if ((items < 0) || (items > meta->start))
+                    return Steinberg::kResultFalse;
+
+                // Encode data for each buffer
+                plug::mesh_t *mesh = port->buffer<plug::mesh_t>();
+                const void *data = NULL;
+                Steinberg::uint32 sizeInBytes = 0;
+                for (size_t i=0, n=size_t(buffers); i<n; ++i)
+                {
+                    snprintf(key, sizeof(key), "data[%d]", int(i));
+                    if (atts->getBinary(key, data, sizeInBytes) != Steinberg::kResultOk)
+                        return Steinberg::kResultFalse;
+                    if (sizeInBytes != items * sizeof(float))
+                        return Steinberg::kResultFalse;
+
+                    if (byte_order != VST3_BYTEORDER)
+                    {
+                        byte_swap_copy(mesh->pvData[i], static_cast<const float *>(data), items);
+                        dsp::saturate(mesh->pvData[i], items);
+                    }
+                    else
+                        dsp::copy_saturated(mesh->pvData[i], static_cast<const float *>(data), items);
+                }
+
+                // Update state of the mesh and notify
+                mesh->data(buffers, items);
+                port->notify_all(ui::PORT_NONE);
+            }
+            else if (!strcmp(message_id, ID_MSG_FRAMEBUFFER))
+            {
+                // Read endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Read identifier of the mesh port
+                const char *param_id = sNotifyBuf.get_string(atts, "id", byte_order);
+                if (param_id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Get port and validate it's type
+                ui::IPort *port = port_by_id(param_id);
+                if (port == NULL)
+                    return Steinberg::kResultFalse;
+                const meta::port_t *meta = port->metadata();
+                if ((meta == NULL) || (!meta::is_framebuffer_port(meta)))
+                    return Steinberg::kResultFalse;
+
+                // Read number of rows
+                Steinberg::int64 rows = 0;
+                if (atts->getInt("rows", rows) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if ((rows < 0) || (rows > meta->start))
+                    return Steinberg::kResultFalse;
+
+                // Read number of columns
+                Steinberg::int64 cols = 0;
+                if (atts->getInt("cols", cols) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if ((cols < 0) || (cols > meta->step))
+                    return Steinberg::kResultFalse;
+
+                // Read first row identifier
+                Steinberg::int64 first_row_id = 0;
+                if (atts->getInt("first_row_id", first_row_id) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (first_row_id < 0)
+                    return Steinberg::kResultFalse;
+
+                // Read first row identifier
+                Steinberg::int64 last_row_id = 0;
+                if (atts->getInt("last_row_id", last_row_id) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (last_row_id < 0)
+                    return Steinberg::kResultFalse;
+
+                // Now parse each vector
+                plug::frame_buffer_t *fbuffer = port->buffer<plug::frame_buffer_t>();
+                const void *data = NULL;
+                Steinberg::uint32 sizeInBytes = 0;
+
+                for (uint32_t first_row=first_row_id, last_row=last_row_id, i=0; first_row != last_row; ++first_row, ++i)
+                {
+                    snprintf(key, sizeof(key), "row[%d]", int(i));
+                    if (atts->getBinary(key, data, sizeInBytes) != Steinberg::kResultOk)
+                        return Steinberg::kResultFalse;
+                    if (sizeInBytes != cols * sizeof(float))
+                        return Steinberg::kResultFalse;
+
+                    float *dst = fbuffer->get_row(first_row);
+                    if (byte_order != VST3_BYTEORDER)
+                        byte_swap_copy(dst, static_cast<const float *>(data), cols);
+                    else
+                        dsp::copy(dst, static_cast<const float *>(data), cols);
+                }
+
+                // Update state of the mesh and notify
+                fbuffer->seek(first_row_id);
+                port->notify_all(ui::PORT_NONE);
+            }
+            else if (!strcmp(message_id, ID_MSG_STREAM))
+            {
+                // Read endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Read identifier of the mesh port
+                const char *param_id = sNotifyBuf.get_string(atts, "id", byte_order);
+                if (param_id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Get port and validate it's type
+                ui::IPort *port = port_by_id(param_id);
+                if (port == NULL)
+                    return Steinberg::kResultFalse;
+                const meta::port_t *meta = port->metadata();
+                if ((meta == NULL) || (!meta::is_stream_port(meta)))
+                    return Steinberg::kResultFalse;
+
+                // Read number of buffers
+                Steinberg::int64 buffers = 0;
+                if (atts->getInt("buffers", buffers) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (buffers < 0)
+                    return Steinberg::kResultFalse;
+
+                // Read number of frames
+                Steinberg::int64 frames = 0;
+                if (atts->getInt("frames", frames) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (frames < 0)
+                    return Steinberg::kResultFalse;
+
+                // Read stream content
+                const void *data = NULL;
+                Steinberg::uint32 sizeInBytes = 0;
+                plug::stream_t *stream = port->buffer<plug::stream_t>();
+
+                for (size_t i=0, n=frames; i<n; ++i)
+                {
+                    // Read frame number
+                    Steinberg::int64 frame_id = 0;
+                    snprintf(key, sizeof(key), "frame_id[%d]", int(i));
+                    if (atts->getInt(key, frame_id) != Steinberg::kResultOk)
+                        return Steinberg::kResultFalse;
+
+                    // Read frame size
+                    Steinberg::int64 frame_size = 0;
+                    snprintf(key, sizeof(key), "frame_size[%d]", int(i));
+                    if (atts->getInt(key, frame_size) != Steinberg::kResultOk)
+                        return Steinberg::kResultFalse;
+
+                    // Cleanup stream if it is too far from actual state
+                    uint32_t prev_id    = frame_id - 1;
+                    if (stream->frame_id() != prev_id)
+                        stream->clear(prev_id);
+
+                    // Read frame components
+                    size_t f_size   = stream->add_frame(frame_size);
+                    for (size_t j=0, m=buffers; j < m; ++j)
+                    {
+                        snprintf(key, sizeof(key), "data[%d][%d]", int(i), int(j));
+                        if (atts->getBinary(key, data, sizeInBytes) != Steinberg::kResultOk)
+                            return Steinberg::kResultFalse;
+                        if (sizeInBytes != frame_size * sizeof(float))
+                            return Steinberg::kResultFalse;
+
+                        // Copy frame buffer
+                        const float *src = reinterpret_cast<const float *>(data);
+                        if (byte_order != VST3_BYTEORDER)
+                        {
+                            // The frame can be split into parts because of the frame buffer
+                            size_t count = 0;
+                            float *dst = stream->frame_data(j, 0, &count);
+                            byte_swap_copy(dst, src, count);
+                            if (count < f_size)
+                            {
+                                dst     = stream->frame_data(j, count, NULL);
+                                byte_swap_copy(dst, &src[count], f_size - count);
+                            }
+                        }
+                        else
+                            stream->write_frame(j, src, 0, f_size);
+                    }
+
+                    // Commit the frame for the stream
+                    stream->commit_frame();
+                }
+            }
+            else if (!strcmp(message_id, ID_MSG_KVT))
+            {
+            }
+
+            return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::setComponentState(Steinberg::IBStream *state)
@@ -373,50 +681,179 @@ namespace lsp
 
         Steinberg::int32 PLUGIN_API UIWrapper::getParameterCount()
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            return vParams.size();
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getParameterInfo(Steinberg::int32 paramIndex, Steinberg::Vst::ParameterInfo & info /*out*/)
         {
-            // TODO: implement this
+            vst3::UIParameterPort *p = vParams.get(paramIndex);
+            if (p == NULL)
+                return Steinberg::kInvalidArgument;
+
+            const meta::port_t *meta = p->metadata();
+            if (meta == NULL)
+                return Steinberg::kInternalError;
+
+            const char *units        = meta::get_unit_name(meta->unit);
+
+            info.id     = p->parameter_id();
+
+            lsp::utf8_to_utf16(
+                to_utf16(info.title),
+                meta->name,
+                sizeof(Steinberg::Vst::String128)/sizeof(Steinberg::Vst::TChar));
+            lsp::utf8_to_utf16(
+                to_utf16(info.shortTitle),
+                meta->id,
+                sizeof(Steinberg::Vst::String128)/sizeof(Steinberg::Vst::TChar));
+            if (units != NULL)
+                lsp::utf8_to_utf16(
+                    to_utf16(info.units),
+                    units,
+                    sizeof(Steinberg::Vst::String128)/sizeof(Steinberg::Vst::TChar));
+            else
+                info.units[0]       = 0;
+
+            info.stepCount      = 0;
+            info.flags          = Steinberg::Vst::ParameterInfo::kCanAutomate;
+            info.unitId         = Steinberg::Vst::kRootUnitId;
+
+            if (meta->flags & meta::F_CYCLIC)
+                info.flags         |= Steinberg::Vst::ParameterInfo::kIsWrapAround;
+            if (meta::is_bypass_port(meta))
+                info.flags         |= Steinberg::Vst::ParameterInfo::kIsBypass;
+            if (meta::is_meter_port(meta))
+                info.flags         |= Steinberg::Vst::ParameterInfo::kIsReadOnly;
+
+            if (meta::is_bool_unit(meta->unit))
+                info.stepCount      = 1;
+            else if (meta::is_enum_unit(meta->unit))
+            {
+                info.stepCount      = meta::list_size(meta->items);
+                info.flags         |= Steinberg::Vst::ParameterInfo::kIsList;
+            }
+            else if (meta->flags & meta::F_INT)
+                info.stepCount      = (lsp_max(meta->min, meta->max) - lsp_min(meta->min, meta->max)) / meta->step;
+
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getParamStringByValue(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue valueNormalized /*in*/, Steinberg::Vst::String128 string /*out*/)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            // Get port
+            vst3::UIParameterPort *p = find_param(id);
+            if (p == NULL)
+                return Steinberg::kInvalidArgument;
+            const meta::port_t *meta = p->metadata();
+            if (meta == NULL)
+                return Steinberg::kInternalError;
+
+            // Format value
+            char buffer[128];
+            const float value   = vst3::from_vst_value(meta, valueNormalized);
+            meta::format_value(buffer, sizeof(buffer), meta, value, -1, false);
+            const size_t res    = lsp::utf8_to_utf16(to_utf16(string), meta->id,
+                sizeof(Steinberg::Vst::String128)/sizeof(Steinberg::Vst::TChar));
+
+            lsp_trace("valueNormalized = %f, from_vst_value=%f, formatted=%s", valueNormalized, value, buffer);
+
+            return (res > 0) ? Steinberg::kResultOk : Steinberg::kResultFalse;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getParamValueByString(Steinberg::Vst::ParamID id, Steinberg::Vst::TChar *string /*in*/, Steinberg::Vst::ParamValue & valueNormalized /*out*/)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            // Get port
+            vst3::UIParameterPort *p = find_param(id);
+            if (p == NULL)
+                return Steinberg::kInvalidArgument;
+            const meta::port_t *meta = p->metadata();
+            if (meta == NULL)
+                return Steinberg::kInternalError;
+
+            // Parse value
+            float parsed = 0.0f;
+            char buffer[128];
+            if (lsp::utf16_to_utf8(buffer, to_utf16(string), sizeof(buffer)) == 0)
+            {
+                lsp_warn("falied UTF16->UTF8 conversion port id=\"%s\" name=\"%s\", buffer=\"%s\"",
+                    meta->id, meta->name, buffer);
+                return Steinberg::kResultFalse;
+            }
+
+            status_t res = meta::parse_value(&parsed, buffer, meta, false);
+            if (res != STATUS_OK)
+            {
+                lsp_warn("parse_value for port id=\"%s\" name=\"%s\", buffer=\"%s\" failed with code %d",
+                    meta->id, meta->name, buffer, int(res));
+                return Steinberg::kResultFalse;
+            }
+
+            parsed      = meta::limit_value(meta, parsed);
+            lsp_trace("port id=\"%s\" buffer=\"%s\" parsed = %f", meta->id, buffer, parsed);
+
+            valueNormalized     = to_vst_value(meta, parsed, NULL, NULL);
+
+            return Steinberg::kResultOk;
         }
 
         Steinberg::Vst::ParamValue PLUGIN_API UIWrapper::normalizedParamToPlain(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue valueNormalized)
         {
-            // TODO: implement this
-            return 0.0;
+            // Get port
+            vst3::UIParameterPort *p = find_param(id);
+            if (p == NULL)
+                return 0.0;
+            const meta::port_t *meta = p->metadata();
+            if (meta == NULL)
+                return 0.0;
+
+            // Convert value
+            return from_vst_value(meta, valueNormalized);
         }
 
         Steinberg::Vst::ParamValue PLUGIN_API UIWrapper::plainParamToNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue plainValue)
         {
-            // TODO: implement this
-            return 0.0;
+            // Get port
+            vst3::UIParameterPort *p = find_param(id);
+            if (p == NULL)
+                return 0.0;
+            const meta::port_t *meta = p->metadata();
+            if (meta == NULL)
+                return 0.0;
+
+            // Convert value
+            return to_vst_value(meta, plainValue, NULL, NULL);
         }
 
         Steinberg::Vst::ParamValue PLUGIN_API UIWrapper::getParamNormalized(Steinberg::Vst::ParamID id)
         {
-            // TODO: implement this
-            return 0.0;
+            // Get port
+            vst3::UIParameterPort *p = find_param(id);
+            if (p == NULL)
+                return 0.0;
+            const meta::port_t *meta = p->metadata();
+            if (meta == NULL)
+                return 0.0;
+
+            // Convert value
+            return to_vst_value(meta, p->value(), NULL, NULL);
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::setParamNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            // Get port
+            vst3::UIParameterPort *p = find_param(id);
+            if (p == NULL)
+                return Steinberg::kInvalidArgument;
+            const meta::port_t *meta = p->metadata();
+            if (meta == NULL)
+                return Steinberg::kInternalError;
+
+            // Convert value
+            const float plainValue = to_vst_value(meta, value, NULL, NULL);
+            p->commit_value(plainValue);
+            p->notify_all(ui::PORT_NONE);
+
+            return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::setComponentHandler(Steinberg::Vst::IComponentHandler *handler)
@@ -463,20 +900,17 @@ namespace lsp
 
         core::KVTStorage *UIWrapper::kvt_lock()
         {
-            // TODO: implement this
-            return NULL;
+            return (sKVTMutex.lock()) ? &sKVT : NULL;
         }
 
         core::KVTStorage *UIWrapper::kvt_trylock()
         {
-            // TODO: implement this
-            return NULL;
+            return (sKVTMutex.try_lock()) ? &sKVT : NULL;
         }
 
         bool UIWrapper::kvt_release()
         {
-            // TODO: implement this
-            return false;
+            return sKVTMutex.unlock();
         }
 
         void UIWrapper::dump_state_request()
@@ -485,14 +919,56 @@ namespace lsp
 
         const meta::package_t *UIWrapper::package() const
         {
-            // TODO: implement this
             return pPackage;
         }
 
         status_t UIWrapper::play_file(const char *file, wsize_t position, bool release)
         {
-            // TODO: implement this
-            return STATUS_NOT_IMPLEMENTED;
+            // Create message
+            if (pPeerConnection == NULL)
+                return STATUS_OK;
+
+            // Allocate new message
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            if (msg == NULL)
+                return STATUS_OK;
+            lsp_finally { safe_release(msg); };
+
+            // Initialize the message
+            msg->setMessageID(vst3::ID_MSG_PLAY_SAMPLE);
+            Steinberg::Vst::IAttributeList *atts = msg->getAttributes();
+
+            // Set endianess
+            Steinberg::tresult res;
+            if ((res = atts->setInt("endian", VST3_BYTEORDER)) != Steinberg::kResultOk)
+            {
+                lsp_warn("Failed to set property 'endian'");
+                return STATUS_OK;
+            }
+
+            // Set file name
+            if (!sNotifyBuf.set_string(atts, "file", file))
+            {
+                lsp_warn("Failed to set property 'file' to %s", file);
+                return STATUS_OK;
+            }
+
+            // Set play position
+            if ((res = atts->setInt("position", position)) != Steinberg::kResultOk)
+            {
+                lsp_warn("Failed to set property 'position' to %lld", static_cast<long long>(position));
+                return STATUS_OK;
+            }
+
+            // Get release flag
+            if ((res = atts->setFloat("release", release)) != Steinberg::kResultOk)
+            {
+                lsp_warn("Failed to set property 'release' to %s", (release) ? "true" : "false");
+                return STATUS_OK;
+            }
+
+            // Finally, we're ready to send message
+            return (pPeerConnection->notify(msg) == Steinberg::kResultOk) ? STATUS_OK : STATUS_UNKNOWN_ERR;
         }
 
         float UIWrapper::ui_scaling_factor(float scaling)
@@ -517,7 +993,7 @@ namespace lsp
             const meta::port_t *meta = port->metadata();
             if (meta::is_control_port(meta))
             {
-                vst3::UIInParamPort *ip = static_cast<vst3::UIInParamPort *>(port);
+                vst3::UIParameterPort *ip = static_cast<vst3::UIParameterPort *>(port);
                 if (ip->is_virtual())
                 {
                     // Check that we are available to send messages
@@ -552,9 +1028,10 @@ namespace lsp
                     if (pComponentHandler == NULL)
                         return;
 
+                    const float valueNormalized = to_vst_value(meta, ip->value(), NULL, NULL);
                     const Steinberg::Vst::ParamID param_id = ip->parameter_id();
                     pComponentHandler->beginEdit(param_id);
-                    pComponentHandler->performEdit(param_id, ip->vst_value());
+                    pComponentHandler->performEdit(param_id, valueNormalized);
                     pComponentHandler->endEdit(param_id);
                 }
             }

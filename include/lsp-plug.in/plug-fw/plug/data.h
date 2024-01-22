@@ -199,6 +199,18 @@ namespace lsp
                 ssize_t                 write_frame(size_t channel, const float *data, size_t off, size_t count);
 
                 /**
+                 * Get data for the currently allocated frame. Frame can be split into two parts because of using
+                 * ring buffer, so the returned number of elements should be considered to perform right frame
+                 * data update.
+                 *
+                 * @param channel channel number
+                 * @param off the offset inside the frame
+                 * @param count the pointer to store available number of elements for frame
+                 * @return pointer to the frame data or NULL
+                 */
+                float                  *frame_data(size_t channel, size_t off, size_t *count);
+
+                /**
                  * Read frame data
                  * @param frame frame identifier
                  * @param channel channel number

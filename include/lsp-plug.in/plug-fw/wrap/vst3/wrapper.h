@@ -119,7 +119,6 @@ namespace lsp
                 event_bus_t                        *pEventsIn;              // Input event bus
                 event_bus_t                        *pEventsOut;             // Output event bus
                 core::SamplePlayer                 *pSamplePlayer;          // Sample player
-                vst3::OutParamPort                 *pLatencyOut;            // Output latency port
 
                 vst3::string_buf                    sNotifyBuf;             // Notify buffer
                 vst3::string_buf                    sSyncBuf;               // Sync buffer
@@ -133,6 +132,8 @@ namespace lsp
                 uatomic_t                           nUICounterResp;         // Actual number of UIs
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
+
+                uint32_t                            nLatency;               // Current latency of the plugin
 
             protected:
                 static audio_bus_t         *alloc_audio_bus(const char *name, size_t ports);

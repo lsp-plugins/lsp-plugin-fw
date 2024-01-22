@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -424,7 +424,8 @@ namespace lsp
          * @return true if the value matches the range
          */
         bool            range_match(const port_t *meta, float value);
-    }
-}
+
+    } /* namespace meta */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_META_FUNC_H_ */

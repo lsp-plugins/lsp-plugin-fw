@@ -66,13 +66,15 @@ namespace lsp
                 IPortChangeHandler     *pHandler;   // Port change handler
                 Steinberg::Vst::ParamID nID;        // Unique identifier of the port
                 float                   fValue;     // The actual value of the port
+                bool                    bVirtual;   // Virtual flag
 
             public:
-                explicit UIParameterPort(const meta::port_t *meta, IPortChangeHandler *handler) : UIPort(meta)
+                explicit UIParameterPort(const meta::port_t *meta, IPortChangeHandler *handler, bool virt) : UIPort(meta)
                 {
                     pHandler            = handler;
                     nID                 = vst3::gen_parameter_id(meta->id);
                     fValue              = meta->start;
+                    bVirtual            = virt;
                 }
 
                 virtual ~UIParameterPort() override
@@ -91,29 +93,13 @@ namespace lsp
 
             public:
                 virtual float value() override  { return fValue; }
-        };
 
-        class UIInParamPort: public UIParameterPort
-        {
-            protected:
-                bool                        bVirtual;
-
-            public:
-                explicit UIInParamPort(const meta::port_t *meta, IPortChangeHandler *handler, bool virt):
-                    UIParameterPort(meta, handler)
-                {
-                    bVirtual    = virt;
-                }
-
-                UIInParamPort(const UIInParamPort &) = delete;
-                UIInParamPort(UIInParamPort &&) = delete;
-
-                UIInParamPort & operator = (const UIInParamPort &) = delete;
-                UIInParamPort & operator = (UIInParamPort &&) = delete;
-
-            public:
                 virtual void set_value(float value, size_t flags) override
                 {
+                    // Do not allow to modify output ports
+                    if (meta::is_out_port(pMetadata))
+                        return;
+
                     fValue      = meta::limit_value(pMetadata, value);
                     if (pHandler != NULL)
                         pHandler->port_write(this, flags);
@@ -125,27 +111,15 @@ namespace lsp
                 }
 
             public:
-                inline bool is_virtual() const  { return bVirtual; }
+                inline bool is_virtual() const      { return bVirtual; }
 
                 void commit_value(float value)
                 {
                     fValue      = meta::limit_value(pMetadata, value);
                 }
-
-                Steinberg::Vst::ParamValue vst_value() const
-                {
-                    // TODO: compute normalized value
-                    return fValue;
-                }
-
-                void commit_vst_value(Steinberg::Vst::ParamValue value)
-                {
-                    // TODO: transform normalized value into the proper one
-                    fValue      = meta::limit_value(pMetadata, value);
-                }
         };
 
-        class UIPortGroup: public UIInParamPort
+        class UIPortGroup: public UIParameterPort
         {
             protected:
                 size_t          nRows;
@@ -153,7 +127,7 @@ namespace lsp
 
             public:
                 UIPortGroup(const meta::port_t *meta, IPortChangeHandler *handler, bool virt):
-                    UIInParamPort(meta, handler, virt)
+                    UIParameterPort(meta, handler, virt)
                 {
                     nRows               = list_size(meta->items);
                     nCols               = port_list_size(meta->members);
@@ -168,33 +142,6 @@ namespace lsp
             public:
                 inline size_t rows() const      { return nRows; }
                 inline size_t cols() const      { return nCols; }
-        };
-
-        class UIOutParamPort: public UIPort
-        {
-            protected:
-                float                   fValue;     // The actual value of the port
-
-            public:
-                explicit UIOutParamPort(const meta::port_t *meta) : UIPort(meta)
-                {
-                    fValue              = meta->start;
-                }
-
-                UIOutParamPort(const UIOutParamPort &) = delete;
-                UIOutParamPort(UIOutParamPort &&) = delete;
-
-                UIOutParamPort & operator = (const UIOutParamPort &) = delete;
-                UIOutParamPort & operator = (UIOutParamPort &&) = delete;
-
-            public:
-                virtual float value() override  { return fValue; }
-
-            public:
-                void commit_value(float value)
-                {
-                    fValue      = meta::limit_value(pMetadata, value);
-                }
         };
 
         class UIPathPort: public UIPort

@@ -471,6 +471,11 @@ namespace lsp
                     return p;
             }
 
+            return port_by_id(id);
+        }
+
+        ui::IPort *IWrapper::port_by_id(const char *id)
+        {
             // Do usual stuff
             size_t count = vPorts.size();
             if (vSortedPorts.size() != count)

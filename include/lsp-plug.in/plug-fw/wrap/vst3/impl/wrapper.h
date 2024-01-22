@@ -77,7 +77,6 @@ namespace lsp
             pEventsIn           = NULL;
             pEventsOut          = NULL;
             pSamplePlayer       = NULL;
-            pLatencyOut         = NULL;
 
             pKVTDispatcher      = NULL;
             pOscPacket          = NULL;
@@ -86,6 +85,8 @@ namespace lsp
             nUICounterResp      = 0;
             nMaxSamplesPerBlock = 0;
             bUpdateSettings     = true;
+
+            nLatency            = 0;
         }
 
         Wrapper::~Wrapper()
@@ -1726,10 +1727,6 @@ namespace lsp
                 }
             }
 
-            // Report latency
-            if (pLatencyOut != NULL)
-                pLatencyOut->set_value(pPlugin->latency());
-
             // Transmit all outgoing information
             transmit_output_parameters(data.outputParameterChanges);
 
@@ -1940,7 +1937,30 @@ namespace lsp
             if ((pHostApplication == NULL) || (pPeerConnection == NULL))
                 return;
 
-            Steinberg::char8 key[16];
+            Steinberg::char8 key[32];
+
+            // Report latency
+            size_t latency  = pPlugin->latency();
+            if (latency != nLatency)
+            {
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID(vst3::ID_MSG_LATENCY);
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write the actual value
+                if (list->setInt("value", latency) != Steinberg::kResultOk)
+                    return;
+
+                // Send the message
+                if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
+                    nLatency = latency;
+            }
 
             // Synchronize virtual meters
             for (lltl::iterator<vst3::OutParamPort> it = vVParamOut.values(); it; ++it)
@@ -1962,6 +1982,9 @@ namespace lsp
                 msg->setMessageID(vst3::ID_MSG_VIRTUAL_METER);
                 Steinberg::Vst::IAttributeList *list = msg->getAttributes();
 
+                // Write endianess
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                    continue;
                 // Write port identifier
                 if (!sNotifyBuf.set_string(list, "id", meta->id))
                     return;
@@ -1970,8 +1993,8 @@ namespace lsp
                     return;
 
                 // Finally, we're ready to send message
-                pp->commit();
-                pPeerConnection->notify(msg);
+                if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
+                    pp->commit();
             }
 
             // Synchronize meshes
@@ -2140,7 +2163,7 @@ namespace lsp
                 // Write identifier of the frame buffer port
                 if (!sSyncBuf.set_string(list, "id", s_port->metadata()->id))
                     continue;
-                // Write number of rows
+                // Write number of buffers
                 if (list->setInt("buffers", nbuffers) != Steinberg::kResultOk)
                     continue;
 

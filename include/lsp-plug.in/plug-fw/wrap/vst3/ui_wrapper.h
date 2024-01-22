@@ -64,12 +64,21 @@ namespace lsp
                 Steinberg::Vst::IComponentHandler  *pComponentHandler;      // Component handler
                 Steinberg::Vst::IComponentHandler2 *pComponentHandler2;     // Component handler (version 2)
                 Steinberg::Vst::IComponentHandler3 *pComponentHandler3;     // Component handler (version 3)
+                lltl::parray<vst3::UIParameterPort> vParams;                // Input and output parameters (non-virtual) sorted by unique parameter ID
+                lltl::pphash<char, vst3::UIParameterPort>   vParamMapping;  // Parameter mapping
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
                 vst3::string_buf                    sNotifyBuf;             // Notify buffer
+                core::KVTStorage                    sKVT;                   // KVT storage
+                ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
+                uint32_t                            nLatency;               // Plugin latency
 
             protected:
                 vst3::UIPort                       *create_port(const meta::port_t *port, const char *postfix);
+                vst3::UIParameterPort              *find_param(Steinberg::Vst::ParamID param_id);
+
+            protected:
+                static ssize_t                      compare_param_ports(const vst3::UIParameterPort *a, const vst3::UIParameterPort *b);
 
             public:
                 explicit UIWrapper(PluginFactory *factory, ui::Module *ui, resource::ILoader *loader, const meta::package_t *package);

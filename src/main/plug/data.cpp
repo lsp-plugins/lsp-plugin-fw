@@ -273,6 +273,36 @@ namespace lsp
             return count;
         }
 
+        float *stream_t::frame_data(size_t channel, size_t off, size_t *count)
+        {
+            if (channel >= nChannels)
+                return NULL;
+
+            size_t frame_id = nFrameId + 1;
+            frame_t *next   = &vFrames[frame_id & (nFrameCap - 1)];
+            if (next->id != frame_id)
+                return NULL;
+
+            // Estimate number of items to copy
+            if (off >= next->size)
+                return NULL;
+
+            // Copy data to the frame
+            float *dst      = vChannels[channel];
+            size_t head     = next->head + off;
+            if (head >= nBufCap)
+                head           -= nBufCap;
+            size_t tail     = next->head + next->size;
+            if (tail >= nBufCap)
+                head           -= nBufCap;
+
+            // Store the available number of elements
+            if (count != NULL)
+                *count          = (head < tail) ? tail - head : nBufCap - head;
+
+            return &dst[head];
+        }
+
         ssize_t stream_t::read_frame(uint32_t frame_id, size_t channel, float *data, size_t off, size_t count)
         {
             if (channel >= nChannels)

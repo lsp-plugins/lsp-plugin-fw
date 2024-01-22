@@ -131,6 +131,8 @@ namespace lsp
 
                 void            notify_play_position(wssize_t position, wssize_t length);
 
+                IPort          *port_by_id(const char *id);
+
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
                 void            position_updated(const plug::position_t *pos);
