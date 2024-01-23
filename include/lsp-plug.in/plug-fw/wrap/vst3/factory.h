@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 27 дек. 2023 г.
@@ -99,30 +99,22 @@ namespace lsp
                 virtual status_t                        run();
 
             public: // FUnknown
-                virtual Steinberg::tresult PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;
-
-                virtual Steinberg::uint32 PLUGIN_API addRef() override;
-
-                virtual Steinberg::uint32 PLUGIN_API release() override;
+                virtual Steinberg::tresult PLUGIN_API   queryInterface(const Steinberg::TUID _iid, void **obj) override;
+                virtual Steinberg::uint32 PLUGIN_API    addRef() override;
+                virtual Steinberg::uint32 PLUGIN_API    release() override;
 
             public: // IPluginFactory
-                virtual Steinberg::tresult PLUGIN_API getFactoryInfo(Steinberg::PFactoryInfo *info) override;
-
-                virtual Steinberg::int32 PLUGIN_API countClasses() override;
-
-                virtual Steinberg::tresult PLUGIN_API getClassInfo(Steinberg::int32 index, Steinberg::PClassInfo *info) override;
-
-                virtual Steinberg::tresult PLUGIN_API createInstance(Steinberg::FIDString cid, Steinberg::FIDString _iid, void **obj) override;
+                virtual Steinberg::tresult PLUGIN_API   getFactoryInfo(Steinberg::PFactoryInfo *info) override;
+                virtual Steinberg::int32 PLUGIN_API     countClasses() override;
+                virtual Steinberg::tresult PLUGIN_API   getClassInfo(Steinberg::int32 index, Steinberg::PClassInfo *info) override;
+                virtual Steinberg::tresult PLUGIN_API   createInstance(Steinberg::FIDString cid, Steinberg::FIDString _iid, void **obj) override;
 
             public: // IPluginFactory2
-
-                virtual Steinberg::tresult PLUGIN_API getClassInfo2(Steinberg::int32 index, Steinberg::PClassInfo2 *info) override;
+                virtual Steinberg::tresult PLUGIN_API   getClassInfo2(Steinberg::int32 index, Steinberg::PClassInfo2 *info) override;
 
             public: // IPluginFactory3
-
-                virtual Steinberg::tresult PLUGIN_API getClassInfoUnicode(Steinberg::int32 index, Steinberg::PClassInfoW *info) override;
-
-                virtual Steinberg::tresult PLUGIN_API setHostContext(Steinberg::FUnknown *context) override;
+                virtual Steinberg::tresult PLUGIN_API   getClassInfoUnicode(Steinberg::int32 index, Steinberg::PClassInfoW *info) override;
+                virtual Steinberg::tresult PLUGIN_API   setHostContext(Steinberg::FUnknown *context) override;
         };
 
     } /* namespace vst3 */

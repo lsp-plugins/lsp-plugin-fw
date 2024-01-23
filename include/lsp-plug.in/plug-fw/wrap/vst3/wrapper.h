@@ -119,6 +119,7 @@ namespace lsp
                 event_bus_t                        *pEventsIn;              // Input event bus
                 event_bus_t                        *pEventsOut;             // Output event bus
                 core::SamplePlayer                 *pSamplePlayer;          // Sample player
+                plug::position_t                    sUIPosition;            // Position notified to UI
 
                 vst3::string_buf                    sNotifyBuf;             // Notify buffer
                 vst3::string_buf                    sSyncBuf;               // Sync buffer
@@ -128,8 +129,13 @@ namespace lsp
                 core::KVTDispatcher                *pKVTDispatcher;         // KVT dispatcher
                 uint8_t                            *pOscPacket;             // OSC packet data
 
+                volatile uatomic_t                  nPositionLock;          // Position lock
                 uatomic_t                           nUICounterReq;          // UI counter request
                 uatomic_t                           nUICounterResp;         // Actual number of UIs
+                uatomic_t                           nDirtyReq;              // Dirty state request
+                uatomic_t                           nDirtyResp;             // Dirty state response
+                uatomic_t                           nDumpReq;               // State dump request
+                uatomic_t                           nDumpResp;              // State dump response
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
 
@@ -159,7 +165,7 @@ namespace lsp
                 void                        create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 status_t                    create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta);
                 bool                        create_busses(const meta::plugin_t *meta);
-                void                        sync_position(Steinberg::Vst::ProcessContext *pctx, size_t frame);
+                void                        sync_position(Steinberg::Vst::ProcessContext *pctx);
                 size_t                      prepare_block(int32_t frame, Steinberg::Vst::ProcessData *pdata);
                 vst3::InParamPort          *input_parameter(Steinberg::Vst::ParamID id);
                 void                        transmit_output_parameters(Steinberg::Vst::IParameterChanges *changes);

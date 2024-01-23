@@ -39,6 +39,9 @@ namespace lsp
         constexpr const char *STATE_SIGNATURE               = "LSPS";
 
         constexpr const char *ID_MSG_LATENCY                = "Latency";
+        constexpr const char *ID_MSG_STATE_DIRTY            = "StateDirty";
+        constexpr const char *ID_MSG_DUMP_STATE             = "DumpState";
+        constexpr const char *ID_MSG_MUSIC_POSITION         = "MusicPosition";
         constexpr const char *ID_MSG_VIRTUAL_PARAMETER      = "VParam";
         constexpr const char *ID_MSG_VIRTUAL_METER          = "VMeter";
         constexpr const char *ID_MSG_PATH                   = "Path";

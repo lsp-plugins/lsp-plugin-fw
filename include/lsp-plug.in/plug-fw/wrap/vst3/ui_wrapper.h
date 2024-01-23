@@ -49,7 +49,6 @@ namespace lsp
             public ui::IWrapper,
             public IPortChangeHandler,
             public Steinberg::IDependent,
-            public Steinberg::Vst::IComponent,
             public Steinberg::Vst::IConnectionPoint,
             public Steinberg::Vst::IEditController,
             public Steinberg::Vst::IEditController2
@@ -103,7 +102,6 @@ namespace lsp
                 virtual const meta::package_t      *package() const override;
                 virtual status_t                    play_file(const char *file, wsize_t position, bool release) override;
                 virtual float                       ui_scaling_factor(float scaling) override;
-                virtual void                        main_iteration() override;
                 virtual bool                        accept_window_size(size_t width, size_t height) override;
 
             public: // vst3::IPortChangeHandler
@@ -121,23 +119,14 @@ namespace lsp
                 virtual Steinberg::tresult          PLUGIN_API initialize(Steinberg::FUnknown *context) override;
                 virtual Steinberg::tresult          PLUGIN_API terminate() override;
 
-            public: // Steinberg::Vst::IComponent
-                virtual Steinberg::tresult          PLUGIN_API getControllerClassId(Steinberg::TUID classId) override;
-                virtual Steinberg::tresult          PLUGIN_API setIoMode(Steinberg::Vst::IoMode mode) override;
-                virtual Steinberg::int32            PLUGIN_API getBusCount(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir) override;
-                virtual Steinberg::tresult          PLUGIN_API getBusInfo(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::BusInfo & bus /*out*/) override;
-                virtual Steinberg::tresult          PLUGIN_API getRoutingInfo(Steinberg::Vst::RoutingInfo & inInfo, Steinberg::Vst::RoutingInfo & outInfo /*out*/) override;
-                virtual Steinberg::tresult          PLUGIN_API activateBus(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::TBool state) override;
-                virtual Steinberg::tresult          PLUGIN_API setActive(Steinberg::TBool state) override;
-                virtual Steinberg::tresult          PLUGIN_API setState(Steinberg::IBStream *state) override;
-                virtual Steinberg::tresult          PLUGIN_API getState(Steinberg::IBStream *state) override;
-
             public: // Steinberg::vst::IConnectionPoint
                 virtual Steinberg::tresult          PLUGIN_API connect(Steinberg::Vst::IConnectionPoint *other) override;
                 virtual Steinberg::tresult          PLUGIN_API disconnect(Steinberg::Vst::IConnectionPoint *other) override;
                 virtual Steinberg::tresult          PLUGIN_API notify(Steinberg::Vst::IMessage *message) override;
 
             public: // Steinberg::vst::IEditController
+                virtual Steinberg::tresult          PLUGIN_API setState(Steinberg::IBStream *state) override;
+                virtual Steinberg::tresult          PLUGIN_API getState(Steinberg::IBStream *state) override;
                 virtual Steinberg::tresult          PLUGIN_API setComponentState(Steinberg::IBStream *state) override;
                 virtual Steinberg::int32            PLUGIN_API getParameterCount() override;
                 virtual Steinberg::tresult          PLUGIN_API getParameterInfo(Steinberg::int32 paramIndex, Steinberg::Vst::ParameterInfo & info /*out*/) override;

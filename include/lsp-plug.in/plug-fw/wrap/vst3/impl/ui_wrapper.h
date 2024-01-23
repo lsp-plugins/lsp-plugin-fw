@@ -48,6 +48,7 @@ namespace lsp
         UIWrapper::UIWrapper(PluginFactory *factory, ui::Module *plugin, resource::ILoader *loader, const meta::package_t *package):
             ui::IWrapper(plugin, loader)
         {
+            lsp_trace("this=%p", this);
             nRefCounter         = 1;
             pFactory            = safe_acquire(factory);
             pPackage            = package;
@@ -62,6 +63,7 @@ namespace lsp
 
         UIWrapper::~UIWrapper()
         {
+            lsp_trace("this=%p", this);
             destroy();
 
             // Release factory
@@ -195,6 +197,8 @@ namespace lsp
 
         status_t UIWrapper::init(void *root_widget)
         {
+            lsp_trace("this=%p", this);
+
             status_t res;
 
             // Get plugin metadata
@@ -219,6 +223,8 @@ namespace lsp
 
         void UIWrapper::destroy()
         {
+            lsp_trace("this=%p", this);
+
             // Destroy plugin UI
             if (pUI != NULL)
             {
@@ -252,8 +258,6 @@ namespace lsp
             if (Steinberg::iidEqual(_iid, Steinberg::IPluginBase::iid))
                 return cast_interface<Steinberg::IPluginBase>(static_cast<Steinberg::Vst::IEditController *>(this), obj);
 
-            if (Steinberg::iidEqual(_iid, Steinberg::Vst::IComponent::iid))
-                return cast_interface<Steinberg::Vst::IComponent>(this, obj);
             if (Steinberg::iidEqual(_iid, Steinberg::Vst::IConnectionPoint::iid))
                 return cast_interface<Steinberg::Vst::IConnectionPoint>(this, obj);
             if (Steinberg::iidEqual(_iid, Steinberg::Vst::IEditController::iid))
@@ -280,10 +284,13 @@ namespace lsp
 
         void PLUGIN_API UIWrapper::update(FUnknown *changedUnknown, Steinberg::int32 message)
         {
+            lsp_trace("this=%p, changedUnknown=%p, message=%d", this, changedUnknown, int(message));
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::initialize(Steinberg::FUnknown *context)
         {
+            lsp_trace("this=%p, context=%p", this, context);
+
             status_t res;
 
             // Acquire host context
@@ -301,6 +308,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::terminate()
         {
+            lsp_trace("this=%p", this);
+
             // Release host context
             safe_release(pHostContext);
             safe_release(pHostApplication);
@@ -318,53 +327,10 @@ namespace lsp
             return Steinberg::kResultOk;
         }
 
-        Steinberg::tresult PLUGIN_API UIWrapper::getControllerClassId(Steinberg::TUID classId)
-        {
-            return Steinberg::kResultFalse;
-        }
-
-        Steinberg::tresult PLUGIN_API UIWrapper::setIoMode(Steinberg::Vst::IoMode mode)
-        {
-            return Steinberg::kNotImplemented;
-        }
-
-        Steinberg::int32 PLUGIN_API UIWrapper::getBusCount(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir)
-        {
-            return 0;
-        }
-
-        Steinberg::tresult PLUGIN_API UIWrapper::getBusInfo(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::BusInfo & bus /*out*/)
-        {
-            return Steinberg::kNotImplemented;
-        }
-
-        Steinberg::tresult PLUGIN_API UIWrapper::getRoutingInfo(Steinberg::Vst::RoutingInfo & inInfo, Steinberg::Vst::RoutingInfo & outInfo /*out*/)
-        {
-            return Steinberg::kNotImplemented;
-        }
-
-        Steinberg::tresult PLUGIN_API UIWrapper::activateBus(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::TBool state)
-        {
-            return Steinberg::kNotImplemented;
-        }
-
-        Steinberg::tresult PLUGIN_API UIWrapper::setActive(Steinberg::TBool state)
-        {
-            return Steinberg::kResultOk;
-        }
-
-        Steinberg::tresult PLUGIN_API UIWrapper::setState(Steinberg::IBStream *state)
-        {
-            return Steinberg::kNotImplemented;
-        }
-
-        Steinberg::tresult PLUGIN_API UIWrapper::getState(Steinberg::IBStream *state)
-        {
-            return Steinberg::kNotImplemented;
-        }
-
         Steinberg::tresult PLUGIN_API UIWrapper::connect(Steinberg::Vst::IConnectionPoint *other)
         {
+            lsp_trace("this=%p, other=%p", this, other);
+
             // Check if peer connection is valid and was not previously estimated
             if (other == NULL)
                 return Steinberg::kInvalidArgument;
@@ -379,6 +345,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::disconnect(Steinberg::Vst::IConnectionPoint *other)
         {
+            lsp_trace("this=%p, other=%p", this, other);
+
             // Check that estimated peer connection matches the esimated one
             if (other == NULL)
                 return Steinberg::kInvalidArgument;
@@ -393,6 +361,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::notify(Steinberg::Vst::IMessage *message)
         {
+            lsp_trace("this=%p, message=%p", this, message);
+
             // Obtain the message data
             if (message == NULL)
                 return Steinberg::kInvalidArgument;
@@ -420,6 +390,45 @@ namespace lsp
                     nLatency    = latency;
                     pComponentHandler->restartComponent(Steinberg::Vst::RestartFlags::kLatencyChanged);
                 }
+            }
+            else if (!strcmp(message_id, ID_MSG_STATE_DIRTY))
+            {
+                // Mark state as dirty
+                if (pComponentHandler2 != NULL)
+                    pComponentHandler2->setDirty(true);
+            }
+            else if (!strcmp(message_id, ID_MSG_MUSIC_POSITION))
+            {
+                plug::position_t pos;
+                plug::position_t::init(&pos);
+
+                double sr;
+                Steinberg::int64 frame;
+
+                if (atts->getFloat("sample_rate", sr) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getFloat("speed", pos.speed) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getInt("frame", frame) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getFloat("numerator", pos.numerator) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getFloat("denominator", pos.denominator) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getFloat("bpm", pos.beatsPerMinute) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getFloat("bpm_change", pos.beatsPerMinuteChange) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getFloat("tick", pos.tick) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getFloat("ticks_per_beat", pos.ticksPerBeat) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                pos.sampleRate      = sr;
+                pos.frame           = frame;
+
+                // Notify UI about position update
+                position_updated(&pos);
             }
             else if (!strcmp(message_id, ID_MSG_VIRTUAL_METER))
             {
@@ -862,19 +871,36 @@ namespace lsp
             return (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
         }
 
+        Steinberg::tresult PLUGIN_API UIWrapper::setState(Steinberg::IBStream *state)
+        {
+            lsp_trace("this=%p, state=%p", this, state);
+            return Steinberg::kNotImplemented;
+        }
+
+        Steinberg::tresult PLUGIN_API UIWrapper::getState(Steinberg::IBStream *state)
+        {
+            lsp_trace("this=%p, state=%p", this, state);
+            return Steinberg::kNotImplemented;
+        }
+
         Steinberg::tresult PLUGIN_API UIWrapper::setComponentState(Steinberg::IBStream *state)
         {
+            lsp_trace("this=%p, state=%p", this, state);
+
             status_t res = load_state(state);
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
         Steinberg::int32 PLUGIN_API UIWrapper::getParameterCount()
         {
+            lsp_trace("this=%p, result=%d", this, int(vParams.size()));
             return vParams.size();
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getParameterInfo(Steinberg::int32 paramIndex, Steinberg::Vst::ParameterInfo & info /*out*/)
         {
+            lsp_trace("this=%p, paramIndex=%d", this, int(paramIndex));
+
             vst3::UIParameterPort *p = vParams.get(paramIndex);
             if (p == NULL)
                 return Steinberg::kInvalidArgument;
@@ -929,6 +955,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::getParamStringByValue(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue valueNormalized /*in*/, Steinberg::Vst::String128 string /*out*/)
         {
+            lsp_trace("this=%p, id=%d, valueNormalized=%f", this, int(id), valueNormalized);
+
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
@@ -951,6 +979,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::getParamValueByString(Steinberg::Vst::ParamID id, Steinberg::Vst::TChar *string /*in*/, Steinberg::Vst::ParamValue & valueNormalized /*out*/)
         {
+            lsp_trace("this=%p, string=%s", this, string);
+
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
@@ -987,6 +1017,8 @@ namespace lsp
 
         Steinberg::Vst::ParamValue PLUGIN_API UIWrapper::normalizedParamToPlain(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue valueNormalized)
         {
+            lsp_trace("this=%p, id=%d, valueNormalzed=%f", this, int(id), valueNormalized);
+
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
@@ -1001,6 +1033,8 @@ namespace lsp
 
         Steinberg::Vst::ParamValue PLUGIN_API UIWrapper::plainParamToNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue plainValue)
         {
+            lsp_trace("this=%p, id=%d, plainValue", this, int(id), plainValue);
+
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
@@ -1015,6 +1049,8 @@ namespace lsp
 
         Steinberg::Vst::ParamValue PLUGIN_API UIWrapper::getParamNormalized(Steinberg::Vst::ParamID id)
         {
+            lsp_trace("this=%p, id=%d", this, int(id));
+
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
@@ -1029,6 +1065,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::setParamNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value)
         {
+            lsp_trace("this=%p, id=%d, value=%f", this, int(id), value);
+
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
@@ -1047,6 +1085,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::setComponentHandler(Steinberg::Vst::IComponentHandler *handler)
         {
+            lsp_trace("this=%p, handler=%p", this, handler);
+
             if (pComponentHandler == handler)
                 return Steinberg::kResultTrue;
 
@@ -1065,24 +1105,30 @@ namespace lsp
 
         Steinberg::IPlugView * PLUGIN_API UIWrapper::createView(Steinberg::FIDString name)
         {
+            lsp_trace("this=%p, name=%s", this, name);
+
             // TODO: implement this
             return NULL;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::setKnobMode(Steinberg::Vst::KnobMode mode)
         {
+            lsp_trace("this=%p, mode=%d", this, int(mode));
+
             // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::openHelp(Steinberg::TBool onlyCheck)
         {
+            lsp_trace("this=%p, onlyCheck=%d", this, int(onlyCheck));
             // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::openAboutBox(Steinberg::TBool onlyCheck)
         {
+            lsp_trace("this=%p, onlyCheck=%d", this, int(onlyCheck));
             // TODO: implement this
             return Steinberg::kNotImplemented;
         }
@@ -1104,6 +1150,21 @@ namespace lsp
 
         void UIWrapper::dump_state_request()
         {
+            // Create message
+            if (pPeerConnection == NULL)
+                return;
+
+            // Allocate new message
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            if (msg == NULL)
+                return;
+            lsp_finally { safe_release(msg); };
+
+            // Initialize the message
+            msg->setMessageID(vst3::ID_MSG_DUMP_STATE);
+
+            // Send the message
+            pPeerConnection->notify(msg);
         }
 
         const meta::package_t *UIWrapper::package() const
@@ -1163,12 +1224,7 @@ namespace lsp
         float UIWrapper::ui_scaling_factor(float scaling)
         {
             // TODO: implement this
-            return 0.0f;
-        }
-
-        void UIWrapper::main_iteration()
-        {
-            // TODO: implement this
+            return scaling;
         }
 
         bool UIWrapper::accept_window_size(size_t width, size_t height)

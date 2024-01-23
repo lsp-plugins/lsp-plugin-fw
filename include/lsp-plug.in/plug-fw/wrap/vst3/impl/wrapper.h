@@ -81,8 +81,15 @@ namespace lsp
             pKVTDispatcher      = NULL;
             pOscPacket          = NULL;
 
+            sUIPosition         = sPosition;
+
+            atomic_init(nPositionLock);
             nUICounterReq       = 0;
             nUICounterResp      = 0;
+            nDirtyReq           = 0;
+            nDirtyResp          = 0;
+            nDumpReq            = 0;
+            nDumpResp           = 0;
             nMaxSamplesPerBlock = 0;
             bUpdateSettings     = true;
 
@@ -673,6 +680,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::initialize(Steinberg::FUnknown *context)
         {
+            lsp_trace("this=%p, context=%p", this, context);
+
             // Add self to the synchronization list
             status_t res = pFactory->register_data_sync(this);
             if (res != STATUS_OK)
@@ -733,12 +742,13 @@ namespace lsp
                 pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
             }
 
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::terminate()
         {
+            lsp_trace("this=%p", this);
+
             // Remove self from synchronization list
             pFactory->unregister_data_sync(this);
             if (pExecutor != NULL)
@@ -817,12 +827,13 @@ namespace lsp
             }
             vGenMetadata.flush();
 
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::getControllerClassId(Steinberg::TUID classId)
         {
+            lsp_trace("this=%p", this);
+
             const meta::plugin_t *meta = pPlugin->metadata();
             if (meta->vst3ui_uid == NULL)
                 return Steinberg::kResultFalse;
@@ -838,11 +849,15 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::setIoMode(Steinberg::Vst::IoMode mode)
         {
+            lsp_trace("this=%p, mode = %d", this, int(mode));
+
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::int32 PLUGIN_API Wrapper::getBusCount(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir)
         {
+            lsp_trace("this=%p, type = %d, dir=%d", this, int(type), int(dir));
+
             if (type == Steinberg::Vst::kAudio)
             {
                 if (dir == Steinberg::Vst::kInput)
@@ -863,6 +878,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::getBusInfo(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::BusInfo & bus /*out*/)
         {
+            lsp_trace("this=%p, type=%d, dir=%d, index=%d", this, int(type), int(dir), int(index));
+
             if (type == Steinberg::Vst::kAudio)
             {
                 if (dir == Steinberg::Vst::kInput)
@@ -939,11 +956,14 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::getRoutingInfo(Steinberg::Vst::RoutingInfo & inInfo, Steinberg::Vst::RoutingInfo & outInfo /*out*/)
         {
+            lsp_trace("this=%p", this);
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::activateBus(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::TBool state)
         {
+            lsp_trace("this=%p, type=%d, dir=%d, index=%d, state=%d", this, int(type), int(dir), int(index), int(state));
+
             if (index < 0)
                 return Steinberg::kInvalidArgument;
 
@@ -981,6 +1001,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::setActive(Steinberg::TBool state)
         {
+            lsp_trace("this=%p, state=%d", this, int(state));
+
             if (pPlugin == NULL)
                 return Steinberg::kNotInitialized;
 
@@ -1243,18 +1265,24 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::setState(Steinberg::IBStream *state)
         {
+            lsp_trace("this=%p, state=%p", this, state);
+
             status_t res = load_state(state);
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::getState(Steinberg::IBStream *state)
         {
+            lsp_trace("this=%p, state=%p", this, state);
+
             status_t res = save_state(state);
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::connect(Steinberg::Vst::IConnectionPoint *other)
         {
+            lsp_trace("this=%p, other=%p", this, other);
+
             // Check if peer connection is valid and was not previously estimated
             if (other == NULL)
                 return Steinberg::kInvalidArgument;
@@ -1271,6 +1299,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::disconnect(Steinberg::Vst::IConnectionPoint *other)
         {
+            lsp_trace("this=%p, other=%p", this, other);
+
             // Check that estimated peer connection matches the esimated one
             if (other == NULL)
                 return Steinberg::kInvalidArgument;
@@ -1287,6 +1317,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::setBusArrangements(Steinberg::Vst::SpeakerArrangement *inputs, Steinberg::int32 numIns, Steinberg::Vst::SpeakerArrangement* outputs, Steinberg::int32 numOuts)
         {
+            lsp_trace("this=%p, inputs=%p, numIns=%d, outputs=%p, numOuts=%d", this, inputs, int(numIns), outputs, int(numOuts));
+
             if (numIns < 0 || numOuts < 0)
                 return Steinberg::kInvalidArgument;
 
@@ -1341,6 +1373,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::getBusArrangement(Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::SpeakerArrangement & arr)
         {
+            lsp_trace("this=%p, dir=%d, index=%d", this, int(dir), int(index));
+
             if (index < 0)
                 return Steinberg::kInvalidArgument;
             audio_bus_t *bus    = (dir == Steinberg::Vst::kInput) ? vAudioIn.get(index) :
@@ -1355,17 +1389,23 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::canProcessSampleSize(Steinberg::int32 symbolicSampleSize)
         {
+            lsp_trace("this=%p, symbolicSampleSize=%d", this, int(symbolicSampleSize));
+
             // We support only 32-bit float samples
             return (symbolicSampleSize == Steinberg::Vst::kSample32) ? Steinberg::kResultTrue : Steinberg::kResultFalse;
         }
 
         Steinberg::uint32 PLUGIN_API Wrapper::getLatencySamples()
         {
+            lsp_trace("this=%p, latency=%d", this, int(pPlugin->latency()));
+
             return pPlugin->latency();
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::setupProcessing(Steinberg::Vst::ProcessSetup & setup)
         {
+            lsp_trace("this=%p", this);
+
             // Check that processing mode is valid
             switch (setup.processMode)
             {
@@ -1420,40 +1460,50 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::setProcessing(Steinberg::TBool state)
         {
+            lsp_trace("this=%p, state=%d", this, int(state));
             // This is almost useless
             return Steinberg::kNotImplemented;
         }
 
-        void Wrapper::sync_position(Steinberg::Vst::ProcessContext *pctx, size_t frame)
+        void Wrapper::sync_position(Steinberg::Vst::ProcessContext *pctx)
         {
-            sPosition.sampleRate            = pPlugin->sample_rate();
-            sPosition.speed                 = 1.0f;
-            sPosition.frame                 = frame;
+            plug::position_t *pos       = &sPosition;
+
+            pos->sampleRate             = pPlugin->sample_rate();
+            pos->speed                  = 1.0f;
+            pos->frame                  = 0;
             if ((pctx != NULL) && (pctx->state & Steinberg::Vst::ProcessContext::kTimeSigValid))
             {
-                sPosition.numerator             = pctx->timeSigNumerator;
-                sPosition.denominator           = pctx->timeSigDenominator;
+                pos->numerator              = pctx->timeSigNumerator;
+                pos->denominator            = pctx->timeSigDenominator;
             }
             else
             {
-                sPosition.numerator             = 4.0;
-                sPosition.denominator           = 4.0;
+                pos->numerator              = 4.0;
+                pos->denominator            = 4.0;
             }
             if (pctx->state & Steinberg::Vst::ProcessContext::kTempoValid)
-                sPosition.beatsPerMinute        = pctx->tempo;
+                pos->beatsPerMinute         = pctx->tempo;
             else
-                sPosition.beatsPerMinute        = BPM_DEFAULT;
-            sPosition.beatsPerMinuteChange  = 0.0f;
-            sPosition.ticksPerBeat          = DEFAULT_TICKS_PER_BEAT;
+                pos->beatsPerMinute         = BPM_DEFAULT;
+            pos->beatsPerMinuteChange   = 0.0f;
+            pos->ticksPerBeat           = DEFAULT_TICKS_PER_BEAT;
 
             if ((pctx->state & Steinberg::Vst::ProcessContext::kProjectTimeMusicValid) &&
                 (pctx->state & Steinberg::Vst::ProcessContext::kBarPositionValid))
             {
-                double uppqPos                  = (pctx->projectTimeMusic - pctx->barPositionMusic) * pctx->timeSigDenominator * 0.25;
-                sPosition.tick                  = sPosition.ticksPerBeat * (uppqPos - int64_t(uppqPos));
+                double uppqPos              = (pctx->projectTimeMusic - pctx->barPositionMusic) * pctx->timeSigDenominator * 0.25;
+                pos->tick                   = pos->ticksPerBeat * (uppqPos - int64_t(uppqPos));
             }
             else
-                sPosition.tick                  = 0.0;
+                pos->tick                   = 0.0;
+
+            // Sync position with UI
+            if (atomic_trylock(nPositionLock))
+            {
+                sUIPosition                 = sPosition;
+                atomic_unlock(nPositionLock);
+            }
         }
 
         vst3::InParamPort *Wrapper::input_parameter(Steinberg::Vst::ParamID id)
@@ -1654,6 +1704,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::process(Steinberg::Vst::ProcessData & data)
         {
+            lsp_trace("this=%p", this);
+
             // We do not support any samples except 32-bit floating-point values
             if (data.symbolicSampleSize != Steinberg::Vst::kSample32)
                 return Steinberg::kInternalError;
@@ -1683,6 +1735,8 @@ namespace lsp
                     p->set_empty();
             }
 
+            sync_position(data.processContext);
+
             for (int32_t frame=0; frame < data.numSamples; )
             {
                 // Cleanup stat of input and output MIDI ports
@@ -1706,7 +1760,6 @@ namespace lsp
                     vAllPorts.uget(i)->pre_process(block_size);
 
                 // Update the settings for the plugin
-                sync_position(data.processContext, frame);
                 if (bUpdateSettings)
                 {
                     lsp_trace("Updating settings");
@@ -1717,6 +1770,8 @@ namespace lsp
                 // Call the plugin for processing
                 if (block_size > 0)
                 {
+                    sPosition.frame     = frame;
+                    pPlugin->set_position(&sPosition);
                     pPlugin->process(block_size);
 
                     // Call the sampler for processing
@@ -1736,11 +1791,21 @@ namespace lsp
             // Transmit all outgoing information
             transmit_output_parameters(data.outputParameterChanges);
 
+            // Dump state if requested
+            const uatomic_t dump_req    = nDumpReq;
+            if (dump_req != nDumpResp)
+            {
+                dump_plugin_state();
+                nDumpResp               = dump_req;
+            }
+
             return Steinberg::kResultOk;
         }
 
         Steinberg::uint32 PLUGIN_API Wrapper::getTailSamples()
         {
+            lsp_trace("this=%p", this);
+
             if (pPlugin == NULL)
                 return Steinberg::kInternalError;
 
@@ -1753,6 +1818,8 @@ namespace lsp
 
         Steinberg::uint32 PLUGIN_API Wrapper::getProcessContextRequirements()
         {
+            lsp_trace("this=%p", this);
+
             return
                 Steinberg::Vst::IProcessContextRequirements::kNeedProjectTimeMusic |
                 Steinberg::Vst::IProcessContextRequirements::kNeedBarPositionMusic |
@@ -1782,7 +1849,7 @@ namespace lsp
 
         void Wrapper::state_changed()
         {
-            // TODO: implement this
+            atomic_add(&nDirtyReq, 1);
         }
 
         void Wrapper::request_settings_update()
@@ -1797,6 +1864,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::notify(Steinberg::Vst::IMessage *message)
         {
+            lsp_trace("this=%p, message=%p", this, message);
+
             // Obtain the message data
             if (message == NULL)
                 return Steinberg::kInvalidArgument;
@@ -1897,6 +1966,11 @@ namespace lsp
                 lsp_trace("Received Deactivate UI message");
                 atomic_add(&nUICounterReq, -1);
             }
+            else if (!strcmp(message_id, vst3::ID_MSG_DUMP_STATE))
+            {
+                lsp_trace("Received DumpState message");
+                atomic_add(&nDumpReq, 1);
+            }
             else if (!strcmp(message_id, vst3::ID_MSG_PLAY_SAMPLE))
             {
                 lsp_trace("Received PlaySample");
@@ -1963,9 +2037,66 @@ namespace lsp
                 if (list->setInt("value", latency) != Steinberg::kResultOk)
                     return;
 
-                // Send the message
+                // Send the message and commit state
                 if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
                     nLatency = latency;
+            }
+
+            // Report state change
+            uatomic_t dirty_req     = nDirtyReq;
+            if (dirty_req != nDirtyResp)
+            {
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID(vst3::ID_MSG_STATE_DIRTY);
+
+                // Send the message and commit state
+                if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
+                    nDirtyResp = dirty_req;
+            }
+
+            // Send position information
+            if (atomic_trylock(nPositionLock))
+            {
+                plug::position_t pos        = sUIPosition;
+                atomic_unlock(nPositionLock);
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID(vst3::ID_MSG_MUSIC_POSITION);
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                if (list->setFloat("sample_rate", pos.sampleRate) != Steinberg::kResultOk)
+                    return;
+                if (list->setFloat("speed", pos.speed) != Steinberg::kResultOk)
+                    return;
+                if (list->setInt("frame", pos.frame) != Steinberg::kResultOk)
+                    return;
+                if (list->setFloat("numerator", pos.numerator) != Steinberg::kResultOk)
+                    return;
+                if (list->setFloat("denominator", pos.denominator) != Steinberg::kResultOk)
+                    return;
+                if (list->setFloat("bpm", pos.beatsPerMinute) != Steinberg::kResultOk)
+                    return;
+                if (list->setFloat("bpm_change", pos.beatsPerMinuteChange) != Steinberg::kResultOk)
+                    return;
+                if (list->setFloat("tick", pos.tick) != Steinberg::kResultOk)
+                    return;
+                if (list->setFloat("ticks_per_beat", pos.ticksPerBeat) != Steinberg::kResultOk)
+                    return;
+
+                // Send the message and commit state
+                pPeerConnection->notify(msg);
             }
 
             // Transmit KVT state

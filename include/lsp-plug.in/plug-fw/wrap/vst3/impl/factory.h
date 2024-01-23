@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 27 дек. 2023 г.
@@ -50,6 +50,8 @@ namespace lsp
     {
         PluginFactory::PluginFactory()
         {
+            lsp_trace("this=%p", this);
+
             nRefCounter         = 1;
             nRefExecutor        = 0;
             pLoader             = NULL;
@@ -61,6 +63,7 @@ namespace lsp
 
         PluginFactory::~PluginFactory()
         {
+            lsp_trace("this=%p", this);
             destroy();
         }
 
@@ -319,6 +322,8 @@ namespace lsp
 
         void PluginFactory::destroy()
         {
+            lsp_trace("this=%p", this);
+
             if (pLoader != NULL)
             {
                 delete pLoader;
@@ -363,6 +368,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginFactory::getFactoryInfo(Steinberg::PFactoryInfo *info)
         {
+            lsp_trace("this=%p, info=%p", this, info);
+
             if (info != NULL)
                 *info       = sFactoryInfo;
             return Steinberg::kResultOk;
@@ -370,11 +377,14 @@ namespace lsp
 
         Steinberg::int32 PLUGIN_API PluginFactory::countClasses()
         {
+            lsp_trace("this=%p", this);
             return vClassInfo.size();
         }
 
         Steinberg::tresult PLUGIN_API PluginFactory::getClassInfo(Steinberg::int32 index, Steinberg::PClassInfo *info)
         {
+            lsp_trace("this=%p, index=%d, info=%p", this, int(index), info);
+
             if ((index < 0) || (info == NULL))
                 return Steinberg::kInvalidArgument;
 
@@ -389,6 +399,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginFactory::getClassInfo2(Steinberg::int32 index, Steinberg::PClassInfo2 *info)
         {
+            lsp_trace("this=%p, index=%d, info=%p", this, index, info);
+
             if ((index < 0) || (info == NULL))
                 return Steinberg::kInvalidArgument;
 
@@ -403,6 +415,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginFactory::getClassInfoUnicode(Steinberg::int32 index, Steinberg::PClassInfoW *info)
         {
+            lsp_trace("this=%p, index=%d, info=%p", this, int(index), info);
+
             if ((index < 0) || (info == NULL))
                 return Steinberg::kInvalidArgument;
 
@@ -417,11 +431,14 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginFactory::setHostContext(Steinberg::FUnknown *context)
         {
+            lsp_trace("this=%p, context=%p", this, context);
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API PluginFactory::createInstance(Steinberg::FIDString cid, Steinberg::FIDString _iid, void **obj)
         {
+            lsp_trace("this=%p, cid=%s, _iid=%s, obj=%p", this, cid, _iid, obj);
+
             // Watch plugin factories first
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
             {
@@ -447,6 +464,7 @@ namespace lsp
                     Wrapper *w  = new Wrapper(this, module, pLoader, pPackage);
                     if (w == NULL)
                         return Steinberg::kOutOfMemory;
+                    lsp_trace("Created Wrapper w=%p", w);
                     module      = NULL; // Force module to be destroyed by the wrapper
                     lsp_finally {
                         safe_release(w);
@@ -482,6 +500,7 @@ namespace lsp
                     UIWrapper *w  = new UIWrapper(this, module, pLoader, pPackage);
                     if (w == NULL)
                         return Steinberg::kOutOfMemory;
+                    lsp_trace("Created UIWrapper w=%p", w);
                     module      = NULL; // Force module to be destroyed by the wrapper
                     lsp_finally {
                         safe_release(w);
@@ -498,6 +517,8 @@ namespace lsp
 
         ipc::IExecutor *PluginFactory::acquire_executor()
         {
+            lsp_trace("this=%p", this);
+
             if (!sMutex.lock())
                 return NULL;
             lsp_finally { sMutex.unlock(); };
@@ -531,6 +552,8 @@ namespace lsp
 
         void PluginFactory::release_executor()
         {
+            lsp_trace("this=%p", this);
+
             if (!sMutex.lock())
                 return;
             lsp_finally { sMutex.unlock(); };
@@ -548,6 +571,8 @@ namespace lsp
 
         status_t PluginFactory::register_data_sync(IDataSync *sync)
         {
+            lsp_trace("this=%p, sync=%p", this, sync);
+
             if (sync == NULL)
                 return STATUS_BAD_ARGUMENTS;
 
@@ -590,6 +615,8 @@ namespace lsp
 
         status_t PluginFactory::unregister_data_sync(IDataSync *sync)
         {
+            lsp_trace("this=%p, sync=%p", this, sync);
+
             if (sync == NULL)
                 return STATUS_BAD_ARGUMENTS;
 
@@ -603,8 +630,9 @@ namespace lsp
 
                 while (pActiveSync == sync)
                 {
-                    // sDataMutex.wait();       // TODO: add conditional wait
-                    ipc::Thread::sleep(1);     // TODO: replace this with proper solution
+                    // TODO: replace this with proper solution (add conditional wait)
+                    // sDataMutex.wait();
+                    ipc::Thread::sleep(1);
                 }
 
                 if (vDataSync.size() > 0)
@@ -627,6 +655,8 @@ namespace lsp
 
         status_t PluginFactory::run()
         {
+            lsp_trace("this=%p started", this);
+
             lltl::parray<IDataSync> list;
 
             while (!ipc::Thread::is_cancelled())
@@ -669,6 +699,8 @@ namespace lsp
                 const system::time_millis_t delay = lsp_min(system::get_time_millis() - time, 40u);
                 ipc::Thread::sleep(delay);
             }
+
+            lsp_trace("this=%p finished", this);
 
             return STATUS_OK;
         }
