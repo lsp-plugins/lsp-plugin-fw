@@ -1188,6 +1188,12 @@ namespace lsp
                         else if (meta::is_path_port(meta))
                         {
                             path_t *xp  = p->buffer<path_t>();
+
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
                             xp->submit(name, strlen(name), plug::PF_STATE_RESTORE);
                         }
                     }
@@ -1962,6 +1968,59 @@ namespace lsp
                     nLatency = latency;
             }
 
+            // Transmit KVT state
+            if (pKVTDispatcher != NULL)
+            {
+                size_t size = 0;
+                bool encoded = true;
+
+                do
+                {
+                    pKVTDispatcher->iterate();
+                    status_t res = pKVTDispatcher->fetch(pOscPacket, &size, OSC_PACKET_MAX);
+
+                    switch (res)
+                    {
+                        case STATUS_OK:
+                        {
+                            lsp_trace("Transmitting KVT-related OSC packet of %d bytes", int(size));
+                            osc::dump_packet(pOscPacket, size);
+
+                            // Allocate new message
+                            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                            if (msg == NULL)
+                                continue;
+                            lsp_finally { safe_release(msg); };
+
+                            // Initialize the message
+                            msg->setMessageID(vst3::ID_MSG_KVT);
+                            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                            encoded = list->setBinary("data", pOscPacket, size) == Steinberg::kResultOk;
+                            break;
+                        }
+
+                        case STATUS_OVERFLOW:
+                            lsp_warn("Received too big OSC packet, skipping");
+                            pKVTDispatcher->skip();
+                            break;
+
+                        case STATUS_NO_DATA:
+                            encoded = false;
+                            break;
+
+                        default:
+                            lsp_warn("Received error while deserializing KVT changes: %d", int(res));
+                            encoded = false;
+                            break;
+                    }
+                } while (encoded);
+            }
+
+            // Do not synchronize other data until there is no UI visible
+            if (nUICounterResp <= 0)
+                return;
+
             // Synchronize virtual meters
             for (lltl::iterator<vst3::OutParamPort> it = vVParamOut.values(); it; ++it)
             {
@@ -2216,55 +2275,6 @@ namespace lsp
 
                 // Update current RowID
                 s_port->set_frame_id(frame_id);
-            }
-
-            // Transmit KVT state
-            if (pKVTDispatcher != NULL)
-            {
-                size_t size = 0;
-                bool encoded = true;
-
-                while (encoded)
-                {
-                    pKVTDispatcher->iterate();
-                    status_t res = pKVTDispatcher->fetch(pOscPacket, &size, OSC_PACKET_MAX);
-
-                    switch (res)
-                    {
-                        case STATUS_OK:
-                        {
-                            lsp_trace("Transmitting KVT-related OSC packet of %d bytes", int(size));
-                            osc::dump_packet(pOscPacket, size);
-
-                            // Allocate new message
-                            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
-                            if (msg == NULL)
-                                continue;
-                            lsp_finally { safe_release(msg); };
-
-                            // Initialize the message
-                            msg->setMessageID(vst3::ID_MSG_KVT);
-                            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
-
-                            encoded = list->setBinary("data", pOscPacket, size) == Steinberg::kResultOk;
-                            break;
-                        }
-
-                        case STATUS_OVERFLOW:
-                            lsp_warn("Received too big OSC packet, skipping");
-                            pKVTDispatcher->skip();
-                            break;
-
-                        case STATUS_NO_DATA:
-                            encoded = false;
-                            break;
-
-                        default:
-                            lsp_warn("Received error while deserializing KVT changes: %d", int(res));
-                            encoded = false;;
-                            break;
-                    }
-                }
             }
         }
 

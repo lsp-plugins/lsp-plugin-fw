@@ -107,7 +107,7 @@ namespace lsp
 
                 virtual void set_value(float value) override
                 {
-                    set_value(value, ui::PORT_NONE);
+                    set_value(value, ui::IMPORT_FLAG_NONE);
                 }
 
             public:

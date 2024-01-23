@@ -65,7 +65,7 @@ namespace lsp
                 Steinberg::Vst::IComponentHandler2 *pComponentHandler2;     // Component handler (version 2)
                 Steinberg::Vst::IComponentHandler3 *pComponentHandler3;     // Component handler (version 3)
                 lltl::parray<vst3::UIParameterPort> vParams;                // Input and output parameters (non-virtual) sorted by unique parameter ID
-                lltl::pphash<char, vst3::UIParameterPort>   vParamMapping;  // Parameter mapping
+                lltl::pphash<char, vst3::UIPort>    vParamMapping;          // Parameter mapping
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
                 vst3::string_buf                    sNotifyBuf;             // Notify buffer
@@ -76,6 +76,9 @@ namespace lsp
             protected:
                 vst3::UIPort                       *create_port(const meta::port_t *port, const char *postfix);
                 vst3::UIParameterPort              *find_param(Steinberg::Vst::ParamID param_id);
+                void                                receive_raw_osc_packet(const void *data, size_t size);
+                void                                parse_raw_osc_event(osc::parse_frame_t *frame);
+                status_t                            load_state(Steinberg::IBStream *is);
 
             protected:
                 static ssize_t                      compare_param_ports(const vst3::UIParameterPort *a, const vst3::UIParameterPort *b);

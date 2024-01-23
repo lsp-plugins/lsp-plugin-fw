@@ -110,6 +110,7 @@ namespace lsp
                 case meta::R_PATH:
                     lsp_trace("creating path port %s", port->id);
                     vup = new vst3::UIPathPort(port, this);
+                    vParamMapping.create(port->id, vup);
                     break;
 
                 case meta::R_CONTROL:
@@ -279,7 +280,6 @@ namespace lsp
 
         void PLUGIN_API UIWrapper::update(FUnknown *changedUnknown, Steinberg::int32 message)
         {
-            // TODO: implement this
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::initialize(Steinberg::FUnknown *context)
@@ -350,19 +350,16 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::setActive(Steinberg::TBool state)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::setState(Steinberg::IBStream *state)
         {
-            // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getState(Steinberg::IBStream *state)
         {
-            // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 
@@ -441,7 +438,12 @@ namespace lsp
                     return Steinberg::kResultFalse;
 
                 // Deploy value to the port
-                vst3::UIParameterPort *p = vParamMapping.get(param_id);
+                vst3::UIPort *port = vParamMapping.get(param_id);
+                const meta::port_t *meta = port->metadata();
+                if ((meta == NULL) || (!meta::is_meter_port(meta)))
+                    return Steinberg::kResultFalse;
+
+                vst3::UIParameterPort *p = static_cast<vst3::UIParameterPort *>(port);
                 if ((p == NULL) || (!p->is_virtual()))
                     return Steinberg::kResultFalse;
 
@@ -668,15 +670,202 @@ namespace lsp
             }
             else if (!strcmp(message_id, ID_MSG_KVT))
             {
+                const void *data = NULL;
+                Steinberg::uint32 sizeInBytes = 0;
+
+                if (atts->getBinary(key, data, sizeInBytes) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                receive_raw_osc_packet(data, sizeInBytes);
             }
 
             return Steinberg::kResultOk;
         }
 
+        void UIWrapper::parse_raw_osc_event(osc::parse_frame_t *frame)
+        {
+            osc::parse_token_t token;
+            status_t res = osc::parse_token(frame, &token);
+            if (res != STATUS_OK)
+                return;
+
+            if (token == osc::PT_BUNDLE)
+            {
+                osc::parse_frame_t child;
+                uint64_t time_tag;
+                status_t res = osc::parse_begin_bundle(&child, frame, &time_tag);
+                if (res != STATUS_OK)
+                    return;
+                parse_raw_osc_event(&child); // Perform recursive call
+                osc::parse_end(&child);
+            }
+            else if (token == osc::PT_MESSAGE)
+            {
+                const void *msg_start;
+                size_t msg_size;
+                const char *msg_addr;
+
+                // Perform address lookup and routing
+                status_t res = osc::parse_raw_message(frame, &msg_start, &msg_size, &msg_addr);
+                if (res != STATUS_OK)
+                    return;
+
+                lsp_trace("Received OSC message, address=%s, size=%d", msg_addr, int(msg_size));
+                osc::dump_packet(msg_start, msg_size);
+
+                // Try to parse KVT message
+                core::KVTDispatcher::parse_message(&sKVT, msg_start, msg_size, core::KVT_TX);
+            }
+        }
+
+        void UIWrapper::receive_raw_osc_packet(const void *data, size_t size)
+        {
+            osc::parser_t parser;
+            osc::parser_frame_t root;
+            status_t res = osc::parse_begin(&root, &parser, data, size);
+            if (res == STATUS_OK)
+            {
+                parse_raw_osc_event(&root);
+                osc::parse_end(&root);
+                osc::parse_destroy(&parser);
+            }
+        }
+
+        status_t UIWrapper::load_state(Steinberg::IBStream *is)
+        {
+            status_t res;
+            char signature[4];
+            uint16_t version;
+
+            // Read and validate signature
+            if ((res = read_fully(is, &signature[0], 4)) != STATUS_OK)
+            {
+                lsp_warn("Can not read state signature");
+                return STATUS_CORRUPTED;
+            }
+            if (memcmp(signature, STATE_SIGNATURE, 4) != 0)
+            {
+                lsp_warn("Invalid state signature");
+                return STATUS_CORRUPTED;
+            }
+
+            // Read and validate version
+            if ((res = read_fully(is, &version)) != STATUS_OK)
+            {
+                lsp_warn("Failed to read serial version");
+                return STATUS_CORRUPTED;
+            }
+            if (version != 1)
+            {
+                lsp_warn("Unsupported serial version %d", int(version));
+                return STATUS_CORRUPTED;
+            }
+
+            // Lock the KVT
+            if (!sKVTMutex.lock())
+            {
+                lsp_warn("Failed to lock KVT");
+                return STATUS_UNKNOWN_ERR;
+            }
+            lsp_finally {
+                sKVT.gc();
+                sKVTMutex.unlock();
+            };
+            sKVT.clear();
+
+            // Read the state
+            lsp_debug("Reading state...");
+            char *name = NULL;
+            size_t name_cap = 0;
+            lsp_finally {
+                if (name != NULL)
+                    free(name);
+            };
+
+            // Read and parse the record
+            while ((res = read_string(is, &name, &name_cap)) == STATUS_OK)
+            {
+                core::kvt_param_t p;
+                p.type  = core::KVT_ANY;
+                lsp_finally {
+                    destroy_kvt_value(&p);
+                };
+
+                lsp_trace("Parameter name: %s", name);
+
+                if (name[0] != '/')
+                {
+                    // Try to find virtual port
+                    vst3::UIPort *p         = vParamMapping.get(name);
+                    if (p != NULL)
+                    {
+                        const meta::port_t *meta = p->metadata();
+                        if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)))
+                        {
+                            vst3::UIParameterPort *pp   = static_cast<vst3::UIParameterPort *>(p);
+                            float v = 0.0f;
+                            if ((res = read_fully(is, &v)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", name);
+                                return res;
+                            }
+                            pp->commit_value(v);
+                            pp->notify_all(ui::PORT_NONE);
+                        }
+                        else if (meta::is_path_port(meta))
+                        {
+                            vst3::UIPathPort *pp        = static_cast<vst3::UIPathPort *>(p);
+
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
+                            pp->commit_value(name);
+                            pp->notify_all(ui::PORT_NONE);
+                        }
+                    }
+                    else
+                        lsp_warn("Missing port id=%s, skipping", name);
+                }
+                else
+                {
+                    // Read the KVT parameter flags
+                    uint8_t flags = 0;
+                    if ((res = read_fully(is, &flags)) != STATUS_OK)
+                    {
+                        lsp_warn("Failed to resolve flags for parameter id=%s", name);
+                        return res;
+                    }
+
+                    lsp_trace("Parameter flags: 0x%x", int(flags));
+                    if ((res = read_kvt_value(is, name, &p)) != STATUS_OK)
+                    {
+                        lsp_warn("Failed to read value for KVT parameter id=%s, code=%d", name, int(res));
+                        return res;
+                    }
+
+                    // This is KVT port
+                    if (p.type != core::KVT_ANY)
+                    {
+                        size_t kflags = core::KVT_TX;
+                        if (!(flags & vst3::FLAG_PRIVATE))
+                        {
+                            kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
+                            sKVT.put(name, &p, kflags);
+                        }
+                    }
+                }
+            }
+
+            // Analyze result
+            return (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
+        }
+
         Steinberg::tresult PLUGIN_API UIWrapper::setComponentState(Steinberg::IBStream *state)
         {
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+            status_t res = load_state(state);
+            return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
         Steinberg::int32 PLUGIN_API UIWrapper::getParameterCount()
