@@ -1,6 +1,6 @@
 #
-# Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
-#           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+# Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+#           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
 #
 # This file is part of lsp-tk-lib
 #
@@ -147,9 +147,53 @@ JACK_LIBDIR            := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 LADSPA_LIBDIR          := $(LIBDIR)/ladspa
 LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
 VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_GROUP_LIBDIR)
-VST3_LIBDIR            := $(LIBDIR)/vst3
+VST3_LIBDIR            := $(LIBDIR)/vst3/$(INSTALL_LIBDIR).vst3
 CLAP_LIBDIR            := $(LIBDIR)/clap
 DOC_SHAREDDIR          := $(SHAREDDIR)/doc/$($(ROOT_ARTIFACT_ID)_NAME)
+
+ifeq ($(PLATFORM),Linux)
+  ifeq ($(ARCHITECTURE_FAMILY),ia32)
+    VST3_ARCH              := i386-linux
+  else ifeq ($(ARCHITECTURE_FAMILY),x86_64)
+    VST3_ARCH              := x86_64-linux
+  else ifeq ($(ARCHITECTURE_FAMILY),arm32)
+    VST3_ARCH              := armv7l-linux
+  else ifeq ($(ARCHITECTURE_FAMILY),aarch64)
+    VST3_ARCH              := armv8l-linux
+  else
+    VST3_ARCH              := $(shell uname -m)-linux
+  endif
+  VST3_EXT               := .so
+else ifeq ($(PLATFORM),BSD)
+  ifeq ($(ARCHITECTURE_FAMILY),ia32)
+    VST3_ARCH              := i386-freebsd
+  else ifeq ($(ARCHITECTURE_FAMILY),x86_64)
+    VST3_ARCH              := x86_64-freebsd
+  else ifeq ($(ARCHITECTURE_FAMILY),arm32)
+    VST3_ARCH              := armv7-freebsd
+  else ifeq ($(ARCHITECTURE_FAMILY),aarch64)
+    VST3_ARCH              := armv8-freebsd
+  else
+    VST3_ARCH              := $(shell uname -m)-freebsd
+  endif
+  VST3_EXT               := .so
+else ifeq ($(PLATFORM),Windows)
+  ifeq ($(ARCHITECTURE_FAMILY),ia32)
+    VST3_ARCH              := x86-win
+  else ifeq ($(ARCHITECTURE_FAMILY),x86_64)
+    VST3_ARCH              := x86_64-win
+  else ifeq ($(ARCHITECTURE_FAMILY),arm32)
+    VST3_ARCH              := arm-win
+  else ifeq ($(ARCHITECTURE_FAMILY),aarch64)
+    VST3_ARCH              := arm64x-win
+  else
+    VST3_ARCH              := $(PROCESSOR_ARCHITECTURE)-win
+  endif
+  VST3_EXT               := .vst3
+else
+  VST3_ARCH              := $(shell uname -m)-${shell uname -s | tr '[:upper:]' '[:lower:]'}
+  VST3_EXT               := $(LIBRARY_EXT)
+endif
 
 # Versioning
 PLUGIN_PACKAGE_VERSION     := $($(ROOT_ARTIFACT_ID)_VERSION)
@@ -620,7 +664,7 @@ ARTIFACT_LIB_VST2_OBJS      = \
   $(OBJ_PLUG_UI) \
   $(OBJ_WRAP_VST2)
 
-ARTIFACT_LIB_VST3           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-vst3-$(PLUGIN_PACKAGE_VERSION)$(LIBRARY_EXT)
+ARTIFACT_LIB_VST3           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)$(LIBRARY_EXT)
 ARTIFACT_LIB_VST3_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_VST3) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(PLUGIN_SHARED)))
 ARTIFACT_LIB_VST3_DEPS      = $(foreach dep, $(ARTIFACT_LIB_VST3_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
 ARTIFACT_LIB_VST3_LIBS      = $(foreach dep, $(ARTIFACT_LIB_VST3_DEPS_ALL), $($(dep)_OBJ))
@@ -1089,7 +1133,10 @@ install_vst2: vst2
 install_vst3: vst3
 	echo "Install vst3"
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(DESTDIR)$(VST3_LIBDIR)/"
+	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources"
+	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources"
+	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
+	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
 
 install_clap: clap
 	echo "Install clap"
@@ -1183,9 +1230,10 @@ package_vst2: vst2 $(BIN_PACKAGE)
 
 package_vst3: vst3 $(BIN_PACKAGE)
 	echo "Package vst3"
-	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
-	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/"
+	-rm -rf  "$(BUILDDIR)/$(BIN_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
+	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
 	$(foreach target,$(BIN_PACKAGE), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
@@ -1256,7 +1304,7 @@ uninstall_vst2:
 
 uninstall_vst3:
 	echo "Uninstall vst3"
-	-rm -f "$(DESTDIR)$(VST3_LIBDIR)/$(notdir $(ARTIFACT_LIB_VST3))"
+	-rm -f "$(DESTDIR)$(VST3_LIBDIR)"
 
 uninstall_clap:
 	echo "Uninstall clap"

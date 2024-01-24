@@ -79,7 +79,7 @@ namespace lsp
                     Steinberg::char16              *sName;      // Bus name
                     size_t                          nPorts;     // Bus ports
                     bool                            bActive;    // Bus is active
-                    plug::IPort                    *vPorts[];   // List of ports related to the audio bus
+                    plug::IPort                    *vPorts[];   // List of ports related to the event bus
                 } event_bus_t;
 
                 class VST3KVTListener: public core::KVTListener

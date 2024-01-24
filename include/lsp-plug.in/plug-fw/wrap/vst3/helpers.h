@@ -111,6 +111,25 @@ namespace lsp
             return STATUS_INVALID_UID;
         }
 
+        inline const char *fmt_tuid(char *str, const Steinberg::TUID tuid, size_t n)
+        {
+            if (n < (sizeof(Steinberg::TUID)*2 + 1))
+                return NULL;
+
+            char *dst = str;
+            for (size_t i=0; i<sizeof(Steinberg::TUID); ++i)
+            {
+                uint8_t hi  = (tuid[i] >> 4) & 0x0f;
+                uint8_t lo  = tuid[i] & 0x0f;
+
+                *(dst++)    = (hi < 10) ? hi + '0' : hi + ('A' - 10);
+                *(dst++)    = (lo < 10) ? lo + '0' : lo + ('A' - 10);
+            }
+
+            *dst        = '\0';
+            return str;
+        }
+
         /**
          * Perform safe acquire of Steinberg::FUnknown object
          *

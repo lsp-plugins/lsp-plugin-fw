@@ -744,7 +744,7 @@ namespace lsp
         {
             status_t res;
             char signature[4];
-            uint16_t version;
+            uint16_t version = 0;
 
             // Read and validate signature
             if ((res = read_fully(is, &signature[0], 4)) != STATUS_OK)

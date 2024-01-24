@@ -207,6 +207,8 @@ ifeq ($(PLATFORM),Linux)
   
   DEPENDENCIES_VST2        += $(LINUX_DEPENDENCIES_VST2)
   DEPENDENCIES_VST2_WRAP   += $(LINUX_DEPENDENCIES_VST2_WRAP)
+  
+  DEPENDENCIES_VST3        += $(LINUX_DEPENDENCIES_VST3)
 endif
 
 #------------------------------------------------------------------------------
@@ -322,6 +324,8 @@ ifeq ($(PLATFORM),BSD)
   
   DEPENDENCIES_VST2        += $(BSD_DEPENDENCIES_VST2)
   DEPENDENCIES_VST2_WRAP   += $(BSD_DEPENDENCIES_VST2_WRAP)
+  
+  DEPENDENCIES_VST3        += $(BSD_DEPENDENCIES_VST3)
 endif
 
 #------------------------------------------------------------------------------
@@ -463,6 +467,8 @@ ifeq ($(PLATFORM),Windows)
   
   DEPENDENCIES_VST2        += $(WINDOWS_DEPENDENCIES_VST2)
   DEPENDENCIES_VST2_WRAP   += $(WINDOWS_DEPENDENCIES_VST2_WRAP)
+  
+  DEPENDENCIES_VST3        += $(WINDOWS_DEPENDENCIES_VST3)
 endif
 
 #------------------------------------------------------------------------------

@@ -150,7 +150,6 @@ namespace lsp
 
         void PLUGIN_API Wrapper::update(FUnknown* changedUnknown, Steinberg::int32 message)
         {
-            // TODO: implement this
         }
 
         Wrapper::audio_bus_t *Wrapper::alloc_audio_bus(const char *name, size_t ports)
@@ -162,15 +161,20 @@ namespace lsp
             if (u16name == NULL)
                 return NULL;
 
+            // Allocate bus structure
             size_t szof_bus     = sizeof(audio_bus_t);
-            size_t szof_name    = (Steinberg::strlen16(u16name) + 1) * sizeof(Steinberg::char16);
             size_t szof_ports   = sizeof(plug::IPort *) * ports;
+            size_t szof_name    = (Steinberg::strlen16(u16name) + 1) * sizeof(Steinberg::char16);
             size_t szof         = align_size(szof_bus + szof_ports + szof_name, DEFAULT_ALIGN);
 
-            audio_bus_t *bus    = static_cast<audio_bus_t *>(malloc(szof));
-            if (bus == NULL)
+            uint8_t *ptr        = static_cast<uint8_t *>(malloc(szof));
+            if (ptr == NULL)
                 return NULL;
 
+            audio_bus_t *bus    = advance_ptr_bytes<audio_bus_t>(ptr, szof_bus + szof_ports);
+            bus->sName          = advance_ptr_bytes<Steinberg::char16>(ptr, szof_name);
+
+            // Fill bus structure
             memcpy(bus->sName, u16name, szof_name);
             bus->nPorts         = ports;
             bus->bActive        = false;
@@ -193,15 +197,20 @@ namespace lsp
             if (u16name == NULL)
                 return NULL;
 
+            // Allocate bus structure
             size_t szof_bus     = sizeof(event_bus_t);
             size_t szof_name    = (Steinberg::strlen16(u16name) + 1) * sizeof(Steinberg::char16);
             size_t szof_ports   = sizeof(plug::IPort *) * ports;
             size_t szof         = align_size(szof_bus + szof_ports + szof_name, DEFAULT_ALIGN);
 
-            event_bus_t *bus    = static_cast<event_bus_t *>(malloc(szof));
-            if (bus == NULL)
+            uint8_t *ptr        = static_cast<uint8_t *>(malloc(szof));
+            if (ptr == NULL)
                 return NULL;
 
+            event_bus_t *bus    = advance_ptr_bytes<event_bus_t>(ptr, szof_bus + szof_ports);
+            bus->sName          = advance_ptr_bytes<Steinberg::char16>(ptr, szof_name);
+
+            // Fill bus structure
             memcpy(bus->sName, u16name, szof_name);
             bus->nPorts         = ports;
             bus->bActive        = false;
@@ -258,6 +267,8 @@ namespace lsp
         {
             lltl::parray<vst3::AudioPort> channels;
 
+            lsp_trace("Creating audio bus %s", meta->id);
+
             // Form the list of channels sorted according to the speaker ordering bits
             lltl::parray<plug::IPort> *list = (meta->flags & meta::PGF_OUT) ? outs : ins;
             for (const meta::port_group_item_t *item = meta->items; (item != NULL) && (item->id != NULL); ++item)
@@ -273,7 +284,10 @@ namespace lsp
 
                 vst3::AudioPort *xp = static_cast<vst3::AudioPort *>(p);
                 if (!channels.add(xp))
+                {
+                    lsp_error("Failed channels.add");
                     return NULL;
+                }
 
                 // Set-up speaker role
                 Steinberg::Vst::Speaker speaker = Steinberg::Vst::kSpeakerM;
@@ -309,7 +323,10 @@ namespace lsp
             // Allocate the audio group object
             audio_bus_t *bus    = alloc_audio_bus(meta->id, channels.size());
             if (bus == NULL)
+            {
+                lsp_error("failed alloc_audio_bus");
                 return NULL;
+            }
             lsp_finally {
                 free_audio_bus(bus);
             };
@@ -317,7 +334,7 @@ namespace lsp
             // Fill the audio bus data
             bus->nType          = meta->type;
             bus->nPorts         = channels.size();
-            bus->nCurrArr       = 0;
+            bus->nFullArr       = 0;
             bus->nMinArr        = 0;
             bus->nBusType       = (meta->flags & meta::PGF_SIDECHAIN) ? Steinberg::Vst::kAux : Steinberg::Vst::kMain;
 
@@ -330,6 +347,8 @@ namespace lsp
             }
             bus->nCurrArr       = bus->nFullArr;
 
+            lsp_trace("Created audio bus id=%s, ptr=%p", meta->id, bus);
+
             return release_ptr(bus);
         }
 
@@ -339,26 +358,33 @@ namespace lsp
             if (meta == NULL)
                 return NULL;
 
+            lsp_trace("Creating audio bus %s", meta->id);
+
             // Allocate the audio group object
-            audio_bus_t *grp    = alloc_audio_bus(meta->id, 1);
-            if (grp == NULL)
+            audio_bus_t *bus    = alloc_audio_bus(meta->id, 1);
+            if (bus == NULL)
+            {
+                lsp_error("failed alloc_audio_bus");
                 return NULL;
+            }
             lsp_finally {
-                free_audio_bus(grp);
+                free_audio_bus(bus);
             };
 
             // Fill the audio bus data
             vst3::AudioPort *xp = static_cast<vst3::AudioPort *>(port);
 
-            grp->nType          = meta::GRP_MONO;
-            grp->nPorts         = 1;
-            grp->nCurrArr       = xp->speaker();
-            grp->nMinArr        = (meta::is_optional_port(meta)) ? 0 : xp->speaker();
-            grp->nFullArr       = grp->nCurrArr;
-            grp->nBusType       = Steinberg::Vst::kMain;
-            grp->vPorts[0]      = xp;
+            bus->nType          = meta::GRP_MONO;
+            bus->nPorts         = 1;
+            bus->nCurrArr       = xp->speaker();
+            bus->nMinArr        = (meta::is_optional_port(meta)) ? 0 : xp->speaker();
+            bus->nFullArr       = bus->nCurrArr;
+            bus->nBusType       = Steinberg::Vst::kMain;
+            bus->vPorts[0]      = xp;
 
-            return release_ptr(grp);
+            lsp_trace("Created audio bus id=%s, ptr=%p", meta->id, bus);
+
+            return release_ptr(bus);
         }
 
         void Wrapper::update_port_activity(audio_bus_t *bus)
@@ -373,6 +399,8 @@ namespace lsp
 
         bool Wrapper::create_busses(const meta::plugin_t *meta)
         {
+            lsp_trace("Generating list of audio and midi ports");
+
             // Generate modifiable lists of input and output ports
             lltl::parray<plug::IPort> ins, outs, midi_ins, midi_outs;
             for (size_t i=0, n=vAllPorts.size(); i < n; ++i)
@@ -399,15 +427,19 @@ namespace lsp
             }
 
             // Create audio busses based on the information about port groups
-            audio_bus_t *in_main = NULL, *out_main = NULL, *grp = NULL;
-            for (const meta::port_group_t *pg = meta->port_groups; pg != NULL && pg->id != NULL; ++pg)
+            lsp_trace("Creating audio busses");
+            audio_bus_t *in_main = NULL, *out_main = NULL, *bus = NULL;
+            for (const meta::port_group_t *pg = meta->port_groups; (pg != NULL) && (pg->id != NULL); ++pg)
             {
+                lsp_trace("Processing port group id=%s", pg->id);
+
                 // Create group and add to list
-                if ((grp = create_audio_bus(pg, &ins, &outs)) == NULL)
+                if ((bus = create_audio_bus(pg, &ins, &outs)) == NULL)
+                {
+                    lsp_error("failed to create audio bus %s", pg->id);
                     return false;
-                lsp_finally {
-                    free_audio_bus(grp);
-                };
+                }
+                lsp_finally { free_audio_bus(bus); };
 
                 // Add the group to list or keep as a separate pointer because CLAP
                 // requires main ports to be first in the overall port list
@@ -417,17 +449,23 @@ namespace lsp
                     {
                         if (in_main != NULL)
                         {
-                            lsp_error("Duplicate main output group in metadata");
+                            lsp_error("Duplicate main output bus in metadata");
                             return false;
                         }
-                        in_main         = grp;
-                        if (vAudioOut.insert(0, grp))
+                        in_main         = bus;
+                        if (!vAudioOut.insert(0, bus))
+                        {
+                            lsp_error("failed to register audio bus %s", pg->id);
                             return false;
+                        }
                     }
                     else
                     {
-                        if (!vAudioOut.add(grp))
+                        if (!vAudioOut.add(bus))
+                        {
+                            lsp_error("failed to register audio bus %s", pg->id);
                             return false;
+                        }
                     }
                 }
                 else // meta::PGF_IN
@@ -436,63 +474,82 @@ namespace lsp
                     {
                         if (out_main != NULL)
                         {
-                            lsp_error("Duplicate main input group in metadata");
+                            lsp_error("Duplicate main input bus in metadata");
                             return false;
                         }
-                        out_main    = grp;
-                        if (!vAudioIn.insert(0, grp))
+                        out_main    = bus;
+                        if (!vAudioIn.insert(0, bus))
+                        {
+                            lsp_error("failed to register audio bus %s", pg->id);
                             return false;
+                        }
                     }
                     else
                     {
-                        if (!vAudioIn.add(grp))
+                        if (!vAudioIn.add(bus))
+                        {
+                            lsp_error("failed to register audio bus %s", pg->id);
                             return false;
+                        }
                     }
                 }
 
                 // Release the group pointer to prevent from destruction
-                grp     = NULL;
+                bus     = NULL;
             }
 
             // Create mono audio busses for non-assigned ports
+            lsp_trace("Creating input audio busses for non-assigned ports");
             for (lltl::iterator<plug::IPort> it = ins.values(); it; ++it)
             {
                 plug::IPort *p = it.get();
-                if ((grp = create_audio_bus(p)) == NULL)
+                if ((bus = create_audio_bus(p)) == NULL)
+                {
+                    lsp_error("failed to create audio bus %s", p->metadata()->id);
                     return false;
-                lsp_finally {
-                    free_audio_bus(grp);
-                };
+                }
+                lsp_finally { free_audio_bus(bus); };
 
-                if (!vAudioIn.add(grp))
+                if (!vAudioIn.add(bus))
+                {
+                    lsp_error("failed to register audio bus %s", p->metadata()->id);
                     return false;
-                grp     = NULL;
+                }
+                bus     = NULL;
             }
 
+            lsp_trace("Creating output audio busses for non-assigned ports");
             for (lltl::iterator<plug::IPort> it = outs.values(); it; ++it)
             {
                 plug::IPort *p = it.get();
-                if ((grp = create_audio_bus(p)) == NULL)
+                if ((bus = create_audio_bus(p)) == NULL)
+                {
+                    lsp_error("failed to create audio bus %s", p->metadata()->id);
                     return false;
-                lsp_finally {
-                    free_audio_bus(grp);
-                };
+                }
+                lsp_finally { free_audio_bus(bus); };
 
-                if (!vAudioOut.add(grp))
+                if (!vAudioOut.add(bus))
+                {
+                    lsp_error("failed to register audio bus %s", p->metadata()->id);
                     return false;
-                grp     = NULL;
+                }
+                bus     = NULL;
             }
 
             // Create MIDI busses
             if (midi_ins.size() > 0)
             {
+                lsp_trace("Creating input event bus");
+
                 // Allocate the audio group object
                 event_bus_t *ev     = alloc_event_bus("events_in", midi_ins.size());
-                if (grp == NULL)
+                if (ev == NULL)
+                {
+                    lsp_error("failed to create input event bus");
                     return NULL;
-                lsp_finally {
-                    free_event_bus(ev);
-                };
+                }
+                lsp_finally { free_event_bus(ev); };
 
                 // Fill the audio bus data
                 ev->nPorts          = midi_ins.size();
@@ -501,21 +558,29 @@ namespace lsp
                 {
                     plug::IPort *p      = midi_ins.uget(i);
                     if (p == NULL)
+                    {
+                        lsp_warn("Failed to obtain midi input port %d", int(i));
                         return false;
+                    }
                     ev->vPorts[i]      = p;
                 }
                 pEventsIn           = release_ptr(ev);
+
+                lsp_trace("Created input event bus id=events_in ptr=%p", ev);
             }
 
             if (midi_outs.size() > 0)
             {
+                lsp_trace("Creating output event bus");
+
                 // Allocate the audio group object
                 event_bus_t *ev     = alloc_event_bus("events_out", midi_outs.size());
-                if (grp == NULL)
+                if (ev == NULL)
+                {
+                    lsp_error("failed to create output event bus");
                     return NULL;
-                lsp_finally {
-                    free_event_bus(ev);
-                };
+                }
+                lsp_finally { free_event_bus(ev); };
 
                 // Fill the audio bus data
                 ev->nPorts          = midi_outs.size();
@@ -524,10 +589,15 @@ namespace lsp
                 {
                     plug::IPort *p      = midi_outs.uget(i);
                     if (p == NULL)
+                    {
+                        lsp_warn("Failed to obtain midi output port %d", int(i));
                         return false;
+                    }
                     ev->vPorts[i]      = p;
                 }
                 pEventsOut          = release_ptr(ev);
+
+                lsp_trace("Created output event bus id=events_out ptr=%p", ev);
             }
 
             return true;
@@ -541,6 +611,7 @@ namespace lsp
             {
                 case meta::R_MESH:
                 {
+                    lsp_trace("Creating mesh port id=%s", port->id);
                     vst3::MeshPort *p       = new vst3::MeshPort(port);
                     vMeshes.add(p);
                     cp                      = p;
@@ -549,6 +620,7 @@ namespace lsp
 
                 case meta::R_FBUFFER:
                 {
+                    lsp_trace("Creating framebuffer port id=%s", port->id);
                     vst3::FrameBufferPort *p= new vst3::FrameBufferPort(port);
                     vFBuffers.add(p);
                     cp                      = p;
@@ -557,6 +629,7 @@ namespace lsp
 
                 case meta::R_STREAM:
                 {
+                    lsp_trace("Creating stream port id=%s", port->id);
                     vst3::StreamPort *p     = new vst3::StreamPort(port);
                     vStreams.add(p);
                     cp                      = p;
@@ -565,15 +638,18 @@ namespace lsp
 
                 case meta::R_MIDI:
                     // MIDI ports will be organized into groups after instantiation of all ports
+                    lsp_trace("Creating midi port id=%s", port->id);
                     cp                      = new vst3::MidiPort(port);
                     break;
 
                 case meta::R_AUDIO:
                     // Audio ports will be organized into groups after instantiation of all ports
-                    cp = new vst3::AudioPort(port);
+                    lsp_trace("Creating audio port id=%s", port->id);
+                    cp                      = new vst3::AudioPort(port);
                     break;
 
                 case meta::R_OSC:
+                    lsp_trace("Creating OSC port id=%s", port->id);
                     cp                      = new vst3::OscPort(port);
                     break;
 
@@ -589,6 +665,7 @@ namespace lsp
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
                 {
+                    lsp_trace("Creating in_param port id=%s", port->id);
                     vst3::InParamPort *p    = new vst3::InParamPort(port, postfix != NULL);
                     if (postfix == NULL)
                         vParamIn.add(p);
@@ -599,6 +676,7 @@ namespace lsp
 
                 case meta::R_METER:
                 {
+                    lsp_trace("Creating out_param port id=%s", port->id);
                     vst3::OutParamPort *p   = new vst3::OutParamPort(port);
                     if (postfix == NULL)
                         vParamOut.add(p);
@@ -610,6 +688,8 @@ namespace lsp
 
                 case meta::R_PORT_SET:
                 {
+                    lsp_trace("Creating port_set port id=%s", port->id);
+
                     LSPString postfix_str;
                     vst3::PortGroup *pg     = new vst3::PortGroup(port, postfix != NULL);
                     vAllPorts.add(pg);
@@ -672,6 +752,7 @@ namespace lsp
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(plugin_ports, port, NULL);
 
+            lsp_trace("Sorting input and output ports");
             vParamIn.qsort(compare_in_param_ports);
             vParamOut.qsort(compare_out_param_ports);
 
@@ -682,10 +763,16 @@ namespace lsp
         {
             lsp_trace("this=%p, context=%p", this, context);
 
+            // Check that host context is already set
+            if (pHostContext != NULL)
+                return Steinberg::kResultFalse;
+
             // Add self to the synchronization list
             status_t res = pFactory->register_data_sync(this);
             if (res != STATUS_OK)
                 return Steinberg::kInternalError;
+
+            lsp_trace("Creating executor service");
             ipc::IExecutor *executor    = pFactory->acquire_executor();
             if (executor != NULL)
             {
@@ -698,9 +785,7 @@ namespace lsp
                 }
             }
 
-            // Release host context
-            if (pHostContext != NULL)
-                return Steinberg::kResultFalse;
+            // Set up host context
             pHostContext        = safe_acquire(context);
             pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
 
@@ -712,16 +797,24 @@ namespace lsp
             // Create all possible ports for plugin and validate the state
             lltl::parray<plug::IPort> plugin_ports;
             if (create_ports(&plugin_ports, meta) != STATUS_OK)
+            {
+                lsp_error("Failed to create ports");
                 return Steinberg::kInternalError;
+            }
 
             // Generate audio busses
             if (!create_busses(meta))
+            {
+                lsp_error("Failed to create busses");
                 return Steinberg::kInternalError;
+            }
 
             // Allocate OSC packet data
+            lsp_trace("Creating OSC data buffer");
             pOscPacket      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX));
             if (pOscPacket == NULL)
                 return Steinberg::kOutOfMemory;
+
             if (meta->extensions & meta::E_KVT_SYNC)
             {
                 lsp_trace("Binding KVT listener");
@@ -731,6 +824,7 @@ namespace lsp
             }
 
             // Initialize plugin
+            lsp_trace("Initializing plugin");
             pPlugin->init(this, plugin_ports.array());
 
             // Create sample player if required
@@ -741,6 +835,8 @@ namespace lsp
                     return STATUS_NO_MEM;
                 pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
             }
+
+            lsp_trace("Successful initialization this=%p", this);
 
             return Steinberg::kResultOk;
         }
@@ -1131,7 +1227,7 @@ namespace lsp
         {
             status_t res;
             char signature[4];
-            uint16_t version;
+            uint16_t version = 0;
 
             // Read and validate signature
             if ((res = read_fully(is, &signature[0], 4)) != STATUS_OK)

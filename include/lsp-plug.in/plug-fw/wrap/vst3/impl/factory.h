@@ -437,7 +437,14 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginFactory::createInstance(Steinberg::FIDString cid, Steinberg::FIDString _iid, void **obj)
         {
-            lsp_trace("this=%p, cid=%s, _iid=%s, obj=%p", this, cid, _iid, obj);
+            IF_TRACE(
+                char dump1[36], dump2[36];
+                lsp_trace("this=%p, cid=%s, _iid=%s, obj=%p",
+                    this,
+                    fmt_tuid(dump1, cid, sizeof(dump1)),
+                    fmt_tuid(dump2, _iid, sizeof(dump2)),
+                    obj);
+            );
 
             // Watch plugin factories first
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
@@ -583,14 +590,13 @@ namespace lsp
 
                 // Try to perform quick addition
                 if (!vDataSync.put(sync))
+                {
+                    lsp_trace("failed to register data_sync %p", sync);
                     return STATUS_NO_MEM;
-            }
+                }
 
-            // Ensure that data synchronization thread is already running
-            sMutex.lock();
-            lsp_finally { sMutex.unlock(); };
-            if (pDataSync != NULL)
-                return STATUS_OK;
+                lsp_trace("Number of clients: %d", int(vDataSync.size()));
+            }
 
             // Remove the record from queue if data sync thread fails to start
             lsp_finally {
@@ -599,18 +605,41 @@ namespace lsp
                     sDataMutex.lock();
                     lsp_finally { sDataMutex.unlock(); };
                     vDataSync.remove(sync);
+
+                    lsp_trace("Roll-back to number of clients: %d", int(vDataSync.size()));
                 }
             };
 
-            // Start data synchronization thread
-            pDataSync       = new ipc::Thread(this);
-            if (pDataSync == NULL)
-                return STATUS_NO_MEM;
-            status_t res    = pDataSync->start();
-            if (res == STATUS_OK)
-                sync            = NULL;
+            // Ensure that data synchronization thread is already running
+            {
+                sMutex.lock();
+                lsp_finally { sMutex.unlock(); };
+                if (pDataSync != NULL)
+                {
+                    lsp_trace("data_sync thread %p is already running, clients=%d", pDataSync);
+                    sync        = NULL;
+                    return STATUS_OK;
+                }
 
-            return res;
+                // Start data synchronization thread
+                pDataSync       = new ipc::Thread(this);
+                if (pDataSync == NULL)
+                    return STATUS_NO_MEM;
+
+                lsp_trace("Starting data sync thread %p", pDataSync);
+                status_t res    = pDataSync->start();
+                if (res != STATUS_OK)
+                {
+                    delete pDataSync;
+                    pDataSync       = NULL;
+                    return STATUS_UNKNOWN_ERR;
+                }
+
+                lsp_trace("Data sync thread %p started", pDataSync);
+                sync            = NULL;
+            }
+
+            return STATUS_OK;
         }
 
         status_t PluginFactory::unregister_data_sync(IDataSync *sync)
@@ -626,7 +655,10 @@ namespace lsp
                 lsp_finally { sDataMutex.unlock(); };
 
                 if (!vDataSync.remove(sync))
+                {
+                    lsp_warn("Non-existing client=%p", sync);
                     return STATUS_NOT_FOUND;
+                }
 
                 while (pActiveSync == sync)
                 {
@@ -634,6 +666,8 @@ namespace lsp
                     // sDataMutex.wait();
                     ipc::Thread::sleep(1);
                 }
+
+                lsp_trace("Number of clients: %d", int(vDataSync.size()));
 
                 if (vDataSync.size() > 0)
                     return STATUS_OK;
@@ -643,11 +677,17 @@ namespace lsp
             sMutex.lock();
             lsp_finally { sMutex.unlock(); };
             if (pDataSync == NULL)
+            {
+                lsp_trace("no data sync thread is running");
                 return STATUS_OK;
+            }
 
+            lsp_trace("terminating data_sync thread %p", pDataSync);
             pDataSync->cancel();
             pDataSync->join();
             delete pDataSync;
+
+            lsp_trace("terminated data_sync thread %p", pDataSync);
             pDataSync       = NULL;
 
             return STATUS_OK;
@@ -655,7 +695,7 @@ namespace lsp
 
         status_t PluginFactory::run()
         {
-            lsp_trace("this=%p started", this);
+            lsp_trace("enter main loop this=%p", this);
 
             lltl::parray<IDataSync> list;
 
@@ -700,7 +740,7 @@ namespace lsp
                 ipc::Thread::sleep(delay);
             }
 
-            lsp_trace("this=%p finished", this);
+            lsp_trace("leave main loop this=%p", this);
 
             return STATUS_OK;
         }

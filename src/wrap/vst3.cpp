@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
   * This file is part of lsp-plugin-fw
  * Created on: 26 дек. 2023 г.
@@ -61,6 +61,11 @@ namespace lsp
 
         Steinberg::IPluginFactory *get_plugin_factory()
         {
+            // Initialize debug
+            #ifndef LSP_IDE_DEBUG
+                IF_DEBUG( debug::redirect(VST3_LOG_FILE); );
+            #endif /* LSP_IDE_DEBUG */
+
             if (!library.initialized())
             {
                 // Create new factory and set trigger for disposal
