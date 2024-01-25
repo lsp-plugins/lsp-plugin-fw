@@ -63,9 +63,9 @@ namespace lsp
             protected:
                 typedef struct audio_bus_t
                 {
-                    meta::port_group_type_t         nType;      // Type of the group (MONO, STEREO, etc)
                     Steinberg::char16              *sName;      // Bus name
-                    size_t                          nPorts;     // Bus ports
+                    meta::port_group_type_t         nType;      // Type of the group (MONO, STEREO, etc)
+                    uint32_t                        nPorts;     // Bus ports
                     Steinberg::Vst::BusType         nBusType;   // Bus type
                     Steinberg::Vst::SpeakerArrangement nCurrArr;// Current bus arrangement
                     Steinberg::Vst::SpeakerArrangement nMinArr; // Minimum allowed bus arrangement
@@ -77,7 +77,7 @@ namespace lsp
                 typedef struct event_bus_t
                 {
                     Steinberg::char16              *sName;      // Bus name
-                    size_t                          nPorts;     // Bus ports
+                    uint32_t                        nPorts;     // Bus ports
                     bool                            bActive;    // Bus is active
                     plug::IPort                    *vPorts[];   // List of ports related to the event bus
                 } event_bus_t;

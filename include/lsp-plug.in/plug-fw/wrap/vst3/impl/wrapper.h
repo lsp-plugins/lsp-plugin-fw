@@ -37,6 +37,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/debug.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -940,6 +941,11 @@ namespace lsp
                 return Steinberg::kResultFalse;
 
             memcpy(classId, tuid, sizeof(tuid));
+            IF_TRACE(
+                char dump[36];
+                lsp_trace("controller class id=%s", fmt_tuid(dump, tuid, sizeof(dump)));
+            );
+
             return Steinberg::kResultTrue;
         }
 
@@ -952,29 +958,39 @@ namespace lsp
 
         Steinberg::int32 PLUGIN_API Wrapper::getBusCount(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir)
         {
-            lsp_trace("this=%p, type = %d, dir=%d", this, int(type), int(dir));
+            Steinberg::int32 count = 0;
 
             if (type == Steinberg::Vst::kAudio)
             {
                 if (dir == Steinberg::Vst::kInput)
-                    return vAudioIn.size();
+                    count = vAudioIn.size();
                 else if (dir == Steinberg::Vst::kOutput)
-                    return vAudioOut.size();
+                    count = vAudioOut.size();
             }
             else if (type == Steinberg::Vst::kEvent)
             {
                 if (dir == Steinberg::Vst::kInput)
-                    return (pEventsIn != NULL) ? 1 : 0;
+                    count = (pEventsIn != NULL) ? 1 : 0;
                 else if (dir == Steinberg::Vst::kOutput)
-                    return (pEventsOut != NULL) ? 1 : 0;
+                    count = (pEventsOut != NULL) ? 1 : 0;
             }
 
-            return 0;
+            lsp_trace("this=%p, type=%s, dir=%s -> count=%d",
+                this,
+                media_type_to_str(type),
+                bus_direction_to_str(dir),
+                int(count));
+
+            return count;
         }
 
         Steinberg::tresult PLUGIN_API Wrapper::getBusInfo(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::Vst::BusInfo & bus /*out*/)
         {
-            lsp_trace("this=%p, type=%d, dir=%d, index=%d", this, int(type), int(dir), int(index));
+            lsp_trace("this=%p, type=%s, dir=%s, index=%d",
+                this,
+                media_type_to_str(type),
+                bus_direction_to_str(dir),
+                int(index));
 
             if (type == Steinberg::Vst::kAudio)
             {
@@ -994,6 +1010,8 @@ namespace lsp
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, b->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
 
+                    log_bus_info(&bus);
+
                     return Steinberg::kResultTrue;
                 }
                 else if (dir == Steinberg::Vst::kOutput)
@@ -1012,6 +1030,8 @@ namespace lsp
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, b->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
 
+                    log_bus_info(&bus);
+
                     return Steinberg::kResultTrue;
                 }
             }
@@ -1029,6 +1049,8 @@ namespace lsp
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, pEventsIn->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
 
+                    log_bus_info(&bus);
+
                     return Steinberg::kResultTrue;
                 }
                 else if (dir == Steinberg::Vst::kOutput)
@@ -1042,6 +1064,8 @@ namespace lsp
                     bus.busType         = Steinberg::Vst::kMain;
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, pEventsOut->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
+
+                    log_bus_info(&bus);
 
                     return Steinberg::kResultTrue;
                 }
@@ -1058,7 +1082,12 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::activateBus(Steinberg::Vst::MediaType type, Steinberg::Vst::BusDirection dir, Steinberg::int32 index, Steinberg::TBool state)
         {
-            lsp_trace("this=%p, type=%d, dir=%d, index=%d, state=%d", this, int(type), int(dir), int(index), int(state));
+            lsp_trace("this=%p, type=%s, dir=%s, index=%d, state=%s",
+                this,
+                media_type_to_str(type),
+                bus_direction_to_str(dir),
+                int(index),
+                (state) ? "true" : "false");
 
             if (index < 0)
                 return Steinberg::kInvalidArgument;
@@ -1172,6 +1201,11 @@ namespace lsp
             status_t res;
             const uint16_t version      = 1;
 
+            // Set-up DSP context
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
+
             // Write header
             if ((res = write_fully(os, STATE_SIGNATURE, 4)) != STATUS_OK)
                 return res;
@@ -1188,7 +1222,11 @@ namespace lsp
 
                 if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)))
                 {
-                    lsp_trace("Saving state of virtual parameter: %s = %f", meta->id, p->value());
+                    vst3::InParamPort *pp = static_cast<vst3::InParamPort *>(p);
+                    lsp_trace("Saving state of %sparameter: %s = %f",
+                        pp->is_virtual() ? " virtual" : "",
+                        meta->id,
+                        p->value());
 
                     if ((res = write_value(os, meta->id, p->value())) != STATUS_OK)
                         return res;
@@ -1228,6 +1266,11 @@ namespace lsp
             status_t res;
             char signature[4];
             uint16_t version = 0;
+
+            // Set-up DSP context
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
 
             // Read and validate signature
             if ((res = read_fully(is, &signature[0], 4)) != STATUS_OK)
@@ -1301,6 +1344,7 @@ namespace lsp
                                 lsp_warn("Failed to deserialize port id=%s", name);
                                 return res;
                             }
+                            lsp_trace("  %s = %f", meta->id, v);
                             pp->submit(v);
                         }
                         else if (meta::is_path_port(meta))
@@ -1312,6 +1356,7 @@ namespace lsp
                                 lsp_warn("Failed to deserialize port id=%s", meta->id);
                                 return res;
                             }
+                            lsp_trace("  %s = %s", meta->id, name);
                             xp->submit(name, strlen(name), plug::PF_STATE_RESTORE);
                         }
                     }
@@ -1362,6 +1407,11 @@ namespace lsp
         Steinberg::tresult PLUGIN_API Wrapper::setState(Steinberg::IBStream *state)
         {
             lsp_trace("this=%p, state=%p", this, state);
+            IF_TRACE(
+                DbgInStream is(state);
+                state = &is;
+                lsp_dumpb("State dump:", is.data(), is.size());
+            );
 
             status_t res = load_state(state);
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
@@ -1371,7 +1421,17 @@ namespace lsp
         {
             lsp_trace("this=%p, state=%p", this, state);
 
+            IF_TRACE(
+                DbgOutStream os(state);
+                state = &os;
+            );
+
             status_t res = save_state(state);
+
+            IF_TRACE(
+                lsp_dumpb("State dump:", os.data(), os.size());
+            );
+
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
@@ -1413,7 +1473,9 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::setBusArrangements(Steinberg::Vst::SpeakerArrangement *inputs, Steinberg::int32 numIns, Steinberg::Vst::SpeakerArrangement* outputs, Steinberg::int32 numOuts)
         {
-            lsp_trace("this=%p, inputs=%p, numIns=%d, outputs=%p, numOuts=%d", this, inputs, int(numIns), outputs, int(numOuts));
+            IF_TRACE(
+                lsp_trace("this=%p, inputs=%p, numIns=%d, outputs=%p, numOuts=%d", this, inputs, int(numIns), outputs, int(numOuts));
+            )
 
             if (numIns < 0 || numOuts < 0)
                 return Steinberg::kInvalidArgument;
@@ -1422,12 +1484,20 @@ namespace lsp
                 (size_t(numOuts) > vAudioOut.size()))
                 return Steinberg::kResultFalse;
 
-            // Check that we allow several ports to be disabled
+            // Step 1. Check that we allow several ports to be disabled
             for (ssize_t i=0; i < numIns; ++i)
             {
                 const audio_bus_t *bus = vAudioIn.get(i);
                 if (bus == NULL)
                     return Steinberg::kInvalidArgument;
+
+                IF_TRACE(
+                    LSPString tmp;
+                    lsp_trace("  in_bus[%d] min   = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nMinArr));
+                    lsp_trace("  in_bus[%d] max   = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nFullArr));
+                    lsp_trace("  in_bus[%d] curr  = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nCurrArr));
+                    lsp_trace("  in_proposed[%d]  = %s", int(i), speaker_arrangement_to_str(&tmp, inputs[i]));
+                );
 
                 const Steinberg::Vst::SpeakerArrangement arr = inputs[i];
                 if ((arr & (~bus->nFullArr)) != 0)
@@ -1442,6 +1512,14 @@ namespace lsp
                 if (bus == NULL)
                     return Steinberg::kInvalidArgument;
 
+                IF_TRACE(
+                    LSPString tmp;
+                    lsp_trace("  out_bus[%d] min  = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nMinArr));
+                    lsp_trace("  out_bus[%d] max  = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nFullArr));
+                    lsp_trace("  out_bus[%d] curr = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nCurrArr));
+                    lsp_trace("  out_proposed[%d] = %s", int(i), speaker_arrangement_to_str(&tmp, inputs[i]));
+                );
+
                 const Steinberg::Vst::SpeakerArrangement arr = outputs[i];
                 if ((arr & (~bus->nFullArr)) != 0)
                     return Steinberg::kInvalidArgument;
@@ -1449,11 +1527,18 @@ namespace lsp
                     return Steinberg::kResultFalse;
             }
 
-            // Apply new configuration
+            // Step 2. Apply new configuration
+            lsp_trace("Bus configuration matched");
             for (ssize_t i=0; i < numIns; ++i)
             {
                 audio_bus_t *bus    = vAudioIn.get(i);
                 bus->nCurrArr       = inputs[i];
+
+                IF_TRACE(
+                    LSPString tmp;
+                    lsp_trace("  in_bus[%d] new   = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nCurrArr));
+                );
+
                 update_port_activity(bus);
             }
 
@@ -1461,6 +1546,12 @@ namespace lsp
             {
                 audio_bus_t *bus    = vAudioOut.get(i);
                 bus->nCurrArr       = outputs[i];
+
+                IF_TRACE(
+                    LSPString tmp;
+                    lsp_trace("  out_bus[%d] new  = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nCurrArr));
+                );
+
                 update_port_activity(bus);
             }
 
@@ -1800,7 +1891,17 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::process(Steinberg::Vst::ProcessData & data)
         {
-            lsp_trace("this=%p", this);
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
+
+//            lsp_trace("this=%p processMode=%d, symbolicSampleSize=%d, numSamples=%d, numInputs=%d, numOutputs=%d",
+//                this,
+//                int(data.processMode),
+//                int(data.symbolicSampleSize),
+//                int(data.numSamples),
+//                int(data.numInputs),
+//                int(data.numOutputs));
 
             // We do not support any samples except 32-bit floating-point values
             if (data.symbolicSampleSize != Steinberg::Vst::kSample32)
@@ -1976,10 +2077,10 @@ namespace lsp
             Steinberg::tresult res;
             Steinberg::int64 byte_order = VST3_BYTEORDER;
 
+            lsp_trace("Received message id=%s", message_id);
+
             if (!strcmp(message_id, ID_MSG_PATH))
             {
-                lsp_trace("Received Path message");
-
                 // Get endianess
                 if ((res = atts->getInt("endian", byte_order)) != Steinberg::kResultOk)
                 {
@@ -2016,12 +2117,13 @@ namespace lsp
                 // Submit path data
                 vst3::path_t *path = static_cast<vst3::path_t *>(p->buffer<plug::path_t>());
                 if (path != NULL)
+                {
+                    lsp_trace("path %s = %s", p->metadata()->id, in_path);
                     path->submit_async(in_path, flags);
+                }
             }
             else if (!strcmp(message_id, vst3::ID_MSG_VIRTUAL_PARAMETER))
             {
-                lsp_trace("Received VParam message");
-
                 // Get port identifier
                 const char *id = sNotifyBuf.get_string(atts, "id", byte_order);
                 if (id == NULL)
@@ -2050,27 +2152,23 @@ namespace lsp
                 }
 
                 // Submit new port value
+                lsp_trace("virtual parameter %s = %f", pp->metadata()->id, value);
                 pp->submit(value);
             }
             else if (!strcmp(message_id, vst3::ID_MSG_ACTIVATE_UI))
             {
-                lsp_trace("Received ActivateUI message");
                 atomic_add(&nUICounterReq, 1);
             }
             else if (!strcmp(message_id, vst3::ID_MSG_DEACTIVATE_UI))
             {
-                lsp_trace("Received Deactivate UI message");
                 atomic_add(&nUICounterReq, -1);
             }
             else if (!strcmp(message_id, vst3::ID_MSG_DUMP_STATE))
             {
-                lsp_trace("Received DumpState message");
                 atomic_add(&nDumpReq, 1);
             }
             else if (!strcmp(message_id, vst3::ID_MSG_PLAY_SAMPLE))
             {
-                lsp_trace("Received PlaySample");
-
                 // Get endianess
                 if ((res = atts->getInt("endian", byte_order)) != Steinberg::kResultOk)
                 {
@@ -2101,7 +2199,11 @@ namespace lsp
 
                 // Request sample player for playback
                 if (pSamplePlayer != NULL)
+                {
+                    lsp_trace("play_sample file=%s, position=%ld, release=%s",
+                        file, long(position), (release > 0.5f) ? "true" : "false");
                     pSamplePlayer->play_sample(file, position, release > 0.5f);
+                }
             }
 
             return Steinberg::kResultOk;
@@ -2112,6 +2214,11 @@ namespace lsp
             // We have nothing to do if we can not allocate messages nor notify peer
             if ((pHostApplication == NULL) || (pPeerConnection == NULL))
                 return;
+
+            // Set-up DSP context
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
 
             Steinberg::char8 key[32];
 

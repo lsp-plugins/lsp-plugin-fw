@@ -35,6 +35,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/debug.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -121,10 +122,9 @@ namespace lsp
                 {
                     lsp_trace("creating parameter port %s", port->id);
                     vst3::UIParameterPort *p    = new vst3::UIParameterPort(port, this, postfix != NULL);
-                    if (postfix != NULL)
+                    vParamMapping.create(port->id, p);
+                    if (postfix == NULL)
                         vParams.add(p);
-                    else
-                        vParamMapping.create(port->id, p);
                     vup = p;
                     break;
                 }
@@ -137,6 +137,9 @@ namespace lsp
 
                     // Add immediately port group to list
                     vPorts.add(upg);
+                    vParamMapping.create(port->id, upg);
+                    if (postfix == NULL)
+                        vParams.add(upg);
 
                     // Add nested ports
                     for (size_t row=0; row<upg->rows(); ++row)
@@ -363,6 +366,11 @@ namespace lsp
         {
             lsp_trace("this=%p, message=%p", this, message);
 
+            // Set-up DSP context
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
+
             // Obtain the message data
             if (message == NULL)
                 return Steinberg::kInvalidArgument;
@@ -376,6 +384,8 @@ namespace lsp
             // Analyze the message
             Steinberg::char8 key[32];
             Steinberg::int64 byte_order = VST3_BYTEORDER;
+
+            lsp_trace("Received message id=%s", message_id);
 
             if (!strcmp(message_id, ID_MSG_LATENCY))
             {
@@ -746,6 +756,11 @@ namespace lsp
             char signature[4];
             uint16_t version = 0;
 
+            // Set-up DSP context
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
+
             // Read and validate signature
             if ((res = read_fully(is, &signature[0], 4)) != STATUS_OK)
             {
@@ -818,6 +833,7 @@ namespace lsp
                                 lsp_warn("Failed to deserialize port id=%s", name);
                                 return res;
                             }
+                            lsp_trace("  %s = %f", meta->id, v);
                             pp->commit_value(v);
                             pp->notify_all(ui::PORT_NONE);
                         }
@@ -830,6 +846,7 @@ namespace lsp
                                 lsp_warn("Failed to deserialize port id=%s", meta->id);
                                 return res;
                             }
+                            lsp_trace("  %s = %s", meta->id, name);
                             pp->commit_value(name);
                             pp->notify_all(ui::PORT_NONE);
                         }
@@ -887,6 +904,12 @@ namespace lsp
         {
             lsp_trace("this=%p, state=%p", this, state);
 
+            IF_TRACE(
+                DbgInStream is(state);
+                state = &is;
+                lsp_dumpb("State dump:", is.data(), is.size());
+            );
+
             status_t res = load_state(state);
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
@@ -909,9 +932,10 @@ namespace lsp
             if (meta == NULL)
                 return Steinberg::kInternalError;
 
-            const char *units        = meta::get_unit_name(meta->unit);
+            const char *units   = meta::get_unit_name(meta->unit);
+            const float dfl     = p->default_value();
 
-            info.id     = p->parameter_id();
+            info.id             = p->parameter_id();
 
             lsp::utf8_to_utf16(
                 to_utf16(info.title),
@@ -929,9 +953,12 @@ namespace lsp
             else
                 info.units[0]       = 0;
 
+            lsp_trace("parameter id=%s, default value=%f", meta->id, dfl);
+
             info.stepCount      = 0;
             info.flags          = Steinberg::Vst::ParameterInfo::kCanAutomate;
             info.unitId         = Steinberg::Vst::kRootUnitId;
+            info.defaultNormalizedValue = to_vst_value(meta, dfl, NULL, NULL);
 
             if (meta->flags & meta::F_CYCLIC)
                 info.flags         |= Steinberg::Vst::ParameterInfo::kIsWrapAround;
@@ -950,17 +977,22 @@ namespace lsp
             else if (meta->flags & meta::F_INT)
                 info.stepCount      = (lsp_max(meta->min, meta->max) - lsp_min(meta->min, meta->max)) / meta->step;
 
+            log_paremeter_info(&info);
+
             return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getParamStringByValue(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue valueNormalized /*in*/, Steinberg::Vst::String128 string /*out*/)
         {
-            lsp_trace("this=%p, id=%d, valueNormalized=%f", this, int(id), valueNormalized);
+            lsp_trace("this=%p, id=0x%08x, valueNormalized=%f", this, int(id), valueNormalized);
 
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
+            {
+                lsp_trace("parameter id=0x%08x not found", int(id));
                 return Steinberg::kInvalidArgument;
+            }
             const meta::port_t *meta = p->metadata();
             if (meta == NULL)
                 return Steinberg::kInternalError;
@@ -972,19 +1004,22 @@ namespace lsp
             const size_t res    = lsp::utf8_to_utf16(to_utf16(string), meta->id,
                 sizeof(Steinberg::Vst::String128)/sizeof(Steinberg::Vst::TChar));
 
-            lsp_trace("valueNormalized = %f, from_vst_value=%f, formatted=%s", valueNormalized, value, buffer);
+            lsp_trace("valueNormalized = %f, plainValue=%f, formatted=%s", valueNormalized, value, buffer);
 
             return (res > 0) ? Steinberg::kResultOk : Steinberg::kResultFalse;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getParamValueByString(Steinberg::Vst::ParamID id, Steinberg::Vst::TChar *string /*in*/, Steinberg::Vst::ParamValue & valueNormalized /*out*/)
         {
-            lsp_trace("this=%p, string=%s", this, string);
+            lsp_trace("this=%p, id=0x%08x, string=%s", this, int(id), string);
 
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
+            {
+                lsp_trace("parameter id=0x%08x not found", int(id));
                 return Steinberg::kInvalidArgument;
+            }
             const meta::port_t *meta = p->metadata();
             if (meta == NULL)
                 return Steinberg::kInternalError;
@@ -1008,21 +1043,24 @@ namespace lsp
             }
 
             parsed      = meta::limit_value(meta, parsed);
-            lsp_trace("port id=\"%s\" buffer=\"%s\" parsed = %f", meta->id, buffer, parsed);
-
             valueNormalized     = to_vst_value(meta, parsed, NULL, NULL);
+
+            lsp_trace("port id=\"%s\" buffer=\"%s\" parsed = %f, normalizedValue=%f", meta->id, buffer, parsed, valueNormalized);
 
             return Steinberg::kResultOk;
         }
 
         Steinberg::Vst::ParamValue PLUGIN_API UIWrapper::normalizedParamToPlain(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue valueNormalized)
         {
-            lsp_trace("this=%p, id=%d, valueNormalzed=%f", this, int(id), valueNormalized);
+            lsp_trace("this=%p, id=0x%08x, valueNormalzed=%f", this, int(id), valueNormalized);
 
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
+            {
+                lsp_trace("parameter id=0x%08x not found", int(id));
                 return 0.0;
+            }
             const meta::port_t *meta = p->metadata();
             if (meta == NULL)
                 return 0.0;
@@ -1033,39 +1071,52 @@ namespace lsp
 
         Steinberg::Vst::ParamValue PLUGIN_API UIWrapper::plainParamToNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue plainValue)
         {
-            lsp_trace("this=%p, id=%d, plainValue", this, int(id), plainValue);
+            lsp_trace("this=%p, id=0x%08x, plainValue=%f", this, int(id), plainValue);
 
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
+            {
+                lsp_trace("parameter id=0x%08x not found", int(id));
                 return 0.0;
+            }
             const meta::port_t *meta = p->metadata();
             if (meta == NULL)
                 return 0.0;
 
             // Convert value
-            return to_vst_value(meta, plainValue, NULL, NULL);
+            const float valueNormalized = to_vst_value(meta, plainValue, NULL, NULL);
+            lsp_trace("normalizedValue = %f", valueNormalized);
+
+            return valueNormalized;
         }
 
         Steinberg::Vst::ParamValue PLUGIN_API UIWrapper::getParamNormalized(Steinberg::Vst::ParamID id)
         {
-            lsp_trace("this=%p, id=%d", this, int(id));
+            lsp_trace("this=%p, id=0x%08x", this, int(id));
 
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
+            {
+                lsp_trace("parameter id=0x%08x not found", int(id));
                 return 0.0;
+            }
             const meta::port_t *meta = p->metadata();
             if (meta == NULL)
                 return 0.0;
 
             // Convert value
-            return to_vst_value(meta, p->value(), NULL, NULL);
+            const float result = to_vst_value(meta, p->value(), NULL, NULL);
+            lsp_trace("normalizedValue = %f", result);
+
+            // Return result
+            return result;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::setParamNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value)
         {
-            lsp_trace("this=%p, id=%d, value=%f", this, int(id), value);
+            lsp_trace("this=%p, id=0x%08x, value=%f", this, int(id), value);
 
             // Get port
             vst3::UIParameterPort *p = find_param(id);
@@ -1076,7 +1127,10 @@ namespace lsp
                 return Steinberg::kInternalError;
 
             // Convert value
-            const float plainValue = to_vst_value(meta, value, NULL, NULL);
+            const float plainValue = from_vst_value(meta, value);
+            lsp_trace("plainValue = %f", plainValue);
+
+            // Commit value
             p->commit_value(plainValue);
             p->notify_all(ui::PORT_NONE);
 

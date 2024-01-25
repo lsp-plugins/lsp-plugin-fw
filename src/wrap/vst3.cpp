@@ -68,6 +68,9 @@ namespace lsp
 
             if (!library.initialized())
             {
+                // Initialize DSP
+                dsp::init();
+
                 // Create new factory and set trigger for disposal
                 PluginFactory *factory      = new PluginFactory();
                 if (factory == NULL)

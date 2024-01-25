@@ -122,8 +122,8 @@ namespace lsp
                 uint8_t hi  = (tuid[i] >> 4) & 0x0f;
                 uint8_t lo  = tuid[i] & 0x0f;
 
-                *(dst++)    = (hi < 10) ? hi + '0' : hi + ('A' - 10);
-                *(dst++)    = (lo < 10) ? lo + '0' : lo + ('A' - 10);
+                *(dst++)    = (hi < 10) ? hi + '0' : hi + ('a' - 10);
+                *(dst++)    = (lo < 10) ? lo + '0' : lo + ('a' - 10);
             }
 
             *dst        = '\0';
@@ -348,7 +348,7 @@ namespace lsp
             {
                 uint8_t b;
                 Steinberg::tresult res = is->read(&b, sizeof(b), &read);
-                if ((res != Steinberg::kResultOk) || (read < 0))
+                if ((res != Steinberg::kResultOk) || (read <= 0))
                 {
                     if (read < 0)
                         return STATUS_IO_ERROR;
@@ -964,7 +964,8 @@ namespace lsp
             float min = 0.0f, max = 1.0f, step = 0.0f;
             meta::get_port_parameters(meta, &min, &max, &step);
 
-//                lsp_trace("input = %.3f", value);
+//            lsp_trace("input=%f, min=%f, max=%f, step=%f", value, min, max, step);
+
             // Set value as integer or normalized
             if (meta::is_gain_unit(meta->unit))
             {
@@ -1028,7 +1029,7 @@ namespace lsp
             if (max_value != NULL)
                 *max_value      = max;
 
-//                lsp_trace("result = %.3f", value);
+//            lsp_trace("result = %f", value);
             return value;
         }
 
