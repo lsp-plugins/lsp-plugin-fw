@@ -768,6 +768,10 @@ namespace lsp
             if (pHostContext != NULL)
                 return Steinberg::kResultFalse;
 
+            // Set up host context
+            pHostContext        = safe_acquire(context);
+            pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
+
             // Add self to the synchronization list
             status_t res = pFactory->register_data_sync(this);
             if (res != STATUS_OK)
@@ -785,10 +789,6 @@ namespace lsp
                     return Steinberg::kInternalError;
                 }
             }
-
-            // Set up host context
-            pHostContext        = safe_acquire(context);
-            pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
 
             // Obtain plugin metadata
             const meta::plugin_t *meta = (pPlugin != NULL) ? pPlugin->metadata() : NULL;

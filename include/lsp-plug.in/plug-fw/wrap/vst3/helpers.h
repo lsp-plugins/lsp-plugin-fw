@@ -143,7 +143,8 @@ namespace lsp
             if (ptr == NULL)
                 return NULL;
 
-            ptr->addRef();
+            uint32_t refs = ptr->addRef();
+            lsp_trace("acquire ptr=%p, refs=%d", ptr, int(refs));
             return ptr;
         }
 
@@ -158,6 +159,7 @@ namespace lsp
             if (ptr == NULL)
                 return;
 
+            lsp_trace("release ptr=%p", ptr);
             ptr->release();
             ptr = NULL;
         }
@@ -176,10 +178,17 @@ namespace lsp
                 return NULL;
 
             Steinberg::TUID iid;
-            V::iid.toTUID(iid);
+            T::iid.toTUID(iid);
             T *result   = NULL;
+
+            IF_TRACE( char dump[36]; );
             if (ptr->queryInterface(iid, reinterpret_cast<void **>(&result)) == Steinberg::kResultOk)
+            {
+                lsp_trace("query_interface iid=%s, ptr=%p, result=%p", fmt_tuid(dump, iid, sizeof(dump)), ptr, result);
                 return result;
+            }
+
+            lsp_trace("query_interface iid=%s, ptr=%p failed", fmt_tuid(dump, iid, sizeof(dump)), ptr);
 
             return NULL;
         }
