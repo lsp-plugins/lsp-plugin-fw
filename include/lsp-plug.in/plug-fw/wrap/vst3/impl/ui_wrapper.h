@@ -118,13 +118,21 @@ namespace lsp
 
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
-                case meta::R_METER:
                 {
                     lsp_trace("creating parameter port %s", port->id);
                     vst3::UIParameterPort *p    = new vst3::UIParameterPort(port, this, postfix != NULL);
                     vParamMapping.create(port->id, p);
                     if (postfix == NULL)
                         vParams.add(p);
+                    vup = p;
+                    break;
+                }
+
+                case meta::R_METER:
+                {
+                    lsp_trace("creating meter port %s", port->id);
+                    vst3::UIParameterPort *p    = new vst3::UIParameterPort(port, this, postfix != NULL);
+                    vParamMapping.create(port->id, p);
                     vup = p;
                     break;
                 }
@@ -953,16 +961,18 @@ namespace lsp
             lsp_trace("parameter id=%s, default value=%f", meta->id, dfl);
 
             info.stepCount      = 0;
-            info.flags          = Steinberg::Vst::ParameterInfo::kCanAutomate;
+            info.flags          = 0;
             info.unitId         = Steinberg::Vst::kRootUnitId;
             info.defaultNormalizedValue = to_vst_value(meta, dfl);
 
+            if (meta::is_meter_port(meta))
+                info.flags         |= Steinberg::Vst::ParameterInfo::kIsReadOnly;
+            else
+                info.flags         |= Steinberg::Vst::ParameterInfo::kCanAutomate;
             if (meta->flags & meta::F_CYCLIC)
                 info.flags         |= Steinberg::Vst::ParameterInfo::kIsWrapAround;
             if (meta::is_bypass_port(meta))
                 info.flags         |= Steinberg::Vst::ParameterInfo::kIsBypass;
-            if (meta::is_meter_port(meta))
-                info.flags         |= Steinberg::Vst::ParameterInfo::kIsReadOnly;
 
             if (meta::is_bool_unit(meta->unit))
                 info.stepCount      = 1;
