@@ -932,7 +932,7 @@ namespace lsp
             if (meta == NULL)
                 return Steinberg::kInternalError;
 
-            const char *units   = meta::get_unit_name(meta->unit);
+            const char *units   = vst3::get_unit_name(meta->unit);
             const float dfl     = p->default_value();
 
             info.id             = p->parameter_id();
@@ -945,20 +945,17 @@ namespace lsp
                 to_utf16(info.shortTitle),
                 meta->id,
                 sizeof(Steinberg::Vst::String128)/sizeof(Steinberg::Vst::TChar));
-            if (units != NULL)
-                lsp::utf8_to_utf16(
-                    to_utf16(info.units),
-                    units,
-                    sizeof(Steinberg::Vst::String128)/sizeof(Steinberg::Vst::TChar));
-            else
-                info.units[0]       = 0;
+            lsp::utf8_to_utf16(
+                to_utf16(info.units),
+                units,
+                sizeof(Steinberg::Vst::String128)/sizeof(Steinberg::Vst::TChar));
 
             lsp_trace("parameter id=%s, default value=%f", meta->id, dfl);
 
             info.stepCount      = 0;
             info.flags          = Steinberg::Vst::ParameterInfo::kCanAutomate;
             info.unitId         = Steinberg::Vst::kRootUnitId;
-            info.defaultNormalizedValue = to_vst_value(meta, dfl, NULL, NULL);
+            info.defaultNormalizedValue = to_vst_value(meta, dfl);
 
             if (meta->flags & meta::F_CYCLIC)
                 info.flags         |= Steinberg::Vst::ParameterInfo::kIsWrapAround;
@@ -971,7 +968,7 @@ namespace lsp
                 info.stepCount      = 1;
             else if (meta::is_enum_unit(meta->unit))
             {
-                info.stepCount      = meta::list_size(meta->items);
+                info.stepCount      = meta::list_size(meta->items) - 1;
                 info.flags         |= Steinberg::Vst::ParameterInfo::kIsList;
             }
             else if (meta->flags & meta::F_INT)
@@ -979,7 +976,7 @@ namespace lsp
 
             log_paremeter_info(&info);
 
-            return Steinberg::kNotImplemented;
+            return Steinberg::kResultTrue;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::getParamStringByValue(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue valueNormalized /*in*/, Steinberg::Vst::String128 string /*out*/)
@@ -1001,10 +998,10 @@ namespace lsp
             char buffer[128];
             const float value   = vst3::from_vst_value(meta, valueNormalized);
             meta::format_value(buffer, sizeof(buffer), meta, value, -1, false);
-            const size_t res    = lsp::utf8_to_utf16(to_utf16(string), meta->id,
+            const size_t res    = lsp::utf8_to_utf16(to_utf16(string), buffer,
                 sizeof(Steinberg::Vst::String128)/sizeof(Steinberg::Vst::TChar));
 
-            lsp_trace("valueNormalized = %f, plainValue=%f, formatted=%s", valueNormalized, value, buffer);
+            lsp_trace("valueNormalized=%f -> plainValue=%f -> formatted=%s", valueNormalized, value, buffer);
 
             return (res > 0) ? Steinberg::kResultOk : Steinberg::kResultFalse;
         }
@@ -1042,10 +1039,10 @@ namespace lsp
                 return Steinberg::kResultFalse;
             }
 
-            parsed      = meta::limit_value(meta, parsed);
-            valueNormalized     = to_vst_value(meta, parsed, NULL, NULL);
+            parsed              = meta::limit_value(meta, parsed);
+            valueNormalized     = to_vst_value(meta, parsed);
 
-            lsp_trace("port id=\"%s\" buffer=\"%s\" parsed = %f, normalizedValue=%f", meta->id, buffer, parsed, valueNormalized);
+            lsp_trace("port id=\"%s\" buffer=\"%s\" -> parsed=%f -> normalizedValue=%f", meta->id, buffer, parsed, valueNormalized);
 
             return Steinberg::kResultOk;
         }
@@ -1058,7 +1055,7 @@ namespace lsp
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
             {
-                lsp_trace("parameter id=0x%08x not found", int(id));
+                lsp_warn("parameter id=0x%08x not found", int(id));
                 return 0.0;
             }
             const meta::port_t *meta = p->metadata();
@@ -1066,7 +1063,10 @@ namespace lsp
                 return 0.0;
 
             // Convert value
-            return from_vst_value(meta, valueNormalized);
+            const float plainValue = from_vst_value(meta, valueNormalized);
+            lsp_trace("normalizedValue=%f -> plainValue=%f", plainValue, valueNormalized);
+
+            return plainValue;
         }
 
         Steinberg::Vst::ParamValue PLUGIN_API UIWrapper::plainParamToNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue plainValue)
@@ -1077,7 +1077,7 @@ namespace lsp
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
             {
-                lsp_trace("parameter id=0x%08x not found", int(id));
+                lsp_warn("parameter id=0x%08x not found", int(id));
                 return 0.0;
             }
             const meta::port_t *meta = p->metadata();
@@ -1085,8 +1085,8 @@ namespace lsp
                 return 0.0;
 
             // Convert value
-            const float valueNormalized = to_vst_value(meta, plainValue, NULL, NULL);
-            lsp_trace("normalizedValue = %f", valueNormalized);
+            const float valueNormalized = to_vst_value(meta, plainValue);
+            lsp_trace("plainValue=%f -> normalizedValue=%f", plainValue, valueNormalized);
 
             return valueNormalized;
         }
@@ -1099,7 +1099,7 @@ namespace lsp
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
             {
-                lsp_trace("parameter id=0x%08x not found", int(id));
+                lsp_warn("parameter id=0x%08x not found", int(id));
                 return 0.0;
             }
             const meta::port_t *meta = p->metadata();
@@ -1107,8 +1107,9 @@ namespace lsp
                 return 0.0;
 
             // Convert value
-            const float result = to_vst_value(meta, p->value(), NULL, NULL);
-            lsp_trace("normalizedValue = %f", result);
+            const float value   = p->value();
+            const float result  = to_vst_value(meta, value);
+            lsp_trace("plainValue=%f -> normalizedValue=%f", value, result);
 
             // Return result
             return result;
@@ -1121,14 +1122,17 @@ namespace lsp
             // Get port
             vst3::UIParameterPort *p = find_param(id);
             if (p == NULL)
+            {
+                lsp_warn("parameter id=0x%08x not found", int(id));
                 return Steinberg::kInvalidArgument;
+            }
             const meta::port_t *meta = p->metadata();
             if (meta == NULL)
                 return Steinberg::kInternalError;
 
             // Convert value
             const float plainValue = from_vst_value(meta, value);
-            lsp_trace("plainValue = %f", plainValue);
+            lsp_trace("normalizedValue=%f -> plainValue=%f", value, plainValue);
 
             // Commit value
             p->commit_value(plainValue);
@@ -1148,7 +1152,7 @@ namespace lsp
             safe_release(pComponentHandler2);
             safe_release(pComponentHandler3);
 
-            pComponentHandler = handler;
+            pComponentHandler = safe_acquire(handler);
             if (pComponentHandler != NULL)
             {
                 pComponentHandler2 = safe_query_iface<Steinberg::Vst::IComponentHandler2>(pComponentHandler);
@@ -1327,7 +1331,7 @@ namespace lsp
                     if (pComponentHandler == NULL)
                         return;
 
-                    const float valueNormalized = to_vst_value(meta, ip->value(), NULL, NULL);
+                    const float valueNormalized = to_vst_value(meta, ip->value());
                     const Steinberg::Vst::ParamID param_id = ip->parameter_id();
                     pComponentHandler->beginEdit(param_id);
                     pComponentHandler->performEdit(param_id, valueNormalized);

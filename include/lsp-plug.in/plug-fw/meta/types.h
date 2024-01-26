@@ -61,6 +61,7 @@ namespace lsp
             U_KHZ,                  // Kilohertz
             U_MHZ,                  // Megahertz
             U_BPM,                  // Beats per minute
+
             U_CENT,                 // Cents
             U_OCTAVES,              // Octaves
             U_SEMITONES,            // Semitones

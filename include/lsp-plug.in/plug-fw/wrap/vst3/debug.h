@@ -349,7 +349,7 @@ namespace lsp
         {
             LSPString tmp;
 
-            lsp_trace("  id         : 0x%08x", info->id);
+            lsp_trace("  id         : 0x%08x", int(info->id));
             tmp.set_utf16(vst3::to_utf16(info->title));
             lsp_trace("  title      : %s", tmp.get_utf8());
             tmp.set_utf16(vst3::to_utf16(info->shortTitle));

@@ -45,6 +45,7 @@ namespace lsp
         const unit_desc_t unit_desc[] =
         {
             { NULL,     NULL },
+
             { NULL,     NULL },
             { NULL,     NULL },
             { "%",      "units.pc" },
