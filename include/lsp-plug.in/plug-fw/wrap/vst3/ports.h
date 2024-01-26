@@ -236,14 +236,20 @@ namespace lsp
         class ParameterPort: public Port
         {
             protected:
-                float                   fValue; // The actual value of the port
-                Steinberg::Vst::ParamID nID;    // Unique identifier of the port
+                float                   fValue;         // The actual value of the port
+                float                   fPending;       // The pending value
+                uint32_t                nChangeIndex;   // The current index of a change in a queue
+                Steinberg::Vst::ParamID nID;            // Unique identifier of the port (parameter tag)
+                bool                    bVirtual;       // Indicates that port is virtual
 
             public:
-                explicit ParameterPort(const meta::port_t *meta) : Port(meta)
+                explicit ParameterPort(const meta::port_t *meta, bool virt) : Port(meta)
                 {
                     fValue              = meta->start;
+                    fPending            = fValue;
+                    nChangeIndex        = 0;
                     nID                 = vst3::gen_parameter_id(meta->id);
+                    bVirtual            = virt;
                 }
 
                 ParameterPort(const ParameterPort &) = delete;
@@ -254,34 +260,6 @@ namespace lsp
 
             public:
                 inline Steinberg::Vst::ParamID parameter_id() const { return nID; }
-
-            public:
-                virtual float value() override { return fValue; }
-                virtual void *buffer() override { return NULL; }
-        };
-
-        class InParamPort: public ParameterPort
-        {
-            protected:
-                float                   fPending;
-                uint32_t                nChangeIndex;   // The current index of a change in a queue
-                bool                    bVirtual;
-
-            public:
-                explicit InParamPort(const meta::port_t *meta, bool virt) : ParameterPort(meta)
-                {
-                    fPending            = fValue;
-                    nChangeIndex        = 0;
-                    bVirtual            = virt;
-                }
-
-                InParamPort(const InParamPort &) = delete;
-                InParamPort(InParamPort &&) = delete;
-
-                InParamPort & operator = (const InParamPort &) = delete;
-                InParamPort & operator = (InParamPort &&) = delete;
-
-            public:
                 inline uint32_t change_index() const    { return nChangeIndex;          }
                 inline void     set_change_index(uint32_t index)    { nChangeIndex = index; }
                 inline bool     is_virtual() const      { return bVirtual;              }
@@ -307,34 +285,43 @@ namespace lsp
                 {
                     fPending        = value;
                 }
+
+            public:
+                virtual float value() override { return fValue; }
+                virtual void *buffer() override { return NULL; }
         };
 
-        class OutParamPort: public ParameterPort
+        class MeterPort: public Port
         {
             protected:
-                float           fOldValue;  // Old value
-                bool            bEmpty;     // Parameter does not contaiin any data since last process() call
+                float                   fValue;         // The actual value of the port
+                float                   fDisplay;       // Display value
+                bool                    bEmpty;         // Parameter does not contaiin any data since last process() call
 
             public:
-                explicit OutParamPort(const meta::port_t *meta) : ParameterPort(meta)
+                explicit MeterPort(const meta::port_t *meta) : Port(meta)
                 {
-                    fOldValue       = fValue;
-                    bEmpty          = true;
+                    fValue              = meta->start;
+                    fDisplay            = meta->start;
+                    bEmpty              = true;
                 }
 
-                OutParamPort(const OutParamPort &) = delete;
-                OutParamPort(OutParamPort &&) = delete;
+                MeterPort(const MeterPort &) = delete;
+                MeterPort(MeterPort &&) = delete;
 
-                OutParamPort & operator = (const OutParamPort &) = delete;
-                OutParamPort & operator = (OutParamPort &&) = delete;
-
-            public:
-                inline void     set_empty()         { bEmpty    = true;             }
-                inline bool     changed() const     { return fOldValue != fValue;   }
-                inline void     commit()            { fOldValue = fValue;           }
-                inline void     make_changed()      { fOldValue = fValue + 1.0f;    }
+                MeterPort & operator = (const MeterPort &) = delete;
+                MeterPort & operator = (MeterPort &&) = delete;
 
             public:
+                inline void     clear()             { bEmpty    = true;             }
+                inline float    display() const     { return fDisplay;              }
+
+            public:
+                virtual float   value() override
+                {
+                    return fValue;
+                }
+
                 virtual void    set_value(float value) override
                 {
                     value       = meta::limit_value(pMetadata, value);
@@ -351,17 +338,19 @@ namespace lsp
                     }
                     else
                         fValue = value;
+
+                    fDisplay    = fValue;
                 }
         };
 
-        class PortGroup: public InParamPort
+        class PortGroup: public ParameterPort
         {
             private:
                 size_t                  nCols;
                 size_t                  nRows;
 
             public:
-                explicit PortGroup(const meta::port_t *meta, bool virt) : InParamPort(meta, virt)
+                explicit PortGroup(const meta::port_t *meta, bool virt) : ParameterPort(meta, virt)
                 {
                     nCols               = meta::port_list_size(meta->members);
                     nRows               = meta::list_size(meta->items);

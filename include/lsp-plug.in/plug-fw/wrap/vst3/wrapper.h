@@ -107,9 +107,8 @@ namespace lsp
                 lltl::parray<plug::IPort>           vAllPorts;              // All possible plugin ports
                 lltl::parray<audio_bus_t>           vAudioIn;               // Input audio busses
                 lltl::parray<audio_bus_t>           vAudioOut;              // Output audio busses
-                lltl::parray<vst3::InParamPort>     vParamIn;               // Input parameter ports
-                lltl::parray<vst3::OutParamPort>    vParamOut;              // Output parameter ports
-                lltl::parray<vst3::OutParamPort>    vVParamOut;             // Virtual output parameter ports
+                lltl::parray<vst3::ParameterPort>   vParams;                // Parameter ports
+                lltl::parray<vst3::MeterPort>       vMeters;                // Meter ports
                 lltl::parray<plug::IPort>           vMeshes;                // Mesh ports
                 lltl::parray<plug::IPort>           vFBuffers;              // Frame buffer ports
                 lltl::parray<plug::IPort>           vStreams;               // Streaming ports
@@ -158,8 +157,7 @@ namespace lsp
                 static plug::IPort         *find_port(const char *id, lltl::parray<plug::IPort> *list);
                 static ssize_t              compare_audio_ports_by_speaker(const vst3::AudioPort *a, const vst3::AudioPort *b);
 
-                static ssize_t              compare_in_param_ports(const vst3::InParamPort *a, const vst3::InParamPort *b);
-                static ssize_t              compare_out_param_ports(const vst3::OutParamPort *a, const vst3::OutParamPort *b);
+                static ssize_t              compare_in_param_ports(const vst3::ParameterPort *a, const vst3::ParameterPort *b);
 
             protected:
                 void                        create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
@@ -167,8 +165,7 @@ namespace lsp
                 bool                        create_busses(const meta::plugin_t *meta);
                 void                        sync_position(Steinberg::Vst::ProcessContext *pctx);
                 size_t                      prepare_block(int32_t frame, Steinberg::Vst::ProcessData *pdata);
-                vst3::InParamPort          *input_parameter(Steinberg::Vst::ParamID id);
-                void                        transmit_output_parameters(Steinberg::Vst::IParameterChanges *changes);
+                vst3::ParameterPort        *input_parameter(Steinberg::Vst::ParamID id);
                 status_t                    save_kvt_parameters_v1(Steinberg::IBStream *os, core::KVTStorage *kvt);
                 status_t                    save_state(Steinberg::IBStream *os);
                 status_t                    load_state(Steinberg::IBStream *is);

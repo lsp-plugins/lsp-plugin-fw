@@ -63,7 +63,8 @@ namespace lsp
                 Steinberg::Vst::IComponentHandler  *pComponentHandler;      // Component handler
                 Steinberg::Vst::IComponentHandler2 *pComponentHandler2;     // Component handler (version 2)
                 Steinberg::Vst::IComponentHandler3 *pComponentHandler3;     // Component handler (version 3)
-                lltl::parray<vst3::UIParameterPort> vParams;                // Input and output parameters (non-virtual) sorted by unique parameter ID
+                lltl::parray<vst3::UIParameterPort> vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
+                lltl::parray<vst3::UIMeterPort>     vMeters;                // Meters
                 lltl::pphash<char, vst3::UIPort>    vParamMapping;          // Parameter mapping
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata

@@ -96,10 +96,6 @@ namespace lsp
 
                 virtual void set_value(float value, size_t flags) override
                 {
-                    // Do not allow to modify output ports
-                    if (meta::is_out_port(pMetadata))
-                        return;
-
                     fValue      = meta::limit_value(pMetadata, value);
                     if (pHandler != NULL)
                         pHandler->port_write(this, flags);
@@ -116,6 +112,38 @@ namespace lsp
                 void commit_value(float value)
                 {
                     fValue      = meta::limit_value(pMetadata, value);
+                }
+        };
+
+        class UIMeterPort: public UIPort
+        {
+            protected:
+                float                   fValue;     // The actual value of the port
+
+            public:
+                explicit UIMeterPort(const meta::port_t *meta) : UIPort(meta)
+                {
+                    fValue              = meta->start;
+                }
+
+                UIMeterPort(const UIParameterPort &) = delete;
+                UIMeterPort(UIParameterPort &&) = delete;
+
+                UIMeterPort & operator = (const UIMeterPort &) = delete;
+                UIMeterPort & operator = (UIMeterPort &&) = delete;
+
+            public:
+                virtual float value() override  { return fValue; }
+
+            public:
+                bool commit_value(float value)
+                {
+                    value = meta::limit_value(pMetadata, value);
+                    if (value == fValue)
+                        return false;
+
+                    fValue      = value;
+                    return true;
                 }
         };
 

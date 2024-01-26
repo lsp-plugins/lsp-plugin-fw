@@ -131,8 +131,8 @@ namespace lsp
                 case meta::R_METER:
                 {
                     lsp_trace("creating meter port %s", port->id);
-                    vst3::UIParameterPort *p    = new vst3::UIParameterPort(port, this, postfix != NULL);
-                    vParamMapping.create(port->id, p);
+                    vst3::UIMeterPort *p        = new vst3::UIMeterPort(port);
+                    vMeters.add(p);
                     vup = p;
                     break;
                 }
@@ -372,8 +372,6 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::notify(Steinberg::Vst::IMessage *message)
         {
-            lsp_trace("this=%p, message=%p", this, message);
-
             // Set-up DSP context
             dsp::context_t ctx;
             dsp::start(&ctx);
@@ -393,10 +391,10 @@ namespace lsp
             Steinberg::char8 key[32];
             Steinberg::int64 byte_order = VST3_BYTEORDER;
 
-            lsp_trace("Received message id=%s", message_id);
-
             if (!strcmp(message_id, ID_MSG_LATENCY))
             {
+                lsp_trace("Received message id=%s", message_id);
+
                 Steinberg::int64 latency = 0;
 
                 // Write the actual value
@@ -411,6 +409,8 @@ namespace lsp
             }
             else if (!strcmp(message_id, ID_MSG_STATE_DIRTY))
             {
+                lsp_trace("Received message id=%s", message_id);
+
                 // Mark state as dirty
                 if (pComponentHandler2 != NULL)
                     pComponentHandler2->setDirty(true);
@@ -448,34 +448,25 @@ namespace lsp
                 // Notify UI about position update
                 position_updated(&pos);
             }
-            else if (!strcmp(message_id, ID_MSG_VIRTUAL_METER))
+            else if (!strcmp(message_id, ID_MSG_METERS))
             {
-                // Read endianess
-                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
-                    return Steinberg::kResultFalse;
-
-                // Read identifier of the meter port
-                const char *param_id = sNotifyBuf.get_string(atts, "id", byte_order);
-                if (param_id == NULL)
-                    return Steinberg::kResultFalse;
-
-                // Get actual value
                 double value = 0.0;
-                if (atts->getFloat("value", value) != Steinberg::kResultOk)
-                    return Steinberg::kResultFalse;
 
-                // Deploy value to the port
-                vst3::UIPort *port = vParamMapping.get(param_id);
-                const meta::port_t *meta = port->metadata();
-                if ((meta == NULL) || (!meta::is_meter_port(meta)))
-                    return Steinberg::kResultFalse;
+                // Get actual value for each meter
+                for (lltl::iterator<vst3::UIMeterPort> it = vMeters.values(); it; ++it)
+                {
+                    vst3::UIMeterPort *p = it.get();
+                    if (p == NULL)
+                        continue;
 
-                vst3::UIParameterPort *p = static_cast<vst3::UIParameterPort *>(port);
-                if ((p == NULL) || (!p->is_virtual()))
-                    return Steinberg::kResultFalse;
+                    // Fetch meter value
+                    if (atts->getFloat(p->id(), value) != Steinberg::kResultOk)
+                        continue;
 
-                p->commit_value(value);
-                p->notify_all(ui::PORT_NONE);
+                    // Sync value with meter port and notify listeners if value has changed
+                    if (p->commit_value(value))
+                        p->notify_all(ui::PORT_NONE);
+                }
             }
             else if (!strcmp(message_id, ID_MSG_MESH))
             {
@@ -697,6 +688,8 @@ namespace lsp
             }
             else if (!strcmp(message_id, ID_MSG_KVT))
             {
+                lsp_trace("Received message id=%s", message_id);
+
                 const void *data = NULL;
                 Steinberg::uint32 sizeInBytes = 0;
 
