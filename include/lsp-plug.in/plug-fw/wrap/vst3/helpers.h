@@ -179,8 +179,8 @@ namespace lsp
                 return NULL;
 
             Steinberg::TUID iid;
-            T::iid.toTUID(iid);
             T *result   = NULL;
+            memcpy(iid, T::iid, sizeof(Steinberg::TUID));
 
 //            IF_TRACE( char dump[36]; );
             if (ptr->queryInterface(iid, reinterpret_cast<void **>(&result)) == Steinberg::kResultOk)
@@ -720,9 +720,10 @@ namespace lsp
                 return NULL;
 
             Steinberg::TUID iid;
-            Steinberg::Vst::IMessage::iid.toTUID(iid);
             Steinberg::Vst::IMessage* m = NULL;
-            if (host->createInstance (iid, iid, reinterpret_cast<void **>(&m)) == Steinberg::kResultOk)
+            memcpy(iid, Steinberg::Vst::IMessage::iid, sizeof(Steinberg::TUID));
+
+            if (host->createInstance(iid, iid, reinterpret_cast<void **>(&m)) == Steinberg::kResultOk)
                 return m;
             return NULL;
         }
