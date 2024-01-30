@@ -229,7 +229,7 @@ namespace lsp
                 status_t                    set_port_alias(const LSPString *alias, const LSPString *id);
 
                 /**
-                 * Get UI scaling factor in percents (100 means no extra scaling applied)
+                 * Get UI scaling factor (100.0 means no extra scaling applied)
                  * @param scaling the default value for scaling factor if scaling factor is not supported
                  * @return actual scaling factor (in percent) or default value if scaling factor is not supported
                  */

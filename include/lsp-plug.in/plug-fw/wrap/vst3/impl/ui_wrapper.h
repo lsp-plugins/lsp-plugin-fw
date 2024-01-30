@@ -60,6 +60,7 @@ namespace lsp
             pComponentHandler2  = NULL;
             pComponentHandler3  = NULL;
             nLatency            = 0;
+            fScalingFactor      = -1.0f;
         }
 
         UIWrapper::~UIWrapper()
@@ -1183,15 +1184,27 @@ namespace lsp
         Steinberg::tresult PLUGIN_API UIWrapper::openHelp(Steinberg::TBool onlyCheck)
         {
             lsp_trace("this=%p, onlyCheck=%d", this, int(onlyCheck));
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+
+            if (onlyCheck)
+                return Steinberg::kResultOk;
+
+            if (vViews.is_empty())
+                return Steinberg::kResultFalse;
+
+            return vViews.uget(0)->show_help();
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::openAboutBox(Steinberg::TBool onlyCheck)
         {
             lsp_trace("this=%p, onlyCheck=%d", this, int(onlyCheck));
-            // TODO: implement this
-            return Steinberg::kNotImplemented;
+
+            if (onlyCheck)
+                return Steinberg::kResultOk;
+
+            if (vViews.is_empty())
+                return Steinberg::kResultFalse;
+
+            return vViews.uget(0)->show_about_box();
         }
 
         core::KVTStorage *UIWrapper::kvt_lock()
@@ -1284,14 +1297,66 @@ namespace lsp
 
         float UIWrapper::ui_scaling_factor(float scaling)
         {
-            // TODO: implement this
-            return scaling;
+            return (fScalingFactor > 0.0f) ? fScalingFactor : scaling;
         }
 
         bool UIWrapper::accept_window_size(tk::Window *wnd, size_t width, size_t height)
         {
-            // TODO: implement this
-            return true;
+            // Iterate over all views
+            for (lltl::iterator<PluginView> it = vViews.values(); it; ++it)
+            {
+                status_t res = it->accept_window_size(wnd, width, height);
+                if (res == STATUS_OK)
+                    return true;
+            }
+
+            return ui::IWrapper::accept_window_size(wnd, width, height);
+        }
+
+        status_t UIWrapper::attach_ui(PluginView *view)
+        {
+            if (vViews.contains(view))
+                return STATUS_ALREADY_EXISTS;
+            if (!vViews.add(view))
+                return STATUS_NO_MEM;
+
+            // Notify backend about UI activation
+            if (pPeerConnection != NULL)
+            {
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    return STATUS_OK;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize and send the message
+                msg->setMessageID(vst3::ID_MSG_ACTIVATE_UI);
+                pPeerConnection->notify(msg);
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::detach_ui(PluginView *view)
+        {
+            if (!vViews.qpremove(view))
+                return STATUS_NOT_FOUND;
+
+            // Notify backend about UI deactivation
+            if (pPeerConnection != NULL)
+            {
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    return STATUS_OK;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize and send the message
+                msg->setMessageID(vst3::ID_MSG_DEACTIVATE_UI);
+                pPeerConnection->notify(msg);
+            }
+
+            return STATUS_OK;
         }
 
         void UIWrapper::port_write(ui::IPort *port, size_t flags)
@@ -1373,6 +1438,11 @@ namespace lsp
                 // Finally, we're ready to send message
                 pPeerConnection->notify(msg);
             }
+        }
+
+        void UIWrapper::set_scaling_factor(float factor)
+        {
+            fScalingFactor      = factor;
         }
 
     } /* namespace vst3 */

@@ -36,6 +36,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/string_buf.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/plugview.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ui_ports.h>
 
 namespace lsp
@@ -43,6 +44,7 @@ namespace lsp
     namespace vst3
     {
         class PluginFactory;
+        class PluginView;
 
         #include <steinberg/vst3/base/WarningsPush.h>
         class UIWrapper:
@@ -68,10 +70,12 @@ namespace lsp
                 lltl::pphash<char, vst3::UIPort>    vParamMapping;          // Parameter mapping
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
+                lltl::parray<PluginView>            vViews;                 // Different UI views
                 vst3::string_buf                    sNotifyBuf;             // Notify buffer
                 core::KVTStorage                    sKVT;                   // KVT storage
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
                 uint32_t                            nLatency;               // Plugin latency
+                float                               fScalingFactor;         // Scaling factor
 
             protected:
                 vst3::UIPort                       *create_port(const meta::port_t *port, const char *postfix);
@@ -94,6 +98,11 @@ namespace lsp
 
                 virtual status_t                    init(void *root_widget) override;
                 virtual void                        destroy() override;
+
+            public:
+                status_t                            attach_ui(PluginView *view);
+                status_t                            detach_ui(PluginView *view);
+                void                                set_scaling_factor(float factor);
 
             public: // ui::Wrapper
                 virtual core::KVTStorage           *kvt_lock() override;

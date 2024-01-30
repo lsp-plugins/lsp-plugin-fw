@@ -1335,6 +1335,14 @@ namespace lsp
             }
         }
 
+        void PluginWindow::host_scaling_changed()
+        {
+            if (pUIScalingHost != NULL)
+                pUIScalingHost->notify_all(ui::PORT_NONE);
+            else if (pUIScaling != NULL)
+                pUIScaling->notify_all(ui::PORT_NONE);
+        }
+
         void PluginWindow::sync_invert_vscroll(ui::IPort *port)
         {
             tk::Display *dpy    = wWidget->display();
@@ -1765,40 +1773,9 @@ namespace lsp
 
         status_t PluginWindow::slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            const meta::plugin_t *meta = __this->pWrapper->ui()->metadata();
-
-            io::Path path;
-            LSPString spath;
-            status_t res;
-
-            // Try to open local documentation
-            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
-            {
-                path.fmt("%s/doc/%s/html/plugins/%s.html",
-                        *prefix, "lsp-plugins", meta->uid
-                    );
-
-                lsp_trace("Checking path: %s", path.as_utf8());
-
-                if (path.exists())
-                {
-                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
-                    {
-                        if ((res = system::follow_url(&spath)) == STATUS_OK)
-                            return res;
-                    }
-                }
-            }
-
-            // Follow the online documentation
-            if (spath.fmt_utf8("%s?page=manuals&section=%s", "https://lsp-plug.in/", meta->uid))
-            {
-                if ((res = system::follow_url(&spath)) == STATUS_OK)
-                    return res;
-            }
-
-            return STATUS_NOT_FOUND;
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            self->show_plugin_manual();
+            return STATUS_OK;
         }
 
         status_t PluginWindow::slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data)
@@ -2244,6 +2221,42 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::show_plugin_manual()
+        {
+            const meta::plugin_t *meta = pWrapper->ui()->metadata();
+
+            io::Path path;
+            LSPString spath;
+            status_t res;
+
+            // Try to open local documentation
+            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
+            {
+                path.fmt("%s/doc/%s/html/plugins/%s.html",
+                    *prefix, "lsp-plugins", meta->uid);
+
+                lsp_trace("Checking path: %s", path.as_utf8());
+
+                if (path.exists())
+                {
+                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
+                    {
+                        if ((res = system::follow_url(&spath)) == STATUS_OK)
+                            return res;
+                    }
+                }
+            }
+
+            // Follow the online documentation
+            if (spath.fmt_utf8("%s?page=manuals&section=%s", "https://lsp-plug.in/", meta->uid))
+            {
+                if ((res = system::follow_url(&spath)) == STATUS_OK)
+                    return res;
+            }
+
+            return STATUS_NOT_FOUND;
+        }
+
         status_t PluginWindow::create_dialog_window(ctl::Window **ctl, tk::Window **dst, const char *path)
         {
             status_t res;
@@ -2286,10 +2299,10 @@ namespace lsp
             if (_this == NULL)
                 return STATUS_OK;
 
-            float prefer    = (_this->pUIScalingHost->value() >= 0.5f) ? 0.0f : 1.0f;
+            const bool prefer   = (_this->pUIScalingHost->value() >= 0.5f) ? 0.0f : 1.0f;
             _this->pUIScalingHost->set_value(prefer);
 
-            if (prefer >= 0.5f)
+            if (prefer)
             {
                 ssize_t value       = _this->pUIScaling->value();
                 ssize_t new_value   = _this->pWrapper->ui_scaling_factor(value);

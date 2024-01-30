@@ -536,6 +536,16 @@ namespace lsp
         {
             // Scale is in %
             fScaling    = scale * 100.0f;
+
+            // Trigger scaling factor to become updated
+            if (!sMutex.lock())
+                return false;
+            lsp_finally { sMutex.unlock(); };
+
+            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            if (wnd != NULL)
+                wnd->host_scaling_changed();
+
             return true;
         }
 

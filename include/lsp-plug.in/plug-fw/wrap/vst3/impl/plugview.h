@@ -39,15 +39,21 @@ namespace lsp
             pWrapper    = safe_acquire(wrapper);
             wWindow     = NULL;
             pWindow     = NULL;
+            pPlugFrame  = NULL;
         }
 
         PluginView::~PluginView()
         {
+            if (pWrapper != NULL)
+                pWrapper->detach_ui(this);
+
             safe_release(pWrapper);
         }
 
         status_t PluginView::init()
         {
+            pWrapper->attach_ui(this);
+
             return STATUS_OK;
         }
 
@@ -80,8 +86,41 @@ namespace lsp
             return ref_count;
         }
 
+        status_t PluginView::accept_window_size(tk::Window *wnd, size_t width, size_t height)
+        {
+            if (wWindow != wnd)
+                return STATUS_NOT_FOUND;
+
+// TODO
+//            if (pPlugFrame != NULL)
+//                pPlugFrame->resizeView(this, newSize);
+
+            return STATUS_OK;
+        }
+
+        Steinberg::tresult PluginView::show_about_box()
+        {
+            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            if (wnd == NULL)
+                return Steinberg::kResultFalse;
+
+            status_t res = wnd->show_about_window();
+            return (res == STATUS_OK) ? Steinberg::kResultTrue : Steinberg::kResultFalse;
+        }
+
+        Steinberg::tresult PluginView::show_help()
+        {
+            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            if (wnd == NULL)
+                return Steinberg::kResultFalse;
+
+            status_t res = wnd->show_plugin_manual();
+            return (res == STATUS_OK) ? Steinberg::kResultTrue : Steinberg::kResultFalse;
+        }
+
         void PLUGIN_API PluginView::update(Steinberg::FUnknown *changedUnknown, Steinberg::int32 message)
         {
+            // Nothing to do
         }
 
         Steinberg::tresult PLUGIN_API PluginView::isPlatformTypeSupported(Steinberg::FIDString type)
@@ -90,7 +129,7 @@ namespace lsp
 #if defined(PLATFORM_WINDOWS)
             supported = (strcmp(type, Steinberg::kPlatformTypeHWND) == 0);
 #elif defined(PLATFORM_MACOSX)
-#elif defined(PLATFORM_POSIX)
+#else
             supported = (strcmp(type, Steinberg::kPlatformTypeX11EmbedWindowID) == 0);
 #endif
             return (supported) ? Steinberg::kResultTrue : Steinberg::kResultFalse;
@@ -98,6 +137,9 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginView::attached(void *parent, Steinberg::FIDString type)
         {
+            if (isPlatformTypeSupported(type) != Steinberg::kResultTrue)
+                return Steinberg::kResultFalse;
+
             // TODO: implement this
             return Steinberg::kResultOk;
         }
@@ -111,60 +153,124 @@ namespace lsp
         Steinberg::tresult PLUGIN_API PluginView::onWheel(float distance)
         {
             // No, please!
-            return Steinberg::kResultOk;
+            return Steinberg::kResultFalse;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::onKeyDown(Steinberg::char16 key, Steinberg::int16 keyCode, Steinberg::int16 modifiers)
         {
             // No, please!
-            return Steinberg::kResultOk;
+            return Steinberg::kResultFalse;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::onKeyUp(Steinberg::char16 key, Steinberg::int16 keyCode, Steinberg::int16 modifiers)
         {
             // No, please!
-            return Steinberg::kResultOk;
+            return Steinberg::kResultFalse;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::getSize(Steinberg::ViewRect *size)
         {
+            if (wWindow == NULL)
+                return Steinberg::kResultFalse;
+
+            ws::rectangle_t r;
+            wWindow->get_padded_rectangle(&r);
+
+            // Obtain the window parameters
+            if (wWindow->visibility()->get())
+            {
+                ws::rectangle_t rr;
+                rr.nWidth       = 0;
+                rr.nHeight      = 0;
+
+                if (wWindow->get_screen_rectangle(&rr) != STATUS_OK)
+                    return false;
+
+                // Return result
+                size->left      = rr.nLeft;
+                size->top       = rr.nTop;
+                size->right     = rr.nLeft + rr.nWidth;
+                size->bottom    = rr.nTop  + rr.nHeight;
+            }
+            else
+            {
+                ws::size_limit_t sr;
+                wWindow->get_size_limits(&sr);
+
+                size->left      = 0;
+                size->top       = 0;
+                size->right     = lsp_min(sr.nMinWidth, 32);
+                size->bottom    = lsp_min(sr.nMinHeight, 32);
+            }
+
             // TODO: implement this
             return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::onSize(Steinberg::ViewRect *newSize)
         {
-            // TODO: implement this
-            return Steinberg::kResultOk;
+            Steinberg::tresult res = checkSizeConstraint(newSize);
+            if (res != Steinberg::kResultOk)
+                return res;
+
+            wWindow->position()->set(newSize->left, newSize->top);
+            wWindow->size()->set(newSize->right - newSize->left, newSize->bottom - newSize->top);
+
+            return Steinberg::kResultTrue;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::onFocus(Steinberg::TBool state)
         {
-            // TODO: implement this
+            // No, please
             return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::setFrame(Steinberg::IPlugFrame *frame)
         {
-            // TODO: implement this
+            safe_release(pPlugFrame);
+            pPlugFrame  = safe_acquire(frame);
+
             return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::canResize()
         {
-            // TODO: implement this
-            return Steinberg::kResultOk;
+            return Steinberg::kResultTrue;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::checkSizeConstraint(Steinberg::ViewRect *rect)
         {
-            // TODO: implement this
+            if (wWindow == NULL)
+                return Steinberg::kResultFalse;
+
+            ws::rectangle_t sr, dr;
+            sr.nLeft    = rect->left;
+            sr.nTop     = rect->top;
+            sr.nWidth   = rect->right  - rect->left;
+            sr.nHeight  = rect->bottom - rect->top;
+
+            dr = sr;
+
+            wWindow->constraints()->apply(&dr, wWindow->scaling()->get());
+
+            // Update the rect if it was constrained
+            if ((dr.nWidth != sr.nWidth) || (dr.nHeight != sr.nHeight))
+            {
+                rect->right  = rect->left + dr.nWidth;
+                rect->bottom = rect->top  + dr.nHeight;
+            }
+
             return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::setContentScaleFactor(Steinberg::IPlugViewContentScaleSupport::ScaleFactor factor)
         {
-            // TODO: implement this
+            pWrapper->set_scaling_factor(factor * 100.0f);
+
+            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            if (wnd != NULL)
+                wnd->host_scaling_changed();
+
             return Steinberg::kResultOk;
         }
 
