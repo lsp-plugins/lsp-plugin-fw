@@ -1288,7 +1288,7 @@ namespace lsp
             return scaling;
         }
 
-        bool UIWrapper::accept_window_size(size_t width, size_t height)
+        bool UIWrapper::accept_window_size(tk::Window *wnd, size_t width, size_t height)
         {
             // TODO: implement this
             return true;

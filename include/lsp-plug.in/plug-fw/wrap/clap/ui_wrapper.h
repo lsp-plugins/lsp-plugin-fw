@@ -101,7 +101,7 @@ namespace lsp
                 virtual status_t                play_file(const char *file, wsize_t position, bool release) override;
                 virtual float                   ui_scaling_factor(float scaling) override;
                 virtual void                    main_iteration() override;
-                virtual bool                    accept_window_size(size_t width, size_t height) override;
+                virtual bool                    accept_window_size(tk::Window *wnd, size_t width, size_t height) override;
 
             public: // CLAP API
                 bool                            set_scale(double scale);

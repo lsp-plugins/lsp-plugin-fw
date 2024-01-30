@@ -2588,7 +2588,7 @@ namespace lsp
 
                 if ((width != xr.nWidth) || (height != xr.nHeight))
                 {
-                    if (_this->pWrapper->accept_window_size(width, height))
+                    if (_this->pWrapper->accept_window_size(wnd, width, height))
                         wnd->resize_window(width, height);
                 }
             }

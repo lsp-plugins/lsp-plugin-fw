@@ -476,10 +476,10 @@ namespace lsp
             return (fScaling > 0.0f) ? fScaling : scaling;
         }
 
-        bool UIWrapper::accept_window_size(size_t width, size_t height)
+        bool UIWrapper::accept_window_size(tk::Window *wnd, size_t width, size_t height)
         {
-            if (pExt == NULL)
-                return IWrapper::accept_window_size(width, height);
+            if ((pExt == NULL) || (wnd != wWindow))
+                return IWrapper::accept_window_size(wnd, width, height);
 
             return pExt->gui->request_resize(pExt->host, width, height);
         }

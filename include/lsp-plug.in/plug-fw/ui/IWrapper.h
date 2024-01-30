@@ -439,7 +439,7 @@ namespace lsp
                  * @param height the requested window height
                  * @return true if the specified window size is accepted by the host
                  */
-                virtual bool                accept_window_size(size_t width, size_t height);
+                virtual bool                accept_window_size(tk::Window *wnd, size_t width, size_t height);
         };
 
     } /* namespace ui */

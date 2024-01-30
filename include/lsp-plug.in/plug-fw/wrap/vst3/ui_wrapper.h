@@ -103,7 +103,7 @@ namespace lsp
                 virtual const meta::package_t      *package() const override;
                 virtual status_t                    play_file(const char *file, wsize_t position, bool release) override;
                 virtual float                       ui_scaling_factor(float scaling) override;
-                virtual bool                        accept_window_size(size_t width, size_t height) override;
+                virtual bool                        accept_window_size(tk::Window *wnd, size_t width, size_t height) override;
 
             public: // vst3::IPortChangeHandler
                 virtual void                        port_write(ui::IPort *port, size_t flags) override;

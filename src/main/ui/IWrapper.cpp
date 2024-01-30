@@ -1993,7 +1993,7 @@ namespace lsp
             nPlayLength     = length;
         }
 
-        bool IWrapper::accept_window_size(size_t width, size_t height)
+        bool IWrapper::accept_window_size(tk::Window *wnd, size_t width, size_t height)
         {
             return true;
         }
