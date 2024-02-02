@@ -37,6 +37,7 @@
 
 #include <steinberg/vst3.h>
 
+#include <lsp-plug.in/plug-fw/wrap/vst3/data.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 
 namespace lsp
@@ -64,6 +65,12 @@ namespace lsp
                 meta::package_t                        *pPackage;       // Package manifest
                 volatile IDataSync                     *pActiveSync;    // Active data sync
                 lltl::ptrset<IDataSync>                 vDataSync;      // List of objects for synchronization
+                lltl::parray<IUISync>                   vUISync;        // List of UI for synchronization
+
+            #ifdef VST_USE_RUNLOOP_IFACE
+                Steinberg::Linux::IRunLoop             *pRunLoop;       // Run loop interface
+                Steinberg::Linux::ITimerHandler        *pTimer;         // Timer handler
+            #endif /* VST_USE_RUNLOOP_IFACE */
 
                 Steinberg::PFactoryInfo                 sFactoryInfo;
                 lltl::darray<Steinberg::PClassInfo>     vClassInfo;
@@ -94,6 +101,8 @@ namespace lsp
                 void                                    release_executor();
                 status_t                                register_data_sync(IDataSync *sync);
                 status_t                                unregister_data_sync(IDataSync *sync);
+                status_t                                register_ui_sync(IUISync *sync);
+                status_t                                unregister_ui_sync(IUISync *sync);
 
             public: // ipc::IRunnable
                 virtual status_t                        run();

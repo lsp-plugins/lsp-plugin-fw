@@ -2,21 +2,21 @@
  * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins-comp-delay
+ * This file is part of lsp-plugin-fw
  * Created on: 30 янв. 2024 г.
  *
- * lsp-plugins-comp-delay is free software: you can redistribute it and/or modify
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * lsp-plugins-comp-delay is distributed in the hope that it will be useful,
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with lsp-plugins-comp-delay. If not, see <https://www.gnu.org/licenses/>.
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_VST3_IMPL_PLUGVIEW_H_
@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/plugview.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
@@ -36,23 +37,26 @@ namespace lsp
     {
         PluginView::PluginView(UIWrapper *wrapper)
         {
+            nRefCounter = 1;
             pWrapper    = safe_acquire(wrapper);
-            wWindow     = NULL;
-            pWindow     = NULL;
             pPlugFrame  = NULL;
         }
 
         PluginView::~PluginView()
         {
-            if (pWrapper != NULL)
-                pWrapper->detach_ui(this);
-
             safe_release(pWrapper);
+
+            if (pWrapper->pFactory != NULL)
+                pWrapper->pFactory->unregister_ui_sync(this);
         }
 
         status_t PluginView::init()
         {
+            // Attach event handler to the wrapper
             pWrapper->attach_ui(this);
+
+            // Register self as UI sync stuff
+            pWrapper->pFactory->register_ui_sync(this);
 
             return STATUS_OK;
         }
@@ -88,7 +92,7 @@ namespace lsp
 
         status_t PluginView::accept_window_size(tk::Window *wnd, size_t width, size_t height)
         {
-            if (wWindow != wnd)
+            if (pWrapper->wWindow != wnd)
                 return STATUS_NOT_FOUND;
 
 // TODO
@@ -100,7 +104,7 @@ namespace lsp
 
         Steinberg::tresult PluginView::show_about_box()
         {
-            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWrapper->pWindow);
             if (wnd == NULL)
                 return Steinberg::kResultFalse;
 
@@ -110,12 +114,26 @@ namespace lsp
 
         Steinberg::tresult PluginView::show_help()
         {
-            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWrapper->pWindow);
             if (wnd == NULL)
                 return Steinberg::kResultFalse;
 
             status_t res = wnd->show_plugin_manual();
             return (res == STATUS_OK) ? Steinberg::kResultTrue : Steinberg::kResultFalse;
+        }
+
+        void PluginView::query_resize(const ws::rectangle_t *r)
+        {
+            if (pPlugFrame == NULL)
+                return;
+
+            Steinberg::ViewRect newSize;
+            newSize.left        = 0;
+            newSize.top         = 0;
+            newSize.right       = r->nWidth;
+            newSize.bottom      = r->nHeight;
+
+            pPlugFrame->resizeView(this, &newSize);
         }
 
         void PLUGIN_API PluginView::update(Steinberg::FUnknown *changedUnknown, Steinberg::int32 message)
@@ -140,13 +158,19 @@ namespace lsp
             if (isPlatformTypeSupported(type) != Steinberg::kResultTrue)
                 return Steinberg::kResultFalse;
 
-            // TODO: implement this
+            // Show the window
+            if (pWrapper->wWindow != NULL)
+                pWrapper->wWindow->show();
+
             return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::removed()
         {
-            // TODO: implement this
+            // Hide the window
+            if (pWrapper->wWindow != NULL)
+                pWrapper->wWindow->hide();
+
             return Steinberg::kResultOk;
         }
 
@@ -170,20 +194,20 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginView::getSize(Steinberg::ViewRect *size)
         {
-            if (wWindow == NULL)
+            if (pWrapper->wWindow == NULL)
                 return Steinberg::kResultFalse;
 
             ws::rectangle_t r;
-            wWindow->get_padded_rectangle(&r);
+            pWrapper->wWindow->get_padded_rectangle(&r);
 
             // Obtain the window parameters
-            if (wWindow->visibility()->get())
+            if (pWrapper->wWindow->visibility()->get())
             {
                 ws::rectangle_t rr;
                 rr.nWidth       = 0;
                 rr.nHeight      = 0;
 
-                if (wWindow->get_screen_rectangle(&rr) != STATUS_OK)
+                if (pWrapper->wWindow->get_screen_rectangle(&rr) != STATUS_OK)
                     return false;
 
                 // Return result
@@ -195,7 +219,7 @@ namespace lsp
             else
             {
                 ws::size_limit_t sr;
-                wWindow->get_size_limits(&sr);
+                pWrapper->wWindow->get_size_limits(&sr);
 
                 size->left      = 0;
                 size->top       = 0;
@@ -203,7 +227,6 @@ namespace lsp
                 size->bottom    = lsp_min(sr.nMinHeight, 32);
             }
 
-            // TODO: implement this
             return Steinberg::kResultOk;
         }
 
@@ -213,8 +236,8 @@ namespace lsp
             if (res != Steinberg::kResultOk)
                 return res;
 
-            wWindow->position()->set(newSize->left, newSize->top);
-            wWindow->size()->set(newSize->right - newSize->left, newSize->bottom - newSize->top);
+            pWrapper->wWindow->position()->set(newSize->left, newSize->top);
+            pWrapper->wWindow->size()->set(newSize->right - newSize->left, newSize->bottom - newSize->top);
 
             return Steinberg::kResultTrue;
         }
@@ -240,7 +263,7 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginView::checkSizeConstraint(Steinberg::ViewRect *rect)
         {
-            if (wWindow == NULL)
+            if (pWrapper->wWindow == NULL)
                 return Steinberg::kResultFalse;
 
             ws::rectangle_t sr, dr;
@@ -251,7 +274,7 @@ namespace lsp
 
             dr = sr;
 
-            wWindow->constraints()->apply(&dr, wWindow->scaling()->get());
+            pWrapper->wWindow->constraints()->apply(&dr, pWrapper->wWindow->scaling()->get());
 
             // Update the rect if it was constrained
             if ((dr.nWidth != sr.nWidth) || (dr.nHeight != sr.nHeight))
@@ -267,11 +290,17 @@ namespace lsp
         {
             pWrapper->set_scaling_factor(factor * 100.0f);
 
-            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWrapper->pWindow);
             if (wnd != NULL)
                 wnd->host_scaling_changed();
 
             return Steinberg::kResultOk;
+        }
+
+        void PluginView::sync_ui()
+        {
+            if (pWrapper->pDisplay != NULL)
+                pWrapper->pDisplay->main_iteration();
         }
 
     } /* namespace vst3 */

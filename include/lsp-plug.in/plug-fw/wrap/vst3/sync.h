@@ -42,6 +42,21 @@ namespace lsp
                  */
                 virtual void sync_data() = 0;
         };
+
+        /**
+         * UI synchronization interface
+         */
+        class IUISync
+        {
+            public:
+                virtual ~IUISync() = default;
+
+            public:
+                /**
+                 * Callback for synchronizing UI
+                 */
+                virtual void sync_ui() = 0;
+        };
     } /* namespace vst3 */
 } /* namespace lsp */
 

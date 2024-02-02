@@ -32,6 +32,13 @@
 
 #include <steinberg/vst3.h>
 
+#if (defined(PLATFORM_WINDOWS)) || (defined(PLATFORM_MACOSX))
+    #define IF_VST_RUNLOOP_IFACE(...)
+#else
+    #define VST_USE_RUNLOOP_IFACE
+    #define IF_VST_RUNLOOP_IFACE(...)       __VA_ARGS__
+#endif
+
 namespace lsp
 {
     namespace vst3

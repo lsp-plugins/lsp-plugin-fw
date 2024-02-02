@@ -55,11 +55,16 @@ namespace lsp
             public Steinberg::Vst::IEditController,
             public Steinberg::Vst::IEditController2
         {
+            private:
+                friend class PluginView;
+
             protected:
                 volatile uatomic_t                  nRefCounter;            // Reference counter
                 PluginFactory                      *pFactory;               // Reference to the factory
-                const meta::package_t              *pPackage;
+                resource::ILoader                  *pLoader;                // Resource loader
+                const meta::package_t              *pPackage;               // Package metadata
                 Steinberg::FUnknown                *pHostContext;           // Host context
+                PluginView                         *pPluginView;            // Plugin view
                 Steinberg::Vst::IHostApplication   *pHostApplication;       // Host application
                 Steinberg::Vst::IConnectionPoint   *pPeerConnection;        // Peer connection
                 Steinberg::Vst::IComponentHandler  *pComponentHandler;      // Component handler
@@ -76,6 +81,14 @@ namespace lsp
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
                 uint32_t                            nLatency;               // Plugin latency
                 float                               fScalingFactor;         // Scaling factor
+                bool                                bUIInitialized;         // UI initialized flag
+
+            protected:
+                static status_t                     slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
+                static status_t                     slot_ui_show(tk::Widget *sender, void *ptr, void *data);
+                static status_t                     slot_ui_realized(tk::Widget *sender, void *ptr, void *data);
+                static status_t                     slot_ui_close(tk::Widget *sender, void *ptr, void *data);
+                static status_t                     slot_display_idle(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 vst3::UIPort                       *create_port(const meta::port_t *port, const char *postfix);
@@ -83,6 +96,7 @@ namespace lsp
                 void                                receive_raw_osc_packet(const void *data, size_t size);
                 void                                parse_raw_osc_event(osc::parse_frame_t *frame);
                 status_t                            load_state(Steinberg::IBStream *is);
+                status_t                            initialize_ui();
 
             protected:
                 static ssize_t                      compare_param_ports(const vst3::UIParameterPort *a, const vst3::UIParameterPort *b);

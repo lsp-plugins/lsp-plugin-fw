@@ -52,6 +52,7 @@ namespace lsp
             lsp_trace("this=%p", this);
             nRefCounter         = 1;
             pFactory            = safe_acquire(factory);
+            pLoader             = loader;
             pPackage            = package;
             pHostContext        = NULL;
             pHostApplication    = NULL;
@@ -61,6 +62,7 @@ namespace lsp
             pComponentHandler3  = NULL;
             nLatency            = 0;
             fScalingFactor      = -1.0f;
+            bUIInitialized      = false;
         }
 
         UIWrapper::~UIWrapper()
@@ -1165,12 +1167,102 @@ namespace lsp
             return Steinberg::kResultTrue;
         }
 
+        status_t UIWrapper::initialize_ui()
+        {
+            // Initialize parent
+            status_t res = STATUS_OK;
+            if (bUIInitialized)
+                return res;
+            if ((res = IWrapper::init(NULL)) != STATUS_OK)
+                return res;
+
+            // Initialize display settings
+            tk::display_settings_t settings;
+            resource::Environment env;
+
+            settings.resources      = pLoader;
+            settings.environment    = &env;
+
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
+
+            // Create the display
+            pDisplay = new tk::Display(&settings);
+            if (pDisplay == NULL)
+                return STATUS_NO_MEM;
+            if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
+                return res;
+
+            // Bind the display idle handler
+            pDisplay->slots()->bind(tk::SLOT_IDLE, slot_display_idle, this);
+            pDisplay->set_idle_interval(1000 / UI_FRAMES_PER_SECOND);
+
+            // Load visual schema
+            if ((res = init_visual_schema()) != STATUS_OK)
+                return res;
+
+            // Initialize the UI
+            if ((res = pUI->init(this, pDisplay)) != STATUS_OK)
+                return res;
+
+            lsp_trace("Initializing UI contents");
+            const meta::plugin_t *meta = pUI->metadata();
+            if (pUI->metadata() == NULL)
+                return STATUS_BAD_STATE;
+
+            if (meta->ui_resource != NULL)
+            {
+                if ((res = build_ui(meta->ui_resource, NULL)) != STATUS_OK)
+                {
+                    lsp_error("Error building UI for resource %s: code=%d", meta->ui_resource, int(res));
+                    return res;
+                }
+            }
+
+            // Bind different slots
+            lsp_trace("Binding slots");
+            tk::Window *wnd  = window();
+            if (wnd != NULL)
+            {
+                wnd->slots()->bind(tk::SLOT_RESIZE, slot_ui_resize, this);
+                wnd->slots()->bind(tk::SLOT_SHOW, slot_ui_show, this);
+                wnd->slots()->bind(tk::SLOT_REALIZED, slot_ui_realized, this);
+                wnd->slots()->bind(tk::SLOT_CLOSE, slot_ui_close, this);
+            }
+
+            // Call the post-initialization routine
+            lsp_trace("Doing post-init");
+            res = pUI->post_init();
+            if (res != STATUS_OK)
+                return res;
+
+            return res;
+        }
+
         Steinberg::IPlugView * PLUGIN_API UIWrapper::createView(Steinberg::FIDString name)
         {
             lsp_trace("this=%p, name=%s", this, name);
+            if (strcmp(name, Steinberg::Vst::ViewType::kEditor) != 0)
+                return NULL;
 
-            // TODO: implement this
-            return NULL;
+            if (pPluginView != NULL)
+                return safe_acquire(pPluginView);
+
+            if (initialize_ui() != STATUS_OK)
+                return NULL;
+
+            // Create plugin view
+            pPluginView     = new PluginView(this);
+            if (pPluginView == NULL)
+                return NULL;
+            lsp_finally { safe_release(pPluginView); };
+
+            // Initialize plugin view
+            if (pPluginView->init() != STATUS_OK)
+                return NULL;
+
+            return safe_acquire(pPluginView);
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::setKnobMode(Steinberg::Vst::KnobMode mode)
@@ -1443,6 +1535,52 @@ namespace lsp
         void UIWrapper::set_scaling_factor(float factor)
         {
             fScalingFactor      = factor;
+        }
+
+        status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+
+            UIWrapper *self     = static_cast<UIWrapper *>(ptr);
+            tk::Window *wnd     = self->window();
+            if ((wnd == NULL) || (!wnd->visibility()->get()))
+                return STATUS_OK;
+
+            ws::rectangle_t rr;
+            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
+                return STATUS_OK;
+
+            if (self->pPluginView != NULL)
+                self->pPluginView->query_resize(&rr);
+
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::slot_ui_close(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            return STATUS_OK;
+        }
+
+        status_t UIWrapper::slot_display_idle(tk::Widget *sender, void *ptr, void *data)
+        {
+            UIWrapper *self = static_cast<UIWrapper *>(ptr);
+            if (self != NULL)
+                self->main_iteration();
+
+            return STATUS_OK;
         }
 
     } /* namespace vst3 */

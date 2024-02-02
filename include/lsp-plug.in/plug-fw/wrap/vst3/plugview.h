@@ -2,21 +2,21 @@
  * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins-comp-delay
+ * This file is part of lsp-plugin-fw
  * Created on: 30 янв. 2024 г.
  *
- * lsp-plugins-comp-delay is free software: you can redistribute it and/or modify
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * lsp-plugins-comp-delay is distributed in the hope that it will be useful,
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with lsp-plugins-comp-delay. If not, see <https://www.gnu.org/licenses/>.
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_VST3_PLUGVIEW_H_
@@ -28,6 +28,9 @@
 
 #include <steinberg/vst3.h>
 
+#include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
+
 namespace lsp
 {
     namespace vst3
@@ -37,13 +40,12 @@ namespace lsp
         class PluginView:
             public Steinberg::IDependent,
             public Steinberg::IPlugView,
-            public Steinberg::IPlugViewContentScaleSupport
+            public Steinberg::IPlugViewContentScaleSupport,
+            public vst3::IUISync
         {
             protected:
                 volatile uatomic_t                  nRefCounter;        // Reference counter
                 UIWrapper                          *pWrapper;           // The UI wrapper
-                tk::Window                         *wWindow;            // The main window
-                ctl::Window                        *pWindow;            // The controller for window
                 Steinberg::IPlugFrame              *pPlugFrame;         // Plugin frame
 
             public:
@@ -55,12 +57,13 @@ namespace lsp
                 PluginView & operator = (const PluginView &) = delete;
                 PluginView & operator = (PluginView &&) = delete;
 
-                status_t init();
+                status_t                    init();
 
             public:
                 status_t                    accept_window_size(tk::Window *wnd, size_t width, size_t height);
                 Steinberg::tresult          show_about_box();
                 Steinberg::tresult          show_help();
+                void                        query_resize(const ws::rectangle_t *r);
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult  PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;
@@ -86,6 +89,9 @@ namespace lsp
 
             public: // Steinberg::IPlugViewContentScaleSupport
                 virtual Steinberg::tresult  PLUGIN_API setContentScaleFactor(Steinberg::IPlugViewContentScaleSupport::ScaleFactor factor) override;
+
+            public: // vst3::IUISync
+                virtual void                sync_ui() override;
         };
 
     } /* namespace vst3 */
