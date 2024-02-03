@@ -37,15 +37,15 @@ namespace lsp
 {
     namespace vst3
     {
-        PlatformTimer::PlatformTimer(lltl::parray<IUISync> *handlers)
+        PlatformTimer::PlatformTimer(IUISync *handler)
         {
             nRefCounter     = 1;
-            vHandlers       = handlers;
+            pHandler        = handler;
         }
 
         PlatformTimer::~PlatformTimer()
         {
-            vHandlers       = NULL;
+            pHandler        = NULL;
         }
 
         Steinberg::tresult PLUGIN_API PlatformTimer::queryInterface(const Steinberg::TUID _iid, void **obj)
@@ -75,14 +75,8 @@ namespace lsp
 
         void PLUGIN_API PlatformTimer::onTimer()
         {
-            // Copy list to prevent from in-place modification of vHandlers while iterating
-            lltl::parray<IUISync> tmp;
-            if (!tmp.set(vHandlers))
-                return;
-
-            // Iterate over the list
-            for (lltl::iterator<IUISync> it = tmp.values(); it; ++it)
-                it->sync_ui();
+            if (pHandler != NULL)
+                pHandler->sync_ui();
         };
 
     } /* namespace vst3 */

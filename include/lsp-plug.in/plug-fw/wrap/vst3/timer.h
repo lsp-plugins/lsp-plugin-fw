@@ -40,10 +40,10 @@ namespace lsp
         {
             private:
                 volatile uatomic_t                      nRefCounter;
-                lltl::parray<IUISync>                  *vHandlers;
+                IUISync                                *pHandler;
 
             public:
-                PlatformTimer(lltl::parray<IUISync> *handlers);
+                PlatformTimer(IUISync *handler);
                 virtual ~PlatformTimer();
                 PlatformTimer(const PlatformTimer &) = delete;
                 PlatformTimer(PlatformTimer &&) = delete;

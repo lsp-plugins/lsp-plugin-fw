@@ -27,6 +27,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/plugview.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
 
 #include <steinberg/vst3.h>
@@ -42,11 +43,20 @@ namespace lsp
             nRefCounter = 1;
             pWrapper    = safe_acquire(wrapper);
             pPlugFrame  = NULL;
+
+        #ifdef VST_USE_RUNLOOP_IFACE
+            pRunLoop    = NULL;
+            pTimer      = safe_acquire(new vst3::PlatformTimer(this));
+        #endif /* VST_USE_RUNLOOP_IFACE */
         }
 
         PluginView::~PluginView()
         {
             lsp_trace("this=%p", this);
+
+        #ifdef VST_USE_RUNLOOP_IFACE
+            safe_release(pTimer);
+        #endif /* VST_USE_RUNLOOP_IFACE */
 
             if (pWrapper != NULL)
             {
@@ -160,6 +170,12 @@ namespace lsp
             if (isPlatformTypeSupported(type) != Steinberg::kResultTrue)
                 return Steinberg::kResultFalse;
 
+        #ifdef VST_USE_RUNLOOP_IFACE
+            // Register the timer for event loop
+            if ((pRunLoop != NULL) && (pTimer != NULL))
+                pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
+        #endif /* VST_USE_RUNLOOP_IFACE */
+
             // Show the window
             tk::Window *wnd = pWrapper->wWindow;
             if (wnd == NULL)
@@ -182,6 +198,12 @@ namespace lsp
 
             wnd->hide();
             wnd->native()->set_parent(NULL);
+
+        #ifdef VST_USE_RUNLOOP_IFACE
+            // Unregister the timer for event loop
+            if ((pRunLoop != NULL) && (pTimer != NULL))
+                pRunLoop->unregisterTimer(pTimer);
+        #endif /* VST_USE_RUNLOOP_IFACE */
 
             return Steinberg::kResultOk;
         }
@@ -270,8 +292,20 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginView::setFrame(Steinberg::IPlugFrame *frame)
         {
+            lsp_trace("this=%p, frame=%p");
+
             safe_release(pPlugFrame);
             pPlugFrame  = safe_acquire(frame);
+
+        #ifdef VST_USE_RUNLOOP_IFACE
+            // Acquire new pointer to the run loop
+            safe_release(pRunLoop);
+            pRunLoop = safe_query_iface<Steinberg::Linux::IRunLoop>(frame);
+            if (pRunLoop == NULL)
+                pRunLoop    = pWrapper->acquire_run_loop();
+
+           lsp_trace("RUN LOOP object=%p", pRunLoop);
+        #endif /* VST_USE_RUNLOOP_IFACE */
 
             return Steinberg::kResultOk;
         }
@@ -325,6 +359,13 @@ namespace lsp
                 wnd->host_scaling_changed();
 
             return Steinberg::kResultOk;
+        }
+
+        void PluginView::sync_ui()
+        {
+            tk::Display *dpy = (pWrapper != NULL) ? pWrapper->pDisplay : NULL;
+            if (dpy != NULL)
+                dpy->main_iteration();
         }
 
     } /* namespace vst3 */

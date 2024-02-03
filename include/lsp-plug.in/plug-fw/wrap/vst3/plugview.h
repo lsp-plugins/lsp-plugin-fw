@@ -40,12 +40,18 @@ namespace lsp
         class PluginView:
             public Steinberg::IDependent,
             public Steinberg::IPlugView,
-            public Steinberg::IPlugViewContentScaleSupport
+            public Steinberg::IPlugViewContentScaleSupport,
+            public vst3::IUISync
         {
             protected:
                 volatile uatomic_t                  nRefCounter;        // Reference counter
                 UIWrapper                          *pWrapper;           // The UI wrapper
                 Steinberg::IPlugFrame              *pPlugFrame;         // Plugin frame
+
+            #ifdef VST_USE_RUNLOOP_IFACE
+                Steinberg::Linux::IRunLoop         *pRunLoop;           // Run loop interface
+                Steinberg::Linux::ITimerHandler    *pTimer;             // Timer handler
+            #endif /* VST_USE_RUNLOOP_IFACE */
 
             public:
                 PluginView(UIWrapper *wrapper);
@@ -86,6 +92,9 @@ namespace lsp
 
             public: // Steinberg::IPlugViewContentScaleSupport
                 virtual Steinberg::tresult  PLUGIN_API setContentScaleFactor(Steinberg::IPlugViewContentScaleSupport::ScaleFactor factor) override;
+
+            public: // vst3::IUISync
+                virtual void                sync_ui() override;
         };
 
     } /* namespace vst3 */

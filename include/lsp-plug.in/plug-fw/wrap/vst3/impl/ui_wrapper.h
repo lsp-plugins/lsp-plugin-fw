@@ -240,10 +240,6 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
-            // Unregister UI synchronization routine
-            if (pFactory != NULL)
-                pFactory->unregister_ui_sync(this);
-
             // Destroy plugin UI
             if (pUI != NULL)
             {
@@ -1281,10 +1277,6 @@ namespace lsp
                 }
             }
 
-            // Register UI synchronization routine
-            if (pFactory != NULL)
-                pFactory->register_ui_sync(this);
-
             return safe_acquire(pPluginView);
         }
 
@@ -1433,10 +1425,6 @@ namespace lsp
                 return STATUS_NOT_FOUND;
             lsp_finally { pPluginView = NULL; };
 
-            // Register UI synchronization routine
-            if (pFactory != NULL)
-                pFactory->unregister_ui_sync(this);
-
             // Notify backend about UI deactivation
             if (pPeerConnection != NULL)
             {
@@ -1546,6 +1534,17 @@ namespace lsp
             fScalingFactor      = factor;
         }
 
+#ifdef VST_USE_RUNLOOP_IFACE
+        Steinberg::Linux::IRunLoop *UIWrapper::acquire_run_loop()
+        {
+            Steinberg::Linux::IRunLoop *run_loop = safe_query_iface<Steinberg::Linux::IRunLoop>(pHostContext);
+            if (run_loop != NULL)
+                return run_loop;
+
+            return pFactory->acquire_run_loop();
+        }
+#endif /* VST_USE_RUNLOOP_IFACE */
+
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
@@ -1567,25 +1566,25 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             return STATUS_OK;
         }
 
         status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             return STATUS_OK;
         }
 
         status_t UIWrapper::slot_ui_close(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             return STATUS_OK;
         }
 
         status_t UIWrapper::slot_display_idle(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             UIWrapper *self = static_cast<UIWrapper *>(ptr);
             if (self != NULL)
                 self->main_iteration();

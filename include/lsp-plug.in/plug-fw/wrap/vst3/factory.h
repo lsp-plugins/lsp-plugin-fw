@@ -65,7 +65,6 @@ namespace lsp
                 meta::package_t                        *pPackage;       // Package manifest
                 volatile IDataSync                     *pActiveSync;    // Active data sync
                 lltl::ptrset<IDataSync>                 vDataSync;      // List of objects for synchronization
-                lltl::parray<IUISync>                   vUISync;        // List of UI for synchronization
 
                 Steinberg::PFactoryInfo                 sFactoryInfo;
                 lltl::darray<Steinberg::PClassInfo>     vClassInfo;
@@ -74,7 +73,6 @@ namespace lsp
 
             #ifdef VST_USE_RUNLOOP_IFACE
                 Steinberg::Linux::IRunLoop             *pRunLoop;       // Run loop interface
-                Steinberg::Linux::ITimerHandler        *pTimer;         // Timer handler
             #endif /* VST_USE_RUNLOOP_IFACE */
 
             protected:
@@ -101,8 +99,11 @@ namespace lsp
                 void                                    release_executor();
                 status_t                                register_data_sync(IDataSync *sync);
                 status_t                                unregister_data_sync(IDataSync *sync);
-                status_t                                register_ui_sync(IUISync *sync);
-                status_t                                unregister_ui_sync(IUISync *sync);
+
+            public:
+            #ifdef VST_USE_RUNLOOP_IFACE
+                Steinberg::Linux::IRunLoop             *acquire_run_loop();
+            #endif /* VST_USE_RUNLOOP_IFACE */
 
             public: // ipc::IRunnable
                 virtual status_t                        run();

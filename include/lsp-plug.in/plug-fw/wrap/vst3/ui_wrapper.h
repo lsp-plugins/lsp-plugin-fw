@@ -119,6 +119,11 @@ namespace lsp
                 status_t                            detach_ui(PluginView *view);
                 void                                set_scaling_factor(float factor);
 
+            public:
+            #ifdef VST_USE_RUNLOOP_IFACE
+                Steinberg::Linux::IRunLoop         *acquire_run_loop();
+            #endif /* VST_USE_RUNLOOP_IFACE */
+
             public: // ui::Wrapper
                 virtual core::KVTStorage           *kvt_lock() override;
                 virtual core::KVTStorage           *kvt_trylock() override;

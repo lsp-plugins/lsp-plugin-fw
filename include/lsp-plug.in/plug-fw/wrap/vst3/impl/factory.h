@@ -63,7 +63,6 @@ namespace lsp
 
         #ifdef VST_USE_RUNLOOP_IFACE
             pRunLoop            = NULL;
-            pTimer              = NULL;
         #endif /* VST_USE_RUNLOOP_IFACE */
         }
 
@@ -330,6 +329,10 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
+        #ifdef VST_USE_RUNLOOP_IFACE
+            safe_release(pRunLoop);
+        #endif /* VST_USE_RUNLOOP_IFACE */
+
             if (pLoader != NULL)
             {
                 delete pLoader;
@@ -345,6 +348,13 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginFactory::queryInterface(const Steinberg::TUID _iid, void **obj)
         {
+            IF_TRACE(
+                char dump[36];
+                lsp_trace("this=%p, _iid=%s",
+                    this,
+                    fmt_tuid(dump, _iid, sizeof(dump)));
+            );
+
             // Cast to the requested interface
             if (Steinberg::iidEqual(_iid, Steinberg::FUnknown::iid))
                 return cast_interface<Steinberg::FUnknown>(this, obj);
@@ -440,15 +450,8 @@ namespace lsp
             lsp_trace("this=%p, context=%p", this, context);
 
         #ifdef VST_USE_RUNLOOP_IFACE
-            // Release previous pointer to the run loop
-            if ((pRunLoop != NULL) && (pTimer != NULL))
-                pRunLoop->unregisterTimer(pTimer);
-            safe_release(pRunLoop);
-
             // Acquire new pointer to the run loop
             pRunLoop = safe_query_iface<Steinberg::Linux::IRunLoop>(context);
-            if ((pRunLoop != NULL) && (pTimer != NULL))
-                pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
 
             lsp_trace("RUN LOOP object=%p", pRunLoop);
         #endif /* VST_USE_RUNLOOP_IFACE */
@@ -714,54 +717,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginFactory::register_ui_sync(IUISync *sync)
-        {
-            lsp_trace("this=%p, sync=%p", this, sync);
-            if (vUISync.contains(sync))
-                return STATUS_ALREADY_EXISTS;
-            if (!vUISync.add(sync))
-                return STATUS_NO_MEM;
-
-        #ifdef VST_USE_RUNLOOP_IFACE
-            if ((pTimer == NULL) && (pRunLoop != NULL))
-            {
-                lsp_trace("Creating timer handler for the run loop %p", pRunLoop);
-
-                pTimer = new PlatformTimer(&vUISync);
-                if (pTimer == NULL)
-                {
-                    lsp_warn("Failed to allocate platform timer");
-                    return STATUS_OK;
-                }
-
-                pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
-            }
-            if (pRunLoop == NULL)
-                lsp_trace("No run loop interface provided");
-        #endif /* VST_USE_RUNLOOP_IFACE */
-
-            return STATUS_OK;
-        }
-
-        status_t PluginFactory::unregister_ui_sync(IUISync *sync)
-        {
-            lsp_trace("this=%p, sync=%p", this, sync);
-            if (!vUISync.qpremove(sync))
-                return STATUS_NOT_FOUND;
-
-        #ifdef VST_USE_RUNLOOP_IFACE
-            if ((vUISync.is_empty()) && (pTimer != NULL))
-            {
-                lsp_trace("Destroying timer handler %p for the run loop %p", pTimer, pRunLoop);
-                if (pRunLoop != NULL)
-                    pRunLoop->unregisterTimer(pTimer);
-                safe_release(pTimer);
-            }
-        #endif /* VST_USE_RUNLOOP_IFACE */
-
-            return STATUS_OK;
-        }
-
         status_t PluginFactory::run()
         {
             lsp_trace("enter main loop this=%p", this);
@@ -813,6 +768,13 @@ namespace lsp
 
             return STATUS_OK;
         }
+
+    #ifdef VST_USE_RUNLOOP_IFACE
+        Steinberg::Linux::IRunLoop *PluginFactory::acquire_run_loop()
+        {
+            return safe_acquire(pRunLoop);
+        }
+    #endif /* VST_USE_RUNLOOP_IFACE */
 
     } /* namespace vst3 */
 } /* namespace lsp */
