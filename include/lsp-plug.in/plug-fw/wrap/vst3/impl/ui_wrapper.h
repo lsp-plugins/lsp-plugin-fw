@@ -1261,7 +1261,6 @@ namespace lsp
             pPluginView     = new PluginView(this);
             if (pPluginView == NULL)
                 return NULL;
-            lsp_finally { safe_release(pPluginView); };
 
             // Notify backend about UI activation
             if (pPeerConnection != NULL)
@@ -1277,7 +1276,7 @@ namespace lsp
                 }
             }
 
-            return safe_acquire(pPluginView);
+            return pPluginView;
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::setKnobMode(Steinberg::Vst::KnobMode mode)
@@ -1552,14 +1551,22 @@ namespace lsp
             UIWrapper *self     = static_cast<UIWrapper *>(ptr);
             tk::Window *wnd     = self->window();
             if ((wnd == NULL) || (!wnd->visibility()->get()))
+            {
+                lsp_trace("(wnd == NULL) || (!wnd->visibility()->get())");
                 return STATUS_OK;
+            }
 
             ws::rectangle_t rr;
             if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
+            {
+                lsp_trace("wnd->get_screen_rectangle(&rr) != STATUS_OK");
                 return STATUS_OK;
+            }
 
             if (self->pPluginView != NULL)
                 self->pPluginView->query_resize(&rr);
+            else
+                lsp_trace("self->pPluginView == NULL");
 
             return STATUS_OK;
         }
