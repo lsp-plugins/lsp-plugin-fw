@@ -1269,7 +1269,6 @@ namespace lsp
         {
             lsp_trace("this=%p, mode=%d", this, int(mode));
 
-            // TODO: implement this
             return Steinberg::kNotImplemented;
         }
 

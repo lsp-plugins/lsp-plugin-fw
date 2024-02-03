@@ -37,6 +37,8 @@ namespace lsp
     {
         PluginView::PluginView(UIWrapper *wrapper)
         {
+            lsp_trace("this=%p", this);
+
             nRefCounter = 1;
             pWrapper    = safe_acquire(wrapper);
             pPlugFrame  = NULL;
@@ -44,6 +46,8 @@ namespace lsp
 
         PluginView::~PluginView()
         {
+            lsp_trace("this=%p", this);
+
             safe_release(pWrapper);
 
             if (pWrapper->pFactory != NULL)
@@ -52,6 +56,8 @@ namespace lsp
 
         status_t PluginView::init()
         {
+            lsp_trace("this=%p", this);
+
             // Attach event handler to the wrapper
             pWrapper->attach_ui(this);
 
@@ -104,6 +110,8 @@ namespace lsp
 
         Steinberg::tresult PluginView::show_about_box()
         {
+            lsp_trace("this=%p", this);
+
             ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWrapper->pWindow);
             if (wnd == NULL)
                 return Steinberg::kResultFalse;
@@ -114,6 +122,8 @@ namespace lsp
 
         Steinberg::tresult PluginView::show_help()
         {
+            lsp_trace("this=%p", this);
+
             ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWrapper->pWindow);
             if (wnd == NULL)
                 return Steinberg::kResultFalse;
@@ -124,6 +134,8 @@ namespace lsp
 
         void PluginView::query_resize(const ws::rectangle_t *r)
         {
+            lsp_trace("this=%p, width=%d, height=%d", this, int(r->nWidth), int(r->nHeight));
+
             if (pPlugFrame == NULL)
                 return;
 
@@ -155,6 +167,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginView::attached(void *parent, Steinberg::FIDString type)
         {
+            lsp_trace("this=%p, parent=%p, type=%s", this, parent, type);
+
             if (isPlatformTypeSupported(type) != Steinberg::kResultTrue)
                 return Steinberg::kResultFalse;
 
@@ -167,6 +181,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginView::removed()
         {
+            lsp_trace("this=%p", this);
+
             // Hide the window
             if (pWrapper->wWindow != NULL)
                 pWrapper->wWindow->hide();
@@ -194,6 +210,8 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginView::getSize(Steinberg::ViewRect *size)
         {
+            lsp_trace("this=%p, size=%p", this, size);
+
             if (pWrapper->wWindow == NULL)
                 return Steinberg::kResultFalse;
 
@@ -227,11 +245,17 @@ namespace lsp
                 size->bottom    = lsp_min(sr.nMinHeight, 32);
             }
 
+            lsp_trace("this=%p, size={left=%d, top=%d, right=%d, bottom=%d}",
+                this, int(size->left), int(size->top), int(size->right), int(size->bottom));
+
             return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API PluginView::onSize(Steinberg::ViewRect *newSize)
         {
+            lsp_trace("this=%p, newSize={left=%d, top=%d, right=%d, bottom=%d}",
+                this, int(newSize->left), int(newSize->top), int(newSize->right), int(newSize->bottom));
+
             Steinberg::tresult res = checkSizeConstraint(newSize);
             if (res != Steinberg::kResultOk)
                 return res;
@@ -263,6 +287,9 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginView::checkSizeConstraint(Steinberg::ViewRect *rect)
         {
+            lsp_trace("this=%p, rect={left=%d, top=%d, right=%d, bottom=%d}",
+                this, int(rect->left), int(rect->top), int(rect->right), int(rect->bottom));
+
             if (pWrapper->wWindow == NULL)
                 return Steinberg::kResultFalse;
 
@@ -276,9 +303,15 @@ namespace lsp
 
             pWrapper->wWindow->constraints()->apply(&dr, pWrapper->wWindow->scaling()->get());
 
+            lsp_trace("this=%p, constrained={left=%d, top=%d, width=%d, height=%d}",
+                this, int(dr.nLeft), int(dr.nTop), int(dr.nWidth), int(dr.nHeight));
+
             // Update the rect if it was constrained
             if ((dr.nWidth != sr.nWidth) || (dr.nHeight != sr.nHeight))
             {
+                lsp_trace("this=%p, applied={left=%d, top=%d, right=%d, bottom=%d}",
+                    this, int(rect->left), int(rect->top), int(rect->right), int(rect->bottom));
+
                 rect->right  = rect->left + dr.nWidth;
                 rect->bottom = rect->top  + dr.nHeight;
             }
@@ -288,6 +321,7 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginView::setContentScaleFactor(Steinberg::IPlugViewContentScaleSupport::ScaleFactor factor)
         {
+            lsp_trace("this=%p, factor=%f", this, factor);
             pWrapper->set_scaling_factor(factor * 100.0f);
 
             ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWrapper->pWindow);
