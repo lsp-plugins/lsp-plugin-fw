@@ -40,8 +40,7 @@ namespace lsp
         class PluginView:
             public Steinberg::IDependent,
             public Steinberg::IPlugView,
-            public Steinberg::IPlugViewContentScaleSupport,
-            public vst3::IUISync
+            public Steinberg::IPlugViewContentScaleSupport
         {
             protected:
                 volatile uatomic_t                  nRefCounter;        // Reference counter
@@ -56,8 +55,6 @@ namespace lsp
 
                 PluginView & operator = (const PluginView &) = delete;
                 PluginView & operator = (PluginView &&) = delete;
-
-                status_t                    init();
 
             public:
                 status_t                    accept_window_size(tk::Window *wnd, size_t width, size_t height);
@@ -89,9 +86,6 @@ namespace lsp
 
             public: // Steinberg::IPlugViewContentScaleSupport
                 virtual Steinberg::tresult  PLUGIN_API setContentScaleFactor(Steinberg::IPlugViewContentScaleSupport::ScaleFactor factor) override;
-
-            public: // vst3::IUISync
-                virtual void                sync_ui() override;
         };
 
     } /* namespace vst3 */

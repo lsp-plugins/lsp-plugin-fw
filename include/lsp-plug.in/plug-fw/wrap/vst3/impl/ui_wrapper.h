@@ -55,6 +55,7 @@ namespace lsp
             pLoader             = loader;
             pPackage            = package;
             pHostContext        = NULL;
+            pPluginView         = NULL;
             pHostApplication    = NULL;
             pPeerConnection     = NULL;
             pComponentHandler   = NULL;
@@ -239,6 +240,10 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
+            // Unregister UI synchronization routine
+            if (pFactory != NULL)
+                pFactory->unregister_ui_sync(this);
+
             // Destroy plugin UI
             if (pUI != NULL)
             {
@@ -310,6 +315,10 @@ namespace lsp
             // Acquire host context
             if (pHostContext != NULL)
                 return Steinberg::kResultFalse;
+
+            Steinberg::Linux::IRunLoop *run_loop = safe_query_iface<Steinberg::Linux::IRunLoop>(context);
+            lsp_trace("RUN LOOP object=%p", run_loop);
+            safe_release(run_loop);
 
             pHostContext        = safe_acquire(context);
             pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
@@ -1258,9 +1267,23 @@ namespace lsp
                 return NULL;
             lsp_finally { safe_release(pPluginView); };
 
-            // Initialize plugin view
-            if (pPluginView->init() != STATUS_OK)
-                return NULL;
+            // Notify backend about UI activation
+            if (pPeerConnection != NULL)
+            {
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg != NULL)
+                {
+                    lsp_finally { safe_release(msg); };
+                    // Initialize and send the message
+                    msg->setMessageID(vst3::ID_MSG_ACTIVATE_UI);
+                    pPeerConnection->notify(msg);
+                }
+            }
+
+            // Register UI synchronization routine
+            if (pFactory != NULL)
+                pFactory->register_ui_sync(this);
 
             return safe_acquire(pPluginView);
         }
@@ -1279,10 +1302,10 @@ namespace lsp
             if (onlyCheck)
                 return Steinberg::kResultOk;
 
-            if (vViews.is_empty())
+            if (pPluginView == NULL)
                 return Steinberg::kResultFalse;
 
-            return vViews.uget(0)->show_help();
+            return pPluginView->show_help();
         }
 
         Steinberg::tresult PLUGIN_API UIWrapper::openAboutBox(Steinberg::TBool onlyCheck)
@@ -1292,10 +1315,10 @@ namespace lsp
             if (onlyCheck)
                 return Steinberg::kResultOk;
 
-            if (vViews.is_empty())
+            if (pPluginView == NULL)
                 return Steinberg::kResultFalse;
 
-            return vViews.uget(0)->show_about_box();
+            return pPluginView->show_about_box();
         }
 
         core::KVTStorage *UIWrapper::kvt_lock()
@@ -1394,9 +1417,9 @@ namespace lsp
         bool UIWrapper::accept_window_size(tk::Window *wnd, size_t width, size_t height)
         {
             // Iterate over all views
-            for (lltl::iterator<PluginView> it = vViews.values(); it; ++it)
+            if (pPluginView != NULL)
             {
-                status_t res = it->accept_window_size(wnd, width, height);
+                status_t res = pPluginView->accept_window_size(wnd, width, height);
                 if (res == STATUS_OK)
                     return true;
             }
@@ -1404,34 +1427,15 @@ namespace lsp
             return ui::IWrapper::accept_window_size(wnd, width, height);
         }
 
-        status_t UIWrapper::attach_ui(PluginView *view)
-        {
-            if (vViews.contains(view))
-                return STATUS_ALREADY_EXISTS;
-            if (!vViews.add(view))
-                return STATUS_NO_MEM;
-
-            // Notify backend about UI activation
-            if (pPeerConnection != NULL)
-            {
-                // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
-                if (msg == NULL)
-                    return STATUS_OK;
-                lsp_finally { safe_release(msg); };
-
-                // Initialize and send the message
-                msg->setMessageID(vst3::ID_MSG_ACTIVATE_UI);
-                pPeerConnection->notify(msg);
-            }
-
-            return STATUS_OK;
-        }
-
         status_t UIWrapper::detach_ui(PluginView *view)
         {
-            if (!vViews.qpremove(view))
+            if (pPluginView != view)
                 return STATUS_NOT_FOUND;
+            lsp_finally { pPluginView = NULL; };
+
+            // Register UI synchronization routine
+            if (pFactory != NULL)
+                pFactory->unregister_ui_sync(this);
 
             // Notify backend about UI deactivation
             if (pPeerConnection != NULL)
@@ -1448,6 +1452,12 @@ namespace lsp
             }
 
             return STATUS_OK;
+        }
+
+        void UIWrapper::sync_ui()
+        {
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
         }
 
         void UIWrapper::port_write(ui::IPort *port, size_t flags)
@@ -1538,7 +1548,7 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
 
             UIWrapper *self     = static_cast<UIWrapper *>(ptr);
             tk::Window *wnd     = self->window();
@@ -1575,6 +1585,7 @@ namespace lsp
 
         status_t UIWrapper::slot_display_idle(tk::Widget *sender, void *ptr, void *data)
         {
+            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
             UIWrapper *self = static_cast<UIWrapper *>(ptr);
             if (self != NULL)
                 self->main_iteration();

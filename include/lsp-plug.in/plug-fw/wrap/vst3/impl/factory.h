@@ -449,6 +449,8 @@ namespace lsp
             pRunLoop = safe_query_iface<Steinberg::Linux::IRunLoop>(context);
             if ((pRunLoop != NULL) && (pTimer != NULL))
                 pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
+
+            lsp_trace("RUN LOOP object=%p", pRunLoop);
         #endif /* VST_USE_RUNLOOP_IFACE */
 
             return Steinberg::kResultOk;
@@ -734,6 +736,8 @@ namespace lsp
 
                 pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
             }
+            if (pRunLoop == NULL)
+                lsp_trace("No run loop interface provided");
         #endif /* VST_USE_RUNLOOP_IFACE */
 
             return STATUS_OK;

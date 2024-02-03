@@ -49,6 +49,7 @@ namespace lsp
         #include <steinberg/vst3/base/WarningsPush.h>
         class UIWrapper:
             public ui::IWrapper,
+            public vst3::IUISync,
             public IPortChangeHandler,
             public Steinberg::IDependent,
             public Steinberg::Vst::IConnectionPoint,
@@ -75,7 +76,6 @@ namespace lsp
                 lltl::pphash<char, vst3::UIPort>    vParamMapping;          // Parameter mapping
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
-                lltl::parray<PluginView>            vViews;                 // Different UI views
                 vst3::string_buf                    sNotifyBuf;             // Notify buffer
                 core::KVTStorage                    sKVT;                   // KVT storage
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
@@ -97,6 +97,8 @@ namespace lsp
                 void                                parse_raw_osc_event(osc::parse_frame_t *frame);
                 status_t                            load_state(Steinberg::IBStream *is);
                 status_t                            initialize_ui();
+                bool                                start_event_loop();
+                void                                stop_event_loop();
 
             protected:
                 static ssize_t                      compare_param_ports(const vst3::UIParameterPort *a, const vst3::UIParameterPort *b);
@@ -114,7 +116,6 @@ namespace lsp
                 virtual void                        destroy() override;
 
             public:
-                status_t                            attach_ui(PluginView *view);
                 status_t                            detach_ui(PluginView *view);
                 void                                set_scaling_factor(float factor);
 
@@ -127,6 +128,9 @@ namespace lsp
                 virtual status_t                    play_file(const char *file, wsize_t position, bool release) override;
                 virtual float                       ui_scaling_factor(float scaling) override;
                 virtual bool                        accept_window_size(tk::Window *wnd, size_t width, size_t height) override;
+
+            public: // vst3::IUISync
+                virtual void                        sync_ui() override;
 
             public: // vst3::IPortChangeHandler
                 virtual void                        port_write(ui::IPort *port, size_t flags) override;

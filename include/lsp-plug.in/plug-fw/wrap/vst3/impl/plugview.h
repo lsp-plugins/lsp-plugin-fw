@@ -48,23 +48,11 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
-            safe_release(pWrapper);
-
-            if (pWrapper->pFactory != NULL)
-                pWrapper->pFactory->unregister_ui_sync(this);
-        }
-
-        status_t PluginView::init()
-        {
-            lsp_trace("this=%p", this);
-
-            // Attach event handler to the wrapper
-            pWrapper->attach_ui(this);
-
-            // Register self as UI sync stuff
-            pWrapper->pFactory->register_ui_sync(this);
-
-            return STATUS_OK;
+            if (pWrapper != NULL)
+            {
+                pWrapper->detach_ui(this);
+                safe_release(pWrapper);
+            }
         }
 
         Steinberg::tresult PLUGIN_API PluginView::queryInterface(const Steinberg::TUID _iid, void **obj)
@@ -173,8 +161,12 @@ namespace lsp
                 return Steinberg::kResultFalse;
 
             // Show the window
-            if (pWrapper->wWindow != NULL)
-                pWrapper->wWindow->show();
+            tk::Window *wnd = pWrapper->wWindow;
+            if (wnd == NULL)
+                return Steinberg::kResultFalse;
+
+            wnd->native()->set_parent(parent);
+            wnd->show();
 
             return Steinberg::kResultOk;
         }
@@ -184,8 +176,12 @@ namespace lsp
             lsp_trace("this=%p", this);
 
             // Hide the window
-            if (pWrapper->wWindow != NULL)
-                pWrapper->wWindow->hide();
+            tk::Window *wnd = pWrapper->wWindow;
+            if (wnd == NULL)
+                return Steinberg::kResultFalse;
+
+            wnd->hide();
+            wnd->native()->set_parent(NULL);
 
             return Steinberg::kResultOk;
         }
@@ -329,12 +325,6 @@ namespace lsp
                 wnd->host_scaling_changed();
 
             return Steinberg::kResultOk;
-        }
-
-        void PluginView::sync_ui()
-        {
-            if (pWrapper->pDisplay != NULL)
-                pWrapper->pDisplay->main_iteration();
         }
 
     } /* namespace vst3 */

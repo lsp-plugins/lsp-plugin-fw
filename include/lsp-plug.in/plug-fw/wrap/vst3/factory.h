@@ -67,15 +67,15 @@ namespace lsp
                 lltl::ptrset<IDataSync>                 vDataSync;      // List of objects for synchronization
                 lltl::parray<IUISync>                   vUISync;        // List of UI for synchronization
 
-            #ifdef VST_USE_RUNLOOP_IFACE
-                Steinberg::Linux::IRunLoop             *pRunLoop;       // Run loop interface
-                Steinberg::Linux::ITimerHandler        *pTimer;         // Timer handler
-            #endif /* VST_USE_RUNLOOP_IFACE */
-
                 Steinberg::PFactoryInfo                 sFactoryInfo;
                 lltl::darray<Steinberg::PClassInfo>     vClassInfo;
                 lltl::darray<Steinberg::PClassInfo2>    vClassInfo2;
                 lltl::darray<Steinberg::PClassInfoW>    vClassInfoW;
+
+            #ifdef VST_USE_RUNLOOP_IFACE
+                Steinberg::Linux::IRunLoop             *pRunLoop;       // Run loop interface
+                Steinberg::Linux::ITimerHandler        *pTimer;         // Timer handler
+            #endif /* VST_USE_RUNLOOP_IFACE */
 
             protected:
                 void fill_factory_info(const meta::package_t *manifest);
