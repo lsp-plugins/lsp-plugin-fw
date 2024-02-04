@@ -36,7 +36,9 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/ibstreamout.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/modinfo.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
@@ -355,13 +357,15 @@ namespace lsp
 
             // Cast to the requested interface
             if (Steinberg::iidEqual(_iid, Steinberg::FUnknown::iid))
-                return cast_interface<Steinberg::FUnknown>(this, obj);
+                return cast_interface<Steinberg::FUnknown>(static_cast<Steinberg::IPluginFactory *>(this), obj);
             if (Steinberg::iidEqual(_iid, Steinberg::IPluginFactory::iid))
                 return cast_interface<Steinberg::IPluginFactory>(this, obj);
             if (Steinberg::iidEqual(_iid, Steinberg::IPluginFactory2::iid))
                 return cast_interface<Steinberg::IPluginFactory2>(this, obj);
             if (Steinberg::iidEqual(_iid, Steinberg::IPluginFactory3::iid))
                 return cast_interface<Steinberg::IPluginFactory3>(this, obj);
+            if (Steinberg::iidEqual(_iid, Steinberg::IPluginCompatibility::iid))
+                return cast_interface<Steinberg::IPluginCompatibility>(this, obj);
 
             return no_interface(obj);
         }
@@ -773,6 +777,15 @@ namespace lsp
             return safe_acquire(pRunLoop);
         }
     #endif /* VST_USE_RUNLOOP_IFACE */
+
+        Steinberg::tresult PLUGIN_API PluginFactory::getCompatibilityJSON(Steinberg::IBStream *stream)
+        {
+            vst3::IBStreamOut out(stream);
+            lsp_finally { out.close(); };
+
+            status_t res = vst3::make_moduleinfo(&out, pPackage);
+            return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
+        }
 
     } /* namespace vst3 */
 } /* namespace lsp */

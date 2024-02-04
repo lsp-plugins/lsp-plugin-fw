@@ -1462,6 +1462,8 @@ namespace lsp
 
         char *uid_tuid_to_vst3(char *vst3_uid, const char *tuid)
         {
+            char *result    = vst3_uid;
+
         #ifdef PLATFORM_WINDOWS
             GuidStruct guid;
 
@@ -1491,8 +1493,9 @@ namespace lsp
                 vst3_uid       += 2;
             }
         #endif /* PLATFORM_WINDOWS */
+            vst3_uid[0]     = '\0';
 
-            return vst3_uid;
+            return result;
         }
 
     } /* namespace meta */

@@ -52,6 +52,7 @@ namespace lsp
          */
         class PluginFactory:
             public Steinberg::IPluginFactory3,
+            public Steinberg::IPluginCompatibility,
             public ipc::IRunnable
         {
             protected:
@@ -108,23 +109,26 @@ namespace lsp
             public: // ipc::IRunnable
                 virtual status_t                        run();
 
-            public: // FUnknown
+            public: // Steinberg::FUnknown
                 virtual Steinberg::tresult PLUGIN_API   queryInterface(const Steinberg::TUID _iid, void **obj) override;
                 virtual Steinberg::uint32 PLUGIN_API    addRef() override;
                 virtual Steinberg::uint32 PLUGIN_API    release() override;
 
-            public: // IPluginFactory
+            public: // Steinberg::IPluginFactory
                 virtual Steinberg::tresult PLUGIN_API   getFactoryInfo(Steinberg::PFactoryInfo *info) override;
                 virtual Steinberg::int32 PLUGIN_API     countClasses() override;
                 virtual Steinberg::tresult PLUGIN_API   getClassInfo(Steinberg::int32 index, Steinberg::PClassInfo *info) override;
                 virtual Steinberg::tresult PLUGIN_API   createInstance(Steinberg::FIDString cid, Steinberg::FIDString _iid, void **obj) override;
 
-            public: // IPluginFactory2
+            public: // Steinberg::IPluginFactory2
                 virtual Steinberg::tresult PLUGIN_API   getClassInfo2(Steinberg::int32 index, Steinberg::PClassInfo2 *info) override;
 
-            public: // IPluginFactory3
+            public: // Steinberg::IPluginFactory3
                 virtual Steinberg::tresult PLUGIN_API   getClassInfoUnicode(Steinberg::int32 index, Steinberg::PClassInfoW *info) override;
                 virtual Steinberg::tresult PLUGIN_API   setHostContext(Steinberg::FUnknown *context) override;
+
+            public: // Steinberg::IPluginCompatibility
+                virtual Steinberg::tresult PLUGIN_API   getCompatibilityJSON(Steinberg::IBStream *stream) override;
         };
 
     } /* namespace vst3 */

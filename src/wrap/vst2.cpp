@@ -744,11 +744,15 @@ namespace lsp
                         char FUID[40];
                         const meta::plugin_t *m = w->metadata();
 
-                        if ((m != NULL) && (m->vst3_uid != NULL) && (meta::uid_vst2_to_vst3(FUID, m->vst2_uid, m->name) != NULL))
+                        if ((m != NULL) && (m->vst3_uid != NULL))
                         {
-                            lsp_trace("Reporting compatibility of VST 2.x plugin uid='%s' with VST3.x plugin uuid='%s'", m->vst2_uid, FUID);
-                            meta::uid_vst3_to_tuid(reinterpret_cast<char *>(ptr), FUID);
-                            v   = 1;
+                            const char *plugin_name = (m->vst2_name != NULL) ? m->vst2_name : m->name;
+                            if (meta::uid_vst2_to_vst3(FUID, m->vst2_uid, plugin_name) != NULL)
+                            {
+                                lsp_trace("Reporting compatibility of VST 2.x plugin uid='%s' with VST3.x plugin uuid='%s'", m->vst2_uid, FUID);
+                                meta::uid_vst3_to_tuid(reinterpret_cast<char *>(ptr), FUID);
+                                v   = 1;
+                            }
                         }
                     }
                     break;
