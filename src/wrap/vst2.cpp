@@ -41,6 +41,10 @@ namespace lsp
 {
     namespace vst2
     {
+        static const VstInt32 VST2_MAGIC_stCA        = CCONST('s', 't', 'C', 'A');
+        static const VstInt32 VST2_MAGIC_stCa        = CCONST('s', 't', 'C', 'a');
+        static const VstInt32 VST2_MAGIC_FUID        = CCONST('F', 'U', 'I', 'D');
+
         typedef struct key_code_t
         {
             uint8_t     vst;
@@ -733,6 +737,22 @@ namespace lsp
                 }
 
                 case effVendorSpecific:
+                    // Check that we can provide VST3 compatibility information
+                    if (((index == VST2_MAGIC_stCA) || (index == VST2_MAGIC_stCa)) &&
+                        (value == VST2_MAGIC_FUID) && (ptr != NULL))
+                    {
+                        char FUID[40];
+                        const meta::plugin_t *m = w->metadata();
+
+                        if ((m != NULL) && (m->vst3_uid != NULL) && (meta::uid_vst2_to_vst3(FUID, m->vst2_uid, m->name) != NULL))
+                        {
+                            lsp_trace("Reporting compatibility of VST 2.x plugin uid='%s' with VST3.x plugin uuid='%s'", m->vst2_uid, FUID);
+                            meta::uid_vst3_to_tuid(reinterpret_cast<char *>(ptr), FUID);
+                            v   = 1;
+                        }
+                    }
+                    break;
+
                 case effProcessVarIo:
                 case effSetSpeakerArrangement:
                 case effGetTailSize:

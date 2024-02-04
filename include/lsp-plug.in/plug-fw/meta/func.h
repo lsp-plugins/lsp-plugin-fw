@@ -425,6 +425,32 @@ namespace lsp
          */
         bool            range_match(const port_t *meta, float value);
 
+        /**
+         * Convert VST2 identifier to VST3 identifier
+         * @param buf pointer to buffer to store value, should be at least 33 characters length
+         * @param vst2_uid original string representation of VST2 identifier
+         * @param name plugin name
+         * @param for_controller make VST3 identifier for controller
+         * @return pointer to the string stored in the buffer or NULL on error
+         */
+        char           *uid_vst2_to_vst3(char *buf, const char *vst2_uid, const char *name, bool for_controller = false);
+
+        /**
+         * Convert VST3 unique identifier to TUID
+         * @param tuid VST3 TUID
+         * @param vst3_uid VST3 unique identifier (32-character hex string or 16-character ASCII string)
+         * @return true if conversion succeeded
+         */
+        bool            uid_vst3_to_tuid(char *tuid, const char *vst3_uid);
+
+        /**
+         * Convert VST3 unique identifier to TUID
+         * @param vst3_uid VST3 unique identifier (32-character hex string, uppercase), should be of at least 33 bytes length
+         * @param tuid VST3 TUID of 16 characters
+         * @return pointer to converted string or NULL on error
+         */
+        char           *uid_tuid_to_vst3(char *vst3_uid, const char *tuid);
+
     } /* namespace meta */
 } /* namespace lsp */
 

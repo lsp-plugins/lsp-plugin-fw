@@ -923,14 +923,14 @@ namespace lsp
                 return Steinberg::kResultFalse;
 
             Steinberg::TUID tuid;
-            status_t res = parse_tuid(tuid, meta->vst3ui_uid);
+            status_t res = meta::uid_vst3_to_tuid(tuid, meta->vst3ui_uid);
             if (res != STATUS_OK)
                 return Steinberg::kResultFalse;
 
             memcpy(classId, tuid, sizeof(tuid));
             IF_TRACE(
                 char dump[36];
-                lsp_trace("controller class id=%s", fmt_tuid(dump, tuid, sizeof(dump)));
+                lsp_trace("controller class id=%s", meta::uid_tuid_to_vst3(dump, tuid));
             );
 
             return Steinberg::kResultTrue;

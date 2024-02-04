@@ -73,64 +73,6 @@ namespace lsp
         }
 
         /**
-         * Parse TUID from string to the TUID data structure
-         *
-         * @param tuid TUID data structure
-         * @param str string to parse (different forms of TUID available)
-         * @return status of operation
-         */
-        inline status_t parse_tuid(Steinberg::TUID tuid, const char *str)
-        {
-            size_t len = strlen(str);
-
-            if (len == 16)
-            {
-                uint32_t v[4];
-                v[0]    = CPU_TO_BE(*reinterpret_cast<const uint32_t *>(&str[0]));
-                v[1]    = CPU_TO_BE(*reinterpret_cast<const uint32_t *>(&str[4]));
-                v[2]    = CPU_TO_BE(*reinterpret_cast<const uint32_t *>(&str[8]));
-                v[3]    = CPU_TO_BE(*reinterpret_cast<const uint32_t *>(&str[12]));
-
-                const Steinberg::TUID uid = INLINE_UID(v[0], v[1], v[2], v[3]);
-
-                memcpy(tuid, uid, sizeof(Steinberg::TUID));
-
-                return STATUS_OK;
-            }
-            else if (len == 32)
-            {
-                for (size_t i=0; i<16; ++i)
-                {
-                    if (!read_octet(tuid[i], &str[i*2]))
-                        return STATUS_INVALID_UID;
-                }
-
-                return STATUS_OK;
-            }
-
-            return STATUS_INVALID_UID;
-        }
-
-        inline const char *fmt_tuid(char *str, const Steinberg::TUID tuid, size_t n)
-        {
-            if (n < (sizeof(Steinberg::TUID)*2 + 1))
-                return NULL;
-
-            char *dst = str;
-            for (size_t i=0; i<sizeof(Steinberg::TUID); ++i)
-            {
-                uint8_t hi  = (tuid[i] >> 4) & 0x0f;
-                uint8_t lo  = tuid[i] & 0x0f;
-
-                *(dst++)    = (hi < 10) ? hi + '0' : hi + ('a' - 10);
-                *(dst++)    = (lo < 10) ? lo + '0' : lo + ('a' - 10);
-            }
-
-            *dst        = '\0';
-            return str;
-        }
-
-        /**
          * Perform safe acquire of Steinberg::FUnknown object
          *
          * @tparam V type to which cast the original pointer

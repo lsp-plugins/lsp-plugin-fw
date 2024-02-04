@@ -160,15 +160,13 @@ namespace lsp
 
         status_t PluginFactory::create_class_info(const meta::package_t *manifest, const meta::plugin_t *meta)
         {
-            status_t res;
-
             // Generate class info for processor
             Steinberg::PClassInfo *ci = vClassInfo.add();
             if (ci == NULL)
                 return STATUS_NO_MEM;
 
-            if ((res = parse_tuid(ci->cid, meta->vst3_uid)) != STATUS_OK)
-                return res;
+            if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3_uid))
+                return STATUS_BAD_FORMAT;
             ci->cardinality = Steinberg::PClassInfo::kManyInstances;
             Steinberg::strncpy8(ci->category, kVstAudioEffectClass, Steinberg::PClassInfo::kCategorySize);
             Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
@@ -180,8 +178,8 @@ namespace lsp
                 if (ci == NULL)
                     return STATUS_NO_MEM;
 
-                if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
-                    return res;
+                if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3ui_uid))
+                    return STATUS_BAD_FORMAT;
 
                 ci->cardinality = Steinberg::PClassInfo::kManyInstances;
                 Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
@@ -209,8 +207,8 @@ namespace lsp
             if (ci == NULL)
                 return STATUS_NO_MEM;
 
-            if ((res = parse_tuid(ci->cid, meta->vst3_uid)) != STATUS_OK)
-                return res;
+            if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3_uid))
+                return STATUS_BAD_FORMAT;
             if ((res = make_plugin_categories(&tmp, meta)) != STATUS_OK)
                 return res;
 
@@ -231,8 +229,8 @@ namespace lsp
                 if (ci == NULL)
                     return STATUS_NO_MEM;
 
-                if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
-                    return res;
+                if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3ui_uid))
+                    return STATUS_BAD_FORMAT;
 
                 ci->cardinality = Steinberg::PClassInfo::kManyInstances;
                 Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
@@ -266,8 +264,8 @@ namespace lsp
             if (ci == NULL)
                 return STATUS_NO_MEM;
 
-            if ((res = parse_tuid(ci->cid, meta->vst3_uid)) != STATUS_OK)
-                return res;
+            if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3_uid))
+                return STATUS_BAD_FORMAT;
 
             ci->cardinality = Steinberg::PClassInfo::kManyInstances;
             Steinberg::strncpy8(ci->category, kVstAudioEffectClass, Steinberg::PClassInfo::kCategorySize);
@@ -298,8 +296,8 @@ namespace lsp
                 if (ci == NULL)
                     return STATUS_NO_MEM;
 
-                if ((res = parse_tuid(ci->cid, meta->vst3ui_uid)) != STATUS_OK)
-                    return res;
+                if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3ui_uid))
+                    return STATUS_BAD_FORMAT;
 
                 ci->cardinality = Steinberg::PClassInfo::kManyInstances;
                 Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
@@ -352,7 +350,7 @@ namespace lsp
                 char dump[36];
                 lsp_trace("this=%p, _iid=%s",
                     this,
-                    fmt_tuid(dump, _iid, sizeof(dump)));
+                    meta::uid_tuid_to_vst3(dump, _iid));
             );
 
             // Cast to the requested interface
@@ -465,8 +463,8 @@ namespace lsp
                 char dump1[36], dump2[36];
                 lsp_trace("this=%p, cid=%s, _iid=%s, obj=%p",
                     this,
-                    fmt_tuid(dump1, cid, sizeof(dump1)),
-                    fmt_tuid(dump2, _iid, sizeof(dump2)),
+                    meta::uid_tuid_to_vst3(dump1, cid),
+                    meta::uid_tuid_to_vst3(dump2, _iid),
                     obj);
             );
 

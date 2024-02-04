@@ -44,14 +44,14 @@ namespace lsp
 
                 // Validate IDs of processor and controller
                 Steinberg::TUID tuid;
-                res = lsp::vst3::parse_tuid(tuid, meta->vst3_uid);
+                res = meta::uid_vst3_to_tuid(tuid, meta->vst3_uid);
                 if (res != STATUS_OK)
                     validation_error(ctx, "Plugin uid='%s', failed to parse VST3 processor (DSP) TUID '%s': should be string of 16 ASCII characters or string of 32 hexadecimal characters, error=%d",
                         meta->uid, meta->vst3_uid, int(res));
 
                 if (meta->vst3ui_uid != NULL)
                 {
-                    res = lsp::vst3::parse_tuid(tuid, meta->vst3ui_uid);
+                    res = meta::uid_vst3_to_tuid(tuid, meta->vst3ui_uid);
                     if (res != STATUS_OK)
                         validation_error(ctx, "Plugin uid='%s', failed to parse VST3 controller (UI) TUID '%s': should be string of 16 ASCII characters or string of 32 hexadecimal characters, error=%d",
                             meta->uid, meta->vst3ui_uid, int(res));
