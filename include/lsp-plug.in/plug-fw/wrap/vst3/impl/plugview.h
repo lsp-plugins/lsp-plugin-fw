@@ -172,6 +172,7 @@ namespace lsp
 
         #ifdef VST_USE_RUNLOOP_IFACE
             // Register the timer for event loop
+            lsp_trace("this=%p, pRunLoop=%p, pTimer=%p", this, pRunLoop, pTimer);
             if ((pRunLoop != NULL) && (pTimer != NULL))
                 pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
         #endif /* VST_USE_RUNLOOP_IFACE */
@@ -179,7 +180,10 @@ namespace lsp
             // Show the window
             tk::Window *wnd = pWrapper->wWindow;
             if (wnd == NULL)
+            {
+                lsp_trace("wnd == NULL");
                 return Steinberg::kResultFalse;
+            }
 
             wnd->native()->set_parent(parent);
             wnd->show();
@@ -230,21 +234,25 @@ namespace lsp
         {
             lsp_trace("this=%p, size=%p", this, size);
 
-            if (pWrapper->wWindow == NULL)
+            tk::Window *wnd = pWrapper->wWindow;
+            if (wnd == NULL)
+            {
+                lsp_trace("wnd == NULL");
                 return Steinberg::kResultFalse;
-
-            ws::rectangle_t r;
-            pWrapper->wWindow->get_padded_rectangle(&r);
+            }
 
             // Obtain the window parameters
-            if (pWrapper->wWindow->visibility()->get())
+            if (wnd->visibility()->get())
             {
+                lsp_trace("window is visible");
+
                 ws::rectangle_t rr;
+                rr.nLeft        = 0;
+                rr.nTop         = 0;
                 rr.nWidth       = 0;
                 rr.nHeight      = 0;
 
-                if (pWrapper->wWindow->get_screen_rectangle(&rr) != STATUS_OK)
-                    return false;
+                wnd->get_padded_rectangle(&rr);
 
                 // Return result
                 size->left      = rr.nLeft;
@@ -254,8 +262,10 @@ namespace lsp
             }
             else
             {
+                lsp_trace("window is not visible");
+
                 ws::size_limit_t sr;
-                pWrapper->wWindow->get_size_limits(&sr);
+                wnd->get_size_limits(&sr);
 
                 size->left      = 0;
                 size->top       = 0;
@@ -274,12 +284,21 @@ namespace lsp
             lsp_trace("this=%p, newSize={left=%d, top=%d, right=%d, bottom=%d}",
                 this, int(newSize->left), int(newSize->top), int(newSize->right), int(newSize->bottom));
 
+            tk::Window *wnd = pWrapper->wWindow;
+            if (wnd == NULL)
+            {
+                lsp_trace("wnd == NULL");
+                return Steinberg::kResultFalse;
+            }
+
             Steinberg::tresult res = checkSizeConstraint(newSize);
             if (res != Steinberg::kResultOk)
                 return res;
 
-            pWrapper->wWindow->position()->set(newSize->left, newSize->top);
-            pWrapper->wWindow->size()->set(newSize->right - newSize->left, newSize->bottom - newSize->top);
+            lsp_trace("RESIZE TO this=%p, newSize={left=%d, top=%d, right=%d, bottom=%d}",
+                this, int(newSize->left), int(newSize->top), int(newSize->right), int(newSize->bottom));
+            wnd->position()->set(newSize->left, newSize->top);
+            wnd->size()->set(newSize->right - newSize->left, newSize->bottom - newSize->top);
 
             return Steinberg::kResultTrue;
         }
@@ -292,7 +311,7 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginView::setFrame(Steinberg::IPlugFrame *frame)
         {
-            lsp_trace("this=%p, frame=%p");
+            lsp_trace("this=%p, frame=%p", this, frame);
 
             safe_release(pPlugFrame);
             pPlugFrame  = safe_acquire(frame);

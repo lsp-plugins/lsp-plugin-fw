@@ -1815,9 +1815,12 @@ namespace lsp
 
         void Wrapper::toggle_ui_state()
         {
-            uatomic_t counter = nUICounterReq;
+            uatomic_t counter   = nUICounterReq;
             if (counter == nUICounterResp)
                 return;
+
+            lsp_trace("UI counter req=%d, resp=%d", int(counter), int(nUICounterResp));
+            nUICounterResp      = counter;
 
             if (counter <= 0)
             {

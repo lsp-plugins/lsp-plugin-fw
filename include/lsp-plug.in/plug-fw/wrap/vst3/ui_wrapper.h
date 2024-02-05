@@ -81,7 +81,6 @@ namespace lsp
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
                 uint32_t                            nLatency;               // Plugin latency
                 float                               fScalingFactor;         // Scaling factor
-                bool                                bUIInitialized;         // UI initialized flag
 
             protected:
                 static status_t                     slot_ui_resize(tk::Widget *sender, void *ptr, void *data);

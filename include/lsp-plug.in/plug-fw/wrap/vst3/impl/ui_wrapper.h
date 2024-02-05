@@ -63,7 +63,6 @@ namespace lsp
             pComponentHandler3  = NULL;
             nLatency            = 0;
             fScalingFactor      = -1.0f;
-            bUIInitialized      = false;
         }
 
         UIWrapper::~UIWrapper()
@@ -1176,7 +1175,7 @@ namespace lsp
         {
             // Initialize parent
             status_t res = STATUS_OK;
-            if (bUIInitialized)
+            if (wWindow != NULL)
                 return res;
             if ((res = IWrapper::init(NULL)) != STATUS_OK)
                 return res;
@@ -1238,11 +1237,7 @@ namespace lsp
 
             // Call the post-initialization routine
             lsp_trace("Doing post-init");
-            res = pUI->post_init();
-            if (res != STATUS_OK)
-                return res;
-
-            return res;
+            return res = pUI->post_init();
         }
 
         Steinberg::IPlugView * PLUGIN_API UIWrapper::createView(Steinberg::FIDString name)
@@ -1591,7 +1586,7 @@ namespace lsp
 
         status_t UIWrapper::slot_display_idle(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
+//            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             UIWrapper *self = static_cast<UIWrapper *>(ptr);
             if (self != NULL)
                 self->main_iteration();
