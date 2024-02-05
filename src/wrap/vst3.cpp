@@ -31,6 +31,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/executor.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/controller.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
@@ -39,6 +40,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/string_buf.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/executor.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/impl/controller.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/ui_wrapper.h>

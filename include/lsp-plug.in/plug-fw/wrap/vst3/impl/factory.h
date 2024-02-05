@@ -39,6 +39,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ibstreamout.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/controller.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/modinfo.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
@@ -498,11 +499,10 @@ namespace lsp
                     Wrapper *w  = new Wrapper(this, module, pLoader, pPackage);
                     if (w == NULL)
                         return Steinberg::kOutOfMemory;
+                    lsp_finally { safe_release(w); };
+
                     lsp_trace("Created Wrapper w=%p", w);
                     module      = NULL; // Force module to be destroyed by the wrapper
-                    lsp_finally {
-                        safe_release(w);
-                    };
 
                     // Query interface and return
                     return w->queryInterface(_iid, obj);
@@ -521,27 +521,20 @@ namespace lsp
                     if (memcmp(plug_meta->vst3ui_uid, cid, sizeof(Steinberg::TUID)) != 0)
                         continue;
 
-                    // UID matched, allocate plugin module
-                    ui::Module *module = f->create(plug_meta);
-                    if (module == NULL)
+                    // Allocate Controller
+                    vst3::Controller *ctl   = new vst3::Controller(this, pLoader, pPackage, plug_meta);
+                    if (ctl == NULL)
                         return Steinberg::kOutOfMemory;
-                    lsp_finally {
-                        if (module != NULL)
-                            delete module;
-                    };
-
-                    // Allocate wrapper
-                    UIWrapper *w  = new UIWrapper(this, module, pLoader, pPackage);
-                    if (w == NULL)
-                        return Steinberg::kOutOfMemory;
-                    lsp_trace("Created UIWrapper w=%p", w);
-                    module      = NULL; // Force module to be destroyed by the wrapper
-                    lsp_finally {
-                        safe_release(w);
-                    };
+                    lsp_finally { safe_release(ctl); };
+                    lsp_trace("Created Controller ctl=%p", ctl);
+                    if (ctl->init() != STATUS_OK)
+                    {
+                        lsp_trace("Failed to initialize Controller ctl=%p", ctl);
+                        return Steinberg::kInternalError;
+                    }
 
                     // Query interface and return
-                    return w->queryInterface(_iid, obj);
+                    return ctl->queryInterface(_iid, obj);
                 }
             }
 

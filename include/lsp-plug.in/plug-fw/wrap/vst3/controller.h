@@ -3,7 +3,7 @@
  *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 3 янв. 2024 г.
+ * Created on: 5 февр. 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -18,9 +18,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
-
-#ifndef PLUG_IN_PLUG_FW_WRAP_VST3_UI_WRAPPER_H_
-#define PLUG_IN_PLUG_FW_WRAP_VST3_UI_WRAPPER_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_VST3_CONTROLLER_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_VST3_CONTROLLER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 
@@ -30,6 +29,7 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/protocol/osc.h>
 
 #include <steinberg/vst3.h>
 
@@ -44,12 +44,9 @@ namespace lsp
     namespace vst3
     {
         class PluginFactory;
-        class PluginView;
 
         #include <steinberg/vst3/base/WarningsPush.h>
-        class UIWrapper:
-            public ui::IWrapper,
-            public vst3::IUISync,
+        class Controller:
             public IPortChangeHandler,
             public Steinberg::IDependent,
             public Steinberg::Vst::IConnectionPoint,
@@ -64,13 +61,14 @@ namespace lsp
                 PluginFactory                      *pFactory;               // Reference to the factory
                 resource::ILoader                  *pLoader;                // Resource loader
                 const meta::package_t              *pPackage;               // Package metadata
+                const meta::plugin_t               *pUIMetadata;            // UI metadata
                 Steinberg::FUnknown                *pHostContext;           // Host context
-                PluginView                         *pPluginView;            // Plugin view
                 Steinberg::Vst::IHostApplication   *pHostApplication;       // Host application
                 Steinberg::Vst::IConnectionPoint   *pPeerConnection;        // Peer connection
                 Steinberg::Vst::IComponentHandler  *pComponentHandler;      // Component handler
                 Steinberg::Vst::IComponentHandler2 *pComponentHandler2;     // Component handler (version 2)
                 Steinberg::Vst::IComponentHandler3 *pComponentHandler3;     // Component handler (version 3)
+                lltl::parray<ui::IPort>             vPorts;                 // All possible ports
                 lltl::parray<vst3::UIParameterPort> vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
                 lltl::parray<vst3::UIMeterPort>     vMeters;                // Meters
                 lltl::pphash<char, vst3::UIPort>    vParamMapping;          // Parameter mapping
@@ -83,58 +81,41 @@ namespace lsp
                 float                               fScalingFactor;         // Scaling factor
 
             protected:
-                static status_t                     slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
-                static status_t                     slot_ui_show(tk::Widget *sender, void *ptr, void *data);
-                static status_t                     slot_ui_realized(tk::Widget *sender, void *ptr, void *data);
-                static status_t                     slot_ui_close(tk::Widget *sender, void *ptr, void *data);
-                static status_t                     slot_display_idle(tk::Widget *sender, void *ptr, void *data);
-
-            protected:
                 vst3::UIPort                       *create_port(const meta::port_t *port, const char *postfix);
                 vst3::UIParameterPort              *find_param(Steinberg::Vst::ParamID param_id);
                 void                                receive_raw_osc_packet(const void *data, size_t size);
                 void                                parse_raw_osc_event(osc::parse_frame_t *frame);
                 status_t                            load_state(Steinberg::IBStream *is);
-                status_t                            initialize_ui();
-                bool                                start_event_loop();
-                void                                stop_event_loop();
+                void                                position_updated(const plug::position_t *pos);
+                void                                dump_state_request();
 
             protected:
                 static ssize_t                      compare_param_ports(const vst3::UIParameterPort *a, const vst3::UIParameterPort *b);
+                static ssize_t                      compare_ports_by_id(const ui::IPort *a, const ui::IPort *b);
 
             public:
-                explicit UIWrapper(PluginFactory *factory, ui::Module *ui, resource::ILoader *loader, const meta::package_t *package);
-                UIWrapper(const UIWrapper &) = delete;
-                UIWrapper(UIWrapper &&) = delete;
-                virtual ~UIWrapper() override;
+                explicit Controller(PluginFactory *factory, resource::ILoader *loader, const meta::package_t *package, const meta::plugin_t *meta);
+                Controller(const Controller &) = delete;
+                Controller(Controller &&) = delete;
+                virtual ~Controller() override;
 
-                UIWrapper & operator = (const UIWrapper &) = delete;
-                UIWrapper & operator = (UIWrapper &&) = delete;
+                Controller & operator = (const Controller &) = delete;
+                Controller & operator = (Controller &&) = delete;
 
-                virtual status_t                    init(void *root_widget) override;
-                virtual void                        destroy() override;
-
-            public:
-                status_t                            detach_ui(PluginView *view);
-                void                                set_scaling_factor(float factor);
+                status_t                            init();
+                void                                destroy();
 
             public:
             #ifdef VST_USE_RUNLOOP_IFACE
                 Steinberg::Linux::IRunLoop         *acquire_run_loop();
             #endif /* VST_USE_RUNLOOP_IFACE */
 
-            public: // ui::Wrapper
-                virtual core::KVTStorage           *kvt_lock() override;
-                virtual core::KVTStorage           *kvt_trylock() override;
-                virtual bool                        kvt_release() override;
-                virtual void                        dump_state_request() override;
-                virtual const meta::package_t      *package() const override;
-                virtual status_t                    play_file(const char *file, wsize_t position, bool release) override;
-                virtual float                       ui_scaling_factor(float scaling) override;
-                virtual bool                        accept_window_size(tk::Window *wnd, size_t width, size_t height) override;
-
-            public: // vst3::IUISync
-                virtual void                        sync_ui() override;
+            public:
+                inline ipc::Mutex                  &kvt_mutex();
+                inline core::KVTStorage            &kvt_storage();
+                inline const meta::package_t       *package() const;
+                status_t                            play_file(const char *file, wsize_t position, bool release);
+                ui::IPort                          *port_by_id(const char *id);
 
             public: // vst3::IPortChangeHandler
                 virtual void                        port_write(ui::IPort *port, size_t flags) override;
@@ -145,7 +126,7 @@ namespace lsp
                 virtual Steinberg::uint32           PLUGIN_API release() override;
 
             public: // Steinberg::IDependent
-                virtual void                        PLUGIN_API update(FUnknown* changedUnknown, Steinberg::int32 message) override;
+                virtual void                        PLUGIN_API update(FUnknown *changedUnknown, Steinberg::int32 message) override;
 
             public: // Steinberg::IPluginBase
                 virtual Steinberg::tresult          PLUGIN_API initialize(Steinberg::FUnknown *context) override;
@@ -181,4 +162,6 @@ namespace lsp
     } /* namespace vst3 */
 } /* namespace lsp */
 
-#endif /* PLUG_IN_PLUG_FW_WRAP_VST3_UI_WRAPPER_H_ */
+
+
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_VST3_CONTROLLER_H_ */
