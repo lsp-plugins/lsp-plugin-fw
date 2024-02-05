@@ -759,11 +759,6 @@ namespace lsp
             pHostContext        = safe_acquire(context);
             pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
 
-            // Add self to the synchronization list
-            status_t res = pFactory->register_data_sync(this);
-            if (res != STATUS_OK)
-                return Steinberg::kInternalError;
-
             lsp_trace("Creating executor service");
             ipc::IExecutor *executor    = pFactory->acquire_executor();
             if (executor != NULL)
@@ -1439,6 +1434,12 @@ namespace lsp
 
             // Save the peer connection
             pPeerConnection = safe_acquire(other);
+
+            // Add self to the synchronization list
+            status_t res = pFactory->register_data_sync(this);
+            if (res != STATUS_OK)
+                return Steinberg::kInternalError;
+
             if (pKVTDispatcher != NULL)
                 pKVTDispatcher->connect_client();
 
@@ -1454,6 +1455,9 @@ namespace lsp
                 return Steinberg::kInvalidArgument;
             if (pPeerConnection != other)
                 return Steinberg::kResultFalse;
+
+            // Add self to the synchronization list
+            pFactory->unregister_data_sync(this);
 
             // Reset the peer connection
             safe_release(pPeerConnection);
@@ -1671,8 +1675,8 @@ namespace lsp
             if ((pctx->state & Steinberg::Vst::ProcessContext::kProjectTimeMusicValid) &&
                 (pctx->state & Steinberg::Vst::ProcessContext::kBarPositionValid))
             {
-                double uppqPos              = (pctx->projectTimeMusic - pctx->barPositionMusic) * pctx->timeSigDenominator * 0.25;
-                pos->tick                   = pos->ticksPerBeat * (uppqPos - int64_t(uppqPos));
+                double uppqPos              = (pctx->projectTimeMusic - pctx->barPositionMusic) * pctx->timeSigDenominator * 0.25 / pctx->timeSigNumerator;
+                pos->tick                   = pos->ticksPerBeat * pctx->timeSigNumerator * (uppqPos - int64_t(uppqPos));
             }
             else
                 pos->tick                   = 0.0;
@@ -1683,6 +1687,9 @@ namespace lsp
                 sUIPosition                 = sPosition;
                 atomic_unlock(nPositionLock);
             }
+
+//            lsp_trace("position sampleRate=%f, speed=%f, num=%f, den=%f, bpm=%f, tpb=%f, tick=%f",
+//                pos->sampleRate, pos->speed, pos->numerator, pos->denominator, pos->beatsPerMinute, pos->ticksPerBeat, pos->tick);
         }
 
         vst3::ParameterPort *Wrapper::input_parameter(Steinberg::Vst::ParamID id)

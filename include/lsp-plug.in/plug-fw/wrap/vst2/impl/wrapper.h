@@ -459,8 +459,8 @@ namespace lsp
     //            lsp_trace("ppq_pos = %f, bar_start_pos = %f", float(info->ppqPos), float(info->barStartPos));
                 if ((info->flags & (kVstPpqPosValid | kVstBarsValid)) == (kVstPpqPosValid | kVstBarsValid))
                 {
-                    double uppqPos      = (info->ppqPos - info->barStartPos) * info->timeSigDenominator * 0.25;
-                    npos.tick           = npos.ticksPerBeat * (uppqPos - int64_t(uppqPos));
+                    double uppqPos      = (info->ppqPos - info->barStartPos) * info->timeSigDenominator * 0.25 / npos.numerator;
+                    npos.tick           = npos.ticksPerBeat * npos.numerator * (uppqPos - int64_t(uppqPos));
                 }
             }
 
@@ -475,6 +475,9 @@ namespace lsp
             if (pPlugin->set_position(&npos))
                 bUpdateSettings = true;
             sPosition       = npos;
+
+//            lsp_trace("position sampleRate=%f, speed=%f, num=%f, den=%f, bpm=%f, tpb=%f, tick=%f",
+//                npos.sampleRate, npos.speed, npos.numerator, npos.denominator, npos.beatsPerMinute, npos.ticksPerBeat, npos.tick);
         }
 
         void Wrapper::run(float** inputs, float** outputs, size_t samples)

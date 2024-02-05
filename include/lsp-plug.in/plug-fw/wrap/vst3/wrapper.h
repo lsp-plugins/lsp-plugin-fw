@@ -18,6 +18,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
+
 #ifndef LSP_PLUG_IN_PLUG_FW_WRAP_VST3_WRAPPER_H_
 #define LSP_PLUG_IN_PLUG_FW_WRAP_VST3_WRAPPER_H_
 
