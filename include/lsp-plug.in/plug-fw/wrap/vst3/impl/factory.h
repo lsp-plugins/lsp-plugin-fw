@@ -35,6 +35,7 @@
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/debug.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ibstreamout.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
@@ -780,10 +781,21 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API PluginFactory::getCompatibilityJSON(Steinberg::IBStream *stream)
         {
+            lsp_trace("this=%p", this);
+
+            IF_TRACE(
+                DbgOutStream os(stream);
+                stream = &os;
+            );
+
             vst3::IBStreamOut out(stream);
             lsp_finally { out.close(); };
-
             status_t res = vst3::make_moduleinfo(&out, pPackage);
+
+            IF_TRACE(
+                lsp_dumpb("Compatibility JSON dump:", os.data(), os.size());
+            );
+
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 

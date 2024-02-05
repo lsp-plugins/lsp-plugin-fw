@@ -920,12 +920,17 @@ namespace lsp
 
             const meta::plugin_t *meta = pPlugin->metadata();
             if (meta->vst3ui_uid == NULL)
+            {
+                lsp_warn("meta->vst3ui_uid == NULL");
                 return Steinberg::kResultFalse;
+            }
 
             Steinberg::TUID tuid;
-            status_t res = meta::uid_vst3_to_tuid(tuid, meta->vst3ui_uid);
-            if (res != STATUS_OK)
+            if (!meta::uid_vst3_to_tuid(tuid, meta->vst3ui_uid))
+            {
+                lsp_warn("failed uid_vst3_to_tuid");
                 return Steinberg::kResultFalse;
+            }
 
             memcpy(classId, tuid, sizeof(tuid));
             IF_TRACE(

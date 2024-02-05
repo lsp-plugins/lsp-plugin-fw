@@ -750,8 +750,8 @@ namespace lsp
                             if (meta::uid_vst2_to_vst3(FUID, m->vst2_uid, plugin_name) != NULL)
                             {
                                 lsp_trace("Reporting compatibility of VST 2.x plugin uid='%s' with VST3.x plugin uuid='%s'", m->vst2_uid, FUID);
-                                meta::uid_vst3_to_tuid(reinterpret_cast<char *>(ptr), FUID);
-                                v   = 1;
+                                if (meta::uid_vst3_to_tuid(reinterpret_cast<char *>(ptr), FUID))
+                                    v   = 1;
                             }
                         }
                     }
