@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -124,7 +124,7 @@ namespace lsp
             for (size_t i=0; i<count; ++i)
                 listeners.uget(i)->sync_metadata(this);
         }
-    } /* namespace ctl */
+    } /* namespace ui */
 } /* namespace lsp */
 
 

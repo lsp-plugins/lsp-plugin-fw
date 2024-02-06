@@ -37,7 +37,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/string_buf.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/plugview.h>
-#include <lsp-plug.in/plug-fw/wrap/vst3/ui_ports.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/ctl_ports.h>
 
 namespace lsp
 {
@@ -47,7 +47,7 @@ namespace lsp
 
         #include <steinberg/vst3/base/WarningsPush.h>
         class Controller:
-            public IPortChangeHandler,
+            public CtlPortChangeHandler,
             public Steinberg::IDependent,
             public Steinberg::Vst::IConnectionPoint,
             public Steinberg::Vst::IEditController,
@@ -68,10 +68,11 @@ namespace lsp
                 Steinberg::Vst::IComponentHandler  *pComponentHandler;      // Component handler
                 Steinberg::Vst::IComponentHandler2 *pComponentHandler2;     // Component handler (version 2)
                 Steinberg::Vst::IComponentHandler3 *pComponentHandler3;     // Component handler (version 3)
-                lltl::parray<ui::IPort>             vPorts;                 // All possible ports
-                lltl::parray<vst3::UIParameterPort> vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
-                lltl::parray<vst3::UIMeterPort>     vMeters;                // Meters
-                lltl::pphash<char, vst3::UIPort>    vParamMapping;          // Parameter mapping
+                lltl::parray<vst3::CtlPort>         vPorts;                 // All possible ports
+                lltl::parray<vst3::CtlParamPort>    vPlainParams;           // Input parameters (non-virtual) sorted according to the metadata order
+                lltl::parray<vst3::CtlParamPort>    vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
+                lltl::parray<vst3::CtlMeterPort>    vMeters;                // Meters
+                lltl::pphash<char, vst3::CtlPort>   vParamMapping;          // Parameter mapping
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
                 vst3::string_buf                    sNotifyBuf;             // Notify buffer
@@ -81,8 +82,8 @@ namespace lsp
                 float                               fScalingFactor;         // Scaling factor
 
             protected:
-                vst3::UIPort                       *create_port(const meta::port_t *port, const char *postfix);
-                vst3::UIParameterPort              *find_param(Steinberg::Vst::ParamID param_id);
+                vst3::CtlPort                      *create_port(const meta::port_t *port, const char *postfix);
+                vst3::CtlParamPort                 *find_param(Steinberg::Vst::ParamID param_id);
                 void                                receive_raw_osc_packet(const void *data, size_t size);
                 void                                parse_raw_osc_event(osc::parse_frame_t *frame);
                 status_t                            load_state(Steinberg::IBStream *is);
@@ -90,8 +91,8 @@ namespace lsp
                 void                                dump_state_request();
 
             protected:
-                static ssize_t                      compare_param_ports(const vst3::UIParameterPort *a, const vst3::UIParameterPort *b);
-                static ssize_t                      compare_ports_by_id(const ui::IPort *a, const ui::IPort *b);
+                static ssize_t                      compare_param_ports(const vst3::CtlParamPort *a, const vst3::CtlParamPort *b);
+                static ssize_t                      compare_ports_by_id(const vst3::CtlPort *a, const vst3::CtlPort *b);
 
             public:
                 explicit Controller(PluginFactory *factory, resource::ILoader *loader, const meta::package_t *package, const meta::plugin_t *meta);
@@ -115,10 +116,10 @@ namespace lsp
                 inline core::KVTStorage            &kvt_storage();
                 inline const meta::package_t       *package() const;
                 status_t                            play_file(const char *file, wsize_t position, bool release);
-                ui::IPort                          *port_by_id(const char *id);
+                vst3::CtlPort                      *port_by_id(const char *id);
 
-            public: // vst3::IPortChangeHandler
-                virtual void                        port_write(ui::IPort *port, size_t flags) override;
+            public: // vst3::CtlPortChangeHandler
+                virtual void                        port_write(vst3::CtlPort *port, size_t flags) override;
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult          PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;

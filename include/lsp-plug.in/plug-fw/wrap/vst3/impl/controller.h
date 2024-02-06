@@ -78,7 +78,7 @@ namespace lsp
             safe_release(pFactory);
         }
 
-        ssize_t Controller::compare_param_ports(const vst3::UIParameterPort *a, const vst3::UIParameterPort *b)
+        ssize_t Controller::compare_param_ports(const vst3::CtlParamPort *a, const vst3::CtlParamPort *b)
         {
             const Steinberg::Vst::ParamID a_id = a->parameter_id();
             const Steinberg::Vst::ParamID b_id = b->parameter_id();
@@ -87,31 +87,31 @@ namespace lsp
                    (a_id < b_id) ? -1 : 0;
         }
 
-        vst3::UIPort *Controller::create_port(const meta::port_t *port, const char *postfix)
+        vst3::CtlPort *Controller::create_port(const meta::port_t *port, const char *postfix)
         {
             // Find the matching port for the backend
-            vst3::UIPort *vup = NULL;
+            vst3::CtlPort *vup = NULL;
 
             switch (port->role)
             {
                 case meta::R_AUDIO: // Stub port
                     lsp_trace("creating stub audio port %s", port->id);
-                    vup = new vst3::UIPort(port);
+                    vup = new vst3::CtlPort(port);
                     break;
 
                 case meta::R_MESH:
                     lsp_trace("creating mesh port %s", port->id);
-                    vup = new vst3::UIMeshPort(port);
+                    vup = new vst3::CtlMeshPort(port);
                     break;
 
                 case meta::R_STREAM:
                     lsp_trace("creating stream port %s", port->id);
-                    vup = new vst3::UIStreamPort(port);
+                    vup = new vst3::CtlStreamPort(port);
                     break;
 
                 case meta::R_FBUFFER:
                     lsp_trace("creating fbuffer port %s", port->id);
-                    vup = new vst3::UIFrameBufferPort(port);
+                    vup = new vst3::CtlFrameBufferPort(port);
                     break;
 
                 case meta::R_OSC:
@@ -119,7 +119,7 @@ namespace lsp
 
                 case meta::R_PATH:
                     lsp_trace("creating path port %s", port->id);
-                    vup = new vst3::UIPathPort(port, this);
+                    vup = new vst3::CtlPathPort(port, this);
                     vParamMapping.create(port->id, vup);
                     break;
 
@@ -127,7 +127,7 @@ namespace lsp
                 case meta::R_BYPASS:
                 {
                     lsp_trace("creating parameter port %s", port->id);
-                    vst3::UIParameterPort *p    = new vst3::UIParameterPort(port, this, postfix != NULL);
+                    vst3::CtlParamPort *p   = new vst3::CtlParamPort(port, this, postfix != NULL);
                     vParamMapping.create(port->id, p);
                     if (postfix == NULL)
                         vParams.add(p);
@@ -138,7 +138,7 @@ namespace lsp
                 case meta::R_METER:
                 {
                     lsp_trace("creating meter port %s", port->id);
-                    vst3::UIMeterPort *p        = new vst3::UIMeterPort(port);
+                    vst3::CtlMeterPort *p   = new vst3::CtlMeterPort(port);
                     vMeters.add(p);
                     vup = p;
                     break;
@@ -148,7 +148,7 @@ namespace lsp
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES];
                     lsp_trace("creating port group %s", port->id);
-                    vst3::UIPortGroup *upg = new vst3::UIPortGroup(port, this, postfix != NULL);
+                    vst3::CtlPortGroup *upg = new vst3::CtlPortGroup(port, this, postfix != NULL);
 
                     // Add immediately port group to list
                     vPorts.add(upg);
@@ -196,13 +196,13 @@ namespace lsp
             return vup;
         }
 
-        vst3::UIParameterPort *Controller::find_param(Steinberg::Vst::ParamID param_id)
+        vst3::CtlParamPort *Controller::find_param(Steinberg::Vst::ParamID param_id)
         {
             ssize_t first=0, last = vParams.size() - 1;
             while (first <= last)
             {
                 size_t center           = size_t(first + last) >> 1;
-                vst3::UIParameterPort *p= vParams.uget(center);
+                vst3::CtlParamPort *p   = vParams.uget(center);
                 if (param_id == p->parameter_id())
                     return p;
                 else if (param_id < p->parameter_id())
@@ -213,7 +213,7 @@ namespace lsp
             return NULL;
         }
 
-        ssize_t Controller::compare_ports_by_id(const ui::IPort *a, const ui::IPort *b)
+        ssize_t Controller::compare_ports_by_id(const vst3::CtlPort *a, const vst3::CtlPort *b)
         {
             const meta::port_t *pa = a->metadata(), *pb = b->metadata();
             if (pa == NULL)
@@ -232,6 +232,7 @@ namespace lsp
             for (const meta::port_t *port = pUIMetadata->ports ; port->id != NULL; ++port)
                 create_port(port, NULL);
 
+            vPlainParams.add(vParams);
             vParams.qsort(compare_param_ports);
             vPorts.qsort(compare_ports_by_id);
 
@@ -243,6 +244,7 @@ namespace lsp
             lsp_trace("this=%p", this);
 
             // Remove port bindings
+            vPlainParams.flush();
             vParams.flush();
             vMeters.flush();
             vParamMapping.flush();
@@ -250,9 +252,8 @@ namespace lsp
             // Destroy ports
             for (size_t i=0, n=vPorts.size(); i<n; ++i)
             {
-                ui::IPort *p = vPorts.uget(i);
-                p->unbind_all();
-                lsp_trace("destroy UI port id=%s", p->metadata()->id);
+                vst3::CtlPort *p    = vPorts.uget(i);
+                lsp_trace("destroy controller port id=%s", p->id());
                 delete p;
             }
 
@@ -386,14 +387,14 @@ namespace lsp
             // TODO
         }
 
-        ui::IPort *Controller::port_by_id(const char *id)
+        vst3::CtlPort *Controller::port_by_id(const char *id)
         {
             // Try to find the corresponding port
             ssize_t first = 0, last     = vPorts.size() - 1;
             while (first <= last)
             {
                 size_t center           = (first + last) >> 1;
-                ui::IPort *p            = vPorts.uget(center);
+                vst3::CtlPort *p        = vPorts.uget(center);
                 if (p == NULL)
                     break;
                 const meta::port_t *ctl = p->metadata();
@@ -495,9 +496,9 @@ namespace lsp
                 double value = 0.0;
 
                 // Get actual value for each meter
-                for (lltl::iterator<vst3::UIMeterPort> it = vMeters.values(); it; ++it)
+                for (lltl::iterator<vst3::CtlMeterPort> it = vMeters.values(); it; ++it)
                 {
-                    vst3::UIMeterPort *p = it.get();
+                    vst3::CtlMeterPort *p = it.get();
                     if (p == NULL)
                         continue;
 
@@ -507,7 +508,7 @@ namespace lsp
 
                     // Sync value with meter port and notify listeners if value has changed
                     if (p->commit_value(value))
-                        p->notify_all(ui::PORT_NONE);
+                        p->mark_changed();
                 }
             }
             else if (!strcmp(message_id, ID_MSG_MESH))
@@ -522,7 +523,7 @@ namespace lsp
                     return Steinberg::kResultFalse;
 
                 // Get port and validate it's type
-                ui::IPort *port = port_by_id(param_id);
+                vst3::CtlPort *port     = port_by_id(param_id);
                 if (port == NULL)
                     return Steinberg::kResultFalse;
                 const meta::port_t *meta = port->metadata();
@@ -566,7 +567,7 @@ namespace lsp
 
                 // Update state of the mesh and notify
                 mesh->data(buffers, items);
-                port->notify_all(ui::PORT_NONE);
+                port->mark_changed();
             }
             else if (!strcmp(message_id, ID_MSG_FRAMEBUFFER))
             {
@@ -580,7 +581,7 @@ namespace lsp
                     return Steinberg::kResultFalse;
 
                 // Get port and validate it's type
-                ui::IPort *port = port_by_id(param_id);
+                vst3::CtlPort *port     = port_by_id(param_id);
                 if (port == NULL)
                     return Steinberg::kResultFalse;
                 const meta::port_t *meta = port->metadata();
@@ -637,7 +638,7 @@ namespace lsp
 
                 // Update state of the mesh and notify
                 fbuffer->seek(first_row_id);
-                port->notify_all(ui::PORT_NONE);
+                port->mark_changed();
             }
             else if (!strcmp(message_id, ID_MSG_STREAM))
             {
@@ -651,7 +652,7 @@ namespace lsp
                     return Steinberg::kResultFalse;
 
                 // Get port and validate it's type
-                ui::IPort *port = port_by_id(param_id);
+                vst3::CtlPort *port    = port_by_id(param_id);
                 if (port == NULL)
                     return Steinberg::kResultFalse;
                 const meta::port_t *meta = port->metadata();
@@ -727,6 +728,7 @@ namespace lsp
                     // Commit the frame for the stream
                     stream->commit_frame();
                 }
+                port->mark_changed();
             }
             else if (!strcmp(message_id, ID_MSG_KVT))
             {
@@ -863,13 +865,13 @@ namespace lsp
                 if (name[0] != '/')
                 {
                     // Try to find virtual port
-                    vst3::UIPort *p         = vParamMapping.get(name);
+                    vst3::CtlPort *p        = vParamMapping.get(name);
                     if (p != NULL)
                     {
                         const meta::port_t *meta = p->metadata();
                         if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)))
                         {
-                            vst3::UIParameterPort *pp   = static_cast<vst3::UIParameterPort *>(p);
+                            vst3::CtlParamPort *pp      = static_cast<vst3::CtlParamPort *>(p);
                             float v = 0.0f;
                             if ((res = read_fully(is, &v)) != STATUS_OK)
                             {
@@ -878,11 +880,11 @@ namespace lsp
                             }
                             lsp_trace("  %s = %f", meta->id, v);
                             pp->commit_value(v);
-                            pp->notify_all(ui::PORT_NONE);
+                            pp->mark_changed();
                         }
                         else if (meta::is_path_port(meta))
                         {
-                            vst3::UIPathPort *pp        = static_cast<vst3::UIPathPort *>(p);
+                            vst3::CtlPathPort *pp       = static_cast<vst3::CtlPathPort *>(p);
 
                             if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
                             {
@@ -891,7 +893,7 @@ namespace lsp
                             }
                             lsp_trace("  %s = %s", meta->id, name);
                             pp->commit_value(name);
-                            pp->notify_all(ui::PORT_NONE);
+                            pp->mark_changed();
                         }
                     }
                     else
@@ -960,14 +962,14 @@ namespace lsp
         Steinberg::int32 PLUGIN_API Controller::getParameterCount()
         {
             lsp_trace("this=%p, result=%d", this, int(vParams.size()));
-            return vParams.size();
+            return vPlainParams.size();
         }
 
         Steinberg::tresult PLUGIN_API Controller::getParameterInfo(Steinberg::int32 paramIndex, Steinberg::Vst::ParameterInfo & info /*out*/)
         {
             lsp_trace("this=%p, paramIndex=%d", this, int(paramIndex));
 
-            vst3::UIParameterPort *p = vParams.get(paramIndex);
+            vst3::CtlParamPort *p   = vPlainParams.get(paramIndex);
             if (p == NULL)
                 return Steinberg::kInvalidArgument;
 
@@ -1029,7 +1031,7 @@ namespace lsp
             lsp_trace("this=%p, id=0x%08x, valueNormalized=%f", this, int(id), valueNormalized);
 
             // Get port
-            vst3::UIParameterPort *p = find_param(id);
+            vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
                 lsp_trace("parameter id=0x%08x not found", int(id));
@@ -1056,7 +1058,7 @@ namespace lsp
             lsp_trace("this=%p, id=0x%08x, string=%s", this, int(id), string);
 
             // Get port
-            vst3::UIParameterPort *p = find_param(id);
+            vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
                 lsp_trace("parameter id=0x%08x not found", int(id));
@@ -1097,7 +1099,7 @@ namespace lsp
             lsp_trace("this=%p, id=0x%08x, valueNormalzed=%f", this, int(id), valueNormalized);
 
             // Get port
-            vst3::UIParameterPort *p = find_param(id);
+            vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
                 lsp_warn("parameter id=0x%08x not found", int(id));
@@ -1119,7 +1121,7 @@ namespace lsp
             lsp_trace("this=%p, id=0x%08x, plainValue=%f", this, int(id), plainValue);
 
             // Get port
-            vst3::UIParameterPort *p = find_param(id);
+            vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
                 lsp_warn("parameter id=0x%08x not found", int(id));
@@ -1141,7 +1143,7 @@ namespace lsp
             lsp_trace("this=%p, id=0x%08x", this, int(id));
 
             // Get port
-            vst3::UIParameterPort *p = find_param(id);
+            vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
                 lsp_warn("parameter id=0x%08x not found", int(id));
@@ -1165,7 +1167,7 @@ namespace lsp
             lsp_trace("this=%p, id=0x%08x, value=%f", this, int(id), value);
 
             // Get port
-            vst3::UIParameterPort *p = find_param(id);
+            vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
                 lsp_warn("parameter id=0x%08x not found", int(id));
@@ -1181,7 +1183,7 @@ namespace lsp
 
             // Commit value
             p->commit_value(plainValue);
-            p->notify_all(ui::PORT_NONE);
+            p->mark_changed();
 
             return Steinberg::kResultOk;
         }
@@ -1343,12 +1345,12 @@ namespace lsp
             return (pPeerConnection->notify(msg) == Steinberg::kResultOk) ? STATUS_OK : STATUS_UNKNOWN_ERR;
         }
 
-        void Controller::port_write(ui::IPort *port, size_t flags)
+        void Controller::port_write(vst3::CtlPort *port, size_t flags)
         {
             const meta::port_t *meta = port->metadata();
             if (meta::is_control_port(meta))
             {
-                vst3::UIParameterPort *ip = static_cast<vst3::UIParameterPort *>(port);
+                vst3::CtlParamPort *ip = static_cast<vst3::CtlParamPort *>(port);
                 if (ip->is_virtual())
                 {
                     // Check that we are available to send messages
