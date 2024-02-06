@@ -310,8 +310,6 @@ namespace lsp
         {
             lsp_trace("this=%p, context=%p", this, context);
 
-            status_t res;
-
             // Acquire host context
             if (pHostContext != NULL)
                 return Steinberg::kResultFalse;
@@ -323,10 +321,7 @@ namespace lsp
             pHostContext        = safe_acquire(context);
             pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
 
-            // Initialize
-            res = init();
-
-            return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
+            return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API Controller::terminate()
@@ -961,7 +956,7 @@ namespace lsp
 
         Steinberg::int32 PLUGIN_API Controller::getParameterCount()
         {
-            lsp_trace("this=%p, result=%d", this, int(vParams.size()));
+            lsp_trace("this=%p, result=%d", this, int(vPlainParams.size()));
             return vPlainParams.size();
         }
 
