@@ -149,10 +149,10 @@ namespace lsp
                  * @return buffer casted to specified type
                  */
                 template <class T>
-                    inline T *buffer()
-                    {
-                        return static_cast<T *>(buffer());
-                    }
+                inline T *buffer()
+                {
+                    return static_cast<T *>(buffer());
+                }
         };
 
         class CtlPortChangeHandler

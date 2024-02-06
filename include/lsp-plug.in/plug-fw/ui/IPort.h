@@ -56,23 +56,6 @@ namespace lsp
                 virtual ~IPort();
 
             public:
-                /** Add listener to the port
-                 *
-                 * @param listener that listens port changes
-                 */
-                void                bind(IPortListener *listener);
-
-                /** Unbind listener
-                 *
-                 * @param listener listener to unbind
-                 */
-                void                unbind(IPortListener *listener);
-
-                /** Unbind all controls
-                 *
-                 */
-                void                unbind_all();
-
                 /** Write some data to port
                  *
                  * @param buffer data to write to port
@@ -119,16 +102,16 @@ namespace lsp
 
                 /** Set single float value
                  *
+                 * @param flags additional control flags @see port_flags_t
+                 */
+                virtual void        set_value(float value, size_t flags);
+
+                /** Set single float value
+                 *
                  * @param value value to set
                  * @param nofity_flags port notification flags, @see notify_flags_t
                  */
                 virtual void        set_value_notify(float value, size_t notify_flags = ui::PORT_USER_EDIT);
-
-                /** Set single float value
-                 *
-                 * @param flags additional control flags @see port_flags_t
-                 */
-                virtual void        set_value(float value, size_t flags);
 
                 /** Notify all that port data has been changed
                  * @param flags port notification flags, @see notify_flags_t
@@ -141,6 +124,23 @@ namespace lsp
                 virtual void        sync_metadata();
 
              public:
+                /** Add listener to the port
+                 *
+                 * @param listener that listens port changes
+                 */
+                void                            bind(IPortListener *listener);
+
+                /** Unbind listener
+                 *
+                 * @param listener listener to unbind
+                 */
+                void                            unbind(IPortListener *listener);
+
+                /** Unbind all controls
+                 *
+                 */
+                void                            unbind_all();
+
                 /** Get port metadata
                  *
                  * @return port metadata
@@ -158,10 +158,10 @@ namespace lsp
                  * @return buffer casted to specified type
                  */
                 template <class T>
-                    inline T *buffer()
-                    {
-                        return static_cast<T *>(buffer());
-                    }
+                inline T *buffer()
+                {
+                    return static_cast<T *>(buffer());
+                }
         };
 
     } /* namespace ui */

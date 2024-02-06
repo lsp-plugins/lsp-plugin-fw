@@ -483,6 +483,8 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
+                    if (plug_meta->vst3_uid == NULL)
+                        continue;
                     if (memcmp(plug_meta->vst3_uid, cid, sizeof(Steinberg::TUID)) != 0)
                         continue;
 
@@ -518,6 +520,8 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
+                    if (plug_meta->vst3ui_uid == NULL)
+                        continue;
                     if (memcmp(plug_meta->vst3ui_uid, cid, sizeof(Steinberg::TUID)) != 0)
                         continue;
 

@@ -377,11 +377,6 @@ namespace lsp
             return Steinberg::kResultOk;
         }
 
-        void Controller::position_updated(const plug::position_t *pos)
-        {
-            // TODO
-        }
-
         vst3::CtlPort *Controller::port_by_id(const char *id)
         {
             // Try to find the corresponding port
@@ -484,7 +479,12 @@ namespace lsp
                 pos.frame           = frame;
 
                 // Notify UI about position update
-                position_updated(&pos);
+                for (lltl::iterator<UIWrapper> it = vWrappers.values(); it; ++it)
+                {
+                    UIWrapper *w = it.get();
+                    if (w != NULL)
+                        w->commit_position(&pos);
+                }
             }
             else if (!strcmp(message_id, ID_MSG_METERS))
             {
@@ -1203,29 +1203,99 @@ namespace lsp
             return Steinberg::kResultTrue;
         }
 
+        ui::Module *Controller::create_ui()
+        {
+            if ((pUIMetadata == NULL) || (pUIMetadata->vst3ui_uid == NULL))
+                return NULL;
+
+            // Watch UI factories next
+            for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *plug_meta = f->enumerate(i);
+                    if (plug_meta != NULL)
+                        break;
+                    if (plug_meta->vst3ui_uid == NULL)
+                        continue;
+                    if (memcmp(plug_meta->vst3ui_uid, pUIMetadata->vst3ui_uid, sizeof(Steinberg::TUID)) != 0)
+                        continue;
+
+                    // Allocate UI module
+                    ui::Module *ui = f->create(plug_meta);
+                    if (ui == NULL)
+                        return NULL;
+                    lsp_trace("Created UI module ptr=%p", ui);
+
+                    // Return the UI
+                    return ui;
+                }
+            }
+
+            return NULL;
+        }
+
         Steinberg::IPlugView * PLUGIN_API Controller::createView(Steinberg::FIDString name)
         {
             lsp_trace("this=%p, name=%s", this, name);
             if (strcmp(name, Steinberg::Vst::ViewType::kEditor) != 0)
                 return NULL;
 
-            // TODO
+            // Create UI
+            ui::Module *ui = create_ui();
+            if (ui == NULL)
+            {
+                lsp_trace("Failed to create UI");
+                return NULL;
+            }
+            lsp_finally {
+                if (ui != NULL)
+                {
+                    ui->destroy();
+                    delete ui;
+                }
+            };
 
-            // Notify backend about UI activation
-//            if (pPeerConnection != NULL)
-//            {
-//                // Allocate new message
-//                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
-//                if (msg != NULL)
-//                {
-//                    lsp_finally { safe_release(msg); };
-//                    // Initialize and send the message
-//                    msg->setMessageID(vst3::ID_MSG_ACTIVATE_UI);
-//                    pPeerConnection->notify(msg);
-//                }
-//            }
+            // Create Wrapper
+            UIWrapper *w = new UIWrapper(this, ui, pLoader);
+            if (w == NULL)
+            {
+                lsp_trace("Failed to create wrapper");
+                return NULL;
+            }
+            ui      = NULL; // Will be destroyed by wrapper
 
-            return NULL;
+            // Initialize wrapper
+            status_t res = w->init(NULL);
+            if (res != STATUS_OK)
+            {
+                lsp_trace("Failed to initialize wrapper");
+                w->destroy();
+                delete w;
+                return NULL;
+            }
+
+            // Add wrapper to list of wrappers
+            if (vWrappers.add(w))
+            {
+                // Notify backend about UI activation
+                if (pPeerConnection != NULL)
+                {
+                    // Allocate new message
+                    Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                    if (msg != NULL)
+                    {
+                        lsp_finally { safe_release(msg); };
+                        // Initialize and send the message
+                        msg->setMessageID(vst3::ID_MSG_ACTIVATE_UI);
+                        pPeerConnection->notify(msg);
+                    }
+                }
+            }
+
+            // Return pointer to wrapper
+            return w;
         }
 
         Steinberg::tresult PLUGIN_API Controller::setKnobMode(Steinberg::Vst::KnobMode mode)
@@ -1242,8 +1312,8 @@ namespace lsp
             if (onlyCheck)
                 return Steinberg::kResultOk;
 
-            // TODO
-            return Steinberg::kResultOk;
+            vst3::UIWrapper *w = vWrappers.last();
+            return (w != NULL) ? w->show_help() : Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API Controller::openAboutBox(Steinberg::TBool onlyCheck)
@@ -1253,13 +1323,13 @@ namespace lsp
             if (onlyCheck)
                 return Steinberg::kResultOk;
 
-            // TODO
-            return Steinberg::kResultOk;
+            vst3::UIWrapper *w = vWrappers.last();
+            return (w != NULL) ? w->show_about_box() : Steinberg::kResultOk;
         }
 
-        core::KVTStorage &Controller::kvt_storage()
+        core::KVTStorage *Controller::kvt_storage()
         {
-            return sKVT;
+            return &sKVT;
         }
 
         ipc::Mutex &Controller::kvt_mutex()
@@ -1284,6 +1354,28 @@ namespace lsp
 
             // Send the message
             pPeerConnection->notify(msg);
+        }
+
+        status_t Controller::detach_ui_wrapper(UIWrapper *wrapper)
+        {
+            if (!vWrappers.qpremove(wrapper))
+                return STATUS_NOT_FOUND;
+
+            // Notify backend about UI deactivation
+            if (pPeerConnection != NULL)
+            {
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    return STATUS_OK;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize and send the message
+                msg->setMessageID(vst3::ID_MSG_DEACTIVATE_UI);
+                pPeerConnection->notify(msg);
+            }
+
+            return STATUS_OK;
         }
 
         const meta::package_t *Controller::package() const

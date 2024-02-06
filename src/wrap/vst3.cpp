@@ -36,7 +36,6 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/vst3/plugview.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/string_buf.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/executor.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/factory.h>
@@ -44,7 +43,6 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/ui_wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/vst3/impl/plugview.h>
 
 #define VST3_LOG_FILE   "lsp-vst3.log"
 

@@ -36,14 +36,15 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/string_buf.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
-#include <lsp-plug.in/plug-fw/wrap/vst3/plugview.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ctl_ports.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
 
 namespace lsp
 {
     namespace vst3
     {
         class PluginFactory;
+        class UIWrapper;
 
         #include <steinberg/vst3/base/WarningsPush.h>
         class Controller:
@@ -73,6 +74,7 @@ namespace lsp
                 lltl::parray<vst3::CtlParamPort>    vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
                 lltl::parray<vst3::CtlMeterPort>    vMeters;                // Meters
                 lltl::pphash<char, vst3::CtlPort>   vParamMapping;          // Parameter mapping
+                lltl::parray<vst3::UIWrapper>       vWrappers;              // UI wrappers
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
                 vst3::string_buf                    sNotifyBuf;             // Notify buffer
@@ -87,8 +89,7 @@ namespace lsp
                 void                                receive_raw_osc_packet(const void *data, size_t size);
                 void                                parse_raw_osc_event(osc::parse_frame_t *frame);
                 status_t                            load_state(Steinberg::IBStream *is);
-                void                                position_updated(const plug::position_t *pos);
-                void                                dump_state_request();
+                ui::Module                         *create_ui();
 
             protected:
                 static ssize_t                      compare_param_ports(const vst3::CtlParamPort *a, const vst3::CtlParamPort *b);
@@ -113,10 +114,12 @@ namespace lsp
 
             public:
                 inline ipc::Mutex                  &kvt_mutex();
-                inline core::KVTStorage            &kvt_storage();
+                inline core::KVTStorage            *kvt_storage();
                 inline const meta::package_t       *package() const;
                 status_t                            play_file(const char *file, wsize_t position, bool release);
                 vst3::CtlPort                      *port_by_id(const char *id);
+                void                                dump_state_request();
+                status_t                            detach_ui_wrapper(UIWrapper *wrapper);
 
             public: // vst3::CtlPortChangeHandler
                 virtual void                        port_write(vst3::CtlPort *port, size_t flags) override;
