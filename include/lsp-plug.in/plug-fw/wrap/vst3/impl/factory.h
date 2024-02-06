@@ -474,6 +474,8 @@ namespace lsp
                     obj);
             );
 
+            Steinberg::TUID tuid;
+
             // Watch plugin factories first
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
             {
@@ -483,9 +485,9 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-                    if (plug_meta->vst3_uid == NULL)
+                    if ((plug_meta->vst3_uid == NULL) || (!meta::uid_vst3_to_tuid(tuid, plug_meta->vst3_uid)))
                         continue;
-                    if (memcmp(plug_meta->vst3_uid, cid, sizeof(Steinberg::TUID)) != 0)
+                    if (!Steinberg::iidEqual(tuid, cid))
                         continue;
 
                     // UID matched, allocate plugin module
@@ -520,9 +522,9 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-                    if (plug_meta->vst3ui_uid == NULL)
+                    if ((plug_meta->vst3ui_uid == NULL) || (!meta::uid_vst3_to_tuid(tuid, plug_meta->vst3ui_uid)))
                         continue;
-                    if (memcmp(plug_meta->vst3ui_uid, cid, sizeof(Steinberg::TUID)) != 0)
+                    if (!Steinberg::iidEqual(tuid, cid))
                         continue;
 
                     // Allocate Controller

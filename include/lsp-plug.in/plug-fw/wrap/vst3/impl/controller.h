@@ -1206,7 +1206,10 @@ namespace lsp
         ui::Module *Controller::create_ui()
         {
             if ((pUIMetadata == NULL) || (pUIMetadata->vst3ui_uid == NULL))
+            {
+                lsp_trace("pUIMetadata is not valid");
                 return NULL;
+            }
 
             // Watch UI factories next
             for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
@@ -1215,7 +1218,7 @@ namespace lsp
                 {
                     // Enumerate next element
                     const meta::plugin_t *plug_meta = f->enumerate(i);
-                    if (plug_meta != NULL)
+                    if (plug_meta == NULL)
                         break;
                     if (plug_meta->vst3ui_uid == NULL)
                         continue;
@@ -1232,6 +1235,8 @@ namespace lsp
                     return ui;
                 }
             }
+
+            lsp_trace("Not found matching factory");
 
             return NULL;
         }

@@ -64,6 +64,11 @@ namespace lsp
 
         UIWrapper::~UIWrapper()
         {
+            // Remove self from synchronization list of UI wrapper
+            if (pController != NULL)
+                pController->detach_ui_wrapper(this);
+
+            // Destroy
             lsp_trace("this=%p", this);
             destroy();
 
