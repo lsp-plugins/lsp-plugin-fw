@@ -489,6 +489,7 @@ namespace lsp
             else if (!strcmp(message_id, ID_MSG_METERS))
             {
                 double value = 0.0;
+                lsp_trace("Received message id=%s", message_id);
 
                 // Get actual value for each meter
                 for (lltl::iterator<vst3::CtlMeterPort> it = vMeters.values(); it; ++it)
@@ -502,12 +503,15 @@ namespace lsp
                         continue;
 
                     // Sync value with meter port and notify listeners if value has changed
+                    lsp_trace("Received meter id=%s, value=%f", p->id(), value);
                     if (p->commit_value(value))
                         p->mark_changed();
                 }
             }
             else if (!strcmp(message_id, ID_MSG_MESH))
             {
+                lsp_trace("Received message id=%s", message_id);
+
                 // Read endianess
                 if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
                     return Steinberg::kResultFalse;
@@ -566,6 +570,8 @@ namespace lsp
             }
             else if (!strcmp(message_id, ID_MSG_FRAMEBUFFER))
             {
+                lsp_trace("Received message id=%s", message_id);
+
                 // Read endianess
                 if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
                     return Steinberg::kResultFalse;
