@@ -1767,8 +1767,13 @@ namespace lsp
                 if (sampleOffset <= first_change)
                 {
                     port->set_change_index(index + 1);  // We already can move the change index forward
+                    value = vst3::from_vst_value(port->metadata(), value);
+
                     if (port->commit_value(value))
+                    {
+                        lsp_trace("port changed: %s=%f", port->id(), value);
                         bUpdateSettings     = true;
+                    }
                 }
             }
 
@@ -1903,7 +1908,10 @@ namespace lsp
                 if (p != NULL)
                     p->set_change_index(0);
                 if (p->check_pending())
+                {
+                    lsp_trace("port changed: %s=%f", p->id(), p->value());
                     bUpdateSettings     = true;
+                }
             }
 
             // Reset meters
@@ -2350,7 +2358,7 @@ namespace lsp
                 for (lltl::iterator<vst3::MeterPort> it = vMeters.values(); it; ++it)
                 {
                     // Write the actual value
-                    if (list->setFloat("value", it->display()) != Steinberg::kResultOk)
+                    if (list->setFloat(it->id(), it->display()) != Steinberg::kResultOk)
                         return;
                 }
 
