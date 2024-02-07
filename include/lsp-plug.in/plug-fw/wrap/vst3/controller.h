@@ -48,6 +48,7 @@ namespace lsp
 
         #include <steinberg/vst3/base/WarningsPush.h>
         class Controller:
+            public IDataSync,
             public CtlPortChangeHandler,
             public Steinberg::IDependent,
             public Steinberg::Vst::IConnectionPoint,
@@ -69,6 +70,7 @@ namespace lsp
                 Steinberg::Vst::IComponentHandler  *pComponentHandler;      // Component handler
                 Steinberg::Vst::IComponentHandler2 *pComponentHandler2;     // Component handler (version 2)
                 Steinberg::Vst::IComponentHandler3 *pComponentHandler3;     // Component handler (version 3)
+                uint8_t                            *pOscPacket;             // OSC packet data
                 lltl::parray<vst3::CtlPort>         vPorts;                 // All possible ports
                 lltl::parray<vst3::CtlParamPort>    vPlainParams;           // Input parameters (non-virtual) sorted according to the metadata order
                 lltl::parray<vst3::CtlParamPort>    vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
@@ -77,7 +79,8 @@ namespace lsp
                 lltl::parray<vst3::UIWrapper>       vWrappers;              // UI wrappers
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
-                vst3::string_buf                    sNotifyBuf;             // Notify buffer
+                vst3::string_buf                    sRxNotifyBuf;           // Notify buffer on receive
+                vst3::string_buf                    sTxNotifyBuf;           // Notify buffer on receive
                 core::KVTStorage                    sKVT;                   // KVT storage
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
                 uint32_t                            nLatency;               // Plugin latency
@@ -90,6 +93,7 @@ namespace lsp
                 void                                parse_raw_osc_event(osc::parse_frame_t *frame);
                 status_t                            load_state(Steinberg::IBStream *is);
                 ui::Module                         *create_ui();
+                void                                send_kvt_state();
 
             protected:
                 static ssize_t                      compare_param_ports(const vst3::CtlParamPort *a, const vst3::CtlParamPort *b);
@@ -120,6 +124,9 @@ namespace lsp
                 vst3::CtlPort                      *port_by_id(const char *id);
                 void                                dump_state_request();
                 status_t                            detach_ui_wrapper(UIWrapper *wrapper);
+
+            public: // vst3::IDataSync
+                virtual void                        sync_data() override;
 
             public: // vst3::CtlPortChangeHandler
                 virtual void                        port_write(vst3::CtlPort *port, size_t flags) override;

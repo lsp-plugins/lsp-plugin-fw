@@ -138,27 +138,31 @@ namespace lsp
                     char postfix_buf[MAX_PARAM_ID_BYTES];
                     char port_id[MAX_PARAM_ID_BYTES];
 
-                    lsp_trace("creating port group %s", port->id);
+                    CtlPortGroup *cpg = static_cast<CtlPortGroup *>(p);
+
+                    lsp_trace("creating port group %s of %d rows", port->id, int(cpg->rows()));
                     vst3::UIPort *upg = new vst3::UIPort(p);
 
                     // Add immediately port group to list
                     vPorts.add(upg);
                     vSync.add(upg);
 
-                    CtlPortGroup *cpg = static_cast<CtlPortGroup *>(p);
-
                     // Add nested ports
                     for (size_t row=0; row<cpg->rows(); ++row)
                     {
-                        // Generate postfix and port identifier
+                        // Generate postfix
                         snprintf(postfix_buf, sizeof(postfix_buf)-1, "%s_%d", (postfix != NULL) ? postfix : "", int(row));
-                        strcpy(port_id, port->id);
-                        strcat(port_id, postfix_buf);
 
-                        // Find corresponding port
-                        p       = pController->port_by_id(port_id);
-                        if (p != NULL)
-                            create_port(p->metadata(), postfix_buf);
+                        // Create all nested ports in port group
+                        for (const meta::port_t *cm = port->members; cm->id != NULL; ++cm)
+                        {
+                            strcpy(port_id, cm->id);
+                            strcat(port_id, postfix_buf);
+
+                            p       = pController->port_by_id(port_id);
+                            if (p != NULL)
+                                create_port(p->metadata(), postfix_buf);
+                        }
                     }
 
                     break;
@@ -315,10 +319,73 @@ namespace lsp
             return (fScalingFactor > 0.0f) ? fScalingFactor : scaling;
         }
 
+        void UIWrapper::sync_kvt_state(core::KVTStorage *kvt)
+        {
+            // Synchronize DSP -> UI transfer
+            size_t sync;
+            const char *kvt_name;
+            const core::kvt_param_t *kvt_value;
+
+            do
+            {
+                sync = 0;
+
+                core::KVTIterator *it = kvt->enum_tx_pending();
+                while (it->next() == STATUS_OK)
+                {
+                    kvt_name = it->name();
+                    if (kvt_name == NULL)
+                        break;
+                    status_t res = it->get(&kvt_value);
+                    if (res != STATUS_OK)
+                        break;
+                    if ((res = it->commit(core::KVT_TX)) != STATUS_OK)
+                        break;
+
+                    kvt_dump_parameter("TX kvt param (DSP->UI): %s = ", kvt_value, kvt_name);
+                    kvt_notify_write(kvt, kvt_name, kvt_value);
+                    ++sync;
+                }
+            } while (sync > 0);
+
+            // Synchronize UI -> DSP transfer
+            #ifdef LSP_DEBUG
+            {
+                core::KVTIterator *it = kvt->enum_rx_pending();
+                while (it->next() == STATUS_OK)
+                {
+                    kvt_name = it->name();
+                    if (kvt_name == NULL)
+                        break;
+                    status_t res = it->get(&kvt_value);
+                    if (res != STATUS_OK)
+                        break;
+                    if ((res = it->commit(core::KVT_RX)) != STATUS_OK)
+                        break;
+
+                    kvt_dump_parameter("RX kvt param (UI->DSP): %s = ", kvt_value, kvt_name);
+                }
+            }
+            #else
+                kvt->commit_all(core::KVT_RX);  // Just clear all RX queue for non-debug version
+            #endif /* LSP_DEBUG */
+        }
+
         void UIWrapper::main_iteration()
         {
             sync_with_controller();
             sync_with_dsp();
+
+            // Transmit KVT state
+            core::KVTStorage *kvt = kvt_trylock();
+            if (kvt != NULL)
+            {
+                sync_kvt_state(kvt);
+                kvt->gc();
+                kvt_release();
+            }
+
+            // Call for parent
             ui::IWrapper::main_iteration();
         }
 

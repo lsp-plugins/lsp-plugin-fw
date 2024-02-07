@@ -101,11 +101,13 @@ namespace lsp
 
                 virtual void        set_value(float value) override
                 {
+                    lsp_trace("id=%s, value=%f", pMetadata->id, value);
                     pPort->set_value(value);
                 }
 
                 virtual void        set_value(float value, size_t flags) override
                 {
+                    lsp_trace("id=%s, value=%f", pMetadata->id, value);
                     pPort->set_value(value, flags);
                 }
 

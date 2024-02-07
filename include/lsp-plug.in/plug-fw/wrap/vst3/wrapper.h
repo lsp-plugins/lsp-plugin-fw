@@ -113,7 +113,6 @@ namespace lsp
                 lltl::parray<plug::IPort>           vMeshes;                // Mesh ports
                 lltl::parray<plug::IPort>           vFBuffers;              // Frame buffer ports
                 lltl::parray<plug::IPort>           vStreams;               // Streaming ports
-                lltl::parray<vst3::PathPort>        vPathPorts;             // Path ports
                 lltl::pphash<char, vst3::Port>      vParamMapping;          // Virtual input port mapping
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata for virtual ports
                 event_bus_t                        *pEventsIn;              // Input event bus
@@ -121,8 +120,8 @@ namespace lsp
                 core::SamplePlayer                 *pSamplePlayer;          // Sample player
                 plug::position_t                    sUIPosition;            // Position notified to UI
 
-                vst3::string_buf                    sNotifyBuf;             // Notify buffer
-                vst3::string_buf                    sSyncBuf;               // Sync buffer
+                vst3::string_buf                    sRxNotifyBuf;           // Notify buffer for notify() processing
+                vst3::string_buf                    sTxNotifyBuf;           // Notify buffer for sync_data()
                 core::KVTStorage                    sKVT;                   // KVT storage
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
                 VST3KVTListener                     sKVTListener;           // KVT state listener
@@ -159,6 +158,8 @@ namespace lsp
                 static ssize_t              compare_audio_ports_by_speaker(const vst3::AudioPort *a, const vst3::AudioPort *b);
 
                 static ssize_t              compare_in_param_ports(const vst3::ParameterPort *a, const vst3::ParameterPort *b);
+
+                void                        receive_raw_osc_event(osc::parse_frame_t *frame);
 
             protected:
                 void                        create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);

@@ -648,7 +648,6 @@ namespace lsp
                 case meta::R_PATH:
                 {
                     vst3::PathPort *p       = new vst3::PathPort(port);
-                    vPathPorts.add(p);
                     vParamMapping.create(port->id, p);
                     cp                      = p;
                     break;
@@ -892,7 +891,6 @@ namespace lsp
             vMeshes.flush();
             vFBuffers.flush();
             vStreams.flush();
-            vPathPorts.flush();
             vParamMapping.flush();
             pEventsIn   = NULL;
             pEventsOut  = NULL;
@@ -1436,9 +1434,12 @@ namespace lsp
             pPeerConnection = safe_acquire(other);
 
             // Add self to the synchronization list
-            status_t res = pFactory->register_data_sync(this);
-            if (res != STATUS_OK)
-                return Steinberg::kInternalError;
+            if (pPeerConnection != NULL)
+            {
+                status_t res = pFactory->register_data_sync(this);
+                if (res != STATUS_OK)
+                    return Steinberg::kInternalError;
+            }
 
             if (pKVTDispatcher != NULL)
                 pKVTDispatcher->connect_client();
@@ -2046,6 +2047,42 @@ namespace lsp
             return pPackage;
         }
 
+        void Wrapper::receive_raw_osc_event(osc::parse_frame_t *frame)
+        {
+            osc::parse_token_t token;
+            status_t res = osc::parse_token(frame, &token);
+            if (res != STATUS_OK)
+                return;
+
+            if (token == osc::PT_BUNDLE)
+            {
+                osc::parse_frame_t child;
+                uint64_t time_tag;
+                status_t res = osc::parse_begin_bundle(&child, frame, &time_tag);
+                if (res != STATUS_OK)
+                    return;
+                receive_raw_osc_event(&child); // Perform recursive call
+                osc::parse_end(&child);
+            }
+            else if (token == osc::PT_MESSAGE)
+            {
+                const void *msg_start;
+                size_t msg_size;
+                const char *msg_addr;
+
+                // Perform address lookup and routing
+                status_t res = osc::parse_raw_message(frame, &msg_start, &msg_size, &msg_addr);
+                if (res != STATUS_OK)
+                    return;
+
+                lsp_trace("Received OSC message of %d bytes, address=%s", int(msg_size), msg_addr);
+                osc::dump_packet(msg_start, msg_size);
+
+                if (::strstr(msg_addr, "/KVT/") == msg_addr)
+                    pKVTDispatcher->submit(msg_start, msg_size);
+            }
+        }
+
         Steinberg::tresult PLUGIN_API Wrapper::notify(Steinberg::Vst::IMessage *message)
         {
             lsp_trace("this=%p, message=%p", this, message);
@@ -2076,7 +2113,7 @@ namespace lsp
                 }
 
                 // Get port identifier
-                const char *id = sNotifyBuf.get_string(atts, "id", byte_order);
+                const char *id = sRxNotifyBuf.get_string(atts, "id", byte_order);
                 if (id == NULL)
                     return Steinberg::kResultFalse;
 
@@ -2097,7 +2134,7 @@ namespace lsp
                 }
 
                 // Get the path data
-                const char *in_path = sNotifyBuf.get_string(atts, "value", byte_order);
+                const char *in_path = sRxNotifyBuf.get_string(atts, "value", byte_order);
                 if (in_path == NULL)
                     return Steinberg::kResultFalse;
 
@@ -2112,7 +2149,7 @@ namespace lsp
             else if (!strcmp(message_id, vst3::ID_MSG_VIRTUAL_PARAMETER))
             {
                 // Get port identifier
-                const char *id = sNotifyBuf.get_string(atts, "id", byte_order);
+                const char *id = sRxNotifyBuf.get_string(atts, "id", byte_order);
                 if (id == NULL)
                     return Steinberg::kResultFalse;
 
@@ -2164,7 +2201,7 @@ namespace lsp
                 }
 
                 // Get file name
-                const char *file = sNotifyBuf.get_string(atts, "file", byte_order);
+                const char *file = sRxNotifyBuf.get_string(atts, "file", byte_order);
                 if (file == NULL)
                     return Steinberg::kResultFalse;
 
@@ -2190,6 +2227,28 @@ namespace lsp
                     lsp_trace("play_sample file=%s, position=%ld, release=%s",
                         file, long(position), (release > 0.5f) ? "true" : "false");
                     pSamplePlayer->play_sample(file, position, release > 0.5f);
+                }
+            }
+            else if (!strcmp(message_id, ID_MSG_KVT))
+            {
+                lsp_trace("Received message id=%s", message_id);
+                if (pKVTDispatcher == NULL)
+                    return Steinberg::kResultFalse;
+
+                const void *data = NULL;
+                Steinberg::uint32 sizeInBytes = 0;
+
+                if (atts->getBinary("data", data, sizeInBytes) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                osc::parser_t parser;
+                osc::parser_frame_t root;
+                status_t res = osc::parse_begin(&root, &parser, data, sizeInBytes);
+                if (res == STATUS_OK)
+                {
+                    receive_raw_osc_event(&root);
+                    osc::parse_end(&root);
+                    osc::parse_destroy(&parser);
                 }
             }
 
@@ -2304,7 +2363,7 @@ namespace lsp
                     {
                         case STATUS_OK:
                         {
-                            lsp_trace("Transmitting KVT-related OSC packet of %d bytes", int(size));
+                            lsp_trace("Sending DSP->UI KVT message of %d bytes", int(size));
                             osc::dump_packet(pOscPacket, size);
 
                             // Allocate new message
@@ -2318,6 +2377,7 @@ namespace lsp
                             Steinberg::Vst::IAttributeList *list = msg->getAttributes();
 
                             encoded = list->setBinary("data", pOscPacket, size) == Steinberg::kResultOk;
+                            pPeerConnection->notify(msg);
                             break;
                         }
 
@@ -2391,7 +2451,7 @@ namespace lsp
                 if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
                     continue;
                 // Write identifier of the mesh port
-                if (!sSyncBuf.set_string(list, "id", m_port->metadata()->id))
+                if (!sTxNotifyBuf.set_string(list, "id", m_port->metadata()->id))
                     continue;
                 // Write number of buffers
                 if (list->setInt("buffers", mesh->nBuffers) != Steinberg::kResultOk)
@@ -2453,7 +2513,7 @@ namespace lsp
                 if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
                     continue;
                 // Write identifier of the frame buffer port
-                if (!sSyncBuf.set_string(list, "id", fb_port->metadata()->id))
+                if (!sTxNotifyBuf.set_string(list, "id", fb_port->metadata()->id))
                     continue;
                 // Write number of rows
                 if (list->setInt("rows", fb->rows()) != Steinberg::kResultOk)
@@ -2530,7 +2590,7 @@ namespace lsp
                 if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
                     continue;
                 // Write identifier of the frame buffer port
-                if (!sSyncBuf.set_string(list, "id", s_port->metadata()->id))
+                if (!sTxNotifyBuf.set_string(list, "id", s_port->metadata()->id))
                     continue;
                 // Write number of buffers
                 if (list->setInt("buffers", nbuffers) != Steinberg::kResultOk)

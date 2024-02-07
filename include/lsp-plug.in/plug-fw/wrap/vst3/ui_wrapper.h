@@ -78,6 +78,7 @@ namespace lsp
                 void                                query_resize(const ws::rectangle_t *r);
                 void                                sync_with_controller();
                 void                                sync_with_dsp();
+                void                                sync_kvt_state(core::KVTStorage *kvt);
 
             public:
                 explicit UIWrapper(vst3::Controller *controller, ui::Module *ui, resource::ILoader *loader);

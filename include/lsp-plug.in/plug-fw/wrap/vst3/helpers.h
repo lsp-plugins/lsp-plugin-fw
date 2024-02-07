@@ -694,7 +694,7 @@ namespace lsp
         {
             for (size_t i=0; i<len; ++i)
                 if (str[i] == 0)
-                    return i - 1;
+                    return i;
             return len;
         }
 

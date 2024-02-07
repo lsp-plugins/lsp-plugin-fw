@@ -65,6 +65,7 @@ namespace lsp
             pComponentHandler   = NULL;
             pComponentHandler2  = NULL;
             pComponentHandler3  = NULL;
+            pOscPacket          = NULL;
             nLatency            = 0;
             fScalingFactor      = -1.0f;
         }
@@ -72,6 +73,9 @@ namespace lsp
         Controller::~Controller()
         {
             lsp_trace("this=%p", this);
+
+            pFactory->unregister_data_sync(this);
+
             destroy();
 
             // Release factory
@@ -243,6 +247,9 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
+            // Unregister data sync
+            pFactory->unregister_data_sync(this);
+
             // Remove port bindings
             vPlainParams.flush();
             vParams.flush();
@@ -321,12 +328,27 @@ namespace lsp
             pHostContext        = safe_acquire(context);
             pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
 
+            // Allocate OSC packet data
+            lsp_trace("Creating OSC data buffer");
+            pOscPacket      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX));
+            if (pOscPacket == NULL)
+                return Steinberg::kOutOfMemory;
+
             return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API Controller::terminate()
         {
             lsp_trace("this=%p", this);
+
+            // Unregister data sync
+            pFactory->unregister_data_sync(this);
+
+            if (pOscPacket != NULL)
+            {
+                free(pOscPacket);
+                pOscPacket      = NULL;
+            }
 
             // Release host context
             safe_release(pHostContext);
@@ -358,12 +380,19 @@ namespace lsp
             // Save the peer connection
             pPeerConnection = safe_acquire(other);
 
+            // Register data sync
+            if (pPeerConnection != NULL)
+                pFactory->register_data_sync(this);
+
             return Steinberg::kResultOk;
         }
 
         Steinberg::tresult PLUGIN_API Controller::disconnect(Steinberg::Vst::IConnectionPoint *other)
         {
             lsp_trace("this=%p, other=%p", this, other);
+
+            // Unregister data sync
+            pFactory->unregister_data_sync(this);
 
             // Check that estimated peer connection matches the esimated one
             if (other == NULL)
@@ -510,14 +539,14 @@ namespace lsp
             }
             else if (!strcmp(message_id, ID_MSG_MESH))
             {
-                lsp_trace("Received message id=%s", message_id);
+//                lsp_trace("Received message id=%s", message_id);
 
                 // Read endianess
                 if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
                     return Steinberg::kResultFalse;
 
                 // Read identifier of the mesh port
-                const char *param_id = sNotifyBuf.get_string(atts, "id", byte_order);
+                const char *param_id = sRxNotifyBuf.get_string(atts, "id", byte_order);
                 if (param_id == NULL)
                     return Steinberg::kResultFalse;
 
@@ -577,7 +606,7 @@ namespace lsp
                     return Steinberg::kResultFalse;
 
                 // Read identifier of the mesh port
-                const char *param_id = sNotifyBuf.get_string(atts, "id", byte_order);
+                const char *param_id = sRxNotifyBuf.get_string(atts, "id", byte_order);
                 if (param_id == NULL)
                     return Steinberg::kResultFalse;
 
@@ -648,7 +677,7 @@ namespace lsp
                     return Steinberg::kResultFalse;
 
                 // Read identifier of the mesh port
-                const char *param_id = sNotifyBuf.get_string(atts, "id", byte_order);
+                const char *param_id = sRxNotifyBuf.get_string(atts, "id", byte_order);
                 if (param_id == NULL)
                     return Steinberg::kResultFalse;
 
@@ -738,10 +767,14 @@ namespace lsp
                 const void *data = NULL;
                 Steinberg::uint32 sizeInBytes = 0;
 
-                if (atts->getBinary(key, data, sizeInBytes) != Steinberg::kResultOk)
+                if (atts->getBinary("data", data, sizeInBytes) != Steinberg::kResultOk)
                     return Steinberg::kResultFalse;
 
-                receive_raw_osc_packet(data, sizeInBytes);
+                if (sKVTMutex.lock())
+                {
+                    receive_raw_osc_packet(data, sizeInBytes);
+                    sKVTMutex.unlock();
+                }
             }
 
             return Steinberg::kResultOk;
@@ -917,15 +950,12 @@ namespace lsp
                         return res;
                     }
 
-                    // This is KVT port
-                    if (p.type != core::KVT_ANY)
+                    // This is KVT port, skip private data for DSP code
+                    if ((p.type != core::KVT_ANY) && (!(flags & vst3::FLAG_PRIVATE)))
                     {
                         size_t kflags = core::KVT_TX;
-                        if (!(flags & vst3::FLAG_PRIVATE))
-                        {
-                            kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
-                            sKVT.put(name, &p, kflags);
-                        }
+                        kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
+                        sKVT.put(name, &p, kflags);
                     }
                 }
             }
@@ -1419,7 +1449,9 @@ namespace lsp
             }
 
             // Set file name
-            if (!sNotifyBuf.set_string(atts, "file", file))
+            if (file == NULL)
+                file        = "";
+            if (!sTxNotifyBuf.set_string(atts, "file", file))
             {
                 lsp_warn("Failed to set property 'file' to %s", file);
                 return STATUS_OK;
@@ -1449,6 +1481,9 @@ namespace lsp
             if (meta::is_control_port(meta))
             {
                 vst3::CtlParamPort *ip = static_cast<vst3::CtlParamPort *>(port);
+
+                lsp_trace("port write: id=%s, value=%f, flags=0x%x", ip->id(), ip->value(), int(flags));
+
                 if (ip->is_virtual())
                 {
                     // Check that we are available to send messages
@@ -1466,7 +1501,7 @@ namespace lsp
                     Steinberg::Vst::IAttributeList *list = msg->getAttributes();
 
                     // Write port identifier
-                    if (!sNotifyBuf.set_string(list, "id", meta->id))
+                    if (!sTxNotifyBuf.set_string(list, "id", meta->id))
                         return;
                     // Write flags
                     if (list->setInt("flags", flags) != Steinberg::kResultOk)
@@ -1492,6 +1527,9 @@ namespace lsp
             }
             else if (meta::is_path_port(meta))
             {
+                const char *path = port->buffer<char>();
+                lsp_trace("port write: id=%s, value='%s', flags=0x%x", port->id(), path, int(flags));
+
                 // Check that we are available to send messages
                 if (pPeerConnection == NULL)
                     return;
@@ -1507,16 +1545,16 @@ namespace lsp
                 Steinberg::Vst::IAttributeList *list = msg->getAttributes();
 
                 // Write port identifier
-                if (!sNotifyBuf.set_string(list, "id", meta->id))
+                if (!sTxNotifyBuf.set_string(list, "id", meta->id))
                     return;
                 // Write endianess
                 if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
                     return;
-                // Write the actual value
-                if (list->setFloat("flags", flags) != Steinberg::kResultOk)
+                // Write the actual flags value
+                if (list->setInt("flags", flags) != Steinberg::kResultOk)
                     return;
                 // Write port identifier
-                if (!sNotifyBuf.set_string(list, "value", meta->id))
+                if (!sTxNotifyBuf.set_string(list, "value", path))
                     return;
 
                 // Finally, we're ready to send message
@@ -1534,6 +1572,66 @@ namespace lsp
             return pFactory->acquire_run_loop();
         }
 #endif /* VST_USE_RUNLOOP_IFACE */
+
+        void Controller::send_kvt_state()
+        {
+            core::KVTIterator *iter = sKVT.enum_rx_pending();
+            if (iter == NULL)
+                return;
+
+            const core::kvt_param_t *p;
+            const char *kvt_name;
+            size_t size;
+            status_t res;
+
+            while (iter->next() == STATUS_OK)
+            {
+                // Fetch next change
+                res = iter->get(&p);
+                kvt_name = iter->name();
+                if ((res != STATUS_OK) || (kvt_name == NULL))
+                    break;
+
+                // Try to serialize changes
+                res = core::KVTDispatcher::build_message(kvt_name, p, pOscPacket, &size, OSC_PACKET_MAX);
+                if (res == STATUS_OK)
+                {
+                    lsp_trace("Sending UI->DSP KVT message of %d bytes", int(size));
+                    osc::dump_packet(pOscPacket, size);
+
+                    // Allocate new message
+                    Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                    if (msg == NULL)
+                        return;
+                    lsp_finally { safe_release(msg); };
+
+                    // Initialize the message
+                    msg->setMessageID(vst3::ID_MSG_KVT);
+                    Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                    if (list->setBinary("data", pOscPacket, size) != Steinberg::kResultOk)
+                        continue;
+                    pPeerConnection->notify(msg);
+                }
+
+                // Commit transfer
+                iter->commit(core::KVT_RX);
+            }
+        }
+
+        void Controller::sync_data()
+        {
+            if ((pPeerConnection == NULL) || (pHostApplication == NULL))
+                return;
+
+            // Transmit KVT state
+            if (sKVTMutex.lock())
+            {
+                send_kvt_state();
+                sKVT.gc();
+                sKVTMutex.unlock();
+            }
+        }
 
     } /* namespace vst3 */
 } /* namespace lsp */

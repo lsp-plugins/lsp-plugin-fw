@@ -59,7 +59,7 @@ namespace lsp
 
         bool string_buf::u16reserve(size_t cap)
         {
-            cap = lsp_max(cap, DEFAULT_CAP);
+            cap = lsp_min(cap, DEFAULT_CAP);
             if (cap < u16cap)
                 return true;
 
@@ -79,7 +79,7 @@ namespace lsp
 
         bool string_buf::u8reserve(size_t cap)
         {
-            cap = lsp_max(cap, DEFAULT_CAP);
+            cap = lsp_min(cap, DEFAULT_CAP);
             if (cap < u8cap)
                 return true;
 
@@ -106,6 +106,8 @@ namespace lsp
                     return NULL;
 
                 // Fetch string from attribute list
+                lsp_trace("cap=%d, u16str=%p, list=%p, count=%d",
+                    int(cap), u16str, list, int(cap * sizeof(lsp_utf16_t)));
                 Steinberg::tresult res = list->getString(id, to_tchar(u16str), cap * sizeof(lsp_utf16_t));
                 if (res != Steinberg::kResultOk)
                 {
@@ -114,7 +116,9 @@ namespace lsp
                 }
 
                 // Ensure that the whole string has been parsed (it should be NULL-terminated)
-                if (vst3::strnlen_u16(u16str, cap) < cap)
+                size_t len = vst3::strnlen_u16(u16str, cap);
+                lsp_trace("len=%d, cap=%d", int(len), int(cap));
+                if (len < cap)
                     break;
             }
 
@@ -146,7 +150,7 @@ namespace lsp
                     return NULL;
 
                 // Convert string from UTF-8 to UTF-16
-                size_t converted = utf8_to_utf16(u16str, id, u16cap);
+                size_t converted = utf8_to_utf16(u16str, value, u16cap);
 
                 // Ensure that string has been properly converted (number of codepoints should be positive)
                 if (converted > 0)

@@ -200,6 +200,7 @@ namespace lsp
 
                 virtual void set_value(float value, size_t flags) override
                 {
+                    lsp_trace("id=%s, value=%f, handler=%p", pMetadata->id, value, pHandler);
                     fValue      = meta::limit_value(pMetadata, value);
                     if (pHandler != NULL)
                         pHandler->port_write(this, flags);
