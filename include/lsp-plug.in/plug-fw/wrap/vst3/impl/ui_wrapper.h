@@ -592,9 +592,15 @@ namespace lsp
             sr.nWidth   = rect->right  - rect->left;
             sr.nHeight  = rect->bottom - rect->top;
 
-            dr = sr;
+            ws::size_limit_t sl;
+            wWindow->get_padded_size_limits(&sl);
 
-            wWindow->constraints()->apply(&dr, wWindow->scaling()->get());
+            lsp_trace("this=%p, width={min=%d, max=%d, pre=%d}, height={min=%d, max=%d, pre=%d}",
+                this,
+                int(sl.nMinWidth), int(sl.nMaxWidth), int(sl.nPreWidth),
+                int(sl.nMinHeight), int(sl.nMaxHeight), int(sl.nPreHeight));
+
+            tk::SizeConstraints::apply(&dr, &sr, &sl);
 
             lsp_trace("this=%p, constrained={left=%d, top=%d, width=%d, height=%d}",
                 this, int(dr.nLeft), int(dr.nTop), int(dr.nWidth), int(dr.nHeight));
