@@ -650,6 +650,7 @@ namespace lsp
                 {
                     vst3::PathPort *p       = new vst3::PathPort(port);
                     vParamMapping.create(port->id, p);
+                    vAllParams.add(p);
                     cp                      = p;
                     break;
                 }
@@ -1915,15 +1916,23 @@ namespace lsp
             }
 
             // Trigger settings update if any of input parameters has changed
+            bool state_dirty = false;
             for (size_t i=0, n=vAllParams.size(); i<n; ++i)
             {
-                vst3::ParameterPort *p = vAllParams.uget(i);
-                if ((p != NULL) && (p->check_pending()))
+                vst3::Port *p = vAllParams.uget(i);
+                if (p == NULL)
+                    continue;
+                sync_flags_t state = p->sync();
+                if (state == SYNC_CHANGED)
                 {
                     lsp_trace("port changed: %s=%f", p->id(), p->value());
                     bUpdateSettings     = true;
                 }
+                else if (state == SYNC_STATE)
+                    state_dirty         = true;
             }
+            if (state_dirty)
+                state_changed();
 
             // Reset meters
             for (size_t i=0, n=vMeters.size(); i<n; ++i)

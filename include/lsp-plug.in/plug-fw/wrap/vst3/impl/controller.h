@@ -475,7 +475,14 @@ namespace lsp
 
                 // Mark state as dirty
                 if (pComponentHandler2 != NULL)
+                {
+                    lsp_trace("Notified component handler about dirty state");
                     pComponentHandler2->setDirty(true);
+                }
+                else
+                {
+                    lsp_trace("pComponentHandler2 is NULL");
+                }
             }
             else if (!strcmp(message_id, ID_MSG_MUSIC_POSITION))
             {

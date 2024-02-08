@@ -38,6 +38,13 @@ namespace lsp
 {
     namespace vst3
     {
+        enum sync_flags_t
+        {
+            SYNC_NONE,
+            SYNC_CHANGED,
+            SYNC_STATE
+        };
+
         // Specify port classes
         class Port: public plug::IPort
         {
@@ -52,23 +59,7 @@ namespace lsp
                 Port & operator = (Port &&) = delete;
 
             public:
-                /**
-                 * Ensure that port is serializable
-                 * @return true if port is serializable
-                 */
-                virtual bool serializable() const { return false; }
-
-                /** Serialize the state of the port to the chunk
-                 *
-                 * @param os output stream to perform serialization
-                 */
-                virtual status_t serialize(const Steinberg::IBStream *os) { return STATUS_OK; }
-
-                /** Serialize the state of the port to the chunk
-                 *
-                 * @param is input stream to perform deserialization
-                 */
-                virtual status_t deserialize(const Steinberg::IBStream *is) { return STATUS_OK; }
+                virtual sync_flags_t sync() { return SYNC_NONE; }
         };
 
         /**
@@ -264,15 +255,6 @@ namespace lsp
                 inline void     set_change_index(uint32_t index)    { nChangeIndex = index; }
                 inline bool     is_virtual() const      { return bVirtual;              }
 
-                bool check_pending()
-                {
-                    float pending = fPending;
-                    if (fValue == pending)
-                        return false;
-                    fValue          = pending;
-                    return true;
-                }
-
                 bool commit_value(float value)
                 {
                     bool changed    = fValue != value;
@@ -287,6 +269,15 @@ namespace lsp
                 }
 
             public:
+                virtual sync_flags_t sync() override
+                {
+                    float pending = fPending;
+                    if (fValue == pending)
+                        return SYNC_NONE;
+                    fValue          = pending;
+                    return (bVirtual) ? SYNC_CHANGED : SYNC_STATE;
+                }
+
                 virtual float value() override { return fValue; }
                 virtual void *buffer() override { return NULL; }
         };
@@ -522,6 +513,11 @@ namespace lsp
                 virtual void *buffer() override
                 {
                     return static_cast<plug::path_t *>(&sPath);
+                }
+
+                virtual sync_flags_t sync() override
+                {
+                    return (sPath.sync()) ? SYNC_STATE : SYNC_NONE;
                 }
         };
 

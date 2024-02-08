@@ -138,6 +138,14 @@ namespace lsp
                 // Check accepted flags
                 if (nFlags & F_PENDING)
                     return !(nFlags & F_ACCEPTED);
+                return false;
+            }
+
+            bool sync()
+            {
+                // Check that path is not pending
+                if (nFlags & F_PENDING)
+                    return false;
 
                 // Check that we have pending sync request
                 if (nFlags & F_QPATH)
@@ -155,17 +163,19 @@ namespace lsp
                 // Check that we have pending async request
                 if (!(nAFlags & XF_APATH))
                     return false;
-                if (!atomic_trylock(nLock))
-                    return false;
-                lsp_finally {atomic_unlock(nLock); };
+                if (atomic_trylock(nLock))
+                {
+                    lsp_finally {atomic_unlock(nLock); };
 
-                // Copy data
-                strncpy(sPath, sAPath, MAX_PATH_LEN);
-                sPath[MAX_PATH_LEN-1]   = '\0';
-                sAPath[0]               = '\0';
-                nAFlags                 = 0;
-                nPathFlags              = nAPathFlags;
-                nFlags                  = F_PENDING;
+                    // Copy data
+                    strncpy(sPath, sAPath, MAX_PATH_LEN);
+                    sPath[MAX_PATH_LEN-1]   = '\0';
+                    sAPath[0]               = '\0';
+                    nAFlags                 = 0;
+                    nPathFlags              = nAPathFlags;
+                    nFlags                  = F_PENDING;
+                }
+
                 lsp_trace("Pending path=%s", sPath);
 
                 return true;
