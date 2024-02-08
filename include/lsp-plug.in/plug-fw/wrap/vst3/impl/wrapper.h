@@ -660,6 +660,7 @@ namespace lsp
                     vst3::ParameterPort *p  = new vst3::ParameterPort(port, postfix != NULL);
                     if (postfix == NULL)
                         vParams.add(p);
+                    vAllParams.add(p);
                     vParamMapping.create(port->id, p);
                     cp  = p;
                     break;
@@ -683,6 +684,7 @@ namespace lsp
                     vAllPorts.add(pg);
                     if (postfix == NULL)
                         vParams.add(pg);
+                    vAllParams.add(pg);
                     vParamMapping.create(port->id, pg);
                     plugin_ports->add(pg);
 
@@ -887,6 +889,7 @@ namespace lsp
             vAudioIn.flush();
             vAudioOut.flush();
             vParams.flush();
+            vAllParams.flush();
             vMeters.flush();
             vMeshes.flush();
             vFBuffers.flush();
@@ -1908,7 +1911,13 @@ namespace lsp
                 vst3::ParameterPort *p = vParams.uget(i);
                 if (p != NULL)
                     p->set_change_index(0);
-                if (p->check_pending())
+            }
+
+            // Trigger settings update if any of input parameters has changed
+            for (size_t i=0, n=vAllParams.size(); i<n; ++i)
+            {
+                vst3::ParameterPort *p = vAllParams.uget(i);
+                if ((p != NULL) && (p->check_pending()))
                 {
                     lsp_trace("port changed: %s=%f", p->id(), p->value());
                     bUpdateSettings     = true;
@@ -2155,9 +2164,14 @@ namespace lsp
 
                 // Obtain the destination port
                 vst3::Port *p = vParamMapping.get(id);
-                if ((p == NULL) || (!meta::is_control_port(p->metadata())) || (!meta::is_bypass_port(p->metadata())))
+                if (p == NULL)
                 {
                     lsp_warn("Invalid virtual parameter port specified: %s", id);
+                    return Steinberg::kResultFalse;
+                }
+                if (!((meta::is_control_port(p->metadata())) || (meta::is_bypass_port(p->metadata()))))
+                {
+                    lsp_warn("Invalid virtual parameter port type: %s", id);
                     return Steinberg::kResultFalse;
                 }
                 vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);

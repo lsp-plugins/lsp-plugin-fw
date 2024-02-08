@@ -138,6 +138,7 @@ namespace lsp
                 if (nFlags & F_PENDING)
                     return !(nFlags & F_ACCEPTED);
 
+                // Check that we have pending sync request
                 if (nFlags & F_QPATH)
                 {
                     strncpy(sPath, sQPath, MAX_PATH_LEN);
@@ -145,6 +146,8 @@ namespace lsp
                     sQPath[0]               = '\0';
                     nPathFlags              = nPPathFlags;
                     nFlags                  = F_PENDING;
+
+                    lsp_trace("Pending path=%s", sPath);
                     return true;
                 }
 
@@ -162,6 +165,7 @@ namespace lsp
                 nAFlags                 = 0;
                 nPathFlags              = nAPathFlags;
                 nFlags                  = F_PENDING;
+                lsp_trace("Pending path=%s", sPath);
 
                 return true;
             }
@@ -182,8 +186,8 @@ namespace lsp
                 const size_t count  = lsp_min(len, size_t(MAX_PATH_LEN - 1));
 
                 // Write DSP request
-                ::strncpy(sPath, path, count);
-                sPath[count]        = '\0';
+                ::strncpy(sQPath, path, count);
+                sQPath[count]       = '\0';
                 nPathFlags          = flags;
                 nFlags             |= F_QPATH;
             }
@@ -198,7 +202,7 @@ namespace lsp
                         lsp_finally { atomic_unlock(nLock); };
 
                         // Write Async request
-                        ::strncpy(sQPath, path, MAX_PATH_LEN);
+                        ::strncpy(sAPath, path, MAX_PATH_LEN);
                         sAPath[MAX_PATH_LEN-1]  = '\0';
                         nAFlags                 = XF_APATH;
                         nAPathFlags             = flags;

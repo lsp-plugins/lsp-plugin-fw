@@ -108,7 +108,8 @@ namespace lsp
                 lltl::parray<plug::IPort>           vAllPorts;              // All possible plugin ports
                 lltl::parray<audio_bus_t>           vAudioIn;               // Input audio busses
                 lltl::parray<audio_bus_t>           vAudioOut;              // Output audio busses
-                lltl::parray<vst3::ParameterPort>   vParams;                // Parameter ports
+                lltl::parray<vst3::ParameterPort>   vParams;                // Non-virtual parameter ports
+                lltl::parray<vst3::ParameterPort>   vAllParams;             // All parameter ports
                 lltl::parray<vst3::MeterPort>       vMeters;                // Meter ports
                 lltl::parray<plug::IPort>           vMeshes;                // Mesh ports
                 lltl::parray<plug::IPort>           vFBuffers;              // Frame buffer ports

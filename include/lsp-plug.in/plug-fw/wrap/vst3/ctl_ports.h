@@ -305,9 +305,9 @@ namespace lsp
             public:
                 virtual void write(const void* buffer, size_t size, size_t flags) override
                 {
-                    size    = lsp_min(size, size_t(MAX_PATH_LEN));
+                    size    = lsp_min(size, size_t(MAX_PATH_LEN-1));
                     strncpy(sPath, reinterpret_cast<const char *>(buffer), size);
-                    sPath[MAX_PATH_LEN - 1] = '\0';
+                    sPath[size] = '\0';
                     if (pHandler != NULL)
                         pHandler->port_write(this, flags);
                 }

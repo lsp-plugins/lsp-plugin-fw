@@ -106,8 +106,8 @@ namespace lsp
                     return NULL;
 
                 // Fetch string from attribute list
-                lsp_trace("cap=%d, u16str=%p, list=%p, count=%d",
-                    int(cap), u16str, list, int(cap * sizeof(lsp_utf16_t)));
+//                lsp_trace("cap=%d, u16str=%p, list=%p, count=%d",
+//                    int(cap), u16str, list, int(cap * sizeof(lsp_utf16_t)));
                 Steinberg::tresult res = list->getString(id, to_tchar(u16str), cap * sizeof(lsp_utf16_t));
                 if (res != Steinberg::kResultOk)
                 {
@@ -117,7 +117,7 @@ namespace lsp
 
                 // Ensure that the whole string has been parsed (it should be NULL-terminated)
                 size_t len = vst3::strnlen_u16(u16str, cap);
-                lsp_trace("len=%d, cap=%d", int(len), int(cap));
+//                lsp_trace("len=%d, cap=%d", int(len), int(cap));
                 if (len < cap)
                     break;
             }
@@ -137,6 +137,8 @@ namespace lsp
                 if (converted > 0)
                     break;
             }
+
+//            lsp_trace("data = %s", u8str);
 
             return u8str;
         }

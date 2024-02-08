@@ -548,29 +548,50 @@ namespace lsp
                 // Read identifier of the mesh port
                 const char *param_id = sRxNotifyBuf.get_string(atts, "id", byte_order);
                 if (param_id == NULL)
+                {
+                    lsp_trace("No mesh port identifier");
                     return Steinberg::kResultFalse;
+                }
 
                 // Get port and validate it's type
                 vst3::CtlPort *port     = port_by_id(param_id);
                 if (port == NULL)
+                {
+                    lsp_trace("Not found mesh port id=%s", param_id);
                     return Steinberg::kResultFalse;
+                }
                 const meta::port_t *meta = port->metadata();
                 if ((meta == NULL) || (!meta::is_mesh_port(meta)))
+                {
+                    lsp_trace("Not a mesh port id=%s", param_id);
                     return Steinberg::kResultFalse;
+                }
 
                 // Read number of buffers
                 Steinberg::int64 buffers = 0;
                 if (atts->getInt("buffers", buffers) != Steinberg::kResultOk)
+                {
+                    lsp_trace("Not found attribute 'buffers'");
                     return Steinberg::kResultFalse;
+                }
                 if ((buffers < 0) || (buffers > meta->step))
+                {
+                    lsp_trace("Invalid value buffers=%d", int(buffers));
                     return Steinberg::kResultFalse;
+                }
 
                 // Read number of elements per buffer
                 Steinberg::int64 items = 0;
-                if (atts->setInt("items", items) != Steinberg::kResultOk)
+                if (atts->getInt("items", items) != Steinberg::kResultOk)
+                {
+                    lsp_trace("Not found attribute 'items'");
                     return Steinberg::kResultFalse;
+                }
                 if ((items < 0) || (items > meta->start))
+                {
+                    lsp_trace("Invalid value items=%d", int(items));
                     return Steinberg::kResultFalse;
+                }
 
                 // Encode data for each buffer
                 plug::mesh_t *mesh = port->buffer<plug::mesh_t>();
@@ -580,9 +601,16 @@ namespace lsp
                 {
                     snprintf(key, sizeof(key), "data[%d]", int(i));
                     if (atts->getBinary(key, data, sizeInBytes) != Steinberg::kResultOk)
+                    {
+                        lsp_trace("Failed to get binary for key=%s", key);
                         return Steinberg::kResultFalse;
+                    }
                     if (sizeInBytes != items * sizeof(float))
+                    {
+                        lsp_trace("size of binary key=%s does not match: size=%d, expected=%d",
+                            key, int(sizeInBytes), int(items * sizeof(float)));
                         return Steinberg::kResultFalse;
+                    }
 
                     if (byte_order != VST3_BYTEORDER)
                     {
@@ -594,6 +622,7 @@ namespace lsp
                 }
 
                 // Update state of the mesh and notify
+                lsp_trace("Committed mesh data buffers=%d, items=%d", int(buffers), int(items));
                 mesh->data(buffers, items);
                 port->mark_changed();
             }
