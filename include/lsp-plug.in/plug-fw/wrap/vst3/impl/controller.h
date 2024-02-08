@@ -966,20 +966,7 @@ namespace lsp
                     if (p != NULL)
                     {
                         const meta::port_t *meta = p->metadata();
-                        if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)))
-                        {
-                            vst3::CtlParamPort *pp      = static_cast<vst3::CtlParamPort *>(p);
-                            float v = 0.0f;
-                            if ((res = read_fully(is, &v)) != STATUS_OK)
-                            {
-                                lsp_warn("Failed to deserialize port id=%s", name);
-                                return res;
-                            }
-                            lsp_trace("  %s = %f", meta->id, v);
-                            pp->commit_value(v);
-                            pp->mark_changed();
-                        }
-                        else if (meta::is_path_port(meta))
+                        if (meta::is_path_port(meta))
                         {
                             vst3::CtlPathPort *pp       = static_cast<vst3::CtlPathPort *>(p);
 
@@ -990,6 +977,19 @@ namespace lsp
                             }
                             lsp_trace("  %s = %s", meta->id, name);
                             pp->commit_value(name);
+                            pp->mark_changed();
+                        }
+                        else
+                        {
+                            vst3::CtlParamPort *pp      = static_cast<vst3::CtlParamPort *>(p);
+                            float v = 0.0f;
+                            if ((res = read_fully(is, &v)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", name);
+                                return res;
+                            }
+                            lsp_trace("  %s = %f", meta->id, v);
+                            pp->commit_value(v);
                             pp->mark_changed();
                         }
                     }
@@ -1556,7 +1556,42 @@ namespace lsp
         void Controller::port_write(vst3::CtlPort *port, size_t flags)
         {
             const meta::port_t *meta = port->metadata();
-            if (meta::is_control_port(meta))
+            if (meta::is_path_port(meta))
+            {
+                const char *path = port->buffer<char>();
+                lsp_trace("port write: id=%s, value='%s', flags=0x%x", port->id(), path, int(flags));
+
+                // Check that we are available to send messages
+                if (pPeerConnection == NULL)
+                    return;
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID(vst3::ID_MSG_PATH);
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write port identifier
+                if (!sTxNotifyBuf.set_string(list, "id", meta->id))
+                    return;
+                // Write endianess
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                    return;
+                // Write the actual flags value
+                if (list->setInt("flags", flags) != Steinberg::kResultOk)
+                    return;
+                // Write port identifier
+                if (!sTxNotifyBuf.set_string(list, "value", path))
+                    return;
+
+                // Finally, we're ready to send message
+                pPeerConnection->notify(msg);
+            }
+            else
             {
                 vst3::CtlParamPort *ip = static_cast<vst3::CtlParamPort *>(port);
 
@@ -1602,41 +1637,6 @@ namespace lsp
                     pComponentHandler->performEdit(param_id, valueNormalized);
                     pComponentHandler->endEdit(param_id);
                 }
-            }
-            else if (meta::is_path_port(meta))
-            {
-                const char *path = port->buffer<char>();
-                lsp_trace("port write: id=%s, value='%s', flags=0x%x", port->id(), path, int(flags));
-
-                // Check that we are available to send messages
-                if (pPeerConnection == NULL)
-                    return;
-
-                // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
-                if (msg == NULL)
-                    return;
-                lsp_finally { safe_release(msg); };
-
-                // Initialize the message
-                msg->setMessageID(vst3::ID_MSG_PATH);
-                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
-
-                // Write port identifier
-                if (!sTxNotifyBuf.set_string(list, "id", meta->id))
-                    return;
-                // Write endianess
-                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
-                    return;
-                // Write the actual flags value
-                if (list->setInt("flags", flags) != Steinberg::kResultOk)
-                    return;
-                // Write port identifier
-                if (!sTxNotifyBuf.set_string(list, "value", path))
-                    return;
-
-                // Finally, we're ready to send message
-                pPeerConnection->notify(msg);
             }
         }
 

@@ -1203,14 +1203,32 @@ namespace lsp
                 return res;
 
             // Write parameters
-            for (lltl::iterator<vst3::Port> it = vParamMapping.values(); it; ++it)
+            for (lltl::iterator<vst3::Port> it = vAllParams.values(); it; ++it)
             {
                 vst3::Port *p = it.get();
                 const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
                 if ((meta == NULL) || (meta->id == NULL))
                     continue;
 
-                if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)))
+                if (meta::is_path_port(meta))
+                {
+                    path_t *path = p->buffer<path_t>();
+                    if (path == NULL)
+                    {
+                        lsp_trace("path == NULL for PATH port");
+                        return STATUS_CORRUPTED;
+                    }
+
+                    lsp_trace("Saving state of path parameter: %s = %s", meta->id, path->path());
+
+                    const char *path_value = path->path();
+                    if ((res = write_value(os, meta->id, path_value)) != STATUS_OK)
+                    {
+                        lsp_trace("write_value failed for id=%s", meta->id);
+                        return res;
+                    }
+                }
+                else
                 {
                     vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);
                     lsp_trace("Saving state of %sparameter: %s = %f",
@@ -1219,22 +1237,11 @@ namespace lsp
                         p->value());
 
                     if ((res = write_value(os, meta->id, p->value())) != STATUS_OK)
+                    {
+                        lsp_trace("write_value failed for id=%s", meta->id);
                         return res;
+                    }
                 }
-                else if (meta::is_path_port(meta))
-                {
-                    path_t *path = p->buffer<path_t>();
-                    if (path == NULL)
-                        return STATUS_CORRUPTED;
-
-                    lsp_trace("Saving state of path parameter: %s = %s", meta->id, path->path());
-
-                    const char *path_value = path->path();
-                    if ((res = write_value(os, meta->id, path_value)) != STATUS_OK)
-                        return res;
-                }
-                else
-                    return STATUS_CORRUPTED;
             }
 
             // Save state of all KVT parameters
@@ -1242,6 +1249,8 @@ namespace lsp
             {
                 lsp_finally { sKVTMutex.unlock(); };
                 res = save_kvt_parameters_v1(os, &sKVT);
+                if (res != STATUS_OK)
+                    lsp_trace("Failed saving KVT parameters");
                 sKVT.gc();
             }
 
@@ -1325,19 +1334,7 @@ namespace lsp
                     if (p != NULL)
                     {
                         const meta::port_t *meta = p->metadata();
-                        if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)))
-                        {
-                            vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);
-                            float v = 0.0f;
-                            if ((res = read_fully(is, &v)) != STATUS_OK)
-                            {
-                                lsp_warn("Failed to deserialize port id=%s", name);
-                                return res;
-                            }
-                            lsp_trace("  %s = %f", meta->id, v);
-                            pp->submit(v);
-                        }
-                        else if (meta::is_path_port(meta))
+                        if (meta::is_path_port(meta))
                         {
                             path_t *xp  = p->buffer<path_t>();
 
@@ -1348,6 +1345,18 @@ namespace lsp
                             }
                             lsp_trace("  %s = %s", meta->id, name);
                             xp->submit(name, strlen(name), plug::PF_STATE_RESTORE);
+                        }
+                        else
+                        {
+                            vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);
+                            float v = 0.0f;
+                            if ((res = read_fully(is, &v)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", name);
+                                return res;
+                            }
+                            lsp_trace("  %s = %f", meta->id, v);
+                            pp->submit(v);
                         }
                     }
                     else
@@ -1421,6 +1430,8 @@ namespace lsp
             IF_TRACE(
                 lsp_dumpb("State dump:", os.data(), os.size());
             );
+
+            lsp_trace("get_state finished this=%p, state=%p result=%d", this, state, int(res));
 
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
@@ -2179,7 +2190,7 @@ namespace lsp
                     lsp_warn("Invalid virtual parameter port specified: %s", id);
                     return Steinberg::kResultFalse;
                 }
-                if (!((meta::is_control_port(p->metadata())) || (meta::is_bypass_port(p->metadata()))))
+                if (meta::is_path_port(p->metadata()))
                 {
                     lsp_warn("Invalid virtual parameter port type: %s", id);
                     return Steinberg::kResultFalse;
