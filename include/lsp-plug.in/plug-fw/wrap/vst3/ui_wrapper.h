@@ -58,6 +58,8 @@ namespace lsp
                 vst3::Controller                   *pController;            // Controller
                 Steinberg::IPlugFrame              *pPlugFrame;             // Plugin frame
                 float                               fScalingFactor;         // Scaling factor
+                volatile uatomic_t                  nPlayPositionReq;
+                volatile uatomic_t                  nPlayPositionResp;
 
                 lltl::parray<vst3::UIPort>          vSync;                  // Synchronization ports
 
@@ -96,6 +98,7 @@ namespace lsp
                 Steinberg::tresult                  show_about_box();
                 Steinberg::tresult                  show_help();
                 void                                commit_position(const plug::position_t *pos);
+                void                                set_play_position(wssize_t position, wssize_t length);
 
             public: // ui::Wrapper
                 virtual core::KVTStorage           *kvt_lock() override;

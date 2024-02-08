@@ -119,7 +119,10 @@ namespace lsp
                 event_bus_t                        *pEventsIn;              // Input event bus
                 event_bus_t                        *pEventsOut;             // Output event bus
                 core::SamplePlayer                 *pSamplePlayer;          // Sample player
+                wssize_t                            nPlayPosition;          // Sample playback position
+                wssize_t                            nPlayLength;            // Sample playback length
                 plug::position_t                    sUIPosition;            // Position notified to UI
+
 
                 vst3::string_buf                    sRxNotifyBuf;           // Notify buffer for notify() processing
                 vst3::string_buf                    sTxNotifyBuf;           // Notify buffer for sync_data()
@@ -173,6 +176,15 @@ namespace lsp
                 status_t                    save_state(Steinberg::IBStream *os);
                 status_t                    load_state(Steinberg::IBStream *is);
                 void                        toggle_ui_state();
+                void                        report_latency();
+                void                        report_state_change();
+                void                        report_music_position();
+                void                        transmit_kvt_changes();
+                void                        transmit_meter_values();
+                void                        transmit_mesh_states();
+                void                        transmit_frame_buffers();
+                void                        transmit_streams();
+                void                        transmit_play_position();
 
             public:
                 explicit Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package);

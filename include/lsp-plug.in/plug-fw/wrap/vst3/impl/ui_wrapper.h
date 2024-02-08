@@ -55,6 +55,8 @@ namespace lsp
             pController         = safe_acquire(controller);
             pPlugFrame          = NULL;
             fScalingFactor      = -1.0f;
+            nPlayPositionReq    = 0;
+            nPlayPositionResp   = 0;
 
         #ifdef VST_USE_RUNLOOP_IFACE
             pRunLoop            = NULL;
@@ -376,6 +378,23 @@ namespace lsp
             sync_with_controller();
             sync_with_dsp();
 
+            // Synchronize play position
+            uatomic_t play_req = nPlayPositionReq;
+            if (play_req != nPlayPositionResp)
+            {
+                lltl::parray<ui::IPlayListener> listeners;
+                listeners.add(vPlayListeners);
+                for (size_t i=0; i<vPlayListeners.size(); ++i)
+                {
+                    ui::IPlayListener *listener = vPlayListeners.uget(i);
+                    if (listener != NULL)
+                        listener->play_position_update(nPlayPosition, nPlayLength);
+                }
+
+                // Commit response ID
+                nPlayPositionResp   = play_req;
+            }
+
             // Transmit KVT state
             core::KVTStorage *kvt = kvt_trylock();
             if (kvt != NULL)
@@ -406,6 +425,14 @@ namespace lsp
         void UIWrapper::commit_position(const plug::position_t *pos)
         {
             position_updated(pos);
+        }
+
+        void UIWrapper::set_play_position(wssize_t position, wssize_t length)
+        {
+            // Update position and increment the change counter
+            nPlayPosition       = position;
+            nPlayLength         = length;
+            atomic_add(&nPlayPositionReq, 1);
         }
 
         Steinberg::tresult UIWrapper::show_about_box()

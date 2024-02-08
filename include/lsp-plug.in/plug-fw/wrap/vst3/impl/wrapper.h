@@ -78,11 +78,12 @@ namespace lsp
             pEventsIn           = NULL;
             pEventsOut          = NULL;
             pSamplePlayer       = NULL;
+            nPlayPosition       = 0;
+            nPlayLength         = 0;
+            sUIPosition         = sPosition;
 
             pKVTDispatcher      = NULL;
             pOscPacket          = NULL;
-
-            sUIPosition         = sPosition;
 
             atomic_init(nPositionLock);
             nUICounterReq       = 0;
@@ -2269,178 +2270,177 @@ namespace lsp
             return Steinberg::kResultOk;
         }
 
-        void Wrapper::sync_data()
+        void Wrapper::report_latency()
         {
-            // We have nothing to do if we can not allocate messages nor notify peer
-            if ((pHostApplication == NULL) || (pPeerConnection == NULL))
-                return;
-
-            // Set-up DSP context
-            dsp::context_t ctx;
-            dsp::start(&ctx);
-            lsp_finally { dsp::finish(&ctx); };
-
-            Steinberg::char8 key[32];
-
             // Report latency
             size_t latency      = pPlugin->latency();
-            if (latency != nLatency)
-            {
-                // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
-                if (msg == NULL)
-                    return;
-                lsp_finally { safe_release(msg); };
-
-                // Initialize the message
-                msg->setMessageID(vst3::ID_MSG_LATENCY);
-                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
-
-                // Write the actual value
-                if (list->setInt("value", latency) != Steinberg::kResultOk)
-                    return;
-
-                // Send the message and commit state
-                if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
-                    nLatency = latency;
-            }
-
-            // Report state change
-            uatomic_t dirty_req = nDirtyReq;
-            if (dirty_req != nDirtyResp)
-            {
-                // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
-                if (msg == NULL)
-                    return;
-                lsp_finally { safe_release(msg); };
-
-                // Initialize the message
-                msg->setMessageID(vst3::ID_MSG_STATE_DIRTY);
-
-                // Send the message and commit state
-                if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
-                    nDirtyResp = dirty_req;
-            }
-
-            // Send position information
-            if (atomic_trylock(nPositionLock))
-            {
-                plug::position_t pos        = sUIPosition;
-                atomic_unlock(nPositionLock);
-
-                // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
-                if (msg == NULL)
-                    return;
-                lsp_finally { safe_release(msg); };
-
-                // Initialize the message
-                msg->setMessageID(vst3::ID_MSG_MUSIC_POSITION);
-                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
-
-                if (list->setFloat("sample_rate", pos.sampleRate) != Steinberg::kResultOk)
-                    return;
-                if (list->setFloat("speed", pos.speed) != Steinberg::kResultOk)
-                    return;
-                if (list->setInt("frame", pos.frame) != Steinberg::kResultOk)
-                    return;
-                if (list->setFloat("numerator", pos.numerator) != Steinberg::kResultOk)
-                    return;
-                if (list->setFloat("denominator", pos.denominator) != Steinberg::kResultOk)
-                    return;
-                if (list->setFloat("bpm", pos.beatsPerMinute) != Steinberg::kResultOk)
-                    return;
-                if (list->setFloat("bpm_change", pos.beatsPerMinuteChange) != Steinberg::kResultOk)
-                    return;
-                if (list->setFloat("tick", pos.tick) != Steinberg::kResultOk)
-                    return;
-                if (list->setFloat("ticks_per_beat", pos.ticksPerBeat) != Steinberg::kResultOk)
-                    return;
-
-                // Send the message and commit state
-                pPeerConnection->notify(msg);
-            }
-
-            // Transmit KVT state
-            if (pKVTDispatcher != NULL)
-            {
-                size_t size = 0;
-                bool encoded = true;
-
-                do
-                {
-                    pKVTDispatcher->iterate();
-                    status_t res = pKVTDispatcher->fetch(pOscPacket, &size, OSC_PACKET_MAX);
-
-                    switch (res)
-                    {
-                        case STATUS_OK:
-                        {
-                            lsp_trace("Sending DSP->UI KVT message of %d bytes", int(size));
-                            osc::dump_packet(pOscPacket, size);
-
-                            // Allocate new message
-                            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
-                            if (msg == NULL)
-                                continue;
-                            lsp_finally { safe_release(msg); };
-
-                            // Initialize the message
-                            msg->setMessageID(vst3::ID_MSG_KVT);
-                            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
-
-                            encoded = list->setBinary("data", pOscPacket, size) == Steinberg::kResultOk;
-                            pPeerConnection->notify(msg);
-                            break;
-                        }
-
-                        case STATUS_OVERFLOW:
-                            lsp_warn("Received too big OSC packet, skipping");
-                            pKVTDispatcher->skip();
-                            break;
-
-                        case STATUS_NO_DATA:
-                            encoded = false;
-                            break;
-
-                        default:
-                            lsp_warn("Received error while deserializing KVT changes: %d", int(res));
-                            encoded = false;
-                            break;
-                    }
-                } while (encoded);
-            }
-
-            // Do not synchronize other data until there is no UI visible
-            if (nUICounterResp <= 0)
+            if (latency == nLatency)
                 return;
 
-            // Synchronize meters
-            if (vMeters.size() > 0)
+            // Allocate new message
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            if (msg == NULL)
+                return;
+            lsp_finally { safe_release(msg); };
+
+            // Initialize the message
+            msg->setMessageID(vst3::ID_MSG_LATENCY);
+            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+            // Write the actual value
+            if (list->setInt("value", latency) != Steinberg::kResultOk)
+                return;
+
+            // Send the message and commit state
+            if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
+                nLatency = latency;
+        }
+
+        void Wrapper::report_state_change()
+        {
+            // Report state change
+            uatomic_t dirty_req = nDirtyReq;
+            if (dirty_req == nDirtyResp)
+                return;
+
+            // Allocate new message
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            if (msg == NULL)
+                return;
+            lsp_finally { safe_release(msg); };
+
+            // Initialize the message
+            msg->setMessageID(vst3::ID_MSG_STATE_DIRTY);
+
+            // Send the message and commit state
+            if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
+                nDirtyResp = dirty_req;
+        }
+
+        void Wrapper::report_music_position()
+        {
+            // Send position information
+            if (!atomic_trylock(nPositionLock))
+                return;
+
+            plug::position_t pos        = sUIPosition;
+            atomic_unlock(nPositionLock);
+
+            // Allocate new message
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            if (msg == NULL)
+                return;
+            lsp_finally { safe_release(msg); };
+
+            // Initialize the message
+            msg->setMessageID(vst3::ID_MSG_MUSIC_POSITION);
+            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+            if (list->setFloat("sample_rate", pos.sampleRate) != Steinberg::kResultOk)
+                return;
+            if (list->setFloat("speed", pos.speed) != Steinberg::kResultOk)
+                return;
+            if (list->setInt("frame", pos.frame) != Steinberg::kResultOk)
+                return;
+            if (list->setFloat("numerator", pos.numerator) != Steinberg::kResultOk)
+                return;
+            if (list->setFloat("denominator", pos.denominator) != Steinberg::kResultOk)
+                return;
+            if (list->setFloat("bpm", pos.beatsPerMinute) != Steinberg::kResultOk)
+                return;
+            if (list->setFloat("bpm_change", pos.beatsPerMinuteChange) != Steinberg::kResultOk)
+                return;
+            if (list->setFloat("tick", pos.tick) != Steinberg::kResultOk)
+                return;
+            if (list->setFloat("ticks_per_beat", pos.ticksPerBeat) != Steinberg::kResultOk)
+                return;
+
+            // Send the message and commit state
+            pPeerConnection->notify(msg);
+        }
+
+        void Wrapper::transmit_kvt_changes()
+        {
+            if (pKVTDispatcher == NULL)
+                return;
+
+            size_t size = 0;
+            bool encoded = true;
+
+            do
             {
-                // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
-                if (msg == NULL)
-                    return;
-                lsp_finally { safe_release(msg); };
+                pKVTDispatcher->iterate();
+                status_t res = pKVTDispatcher->fetch(pOscPacket, &size, OSC_PACKET_MAX);
 
-                // Initialize the message
-                msg->setMessageID(vst3::ID_MSG_METERS);
-                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
-
-                for (lltl::iterator<vst3::MeterPort> it = vMeters.values(); it; ++it)
+                switch (res)
                 {
-                    // Write the actual value
-                    if (list->setFloat(it->id(), it->display()) != Steinberg::kResultOk)
-                        return;
-                }
+                    case STATUS_OK:
+                    {
+                        lsp_trace("Sending DSP->UI KVT message of %d bytes", int(size));
+                        osc::dump_packet(pOscPacket, size);
 
-                // Notify receiver
-                pPeerConnection->notify(msg);
+                        // Allocate new message
+                        Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                        if (msg == NULL)
+                            continue;
+                        lsp_finally { safe_release(msg); };
+
+                        // Initialize the message
+                        msg->setMessageID(vst3::ID_MSG_KVT);
+                        Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                        encoded = list->setBinary("data", pOscPacket, size) == Steinberg::kResultOk;
+                        pPeerConnection->notify(msg);
+                        break;
+                    }
+
+                    case STATUS_OVERFLOW:
+                        lsp_warn("Received too big OSC packet, skipping");
+                        pKVTDispatcher->skip();
+                        break;
+
+                    case STATUS_NO_DATA:
+                        encoded = false;
+                        break;
+
+                    default:
+                        lsp_warn("Received error while deserializing KVT changes: %d", int(res));
+                        encoded = false;
+                        break;
+                }
+            } while (encoded);
+        }
+
+        void Wrapper::transmit_meter_values()
+        {
+            if (vMeters.is_empty())
+                return;
+
+            // Allocate new message
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            if (msg == NULL)
+                return;
+            lsp_finally { safe_release(msg); };
+
+            // Initialize the message
+            msg->setMessageID(vst3::ID_MSG_METERS);
+            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+            for (lltl::iterator<vst3::MeterPort> it = vMeters.values(); it; ++it)
+            {
+                // Write the actual value
+                if (list->setFloat(it->id(), it->display()) != Steinberg::kResultOk)
+                    return;
             }
 
-            // Synchronize meshes
+            // Notify receiver
+            pPeerConnection->notify(msg);
+        }
+
+        void Wrapper::transmit_mesh_states()
+        {
+            Steinberg::char8 key[32];
+
             for (lltl::iterator<plug::IPort> it = vMeshes.values(); it; ++it)
             {
                 // Check that we have data in mesh
@@ -2492,6 +2492,11 @@ namespace lsp
                 if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
                     mesh->cleanup();
             }
+        }
+
+        void Wrapper::transmit_frame_buffers()
+        {
+            Steinberg::char8 key[32];
 
             // Synchronize frame buffers
             for (lltl::iterator<plug::IPort> it=vFBuffers.values(); it; ++it)
@@ -2560,6 +2565,11 @@ namespace lsp
                 if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
                     fb_port->set_row_id(first_row);
             }
+        }
+
+        void Wrapper::transmit_streams()
+        {
+            Steinberg::char8 key[32];
 
             // Synchronize streams
             for (lltl::iterator<plug::IPort> it=vStreams.values(); it; ++it)
@@ -2659,6 +2669,67 @@ namespace lsp
 
                 // Update current RowID
                 s_port->set_frame_id(frame_id);
+            }
+        }
+
+        void Wrapper::transmit_play_position()
+        {
+            // Send sample playback position information
+            if (pSamplePlayer == NULL)
+                return;
+
+            wssize_t position   = pSamplePlayer->position();
+            wssize_t length     = pSamplePlayer->sample_length();
+            if ((nPlayPosition == position) && (nPlayLength == length))
+                return;
+
+            lsp_trace("position = %lld, length=%lld", (long long)position, (long long)length);
+
+            // Allocate new message
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            if (msg == NULL)
+                return;
+            lsp_finally { safe_release(msg); };
+
+            // Initialize the message
+            msg->setMessageID(vst3::ID_MSG_PLAY_SAMPLE_POSITION);
+            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+            if (list->setInt("position", position) != Steinberg::kResultOk)
+                return;
+            if (list->setInt("length", length) != Steinberg::kResultOk)
+                return;
+
+            // Send the message and commit state
+            nPlayPosition       = position;
+            nPlayLength         = length;
+            pPeerConnection->notify(msg);
+        }
+
+        void Wrapper::sync_data()
+        {
+            // We have nothing to do if we can not allocate messages nor notify peer
+            if ((pHostApplication == NULL) || (pPeerConnection == NULL))
+                return;
+
+            // Set-up DSP context
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
+
+            report_latency();
+            report_state_change();
+            report_music_position();
+            transmit_kvt_changes();
+
+            // Do not synchronize other data until there is no UI visible
+            if (nUICounterResp > 0)
+            {
+                transmit_meter_values();
+                transmit_mesh_states();
+                transmit_frame_buffers();
+                transmit_streams();
+                transmit_play_position();
             }
         }
 

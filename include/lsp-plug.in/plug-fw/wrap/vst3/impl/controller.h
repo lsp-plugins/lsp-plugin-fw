@@ -508,11 +508,38 @@ namespace lsp
                 pos.frame           = frame;
 
                 // Notify UI about position update
-                for (lltl::iterator<UIWrapper> it = vWrappers.values(); it; ++it)
+                if (sWrappersLock.lock())
                 {
-                    UIWrapper *w = it.get();
-                    if (w != NULL)
-                        w->commit_position(&pos);
+                    lsp_finally { sWrappersLock.unlock(); };
+                    for (lltl::iterator<UIWrapper> it = vWrappers.values(); it; ++it)
+                    {
+                        UIWrapper *w = it.get();
+                        if (w != NULL)
+                            w->commit_position(&pos);
+                    }
+                }
+            }
+            else if (!strcmp(message_id, ID_MSG_PLAY_SAMPLE_POSITION))
+            {
+                Steinberg::int64 position = 0, length = 0;
+
+                if (atts->getInt("position", position) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getInt("length", length) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                lsp_trace("Received play position = %lld, length=%lld", (long long)position, (long long)length);
+
+                // Notify UI about position update
+                if (sWrappersLock.lock())
+                {
+                    lsp_finally { sWrappersLock.unlock(); };
+                    for (lltl::iterator<UIWrapper> it = vWrappers.values(); it; ++it)
+                    {
+                        UIWrapper *w = it.get();
+                        if (w != NULL)
+                            w->set_play_position(position, length);
+                    }
                 }
             }
             else if (!strcmp(message_id, ID_MSG_METERS))
@@ -1347,20 +1374,23 @@ namespace lsp
             }
 
             // Add wrapper to list of wrappers
-            if (vWrappers.add(w))
+            if (sWrappersLock.lock())
             {
-                // Notify backend about UI activation
-                if (pPeerConnection != NULL)
+                lsp_finally { sWrappersLock.unlock(); };
+                vWrappers.add(w);
+            }
+
+            // Notify backend about UI activation
+            if (pPeerConnection != NULL)
+            {
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                if (msg != NULL)
                 {
-                    // Allocate new message
-                    Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
-                    if (msg != NULL)
-                    {
-                        lsp_finally { safe_release(msg); };
-                        // Initialize and send the message
-                        msg->setMessageID(vst3::ID_MSG_ACTIVATE_UI);
-                        pPeerConnection->notify(msg);
-                    }
+                    lsp_finally { safe_release(msg); };
+                    // Initialize and send the message
+                    msg->setMessageID(vst3::ID_MSG_ACTIVATE_UI);
+                    pPeerConnection->notify(msg);
                 }
             }
 
@@ -1382,6 +1412,10 @@ namespace lsp
             if (onlyCheck)
                 return Steinberg::kResultOk;
 
+            if (!sWrappersLock.lock())
+                return Steinberg::kResultOk;
+            lsp_finally { sWrappersLock.unlock(); };
+
             vst3::UIWrapper *w = vWrappers.last();
             return (w != NULL) ? w->show_help() : Steinberg::kResultOk;
         }
@@ -1392,6 +1426,10 @@ namespace lsp
 
             if (onlyCheck)
                 return Steinberg::kResultOk;
+
+            if (!sWrappersLock.lock())
+                return Steinberg::kResultOk;
+            lsp_finally { sWrappersLock.unlock(); };
 
             vst3::UIWrapper *w = vWrappers.last();
             return (w != NULL) ? w->show_about_box() : Steinberg::kResultOk;
@@ -1428,8 +1466,12 @@ namespace lsp
 
         status_t Controller::detach_ui_wrapper(UIWrapper *wrapper)
         {
-            if (!vWrappers.qpremove(wrapper))
-                return STATUS_NOT_FOUND;
+            if (sWrappersLock.lock())
+            {
+                lsp_finally { sWrappersLock.unlock(); };
+                if (!vWrappers.qpremove(wrapper))
+                    return STATUS_NOT_FOUND;
+            }
 
             // Notify backend about UI deactivation
             if (pPeerConnection != NULL)

@@ -76,6 +76,7 @@ namespace lsp
                 lltl::parray<vst3::CtlParamPort>    vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
                 lltl::parray<vst3::CtlMeterPort>    vMeters;                // Meters
                 lltl::pphash<char, vst3::CtlPort>   vParamMapping;          // Parameter mapping
+                ipc::Mutex                          sWrappersLock;          // Lock of wrappers
                 lltl::parray<vst3::UIWrapper>       vWrappers;              // UI wrappers
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
