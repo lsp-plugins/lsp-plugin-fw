@@ -61,6 +61,11 @@ namespace lsp
         constexpr const char *ID_MSG_DEACTIVATE_UI          = "UIDeactivate";
         constexpr const char *ID_MSG_PLAY_SAMPLE            = "PlaySample";
 
+        constexpr const Steinberg::Vst::ParamID MIDI_MAPPING_PARAM_BASE = 0x80000000;
+        constexpr const Steinberg::Vst::ParamID PARAM_ID_MODULO         = 0x7fffffff;
+
+        constexpr const size_t MIDI_MAPPING_SIZE            = Steinberg::Vst::kCountCtrlNumber * midi::MIDI_CHANNELS;
+
         enum serial_flags_t
         {
             FLAG_PRIVATE    = 1 << 0,

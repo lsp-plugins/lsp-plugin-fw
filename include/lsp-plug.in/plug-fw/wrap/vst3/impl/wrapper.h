@@ -94,6 +94,7 @@ namespace lsp
             nDumpResp           = 0;
             nMaxSamplesPerBlock = 0;
             bUpdateSettings     = true;
+            bMidiMapping        = false;
 
             nLatency            = 0;
         }
@@ -633,6 +634,8 @@ namespace lsp
                     // MIDI ports will be organized into groups after instantiation of all ports
                     lsp_trace("Creating midi port id=%s", port->id);
                     cp                      = new vst3::MidiPort(port);
+                    if (meta::is_midi_in_port(port))
+                        bMidiMapping            = true;
                     break;
 
                 case meta::R_AUDIO:
@@ -658,8 +661,10 @@ namespace lsp
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
                 {
-                    lsp_trace("Creating parameter port id=%s", port->id);
-                    vst3::ParameterPort *p  = new vst3::ParameterPort(port, postfix != NULL);
+                    const Steinberg::Vst::ParamID id = vst3::gen_parameter_id(port->id);
+                    lsp_trace("Creating %s port id=%s vst_id=0x%08x",
+                        (port->role == meta::R_CONTROL) ? "parameter" : "bypass", port->id, int(id));
+                    vst3::ParameterPort *p  = new vst3::ParameterPort(port, id, postfix != NULL);
                     if (postfix == NULL)
                         vParams.add(p);
                     vAllParams.add(p);
@@ -679,10 +684,11 @@ namespace lsp
 
                 case meta::R_PORT_SET:
                 {
-                    lsp_trace("Creating port_set port id=%s", port->id);
+                    const Steinberg::Vst::ParamID id = vst3::gen_parameter_id(port->id);
+                    lsp_trace("Creating port_set port id=%s vst_id=0x%08x", port->id, int(id));
 
                     LSPString postfix_str;
-                    vst3::PortGroup *pg     = new vst3::PortGroup(port, postfix != NULL);
+                    vst3::PortGroup *pg     = new vst3::PortGroup(port, id, postfix != NULL);
                     vAllPorts.add(pg);
                     if (postfix == NULL)
                         vParams.add(pg);
@@ -740,9 +746,50 @@ namespace lsp
 
         status_t Wrapper::create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta)
         {
+            // Create all ports defined in metadata
             lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(plugin_ports, port, NULL);
+
+            // Create MIDI CC mapping ports
+            if (bMidiMapping)
+            {
+                char port_id[32], port_desc[32];
+                meta::port_t meta =
+                {
+                    port_id,
+                    port_desc,
+                    meta::U_NONE,
+                    meta::R_CONTROL,
+                    meta::F_IN | meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
+                    0.0f, 1.0f, 0.5f, 0.00001f,
+                    NULL, NULL
+                };
+
+                // Generate ports for all possible control codes
+                Steinberg::Vst::ParamID id = MIDI_MAPPING_PARAM_BASE;
+
+                for (size_t i=0; i<midi::MIDI_CHANNELS; ++i)
+                {
+                    for (size_t j=0; j<Steinberg::Vst::kCountCtrlNumber; ++j, ++id)
+                    {
+                        snprintf(port_id, sizeof(port_id), "midicc_%d_%d", int(j), int(i));
+                        snprintf(port_desc, sizeof(port_id), "MIDI CC=%d | C=%d", int(j), int(i));
+
+                        meta::port_t *cm    = clone_single_port_metadata(&meta);
+                        if (cm == NULL)
+                            return STATUS_NO_MEM;
+                        vGenMetadata.add(cm);
+
+                        lsp_trace("Creating MIDI CC port %s id=0x%08x", cm->id, id);
+                        vst3::ParameterPort *p   = new vst3::ParameterPort(cm, id, false);
+
+                        vParams.add(p);
+                        vAllParams.add(p);
+                        vAllPorts.add(p);
+                    }
+                }
+            }
 
             lsp_trace("Sorting input and output ports");
             vParams.qsort(compare_in_param_ports);
@@ -1034,7 +1081,7 @@ namespace lsp
 
                     bus.mediaType       = type;
                     bus.direction       = dir;
-                    bus.channelCount    = 16;
+                    bus.channelCount    = midi::MIDI_CHANNELS;
                     bus.busType         = Steinberg::Vst::kMain;
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, pEventsIn->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
@@ -1050,7 +1097,7 @@ namespace lsp
 
                     bus.mediaType       = type;
                     bus.direction       = dir;
-                    bus.channelCount    = 16;
+                    bus.channelCount    = midi::MIDI_CHANNELS;
                     bus.busType         = Steinberg::Vst::kMain;
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, pEventsOut->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
@@ -1744,6 +1791,9 @@ namespace lsp
             for (size_t i=0; i<num_params; ++i)
             {
                 Steinberg::Vst::IParamValueQueue *queue = changes->getParameterData(i);
+                // We do not analyze MIDI mapping ports here
+                if (queue->getParameterId() >= vst3::MIDI_MAPPING_PARAM_BASE)
+                    continue;
                 vst3::ParameterPort *port = input_parameter(queue->getParameterId());
                 if (port == NULL)
                     continue;
@@ -1768,6 +1818,10 @@ namespace lsp
             for (size_t i=0; i<num_params; ++i)
             {
                 Steinberg::Vst::IParamValueQueue *queue = changes->getParameterData(i);
+
+                // We do not analyze MIDI mapping ports here
+                if (queue->getParameterId() >= vst3::MIDI_MAPPING_PARAM_BASE)
+                    continue;
                 vst3::ParameterPort *port = input_parameter(queue->getParameterId());
                 if (port == NULL)
                     continue;

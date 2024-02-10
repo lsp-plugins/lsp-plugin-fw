@@ -297,6 +297,38 @@ namespace lsp
             return value;
         }
 
+        port_t *clone_single_port_metadata(const port_t *metadata)
+        {
+            if (metadata == NULL)
+                return NULL;
+
+            size_t  id_bytes        = strlen(metadata->id) + 1;
+            size_t  name_bytes      = strlen(metadata->name) + 1;
+
+            // Calculate the overall allocation size
+            size_t to_copy          = sizeof(port_t);
+            size_t string_bytes     = align_size(id_bytes + name_bytes, DEFAULT_ALIGN);
+            size_t allocate         = to_copy + string_bytes;
+
+            uint8_t *ptr            = static_cast<uint8_t *>(malloc(allocate));
+            if (ptr == NULL)
+                return NULL;
+
+            // Copy port metadata
+            port_t *meta            = reinterpret_cast<port_t *>(ptr);
+            ptr                    += to_copy;
+            ::memcpy(meta, metadata, to_copy);
+
+            meta->id                = reinterpret_cast<char *>(ptr);
+            ptr                    += id_bytes;
+            meta->name              = reinterpret_cast<char *>(ptr);
+
+            memcpy(const_cast<char *>(meta->id), metadata->id, id_bytes);
+            memcpy(const_cast<char *>(meta->name), metadata->name, id_bytes);
+
+            return meta;
+        }
+
         port_t *clone_port_metadata(const port_t *metadata, const char *postfix)
         {
             if (metadata == NULL)
@@ -1223,7 +1255,7 @@ namespace lsp
             text        = skip_blank(end);
 
             // Check presence of the unit value
-            const char *unit    = (units) ? get_unit_name(meta->unit) : NULL;
+            const char *unit    = ((units) && (meta != NULL)) ? get_unit_name(meta->unit) : NULL;
             if ((unit != NULL) && (check_match(text, unit)))
                 text        = skip_blank(text + strlen(unit));
 

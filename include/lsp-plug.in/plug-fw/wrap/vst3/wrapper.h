@@ -141,6 +141,7 @@ namespace lsp
                 uatomic_t                           nDumpResp;              // State dump response
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
+                bool                                bMidiMapping;           // Midi mapping is used
 
                 uint32_t                            nLatency;               // Current latency of the plugin
 

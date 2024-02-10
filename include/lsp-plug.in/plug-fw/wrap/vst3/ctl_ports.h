@@ -173,10 +173,10 @@ namespace lsp
                 bool                    bVirtual;   // Virtual flag
 
             public:
-                explicit CtlParamPort(const meta::port_t *meta, CtlPortChangeHandler *handler, bool virt) : CtlPort(meta)
+                explicit CtlParamPort(const meta::port_t *meta, CtlPortChangeHandler *handler, Steinberg::Vst::ParamID id, bool virt) : CtlPort(meta)
                 {
                     pHandler            = handler;
-                    nID                 = vst3::gen_parameter_id(meta->id);
+                    nID                 = id;
                     fValue              = meta->start;
                     bVirtual            = virt;
                 }
@@ -259,8 +259,8 @@ namespace lsp
                 size_t          nCols;
 
             public:
-                CtlPortGroup(const meta::port_t *meta, CtlPortChangeHandler *handler, bool virt):
-                    CtlParamPort(meta, handler, virt)
+                CtlPortGroup(const meta::port_t *meta, CtlPortChangeHandler *handler, Steinberg::Vst::ParamID id, bool virt):
+                    CtlParamPort(meta, handler, id, virt)
                 {
                     nRows               = list_size(meta->items);
                     nCols               = port_list_size(meta->members);

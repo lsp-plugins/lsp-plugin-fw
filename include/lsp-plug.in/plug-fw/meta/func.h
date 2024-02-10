@@ -110,6 +110,11 @@ namespace lsp
             return (p != NULL) && (p->role == R_BYPASS);
         }
 
+        static inline bool is_port_set_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_PORT_SET);
+        }
+
         static inline bool is_meter_port(const port_t *p)
         {
             return (p != NULL) && (p->role == R_METER);
@@ -234,7 +239,14 @@ namespace lsp
          */
         void            get_port_parameters(const port_t *p, float *min, float *max, float *step);
 
-        /** Clone port metadata
+        /** Clone single port metadata
+         *
+         * @param metadata port list
+         * @return cloned port metadata, should be freed by drop_port_metadata() call
+         */
+        port_t         *clone_single_port_metadata(const port_t *metadata);
+
+        /** Clone multiple port metadata
          *
          * @param metadata port list
          * @param postfix potfix to be added to the port list, can be NULL

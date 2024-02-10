@@ -186,7 +186,7 @@ namespace lsp
                 res            += uint8_t(str[i]) * Steinberg::Vst::ParamID(primes[prime_id]);
             }
 
-            return res;
+            return res & PARAM_ID_MODULO;
         }
 
         /**

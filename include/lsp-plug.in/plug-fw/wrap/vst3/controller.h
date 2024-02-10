@@ -25,7 +25,7 @@
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
-#include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/ui.h>
@@ -53,7 +53,8 @@ namespace lsp
             public Steinberg::IDependent,
             public Steinberg::Vst::IConnectionPoint,
             public Steinberg::Vst::IEditController,
-            public Steinberg::Vst::IEditController2
+            public Steinberg::Vst::IEditController2,
+            public Steinberg::Vst::IMidiMapping
         {
             private:
                 friend class PluginView;
@@ -75,7 +76,6 @@ namespace lsp
                 lltl::parray<vst3::CtlParamPort>    vPlainParams;           // Input parameters (non-virtual) sorted according to the metadata order
                 lltl::parray<vst3::CtlParamPort>    vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
                 lltl::parray<vst3::CtlMeterPort>    vMeters;                // Meters
-                lltl::pphash<char, vst3::CtlPort>   vParamMapping;          // Parameter mapping
                 ipc::Mutex                          sWrappersLock;          // Lock of wrappers
                 lltl::parray<vst3::UIWrapper>       vWrappers;              // UI wrappers
 
@@ -86,6 +86,7 @@ namespace lsp
                 ipc::Mutex                          sKVTMutex;              // KVT storage access mutex
                 uint32_t                            nLatency;               // Plugin latency
                 float                               fScalingFactor;         // Scaling factor
+                bool                                bMidiMapping;           // Use MIDI mapping
 
             protected:
                 vst3::CtlPort                      *create_port(const meta::port_t *port, const char *postfix);
@@ -168,6 +169,9 @@ namespace lsp
                 virtual Steinberg::tresult          PLUGIN_API setKnobMode(Steinberg::Vst::KnobMode mode) override;
                 virtual Steinberg::tresult          PLUGIN_API openHelp(Steinberg::TBool onlyCheck) override;
                 virtual Steinberg::tresult          PLUGIN_API openAboutBox(Steinberg::TBool onlyCheck) override;
+
+            public: // Steinberg::Vst::IMidiMapping
+                virtual Steinberg::tresult  PLUGIN_API getMidiControllerAssignment(Steinberg::int32 busIndex, Steinberg::int16 channel, Steinberg::Vst::CtrlNumber midiControllerNumber, Steinberg::Vst::ParamID & id) override;
         };
         #include <steinberg/vst3/base/WarningsPop.h>
 

@@ -247,12 +247,12 @@ namespace lsp
                 bool                    bVirtual;       // Indicates that port is virtual
 
             public:
-                explicit ParameterPort(const meta::port_t *meta, bool virt) : Port(meta)
+                explicit ParameterPort(const meta::port_t *meta, Steinberg::Vst::ParamID id, bool virt) : Port(meta)
                 {
                     fValue              = meta->start;
                     fPending            = fValue;
                     nChangeIndex        = 0;
-                    nID                 = vst3::gen_parameter_id(meta->id);
+                    nID                 = id;
                     bVirtual            = virt;
                 }
 
@@ -354,7 +354,7 @@ namespace lsp
                 size_t                  nRows;
 
             public:
-                explicit PortGroup(const meta::port_t *meta, bool virt) : ParameterPort(meta, virt)
+                explicit PortGroup(const meta::port_t *meta, Steinberg::Vst::ParamID id, bool virt) : ParameterPort(meta, id, virt)
                 {
                     nCols               = meta::port_list_size(meta->members);
                     nRows               = meta::list_size(meta->items);
