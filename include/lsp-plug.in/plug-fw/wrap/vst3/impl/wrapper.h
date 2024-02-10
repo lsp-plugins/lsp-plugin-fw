@@ -1168,8 +1168,7 @@ namespace lsp
                 kvt_dump_parameter("Saving state of KVT parameter: %s = ", p, name);
 
                 // Serialize parameter name and flags
-                size_t name_len = strlen(name);
-                if ((res = write_fully(os, name, name_len)) != STATUS_OK)
+                if ((res = write_string(os, name)) != STATUS_OK)
                 {
                     lsp_warn("Failed to save KVT parameter name for id = %s", name);
                     return res;
@@ -2213,6 +2212,7 @@ namespace lsp
                 // Submit new port value
                 lsp_trace("virtual parameter %s = %f", pp->metadata()->id, value);
                 pp->submit(value);
+                state_changed();
             }
             else if (!strcmp(message_id, vst3::ID_MSG_ACTIVATE_UI))
             {

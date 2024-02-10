@@ -726,7 +726,7 @@ namespace lsp
                 return res;
 
             // Serialize parameter according to it's type
-            switch (type)
+            switch (p->type)
             {
                 case core::KVT_INT32:
                     res = write_fully(os, &p->i32, sizeof(p->i32));
