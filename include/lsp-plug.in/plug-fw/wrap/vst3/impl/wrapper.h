@@ -555,7 +555,7 @@ namespace lsp
                         lsp_warn("Failed to obtain midi input port %d", int(i));
                         return false;
                     }
-                    ev->vPorts[i]      = p;
+                    ev->vPorts[i]      = static_cast<vst3::MidiPort *>(p);
                 }
                 pEventsIn           = release_ptr(ev);
 
@@ -586,7 +586,7 @@ namespace lsp
                         lsp_warn("Failed to obtain midi output port %d", int(i));
                         return false;
                     }
-                    ev->vPorts[i]      = p;
+                    ev->vPorts[i]      = static_cast<vst3::MidiPort *>(p);
                 }
                 pEventsOut          = release_ptr(ev);
 
@@ -1034,7 +1034,7 @@ namespace lsp
 
                     bus.mediaType       = type;
                     bus.direction       = dir;
-                    bus.channelCount    = pEventsIn->nPorts;
+                    bus.channelCount    = 16;
                     bus.busType         = Steinberg::Vst::kMain;
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, pEventsIn->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
@@ -1050,7 +1050,7 @@ namespace lsp
 
                     bus.mediaType       = type;
                     bus.direction       = dir;
-                    bus.channelCount    = pEventsOut->nPorts;
+                    bus.channelCount    = 16;
                     bus.busType         = Steinberg::Vst::kMain;
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, pEventsOut->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
@@ -1892,6 +1892,137 @@ namespace lsp
             }
         }
 
+        void Wrapper::process_input_events(Steinberg::Vst::IEventList *events)
+        {
+            if ((pEventsIn == NULL) || (events == NULL))
+                return;
+
+            Steinberg::Vst::Event ev;
+            Steinberg::tresult res;
+
+            for (size_t i=0; i<pEventsIn->nPorts; ++i)
+            {
+                vst3::MidiPort *p = pEventsIn->vPorts[i];
+                if (p == NULL)
+                    continue;
+
+                plug::midi_t *queue = p->queue();
+
+                // Process input events
+                for (size_t j=0, m=events->getEventCount(); j<m; ++j)
+                {
+                    // Get the event
+                    if ((res = events->getEvent(j, ev)) != Steinberg::kResultOk)
+                    {
+                        lsp_warn("Failed to receive event %d: result=%d", int(j), int(res));
+                        continue;
+                    }
+
+                    lsp_trace("Received event: busIndex=%d, sampleOffset=%d, ppqPosition=%f, flags=%d",
+                        int(ev.busIndex), int(ev.sampleOffset), ev.ppqPosition, int(ev.flags));
+
+                    // Process the event
+                    switch (ev.type)
+                    {
+                        case Steinberg::Vst::Event::kNoteOnEvent:
+                        {
+                            Steinberg::Vst::NoteOnEvent *e = &ev.noteOn;
+                            lsp_trace("  kNoteOnEvent channel=%d, pitch=%d, tuning=%f, velocity=%f, length=%d, noteid=%d",
+                                int(e->channel), int(e->pitch), e->tuning, e->velocity, int(e->length), e->noteId);
+                            break;
+                        }
+                        case Steinberg::Vst::Event::kNoteOffEvent:
+                        {
+                            Steinberg::Vst::NoteOffEvent *e = &ev.noteOff;
+                            lsp_trace("  kNoteOffEvent channel=%d, pitch=%d, velocity=%f, noteid=%d, tuning=%f",
+                                int(e->channel), int(e->pitch), e->velocity, e->noteId, e->tuning);
+                            break;
+                        }
+                        case Steinberg::Vst::Event::kDataEvent:
+                        {
+                            Steinberg::Vst::DataEvent *e = &ev.data;
+                            lsp_trace("  kDataEvent size=%d, type=%d, bytes=%p",
+                                int(e->size), int(e->type), e->bytes);
+                            lsp_dumpb("  contents", e->bytes, e->size);
+                            break;
+                        }
+                        case Steinberg::Vst::Event::kPolyPressureEvent:
+                        {
+                            Steinberg::Vst::PolyPressureEvent *e = &ev.polyPressure;
+                            lsp_trace("  kPolyPressureEvent channel=%d, pitch=%d, pressure=%f, noteId=%d",
+                                int(e->channel), int(e->pitch), e->pressure, int(e->noteId));
+                            break;
+                        }
+                        case Steinberg::Vst::Event::kNoteExpressionValueEvent:
+                        {
+                            Steinberg::Vst::NoteExpressionValueEvent *e = &ev.noteExpressionValue;
+                            lsp_trace("  kNoteExpressionValueEvent typeId=%d, noteId=%d, value=%f",
+                                int(e->typeId), int(e->noteId), e->value);
+                            break;
+                        }
+                        case Steinberg::Vst::Event::kNoteExpressionTextEvent:
+                        {
+                            Steinberg::Vst::NoteExpressionTextEvent *e = &ev.noteExpressionText;
+                            lsp_trace("  kNoteExpressionTextEvent typeId=%d, noteId=%d, textLen=%d, text=%p",
+                                int(e->typeId), int(e->noteId), int(e->textLen), e->text);
+                            break;
+                        }
+                        case Steinberg::Vst::Event::kChordEvent:
+                        {
+                            Steinberg::Vst::ChordEvent *e = &ev.chord;
+                            lsp_trace("  kChordEvent root=%d, bassNote=%d, mask=0x%x, textLen=%d, text=%p",
+                                int(e->root), int(e->bassNote), int(e->mask), int(e->textLen), e->text);
+                            break;
+                        }
+                        case Steinberg::Vst::Event::kScaleEvent:
+                        {
+                            Steinberg::Vst::ScaleEvent *e = &ev.scale;
+                            lsp_trace("  kScaleEvent root=%d, mask=0x%x, textLen=%d, text=%p",
+                                int(e->root), int(e->mask), int(e->textLen), e->text);
+                            break;
+                        }
+                        case Steinberg::Vst::Event::kLegacyMIDICCOutEvent:
+                        {
+                            Steinberg::Vst::LegacyMIDICCOutEvent *e = &ev.midiCCOut;
+                            lsp_trace("  kLegacyMIDICCOutEvent controlNumber=%d, channel=%d, value=%d, value2=%d",
+                                int(e->controlNumber), int(e->channel), int(e->value), int(e->value2));
+                            break;
+                        }
+                        default:
+                            lsp_trace("  Unknown event type: %d", int(ev.type));
+                            break;
+                    }
+                }
+
+                // Sort input events
+                queue->sort();
+            }
+        }
+
+        void Wrapper::process_output_events(Steinberg::Vst::IEventList *events)
+        {
+            if ((pEventsOut == NULL) || (events == NULL))
+                return;
+
+// TODO
+//            for (size_t i=0; i<pEventsOut->nPorts; ++i)
+//            {
+//                vst3::MidiPort *p = pEventsIn->vPorts[i];
+//                if (p == NULL)
+//                    continue;
+//
+//                plug::midi_t *queue = p->queue();
+//                queue->sort();
+//
+//                // TODO: encode events
+//                for (size_t j=0; j<queue->nEvents; ++j)
+//                {
+//                    const midi::event_t *e = &queue->vEvents[j];
+//
+//                }
+//            }
+        }
+
         Steinberg::tresult PLUGIN_API Wrapper::process(Steinberg::Vst::ProcessData & data)
         {
             dsp::context_t ctx;
@@ -1916,6 +2047,9 @@ namespace lsp
             // Bind audio buffers
             bind_bus_buffers(&vAudioIn, data.inputs, data.numInputs, data.numSamples);
             bind_bus_buffers(&vAudioOut, data.outputs, data.numOutputs, data.numSamples);
+
+            // Process input events
+            process_input_events(data.inputEvents);
 
             // Reset change indices for parameters
             for (size_t i=0, n=vParams.size(); i<n; ++i)
@@ -1956,20 +2090,6 @@ namespace lsp
 
             for (int32_t frame=0; frame < data.numSamples; )
             {
-                // Cleanup stat of input and output MIDI ports
-                if (pEventsIn != NULL)
-                {
-//                    TODO
-//                    for (size_t i=0; i<pEventsIn->nPorts; ++i)
-//                        pEventsIn->vPorts[i]->clear();
-                }
-                if (pEventsOut != NULL)
-                {
-//                    TODO
-//                    for (size_t i=0; i<pEventsOut->nPorts; ++i)
-//                        pEventsOut->vPorts[i]->clear();
-                }
-
                 // Prepare event block
                 size_t block_size = prepare_block(frame, &data);
 //                lsp_trace("block size=%d", int(block_size));
@@ -1987,6 +2107,13 @@ namespace lsp
                 // Call the plugin for processing
                 if (block_size > 0)
                 {
+                    // Prer-process MIDI events
+                    if (pEventsIn != NULL)
+                    {
+                        for (size_t i=0; i<pEventsIn->nPorts; ++i)
+                            pEventsIn->vPorts[i]->prepare(frame, block_size);
+                    }
+
                     sPosition.frame     = frame;
                     pPlugin->set_position(&sPosition);
                     pPlugin->process(block_size);
@@ -1996,7 +2123,11 @@ namespace lsp
                         pSamplePlayer->process(block_size);
 
                     // Do the post-processing stuff
-                    // TODO: generate_output_events(frame, process);
+                    if (pEventsOut != NULL)
+                    {
+                        for (size_t i=0; i<pEventsOut->nPorts; ++i)
+                            pEventsOut->vPorts[i]->commit(frame);
+                    }
 
                     // Advance audio ports and update processing offset
                     advance_bus_buffers(&vAudioIn, block_size);
@@ -2004,6 +2135,9 @@ namespace lsp
                     frame      += block_size;
                 }
             }
+
+            // Process output events
+            process_output_events(data.outputEvents);
 
             // Dump state if requested
             const uatomic_t dump_req    = nDumpReq;

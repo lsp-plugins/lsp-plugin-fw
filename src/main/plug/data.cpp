@@ -33,6 +33,75 @@ namespace lsp
     namespace plug
     {
         //-------------------------------------------------------------------------
+        // midi_t methods
+        bool midi_t::push_all(const midi_t *src)
+        {
+            size_t count    = lsp_min(src->nEvents, MIDI_EVENTS_MAX - nEvents);
+            if (count > 0)
+            {
+                ::memcpy(&vEvents[nEvents], src->vEvents, count * sizeof(midi::event_t));
+                nEvents        += count;
+            }
+
+            return count >= src->nEvents;
+        }
+
+        bool midi_t::push_slice(const midi_t *src, uint32_t start, uint32_t end)
+        {
+            // Find the start position to perform the copy of events, assuming events being sorted
+            const midi::event_t *se;
+            ssize_t first=0, last=src->nEvents - 1;
+            while (first < last)
+            {
+                ssize_t middle = (first + last) >> 1;
+                se = &src->vEvents[middle];
+                if (se->timestamp >= start)
+                    last    = middle - 1;
+                else
+                    first   = middle + 1;
+            }
+
+            // Copy events
+            for (size_t i=first; i<src->nEvents; ++i)
+            {
+                // Check that event's timestamp is within the specified range
+                se                  = &src->vEvents[i];
+                if (se->timestamp < start)
+                    continue;
+                else if (se->timestamp >= end)
+                    return true;
+
+                // Check that we are able to add one more event
+                if (nEvents >= MIDI_EVENTS_MAX)
+                    return false;
+
+                // Copy event and update timestamp
+                midi::event_t *ev   = &vEvents[nEvents++];
+                *ev                 = src->vEvents[i];
+                ev->timestamp      -= start;
+            }
+
+            return true;
+        }
+
+        bool midi_t::push_all_shifted(const midi_t *src, uint32_t offset)
+        {
+            for (size_t i=0; i<src->nEvents; ++i)
+            {
+                // Check that we are able to add one more event
+                if (nEvents >= MIDI_EVENTS_MAX)
+                    return false;
+
+                // Copy event and update timestamp
+                midi::event_t *ev   = &vEvents[nEvents++];
+                *ev                 = src->vEvents[i];
+                ev->timestamp      += offset;
+            }
+
+            return true;
+        }
+
+        //-------------------------------------------------------------------------
         // path_t methods
         path_t::~path_t()
         {

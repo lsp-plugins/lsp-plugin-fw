@@ -80,7 +80,7 @@ namespace lsp
                     Steinberg::char16              *sName;      // Bus name
                     uint32_t                        nPorts;     // Bus ports
                     bool                            bActive;    // Bus is active
-                    plug::IPort                    *vPorts[];   // List of ports related to the event bus
+                    vst3::MidiPort                 *vPorts[];   // List of ports related to the event bus
                 } event_bus_t;
 
                 class VST3KVTListener: public core::KVTListener
@@ -176,6 +176,8 @@ namespace lsp
                 status_t                    save_state(Steinberg::IBStream *os);
                 status_t                    load_state(Steinberg::IBStream *is);
                 void                        toggle_ui_state();
+                void                        process_input_events(Steinberg::Vst::IEventList *events);
+                void                        process_output_events(Steinberg::Vst::IEventList *events);
                 void                        report_latency();
                 void                        report_state_change();
                 void                        report_music_position();

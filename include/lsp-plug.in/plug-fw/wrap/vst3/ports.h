@@ -199,6 +199,7 @@ namespace lsp
         {
             protected:
                 plug::midi_t    sQueue;             // MIDI event buffer
+                plug::midi_t    sSlice;             // MIDI event buffer (slice)
 
             public:
                 explicit MidiPort(const meta::port_t *meta): Port(meta)
@@ -207,20 +208,32 @@ namespace lsp
                 }
 
             public:
-                virtual void *buffer()
+                void prepare(size_t offset, size_t count)
                 {
-                    return &sQueue;
+                    if (!meta::is_in_port(pMetadata))
+                        return;
+
+                    sSlice.clear();
+                    sSlice.push_slice(&sQueue, offset, offset + count);
                 }
+
+                void commit(size_t offset)
+                {
+                    if (!meta::is_out_port(pMetadata))
+                        return;
+
+                    sQueue.push_all_shifted(&sSlice, offset);
+                    sSlice.clear();
+                }
+
+                inline plug::midi_t *queue()      { return &sQueue; }
 
             public:
-                inline void clear()
-                {
-                    sQueue.clear();
-                }
+                using IPort::buffer;
 
-                inline bool push(const midi::event_t *me)
+                virtual void *buffer() override
                 {
-                    return sQueue.push(me);
+                    return &sSlice;                     // Return time-sliced data instead of the whole buffer
                 }
         };
 
