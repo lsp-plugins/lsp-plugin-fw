@@ -1346,6 +1346,13 @@ namespace lsp
         {
             bUpdateSettings     = true;
         }
+
+        void Wrapper::state_changed()
+        {
+            if ((pMaster != NULL) && (pEffect != NULL))
+                pMaster(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
+        }
+
     } /* namespace vst2 */
 } /* namespace lsp */
 

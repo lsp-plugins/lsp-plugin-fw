@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 дек. 2021 г.
@@ -45,9 +45,6 @@ namespace lsp
         class Wrapper: public plug::IWrapper
         {
             private:
-                Wrapper & operator = (const Wrapper &);
-                Wrapper(const Wrapper &);
-
                 friend class UIWrapper;
 
             private:
@@ -97,7 +94,12 @@ namespace lsp
                     AEffect *effect,
                     audioMasterCallback callback
                 );
+                Wrapper(const Wrapper &) = delete;
+                Wrapper(Wrapper &&) = delete;
                 virtual ~Wrapper() override;
+
+                Wrapper & operator = (const Wrapper &) = delete;
+                Wrapper & operator = (Wrapper &&) = delete;
 
                 status_t                        init();
                 void                            destroy();
@@ -128,13 +130,14 @@ namespace lsp
 
                 inline core::SamplePlayer      *sample_player();
 
-            public:
+            public: // core::IWrapper
                 virtual ipc::IExecutor         *executor() override;
                 virtual core::KVTStorage       *kvt_lock() override;
                 virtual core::KVTStorage       *kvt_trylock() override;
                 virtual bool                    kvt_release() override;
                 virtual const meta::package_t  *package() const override;
                 virtual void                    request_settings_update() override;
+                virtual void                    state_changed() override;
         };
     } /* namespace vst2 */
 } /* namespace lsp */

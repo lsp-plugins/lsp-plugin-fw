@@ -426,6 +426,10 @@ namespace lsp
                     if (fVstValue == fVstPrev)
                         return false;
                     fVstPrev = fVstValue;
+
+                    if ((nID < 0) && (pEffect != NULL) && (hCallback != NULL))
+                        hCallback(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
+
                     return true;
                 }
 
@@ -869,7 +873,11 @@ namespace lsp
 
                 virtual bool pre_process(size_t samples)
                 {
-                    return sPath.pending();
+                    if (!sPath.update())
+                        return false;
+                    if ((hCallback != NULL) && (pEffect != NULL))
+                        hCallback(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
+                    return true;
                 }
 
                 size_t sizeof_state()
