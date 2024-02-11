@@ -762,7 +762,7 @@ namespace lsp
                     meta::U_NONE,
                     meta::R_CONTROL,
                     meta::F_IN | meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
-                    0.0f, 1.0f, 0.5f, 0.00001f,
+                    0.0f, 1.0f, 0.0f, 0.00001f,
                     NULL, NULL
                 };
 
@@ -1946,12 +1946,197 @@ namespace lsp
             }
         }
 
-        void Wrapper::process_input_events(Steinberg::Vst::IEventList *events)
+        bool Wrapper::decode_midi_event(midi::event_t &me, const Steinberg::Vst::Event &ev)
+        {
+            switch (ev.type)
+            {
+                case Steinberg::Vst::Event::kNoteOnEvent:
+                {
+                    const Steinberg::Vst::NoteOnEvent *e = &ev.noteOn;
+                    lsp_trace("  kNoteOnEvent channel=%d, pitch=%d, tuning=%f, velocity=%f, length=%d, noteid=%d",
+                        int(e->channel), int(e->pitch), e->tuning, e->velocity, int(e->length), e->noteId);
+
+                    me.timestamp    = ev.sampleOffset;
+                    me.type         = midi::MIDI_MSG_NOTE_ON;
+                    me.channel      = e->channel;
+                    me.note.pitch   = lsp_limit(e->pitch, 0, 0x7f);
+                    me.note.velocity= uint8_t(lsp_limit(e->velocity, 0.0f, 1.0f) * 127.0f);
+
+                    break;
+                }
+                case Steinberg::Vst::Event::kNoteOffEvent:
+                {
+                    const Steinberg::Vst::NoteOffEvent *e = &ev.noteOff;
+                    lsp_trace("  kNoteOffEvent channel=%d, pitch=%d, velocity=%f, noteid=%d, tuning=%f",
+                        int(e->channel), int(e->pitch), e->velocity, e->noteId, e->tuning);
+
+                    me.timestamp    = ev.sampleOffset;
+                    me.type         = midi::MIDI_MSG_NOTE_ON;
+                    me.channel      = e->channel;
+                    me.note.pitch   = lsp_limit(e->pitch, 0, 0x7f);
+                    me.note.velocity= uint8_t(lsp_limit(e->velocity, 0.0f, 1.0f) * 127.0f);
+
+                    break;
+                }
+                case Steinberg::Vst::Event::kDataEvent:
+                {
+                    IF_TRACE(
+                        const Steinberg::Vst::DataEvent *e = &ev.data;
+                        lsp_trace("  kDataEvent size=%d, type=%d, bytes=%p",
+                            int(e->size), int(e->type), e->bytes);
+                        lsp_dumpb("  contents", e->bytes, e->size);
+                    );
+
+                    // We don't support SYSEX messages
+
+                    return false;
+                }
+                case Steinberg::Vst::Event::kPolyPressureEvent:
+                {
+                    const Steinberg::Vst::PolyPressureEvent *e = &ev.polyPressure;
+                    lsp_trace("  kPolyPressureEvent channel=%d, pitch=%d, pressure=%f, noteId=%d",
+                        int(e->channel), int(e->pitch), e->pressure, int(e->noteId));
+
+                    me.timestamp        = ev.sampleOffset;
+                    me.channel          = e->channel;
+                    me.type             = midi::MIDI_MSG_CHANNEL_PRESSURE;
+                    me.chn.pressure     = uint8_t(lsp_limit(e->pressure, 0.0, 1.0) * 127.0f);
+
+                    return false;
+                }
+                case Steinberg::Vst::Event::kNoteExpressionValueEvent:
+                {
+                    IF_TRACE(
+                        const Steinberg::Vst::NoteExpressionValueEvent *e = &ev.noteExpressionValue;
+                        lsp_trace("  kNoteExpressionValueEvent typeId=%d, noteId=%d, value=%f",
+                            int(e->typeId), int(e->noteId), e->value);
+                    );
+                    return false;
+                }
+                case Steinberg::Vst::Event::kNoteExpressionTextEvent:
+                {
+                    IF_TRACE(
+                        const Steinberg::Vst::NoteExpressionTextEvent *e = &ev.noteExpressionText;
+                        lsp_trace("  kNoteExpressionTextEvent typeId=%d, noteId=%d, textLen=%d, text=%p",
+                            int(e->typeId), int(e->noteId), int(e->textLen), e->text);
+                    );
+                    return false;
+                }
+                case Steinberg::Vst::Event::kChordEvent:
+                {
+                    IF_TRACE(
+                        const Steinberg::Vst::ChordEvent *e = &ev.chord;
+                        lsp_trace("  kChordEvent root=%d, bassNote=%d, mask=0x%x, textLen=%d, text=%p",
+                            int(e->root), int(e->bassNote), int(e->mask), int(e->textLen), e->text);
+                    );
+                    return false;
+                }
+                case Steinberg::Vst::Event::kScaleEvent:
+                {
+                    IF_TRACE(
+                        const Steinberg::Vst::ScaleEvent *e = &ev.scale;
+                        lsp_trace("  kScaleEvent root=%d, mask=0x%x, textLen=%d, text=%p",
+                            int(e->root), int(e->mask), int(e->textLen), e->text);
+                    );
+                    return false;
+                }
+                case Steinberg::Vst::Event::kLegacyMIDICCOutEvent:
+                {
+                    const Steinberg::Vst::LegacyMIDICCOutEvent *e = &ev.midiCCOut;
+                    lsp_trace("  kLegacyMIDICCOutEvent controlNumber=%d, channel=%d, value=%d, value2=%d",
+                        int(e->controlNumber), int(e->channel), int(e->value), int(e->value2));
+
+                    me.timestamp        = ev.sampleOffset;
+                    me.channel          = e->channel;
+
+                    switch (e->controlNumber)
+                    {
+                        case Steinberg::Vst::kAfterTouch:
+                            me.type             = midi::MIDI_MSG_CHANNEL_PRESSURE;
+                            me.chn.pressure     = lsp_limit(e->value, 0, 0x7f);
+                            break;
+                        case Steinberg::Vst::kPitchBend:
+                            me.type             = midi::MIDI_MSG_PITCH_BEND;
+                            me.bend             = lsp_limit(e->value, 0, 0x7f) | lsp_limit(e->value2, 0, 0x7f);
+                            break;
+                        case Steinberg::Vst::kCtrlProgramChange:
+                            me.type             = midi::MIDI_MSG_PROGRAM_CHANGE;
+                            me.program          = lsp_limit(e->value, 0, 0x7f);
+                            break;
+                        case Steinberg::Vst::kCtrlPolyPressure:
+                            me.type             = midi::MIDI_MSG_NOTE_PRESSURE;
+                            me.atouch.pitch     = lsp_limit(e->value, 0, 0x7f);
+                            me.atouch.pressure  = lsp_limit(e->value2, 0, 0x7f);
+                            break;
+                        case Steinberg::Vst::kCtrlQuarterFrame:
+                        {
+                            uint8_t mtc         = lsp_limit(e->value, 0, 0x7f);
+                            me.type             = midi::MIDI_MSG_MTC_QUARTER;
+                            me.mtc.type         = mtc >> 4;
+                            me.mtc.value        = mtc & 0x0f;
+                            break;
+                        }
+                        default:
+                            if (e->controlNumber >= Steinberg::Vst::kCtrlPolyModeOn)
+                                return false;
+                            me.type             = midi::MIDI_MSG_NOTE_CONTROLLER;
+                            me.ctl.control      = e->controlNumber;
+                            me.ctl.value        = lsp_limit(e->value, 0, 0x7f);
+                            break;
+                    }
+                    break;
+                }
+                default:
+                    lsp_trace("  Unknown event type: %d", int(ev.type));
+                    return false;
+            }
+
+            return true;
+        }
+
+        bool Wrapper::decode_parameter_as_midi_event(midi::event_t &e, size_t offset, size_t id, double value)
+        {
+            size_t channel      = id / Steinberg::Vst::kCountCtrlNumber;
+            size_t type         = id % Steinberg::Vst::kCountCtrlNumber;
+
+            e.timestamp         = offset;
+            e.channel           = channel;
+
+            switch (type)
+            {
+                case Steinberg::Vst::kAfterTouch:
+                    lsp_trace("  AfterTouch change: channel=%d, type=%d", int(type), int(channel));
+                    e.type              = midi::MIDI_MSG_CHANNEL_PRESSURE;
+                    e.chn.pressure      = uint8_t(lsp_limit(value, 0.0, 1.0) * 127.0f);
+                    break;
+
+                case Steinberg::Vst::kPitchBend:
+                    lsp_trace("  PitchBend change: channel=%d, type=%d", int(type), int(channel));
+                    e.type              = midi::MIDI_MSG_PITCH_BEND;
+                    e.bend              = uint8_t(lsp_limit(value, 0.0, 1.0) * 16384.0f);
+                    break;
+
+                default:
+                    if (type > Steinberg::Vst::kCtrlPolyModeOn)
+                        return false;
+
+                    lsp_trace("  MIDI CC change: channel=%d, type=%d", int(type), int(channel));
+                    e.type              = midi::MIDI_MSG_NOTE_CONTROLLER;
+                    e.ctl.control       = type;
+                    e.ctl.value         = uint8_t(lsp_limit(value, 0.0, 1.0) * 127.0f);
+                    break;
+            }
+
+            return true;
+        }
+
+        void Wrapper::process_input_events(Steinberg::Vst::IEventList *events, Steinberg::Vst::IParameterChanges *params)
         {
             if ((pEventsIn == NULL) || (events == NULL))
                 return;
 
             Steinberg::Vst::Event ev;
+            midi::event_t e;
             Steinberg::tresult res;
 
             for (size_t i=0; i<pEventsIn->nPorts; ++i)
@@ -1961,6 +2146,46 @@ namespace lsp
                     continue;
 
                 plug::midi_t *queue = p->queue();
+
+                // Process parameter changes
+                if (bMidiMapping)
+                {
+                    Steinberg::int32 offset = 0;
+                    Steinberg::Vst::ParamValue value = 0.0;
+
+                    for (size_t j=0, m=params->getParameterCount(); j<m; ++j)
+                    {
+                        // Check that we have parameter queue and parameter matches the midi mapping range
+                        Steinberg::Vst::IParamValueQueue *list = params->getParameterData(j);
+                        if (list == NULL)
+                            continue;
+                        const Steinberg::Vst::ParamID id = list->getParameterId();
+                        if ((id < vst3::MIDI_MAPPING_PARAM_BASE) || (id >= (vst3::MIDI_MAPPING_PARAM_BASE + vst3::MIDI_MAPPING_SIZE)))
+                            continue;
+
+                        // Get the parameter
+                        vst3::ParameterPort *port = input_parameter(id);
+                        if (port == NULL)
+                            continue;
+
+                        // Update the parameter according to queue changes
+                        for (size_t k=0, r=list->getPointCount(); k<r; ++k)
+                        {
+                            // Ensure that we can handle parameter change
+                            if (list->getPoint(k, offset, value) != Steinberg::kResultOk)
+                            {
+                                lsp_warn("Failed to read MIDI CC change #%d for parameter id=%s", int(k), port->id());
+                                continue;
+                            }
+                            if (port->value() == value)
+                                continue;
+
+                            // Convert the parameter change to the MIDI event
+                            if (decode_parameter_as_midi_event(e, offset, id - vst3::MIDI_MAPPING_PARAM_BASE, value))
+                                queue->push(e);
+                        }
+                    }
+                }
 
                 // Process input events
                 for (size_t j=0, m=events->getEventCount(); j<m; ++j)
@@ -1976,76 +2201,8 @@ namespace lsp
                         int(ev.busIndex), int(ev.sampleOffset), ev.ppqPosition, int(ev.flags));
 
                     // Process the event
-                    switch (ev.type)
-                    {
-                        case Steinberg::Vst::Event::kNoteOnEvent:
-                        {
-                            Steinberg::Vst::NoteOnEvent *e = &ev.noteOn;
-                            lsp_trace("  kNoteOnEvent channel=%d, pitch=%d, tuning=%f, velocity=%f, length=%d, noteid=%d",
-                                int(e->channel), int(e->pitch), e->tuning, e->velocity, int(e->length), e->noteId);
-                            break;
-                        }
-                        case Steinberg::Vst::Event::kNoteOffEvent:
-                        {
-                            Steinberg::Vst::NoteOffEvent *e = &ev.noteOff;
-                            lsp_trace("  kNoteOffEvent channel=%d, pitch=%d, velocity=%f, noteid=%d, tuning=%f",
-                                int(e->channel), int(e->pitch), e->velocity, e->noteId, e->tuning);
-                            break;
-                        }
-                        case Steinberg::Vst::Event::kDataEvent:
-                        {
-                            Steinberg::Vst::DataEvent *e = &ev.data;
-                            lsp_trace("  kDataEvent size=%d, type=%d, bytes=%p",
-                                int(e->size), int(e->type), e->bytes);
-                            lsp_dumpb("  contents", e->bytes, e->size);
-                            break;
-                        }
-                        case Steinberg::Vst::Event::kPolyPressureEvent:
-                        {
-                            Steinberg::Vst::PolyPressureEvent *e = &ev.polyPressure;
-                            lsp_trace("  kPolyPressureEvent channel=%d, pitch=%d, pressure=%f, noteId=%d",
-                                int(e->channel), int(e->pitch), e->pressure, int(e->noteId));
-                            break;
-                        }
-                        case Steinberg::Vst::Event::kNoteExpressionValueEvent:
-                        {
-                            Steinberg::Vst::NoteExpressionValueEvent *e = &ev.noteExpressionValue;
-                            lsp_trace("  kNoteExpressionValueEvent typeId=%d, noteId=%d, value=%f",
-                                int(e->typeId), int(e->noteId), e->value);
-                            break;
-                        }
-                        case Steinberg::Vst::Event::kNoteExpressionTextEvent:
-                        {
-                            Steinberg::Vst::NoteExpressionTextEvent *e = &ev.noteExpressionText;
-                            lsp_trace("  kNoteExpressionTextEvent typeId=%d, noteId=%d, textLen=%d, text=%p",
-                                int(e->typeId), int(e->noteId), int(e->textLen), e->text);
-                            break;
-                        }
-                        case Steinberg::Vst::Event::kChordEvent:
-                        {
-                            Steinberg::Vst::ChordEvent *e = &ev.chord;
-                            lsp_trace("  kChordEvent root=%d, bassNote=%d, mask=0x%x, textLen=%d, text=%p",
-                                int(e->root), int(e->bassNote), int(e->mask), int(e->textLen), e->text);
-                            break;
-                        }
-                        case Steinberg::Vst::Event::kScaleEvent:
-                        {
-                            Steinberg::Vst::ScaleEvent *e = &ev.scale;
-                            lsp_trace("  kScaleEvent root=%d, mask=0x%x, textLen=%d, text=%p",
-                                int(e->root), int(e->mask), int(e->textLen), e->text);
-                            break;
-                        }
-                        case Steinberg::Vst::Event::kLegacyMIDICCOutEvent:
-                        {
-                            Steinberg::Vst::LegacyMIDICCOutEvent *e = &ev.midiCCOut;
-                            lsp_trace("  kLegacyMIDICCOutEvent controlNumber=%d, channel=%d, value=%d, value2=%d",
-                                int(e->controlNumber), int(e->channel), int(e->value), int(e->value2));
-                            break;
-                        }
-                        default:
-                            lsp_trace("  Unknown event type: %d", int(ev.type));
-                            break;
-                    }
+                    if (decode_midi_event(e, ev))
+                        queue->push(e);
                 }
 
                 // Sort input events
@@ -2103,7 +2260,7 @@ namespace lsp
             bind_bus_buffers(&vAudioOut, data.outputs, data.numOutputs, data.numSamples);
 
             // Process input events
-            process_input_events(data.inputEvents);
+            process_input_events(data.inputEvents, data.inputParameterChanges);
 
             // Reset change indices for parameters
             for (size_t i=0, n=vParams.size(); i<n; ++i)

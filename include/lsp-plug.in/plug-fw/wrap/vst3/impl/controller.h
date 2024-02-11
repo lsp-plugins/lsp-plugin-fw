@@ -256,7 +256,7 @@ namespace lsp
                     meta::U_NONE,
                     meta::R_CONTROL,
                     meta::F_IN | meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
-                    0.0f, 1.0f, 0.5f, 0.00001f,
+                    0.0f, 1.0f, 0.0f, 0.00001f,
                     NULL, NULL
                 };
 

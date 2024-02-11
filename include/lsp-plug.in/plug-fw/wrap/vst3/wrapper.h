@@ -176,8 +176,10 @@ namespace lsp
                 status_t                    save_kvt_parameters_v1(Steinberg::IBStream *os, core::KVTStorage *kvt);
                 status_t                    save_state(Steinberg::IBStream *os);
                 status_t                    load_state(Steinberg::IBStream *is);
+                bool                        decode_midi_event(midi::event_t &e, const Steinberg::Vst::Event &ev);
+                bool                        decode_parameter_as_midi_event(midi::event_t &e, size_t offset, size_t id, double value);
                 void                        toggle_ui_state();
-                void                        process_input_events(Steinberg::Vst::IEventList *events);
+                void                        process_input_events(Steinberg::Vst::IEventList *events, Steinberg::Vst::IParameterChanges *params);
                 void                        process_output_events(Steinberg::Vst::IEventList *events);
                 void                        report_latency();
                 void                        report_state_change();
