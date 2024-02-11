@@ -1511,6 +1511,10 @@ namespace lsp
 
             // Compute the actual mapping parameter identifier
             id      = vst3::MIDI_MAPPING_PARAM_BASE + channel * Steinberg::Vst::kCountCtrlNumber + midiControllerNumber;
+
+            lsp_trace("this=%p, busIndex=%d, channel=%d, midiControllerNumber=%d -> id=0x%08x",
+                this, int(busIndex), int(channel), int(midiControllerNumber), int(id));
+
             return Steinberg::kResultOk;
         }
 

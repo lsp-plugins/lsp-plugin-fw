@@ -64,6 +64,11 @@ namespace lsp
         constexpr const Steinberg::Vst::ParamID MIDI_MAPPING_PARAM_BASE = 0x80000000;
         constexpr const Steinberg::Vst::ParamID PARAM_ID_MODULO         = 0x7fffffff;
 
+        constexpr const float MIDI_FLOAT_TO_BYTE            = 127.0f;
+        constexpr const float MIDI_FLOAT_TO_BEND            = 16383.0f;
+        constexpr const float MIDI_BYTE_TO_FLOAT            = 1.0f / MIDI_FLOAT_TO_BYTE;
+        constexpr const float MIDI_BEND_TO_FLOAT            = 1.0f / MIDI_FLOAT_TO_BEND;
+
         constexpr const size_t MIDI_MAPPING_SIZE            = Steinberg::Vst::kCountCtrlNumber * midi::MIDI_CHANNELS;
 
         enum serial_flags_t

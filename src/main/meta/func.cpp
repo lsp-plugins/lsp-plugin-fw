@@ -324,7 +324,7 @@ namespace lsp
             meta->name              = reinterpret_cast<char *>(ptr);
 
             memcpy(const_cast<char *>(meta->id), metadata->id, id_bytes);
-            memcpy(const_cast<char *>(meta->name), metadata->name, id_bytes);
+            memcpy(const_cast<char *>(meta->name), metadata->name, name_bytes);
 
             return meta;
         }

@@ -205,6 +205,7 @@ namespace lsp
                 explicit MidiPort(const meta::port_t *meta): Port(meta)
                 {
                     sQueue.clear();
+                    sSlice.clear();
                 }
 
             public:
