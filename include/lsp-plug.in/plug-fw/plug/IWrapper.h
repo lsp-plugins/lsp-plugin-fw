@@ -138,6 +138,11 @@ namespace lsp
                  */
                 const meta::plugin_t           *metadata() const;
 
+                /**
+                 * Get the plugin format
+                 * @return plugin format
+                 */
+                virtual meta::plugin_format_t   plugin_format() const;
         };
     } /* namespace plug */
 } /* namespace lsp */

@@ -2595,6 +2595,11 @@ namespace lsp
             return pPackage;
         }
 
+        meta::plugin_format_t Wrapper::plugin_format() const
+        {
+            return meta::PLUGIN_VST3;
+        }
+
         void Wrapper::receive_raw_osc_event(osc::parse_frame_t *frame)
         {
             osc::parse_token_t token;

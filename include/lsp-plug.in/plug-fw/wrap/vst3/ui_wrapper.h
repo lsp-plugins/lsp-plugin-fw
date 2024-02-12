@@ -109,6 +109,7 @@ namespace lsp
                 virtual status_t                    play_file(const char *file, wsize_t position, bool release) override;
                 virtual float                       ui_scaling_factor(float scaling) override;
                 virtual void                        main_iteration() override;
+                virtual meta::plugin_format_t       plugin_format() const override;
 
             public: // vst3::IUISync
                 virtual void                        sync_ui() override;

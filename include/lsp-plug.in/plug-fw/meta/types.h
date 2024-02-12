@@ -34,6 +34,18 @@ namespace lsp
 {
     namespace meta
     {
+        // Different plugin formats
+        enum plugin_format_t
+        {
+            PLUGIN_UNKNOWN,
+            PLUGIN_CLAP,
+            PLUGIN_JACK,
+            PLUGIN_LADSPA,
+            PLUGIN_LV2,
+            PLUGIN_VST2,
+            PLUGIN_VST3
+        };
+
         enum unit_t
         {
             U_NONE,                 // Simple value

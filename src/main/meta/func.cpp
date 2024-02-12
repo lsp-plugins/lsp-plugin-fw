@@ -1337,6 +1337,20 @@ namespace lsp
                 *step       = f_step;
         }
 
+        const char *plugin_format_name(plugin_format_t format)
+        {
+            switch (format)
+            {
+                case PLUGIN_CLAP:       return "CLAP";
+                case PLUGIN_JACK:       return "JACK";
+                case PLUGIN_LADSPA:     return "LADSPA";
+                case PLUGIN_LV2:        return "LV2";
+                case PLUGIN_VST2:       return "VST2";
+                case PLUGIN_VST3:       return "VST3";
+            }
+            return "unknown";
+        }
+
         char *uid_vst2_to_vst3(char *buf, const char *vst2_uid, const char *name, bool for_controller)
         {
             char *dst = buf;

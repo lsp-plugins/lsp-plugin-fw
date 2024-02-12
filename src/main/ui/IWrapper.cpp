@@ -2001,6 +2001,11 @@ namespace lsp
             return true;
         }
 
+        meta::plugin_format_t IWrapper::plugin_format() const
+        {
+            return meta::PLUGIN_UNKNOWN;
+        }
+
     } /* namespace ui */
 } /* namespace lsp */
 

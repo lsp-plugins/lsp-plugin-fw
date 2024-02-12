@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 нояб. 2021 г.
@@ -83,12 +83,11 @@ namespace lsp
 
                 inline void                         deactivate();
 
-            public:
+            public: // plug::IWrapper
                 virtual ipc::IExecutor             *executor() override;
-
                 virtual const meta::package_t      *package() const override;
-
                 virtual void                        request_settings_update() override;
+                virtual meta::plugin_format_t       plugin_format() const override;
         };
 
     } /* namespace ladspa */

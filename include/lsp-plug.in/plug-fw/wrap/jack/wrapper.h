@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 нояб. 2020 г.
@@ -118,20 +118,15 @@ namespace lsp
                 status_t                            init();
                 void                                destroy();
 
-            public:
+            public: // plug::IWrapper
                 virtual ipc::IExecutor             *executor() override;
-
                 virtual void                        query_display_draw() override;
-
                 virtual core::KVTStorage           *kvt_lock() override;
-
                 virtual core::KVTStorage           *kvt_trylock() override;
-
                 virtual bool                        kvt_release() override;
-
                 virtual const meta::package_t      *package() const override;
-
                 virtual void                        request_settings_update() override;
+                virtual meta::plugin_format_t       plugin_format() const override;
 
             public:
                 inline jack_client_t               *client();

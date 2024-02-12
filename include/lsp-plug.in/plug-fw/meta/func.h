@@ -473,6 +473,12 @@ namespace lsp
          */
         char           *uid_meta_to_vst3(char *vst3_uid, const char *meta_uid);
 
+        /**
+         * Return plugin format name by the format specifier
+         * @param format plugin format specifier
+         * @return plugin format name
+         */
+        const char     *plugin_format_name(plugin_format_t format);
     } /* namespace meta */
 } /* namespace lsp */
 

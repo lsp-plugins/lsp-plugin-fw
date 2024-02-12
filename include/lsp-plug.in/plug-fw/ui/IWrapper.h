@@ -146,39 +146,39 @@ namespace lsp
                 IWrapper & operator = (const IWrapper &) = delete;
                 IWrapper & operator = (IWrapper &&) = delete;
 
-                virtual status_t    init(void *root_widget);
-                virtual void        destroy();
+                virtual status_t                init(void *root_widget);
+                virtual void                    destroy();
 
             public:
                 /**
                  * Get builtin resource loader
                  * @return builtin resource loader
                  */
-                inline resource::ILoader   *resources()         { return pLoader;       }
+                inline resource::ILoader       *resources()         { return pLoader;       }
 
                 /**
                  * Get the wrapped UI
                  * @return the pointer to the wrapped UI
                  */
-                inline ui::Module          *ui()                { return pUI;           }
+                inline ui::Module              *ui()                { return pUI;           }
 
                 /**
                  * Get window controller
                  * @return window controller
                  */
-                inline ctl::Window         *controller()        { return pWindow;       }
+                inline ctl::Window             *controller()        { return pWindow;       }
 
                 /**
                  * Get the display
                  * @return display
                  */
-                inline tk::Display         *display()           { return pDisplay;      }
+                inline tk::Display             *display()           { return pDisplay;      }
 
                 /**
                  * Get root window widget
                  * @return root window widget
                  */
-                inline tk::Window          *window()            { return wWindow;       }
+                inline tk::Window              *window()            { return wWindow;       }
 
                 /**
                  * Return port by it's identifier
@@ -186,7 +186,7 @@ namespace lsp
                  * @param id port identifier
                  * @return pointer to the port instance or NULL
                  */
-                IPort                      *port(const char *id);
+                IPort                          *port(const char *id);
 
                 /**
                  * Return port by it's identifier
@@ -194,27 +194,27 @@ namespace lsp
                  * @param id port identifier
                  * @return pointer to the port instance or NULL
                  */
-                IPort                      *port(const LSPString *id);
+                IPort                          *port(const LSPString *id);
 
                 /**
                  * Return port by it's index
                  * @param idx port index starting with 0
                  * @return pointer to the port instance or NULL
                  */
-                IPort                      *port(size_t idx);
+                IPort                          *port(size_t idx);
 
                 /**
                  * Bind custom port
                  * @param port custom port to bind
                  * @return status of operation
                  */
-                status_t                    bind_custom_port(ui::IPort *port);
+                status_t                        bind_custom_port(ui::IPort *port);
 
                 /**
                  * Get overall ports count
                  * @return overall ports count
                  */
-                size_t                      ports() const;
+                size_t                          ports() const;
 
                 /**
                  * Create alias for the port
@@ -223,22 +223,22 @@ namespace lsp
                  * @param id the original port name to create the alias
                  * @return status of operation
                  */
-                status_t                    set_port_alias(const char *alias, const char *id);
-                status_t                    set_port_alias(const LSPString *alias, const char *id);
-                status_t                    set_port_alias(const char *alias, const LSPString *id);
-                status_t                    set_port_alias(const LSPString *alias, const LSPString *id);
+                status_t                        set_port_alias(const char *alias, const char *id);
+                status_t                        set_port_alias(const LSPString *alias, const char *id);
+                status_t                        set_port_alias(const char *alias, const LSPString *id);
+                status_t                        set_port_alias(const LSPString *alias, const LSPString *id);
 
                 /**
                  * Get UI scaling factor (100.0 means no extra scaling applied)
                  * @param scaling the default value for scaling factor if scaling factor is not supported
                  * @return actual scaling factor (in percent) or default value if scaling factor is not supported
                  */
-                virtual float               ui_scaling_factor(float scaling);
+                virtual float                   ui_scaling_factor(float scaling);
 
                 /**
                  * Notify all ports for estimated connection
                  */
-                virtual void                notify_all();
+                virtual void                    notify_all();
 
                 inline const plug::position_t *position() const     { return &sPosition;    }
 
@@ -247,13 +247,13 @@ namespace lsp
                  * this is non-RT-safe operation
                  * @return pointer to KVT storage or NULL if KVT is not supported
                  */
-                virtual core::KVTStorage   *kvt_lock();
+                virtual core::KVTStorage       *kvt_lock();
 
                 /**
                  * Try to lock KVT storage and return pointer to the storage on success
                  * @return pointer to KVT storage or NULL
                  */
-                virtual core::KVTStorage   *kvt_trylock();
+                virtual core::KVTStorage       *kvt_trylock();
 
                 /**
                  * Notify the write of the KVT parameter
@@ -261,45 +261,45 @@ namespace lsp
                  * @param id kvt parameter identifier
                  * @param value KVT parameter value
                  */
-                virtual void                kvt_notify_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value);
-                virtual status_t            kvt_subscribe(ui::IKVTListener *listener);
-                virtual status_t            kvt_unsubscribe(ui::IKVTListener *listener);
+                virtual void                    kvt_notify_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value);
+                virtual status_t                kvt_subscribe(ui::IKVTListener *listener);
+                virtual status_t                kvt_unsubscribe(ui::IKVTListener *listener);
 
                 /**
                  * Release the KVT storage
                  * @return true on success
                  */
-                virtual bool                kvt_release();
+                virtual bool                    kvt_release();
 
                 /**
                  * Request plugin for dump of the internal state
                  */
-                virtual void                dump_state_request();
+                virtual void                    dump_state_request();
 
                 /**
                  * Perform main iteration. Should be regularly called by the wrapper code
                  */
-                virtual void                main_iteration();
+                virtual void                    main_iteration();
 
                 /**
                  * Signal to quit main loop
                  */
-                void                        quit_main_loop();
+                void                            quit_main_loop();
 
                 /**
                  * check that main loop is still active
                  * @return true if main loop is still active
                  */
-                inline bool                 main_loop_interrupted() const       { return nFlags & F_QUIT;       }
+                inline bool                     main_loop_interrupted() const       { return nFlags & F_QUIT;       }
 
                 /**
                  * Export settings of the plugin to file/underlying output stream
                  * @param file file name
                  * @param relative use relative paths to the exported file
                  */
-                virtual status_t            export_settings(const char *file, bool relative = false);
-                virtual status_t            export_settings(const io::Path *file, bool relative = false);
-                virtual status_t            export_settings(const LSPString *file, bool relative = false);
+                virtual status_t                export_settings(const char *file, bool relative = false);
+                virtual status_t                export_settings(const io::Path *file, bool relative = false);
+                virtual status_t                export_settings(const LSPString *file, bool relative = false);
 
                 /**
                  * Export settings
@@ -307,9 +307,9 @@ namespace lsp
                  * @param basedir the directory the config file will be written, can be NULL
                  * @return status of operation
                  */
-                virtual status_t            export_settings(io::IOutSequence *os, const char *basedir);
-                virtual status_t            export_settings(io::IOutSequence *os, const LSPString *basedir);
-                virtual status_t            export_settings(io::IOutSequence *os, const io::Path *basedir = NULL);
+                virtual status_t                export_settings(io::IOutSequence *os, const char *basedir);
+                virtual status_t                export_settings(io::IOutSequence *os, const LSPString *basedir);
+                virtual status_t                export_settings(io::IOutSequence *os, const io::Path *basedir = NULL);
 
                 /**
                  * Export settings
@@ -317,9 +317,9 @@ namespace lsp
                  * @param basedir the directory the config file will be written, can be NULL
                  * @return status of operation
                  */
-                virtual status_t            export_settings(config::Serializer *s, const char *basedir);
-                virtual status_t            export_settings(config::Serializer *s, const LSPString *basedir);
-                virtual status_t            export_settings(config::Serializer *s, const io::Path *basedir = NULL);
+                virtual status_t                export_settings(config::Serializer *s, const char *basedir);
+                virtual status_t                export_settings(config::Serializer *s, const LSPString *basedir);
+                virtual status_t                export_settings(config::Serializer *s, const io::Path *basedir = NULL);
 
                 /**
                  * Import settings
@@ -327,47 +327,47 @@ namespace lsp
                  * @param flags different flags (@see import_flags_t)
                  * @return status of operation
                  */
-                virtual status_t            import_settings(const char *file, size_t flags);
-                virtual status_t            import_settings(const io::Path *file, size_t flags);
-                virtual status_t            import_settings(const LSPString *file, size_t flags);
-                virtual status_t            import_settings(io::IInSequence *is, size_t flags, const char *basedir);
-                virtual status_t            import_settings(io::IInSequence *is, size_t flags, const LSPString *basedir);
-                virtual status_t            import_settings(io::IInSequence *is, size_t flags, const io::Path *basedir = NULL);
-                virtual status_t            import_settings(config::PullParser *parser, size_t flags, const char *basedir);
-                virtual status_t            import_settings(config::PullParser *parser, size_t flags, const LSPString *basedir);
-                virtual status_t            import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir = NULL);
+                virtual status_t                import_settings(const char *file, size_t flags);
+                virtual status_t                import_settings(const io::Path *file, size_t flags);
+                virtual status_t                import_settings(const LSPString *file, size_t flags);
+                virtual status_t                import_settings(io::IInSequence *is, size_t flags, const char *basedir);
+                virtual status_t                import_settings(io::IInSequence *is, size_t flags, const LSPString *basedir);
+                virtual status_t                import_settings(io::IInSequence *is, size_t flags, const io::Path *basedir = NULL);
+                virtual status_t                import_settings(config::PullParser *parser, size_t flags, const char *basedir);
+                virtual status_t                import_settings(config::PullParser *parser, size_t flags, const LSPString *basedir);
+                virtual status_t                import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir = NULL);
 
                 /**
                  * Load visual schema for the wrapper
                  * @param the source (file name or input sequence)
                  * @return status of operation
                  */
-                virtual status_t            load_visual_schema(const char *file);
-                virtual status_t            load_visual_schema(const io::Path *file);
-                virtual status_t            load_visual_schema(const LSPString *file);
+                virtual status_t                load_visual_schema(const char *file);
+                virtual status_t                load_visual_schema(const io::Path *file);
+                virtual status_t                load_visual_schema(const LSPString *file);
 
-                virtual status_t            load_stylesheet(tk::StyleSheet *sheet, const char *file);
-                virtual status_t            load_stylesheet(tk::StyleSheet *sheet, const io::Path *file);
-                virtual status_t            load_stylesheet(tk::StyleSheet *sheet, const LSPString *file);
+                virtual status_t                load_stylesheet(tk::StyleSheet *sheet, const char *file);
+                virtual status_t                load_stylesheet(tk::StyleSheet *sheet, const io::Path *file);
+                virtual status_t                load_stylesheet(tk::StyleSheet *sheet, const LSPString *file);
 
                 /**
                  * Load global configuration file
                  * @param file the path to file to load
                  * @return status of operation
                  */
-                virtual status_t            load_global_config(const char *file);
-                virtual status_t            load_global_config(const io::Path *file);
-                virtual status_t            load_global_config(const LSPString *file);
-                virtual status_t            load_global_config(io::IInSequence *is);
+                virtual status_t                load_global_config(const char *file);
+                virtual status_t                load_global_config(const io::Path *file);
+                virtual status_t                load_global_config(const LSPString *file);
+                virtual status_t                load_global_config(io::IInSequence *is);
 
                 /**
                  * Save global configuration file
                  * @param file the pato to the configuration file
                  * @return status of operation
                  */
-                virtual status_t            save_global_config(const char *file);
-                virtual status_t            save_global_config(const io::Path *file);
-                virtual status_t            save_global_config(const LSPString *file);
+                virtual status_t                save_global_config(const char *file);
+                virtual status_t                save_global_config(const io::Path *file);
+                virtual status_t                save_global_config(const LSPString *file);
 
                 /**
                  * Send request to perform preview playback of the file
@@ -378,7 +378,7 @@ namespace lsp
                  *        be played anymore and the previously allocated memory should be released
                  * @return status of operation
                  */
-                virtual status_t            play_file(const char *file, wsize_t position, bool release);
+                virtual status_t                play_file(const char *file, wsize_t position, bool release);
 
                 /**
                  * Subscribe for the listen update events, listener immediately receives
@@ -386,28 +386,28 @@ namespace lsp
                  * @param listener the listener
                  * @return status of the subscription
                  */
-                virtual status_t            play_subscribe(IPlayListener *listener);
+                virtual status_t                play_subscribe(IPlayListener *listener);
 
                 /**
                  * Unsunscribe the listen update events
                  * @param listener
                  * @return status of operation
                  */
-                virtual status_t            play_unsubscribe(IPlayListener *listener);
+                virtual status_t                play_unsubscribe(IPlayListener *listener);
 
                 /**
                  * Add schema listener
                  * @param listener schema listener
                  * @return status of operation
                  */
-                virtual status_t            add_schema_listener(ui::ISchemaListener *listener);
+                virtual status_t                add_schema_listener(ui::ISchemaListener *listener);
 
                 /**
                  * remove schema listener
                  * @param listener schema listener to remove
                  * @return status of operation
                  */
-                virtual status_t            remove_schema_listener(ui::ISchemaListener *listener);
+                virtual status_t                remove_schema_listener(ui::ISchemaListener *listener);
 
                 /**
                  * Get package version
@@ -425,13 +425,13 @@ namespace lsp
                  * Get global variables
                  * @return global variables
                  */
-                virtual expr::Variables    *global_variables();
+                virtual expr::Variables        *global_variables();
 
                 /**
                  * Reset the plugin settings
                  * @return status of operation
                  */
-                virtual status_t            reset_settings();
+                virtual status_t                reset_settings();
 
                 /**
                  * Check that the specified window size is accepted by the host
@@ -439,7 +439,13 @@ namespace lsp
                  * @param height the requested window height
                  * @return true if the specified window size is accepted by the host
                  */
-                virtual bool                accept_window_size(tk::Window *wnd, size_t width, size_t height);
+                virtual bool                    accept_window_size(tk::Window *wnd, size_t width, size_t height);
+
+                /**
+                 * Get the plugin format
+                 * @return plugin format
+                 */
+                virtual meta::plugin_format_t   plugin_format() const;
         };
 
     } /* namespace ui */

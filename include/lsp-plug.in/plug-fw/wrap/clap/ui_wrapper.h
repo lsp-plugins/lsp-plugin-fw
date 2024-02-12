@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 янв. 2023 г.
@@ -92,7 +92,7 @@ namespace lsp
                 virtual status_t                init(void *root_widget) override;
                 virtual void                    destroy() override;
 
-            public: // Implementation of ui::Wrapper functions
+            public: // ui::IWrapper
                 virtual core::KVTStorage       *kvt_lock() override;
                 virtual core::KVTStorage       *kvt_trylock() override;
                 virtual bool                    kvt_release() override;
@@ -102,6 +102,7 @@ namespace lsp
                 virtual float                   ui_scaling_factor(float scaling) override;
                 virtual void                    main_iteration() override;
                 virtual bool                    accept_window_size(tk::Window *wnd, size_t width, size_t height) override;
+                virtual meta::plugin_format_t   plugin_format() const override;
 
             public: // CLAP API
                 bool                            set_scale(double scale);

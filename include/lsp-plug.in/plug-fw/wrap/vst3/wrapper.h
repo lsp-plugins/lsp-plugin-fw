@@ -209,6 +209,7 @@ namespace lsp
                 virtual void                    state_changed() override;
                 virtual void                    request_settings_update() override;
                 virtual const meta::package_t  *package() const override;
+                virtual meta::plugin_format_t   plugin_format() const override;
 
             public: // vst3::IDataSync
                 virtual void                    sync_data() override;

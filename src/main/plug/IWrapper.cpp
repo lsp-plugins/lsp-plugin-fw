@@ -238,6 +238,11 @@ namespace lsp
             return pCanvas;
         }
 
+        meta::plugin_format_t IWrapper::plugin_format() const
+        {
+            return meta::PLUGIN_UNKNOWN;
+        }
+
     } /* namespace plug */
 } /* namespace lsp */
 

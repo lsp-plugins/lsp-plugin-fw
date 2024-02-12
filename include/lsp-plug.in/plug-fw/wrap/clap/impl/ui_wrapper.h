@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins-comp-delay
  * Created on: 5 янв. 2023 г.
@@ -482,6 +482,11 @@ namespace lsp
                 return IWrapper::accept_window_size(wnd, width, height);
 
             return pExt->gui->request_resize(pExt->host, width, height);
+        }
+
+        meta::plugin_format_t UIWrapper::plugin_format() const
+        {
+            return meta::PLUGIN_CLAP;
         }
 
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2021 г.
@@ -1066,6 +1066,11 @@ namespace lsp
         const meta::package_t *UIWrapper::package() const
         {
             return pPackage;
+        }
+
+        meta::plugin_format_t UIWrapper::plugin_format() const
+        {
+            return meta::PLUGIN_LV2;
         }
 
         status_t UIWrapper::play_file(const char *file, wsize_t position, bool release)

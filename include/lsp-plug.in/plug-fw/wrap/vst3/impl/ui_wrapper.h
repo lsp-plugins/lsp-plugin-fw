@@ -311,6 +311,11 @@ namespace lsp
             return pController->package();
         }
 
+        meta::plugin_format_t UIWrapper::plugin_format() const
+        {
+            return meta::PLUGIN_VST3;
+        }
+
         status_t UIWrapper::play_file(const char *file, wsize_t position, bool release)
         {
             return pController->play_file(file, position, release);
