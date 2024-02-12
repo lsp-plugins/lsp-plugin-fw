@@ -34,6 +34,43 @@ namespace lsp
     {
         namespace vst3
         {
+            void validate_package(context_t *ctx, const meta::package_t *pkg)
+            {
+                // Validate vendor string ASCII
+                const size_t vendor_len = strlen(pkg->brand) + strlen(" VST3");
+                if (vendor_len >= Steinberg::PFactoryInfo::kNameSize)
+                    validation_error(ctx, "Manifest has too long VST 3 vendor name '%s VST' generated from '%s', of %d characters, but only PFactoryInfo::kNameSize=%d characters are permitted",
+                        pkg->brand, pkg->brand, int(vendor_len), int(Steinberg::PFactoryInfo::kNameSize-1));
+                if (vendor_len >= Steinberg::PClassInfo2::kVendorSize)
+                    validation_error(ctx, "Manifest has too long VST 3 vendor name '%s VST' generated from '%s', of %d characters, but only PClassInfo2::kVendorSize=%d characters are permitted",
+                        pkg->brand, pkg->brand, int(vendor_len), int(Steinberg::PClassInfo2::kVendorSize-1));
+
+                // Validate vendor string UTF-16
+                char tmp[Steinberg::PClassInfo2::kVendorSize];
+                snprintf(tmp, sizeof(tmp), "%s VST3", pkg->brand);
+                Steinberg::char16 u16_vendor[Steinberg::PClassInfoW::kVendorSize];
+                if (!utf8_to_utf16(lsp::vst3::to_utf16(u16_vendor), tmp, sizeof(u16_vendor)/sizeof(Steinberg::char16)))
+                    validation_error(ctx, "Manifest has too long VST 3 UTF-16 encoded vendor name '%s VST' generated from '%s', only PClassInfoW::kVendorSize=%d characters are permitted",
+                        pkg->brand, pkg->brand, int(Steinberg::PClassInfoW::kVendorSize-1));
+
+                // Validate URL
+                if (pkg->site != NULL)
+                {
+                    const size_t url_len = strlen(pkg->site);
+                    if (vendor_len >= Steinberg::PFactoryInfo::kURLSize)
+                        validation_error(ctx, "Manifest has too long VST 3 site URL '%s' of %d characters, only PFactoryInfo::kURLSize=%d characters are permitted",
+                            pkg->site, int(url_len), int(Steinberg::PFactoryInfo::kURLSize-1));
+                }
+
+                // Validate email
+                if (pkg->email != NULL)
+                {
+                    const size_t url_len = strlen(pkg->email);
+                    if (vendor_len >= Steinberg::PFactoryInfo::kEmailSize)
+                        validation_error(ctx, "Manifest has too long VST 3 EMail address '%s' of %d characters, only PFactoryInfo::kEmailSize=%d characters are permitted",
+                            pkg->email, int(url_len), int(Steinberg::PFactoryInfo::kEmailSize-1));
+                }
+            }
 
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {

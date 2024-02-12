@@ -160,7 +160,7 @@ namespace lsp
             {
                 Steinberg::TUID cid;
                 char vst3_uid[40], vst3_legacy_uid[40];
-                LSPString pkgver, plugver;
+                LSPString pkgver, plugver, vendor;
                 pkgver.fmt_ascii("%d.%d.%d",
                     int(pkg->version.major),
                     int(pkg->version.minor),
@@ -168,6 +168,10 @@ namespace lsp
                 );
                 if (pkg->version.branch)
                     pkgver.fmt_append_utf8("-%s", pkg->version.branch);
+                vendor.fmt_utf8("%s VST3", pkg->brand);
+
+                const char *site    = (pkg->site != NULL) ? pkg->site : "";
+                const char *email   = (pkg->email != NULL) ? pkg->email : "";
 
                 SA(s->prop_string("Name", pkg->artifact));
                 SA(s->prop_string("Version", &pkgver));
@@ -177,8 +181,8 @@ namespace lsp
                 SA(s->start_object());
                 {
                     SA(s->prop_string("Vendor", pkg->brand));
-                    SA(s->prop_string("URL", pkg->site));
-                    SA(s->prop_string("E-Mail", pkg->email));
+                    SA(s->prop_string("URL", site));
+                    SA(s->prop_string("E-Mail", email));
                     SA(s->write_property("Flags"));
                     SA(s->start_object());
                     {
@@ -223,7 +227,7 @@ namespace lsp
                                 SA(s->prop_string("CID", meta::uid_tuid_to_vst3(vst3_uid, cid)));
                                 SA(s->prop_string("Catetory", kVstAudioEffectClass));
                                 SA(s->prop_string("Name", plug_meta->description));
-                                SA(s->prop_string("Vendor", pkg->brand));
+                                SA(s->prop_string("Vendor", &vendor));
                                 SA(s->prop_string("Version", &plugver));
                                 SA(s->prop_string("SDKVersion", Steinberg::Vst::SDKVersionString));
                                 SA(s->write_property("Sub Categories"));
@@ -290,7 +294,7 @@ namespace lsp
                                 SA(s->prop_string("CID", meta::uid_tuid_to_vst3(vst3_uid, cid)));
                                 SA(s->prop_string("Catetory", kVstComponentControllerClass));
                                 SA(s->prop_string("Name", ui_meta->description));
-                                SA(s->prop_string("Vendor", pkg->brand));
+                                SA(s->prop_string("Vendor", &vendor));
                                 SA(s->prop_string("Version", &plugver));
                                 SA(s->prop_string("SDKVersion", Steinberg::Vst::SDKVersionString));
                                 SA(s->prop_int("Class Flags", Steinberg::Vst::kDistributable));

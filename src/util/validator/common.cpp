@@ -472,6 +472,21 @@ namespace lsp
         }
     #endif /* LSP_VALIDATE_PLUGIN_UI */
 
+        void validate_package(context_t *ctx, const meta::package_t *pkg)
+        {
+            // Validate parameters
+            if (pkg->brand == NULL)
+                validation_error(ctx, "Manifest does not provide brand name");
+
+            // Call the nested validators for each plugin format
+            ladspa::validate_package(ctx, pkg);
+            lv2::validate_package(ctx, pkg);
+            vst2::validate_package(ctx, pkg);
+            vst3::validate_package(ctx, pkg);
+            jack::validate_package(ctx, pkg);
+            clap::validate_package(ctx, pkg);
+        }
+
         void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
         {
             const meta::plugin_t *clash = NULL;

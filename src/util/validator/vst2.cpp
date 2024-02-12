@@ -31,6 +31,15 @@ namespace lsp
     {
         namespace vst2
         {
+            void validate_package(context_t *ctx, const meta::package_t *pkg)
+            {
+                // Validate vendor string
+                const size_t vendor_len = strlen(pkg->brand) + strlen(" VST");
+                if (vendor_len >= kVstMaxVendorStrLen)
+                    validation_error(ctx, "Manifest has too long VST 2.x vendor name '%s VST' generated from '%s', of %d characters, but only %d characters are permitted",
+                        pkg->brand, pkg->brand, int(vendor_len), int(kVstMaxVendorStrLen-1));
+            }
+
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
                 // Validate VST 2.x identifier
@@ -42,7 +51,7 @@ namespace lsp
 
                 // Validate VST 2.x plugin name
                 const char *plugin_name = (meta->vst2_name != NULL) ? meta->vst2_name : meta->name;
-                size_t name_len = strlen(plugin_name);
+                const size_t name_len = strlen(plugin_name);
                 if (name_len >= kVstMaxEffectNameLen)
                     validation_error(ctx, "Plugin uid='%s' has too long VST 2.x name '%s', of %d characters, but only %d characters are permitted",
                         meta->uid, meta->vst2_name, int(name_len), int(kVstMaxEffectNameLen-1));

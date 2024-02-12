@@ -1347,6 +1347,8 @@ namespace lsp
                 case PLUGIN_LV2:        return "LV2";
                 case PLUGIN_VST2:       return "VST2";
                 case PLUGIN_VST3:       return "VST3";
+                default:
+                    break;
             }
             return "unknown";
         }
