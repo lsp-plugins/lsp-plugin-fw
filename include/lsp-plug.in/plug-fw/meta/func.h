@@ -463,6 +463,16 @@ namespace lsp
          */
         char           *uid_tuid_to_vst3(char *vst3_uid, const char *tuid);
 
+        /**
+         * Convert VST3 identifier as it is stored in metadata to VST3 identifier as it is used to be presented by
+         * the VST3 standard.
+         *
+         * @param vst3_uid pointer to store identifier (32-character hex string, uppercase), should be of at least 33 bytes length
+         * @param meta_uid original identifier stored in metadata (16 NULL-terminated ASCII characters)
+         * @return pointer to value stored in vst3_uid or NULL on error
+         */
+        char           *uid_meta_to_vst3(char *vst3_uid, const char *meta_uid);
+
     } /* namespace meta */
 } /* namespace lsp */
 

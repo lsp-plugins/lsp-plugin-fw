@@ -1179,7 +1179,7 @@ install_xdg_msg:
 
 install_xdg: install_xdg_msg $(ARTIFACT_XDG_INST)
 
-install: $(BIN_INSTALL) $(INSTALL_TARGETS)
+install: validate $(BIN_INSTALL) $(INSTALL_TARGETS)
 	echo "Install OK"
 
 #------------------------------------------------------------------------------

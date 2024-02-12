@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <clap/clap.h>
+#include <steinberg/vst3/vst/Types.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/phashset.h>
@@ -43,6 +44,7 @@ namespace lsp
             lltl::pphash<char, meta::plugin_t>      lsp_acronyms;
             lltl::pphash<char, meta::plugin_t>      lsp_ids;
             lltl::pphash<char, meta::plugin_t>      vst2_ids;
+            lltl::pphash<char, meta::plugin_t>      vst3_ids;
             lltl::pphash<char, meta::plugin_t>      clap_ids;
             lltl::pphash<uint32_t, meta::plugin_t>  ladspa_ids;
             lltl::pphash<char, meta::plugin_t>      ladspa_labels;
@@ -57,6 +59,7 @@ namespace lsp
             lltl::parray<meta::port_t>              gen_ports;
             lltl::pphash<char, meta::port_t>        port_ids;
             lltl::pphash<clap_id, meta::port_t>     clap_port_ids;
+            lltl::pphash<Steinberg::Vst::ParamID, meta::port_t> vst3_port_ids;
         } context_t;
 
         namespace ladspa

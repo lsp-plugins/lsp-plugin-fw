@@ -73,6 +73,12 @@ namespace lsp
                 case meta::C_GENERATOR: return "GENERATOR"; break;
                 case meta::C_CONSTANT: return "CONSTANT"; break;
                 case meta::C_INSTRUMENT: return "INSTRUMENT"; break;
+                case meta::C_DRUM: return "DRUM"; break;
+                case meta::C_EXTERNAL: return "EXTERNAL"; break;
+                case meta::C_PIANO: return "PIANO"; break;
+                case meta::C_SAMPLER: return "SAMPLER"; break;
+                case meta::C_SYNTH: return "SYNTH"; break;
+                case meta::C_SYNTH_SAMPLER: return "SYNTH_SAMPLER"; break;
                 case meta::C_OSCILLATOR: return "OSCILLATOR"; break;
                 case meta::C_MODULATOR: return "MODULATOR"; break;
                 case meta::C_CHORUS: return "CHORUS"; break;
@@ -477,6 +483,7 @@ namespace lsp
             ctx->bypass     = 0;
             ctx->port_ids.flush();
             ctx->clap_port_ids.flush();
+            ctx->vst3_port_ids.flush();
 
             // Validate name
             if (meta->name == NULL)

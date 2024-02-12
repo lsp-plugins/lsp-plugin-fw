@@ -208,14 +208,19 @@ namespace lsp
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)
             {
+                const bool is_parameter =
+                    meta::is_control_port(port) ||
+                    meta::is_bypass_port(port) ||
+                    meta::is_port_set_port(port);
+
                 // Check that control port does not clash with another control port
-                if (meta::is_control_port(port) && meta::is_in_port(port))
+                if (is_parameter && meta::is_in_port(port))
                 {
                     clap_id uid = lsp::clap::clap_hash_string(port->id);
                     const meta::port_t *clash = ctx->clap_port_ids.get(&uid);
                     if (clash != NULL)
-                        validation_error(ctx, "Port id='%s' clashes port id='%s' for plugin uid='%s'",
-                            port->id, clash->id, meta->uid);
+                        validation_error(ctx, "Port id='%s' clap identifier 0x%x clashes port id='%s' for plugin uid='%s'",
+                            port->id, int(uid), clash->id, meta->uid);
                     else if (!ctx->clap_port_ids.create(&uid, const_cast<meta::port_t *>(port)))
                         allocation_error(ctx);
                 }

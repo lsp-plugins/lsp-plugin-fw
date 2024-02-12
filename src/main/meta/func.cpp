@@ -1530,6 +1530,16 @@ namespace lsp
             return result;
         }
 
+        char *uid_meta_to_vst3(char *vst3_uid, const char *meta_uid)
+        {
+            char tuid[16];
+            if (meta_uid == NULL)
+                return NULL;
+            if (!uid_vst3_to_tuid(tuid, meta_uid))
+                return NULL;
+            return uid_tuid_to_vst3(vst3_uid, tuid);
+        }
+
     } /* namespace meta */
 } /* namespace lsp */
 

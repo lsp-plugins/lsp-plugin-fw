@@ -159,7 +159,7 @@ namespace lsp
             SA(s->start_object());
             {
                 Steinberg::TUID cid;
-                char vst3_uid[40];
+                char vst3_uid[40], vst3_legacy_uid[40];
                 LSPString pkgver, plugver;
                 pkgver.fmt_ascii("%d.%d.%d",
                     int(pkg->version.major),
@@ -322,20 +322,24 @@ namespace lsp
                                 continue;
                             const char *plugin_name = (plug_meta->vst2_name != NULL) ? plug_meta->vst2_name : plug_meta->name;
 
+                            if (!meta::uid_meta_to_vst3(vst3_uid, plug_meta->vst3_uid))
+                                continue;
+                            if (!meta::uid_vst2_to_vst3(vst3_legacy_uid, plug_meta->vst2_uid, plugin_name))
+                                continue;
+                            if (!strcmp(vst3_uid, vst3_legacy_uid))
+                                continue;
+
                             // Create plugin record
                             SA(s->start_object());
                             {
                                 // New
-                                if (!meta::uid_vst3_to_tuid(cid, plug_meta->vst3_uid))
-                                    return STATUS_BAD_FORMAT;
-                                SA(s->prop_string("New", meta::uid_tuid_to_vst3(vst3_uid, cid)));
+                                SA(s->prop_string("New", vst3_uid));
 
                                 // Old
                                 SA(s->write_property("Old"));
                                 SA(s->start_array());
                                 {
-                                    if (meta::uid_vst2_to_vst3(vst3_uid, plug_meta->vst2_uid, plugin_name))
-                                        SA(s->write_string(vst3_uid));
+                                    SA(s->write_string(vst3_legacy_uid));
                                 }
                                 SA(s->end_array());
                             }
