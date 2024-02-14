@@ -25,6 +25,7 @@
 #include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <ctype.h>
 
 #include <steinberg/vst3.h>
 
@@ -34,6 +35,27 @@ namespace lsp
     {
         namespace vst3
         {
+//            static void make_vst3_id(char *dst, const char *prefix, const char *model, const char *vst2_code)
+//            {
+//                size_t i;
+//                for (i=0; (i<4) && (prefix[i] != 0); ++i)
+//                    *(dst++)    = prefix[i];
+//                for (; i<4; ++i)
+//                    *(dst++)    = ' ';
+//
+//                for (i=0; (i<8) && (model[i] != 0); ++i)
+//                    *(dst++)    = tolower(model[i]);
+//                for (; i<8; ++i)
+//                    *(dst++)    = ' ';
+//
+//                for (i=0; (i<4) && (vst2_code[i] != 0); ++i)
+//                    *(dst++)    = vst2_code[i];
+//                for (; i<4; ++i)
+//                    *(dst++)    = ' ';
+//
+//                *dst        = '\0';
+//            }
+
             void validate_package(context_t *ctx, const meta::package_t *pkg)
             {
                 // Validate vendor string ASCII
@@ -89,6 +111,16 @@ namespace lsp
                 char vst3_iid[40], vst3_legacy_iid[40];
                 const char *vst3_id = NULL, *vst3_legacy_id = NULL;
                 const char *plugin_name = (meta->vst2_name != NULL) ? meta->vst2_name : meta->name;
+
+//                make_vst3_id(vst3_iid, "dsp", meta->acronym, meta->vst2_uid);
+//                if (strcmp(vst3_iid, meta->vst3_uid) != 0)
+//                    validation_error(ctx, "Plugin uid='%s', vst3_uid='%s' but expected to be vst3_uid='%s'",
+//                        meta->uid, meta->vst3_uid, vst3_iid);
+//
+//                make_vst3_id(vst3_iid, "ui", meta->acronym, meta->vst2_uid);
+//                if (strcmp(vst3_iid, meta->vst3ui_uid) != 0)
+//                    validation_error(ctx, "Plugin UI uid='%s', vst3_uid='%s' but expected to be vst3_uid='%s'",
+//                        meta->uid, meta->vst3ui_uid, vst3_iid);
 
                 // Process VST3 identifier for processor (DSP)
                 if (!meta::uid_vst3_to_tuid(tuid, meta->vst3_uid))
