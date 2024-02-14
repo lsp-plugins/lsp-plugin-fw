@@ -897,7 +897,7 @@ namespace lsp
             if (meta->vst2_uid != NULL)
                 c->fmt_append_utf8   ("  VST 2.x identifier:  %s\n", meta->vst2_uid);
             if (meta->vst3_uid != NULL)
-                c->fmt_append_utf8   ("  VST 3.x identifier:  %s\n", meta::uid_meta_to_vst3(vst3_uid, meta->vst2_uid));
+                c->fmt_append_utf8   ("  VST 3.x identifier:  %s\n", meta::uid_meta_to_vst3(vst3_uid, meta->vst3_uid));
             if (meta->ladspa_id > 0)
                 c->fmt_append_utf8   ("  LADSPA identifier:   %d\n", meta->ladspa_id);
             if (meta->ladspa_lbl != NULL)
