@@ -34,6 +34,7 @@ namespace lsp
             pWrapper        = NULL;
             fSampleRate     = -1;
             nLatency        = 0;
+            nTailSize       = 0;
             bActivated      = false;
             bUIActive       = false;
         }

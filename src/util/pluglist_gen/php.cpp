@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 февр. 2022 г.
@@ -18,7 +18,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
-
 
 #include <lsp-plug.in/plug-fw/util/pluglist_gen/pluglist_gen.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
@@ -103,6 +102,8 @@ namespace lsp
         void php_write_plugin_descriptor(FILE *out, const meta::plugin_t *m)
         {
             LSPString tmp, buf;
+            char vst3_buf[40];
+            const char *vst3_uid;
 
             tmp.fmt_utf8("%d.%d.%d",
                 int(LSP_MODULE_VERSION_MAJOR(m->version)),
@@ -144,6 +145,14 @@ namespace lsp
                 fprintf(out, "\t\t\t'vst2_uid' => \"%s\",\n", php_escape(buf, m->vst2_uid));
             else
                 fprintf(out, "\t\t\t'vst2_uid' => null,\n");
+            if ((vst3_uid = meta::uid_meta_to_vst3(vst3_buf, m->vst3_uid)) != NULL)
+                fprintf(out, "\t\t\t'vst3_uid' => \"%s\",\n", php_escape(buf, vst3_uid));
+            else
+                fprintf(out, "\t\t\t'vst3_uid' => null,\n");
+            if ((vst3_uid = meta::uid_meta_to_vst3(vst3_buf, m->vst3ui_uid)) != NULL)
+                fprintf(out, "\t\t\t'vst3ui_uid' => \"%s\",\n", php_escape(buf, vst3_uid));
+            else
+                fprintf(out, "\t\t\t'vst3ui_uid' => null,\n");
             if (m->clap_uid != NULL)
                 fprintf(out, "\t\t\t'clap_uid' => \"%s\",\n", php_escape(buf, m->clap_uid));
             else

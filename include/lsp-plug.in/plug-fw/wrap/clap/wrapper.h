@@ -166,8 +166,7 @@ namespace lsp
                 // CLAP tail extension
                 uint32_t        tail_size() const;
 
-            public:
-                // plug::IWrapper methods
+            public: // plug::IWrapper methods
                 virtual ipc::IExecutor         *executor() override;
                 virtual core::KVTStorage       *kvt_lock() override;
                 virtual core::KVTStorage       *kvt_trylock() override;
@@ -175,6 +174,7 @@ namespace lsp
                 virtual const meta::package_t  *package() const override;
                 virtual void                    state_changed() override;
                 virtual void                    request_settings_update() override;
+                virtual meta::plugin_format_t   plugin_format() const override;
 
             public:
                 // Miscellaneous functions

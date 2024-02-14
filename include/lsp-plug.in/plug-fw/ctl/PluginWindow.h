@@ -242,7 +242,6 @@ namespace lsp
             protected:
                 void                do_destroy();
                 status_t            show_greeting_window();
-                status_t            show_about_window();
                 status_t            show_user_paths_window();
                 status_t            locate_window();
                 status_t            show_menu(tk::Widget *menu, tk::Widget *actor, void *data);
@@ -264,9 +263,9 @@ namespace lsp
                 status_t            scan_presets(const char *location, lltl::darray<resource::resource_t> *presets);
                 status_t            create_main_menu();
                 status_t            create_reset_settings_menu();
+                void                sync_ui_scaling();
                 bool                has_path_ports();
                 void                sync_language_selection();
-                void                sync_ui_scaling();
                 void                sync_font_scaling();
                 void                sync_visual_schemas();
                 void                sync_knob_scale_enabled();
@@ -302,6 +301,11 @@ namespace lsp
                  * Destroy widget
                  */
                 virtual void        destroy() override;
+
+            public:
+                status_t            show_about_window();
+                status_t            show_plugin_manual();
+                void                host_scaling_changed();
 
             public:
                 virtual void        begin(ui::UIContext *ctx) override;

@@ -105,31 +105,38 @@ namespace lsp
                 if (nFlags & F_PENDING)
                     return !(nFlags & F_ACCEPTED);
 
+                return false;
+            }
+
+            virtual bool update()
+            {
+                if (pending())
+                    return false;
+
                 // Check for pending request
                 if (!atomic_trylock(nDspRequest))
                     return false;
+                lsp_finally { atomic_unlock(nDspRequest); };
 
                 // Update state of the DSP
-                if (nDspSerial != nDspCommit)
-                {
-                    // Copy the data
-                    nXFlags             = nXFlagsReq;
-                    nXFlagsReq          = 0;
-                    ::strncpy(sPath, sDspRequest, PATH_MAX-1);
-                    sPath[PATH_MAX-1]   = '\0';
-                    nFlags              = F_PENDING;
+                if (nDspSerial == nDspCommit)
+                    return false;
 
-                    lsp_trace("  DSP Request: %s", sDspRequest);
-                    lsp_trace("  saved path: %s", sPath);
+                // Copy the data
+                nXFlags             = nXFlagsReq;
+                nXFlagsReq          = 0;
+                ::strncpy(sPath, sDspRequest, PATH_MAX-1);
+                sPath[PATH_MAX-1]   = '\0';
+                nFlags              = F_PENDING;
 
-                    // Update serial(s)
-                    atomic_add(&nUiSerial, 1);
-                    atomic_add(&nDspCommit, 1);
-                }
+                lsp_trace("  DSP Request: %s", sDspRequest);
+                lsp_trace("  saved path: %s", sPath);
 
-                atomic_unlock(nDspRequest);
+                // Update serial(s)
+                atomic_add(&nUiSerial, 1);
+                atomic_add(&nDspCommit, 1);
 
-                return (nFlags & F_PENDING);
+                return true;
             }
 
             virtual bool accepted()

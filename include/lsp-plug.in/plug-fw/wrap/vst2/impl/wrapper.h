@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 дек. 2021 г.
@@ -459,8 +459,8 @@ namespace lsp
     //            lsp_trace("ppq_pos = %f, bar_start_pos = %f", float(info->ppqPos), float(info->barStartPos));
                 if ((info->flags & (kVstPpqPosValid | kVstBarsValid)) == (kVstPpqPosValid | kVstBarsValid))
                 {
-                    double uppqPos      = (info->ppqPos - info->barStartPos) * info->timeSigDenominator * 0.25;
-                    npos.tick           = npos.ticksPerBeat * (uppqPos - int64_t(uppqPos));
+                    double uppqPos      = (info->ppqPos - info->barStartPos) * info->timeSigDenominator * 0.25 / npos.numerator;
+                    npos.tick           = npos.ticksPerBeat * npos.numerator * (uppqPos - int64_t(uppqPos));
                 }
             }
 
@@ -475,6 +475,9 @@ namespace lsp
             if (pPlugin->set_position(&npos))
                 bUpdateSettings = true;
             sPosition       = npos;
+
+//            lsp_trace("position sampleRate=%f, speed=%f, num=%f, den=%f, bpm=%f, tpb=%f, tick=%f",
+//                npos.sampleRate, npos.speed, npos.numerator, npos.denominator, npos.beatsPerMinute, npos.ticksPerBeat, npos.tick);
         }
 
         void Wrapper::run(float** inputs, float** outputs, size_t samples)
@@ -751,7 +754,7 @@ namespace lsp
                     // Successful status?
                     if (res != STATUS_OK)
                     {
-                        lsp_trace("it->name() returned NULL");
+                        lsp_trace("KVT serialization failed");
                         break;
                     }
 
@@ -1334,6 +1337,11 @@ namespace lsp
             return pPackage;
         }
 
+        meta::plugin_format_t Wrapper::plugin_format() const
+        {
+            return meta::PLUGIN_VST2;
+        }
+
         core::SamplePlayer *Wrapper::sample_player()
         {
             return pSamplePlayer;
@@ -1343,6 +1351,13 @@ namespace lsp
         {
             bUpdateSettings     = true;
         }
+
+        void Wrapper::state_changed()
+        {
+            if ((pMaster != NULL) && (pEffect != NULL))
+                pMaster(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
+        }
+
     } /* namespace vst2 */
 } /* namespace lsp */
 

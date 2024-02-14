@@ -28,6 +28,10 @@ namespace lsp
     {
         namespace jack
         {
+            void validate_package(context_t *ctx, const meta::package_t *pkg)
+            {
+            }
+
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
             }

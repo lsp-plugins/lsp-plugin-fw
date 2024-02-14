@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -34,6 +34,12 @@
 #define STREAM_BULK_MAX             0x40
 #define FRAMEBUFFER_BULK_MAX        0x10
 #define MESH_REFRESH_RATE           20
+
+#ifdef PLATFORM_WINDOWS
+    #define MAX_PATH_LEN                (PATH_MAX * 2)
+#else
+    #define MAX_PATH_LEN                PATH_MAX
+#endif /* PLATFORM_WINDOWS */
 
 namespace lsp
 {
@@ -193,6 +199,18 @@ namespace lsp
                 ssize_t                 write_frame(size_t channel, const float *data, size_t off, size_t count);
 
                 /**
+                 * Get data for the currently allocated frame. Frame can be split into two parts because of using
+                 * ring buffer, so the returned number of elements should be considered to perform right frame
+                 * data update.
+                 *
+                 * @param channel channel number
+                 * @param off the offset inside the frame
+                 * @param count the pointer to store available number of elements for frame
+                 * @return pointer to the frame data or NULL
+                 */
+                float                  *frame_data(size_t channel, size_t off, size_t *count);
+
+                /**
                  * Read frame data
                  * @param frame frame identifier
                  * @param channel channel number
@@ -340,9 +358,14 @@ namespace lsp
         // Midi port structure
         typedef struct midi_t
         {
-            size_t          nEvents;
-            midi::event_t   vEvents[MIDI_EVENTS_MAX];
+            size_t          nEvents;                    // Number of events in the queue
+            midi::event_t   vEvents[MIDI_EVENTS_MAX];   // List of events in the queue
 
+            /**
+             * Add event to the queue
+             * @param me pointer to event to add
+             * @return true if event was added
+             */
             inline bool push(const midi::event_t *me)
             {
                 if (nEvents >= MIDI_EVENTS_MAX)
@@ -351,29 +374,51 @@ namespace lsp
                 return true;
             }
 
-            inline bool push(const midi::event_t &me)
-            {
-                return push(&me);
-            }
+            /**
+             * Add event to the queue
+             * @param me event to add
+             * @return true if event was added
+             */
+            inline bool push(const midi::event_t &me) { return push(&me); }
 
-            inline bool push_all(const midi_t *src)
-            {
-                size_t avail    = MIDI_EVENTS_MAX - nEvents;
-                size_t count    = (src->nEvents > avail) ? avail : src->nEvents;
-                if (count > 0)
-                {
-                    ::memcpy(&vEvents[nEvents], src->vEvents, count * sizeof(midi::event_t));
-                    nEvents        += count;
-                }
+            /**
+             * Select all events from the source queue that match specified timestamp range [start, end) and put to this queue,
+             * subtract timestamp value by start from original events.
+             * @note For proper work of this function the input queue should be sorted.
+             *
+             * @param src source queue to select data
+             * @param start the start of the timestamp range
+             * @param end the end of the timestamp range
+             * @return true if all events have been added
+             */
+            bool push_slice(const midi_t *src, uint32_t start, uint32_t end);
 
-                return count >= src->nEvents;
-            }
+            /**
+             * Append all events from the source queue without any modifications
+             * @param src source queue
+             * @return true if all events have been added
+             */
+            bool push_all(const midi_t *src);
 
-            inline bool push_all(const midi_t &src)
-            {
-                return push_all(&src);
-            }
+            /**
+             * Append all events from the source queue without any modifications
+             * @param src source queue
+             * @return true if all events have been added
+             */
+            inline bool push_all(const midi_t &src) { return push_all(&src); }
 
+            /**
+             * Push all events from the source queue and add the specified offset to their timestamps
+             * @param src source queue to select events
+             * @param offset the offset to add to the timestamp of each event
+             * @return true if all events have been added
+             */
+            bool push_all_shifted(const midi_t *src, uint32_t offset);
+
+            /**
+             * Copy the contents of the queue
+             * @param src the contents of the queue to copy
+             */
             inline void copy_from(const midi_t *src)
             {
                 nEvents     = src->nEvents;
@@ -381,33 +426,44 @@ namespace lsp
                     ::memcpy(vEvents, src->vEvents, nEvents * sizeof(midi::event_t));
             }
 
+            /**
+             * Clear destination queue and copy all contents to it
+             * @param dst destination queue to copy all contents
+             */
             inline void copy_to(midi_t *dst) const
             {
                 dst->copy_from(this);
             }
 
+            /**
+             * Clear the queue
+             */
             inline void clear()
             {
                 nEvents     = 0;
             }
 
+            /**
+             * Perform sort of events stored in the queue according to their timestamps
+             */
             void sort();
         } midi_t;
 
         // Path port structure
         typedef struct path_t
         {
-            /** Virtual destructor
-             *
+            /**
+             * Virtual destructor
              */
             virtual ~path_t();
 
-            /** Initialize path
-             *
+            /**
+             * Initialize path
              */
             virtual void init();
 
-            /** Get actual path
+            /**
+             * Get actual path (UTF-8 string)
              *
              * @return actual path
              */
@@ -419,29 +475,32 @@ namespace lsp
              */
             virtual size_t flags() const;
 
-            /** Check if there is pending request
+            /**
+             * Check if there is pending request
              *
              * @return true if there is a pending state-change request
              */
             virtual bool pending();
 
-            /** Accept the pending request for path change,
+            /**
+             * Accept the pending request for path change,
              * the port of the path will not trigger as changed
              * until commit() is called
              */
             virtual void accept();
 
-            /** Check if there is accepted request
+            /**
+             * Check if there is accepted request
              *
              * @return true if there is accepted request
              */
             virtual bool accepted();
 
-            /** The state change request was processed,
+            /**
+             * The state change request was processed,
              * the port is ready to receive new events,
              * this method SHOULD be called ONLY AFTER
              * we don't need the value stored in this primitive
-             *
              */
             virtual void commit();
         } path_t;

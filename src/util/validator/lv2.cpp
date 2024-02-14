@@ -28,6 +28,10 @@ namespace lsp
     {
         namespace lv2
         {
+            void validate_package(context_t *ctx, const meta::package_t *pkg)
+            {
+            }
+
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
                 if (meta->lv2_uri == NULL)

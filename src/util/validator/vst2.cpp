@@ -31,6 +31,15 @@ namespace lsp
     {
         namespace vst2
         {
+            void validate_package(context_t *ctx, const meta::package_t *pkg)
+            {
+                // Validate vendor string
+                const size_t vendor_len = strlen(pkg->brand) + strlen(" VST");
+                if (vendor_len >= kVstMaxVendorStrLen)
+                    validation_error(ctx, "Manifest has too long VST 2.x vendor name '%s VST' generated from '%s', of %d characters, but only %d characters are permitted",
+                        pkg->brand, pkg->brand, int(vendor_len), int(kVstMaxVendorStrLen-1));
+            }
+
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
                 // Validate VST 2.x identifier
@@ -41,7 +50,8 @@ namespace lsp
                         meta->uid, meta->vst2_uid);
 
                 // Validate VST 2.x plugin name
-                size_t name_len = strlen(meta->vst2_name);
+                const char *plugin_name = (meta->vst2_name != NULL) ? meta->vst2_name : meta->name;
+                const size_t name_len = strlen(plugin_name);
                 if (name_len >= kVstMaxEffectNameLen)
                     validation_error(ctx, "Plugin uid='%s' has too long VST 2.x name '%s', of %d characters, but only %d characters are permitted",
                         meta->uid, meta->vst2_name, int(name_len), int(kVstMaxEffectNameLen-1));
@@ -54,7 +64,7 @@ namespace lsp
                 else if (!ctx->vst2_ids.create(meta->vst2_uid, const_cast<meta::plugin_t *>(meta)))
                     allocation_error(ctx);
 
-                // Validate versionb
+                // Validate version
                 size_t micro = LSP_MODULE_VERSION_MICRO(meta->version);
                 if (micro > VST_VERSION_MICRO_MAX)
                     validation_error(ctx,
@@ -70,7 +80,12 @@ namespace lsp
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)
             {
-                if (meta::is_control_port(port) && meta::is_in_port(port))
+                const bool is_parameter =
+                    meta::is_control_port(port) ||
+                    meta::is_bypass_port(port) ||
+                    meta::is_port_set_port(port);
+
+                if (is_parameter && meta::is_in_port(port))
                 {
                     if (strlen(port->id) >= kVstMaxParamStrLen)
                         validation_error(ctx, "Plugin uid='%s', parameter='%s': VST 2.x restrictions do not allow the parameter name to be not larger %d characters",

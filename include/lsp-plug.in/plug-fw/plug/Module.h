@@ -124,6 +124,7 @@ namespace lsp
 
                 /**
                  * Get current sample rate of the plugin
+                 * @deprecated use sample_rate() instead
                  * @return current sample rate of the plugin
                  */
                 inline uint32_t             sample_rate() const             { return fSampleRate;       }

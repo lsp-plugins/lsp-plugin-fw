@@ -51,13 +51,16 @@ namespace lsp
                 explicit KVTDispatcher(KVTStorage *kvt, ipc::Mutex *mutex);
                 KVTDispatcher(const KVTDispatcher &) = delete;
                 KVTDispatcher(KVTDispatcher &&) = delete;
-                virtual ~KVTDispatcher();
+                virtual ~KVTDispatcher() override;
 
                 KVTDispatcher & operator = (const KVTDispatcher &) = delete;
                 KVTDispatcher & operator = (KVTDispatcher &) = delete;
 
             public:
-                virtual status_t    run();
+                virtual status_t    run() override;
+
+            public:
+                ssize_t             iterate();
 
                 status_t            submit(const void *data, size_t size);
                 status_t            submit(const osc::packet_t *packet);

@@ -1964,6 +1964,11 @@ namespace lsp
             bUpdateSettings     = true;
         }
 
+        meta::plugin_format_t Wrapper::plugin_format() const
+        {
+            return meta::PLUGIN_CLAP;
+        }
+
     } /* namespace clap */
 } /* namespace lsp */
 

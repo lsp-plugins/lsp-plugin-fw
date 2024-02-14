@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -105,6 +105,16 @@ namespace lsp
             return (p != NULL) && (p->role == R_CONTROL);
         }
 
+        static inline bool is_bypass_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_BYPASS);
+        }
+
+        static inline bool is_port_set_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_PORT_SET);
+        }
+
         static inline bool is_meter_port(const port_t *p)
         {
             return (p != NULL) && (p->role == R_METER);
@@ -128,6 +138,11 @@ namespace lsp
         static inline bool is_stream_port(const port_t *p)
         {
             return (p != NULL) && (p->role == R_STREAM);
+        }
+
+        static inline bool is_optional_port(const port_t *p)
+        {
+            return (p != NULL) && (p->flags & F_OPTIONAL);
         }
 
         /**
@@ -224,7 +239,14 @@ namespace lsp
          */
         void            get_port_parameters(const port_t *p, float *min, float *max, float *step);
 
-        /** Clone port metadata
+        /** Clone single port metadata
+         *
+         * @param metadata port list
+         * @return cloned port metadata, should be freed by drop_port_metadata() call
+         */
+        port_t         *clone_single_port_metadata(const port_t *metadata);
+
+        /** Clone multiple port metadata
          *
          * @param metadata port list
          * @param postfix potfix to be added to the port list, can be NULL
@@ -414,7 +436,50 @@ namespace lsp
          * @return true if the value matches the range
          */
         bool            range_match(const port_t *meta, float value);
-    }
-}
+
+        /**
+         * Convert VST2 identifier to VST3 identifier
+         * @param buf pointer to buffer to store value, should be at least 33 characters length
+         * @param vst2_uid original string representation of VST2 identifier
+         * @param name plugin name
+         * @param for_controller make VST3 identifier for controller
+         * @return pointer to the string stored in the buffer or NULL on error
+         */
+        char           *uid_vst2_to_vst3(char *buf, const char *vst2_uid, const char *name, bool for_controller = false);
+
+        /**
+         * Convert VST3 unique identifier to TUID
+         * @param tuid VST3 TUID
+         * @param vst3_uid VST3 unique identifier (32-character hex string or 16-character ASCII string)
+         * @return true if conversion succeeded
+         */
+        bool            uid_vst3_to_tuid(char *tuid, const char *vst3_uid);
+
+        /**
+         * Convert VST3 unique identifier to TUID
+         * @param vst3_uid VST3 unique identifier (32-character hex string, uppercase), should be of at least 33 bytes length
+         * @param tuid VST3 TUID of 16 characters
+         * @return pointer to converted string or NULL on error
+         */
+        char           *uid_tuid_to_vst3(char *vst3_uid, const char *tuid);
+
+        /**
+         * Convert VST3 identifier as it is stored in metadata to VST3 identifier as it is used to be presented by
+         * the VST3 standard.
+         *
+         * @param vst3_uid pointer to store identifier (32-character hex string, uppercase), should be of at least 33 bytes length
+         * @param meta_uid original identifier stored in metadata (16 NULL-terminated ASCII characters)
+         * @return pointer to value stored in vst3_uid or NULL on error
+         */
+        char           *uid_meta_to_vst3(char *vst3_uid, const char *meta_uid);
+
+        /**
+         * Return plugin format name by the format specifier
+         * @param format plugin format specifier
+         * @return plugin format name
+         */
+        const char     *plugin_format_name(plugin_format_t format);
+    } /* namespace meta */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_META_FUNC_H_ */

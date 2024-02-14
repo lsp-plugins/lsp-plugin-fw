@@ -187,8 +187,6 @@ namespace lsp
 
             virtual void commit()
             {
-                if (nState != S_ACCEPTED)
-                    return;
                 nState  = S_EMPTY;
             }
 

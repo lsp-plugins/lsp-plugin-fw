@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <clap/clap.h>
+#include <steinberg/vst3/vst/Types.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/phashset.h>
@@ -43,6 +44,7 @@ namespace lsp
             lltl::pphash<char, meta::plugin_t>      lsp_acronyms;
             lltl::pphash<char, meta::plugin_t>      lsp_ids;
             lltl::pphash<char, meta::plugin_t>      vst2_ids;
+            lltl::pphash<char, meta::plugin_t>      vst3_ids;
             lltl::pphash<char, meta::plugin_t>      clap_ids;
             lltl::pphash<uint32_t, meta::plugin_t>  ladspa_ids;
             lltl::pphash<char, meta::plugin_t>      ladspa_labels;
@@ -57,38 +59,52 @@ namespace lsp
             lltl::parray<meta::port_t>              gen_ports;
             lltl::pphash<char, meta::port_t>        port_ids;
             lltl::pphash<clap_id, meta::port_t>     clap_port_ids;
+            lltl::pphash<Steinberg::Vst::ParamID, meta::port_t> vst3_port_ids;
         } context_t;
 
         namespace ladspa
         {
+            void validate_package(context_t *ctx, const meta::package_t *pkg);
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta);
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
         } /* namespace ladspa */
 
         namespace lv2
         {
+            void validate_package(context_t *ctx, const meta::package_t *pkg);
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta);
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
         } /* namespace lv2 */
 
         namespace vst2
         {
+            void validate_package(context_t *ctx, const meta::package_t *pkg);
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta);
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
         } /* namespace vst2 */
 
+        namespace vst3
+        {
+            void validate_package(context_t *ctx, const meta::package_t *pkg);
+            void validate_plugin(context_t *ctx, const meta::plugin_t *meta);
+            void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
+        } /* namespace vst3 */
+
         namespace jack
         {
+            void validate_package(context_t *ctx, const meta::package_t *pkg);
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta);
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
         } /* namespace jack */
 
         namespace clap
         {
+            void validate_package(context_t *ctx, const meta::package_t *pkg);
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta);
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
-        }
+        } /* namespace clap */
 
+        void validate_package(context_t *ctx, const meta::package_t *pkg);
         void validate_plugin(context_t *ctx, const meta::plugin_t *meta);
         void validate_ports(context_t *ctx, const meta::plugin_t *meta);
         void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
