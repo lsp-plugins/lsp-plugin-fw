@@ -197,7 +197,7 @@ namespace lsp
                     nFlags             &= ~(F_PENDING | F_ACCEPTED);
             }
 
-            virtual bool accepted()
+            virtual bool accepted() override
             {
                 return nFlags & F_ACCEPTED;
             }
