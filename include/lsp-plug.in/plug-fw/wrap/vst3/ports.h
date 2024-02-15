@@ -434,11 +434,9 @@ namespace lsp
 
                 virtual ~StreamPort() override
                 {
-                    if (pStream != NULL)
-                    {
-                        plug::stream_t::destroy(pStream);
-                        pStream     = NULL;
-                    }
+                    plug::stream_t::destroy(pStream);
+                    pStream     = NULL;
+
                     if (pData != NULL)
                     {
                         free(pData);
@@ -459,13 +457,13 @@ namespace lsp
                 }
 
             public:
-                inline uint32_t frame_id() const        { return nFrameID;      }
-                void set_frame_id(uint32_t frame_id)    { nFrameID = frame_id;  }
+                inline uint32_t frame_id() const                { return nFrameID;      }
+                inline void set_frame_id(uint32_t frame_id)     { nFrameID = frame_id;  }
 
                 inline float *read_frame(uint32_t frame_id, size_t channel, size_t off, size_t count)
                 {
-                    ssize_t res = pStream->read_frame(frame_id, channel, pData, off, count);
-                    return (res >= 0) ? pData : NULL;
+                    pStream->read_frame(frame_id, channel, pData, off, count);
+                    return pData;
                 }
         };
 

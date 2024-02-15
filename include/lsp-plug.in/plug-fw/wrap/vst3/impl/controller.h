@@ -504,7 +504,7 @@ namespace lsp
 
             if (!strcmp(message_id, ID_MSG_LATENCY))
             {
-                lsp_trace("Received message id=%s", message_id);
+                // lsp_trace("Received message id=%s", message_id);
 
                 Steinberg::int64 latency = 0;
 
@@ -520,7 +520,7 @@ namespace lsp
             }
             else if (!strcmp(message_id, ID_MSG_STATE_DIRTY))
             {
-                lsp_trace("Received message id=%s", message_id);
+                // lsp_trace("Received message id=%s", message_id);
 
                 // Mark state as dirty
                 if (pComponentHandler2 != NULL)
@@ -584,7 +584,7 @@ namespace lsp
                 if (atts->getInt("length", length) != Steinberg::kResultOk)
                     return Steinberg::kResultFalse;
 
-                lsp_trace("Received play position = %lld, length=%lld", (long long)position, (long long)length);
+                // lsp_trace("Received play position = %lld, length=%lld", (long long)position, (long long)length);
 
                 // Notify UI about position update
                 if (sWrappersLock.lock())
@@ -711,7 +711,7 @@ namespace lsp
             }
             else if (!strcmp(message_id, ID_MSG_FRAMEBUFFER))
             {
-                lsp_trace("Received message id=%s", message_id);
+                // lsp_trace("Received message id=%s", message_id);
 
                 // Read endianess
                 if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
@@ -784,6 +784,8 @@ namespace lsp
             }
             else if (!strcmp(message_id, ID_MSG_STREAM))
             {
+//                lsp_trace("Received message id=%s", message_id);
+
                 // Read endianess
                 if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
                     return Steinberg::kResultFalse;
@@ -847,7 +849,10 @@ namespace lsp
                         if (atts->getBinary(key, data, sizeInBytes) != Steinberg::kResultOk)
                             return Steinberg::kResultFalse;
                         if (sizeInBytes != frame_size * sizeof(float))
+                        {
+//                            lsp_trace("mismatched size in bytes %d vs %d", int(sizeInBytes), int(frame_size * sizeof(float)));
                             return Steinberg::kResultFalse;
+                        }
 
                         // Copy frame buffer
                         const float *src = reinterpret_cast<const float *>(data);
@@ -869,6 +874,7 @@ namespace lsp
 
                     // Commit the frame for the stream
                     stream->commit_frame();
+//                    lsp_trace("deserialized frame id=%d of %d elements", int(frame_id), int(f_size));
                 }
                 port->mark_changed();
             }

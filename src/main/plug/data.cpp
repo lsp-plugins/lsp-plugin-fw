@@ -272,8 +272,9 @@ namespace lsp
 
         size_t stream_t::add_frame(size_t size)
         {
-            size_t frame_id = nFrameId + 1;
-            frame_t *curr   = &vFrames[nFrameId & (nFrameCap - 1)];
+            size_t prev_id  = nFrameId;
+            size_t frame_id = prev_id + 1;
+            frame_t *curr   = &vFrames[prev_id & (nFrameCap - 1)];
             frame_t *next   = &vFrames[frame_id & (nFrameCap - 1)];
 
             size            = lsp_min(size, size_t(STREAM_MAX_FRAME_SIZE));
@@ -439,8 +440,9 @@ namespace lsp
 
         bool stream_t::commit_frame()
         {
-            size_t frame_id = nFrameId + 1;
-            frame_t *curr   = &vFrames[nFrameId & (nFrameCap - 1)];
+            size_t prev_id  = nFrameId;
+            size_t frame_id = prev_id + 1;
+            frame_t *curr   = &vFrames[prev_id & (nFrameCap - 1)];
             frame_t *next   = &vFrames[frame_id & (nFrameCap - 1)];
             if (next->id != frame_id)
                 return false;

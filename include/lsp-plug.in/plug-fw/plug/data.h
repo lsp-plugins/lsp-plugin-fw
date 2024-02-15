@@ -179,8 +179,8 @@ namespace lsp
                  * Get the identifier of head frame
                  * @return identifier of head frame
                  */
-                inline uint32_t         frame_id() const        { return nFrameId;      }
 
+                inline uint32_t         frame_id() const        { return nFrameId;      }
                 /**
                  * Begin write of frame data
                  * @param size the required size of frame

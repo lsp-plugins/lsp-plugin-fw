@@ -1942,6 +1942,10 @@ namespace lsp
                 if (s == NULL)
                     continue;
 
+                size_t frame = s->frame_id(), frames = s->frames();
+
+                lsp_trace("Reset stream id=%s position frame=%d, frames=%d", s_port->id(), int(frame), int(frames));
+
                 s_port->set_frame_id(s->frame_id() - s->frames());
             }
         }
@@ -3055,12 +3059,14 @@ namespace lsp
 
                 // Serialize not more than 4 rows
                 size_t delta = fb->next_rowid() - fb_port->row_id();
+                if (delta == 0)
+                    continue;
                 uint32_t first_row = (delta > fb->rows()) ? fb->next_rowid() - fb->rows() : fb_port->row_id();
                 if (delta > FRAMEBUFFER_BULK_MAX)
                     delta = FRAMEBUFFER_BULK_MAX;
                 uint32_t last_row = first_row + delta;
 
-                lsp_trace("id = %s, first=%d, last=%d", fb_port->metadata()->id, int(first_row), int(last_row));
+                // lsp_trace("id = %s, first=%d, last=%d", fb_port->metadata()->id, int(first_row), int(last_row));
 
                 // Allocate new message
                 Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
@@ -3121,28 +3127,28 @@ namespace lsp
                 // Get the frame buffer data
                 vst3::StreamPort *s_port = static_cast<vst3::StreamPort *>(it.get());
                 if (s_port == NULL)
+                {
                     continue;
+                }
                 plug::stream_t *s        = it->buffer<plug::stream_t>();
                 if (s == NULL)
                     continue;
 
                 // Serialize not more than number of predefined frames
-                uint32_t frame_id  = s_port->frame_id();
-                uint32_t src_id    = s->frame_id();
-                uint32_t delta     = src_id - s->frame_id();
+                uint32_t frame_id   = s_port->frame_id();
+                uint32_t src_id     = s->frame_id();
+                size_t num_frames   = s->frames();
+                uint32_t delta      = lsp_min(src_id - frame_id, num_frames);
                 if (delta == 0)
                     continue;
 
-                size_t num_frames  = s->frames();
-                uint32_t last_id   = src_id + 1;
-                if (delta > num_frames)
-                {
-                    delta              = num_frames;
-                    frame_id           = last_id - num_frames;
-                }
-                if (delta > STREAM_BULK_MAX)
-                    last_id            = frame_id + STREAM_BULK_MAX;
-                size_t nbuffers     = s->channels();
+                frame_id            = src_id - delta + 1;
+                delta               = lsp_min(delta, uint32_t(STREAM_BULK_MAX)); // Limit number of frames per message
+                uint32_t last_id    = frame_id + delta;
+                const size_t nbuffers   = s->channels();
+
+//                lsp_trace("src_id=%d, port_frame=%d, frame_id=%d, last_id=%d, delta=%d, num_frames=%d",
+//                        int(src_id), int(s_port->frame_id()), int(frame_id), int(last_id), int(delta), int(num_frames));
 
                 // Allocate new message
                 Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
@@ -3157,9 +3163,11 @@ namespace lsp
                 // Write endianess
                 if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
                     continue;
+
                 // Write identifier of the frame buffer port
                 if (!sTxNotifyBuf.set_string(list, "id", s_port->metadata()->id))
                     continue;
+
                 // Write number of buffers
                 if (list->setInt("buffers", nbuffers) != Steinberg::kResultOk)
                     continue;
@@ -3171,7 +3179,10 @@ namespace lsp
                 {
                     ssize_t frame_size = s->get_frame_size(frame_id);
                     if (frame_size < 0)
+                    {
+//                        lsp_trace("Invalid frame size");
                         continue;
+                    }
 
                     // Forge frame number
                     snprintf(key, sizeof(key), "frame_id[%d]", int(frames));
@@ -3204,6 +3215,7 @@ namespace lsp
 
                     // Increment number of frames
                     ++frames;
+//                    lsp_trace("serialized frame id=%d, size=%d", int(frame_id), int(frame_size));
                 }
 
                 if (!encoded)
@@ -3212,7 +3224,9 @@ namespace lsp
                     continue;
 
                 // Update current RowID
-                s_port->set_frame_id(frame_id);
+//                 lsp_trace("committed frame id=%d", int(uint32_t(frame_id - 1)));
+                if (pPeerConnection->notify(msg) == Steinberg::kResultOk)
+                    s_port->set_frame_id(uint32_t(frame_id - 1));
             }
         }
 

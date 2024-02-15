@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/common/debug.h>
 
 namespace lsp
 {
@@ -254,13 +255,19 @@ namespace lsp
                 if ((valid) && (bStrobe))
                     valid   = (nSIndex >= 0) && (nSIndex < ssize_t(stream->channels()));
 
+                size_t last     = stream->frame_id();
+                ssize_t length  = stream->get_length(last);
+                if (length < 0)
+                    valid   = false;
+
                 if (valid)
                 {
                     // Perform read from stream to mesh
-                    size_t last     = stream->frame_id();
-                    ssize_t length  = stream->get_length(last);
                     ssize_t dots    = (nMaxDots >= 0) ? lsp_min(length, nMaxDots) : length;
                     ssize_t off     = length - dots;
+
+//                    lsp_trace("last = %d, length = %lld, dots = %lld, off=%lld",
+//                        int(last), (long long)(length), (long long)(dots), (long long)off);
 
                     // Resize mesh data and set strobe flag
                     data->set_size(dots, bStrobe);
