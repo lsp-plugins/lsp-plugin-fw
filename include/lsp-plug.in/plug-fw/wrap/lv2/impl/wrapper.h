@@ -1087,7 +1087,6 @@ namespace lsp
                     case meta::R_AUDIO:
                     case meta::R_MIDI:
                     case meta::R_OSC:
-                    case meta::R_UI_SYNC:
                     case meta::R_MESH:
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:

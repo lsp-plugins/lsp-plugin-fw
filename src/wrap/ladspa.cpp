@@ -55,7 +55,6 @@ namespace lsp
         {
             switch (port->role)
             {
-                case meta::R_UI_SYNC:
                 case meta::R_MESH:
                 case meta::R_FBUFFER:
                 case meta::R_STREAM:

@@ -148,10 +148,6 @@ namespace lsp
             // Additional checks for specific port types
             switch (port->role)
             {
-                case meta::R_UI_SYNC:
-                    validation_error(ctx, "Unallowed meta::R_UI_SYNC port type for port='%s', plugin uid='%s'",
-                        port->id, meta->uid);
-                    return;
                 case meta::R_AUDIO:
                 case meta::R_CONTROL:
                 case meta::R_METER:

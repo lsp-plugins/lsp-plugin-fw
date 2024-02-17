@@ -421,7 +421,6 @@ namespace lsp
                 // Skip virtual ports
                 switch (p->role)
                 {
-                    case meta::R_UI_SYNC:
                     case meta::R_MESH:
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:
@@ -776,7 +775,6 @@ namespace lsp
                 // Skip virtual ports
                 switch (p->role)
                 {
-                    case meta::R_UI_SYNC:
                     case meta::R_MESH:
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:

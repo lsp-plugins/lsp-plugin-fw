@@ -111,7 +111,6 @@ namespace lsp
 
         enum role_t
         {
-            R_UI_SYNC,              // Synchronization with UI
             R_AUDIO,                // Audio port
             R_CONTROL,              // Control port
             R_METER,                // Metering port
