@@ -589,7 +589,7 @@ namespace lsp
                         get_parameter_properties(m, reinterpret_cast<VstParameterProperties *>(ptr));
                         v = 1;
                     }
-                    else if (!(m->flags & meta::F_OUT))
+                    else if (meta::is_in_port(m))
                         v = 1;
 
                     break;

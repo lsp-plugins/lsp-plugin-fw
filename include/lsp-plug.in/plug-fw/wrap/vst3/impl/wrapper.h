@@ -630,21 +630,28 @@ namespace lsp
                     break;
                 }
 
-                case meta::R_MIDI:
+                case meta::R_MIDI_IN:
                     // MIDI ports will be organized into groups after instantiation of all ports
-                    lsp_trace("Creating midi port id=%s", port->id);
+                    lsp_trace("Creating input midi port id=%s", port->id);
                     cp                      = new vst3::MidiPort(port);
-                    if (meta::is_midi_in_port(port))
-                        bMidiMapping            = true;
+                    bMidiMapping            = true;
                     break;
 
-                case meta::R_AUDIO:
+                case meta::R_MIDI_OUT:
+                    // MIDI ports will be organized into groups after instantiation of all ports
+                    lsp_trace("Creating output midi port id=%s", port->id);
+                    cp                      = new vst3::MidiPort(port);
+                    break;
+
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                     // Audio ports will be organized into groups after instantiation of all ports
                     lsp_trace("Creating audio port id=%s", port->id);
                     cp                      = new vst3::AudioPort(port);
                     break;
 
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                     lsp_trace("Creating OSC port id=%s", port->id);
                     cp                      = new vst3::OscPort(port);
                     break;
@@ -761,7 +768,7 @@ namespace lsp
                     port_desc,
                     meta::U_NONE,
                     meta::R_CONTROL,
-                    meta::F_IN | meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
+                    meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
                     0.0f, 1.0f, 0.0f, 0.00001f,
                     NULL, NULL
                 };

@@ -161,29 +161,29 @@ namespace lsp
                     cp                      = new clap::StreamPort(port);
                     break;
 
-                case meta::R_MIDI:
+                case meta::R_MIDI_IN:
                 {
-                    if (meta::is_in_port(port))
-                    {
-                        clap::MidiInputPort *mi = new clap::MidiInputPort(port);
-                        vMidiIn.add(mi);
-                        cp  = mi;
-                    }
-                    else
-                    {
-                        clap::MidiOutputPort *mo = new clap::MidiOutputPort(port);
-                        vMidiOut.add(mo);
-                        cp  = mo;
-                    }
+                    clap::MidiInputPort *mi = new clap::MidiInputPort(port);
+                    vMidiIn.add(mi);
+                    cp  = mi;
+                    break;
+                }
+                case meta::R_MIDI_OUT:
+                {
+                    clap::MidiOutputPort *mo = new clap::MidiOutputPort(port);
+                    vMidiOut.add(mo);
+                    cp  = mo;
                     break;
                 }
 
-                case meta::R_AUDIO:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                     // Audio ports will be organized into groups after instantiation of all ports
                     cp = new clap::AudioPort(port);
                     break;
 
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                     cp = new clap::OscPort(port);
                     break;
 

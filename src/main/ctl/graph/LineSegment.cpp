@@ -417,7 +417,7 @@ namespace lsp
             xp.name         = NULL;
             xp.unit         = meta::U_NONE;
             xp.role         = meta::R_CONTROL;
-            xp.flags        = meta::F_OUT | meta::F_LOWER | meta::F_UPPER | meta::F_STEP;
+            xp.flags        = meta::F_LOWER | meta::F_UPPER | meta::F_STEP;
             xp.min          = 0.0f;
             xp.max          = 1.0f;
             xp.start        = 0.0f;

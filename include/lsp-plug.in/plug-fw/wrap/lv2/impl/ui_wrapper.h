@@ -344,9 +344,13 @@ namespace lsp
 
             switch (p->role)
             {
-                case meta::R_MIDI: // Skip all MIDI ports
+                case meta::R_MIDI_IN:
+                case meta::R_MIDI_OUT:
+                    // Skip all MIDI ports
                     break;
-                case meta::R_AUDIO: // Stub port
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
+                    // Stub port
                     result = new lv2::UIPort(p, pExt);
                     if (postfix == NULL)
                     {

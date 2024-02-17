@@ -426,10 +426,13 @@ namespace lsp
                     case meta::R_FBUFFER:
                     case meta::R_PATH:
                     case meta::R_PORT_SET:
-                    case meta::R_MIDI:
-                    case meta::R_OSC:
+                    case meta::R_MIDI_IN:
+                    case meta::R_MIDI_OUT:
+                    case meta::R_OSC_IN:
+                    case meta::R_OSC_OUT:
                         continue;
-                    case meta::R_AUDIO:
+                    case meta::R_AUDIO_IN:
+                    case meta::R_AUDIO_OUT:
                         port_id++;
                         continue;
                     default:
@@ -530,17 +533,17 @@ namespace lsp
                     case meta::R_FBUFFER:
                         result     |= REQ_INSTANCE;
                         break;
-                    case meta::R_MIDI:
-                        if (meta::is_out_port(p))
-                            result     |= REQ_MIDI_OUT;
-                        else
-                            result     |= REQ_MIDI_IN;
+                    case meta::R_MIDI_OUT:
+                        result     |= REQ_MIDI_OUT;
                         break;
-                    case meta::R_OSC:
-                        if (meta::is_out_port(p))
-                            result     |= REQ_OSC_OUT;
-                        else
-                            result     |= REQ_OSC_IN;
+                    case meta::R_MIDI_IN:
+                        result     |= REQ_MIDI_IN;
+                        break;
+                    case meta::R_OSC_OUT:
+                        result     |= REQ_OSC_OUT;
+                        break;
+                    case meta::R_OSC_IN:
+                        result     |= REQ_OSC_IN;
                         break;
                     case meta::R_PORT_SET:
                         if ((p->members != NULL) && (p->items != NULL))
@@ -780,8 +783,10 @@ namespace lsp
                     case meta::R_FBUFFER:
                     case meta::R_PATH:
                     case meta::R_PORT_SET:
-                    case meta::R_MIDI:
-                    case meta::R_OSC:
+                    case meta::R_MIDI_IN:
+                    case meta::R_MIDI_OUT:
+                    case meta::R_OSC_IN:
+                    case meta::R_OSC_OUT:
                         continue;
                     default:
                         break;
@@ -792,7 +797,8 @@ namespace lsp
 
                 switch (p->role)
                 {
-                    case meta::R_AUDIO:
+                    case meta::R_AUDIO_IN:
+                    case meta::R_AUDIO_OUT:
                         fprintf(out, "lv2:AudioPort ;\n");
                         break;
                     case meta::R_CONTROL:
@@ -814,7 +820,7 @@ namespace lsp
 
                 size_t p_prop = 0;
 
-                if ((p->role == meta::R_AUDIO) && (sidechain_ports.contains(p->id)))
+                if ((meta::is_audio_port(p)) && (sidechain_ports.contains(p->id)))
                 {
                     emit_header(out, p_prop, "\t\tlv2:portProperty");
                     emit_option(out, p_prop, true, "lv2:connectionOptional");
@@ -995,7 +1001,7 @@ namespace lsp
                 if ((p->id != NULL) && (p->name != NULL))
                 {
                     fprintf(out, "%s [\n", (port_id == 0) ? "\tlv2:port" : " ,");
-                    fprintf(out, "\t\ta lv2:%s, lv2:ControlPort ;\n", (p->flags & meta::F_OUT) ? "OutputPort" : "InputPort");
+                    fprintf(out, "\t\ta lv2:%s, lv2:ControlPort ;\n", (meta::is_out_port(p)) ? "OutputPort" : "InputPort");
                     fprintf(out, "\t\tlv2:index %d ;\n", int(port_id));
                     fprintf(out, "\t\tlv2:symbol \"%s\" ;\n", p->id);
                     fprintf(out, "\t\tlv2:name \"%s\" ;\n", p->name);

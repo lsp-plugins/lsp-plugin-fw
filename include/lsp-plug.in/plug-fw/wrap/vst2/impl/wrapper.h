@@ -249,19 +249,20 @@ namespace lsp
                     plugin_ports->add(vp);
                     break;
 
-                case meta::R_MIDI:
-                    lsp_trace("creating midi port %s", port->id);
-                    if (meta::is_out_port(port))
-                        vp = new vst2::MidiOutputPort(port, pEffect, pMaster);
-                    else
-                    {
-                        pEffect->flags         |= effFlagsIsSynth;
-                        vp = new vst2::MidiInputPort(port, pEffect, pMaster);
-                    }
+                case meta::R_MIDI_OUT:
+                    lsp_trace("creating midi output port %s", port->id);
+                    vp = new vst2::MidiOutputPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     break;
 
-                case meta::R_OSC:
+                case meta::R_MIDI_IN:
+                    pEffect->flags         |= effFlagsIsSynth;
+                    vp = new vst2::MidiInputPort(port, pEffect, pMaster);
+                    plugin_ports->add(vp);
+                    break;
+
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                     lsp_trace("creating osc port %s", port->id);
                     vp      = new vst2::OscPort(port, pEffect, pMaster);
                     break;
@@ -272,7 +273,8 @@ namespace lsp
                     plugin_ports->add(vp);
                     break;
 
-                case meta::R_AUDIO:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                     lsp_trace("creating audio port %s", port->id);
                     vp = new vst2::AudioPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
@@ -280,21 +282,25 @@ namespace lsp
                     break;
 
                 case meta::R_CONTROL:
-                case meta::R_METER:
-                case meta::R_BYPASS:
-                    lsp_trace("creating regular port %s", port->id);
-                    // VST specifies only INPUT parameters, output should be read in different way
-                    if (meta::is_out_port(port))
-                        vp      = new vst2::MeterPort(port, pEffect, pMaster);
-                    else
-                    {
-                        vp      = new vst2::ParameterPort(port, pEffect, pMaster);
-                        if (postfix == NULL)
-                            vParams.add(static_cast<vst2::ParameterPort *>(vp));
-                    }
-                    if (port->role == meta::R_BYPASS)
-                        pBypass     = vp;
+                    lsp_trace("creating control port %s", port->id);
+                    vp      = new vst2::ParameterPort(port, pEffect, pMaster);
+                    if (postfix == NULL)
+                        vParams.add(static_cast<vst2::ParameterPort *>(vp));
+                    plugin_ports->add(vp);
+                    break;
 
+                case meta::R_BYPASS:
+                    lsp_trace("creating bypass port %s", port->id);
+                    vp      = new vst2::ParameterPort(port, pEffect, pMaster);
+                    if (postfix == NULL)
+                        vParams.add(static_cast<vst2::ParameterPort *>(vp));
+                    pBypass     = vp;
+                    plugin_ports->add(vp);
+                    break;
+
+                case meta::R_METER:
+                    lsp_trace("creating meter port %s", port->id);
+                    vp      = new vst2::MeterPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     break;
 

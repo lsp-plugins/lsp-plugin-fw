@@ -99,15 +99,21 @@ namespace lsp
 
             switch (port->role)
             {
-                case meta::R_AUDIO: // Stub port
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
+                    // Stub port
                     lsp_trace("creating stub audio port %s", port->id);
                     vup = new vst3::CtlPort(port);
                     break;
 
-                case meta::R_MIDI:
-                    if (meta::is_midi_in_port(port))
-                        bMidiMapping        = true;
-                    lsp_trace("creating stub MIDI port %s", port->id);
+                case meta::R_MIDI_IN:
+                    lsp_trace("creating stub input MIDI port %s", port->id);
+                    vup = new vst3::CtlPort(port);
+                    bMidiMapping        = true;
+                    break;
+
+                case meta::R_MIDI_OUT:
+                    lsp_trace("creating stub output MIDI port %s", port->id);
                     vup = new vst3::CtlPort(port);
                     break;
 
@@ -126,7 +132,8 @@ namespace lsp
                     vup = new vst3::CtlFrameBufferPort(port);
                     break;
 
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                     break;
 
                 case meta::R_PATH:
@@ -255,7 +262,7 @@ namespace lsp
                     port_desc,
                     meta::U_NONE,
                     meta::R_CONTROL,
-                    meta::F_IN | meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
+                    meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
                     0.0f, 1.0f, 0.0f, 0.00001f,
                     NULL, NULL
                 };

@@ -111,23 +111,25 @@ namespace lsp
 
         enum role_t
         {
-            R_AUDIO,                // Audio port
+            R_AUDIO_IN,             // Audio input port
+            R_AUDIO_OUT,            // Audio output port
             R_CONTROL,              // Control port
             R_METER,                // Metering port
             R_MESH,                 // Mesh port
             R_FBUFFER,              // Frame buffer
             R_PATH,                 // Path to the local file
-            R_MIDI,                 // MIDI events
+            R_MIDI_IN,              // MIDI input events
+            R_MIDI_OUT,             // MIDI output events
             R_PORT_SET,             // Set of ports
-            R_OSC,                  // OSC events
+            R_OSC_IN,               // OSC input events
+            R_OSC_OUT,              // OSC output events
             R_BYPASS,               // Bypass
             R_STREAM                // Stream
         };
 
         enum flags_t
         {
-            F_IN            = (0 << 0),     // Input port
-            F_OUT           = (1 << 0),     // Output port
+            F_OPTIONAL      = (1 << 0),     // Optional port, can be disabled by host
             F_UPPER         = (1 << 1),     // Upper-limit defined
             F_LOWER         = (1 << 2),     // Lower-llmit defined
             F_STEP          = (1 << 3),     // Step defined
@@ -139,7 +141,6 @@ namespace lsp
             F_PEAK          = (1 << 9),     // Peak flag
             F_CYCLIC        = (1 << 10),    // Cyclic flag
             F_EXT           = (1 << 11),    // Extended range
-            F_OPTIONAL      = (1 << 12),    // Optional port, can be disabled by host
         };
 
         enum plugin_class_t

@@ -250,8 +250,17 @@ namespace lsp
 
             switch (port->role)
             {
-                case meta::R_AUDIO: // Stub port
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
+                    // Stub port
                     lsp_trace("creating stub audio port %s", port->id);
+                    cup = new clap::UIPort(port, cp);
+                    break;
+
+                case meta::R_MIDI_IN:
+                case meta::R_MIDI_OUT:
+                    // Stub port
+                    lsp_trace("creating stub midi port %s", port->id);
                     cup = new clap::UIPort(port, cp);
                     break;
 
@@ -270,12 +279,14 @@ namespace lsp
                     cup = new clap::UIFrameBufferPort(cp);
                     break;
 
-                case meta::R_OSC:
-                    lsp_trace("creating osc port %s", port->id);
-                    if (meta::is_out_port(port))
-                        cup     = new clap::UIOscPortIn(port, cp);
-                    else
-                        cup     = new clap::UIOscPortOut(port, cp);
+                case meta::R_OSC_IN:
+                    lsp_trace("creating output osc port %s", port->id);
+                    cup     = new clap::UIOscPortOut(port, cp);
+                    break;
+
+                case meta::R_OSC_OUT:
+                    lsp_trace("creating input osc port %s", port->id);
+                    cup     = new clap::UIOscPortIn(port, cp);
                     break;
 
                 case meta::R_PATH:

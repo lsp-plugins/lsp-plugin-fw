@@ -232,7 +232,9 @@ namespace lsp
 
             switch (port->role)
             {
-                case meta::R_AUDIO: // Stub port
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
+                    // Stub port
                     jup     = new jack::UIPort(jp);
                     break;
 
@@ -254,14 +256,12 @@ namespace lsp
                         vSyncPorts.add(jup);
                     break;
 
-                case meta::R_OSC:
-                    if (meta::is_out_port(port))
-                    {
-                        jup     = new jack::UIOscPortIn(jp);
-                        vSyncPorts.add(jup);
-                    }
-                    else
-                        jup     = new jack::UIOscPortOut(jp);
+                case meta::R_OSC_OUT:
+                    jup     = new jack::UIOscPortIn(jp);
+                    vSyncPorts.add(jup);
+                    break;
+                case meta::R_OSC_IN:
+                    jup     = new jack::UIOscPortOut(jp);
                     break;
 
                 case meta::R_PATH:

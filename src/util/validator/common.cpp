@@ -148,30 +148,29 @@ namespace lsp
             // Additional checks for specific port types
             switch (port->role)
             {
-                case meta::R_AUDIO:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                 case meta::R_CONTROL:
                 case meta::R_METER:
                 case meta::R_MESH:
                 case meta::R_FBUFFER:
                 case meta::R_PATH:
                     break;
-                case meta::R_MIDI:
+                case meta::R_MIDI_IN:
                 {
-                    if (meta::is_in_port(port))
+                    if ((++ctx->midi_in) == 2)
                     {
-                        if ((++ctx->midi_in) == 2)
-                        {
-                            validation_error(ctx, "More than one MIDI input port specified for plugin uid='%s', port='%s'",
-                                meta->uid, port->id);
-                        }
+                        validation_error(ctx, "More than one MIDI input port specified for plugin uid='%s', port='%s'",
+                            meta->uid, port->id);
                     }
-                    else
+                    break;
+                }
+                case meta::R_MIDI_OUT:
+                {
+                    if ((++ctx->midi_out) == 2)
                     {
-                        if ((++ctx->midi_out) == 2)
-                        {
-                            validation_error(ctx, "More than one MIDI output port specified for plugin uid='%s', port='%s",
-                                meta->uid, port->id);
-                        }
+                        validation_error(ctx, "More than one MIDI output port specified for plugin uid='%s', port='%s",
+                            meta->uid, port->id);
                     }
                     break;
                 }
@@ -186,23 +185,22 @@ namespace lsp
                     }
                     return;
                 }
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
                 {
-                    if (meta::is_in_port(port))
+                    if ((++ctx->osc_in) == 2)
                     {
-                        if ((++ctx->osc_in) == 2)
-                        {
-                            validation_error(ctx, "More than one OSC input port specified for plugin uid='%s'",
-                                meta->uid);
-                        }
+                        validation_error(ctx, "More than one OSC input port specified for plugin uid='%s'",
+                            meta->uid);
                     }
-                    else
+                    break;
+                }
+
+                case meta::R_OSC_OUT:
+                {
+                    if ((++ctx->osc_out) == 2)
                     {
-                        if ((++ctx->osc_out) == 2)
-                        {
-                            validation_error(ctx, "More than one OSC output port specified for plugin uid='%s'",
-                                meta->uid);
-                        }
+                        validation_error(ctx, "More than one OSC output port specified for plugin uid='%s'",
+                            meta->uid);
                     }
                     break;
                 }

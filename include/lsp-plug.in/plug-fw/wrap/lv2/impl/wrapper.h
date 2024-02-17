@@ -378,7 +378,8 @@ namespace lsp
                     plugin_ports->add(result);
                     break;
 
-                case meta::R_MIDI:
+                case meta::R_MIDI_IN:
+                case meta::R_MIDI_OUT:
                     if (pExt->atom_supported())
                     {
                         result = new lv2::MidiPort(p, pExt);
@@ -388,7 +389,8 @@ namespace lsp
                         result = new lv2::Port(p, pExt, false);
                     plugin_ports->add(result);
                     break;
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                     if (pExt->atom_supported())
                     {
                         result = new lv2::OscPort(p, pExt);
@@ -400,7 +402,8 @@ namespace lsp
                     break;
 
 
-                case meta::R_AUDIO:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                     result = new lv2::AudioPort(p, pExt);
 
                     vPluginPorts.add(result);
@@ -1084,9 +1087,12 @@ namespace lsp
                 // Skip MESH, FBUFFER, PATH ports visible in global space
                 switch (p->metadata()->role)
                 {
-                    case meta::R_AUDIO:
-                    case meta::R_MIDI:
-                    case meta::R_OSC:
+                    case meta::R_AUDIO_IN:
+                    case meta::R_AUDIO_OUT:
+                    case meta::R_MIDI_IN:
+                    case meta::R_MIDI_OUT:
+                    case meta::R_OSC_IN:
+                    case meta::R_OSC_OUT:
                     case meta::R_MESH:
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:

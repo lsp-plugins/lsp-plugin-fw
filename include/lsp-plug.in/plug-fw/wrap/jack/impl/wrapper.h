@@ -506,8 +506,10 @@ namespace lsp
                     jp      = new jack::StreamPort(port, this);
                     break;
 
-                case meta::R_MIDI:
-                case meta::R_AUDIO:
+                case meta::R_MIDI_IN:
+                case meta::R_MIDI_OUT:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                 {
                     jack::DataPort *jdp = new jack::DataPort(port, this);
                     vDataPorts.add(jdp);
@@ -515,7 +517,8 @@ namespace lsp
                     break;
                 }
 
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                     jp      = new jack::OscPort(port, this);
                     break;
 

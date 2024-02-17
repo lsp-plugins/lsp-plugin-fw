@@ -139,7 +139,8 @@ namespace lsp
             bool out = meta::is_out_port(port);
             switch (port->role)
             {
-                case meta::R_AUDIO:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                 {
                     result  = new ladspa::AudioPort(port);
                     vExtPorts.add(result);
@@ -167,9 +168,11 @@ namespace lsp
                 case meta::R_MESH:
                 case meta::R_STREAM:
                 case meta::R_FBUFFER:
-                case meta::R_MIDI:
+                case meta::R_MIDI_IN:
+                case meta::R_MIDI_OUT:
                 case meta::R_PATH:
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                 default:
                 {
                     result  = new ladspa::Port(port);
