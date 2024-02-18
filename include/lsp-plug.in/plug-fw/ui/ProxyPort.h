@@ -46,17 +46,22 @@ namespace lsp
                  * Initialize proxy port
                  * @param id port identifier
                  * @param proxied initially proxied port
+                 * @param meta alternative port metadata template
                  * @return status of operation
                  */
-                status_t            init(const char *id, ui::IPort *proxied);
+                status_t            init(const char *id, ui::IPort *proxied, const meta::port_t *meta = NULL);
 
                 /**
                  * Change currently proxied port to another one
                  * @param proxied proxied port
                  */
-                void                set_proxy_port(ui::IPort *proxied);
+                void                set_proxy_port(ui::IPort *proxied, const meta::port_t *meta = NULL);
 
             public:
+                ui::IPort          *proxied();
+                const meta::port_t *proxied_metadata() const;
+
+            public: // ui::IPort
                 virtual void        write(const void *buffer, size_t size) override;
                 virtual void        write(const void *buffer, size_t size, size_t flags) override;
                 virtual void       *buffer() override;
@@ -70,8 +75,12 @@ namespace lsp
                 virtual void        sync_metadata(IPort *port) override;
                 virtual const char *id() const override;
 
-            public:
+            public: // ui::IPortListener
                 virtual void        notify(IPort *port, size_t flags) override;
+
+            public:
+                virtual float       from_value(float value);
+                virtual float       to_value(float value);
         };
     } /* namespace ui */
 } /* namespace lsp */
