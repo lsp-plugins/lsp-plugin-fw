@@ -1054,7 +1054,7 @@ namespace lsp
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, b->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
 
-                    IF_TRACE( log_bus_info(&bus) );
+                    IF_TRACE( log_bus_info(&bus); );
 
                     return Steinberg::kResultTrue;
                 }
@@ -1074,7 +1074,7 @@ namespace lsp
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, b->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
 
-                    IF_TRACE( log_bus_info(&bus) );
+                    IF_TRACE( log_bus_info(&bus); );
 
                     return Steinberg::kResultTrue;
                 }
@@ -1093,7 +1093,7 @@ namespace lsp
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, pEventsIn->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
 
-                    IF_TRACE( log_bus_info(&bus) );
+                    IF_TRACE( log_bus_info(&bus); );
 
                     return Steinberg::kResultTrue;
                 }
@@ -1109,7 +1109,7 @@ namespace lsp
                     bus.flags           = Steinberg::Vst::BusInfo::kDefaultActive;
                     Steinberg::strncpy16(bus.name, pEventsOut->sName, sizeof(bus.name)/sizeof(Steinberg::char16));
 
-                    IF_TRACE( log_bus_info(&bus) );
+                    IF_TRACE( log_bus_info(&bus); );
 
                     return Steinberg::kResultTrue;
                 }

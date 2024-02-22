@@ -345,7 +345,7 @@ namespace lsp
             return tmp->get_native();
         }
 
-        inline void log_paremeter_info(const Steinberg::Vst::ParameterInfo *info)
+        inline void log_parameter_info(const Steinberg::Vst::ParameterInfo *info)
         {
             LSPString tmp;
 

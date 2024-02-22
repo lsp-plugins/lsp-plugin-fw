@@ -1179,7 +1179,7 @@ namespace lsp
             else if (meta->flags & meta::F_INT)
                 info.stepCount      = (lsp_max(meta->min, meta->max) - lsp_min(meta->min, meta->max)) / meta->step;
 
-            log_paremeter_info(&info);
+            IF_TRACE( log_parameter_info(&info); );
 
             return Steinberg::kResultTrue;
         }
