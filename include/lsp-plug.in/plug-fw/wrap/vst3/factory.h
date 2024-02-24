@@ -107,7 +107,7 @@ namespace lsp
             #endif /* VST_USE_RUNLOOP_IFACE */
 
             public: // ipc::IRunnable
-                virtual status_t                        run();
+                virtual status_t                        run() override;
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult PLUGIN_API   queryInterface(const Steinberg::TUID _iid, void **obj) override;

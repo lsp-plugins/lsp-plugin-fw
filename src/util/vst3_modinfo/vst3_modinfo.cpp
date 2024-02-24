@@ -48,6 +48,9 @@ namespace lsp
                 fprintf(stderr, "No resource loader available\n");
                 return STATUS_BAD_STATE;
             }
+            lsp_finally {
+                delete loader;
+            };
 
             status_t res;
             meta::package_t *manifest = NULL;

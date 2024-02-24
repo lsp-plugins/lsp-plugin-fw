@@ -541,7 +541,7 @@ namespace lsp
                 if (ev == NULL)
                 {
                     lsp_error("failed to create input event bus");
-                    return NULL;
+                    return false;
                 }
                 lsp_finally { free_event_bus(ev); };
 
@@ -572,7 +572,7 @@ namespace lsp
                 if (ev == NULL)
                 {
                     lsp_error("failed to create output event bus");
-                    return NULL;
+                    return false;
                 }
                 lsp_finally { free_event_bus(ev); };
 

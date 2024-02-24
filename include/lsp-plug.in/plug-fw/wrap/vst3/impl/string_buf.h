@@ -149,7 +149,7 @@ namespace lsp
             for (size_t cap = lsp_max(u16cap, DEFAULT_CAP); ; cap = cap + (cap >> 1))
             {
                 if (!u16reserve(cap))
-                    return NULL;
+                    return false;
 
                 // Convert string from UTF-8 to UTF-16
                 size_t converted = utf8_to_utf16(u16str, value, u16cap);
