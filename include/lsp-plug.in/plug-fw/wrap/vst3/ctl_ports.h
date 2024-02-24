@@ -306,8 +306,7 @@ namespace lsp
                 virtual void write(const void* buffer, size_t size, size_t flags) override
                 {
                     size    = lsp_min(size, size_t(MAX_PATH_LEN-1));
-                    if (size > 0)
-                        strncpy(sPath, reinterpret_cast<const char *>(buffer), size);
+                    memcpy(sPath, buffer, size);
                     sPath[size] = '\0';
                     if (pHandler != NULL)
                         pHandler->port_write(this, flags);
@@ -332,8 +331,7 @@ namespace lsp
                 void commit_value(const char *text)
                 {
                     size_t size = strnlen(text, MAX_PATH_LEN-1);
-                    if (size > 0)
-                        memcpy(sPath, text, size);
+                    memcpy(sPath, text, size);
                     sPath[size-1] = '\0';
                 }
         };

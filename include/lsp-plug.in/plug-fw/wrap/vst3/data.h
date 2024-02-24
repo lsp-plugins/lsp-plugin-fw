@@ -204,10 +204,9 @@ namespace lsp
 
             void submit(const char *path, size_t len, size_t flags)
             {
-                const size_t count  = lsp_min(len, size_t(MAX_PATH_LEN - 1));
-
                 // Write DSP request
-                ::strncpy(sQPath, path, count);
+                const size_t count  = lsp_min(len, size_t(MAX_PATH_LEN - 1));
+                ::memcpy(sQPath, path, count);
                 sQPath[count]       = '\0';
                 nPathFlags          = flags;
                 nFlags             |= F_QPATH;
