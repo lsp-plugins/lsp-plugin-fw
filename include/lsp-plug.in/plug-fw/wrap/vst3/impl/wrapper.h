@@ -1283,11 +1283,13 @@ namespace lsp
                 }
                 else
                 {
-                    vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);
-                    lsp_trace("Saving state of %sparameter: %s = %f",
-                        pp->is_virtual() ? " virtual" : "",
-                        meta->id,
-                        p->value());
+                    IF_TRACE(
+                        vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);
+                        lsp_trace("Saving state of %sparameter: %s = %f",
+                            pp->is_virtual() ? " virtual" : "",
+                            meta->id,
+                            p->value())
+                    );
 
                     if ((res = write_value(os, meta->id, p->value())) != STATUS_OK)
                     {
@@ -1949,9 +1951,10 @@ namespace lsp
                 if (s == NULL)
                     continue;
 
-                size_t frame = s->frame_id(), frames = s->frames();
-
-                lsp_trace("Reset stream id=%s position frame=%d, frames=%d", s_port->id(), int(frame), int(frames));
+                IF_TRACE(
+                    size_t frame = s->frame_id(), frames = s->frames();
+                    lsp_trace("Reset stream id=%s position frame=%d, frames=%d", s_port->id(), int(frame), int(frames));
+                );
 
                 s_port->set_frame_id(s->frame_id() - s->frames());
             }
