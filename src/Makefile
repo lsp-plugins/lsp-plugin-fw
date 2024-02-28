@@ -1128,7 +1128,13 @@ $(BIN_INSTALL): $(DEPENDENCIES_BIN)
 	$(MAKE) -C "$($(BIN_INST_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 
 $(ARTIFACT_XDG_INST): install_xdg_msg
-	$(MAKE) -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/xdg" install_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)" CONFIG=$(ROOTDIR)/.config.mk
+	mkdir -p $(LSP_PLUGIN_FW_BIN)/xdg
+	echo "FILES = \\" > $(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).mk
+	$(foreach file,$(ARTIFACT_XDG_FILES), \
+	    echo "$(file) \\" >> $(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).mk; \
+	)
+	echo "" >> $(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).mk
+	$(MAKE) -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/xdg" install_xdg DESTDIR="$(DESTDIR)" BATCH_FILE="$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).mk" CONFIG=$(ROOTDIR)/.config.mk
 
 install_jack: jack
 	echo "Install jack"
@@ -1204,7 +1210,7 @@ package_jack: jack $(BIN_PACKAGE)
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
-    )
+	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
@@ -1216,7 +1222,7 @@ package_ladspa: ladspa $(BIN_PACKAGE)
 	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)/"
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
-    )
+	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
@@ -1233,7 +1239,7 @@ package_lv2: lv2 $(BIN_PACKAGE)
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
-    )
+	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
@@ -1249,7 +1255,7 @@ package_vst2: vst2 $(BIN_PACKAGE)
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
-    )
+	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
@@ -1266,7 +1272,7 @@ package_vst3: vst3 $(BIN_PACKAGE)
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
-    )
+	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
@@ -1281,7 +1287,7 @@ package_clap: clap $(BIN_PACKAGE)
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
-    )
+	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
@@ -1293,7 +1299,7 @@ package_doc: doc
 	cp -R $(ARTIFACT_DOC_PATH)/* "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/$(DOC_SHAREDDIR)"
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/"; \
-    )
+	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR).tar.gz" "$(ARTIFACT_DOC_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)"
