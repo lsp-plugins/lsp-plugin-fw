@@ -152,8 +152,30 @@ namespace lsp
             return res;
         }
 
+        static inline ssize_t cmp_plugin_metadata(const meta::plugin_t *a, const meta::plugin_t *b)
+        {
+            return strcmp(a->uid, b->uid);
+        }
+
         static inline status_t make_moduleinfo(json::Serializer *s, const meta::package_t *pkg)
         {
+            // Enumerate all plugins and sort in ascending order of UID
+            lltl::parray<meta::plugin_t> plugins;
+            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *plug_meta = f->enumerate(i);
+                    if (plug_meta == NULL)
+                        break;
+                    if (!plugins.add(const_cast<meta::plugin_t *>(plug_meta)))
+                        return STATUS_NO_MEM;
+                }
+            }
+            plugins.qsort(cmp_plugin_metadata);
+
+
         #define SA(x) LSP_STATUS_ASSERT(x)
 
             SA(s->start_object());
@@ -202,109 +224,101 @@ namespace lsp
                 SA(s->start_array());
                 {
                     // Processor classes
-                    for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+                    for (lltl::iterator<meta::plugin_t> it = plugins.values(); it; ++it)
                     {
-                        for (size_t i=0; ; ++i)
+                        // Enumerate next element
+                        const meta::plugin_t *plug_meta = it.get();
+                        if (plug_meta->vst3_uid == NULL)
+                            continue;
+
+                        // Create plugin record
+                        SA(s->start_object());
                         {
-                            // Enumerate next element
-                            const meta::plugin_t *plug_meta = f->enumerate(i);
-                            if (plug_meta == NULL)
-                                break;
-                            if (plug_meta->vst3_uid == NULL)
-                                continue;
+                            if (!meta::uid_vst3_to_tuid(cid, plug_meta->vst3_uid))
+                                return STATUS_BAD_FORMAT;
+                            plugver.fmt_ascii(
+                                "%d.%d.%d",
+                                int(plug_meta->version.major),
+                                int(plug_meta->version.minor),
+                                int(plug_meta->version.micro));
 
-                            // Create plugin record
-                            SA(s->start_object());
+                            SA(s->prop_string("CID", meta::uid_tuid_to_vst3(vst3_uid, cid)));
+                            SA(s->prop_string("Catetory", kVstAudioEffectClass));
+                            SA(s->prop_string("Name", plug_meta->description));
+                            SA(s->prop_string("Vendor", &vendor));
+                            SA(s->prop_string("Version", &plugver));
+                            SA(s->prop_string("SDKVersion", Steinberg::Vst::SDKVersionString));
+                            SA(s->write_property("Sub Categories"));
+                            SA(s->start_array());
                             {
-                                if (!meta::uid_vst3_to_tuid(cid, plug_meta->vst3_uid))
-                                    return STATUS_BAD_FORMAT;
-                                plugver.fmt_ascii(
-                                    "%d.%d.%d",
-                                    int(plug_meta->version.major),
-                                    int(plug_meta->version.minor),
-                                    int(plug_meta->version.micro));
+                                // Form list of plugin categories
+                                LSPString cat, tmp;
+                                status_t res = make_plugin_categories(&cat, plug_meta);
+                                if (res != STATUS_OK)
+                                    return res;
 
-                                SA(s->prop_string("CID", meta::uid_tuid_to_vst3(vst3_uid, cid)));
-                                SA(s->prop_string("Catetory", kVstAudioEffectClass));
-                                SA(s->prop_string("Name", plug_meta->description));
-                                SA(s->prop_string("Vendor", &vendor));
-                                SA(s->prop_string("Version", &plugver));
-                                SA(s->prop_string("SDKVersion", Steinberg::Vst::SDKVersionString));
-                                SA(s->write_property("Sub Categories"));
-                                SA(s->start_array());
+                                // Form the list of categories
+                                size_t prev = 0, end = cat.length();
+                                ssize_t curr;
+                                while ((curr = cat.index_of(prev, '|')) > 0)
                                 {
-                                    // Form list of plugin categories
-                                    LSPString cat, tmp;
-                                    status_t res = make_plugin_categories(&cat, plug_meta);
-                                    if (res != STATUS_OK)
-                                        return res;
-
-                                    // Form the list of categories
-                                    size_t prev = 0, end = cat.length();
-                                    ssize_t curr;
-                                    while ((curr = cat.index_of(prev, '|')) > 0)
-                                    {
-                                        if (!tmp.set(&cat, prev, curr))
-                                            return STATUS_NO_MEM;
-                                        SA(s->write_string(&tmp));
-                                        prev    = curr + 1;
-                                    }
-                                    if (prev < end)
-                                    {
-                                        if (!tmp.set(&cat, prev, end))
-                                            return STATUS_NO_MEM;
-                                        SA(s->write_string(&tmp));
-                                    }
+                                    if (!tmp.set(&cat, prev, curr))
+                                        return STATUS_NO_MEM;
+                                    SA(s->write_string(&tmp));
+                                    prev    = curr + 1;
                                 }
-                                SA(s->end_array());
-
-                                SA(s->prop_int("Class Flags", Steinberg::Vst::kDistributable));
-                                SA(s->prop_int("Cardinality", Steinberg::PClassInfo::kManyInstances));
-                                SA(s->write_property("Snapshots"));
-                                SA(s->start_array());
-                                SA(s->end_array());
+                                if (prev < end)
+                                {
+                                    if (!tmp.set(&cat, prev, end))
+                                        return STATUS_NO_MEM;
+                                    SA(s->write_string(&tmp));
+                                }
                             }
-                            SA(s->end_object());
+                            SA(s->end_array());
+
+                            SA(s->prop_int("Class Flags", Steinberg::Vst::kDistributable));
+                            SA(s->prop_int("Cardinality", Steinberg::PClassInfo::kManyInstances));
+                            SA(s->write_property("Snapshots"));
+                            SA(s->start_array());
+                            SA(s->end_array());
                         }
+                        SA(s->end_object());
                     }
 
                     // Controller classes
-                    for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+                    for (lltl::iterator<meta::plugin_t> it = plugins.values(); it; ++it)
                     {
-                        for (size_t i=0; ; ++i)
+                        // Enumerate next element
+                        const meta::plugin_t *ui_meta = it.get();
+                        if (ui_meta == NULL)
+                            break;
+                        if ((ui_meta->vst3_uid == NULL)|| (ui_meta->vst3ui_uid == NULL))
+                            continue;
+
+                        // Create plugin record
+                        SA(s->start_object());
                         {
-                            // Enumerate next element
-                            const meta::plugin_t *ui_meta = f->enumerate(i);
-                            if (ui_meta == NULL)
-                                break;
-                            if ((ui_meta->vst3_uid == NULL)|| (ui_meta->vst3ui_uid == NULL))
-                                continue;
+                            if (!meta::uid_vst3_to_tuid(cid, ui_meta->vst3ui_uid))
+                                return STATUS_BAD_FORMAT;
+                            plugver.fmt_ascii(
+                                "%d.%d.%d",
+                                int(ui_meta->version.major),
+                                int(ui_meta->version.minor),
+                                int(ui_meta->version.micro));
 
-                            // Create plugin record
-                            SA(s->start_object());
-                            {
-                                if (!meta::uid_vst3_to_tuid(cid, ui_meta->vst3ui_uid))
-                                    return STATUS_BAD_FORMAT;
-                                plugver.fmt_ascii(
-                                    "%d.%d.%d",
-                                    int(ui_meta->version.major),
-                                    int(ui_meta->version.minor),
-                                    int(ui_meta->version.micro));
-
-                                SA(s->prop_string("CID", meta::uid_tuid_to_vst3(vst3_uid, cid)));
-                                SA(s->prop_string("Catetory", kVstComponentControllerClass));
-                                SA(s->prop_string("Name", ui_meta->description));
-                                SA(s->prop_string("Vendor", &vendor));
-                                SA(s->prop_string("Version", &plugver));
-                                SA(s->prop_string("SDKVersion", Steinberg::Vst::SDKVersionString));
-                                SA(s->prop_int("Class Flags", Steinberg::Vst::kDistributable));
-                                SA(s->prop_int("Cardinality", Steinberg::PClassInfo::kManyInstances));
-                                SA(s->write_property("Snapshots"));
-                                SA(s->start_array());
-                                SA(s->end_array());
-                            }
-                            SA(s->end_object());
+                            SA(s->prop_string("CID", meta::uid_tuid_to_vst3(vst3_uid, cid)));
+                            SA(s->prop_string("Catetory", kVstComponentControllerClass));
+                            SA(s->prop_string("Name", ui_meta->description));
+                            SA(s->prop_string("Vendor", &vendor));
+                            SA(s->prop_string("Version", &plugver));
+                            SA(s->prop_string("SDKVersion", Steinberg::Vst::SDKVersionString));
+                            SA(s->prop_int("Class Flags", Steinberg::Vst::kDistributable));
+                            SA(s->prop_int("Cardinality", Steinberg::PClassInfo::kManyInstances));
+                            SA(s->write_property("Snapshots"));
+                            SA(s->start_array());
+                            SA(s->end_array());
                         }
+                        SA(s->end_object());
                     }
                 }
                 SA(s->end_array());
@@ -314,41 +328,38 @@ namespace lsp
                 SA(s->start_array());
                 {
                     // Processor classes
-                    for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+                    for (lltl::iterator<meta::plugin_t> it = plugins.values(); it; ++it)
                     {
-                        for (size_t i=0; ; ++i)
+                        // Enumerate next element
+                        const meta::plugin_t *plug_meta = it.get();
+                        if (plug_meta == NULL)
+                            break;
+                        if ((plug_meta->vst3_uid == NULL) || (plug_meta->vst2_uid == NULL))
+                            continue;
+                        const char *plugin_name = (plug_meta->vst2_name != NULL) ? plug_meta->vst2_name : plug_meta->name;
+
+                        if (!meta::uid_meta_to_vst3(vst3_uid, plug_meta->vst3_uid))
+                            continue;
+                        if (!meta::uid_vst2_to_vst3(vst3_legacy_uid, plug_meta->vst2_uid, plugin_name))
+                            continue;
+                        if (!strcmp(vst3_uid, vst3_legacy_uid))
+                            continue;
+
+                        // Create plugin record
+                        SA(s->start_object());
                         {
-                            // Enumerate next element
-                            const meta::plugin_t *plug_meta = f->enumerate(i);
-                            if (plug_meta == NULL)
-                                break;
-                            if ((plug_meta->vst3_uid == NULL) || (plug_meta->vst2_uid == NULL))
-                                continue;
-                            const char *plugin_name = (plug_meta->vst2_name != NULL) ? plug_meta->vst2_name : plug_meta->name;
+                            // New
+                            SA(s->prop_string("New", vst3_uid));
 
-                            if (!meta::uid_meta_to_vst3(vst3_uid, plug_meta->vst3_uid))
-                                continue;
-                            if (!meta::uid_vst2_to_vst3(vst3_legacy_uid, plug_meta->vst2_uid, plugin_name))
-                                continue;
-                            if (!strcmp(vst3_uid, vst3_legacy_uid))
-                                continue;
-
-                            // Create plugin record
-                            SA(s->start_object());
+                            // Old
+                            SA(s->write_property("Old"));
+                            SA(s->start_array());
                             {
-                                // New
-                                SA(s->prop_string("New", vst3_uid));
-
-                                // Old
-                                SA(s->write_property("Old"));
-                                SA(s->start_array());
-                                {
-                                    SA(s->write_string(vst3_legacy_uid));
-                                }
-                                SA(s->end_array());
+                                SA(s->write_string(vst3_legacy_uid));
                             }
-                            SA(s->end_object());
+                            SA(s->end_array());
                         }
+                        SA(s->end_object());
                     }
                 }
                 SA(s->end_array());
