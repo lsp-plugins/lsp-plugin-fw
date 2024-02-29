@@ -1129,12 +1129,8 @@ $(BIN_INSTALL): $(DEPENDENCIES_BIN)
 
 $(ARTIFACT_XDG_INST): install_xdg_msg
 	mkdir -p $(LSP_PLUGIN_FW_BIN)/xdg
-	echo "FILES = \\" > $(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).mk
-	$(foreach file,$(ARTIFACT_XDG_FILES), \
-	    echo "$(file) \\" >> $(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).mk; \
-	)
-	echo "" >> $(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).mk
-	$(MAKE) -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/xdg" install_xdg DESTDIR="$(DESTDIR)" BATCH_FILE="$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).mk" CONFIG=$(ROOTDIR)/.config.mk
+	$(file >$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).list,$(sort $(ARTIFACT_XDG_FILES)))
+	$(MAKE) -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/xdg" install_xdg DESTDIR="$(DESTDIR)" FILE_LIST="$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).list" BATCH_FILE="$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).mk" CONFIG=$(ROOTDIR)/.config.mk
 
 install_jack: jack
 	echo "Install jack"
@@ -1203,9 +1199,13 @@ package_jack: jack $(BIN_PACKAGE)
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
 	$(if $(findstring xdg,$(ENABLED_FEATURES)), \
-		$(foreach target,$(ARTIFACT_XDG_INST), \
+	    mkdir -p $(LSP_PLUGIN_FW_BIN)/xdg ; \
+	    $(foreach target,$(ARTIFACT_XDG_INST), \
+	        $(file >$(LSP_PLUGIN_FW_BIN)/xdg/$($(patsubst xdg_install_%,%,$(target))).list,$(sort $(ARTIFACT_XDG_FILES))) \
 	        $(MAKE) -C "$($(patsubst xdg_install_%,%,$(target))_PATH)/res/xdg" \
-	            install_xdg DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" FILES="$(ARTIFACT_XDG_FILES)"; \
+	            install_xdg DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" \
+	            FILE_LIST="$(LSP_PLUGIN_FW_BIN)/xdg/$($(patsubst xdg_install_%,%,$(target))).list" \
+	            BATCH_FILE="$(LSP_PLUGIN_FW_BIN)/xdg/$($(patsubst xdg_install_%,%,$(target))).mk"; \
 	    ) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
@@ -1314,7 +1314,9 @@ $(BIN_UNINSTALL):
 	$(MAKE) -C "$($(BIN_UNINST_ARTIFACT_ID)_PATH)" uninstall DESTDIR="$(DESTDIR)"
 
 $(ARTIFACT_XDG_UNINST): uninstall_xdg_msg
-	$(MAKE) -C "$($(ARTIFACT_XDG_UNINST_ID)_PATH)/res/xdg" uninstall_xdg DESTDIR="$(DESTDIR)" FILES="$(ARTIFACT_XDG_FILES)"
+	mkdir -p $(LSP_PLUGIN_FW_BIN)/xdg
+	$(file >$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_UNINST_ID).list,$(sort $(ARTIFACT_XDG_FILES)))
+	$(MAKE) -C "$($(ARTIFACT_XDG_UNINST_ID)_PATH)/res/xdg" uninstall_xdg DESTDIR="$(DESTDIR)" FILE_LIST="$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_UNINST_ID).list" BATCH_FILE="$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_UNINST_ID).mk" CONFIG=$(ROOTDIR)/.config.mk
 
 uninstall_jack:
 	echo "Uninstall jack"
