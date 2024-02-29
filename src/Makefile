@@ -758,21 +758,23 @@ ifeq ($(TEST),1)
     $(HOST_UTL_PLUGLIST_GEN_OBJ)
 endif
 
-ARTIFACT_DOC_SHARED         = $(foreach dep, $(call uniq,$(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
-ARTIFACT_DOC_PLUG           = $(foreach dep, $(call uniq,$(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
+ARTIFACT_DOC_SHARED         = $(foreach dep, $(sort $(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
+ARTIFACT_DOC_PLUG           = $(foreach dep, $(sort $(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
 ARTIFACT_DOC_BLD_PATH       = $(LSP_PLUGIN_FW_BIN)/doc
 ARTIFACT_DOC_PATH           = $(LSP_PLUGIN_FW_BIN)/html
-ARTIFACT_DOC_DEPS_ALL       = $(foreach dep, $(call uniq,$(ARTIFACT_DOC_SHARED) $(ARTIFACT_DOC_PLUG)), $(if $(wildcard $($(dep)_SRC)/doc/*),$(dep)))
-ARTIFACT_DOC_DEPS_SRC_RES   = $(foreach dep, $(call uniq,$(ARTIFACT_DOC_SHARED)), $(if $(wildcard $($(dep)_PATH)/res/doc/*),$(dep)))
-ARTIFACT_DOC_DEPS_PLUG_RES  = $(foreach dep, $(call uniq,$(ARTIFACT_DOC_PLUG)), $(if $(wildcard $($(dep)_PATH)/res/doc/screenshots/*),$(dep)))
+ARTIFACT_DOC_DEPS_ALL       = $(foreach dep, $(sort $(ARTIFACT_DOC_SHARED) $(ARTIFACT_DOC_PLUG)), $(if $(wildcard $($(dep)_SRC)/doc/*),$(dep)))
+ARTIFACT_DOC_DEPS_SRC_RES   = $(foreach dep, $(sort $(ARTIFACT_DOC_SHARED)), $(if $(wildcard $($(dep)_PATH)/res/doc/*),$(dep)))
+ARTIFACT_DOC_DEPS_PLUG_RES  = $(foreach dep, $(sort $(ARTIFACT_DOC_PLUG)), $(if $(wildcard $($(dep)_PATH)/res/doc/screenshots/*),$(dep)))
 ARTIFACT_DOC_SRC_ALL        = $(foreach dep, $(ARTIFACT_DOC_DEPS_ALL), $($(dep)_SRC)/doc/*)
 ARTIFACT_DOC_SRC_RES        = $(foreach dep, $(ARTIFACT_DOC_DEPS_SRC_RES), $($(dep)_PATH)/res/doc/*)
 ARTIFACT_DOC_PLUG_RES       = $(foreach dep, $(ARTIFACT_DOC_DEPS_PLUG_RES), $($(dep)_PATH)/res/doc/screenshots/*)
 ARTIFACT_DOC_PKG_DIR        = $(PLUGIN_SHARED_NAME)-doc-$(PLUGIN_PACKAGE_VERSION)
 
-ARTIFACT_XDG_SRC_DEPS       = $(foreach dep, $(call uniq,$(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(wildcard $($(dep)_PATH)/res/xdg/*),$(dep)))
+ARTIFACT_XDG_SRC_DEPS       = $(foreach dep, $(sort $(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(wildcard $($(dep)_PATH)/res/xdg/*),$(dep)))
 ARTIFACT_XDG_FILES          = $(foreach dep, $(ARTIFACT_XDG_SRC_DEPS), $(call rwildcard,$($(dep)_PATH)/res/xdg/apps,*.desktop))
 ARTIFACT_XDG_MAKEFILES      = $(foreach dep, $(ARTIFACT_XDG_SRC_DEPS), $(if $(wildcard $($(dep)_PATH)/res/xdg/Makefile),$(dep)))
+ARTIFACT_XDG_LIST_FILE      = $(LSP_PLUGIN_FW_BIN)/xdg/$(sort $(ARTIFACT_XDG_MAKEFILES)).list
+ARTIFACT_XDG_BATCH_FILE     = $(LSP_PLUGIN_FW_BIN)/xdg/$(sort $(ARTIFACT_XDG_MAKEFILES)).mk
 ARTIFACT_XDG_INST           = $(foreach dep, $(ARTIFACT_XDG_MAKEFILES), xdg_install_$(dep))
 ARTIFACT_XDG_UNINST         = $(foreach dep, $(ARTIFACT_XDG_MAKEFILES), xdg_uninstall_$(dep))
 ARTIFACT_XDG_INST_ID        = $(patsubst xdg_install_%,%,$(@))
@@ -823,6 +825,13 @@ WRAP_VST2_INC              := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_VST
 
 OBJ_EXPORT_CFLAGS          := $(VERSION_CFLAGS)
 HOST_OBJ_EXPORT_CFLAGS     := $(VERSION_CFLAGS)
+
+#------------------------------------------------------------------------------
+# Form lists of XDG files
+$(eval \
+  $(shell mkdir -p "$(dir $(ARTIFACT_XDG_BATCH_FILE))") \
+  $(file >$(ARTIFACT_XDG_LIST_FILE),$(sort $(ARTIFACT_XDG_FILES))) \
+)
 
 .DEFAULT_GOAL = all
 .PHONY: compile depend dep_clean all install uninstall
@@ -1128,9 +1137,7 @@ $(BIN_INSTALL): $(DEPENDENCIES_BIN)
 	$(MAKE) -C "$($(BIN_INST_ARTIFACT_ID)_PATH)" install DESTDIR="$(DESTDIR)"
 
 $(ARTIFACT_XDG_INST): install_xdg_msg
-	mkdir -p $(LSP_PLUGIN_FW_BIN)/xdg
-	$(file >$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).list,$(sort $(ARTIFACT_XDG_FILES)))
-	$(MAKE) -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/xdg" install_xdg DESTDIR="$(DESTDIR)" FILE_LIST="$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).list" BATCH_FILE="$(LSP_PLUGIN_FW_BIN)/xdg/$(ARTIFACT_XDG_INST_ID).mk" CONFIG=$(ROOTDIR)/.config.mk
+	$(MAKE) -C "$($(ARTIFACT_XDG_INST_ID)_PATH)/res/xdg" install_xdg DESTDIR="$(DESTDIR)" FILE_LIST="$(ARTIFACT_XDG_LIST_FILE)" BATCH_FILE="$(ARTIFACT_XDG_BATCH_FILE)" CONFIG=$(ROOTDIR)/.config.mk
 
 install_jack: jack
 	echo "Install jack"
@@ -1199,13 +1206,11 @@ package_jack: jack $(BIN_PACKAGE)
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
 	$(if $(findstring xdg,$(ENABLED_FEATURES)), \
-	    mkdir -p $(LSP_PLUGIN_FW_BIN)/xdg ; \
 	    $(foreach target,$(ARTIFACT_XDG_INST), \
-	        $(file >$(LSP_PLUGIN_FW_BIN)/xdg/$($(patsubst xdg_install_%,%,$(target))).list,$(sort $(ARTIFACT_XDG_FILES))) \
 	        $(MAKE) -C "$($(patsubst xdg_install_%,%,$(target))_PATH)/res/xdg" \
 	            install_xdg DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" \
-	            FILE_LIST="$(LSP_PLUGIN_FW_BIN)/xdg/$($(patsubst xdg_install_%,%,$(target))).list" \
-	            BATCH_FILE="$(LSP_PLUGIN_FW_BIN)/xdg/$($(patsubst xdg_install_%,%,$(target))).mk"; \
+	            FILE_LIST="$(ARTIFACT_XDG_LIST_FILE)" \
+	            BATCH_FILE="$(ARTIFACT_XDG_BATCH_FILE)"; \
 	    ) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
