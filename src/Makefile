@@ -164,6 +164,7 @@ ifeq ($(PLATFORM),Linux)
     VST3_ARCH              := $(shell uname -m)-linux
   endif
   VST3_EXT               := .so
+  VST3_LDFLAGS           :=
 else ifeq ($(PLATFORM),BSD)
   ifeq ($(ARCHITECTURE_FAMILY),ia32)
     VST3_ARCH              := i386-freebsd
@@ -177,6 +178,7 @@ else ifeq ($(PLATFORM),BSD)
     VST3_ARCH              := $(shell uname -m)-freebsd
   endif
   VST3_EXT               := .so
+  VST3_LDFLAGS           :=
 else ifeq ($(PLATFORM),Windows)
   ifeq ($(ARCHITECTURE_FAMILY),ia32)
     VST3_ARCH              := x86-win
@@ -190,6 +192,7 @@ else ifeq ($(PLATFORM),Windows)
     VST3_ARCH              := $(PROCESSOR_ARCHITECTURE)-win
   endif
   VST3_EXT               := .vst3
+  VST3_LDFLAGS           := -Wl,--kill-at
 else
   VST3_ARCH              := $(shell uname -m)-${shell uname -s | tr '[:upper:]' '[:lower:]'}
   VST3_EXT               := $(LIBRARY_EXT)
@@ -683,11 +686,11 @@ ARTIFACT_LIB_VST2_OBJS      = \
   $(OBJ_PLUG_UI) \
   $(OBJ_WRAP_VST2)
 
-ARTIFACT_LIB_VST3           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)$(LIBRARY_EXT)
+ARTIFACT_LIB_VST3           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)$(VST3_EXT)
 ARTIFACT_LIB_VST3_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_VST3) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(PLUGIN_SHARED)))
 ARTIFACT_LIB_VST3_DEPS      = $(foreach dep, $(ARTIFACT_LIB_VST3_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
 ARTIFACT_LIB_VST3_LIBS      = $(foreach dep, $(ARTIFACT_LIB_VST3_DEPS_ALL), $($(dep)_OBJ))
-ARTIFACT_LIB_VST3_LDFLAGS   = $(foreach dep, $(ARTIFACT_LIB_VST3_DEPS_ALL), $($(dep)_LDFLAGS))
+ARTIFACT_LIB_VST3_LDFLAGS   = $(foreach dep, $(ARTIFACT_LIB_VST3_DEPS_ALL), $($(dep)_LDFLAGS)) $(VST3_LDFLAGS)
 ARTIFACT_LIB_VST3_OBJS      = \
   $(LSP_PLUGIN_FW_OBJ_CORE) \
   $(LSP_PLUGIN_FW_OBJ_META) \
