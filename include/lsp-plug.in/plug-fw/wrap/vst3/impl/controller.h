@@ -1632,7 +1632,7 @@ namespace lsp
             }
 
             // Get release flag
-            if ((res = atts->setFloat("release", release)) != Steinberg::kResultOk)
+            if ((res = atts->setFloat("release", (release) ? 1.0f : 0.0f)) != Steinberg::kResultOk)
             {
                 lsp_warn("Failed to set property 'release' to %s", (release) ? "true" : "false");
                 return STATUS_OK;

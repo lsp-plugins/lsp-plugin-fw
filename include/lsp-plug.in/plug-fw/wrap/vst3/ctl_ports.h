@@ -288,6 +288,7 @@ namespace lsp
                     CtlPort(meta)
                 {
                     pHandler        = handler;
+                    sPath[0]        = '\0';
                 }
 
                 virtual ~CtlPathPort()

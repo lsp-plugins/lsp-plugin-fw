@@ -50,7 +50,7 @@ namespace lsp
                 IBStreamOut(IOutStream &&) = delete;
                 virtual ~IBStreamOut() override
                 {
-                    close();
+                    IBStreamOut::close();
                 }
 
                 IBStreamOut & operator = (const IBStreamOut &) = delete;

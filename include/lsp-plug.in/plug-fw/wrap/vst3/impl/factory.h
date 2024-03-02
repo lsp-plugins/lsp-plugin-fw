@@ -68,6 +68,11 @@ namespace lsp
         #ifdef VST_USE_RUNLOOP_IFACE
             pRunLoop            = NULL;
         #endif /* VST_USE_RUNLOOP_IFACE */
+
+            sFactoryInfo.vendor[0]  = '\0';
+            sFactoryInfo.url[0]     = '\0';
+            sFactoryInfo.email[0]   = '\0';
+            sFactoryInfo.flags      = 0;
         }
 
         PluginFactory::~PluginFactory()

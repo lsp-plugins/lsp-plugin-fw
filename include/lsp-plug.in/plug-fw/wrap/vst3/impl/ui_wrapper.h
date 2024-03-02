@@ -66,13 +66,14 @@ namespace lsp
 
         UIWrapper::~UIWrapper()
         {
+            lsp_trace("this=%p", this);
+
             // Remove self from synchronization list of UI wrapper
             if (pController != NULL)
                 pController->detach_ui_wrapper(this);
 
             // Destroy
-            lsp_trace("this=%p", this);
-            destroy();
+            do_destroy();
 
             // Release factory
             safe_release(pPlugFrame);
@@ -272,7 +273,7 @@ namespace lsp
             return pUI->post_init();
         }
 
-        void UIWrapper::destroy()
+        void UIWrapper::do_destroy()
         {
             lsp_trace("this=%p", this);
 
@@ -294,6 +295,12 @@ namespace lsp
                 pDisplay->destroy();
                 pDisplay    = NULL;
             }
+        }
+
+        void UIWrapper::destroy()
+        {
+            do_destroy();
+            IWrapper::destroy();
         }
 
         core::KVTStorage *UIWrapper::kvt_lock()

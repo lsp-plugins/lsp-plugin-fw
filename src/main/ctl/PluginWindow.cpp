@@ -2300,7 +2300,7 @@ namespace lsp
                 return STATUS_OK;
 
             const bool prefer   = (_this->pUIScalingHost->value() >= 0.5f) ? 0.0f : 1.0f;
-            _this->pUIScalingHost->set_value(prefer);
+            _this->pUIScalingHost->set_value((prefer) ? 1.0f : 0.0f);
 
             if (prefer)
             {

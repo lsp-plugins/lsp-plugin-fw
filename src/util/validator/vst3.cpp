@@ -79,7 +79,7 @@ namespace lsp
                 if (pkg->site != NULL)
                 {
                     const size_t url_len = strlen(pkg->site);
-                    if (vendor_len >= Steinberg::PFactoryInfo::kURLSize)
+                    if (url_len >= Steinberg::PFactoryInfo::kURLSize)
                         validation_error(ctx, "Manifest has too long VST 3 site URL '%s' of %d characters, only PFactoryInfo::kURLSize=%d characters are permitted",
                             pkg->site, int(url_len), int(Steinberg::PFactoryInfo::kURLSize-1));
                 }
@@ -88,7 +88,7 @@ namespace lsp
                 if (pkg->email != NULL)
                 {
                     const size_t url_len = strlen(pkg->email);
-                    if (vendor_len >= Steinberg::PFactoryInfo::kEmailSize)
+                    if (url_len >= Steinberg::PFactoryInfo::kEmailSize)
                         validation_error(ctx, "Manifest has too long VST 3 EMail address '%s' of %d characters, only PFactoryInfo::kEmailSize=%d characters are permitted",
                             pkg->email, int(url_len), int(Steinberg::PFactoryInfo::kEmailSize-1));
                 }

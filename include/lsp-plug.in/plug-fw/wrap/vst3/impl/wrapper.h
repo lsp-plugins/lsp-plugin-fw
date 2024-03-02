@@ -2485,7 +2485,8 @@ namespace lsp
                     p->clear();
             }
 
-            sync_position(data.processContext);
+            if (data.processContext != NULL)
+                sync_position(data.processContext);
 
             for (int32_t frame=0; frame < data.numSamples; )
             {
