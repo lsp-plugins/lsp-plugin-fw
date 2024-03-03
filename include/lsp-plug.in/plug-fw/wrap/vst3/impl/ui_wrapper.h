@@ -270,7 +270,17 @@ namespace lsp
 
             // Call the post-initialization routine
             lsp_trace("Doing post-init");
-            return pUI->post_init();
+            if ((res = pUI->post_init()) != STATUS_OK)
+                return res;
+
+            for (lltl::iterator<ui::IPort> it = vPorts.values(); it; ++it)
+            {
+                ui::IPort *p = it.get();
+                if (p != NULL)
+                    p->notify_all(ui::PORT_NONE);
+            }
+
+            return STATUS_OK;
         }
 
         void UIWrapper::do_destroy()
