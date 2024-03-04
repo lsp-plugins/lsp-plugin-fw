@@ -22,6 +22,7 @@
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/stdlib/stdio.h>
+#include <lsp-plug.in/common/debug.h>
 
 namespace lsp
 {
@@ -60,17 +61,18 @@ namespace lsp
         Dot::Dot(ui::IWrapper *wrapper, tk::GraphDot *widget): Widget(wrapper, widget)
         {
             pClass      = &metadata;
+            bEditing    = false;
 
-            init_param(&sX, widget->hvalue(), widget->hstep());
-            init_param(&sY, widget->vvalue(), widget->vstep());
-            init_param(&sZ, widget->zvalue(), widget->zstep());
+            init_param(&sX, widget->hvalue(), widget->hstep(), widget->heditable());
+            init_param(&sY, widget->vvalue(), widget->vstep(), widget->veditable());
+            init_param(&sZ, widget->zvalue(), widget->zstep(), widget->zeditable());
         }
 
         Dot::~Dot()
         {
         }
 
-        void Dot::init_param(param_t *p, tk::RangeFloat *value, tk::StepFloat *step)
+        void Dot::init_param(param_t *p, tk::RangeFloat *value, tk::StepFloat *step, tk::Boolean *editable)
         {
             p->nFlags       = 0;
             p->fMin         = 0.0f;
@@ -81,6 +83,7 @@ namespace lsp
 
             p->pPort        = NULL;
             p->pValue       = value;
+            p->pEditable    = editable;
             p->pStep        = step;
         }
 
@@ -113,7 +116,9 @@ namespace lsp
                 sHoverGapColor.init(pWrapper, gd->hover_gap_color());
 
                 // Bind slots
+                gd->slots()->bind(tk::SLOT_BEGIN_EDIT, slot_begin_edit, this);
                 gd->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
+                gd->slots()->bind(tk::SLOT_END_EDIT, slot_end_edit, this);
                 gd->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_dbl_click, this);
             }
 
@@ -277,8 +282,14 @@ namespace lsp
         {
             float value;
 
-            if ((p->pPort != NULL) && (p->pPort == port))
+            if (p->pPort != NULL)
+            {
+                if (p->pPort != port)
+                    return;
                 value       = p->pPort->value();
+            }
+            else if ((p->pEditable->get()) && (bEditing))
+                return;
             else if ((p->sExpr.depends(port)) || (force))
                 value       = p->sExpr.evaluate();
             else
@@ -385,7 +396,7 @@ namespace lsp
             xp.name         = NULL;
             xp.unit         = meta::U_NONE;
             xp.role         = meta::R_CONTROL;
-            xp.flags        = meta::F_OUT | meta::F_LOWER | meta::F_UPPER | meta::F_STEP;
+            xp.flags        = meta::F_LOWER | meta::F_UPPER | meta::F_STEP;
             xp.min          = 0.0f;
             xp.max          = 1.0f;
             xp.start        = 0.0f;
@@ -495,6 +506,27 @@ namespace lsp
             Dot *_this          = static_cast<Dot *>(ptr);
             if (_this != NULL)
                 _this->submit_values();
+            return STATUS_OK;
+        }
+
+        status_t Dot::slot_begin_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            Dot *_this          = static_cast<Dot *>(ptr);
+            if (_this != NULL)
+                _this->bEditing     = true;
+            return STATUS_OK;
+        }
+
+        status_t Dot::slot_end_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            Dot *_this          = static_cast<Dot *>(ptr);
+            if (_this != NULL)
+            {
+                _this->bEditing     = false;
+                _this->commit_value(&_this->sX, NULL, true);
+                _this->commit_value(&_this->sY, NULL, true);
+                _this->commit_value(&_this->sZ, NULL, true);
+            }
             return STATUS_OK;
         }
 

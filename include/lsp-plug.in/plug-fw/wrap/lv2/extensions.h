@@ -923,13 +923,17 @@ namespace lsp
                         size           += (4 * sizeof(LV2_Atom_Int) + 0x100) + // Headers
                                             size_t(p->step) * FRAMEBUFFER_BULK_MAX * sizeof(float);
                         break;
-                    case meta::R_OSC:
+                    case meta::R_OSC_IN:
+                    case meta::R_OSC_OUT:
                         size           += OSC_BUFFER_MAX;
                         break;
-                    case meta::R_MIDI:
-                        if (meta::is_out_port(p) && (!out))
+                    case meta::R_MIDI_IN:
+                        if (!in)
                             break;
-                        else if (meta::is_in_port(p) && (!in))
+                        size            += (sizeof(LV2_Atom_Event) + 0x10) * MIDI_EVENTS_MAX; // Size of atom event + pad for MIDI data
+                        break;
+                    case meta::R_MIDI_OUT:
+                        if (!out)
                             break;
                         size            += (sizeof(LV2_Atom_Event) + 0x10) * MIDI_EVENTS_MAX; // Size of atom event + pad for MIDI data
                         break;

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plug-fw
  * Created on: 22 окт. 2015 г.
@@ -47,7 +47,12 @@ namespace lsp
 
             public:
                 explicit IPort(const meta::port_t *meta);
+                IPort(const IPort &) = delete;
+                IPort(IPort &&) = delete;
                 virtual ~IPort();
+
+                IPort & operator = (const IPort &) = delete;
+                IPort & operator = (IPort &&) = delete;
 
             public:
                 /** Get port value
@@ -89,11 +94,17 @@ namespace lsp
                 virtual void post_process(size_t samples);
 
             public:
-                /** Get port metadata
-                 *
+                /**
+                 * Get port metadata
                  * @return port metadata
                  */
                 inline const meta::port_t *metadata() const { return pMetadata; };
+
+                /**
+                 * Get port identifier
+                 * @return port identifier
+                 */
+                inline const char *id() const               { return (pMetadata != NULL) ? pMetadata->id : NULL; }
 
                 /** Get buffer casted to specified type
                  *
@@ -104,7 +115,7 @@ namespace lsp
                     return static_cast<T *>(buffer());
                 }
         };
-    }
+    } /* namespace plug */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_PLUG_IPORT_H_ */

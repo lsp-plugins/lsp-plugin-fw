@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins-comp-delay
  * Created on: 25 дек. 2022 г.
@@ -42,6 +42,7 @@ namespace lsp
                 const clap_host_state_t    *state;
                 const clap_host_params_t   *params;
                 const clap_host_gui_t      *gui;
+                const clap_host_tail_t     *tail;
 
             protected:
                 template <class T>
@@ -58,6 +59,7 @@ namespace lsp
                     state       = get_extension<clap_host_state_t>(host, CLAP_EXT_STATE);
                     params      = get_extension<clap_host_params_t>(host, CLAP_EXT_PARAMS);
                     gui         = get_extension<clap_host_gui_t>(host, CLAP_EXT_GUI);
+                    tail        = get_extension<clap_host_tail_t>(host, CLAP_EXT_TAIL);
                 }
         };
     } /* namespace clap */

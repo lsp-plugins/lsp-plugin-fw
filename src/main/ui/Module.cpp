@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/ui/ControlPort.h>
 
 namespace lsp
 {
@@ -83,7 +84,27 @@ namespace lsp
         void Module::position_updated(const plug::position_t *pos)
         {
         }
-    }
-}
+
+        ui::IPort *Module::create_control_port(const meta::port_t *meta)
+        {
+            ui::IPort *ctl = new ui::ControlPort(meta, pWrapper);
+            if (ctl == NULL)
+                return ctl;
+
+            status_t res = pWrapper->bind_custom_port(ctl);
+            if (res == STATUS_OK)
+                return ctl;
+
+            delete ctl;
+            return NULL;
+        }
+
+        status_t Module::add_custom_port(ui::IPort *port)
+        {
+            return pWrapper->bind_custom_port(port);
+        }
+
+    } /* namespace ui */
+} /* namespace lsp */
 
 

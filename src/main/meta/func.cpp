@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -36,6 +36,8 @@ namespace lsp
 {
     namespace meta
     {
+        static const char *hextable = "0123456789ABCDEF";
+
         typedef struct unit_desc_t
         {
             const char *name;
@@ -45,6 +47,7 @@ namespace lsp
         const unit_desc_t unit_desc[] =
         {
             { NULL,     NULL },
+
             { NULL,     NULL },
             { NULL,     NULL },
             { "%",      "units.pc" },
@@ -292,6 +295,38 @@ namespace lsp
                     value = port->min;
             }
             return value;
+        }
+
+        port_t *clone_single_port_metadata(const port_t *metadata)
+        {
+            if (metadata == NULL)
+                return NULL;
+
+            size_t  id_bytes        = strlen(metadata->id) + 1;
+            size_t  name_bytes      = strlen(metadata->name) + 1;
+
+            // Calculate the overall allocation size
+            size_t to_copy          = sizeof(port_t);
+            size_t string_bytes     = align_size(id_bytes + name_bytes, DEFAULT_ALIGN);
+            size_t allocate         = to_copy + string_bytes;
+
+            uint8_t *ptr            = static_cast<uint8_t *>(malloc(allocate));
+            if (ptr == NULL)
+                return NULL;
+
+            // Copy port metadata
+            port_t *meta            = reinterpret_cast<port_t *>(ptr);
+            ptr                    += to_copy;
+            ::memcpy(meta, metadata, to_copy);
+
+            meta->id                = reinterpret_cast<char *>(ptr);
+            ptr                    += id_bytes;
+            meta->name              = reinterpret_cast<char *>(ptr);
+
+            memcpy(const_cast<char *>(meta->id), metadata->id, id_bytes);
+            memcpy(const_cast<char *>(meta->name), metadata->name, name_bytes);
+
+            return meta;
         }
 
         port_t *clone_port_metadata(const port_t *metadata, const char *postfix)
@@ -1220,7 +1255,7 @@ namespace lsp
             text        = skip_blank(end);
 
             // Check presence of the unit value
-            const char *unit    = (units) ? get_unit_name(meta->unit) : NULL;
+            const char *unit    = ((units) && (meta != NULL)) ? get_unit_name(meta->unit) : NULL;
             if ((unit != NULL) && (check_match(text, unit)))
                 text        = skip_blank(text + strlen(unit));
 
@@ -1301,6 +1336,226 @@ namespace lsp
             if (step != NULL)
                 *step       = f_step;
         }
+
+        const char *plugin_format_name(plugin_format_t format)
+        {
+            switch (format)
+            {
+                case PLUGIN_CLAP:       return "CLAP";
+                case PLUGIN_JACK:       return "JACK";
+                case PLUGIN_LADSPA:     return "LADSPA";
+                case PLUGIN_LV2:        return "LV2";
+                case PLUGIN_VST2:       return "VST2";
+                case PLUGIN_VST3:       return "VST3";
+                default:
+                    break;
+            }
+            return "unknown";
+        }
+
+        char *uid_vst2_to_vst3(char *buf, const char *vst2_uid, const char *name, bool for_controller)
+        {
+            char *dst = buf;
+
+            if (strlen(vst2_uid) != 4)
+                return NULL;
+            int32_t vst2_cconst =
+                (int32_t(vst2_uid[0]) << 24) |
+                (int32_t(vst2_uid[1]) << 16) |
+                (int32_t(vst2_uid[2]) << 8) |
+                (int32_t(vst2_uid[4]));
+
+            const int32_t vstfxid = (for_controller) ? (('V' << 16) | ('S' << 8) | 'E') : (('V' << 16) | ('S' << 8) | 'T');
+            sprintf(dst, "%06X", vstfxid);
+            dst    += 6;
+
+            sprintf(dst, "%08X", vst2_cconst);
+            dst    += 8;
+
+            for (size_t i=0, n=strlen(name); i <= 8; i++)
+            {
+                uint8_t c   = (i < n) ? tolower(name[i]) : 0;   // the plugin name has to be lower case
+                sprintf(dst, "%02X", c);
+                dst        += 2;
+            }
+
+            return buf;
+        }
+
+        static inline int read_vst3_octet(const char *str)
+        {
+            uint8_t c1 = str[0];
+            uint8_t c2 = str[1];
+
+            if ((c1 >= '0') && (c1 <= '9'))
+                c1     -= '0';
+            else if ((c1 >= 'a') && (c1 <= 'f'))
+                c1      = c1 + 10 - 'a';
+            else if ((c1 >= 'A') && (c1 <= 'F'))
+                c1      = c1 + 10 - 'A';
+            else
+                return -1;
+
+            if ((c2 >= '0') && (c2 <= '9'))
+                c2     -= '0';
+            else if ((c2 >= 'a') && (c2 <= 'f'))
+                c2      = c2 + 10 - 'a';
+            else if ((c2 >= 'A') && (c2 <= 'F'))
+                c2      = c2 + 10 - 'A';
+            else
+                return -1;
+
+            return (int(c1) << 4) | int(c2);
+        }
+
+    #pragma pack(push, 1)
+        struct GuidStruct
+        {
+            uint32_t    Data1;
+            uint16_t    Data2;
+            uint16_t    Data3;
+            uint8_t     Data4[8];
+        };
+    #pragma pack(pop)
+
+        bool uid_vst3_to_tuid(char *tuid, const char *vst3_uid)
+        {
+            size_t len = strlen(vst3_uid);
+
+        #ifdef PLATFORM_WINDOWS
+            char tmp_uid[34];
+            GuidStruct guid;
+
+            if (len == 16)
+            {
+                for (size_t i=0; i<len; ++i)
+                {
+                    uint8_t c       = vst3_uid[i];
+                    tmp_uid[i*2]    = hextable[c >> 4];
+                    tmp_uid[i*2+1]  = hextable[c & 0x0f];
+                }
+
+                tmp_uid[33] = '\0';
+                vst3_uid    = tmp_uid;
+                len         = 32;
+            }
+            else if (len != 32)
+            {
+                // Validate that first 16 characters are hexadecimal
+                for (size_t i=0; i<8; ++i)
+                {
+                    if (read_vst3_octet(&vst3_uid[i*2]) < 0)
+                        return false;
+                }
+
+                return false;
+            }
+
+            char tmp[12];
+            int v;
+
+            // Data 1
+            memcpy(tmp, vst3_uid, 8);
+            tmp[8] = '\0';
+            sscanf(tmp, "%x", &v);
+            guid.Data1      = v;
+            vst3_uid       += 8;
+            // Data 2
+            memcpy(tmp, vst3_uid, 4);
+            tmp[4] = '\0';
+            sscanf(tmp, "%x", &v);
+            guid.Data2      = v;
+            vst3_uid       += 4;
+            // Data 3
+            memcpy(tmp, vst3_uid, 4);
+            tmp[4] = '\0';
+            sscanf(tmp, "%x", &v);
+            guid.Data3      = v;
+            vst3_uid       += 4;
+            // Data 4 (last 16 characters)
+            for (size_t i=0; i<8; ++i)
+            {
+                v               = read_vst3_octet(vst3_uid);
+                if (v < 0)
+                    return false;
+
+                guid.Data4[i]   = v;
+                vst3_uid       += 2;
+            }
+
+            // Do memcpy to avoid memory alignment issues
+            memcpy(tuid, &guid, sizeof(guid));
+        #else
+            if (len == 16)
+            {
+                memcpy(tuid, vst3_uid, 16);
+            }
+            else if (len == 32)
+            {
+                for (size_t i=0; i<16; ++i)
+                {
+                    int v       = read_vst3_octet(&vst3_uid[i*2]);
+                    if (v < 0)
+                        return false;
+
+                    tuid[i]     = v;
+                }
+            }
+            else
+                return false;
+        #endif /* PLATFORM_WINDOWS */
+
+            return true;
+        }
+
+        char *uid_tuid_to_vst3(char *vst3_uid, const char *tuid)
+        {
+            char *result    = vst3_uid;
+
+        #ifdef PLATFORM_WINDOWS
+            GuidStruct guid;
+
+            // Do memcpy to avoid memory alignment issues
+            memcpy(&guid, tuid, sizeof(guid));
+
+            sprintf(vst3_uid, "%08X", uint32_t(guid.Data1));
+            vst3_uid       += 8;
+            sprintf(vst3_uid, "%04X", uint32_t(guid.Data2));
+            vst3_uid       += 4;
+            sprintf(vst3_uid, "%04X", uint32_t(guid.Data3));
+            vst3_uid       += 4;
+
+            for (size_t i=0; i<8; ++i)
+            {
+                uint8_t c       = guid.Data4[i];
+                vst3_uid[0]     = hextable[c >> 4];
+                vst3_uid[1]     = hextable[c & 0x0f];
+                vst3_uid       += 2;
+            }
+        #else
+            for (size_t i=0; i<16; ++i)
+            {
+                uint8_t c       = tuid[i];
+                vst3_uid[0]     = hextable[c >> 4];
+                vst3_uid[1]     = hextable[c & 0x0f];
+                vst3_uid       += 2;
+            }
+        #endif /* PLATFORM_WINDOWS */
+            vst3_uid[0]     = '\0';
+
+            return result;
+        }
+
+        char *uid_meta_to_vst3(char *vst3_uid, const char *meta_uid)
+        {
+            char tuid[16];
+            if (meta_uid == NULL)
+                return NULL;
+            if (!uid_vst3_to_tuid(tuid, meta_uid))
+                return NULL;
+            return uid_tuid_to_vst3(vst3_uid, tuid);
+        }
+
     } /* namespace meta */
 } /* namespace lsp */
 

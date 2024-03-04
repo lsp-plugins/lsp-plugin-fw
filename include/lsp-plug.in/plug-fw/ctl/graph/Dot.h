@@ -68,6 +68,7 @@ namespace lsp
                     ctl::Expression     sExpr;
                     ctl::Boolean        sEditable;
                     tk::RangeFloat     *pValue;
+                    tk::Boolean        *pEditable;
                     tk::StepFloat      *pStep;
                 } param_t;
 
@@ -75,6 +76,7 @@ namespace lsp
                 param_t             sX;
                 param_t             sY;
                 param_t             sZ;
+                bool                bEditing;
 
                 ctl::Integer        sSize;
                 ctl::Integer        sHoverSize;
@@ -91,10 +93,14 @@ namespace lsp
                 ctl::Color          sHoverGapColor;
 
             protected:
-                static void         init_param(param_t *p, tk::RangeFloat *value, tk::StepFloat *step);
-                void                set_dot_param(param_t *p, const char *prefix, const char *name, const char *value);
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_begin_edit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_end_edit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
+
+            protected:
+                static void         init_param(param_t *p, tk::RangeFloat *value, tk::StepFloat *step, tk::Boolean *editable);
+                void                set_dot_param(param_t *p, const char *prefix, const char *name, const char *value);
                 void                submit_values();
                 void                submit_default_values();
                 void                configure_param(param_t *p, bool axis);

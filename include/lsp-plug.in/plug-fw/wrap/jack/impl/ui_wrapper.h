@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 янв. 2022 г.
@@ -190,6 +190,11 @@ namespace lsp
             return pWrapper->package();
         }
 
+        meta::plugin_format_t UIWrapper::plugin_format() const
+        {
+            return meta::PLUGIN_JACK;
+        }
+
         void UIWrapper::dump_state_request()
         {
             return pWrapper->dump_plugin_state();
@@ -227,7 +232,9 @@ namespace lsp
 
             switch (port->role)
             {
-                case meta::R_AUDIO: // Stub port
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
+                    // Stub port
                     jup     = new jack::UIPort(jp);
                     break;
 
@@ -249,14 +256,12 @@ namespace lsp
                         vSyncPorts.add(jup);
                     break;
 
-                case meta::R_OSC:
-                    if (meta::is_out_port(port))
-                    {
-                        jup     = new jack::UIOscPortIn(jp);
-                        vSyncPorts.add(jup);
-                    }
-                    else
-                        jup     = new jack::UIOscPortOut(jp);
+                case meta::R_OSC_OUT:
+                    jup     = new jack::UIOscPortIn(jp);
+                    vSyncPorts.add(jup);
+                    break;
+                case meta::R_OSC_IN:
+                    jup     = new jack::UIOscPortOut(jp);
                     break;
 
                 case meta::R_PATH:

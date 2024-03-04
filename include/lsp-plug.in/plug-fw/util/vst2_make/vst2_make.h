@@ -88,7 +88,7 @@ namespace lsp
          * @param argv list of arguments
          * @return status of operation
          */
-        status_t main(int argc, const char **argv);
+        int main(int argc, const char **argv);
     } /* vst2_make */
 } /* lsp */
 

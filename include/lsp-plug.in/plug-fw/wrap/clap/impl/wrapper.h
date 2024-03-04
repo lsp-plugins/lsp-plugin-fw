@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 дек. 2022 г.
@@ -50,10 +50,11 @@ namespace lsp
             pExecutor           = NULL;
 
             nLatency            = 0;
+            nTailSize           = 0;
             nDumpReq            = 0;
             nDumpResp           = 0;
 
-            bRestartRequested   = false;
+            bLatencyChanged     = false;
             bUpdateSettings     = true;
             pSamplePlayer       = NULL;
         }
@@ -160,29 +161,29 @@ namespace lsp
                     cp                      = new clap::StreamPort(port);
                     break;
 
-                case meta::R_MIDI:
+                case meta::R_MIDI_IN:
                 {
-                    if (meta::is_in_port(port))
-                    {
-                        clap::MidiInputPort *mi = new clap::MidiInputPort(port);
-                        vMidiIn.add(mi);
-                        cp  = mi;
-                    }
-                    else
-                    {
-                        clap::MidiOutputPort *mo = new clap::MidiOutputPort(port);
-                        vMidiOut.add(mo);
-                        cp  = mo;
-                    }
+                    clap::MidiInputPort *mi = new clap::MidiInputPort(port);
+                    vMidiIn.add(mi);
+                    cp  = mi;
+                    break;
+                }
+                case meta::R_MIDI_OUT:
+                {
+                    clap::MidiOutputPort *mo = new clap::MidiOutputPort(port);
+                    vMidiOut.add(mo);
+                    cp  = mo;
                     break;
                 }
 
-                case meta::R_AUDIO:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                     // Audio ports will be organized into groups after instantiation of all ports
                     cp = new clap::AudioPort(port);
                     break;
 
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                     cp = new clap::OscPort(port);
                     break;
 
@@ -289,7 +290,7 @@ namespace lsp
         {
             // Allocate the audio group object
             size_t szof_group   = sizeof(audio_group_t);
-            size_t szof_ports   = sizeof(plug::IPort) * ports;
+            size_t szof_ports   = sizeof(plug::IPort *) * ports;
             size_t szof         = align_size(szof_group + szof_ports, DEFAULT_ALIGN);
             audio_group_t *grp  = static_cast<audio_group_t *>(malloc(szof));
             if (grp != NULL)
@@ -621,7 +622,7 @@ namespace lsp
         {
             // Clear the flag that the restart has been requested
             sPosition.sampleRate= sample_rate;
-            bRestartRequested   = false;
+            bLatencyChanged     = false;
             bUpdateSettings     = true;
 
             if (sample_rate > MAX_SAMPLE_RATE)
@@ -658,24 +659,29 @@ namespace lsp
                 }
             }
 
+            // Call plugin for activation
+            pPlugin->activate();
+
             return STATUS_OK;
         }
 
         void Wrapper::deactivate()
         {
+            // Call plugin for deactivation
+            pPlugin->deactivate();
+
             // Set the actual latency
             nLatency            = pPlugin->latency();
+            bLatencyChanged     = false;
         }
 
         status_t Wrapper::start_processing()
         {
-            pPlugin->activate();
             return STATUS_OK;
         }
 
         void Wrapper::stop_processing()
         {
-            pPlugin->deactivate();
         }
 
         void Wrapper::reset()
@@ -1049,15 +1055,24 @@ namespace lsp
                     g->vPorts[j]->unbind();
             }
 
-            // Report the latency
+            // Check that latency has changed
             // From CLAP documentation:
             // The latency is only allowed to change if the plugin is deactivated.
             // If the plugin is activated, call host->request_restart()
+            // [main thread]
             ssize_t latency = pPlugin->latency();
-            if ((latency != nLatency) && (!bRestartRequested))
+            if ((latency != nLatency) && (!bLatencyChanged))
             {
-                pHost->request_restart(pHost);
-                bRestartRequested       = true;
+                bLatencyChanged       = true;
+                pHost->request_callback(pHost);
+            }
+
+            // Report the size of the plugin's tail.
+            ssize_t tail_size = pPlugin->tail_size();
+            if (nTailSize != tail_size)
+            {
+                nTailSize               = tail_size;
+                pExt->tail->changed(pHost);
             }
 
             return CLAP_PROCESS_CONTINUE;
@@ -1070,11 +1085,24 @@ namespace lsp
 
         void Wrapper::on_main_thread()
         {
+            if (pPlugin->active())
+            {
+                // Request plugin restart if latency has changed
+                // From CLAP documentation:
+                // The latency is only allowed to change if the plugin is deactivated.
+                // If the plugin is activated, call host->request_restart()
+                // [main thread]
+                if (bLatencyChanged)
+                    pHost->request_restart(pHost);
+            }
         }
 
-        size_t Wrapper::latency() const
+        size_t Wrapper::latency()
         {
-            return nLatency;
+            size_t latency      = pPlugin->latency();
+            nLatency            = latency;
+            bLatencyChanged     = false;
+            return latency;
         }
 
         size_t Wrapper::has_note_ports() const
@@ -1317,6 +1345,13 @@ namespace lsp
                 pPlugin->state_saved();
 
             return res;
+        }
+
+        // CLAP tail extension
+        uint32_t Wrapper::tail_size() const
+        {
+            ssize_t tail_size = pPlugin->tail_size();
+            return (tail_size < 0) ? UINT32_MAX : tail_size;
         }
 
         clap::Port *Wrapper::find_by_id(const char *id)
@@ -1927,6 +1962,11 @@ namespace lsp
         void Wrapper::request_settings_update()
         {
             bUpdateSettings     = true;
+        }
+
+        meta::plugin_format_t Wrapper::plugin_format() const
+        {
+            return meta::PLUGIN_CLAP;
         }
 
     } /* namespace clap */

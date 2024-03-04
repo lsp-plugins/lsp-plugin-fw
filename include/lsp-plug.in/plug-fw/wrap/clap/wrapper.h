@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 дек. 2022 г.
@@ -69,6 +69,7 @@ namespace lsp
                 clap::HostExtensions           *pExt;               // CLAP Extensions
                 ipc::IExecutor                 *pExecutor;          // Executor service
                 ssize_t                         nLatency;           // The actual plugin latency
+                ssize_t                         nTailSize;          // Tail size
                 uatomic_t                       nDumpReq;           // State dump request counter
                 uatomic_t                       nDumpResp;          // State dump response counter
 
@@ -84,7 +85,7 @@ namespace lsp
                 core::KVTStorage                sKVT;               // KVT storage
                 ipc::Mutex                      sKVTMutex;          // KVT storage access mutex
 
-                bool                            bRestartRequested;  // Flag that indicates that the plugin restart was requested
+                bool                            bLatencyChanged;    // Flag that indicates that the plugin restart was requested
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
 
@@ -143,7 +144,7 @@ namespace lsp
 
             public:
                 // CLAP latency extension
-                size_t          latency() const;
+                size_t          latency();
 
             public:
                 // CLAP audio port extension
@@ -162,7 +163,10 @@ namespace lsp
                 status_t        load_state(const clap_istream_t *is);
 
             public:
-                // plug::IWrapper methods
+                // CLAP tail extension
+                uint32_t        tail_size() const;
+
+            public: // plug::IWrapper methods
                 virtual ipc::IExecutor         *executor() override;
                 virtual core::KVTStorage       *kvt_lock() override;
                 virtual core::KVTStorage       *kvt_trylock() override;
@@ -170,6 +174,7 @@ namespace lsp
                 virtual const meta::package_t  *package() const override;
                 virtual void                    state_changed() override;
                 virtual void                    request_settings_update() override;
+                virtual meta::plugin_format_t   plugin_format() const override;
 
             public:
                 // Miscellaneous functions

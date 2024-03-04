@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -23,6 +23,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/core/JsonDumper.h>
 
 namespace lsp
@@ -181,8 +182,11 @@ namespace lsp
                 v.write("version", tmp.get_utf8());
 
                 // Write plugin identifiers
+                char vst3_uid[40];
+
                 v.write("lv2_uri", meta->lv2_uri);
-                v.write("vst_id", meta->vst2_uid);
+                v.write("vst2_id", meta->vst2_uid);
+                v.write("vst3_id", meta::uid_meta_to_vst3(vst3_uid, meta->vst3_uid));
                 v.write("ladspa_id", meta->ladspa_id);
                 v.write("ladspa_label", meta->ladspa_lbl);
                 v.write("clap_id", meta->clap_uid);
@@ -233,8 +237,14 @@ namespace lsp
 
             return pCanvas;
         }
-    }
-}
+
+        meta::plugin_format_t IWrapper::plugin_format() const
+        {
+            return meta::PLUGIN_UNKNOWN;
+        }
+
+    } /* namespace plug */
+} /* namespace lsp */
 
 
 

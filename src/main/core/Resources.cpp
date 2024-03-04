@@ -90,7 +90,7 @@ namespace lsp
             LSPString path;
             status_t res;
 
-            if ((res = system::get_env_var("LSP_RESOURCE_PATH", &path)) == STATUS_OK)
+            if ((res = system::get_env_var(LSP_RESOURCE_PATH_VAR, &path)) == STATUS_OK)
             {
                 // Nothing
             }

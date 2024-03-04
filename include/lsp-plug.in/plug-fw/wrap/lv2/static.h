@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 дек. 2021 г.
@@ -33,22 +33,21 @@ namespace lsp
         // Latency ports' metadata for LV2 plugins
         static const meta::port_t latency_port =
         {
-            LSP_LV2_LATENCY_PORT, "Latency OUT", meta::U_NONE, meta::R_CONTROL, meta::F_OUT | meta::F_INT | meta::F_LOWER | meta::F_UPPER, 0, MAX_SAMPLE_RATE, 0, 0, NULL
+            LSP_LV2_LATENCY_PORT, "Latency OUT", meta::U_NONE, meta::R_METER, meta::F_INT | meta::F_LOWER | meta::F_UPPER, 0, MAX_SAMPLE_RATE, 0, 0, NULL
         };
 
         // Atom ports' metadata for LV2 plugins
         static const meta::port_t atom_ports[] =
         {
-            // Input audio ports
-            { LSP_LV2_ATOM_PORT_IN,     "UI Input",     meta::U_NONE,         meta::R_UI_SYNC, meta::F_IN, 0, 0, 0, 0, NULL       },
-            { LSP_LV2_ATOM_PORT_OUT,    "UI Output",    meta::U_NONE,         meta::R_UI_SYNC, meta::F_OUT, 0, 0, 0, 0, NULL      },
+            // Input and output ATOM ports
+            { LSP_LV2_ATOM_PORT_IN,     "UI Input",     meta::U_NONE,         meta::R_AUDIO_IN,  0, 0, 0, 0, 0, NULL       },
+            { LSP_LV2_ATOM_PORT_OUT,    "UI Output",    meta::U_NONE,         meta::R_AUDIO_OUT, 0, 0, 0, 0, 0, NULL       },
 
             { NULL, NULL }
         };
 
-    }
-}
-
+    } /* namespace lv2 */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_LV2_STATIC_H_ */

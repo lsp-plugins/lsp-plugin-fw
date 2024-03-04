@@ -53,6 +53,10 @@ namespace lsp
             protected:
                 void                            do_destroy();
 
+            protected:
+                ui::IPort                      *create_control_port(const meta::port_t *meta);
+                status_t                        add_custom_port(ui::IPort *port);
+
             public:
                 explicit Module(const meta::plugin_t *meta);
                 Module(const Module &) = delete;

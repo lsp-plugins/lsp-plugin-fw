@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -34,6 +34,7 @@ namespace lsp
             pWrapper        = NULL;
             fSampleRate     = -1;
             nLatency        = 0;
+            nTailSize       = 0;
             bActivated      = false;
             bUIActive       = false;
         }
@@ -88,7 +89,7 @@ namespace lsp
             pWrapper        = wrapper;
         }
 
-        void Module::set_sample_rate(long sr)
+        void Module::set_sample_rate(uint32_t sr)
         {
             if (fSampleRate == sr)
                 return;
@@ -167,6 +168,6 @@ namespace lsp
         void Module::dump(dspu::IStateDumper *v) const
         {
         }
-    }
-}
+    } /* namespace plug */
+} /* namespace lsp */
 

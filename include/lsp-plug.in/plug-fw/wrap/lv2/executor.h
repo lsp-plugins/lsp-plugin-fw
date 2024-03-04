@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 нояб. 2021 г.
@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/ipc/IExecutor.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 
@@ -43,27 +44,35 @@ namespace lsp
                         (uint32_t('2') << 8) |
                         (uint32_t('E') << 0);
 
-                LV2_Worker_Schedule *sched;
-
                 typedef struct task_descriptor_t
                 {
                     uint32_t        magic;
                     ipc::ITask     *task;
                 } task_descriptor_t;
 
+            private:
+                LV2_Worker_Schedule        *sched;      // Schedule interface
+//                volatile atomic_t           queued;     // Number of queued tasks
+
             public:
                 Executor(LV2_Worker_Schedule *schedule)
                 {
                     sched       = schedule;
+//                    atomic_init(queued);
                 }
+                Executor(const Executor &) = delete;
+                Executor(Executor &&) = delete;
 
                 ~Executor()
                 {
                     sched       = NULL;
                 }
 
+                Executor & operator = (const Executor &) = delete;
+                Executor & operator = (Executor &&) = delete;
+
             public:
-                virtual bool submit(ipc::ITask *task)
+                virtual bool submit(ipc::ITask *task) override
                 {
                     // Check state of task
                     if (!task->idle())
@@ -73,13 +82,26 @@ namespace lsp
                     task_descriptor_t descr = { magic, task };
                     change_task_state(task, ipc::ITask::TS_SUBMITTED);
                     if (sched->schedule_work(sched->handle, sizeof(task_descriptor_t), &descr) == LV2_WORKER_SUCCESS)
+                    {
+//                        atomic_add(&queued, 1);
                         return true;
+                    }
 
                     // Failed to submit task, return status back
                     change_task_state(task, ipc::ITask::TS_IDLE);
                     return false;
                 }
 
+// This is too hacky workaround for that hosts that run tasks even if plugin was terminated
+// in practice, it doesn't work. But let's see
+//                virtual void shutdown() override
+//                {
+//                    // We need to wait until all offline tasks have been executed
+//                    while (queued > 0)
+//                        ipc::Thread::sleep(10);
+//                }
+
+            public:
                 inline void run_job(
                     LV2_Worker_Respond_Handle   handle,
                     LV2_Worker_Respond_Function respond,
@@ -95,6 +117,7 @@ namespace lsp
                         return;
 
                     // Run task
+//                    lsp_finally { atomic_add(&queued, -1); };
                     run_task(descr->task);
                 }
         };

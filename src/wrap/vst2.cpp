@@ -41,6 +41,10 @@ namespace lsp
 {
     namespace vst2
     {
+        static const VstInt32 VST2_MAGIC_stCA        = CCONST('s', 't', 'C', 'A');
+        static const VstInt32 VST2_MAGIC_stCa        = CCONST('s', 't', 'C', 'a');
+        static const VstInt32 VST2_MAGIC_FUID        = CCONST('F', 'U', 'I', 'D');
+
         typedef struct key_code_t
         {
             uint8_t     vst;
@@ -374,6 +378,12 @@ namespace lsp
                         break;
 
                     case meta::C_INSTRUMENT:
+                    case meta::C_DRUM:
+                    case meta::C_EXTERNAL:
+                    case meta::C_PIANO:
+                    case meta::C_SAMPLER:
+                    case meta::C_SYNTH:
+                    case meta::C_SYNTH_SAMPLER:
                         result = kPlugCategSynth;
                         break;
 
@@ -579,7 +589,7 @@ namespace lsp
                         get_parameter_properties(m, reinterpret_cast<VstParameterProperties *>(ptr));
                         v = 1;
                     }
-                    else if (!(m->flags & meta::F_OUT))
+                    else if (meta::is_in_port(m))
                         v = 1;
 
                     break;
@@ -727,6 +737,26 @@ namespace lsp
                 }
 
                 case effVendorSpecific:
+                    // Check that we can provide VST3 compatibility information
+                    if (((index == VST2_MAGIC_stCA) || (index == VST2_MAGIC_stCa)) &&
+                        (value == VST2_MAGIC_FUID) && (ptr != NULL))
+                    {
+                        char FUID[40];
+                        const meta::plugin_t *m = w->metadata();
+
+                        if ((m != NULL) && (m->vst3_uid != NULL))
+                        {
+                            const char *plugin_name = (m->vst2_name != NULL) ? m->vst2_name : m->name;
+                            if (meta::uid_vst2_to_vst3(FUID, m->vst2_uid, plugin_name) != NULL)
+                            {
+                                lsp_trace("Reporting compatibility of VST 2.x plugin uid='%s' with VST3.x plugin uuid='%s'", m->vst2_uid, FUID);
+                                if (meta::uid_vst3_to_tuid(reinterpret_cast<char *>(ptr), FUID))
+                                    v   = 1;
+                            }
+                        }
+                    }
+                    break;
+
                 case effProcessVarIo:
                 case effSetSpeakerArrangement:
                 case effGetTailSize:

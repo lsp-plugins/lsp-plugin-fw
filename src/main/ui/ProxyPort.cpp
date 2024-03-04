@@ -55,7 +55,7 @@ namespace lsp
             }
         }
 
-        status_t ProxyPort::init(const char *id, ui::IPort *proxied)
+        status_t ProxyPort::init(const char *id, ui::IPort *proxied, const meta::port_t *meta)
         {
             sID             = strdup(id);
             if (sID == NULL)
@@ -64,13 +64,23 @@ namespace lsp
             pPort           = proxied;
             pPort->bind(this);
 
-            sMetadata       = *(proxied->metadata());
+            sMetadata       = (meta != NULL) ? *meta : *(proxied->metadata());
             sMetadata.id    = sID;
 
             return STATUS_OK;
         }
 
-        void ProxyPort::set_proxy_port(ui::IPort *proxied)
+        float ProxyPort::from_value(float value)
+        {
+            return value;
+        }
+
+        float ProxyPort::to_value(float value)
+        {
+            return value;
+        }
+
+        void ProxyPort::set_proxy_port(ui::IPort *proxied, const meta::port_t *meta)
         {
             if (pPort == proxied)
                 return;
@@ -81,11 +91,21 @@ namespace lsp
             pPort           = proxied;
             pPort->bind(this);
 
-            sMetadata       = *(proxied->metadata());
+            sMetadata       = (meta != NULL) ? *meta : *(proxied->metadata());
             sMetadata.id    = sID;
 
             // Notify about port change
             IPort::notify_all(ui::PORT_NONE);
+        }
+
+        ui::IPort *ProxyPort::proxied()
+        {
+            return pPort;
+        }
+
+        const meta::port_t *ProxyPort::proxied_metadata() const
+        {
+            return (pPort != NULL) ? pPort->metadata() : NULL;
         }
 
         void ProxyPort::write(const void *buffer, size_t size)
@@ -105,12 +125,12 @@ namespace lsp
 
         float ProxyPort::value()
         {
-            return pPort->value();
+            return from_value(pPort->value());
         }
 
         float ProxyPort::default_value()
         {
-            return pPort->default_value();
+            return from_value(pPort->default_value());
         }
 
         void ProxyPort::set_default()
@@ -120,12 +140,12 @@ namespace lsp
 
         void ProxyPort::set_value(float value)
         {
-            pPort->set_value(value);
+            pPort->set_value(to_value(value));
         }
 
         void ProxyPort::set_value(float value, size_t flags)
         {
-            pPort->set_value(value, flags);
+            pPort->set_value(to_value(value), flags);
         }
 
         void ProxyPort::notify_all(size_t flags)

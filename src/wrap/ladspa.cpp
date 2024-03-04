@@ -55,15 +55,16 @@ namespace lsp
         {
             switch (port->role)
             {
-                case meta::R_UI_SYNC:
-                case meta::R_MESH:
-                case meta::R_FBUFFER:
-                case meta::R_STREAM:
-                    return false;
-                default:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
+                case meta::R_CONTROL:
+                case meta::R_METER:
+                case meta::R_BYPASS:
                     return true;
+                default:
+                    break;
             }
-            return true;
+            return false;
         }
 
         LADSPA_Handle instantiate(const LADSPA_Descriptor *descriptor, unsigned long sample_rate)
@@ -255,11 +256,19 @@ namespace lsp
                 // Generate port descriptor
                 switch (p->role)
                 {
-                    case meta::R_AUDIO:
-                        *p_descr = (meta::is_out_port(p)) ? LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO : LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO;
+                    case meta::R_AUDIO_IN:
+                        *p_descr = LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO;
+                        break;
+                    case meta::R_AUDIO_OUT:
+                        *p_descr = LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO;
                         break;
                     case meta::R_CONTROL:
+                    case meta::R_BYPASS:
+                        *p_descr = LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL;
+                        break;
                     case meta::R_METER:
+                        *p_descr = LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL;
+                        break;
                     default:
                         *p_descr = (meta::is_out_port(p)) ? LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL : LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL;
                         break;

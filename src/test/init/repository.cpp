@@ -22,79 +22,93 @@
 #include <lsp-plug.in/test-fw/init.h>
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/io/Dir.h>
+#include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/util/repository/repository.h>
 
-#ifdef LSP_IDE_DEBUG
+#include <private/test/repository.h>
+
+namespace lsp
+{
+    namespace test
+    {
+        static void remove_dir(const io::Path *path)
+        {
+            io::Path child;
+            LSPString item;
+            io::Dir dir;
+
+            if (dir.open(path) == STATUS_OK)
+            {
+                while (dir.read(&item) == STATUS_OK)
+                {
+                    if (io::Path::is_dots(&item))
+                        continue;
+                    if (child.set(path, &item) != STATUS_OK)
+                        continue;
+
+                    if (child.is_dir())
+                        remove_dir(&child);
+                    else
+                    {
+                        printf("  removing: %s\n", child.as_native());
+                        child.remove();
+                    }
+                }
+            }
+
+            printf("  removing: %s\n", path->as_native());
+            path->remove();
+        }
+
+        void make_repository(const io::Path *path)
+        {
+            repository::cmdline_t cmd;
+
+            static const char *paths[]=
+            {
+                "",
+                "modules/*",
+                NULL
+            };
+
+            static const char *vars[]=
+            {
+                "ARTIFACT_ID=test",
+                "ARTIFACT_DESC=Test Case",
+                "ARTIFACT_VERSION=0.0.0-devel",
+                NULL
+            };
+
+            cmd.strict      = false;
+            cmd.dst_dir     = path->as_utf8();
+            cmd.local_dir   = NULL;
+            cmd.manifest    = "res/manifest.json";
+            cmd.checksums   = NULL;
+
+            for (const char **p = paths; *p != NULL; ++p)
+                cmd.paths.add(const_cast<char *>(*p));
+            for (const char **p = vars; *p != NULL; ++p)
+                cmd.vars.add(const_cast<char *>(*p));
+
+            remove_dir(path);
+            lsp::repository::make_repository(&cmd);
+        }
+    } /* namespace test */
+} /* namespace lsp */
+
+#ifdef LSP_NO_BUILTIN_RESOURCES
 
 INIT_BEGIN(repository)
 
-    void remove_dir(const io::Path *path)
-    {
-        io::Path child;
-        LSPString item;
-        io::Dir dir;
-
-        if (dir.open(path) == STATUS_OK)
-        {
-            while (dir.read(&item) == STATUS_OK)
-            {
-                if (io::Path::is_dots(&item))
-                    continue;
-                if (child.set(path, &item) != STATUS_OK)
-                    continue;
-
-                if (child.is_dir())
-                    remove_dir(&child);
-                else
-                {
-                    printf("  removing: %s\n", child.as_native());
-                    child.remove();
-                }
-            }
-        }
-
-        printf("  removing: %s\n", path->as_native());
-        path->remove();
-    }
-
     INIT_FUNC
     {
-        repository::cmdline_t cmd;
-
-        static const char *paths[]=
-        {
-            "",
-            "modules/*",
-            NULL
-        };
-
-        static const char *vars[]=
-        {
-            "ARTIFACT_ID=test",
-            "ARTIFACT_DESC=Test Case",
-            "ARTIFACT_VERSION=0.0.0-devel",
-            NULL
-        };
-
         io::Path resdir;
         resdir.set(tempdir(), "resources");
-
-        cmd.strict = false;
-        cmd.dst_dir = resdir.as_utf8();
-        cmd.local_dir = NULL;
-        cmd.manifest = "res/manifest.json";
-        cmd.checksums = NULL;
-        for (const char **p = paths; *p != NULL; ++p)
-            cmd.paths.add(const_cast<char *>(*p));
-        for (const char **p = vars; *p != NULL; ++p)
-            cmd.vars.add(const_cast<char *>(*p));
-
-        remove_dir(&resdir);
-        lsp::repository::make_repository(&cmd);
+        make_repository(&resdir);
     }
 INIT_END
 
-#endif /* LSP_IDE_DEBUG */
+#endif /* LSP_NO_BUILTIN_RESOURCES */
 
 
 

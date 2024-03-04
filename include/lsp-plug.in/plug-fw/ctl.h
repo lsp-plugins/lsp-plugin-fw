@@ -97,14 +97,12 @@
     #include <lsp-plug.in/plug-fw/ctl/3d/Model3D.h>
 
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
-    #include <lsp-plug.in/plug-fw/ctl/specific/DryWetLink.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/FileButton.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/Fraction.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedChannel.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedMeter.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/MidiNote.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/TempoTap.h>
-    #include <lsp-plug.in/plug-fw/ctl/specific/Rack.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/ThreadComboBox.h>
 
 #undef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_

@@ -102,6 +102,7 @@ namespace lsp
                 if (pkg != NULL)
                     meta::free_manifest(pkg);
             };
+            validate_package(&ctx, pkg);
 
             // Iterate over all plugin factories and validate their metadata
             // Generate descriptors

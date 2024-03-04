@@ -33,6 +33,75 @@ namespace lsp
     namespace plug
     {
         //-------------------------------------------------------------------------
+        // midi_t methods
+        bool midi_t::push_all(const midi_t *src)
+        {
+            size_t count    = lsp_min(src->nEvents, MIDI_EVENTS_MAX - nEvents);
+            if (count > 0)
+            {
+                ::memcpy(&vEvents[nEvents], src->vEvents, count * sizeof(midi::event_t));
+                nEvents        += count;
+            }
+
+            return count >= src->nEvents;
+        }
+
+        bool midi_t::push_slice(const midi_t *src, uint32_t start, uint32_t end)
+        {
+            // Find the start position to perform the copy of events, assuming events being sorted
+            const midi::event_t *se;
+            ssize_t first=0, last=src->nEvents - 1;
+            while (first < last)
+            {
+                ssize_t middle = (first + last) >> 1;
+                se = &src->vEvents[middle];
+                if (se->timestamp >= start)
+                    last    = middle - 1;
+                else
+                    first   = middle + 1;
+            }
+
+            // Copy events
+            for (size_t i=first; i<src->nEvents; ++i)
+            {
+                // Check that event's timestamp is within the specified range
+                se                  = &src->vEvents[i];
+                if (se->timestamp < start)
+                    continue;
+                else if (se->timestamp >= end)
+                    return true;
+
+                // Check that we are able to add one more event
+                if (nEvents >= MIDI_EVENTS_MAX)
+                    return false;
+
+                // Copy event and update timestamp
+                midi::event_t *ev   = &vEvents[nEvents++];
+                *ev                 = src->vEvents[i];
+                ev->timestamp      -= start;
+            }
+
+            return true;
+        }
+
+        bool midi_t::push_all_shifted(const midi_t *src, uint32_t offset)
+        {
+            for (size_t i=0; i<src->nEvents; ++i)
+            {
+                // Check that we are able to add one more event
+                if (nEvents >= MIDI_EVENTS_MAX)
+                    return false;
+
+                // Copy event and update timestamp
+                midi::event_t *ev   = &vEvents[nEvents++];
+                *ev                 = src->vEvents[i];
+                ev->timestamp      += offset;
+            }
+
+            return true;
+        }
+
+        //-------------------------------------------------------------------------
         // path_t methods
         path_t::~path_t()
         {
@@ -203,8 +272,9 @@ namespace lsp
 
         size_t stream_t::add_frame(size_t size)
         {
-            size_t frame_id = nFrameId + 1;
-            frame_t *curr   = &vFrames[nFrameId & (nFrameCap - 1)];
+            size_t prev_id  = nFrameId;
+            size_t frame_id = prev_id + 1;
+            frame_t *curr   = &vFrames[prev_id & (nFrameCap - 1)];
             frame_t *next   = &vFrames[frame_id & (nFrameCap - 1)];
 
             size            = lsp_min(size, size_t(STREAM_MAX_FRAME_SIZE));
@@ -271,6 +341,36 @@ namespace lsp
                 dsp::copy(&dst[head], data, count);
 
             return count;
+        }
+
+        float *stream_t::frame_data(size_t channel, size_t off, size_t *count)
+        {
+            if (channel >= nChannels)
+                return NULL;
+
+            size_t frame_id = nFrameId + 1;
+            frame_t *next   = &vFrames[frame_id & (nFrameCap - 1)];
+            if (next->id != frame_id)
+                return NULL;
+
+            // Estimate number of items to copy
+            if (off >= next->size)
+                return NULL;
+
+            // Copy data to the frame
+            float *dst      = vChannels[channel];
+            size_t head     = next->head + off;
+            if (head >= nBufCap)
+                head           -= nBufCap;
+            size_t tail     = next->head + next->size;
+            if (tail >= nBufCap)
+                head           -= nBufCap;
+
+            // Store the available number of elements
+            if (count != NULL)
+                *count          = (head < tail) ? tail - head : nBufCap - head;
+
+            return &dst[head];
         }
 
         ssize_t stream_t::read_frame(uint32_t frame_id, size_t channel, float *data, size_t off, size_t count)
@@ -340,8 +440,9 @@ namespace lsp
 
         bool stream_t::commit_frame()
         {
-            size_t frame_id = nFrameId + 1;
-            frame_t *curr   = &vFrames[nFrameId & (nFrameCap - 1)];
+            size_t prev_id  = nFrameId;
+            size_t frame_id = prev_id + 1;
+            frame_t *curr   = &vFrames[prev_id & (nFrameCap - 1)];
             frame_t *next   = &vFrames[frame_id & (nFrameCap - 1)];
             if (next->id != frame_id)
                 return false;

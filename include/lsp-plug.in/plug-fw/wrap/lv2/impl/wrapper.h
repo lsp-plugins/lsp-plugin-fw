@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 28 нояб. 2021 г.
@@ -378,7 +378,8 @@ namespace lsp
                     plugin_ports->add(result);
                     break;
 
-                case meta::R_MIDI:
+                case meta::R_MIDI_IN:
+                case meta::R_MIDI_OUT:
                     if (pExt->atom_supported())
                     {
                         result = new lv2::MidiPort(p, pExt);
@@ -388,7 +389,8 @@ namespace lsp
                         result = new lv2::Port(p, pExt, false);
                     plugin_ports->add(result);
                     break;
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                     if (pExt->atom_supported())
                     {
                         result = new lv2::OscPort(p, pExt);
@@ -400,7 +402,8 @@ namespace lsp
                     break;
 
 
-                case meta::R_AUDIO:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                     result = new lv2::AudioPort(p, pExt);
 
                     vPluginPorts.add(result);
@@ -849,21 +852,27 @@ namespace lsp
                     else if ((body->key == pExt->uridTimeBeatsPerMinute) && (body->value.type == pExt->forge.Float))
                         pos.beatsPerMinute  = (reinterpret_cast<LV2_Atom_Float *>(&body->value))->body;
                     else if ((body->key == pExt->uridTimeBeatUnit) && (body->value.type == pExt->forge.Int))
-                        pos.denominator     = (reinterpret_cast<LV2_Atom_Int *>(&body->value))->body;
+                        pos.numerator       = (reinterpret_cast<LV2_Atom_Int *>(&body->value))->body;
                     else if ((body->key == pExt->uridTimeBeatsPerBar) && (body->value.type == pExt->forge.Float))
-                        pos.numerator       = (reinterpret_cast<LV2_Atom_Float *>(&body->value))->body;
+                        pos.denominator     = (reinterpret_cast<LV2_Atom_Float *>(&body->value))->body;
                     else if ((body->key == pExt->uridTimeBarBeat) && (body->value.type == pExt->forge.Float))
                         pos.tick            = (reinterpret_cast<LV2_Atom_Float *>(&body->value))->body * pos.ticksPerBeat;
                 }
-    //            lsp_trace("triggered timePosition event\n"
-    //                      "  frame      = %lld\n"
-    //                      "  speed      = %f\n"
-    //                      "  bpm        = %f\n"
-    //                      "  numerator  = %f\n"
-    //                      "  denominator= %f\n"
-    //                      "  tick       = %f\n",
-    //                      (long long)(pos.frame), pos.speed, pos.beatsPerMinute, pos.denominator, pos.numerator, pos.tick
-    //                    );
+//                lsp_trace("triggered timePosition event\n"
+//                      "  frame      = %lld\n"
+//                      "  speed      = %f\n"
+//                      "  bpm        = %f\n"
+//                      "  numerator  = %f\n"
+//                      "  denominator= %f\n"
+//                      "  tick       = %f\n"
+//                      "  tpb        = %f\n",
+//                      (long long)(pos.frame),
+//                      pos.speed,
+//                      pos.beatsPerMinute,
+//                      pos.denominator,
+//                      pos.numerator,
+//                      pos.tick,
+//                      pos.ticksPerBeat);
 
                 // Call plugin callback and update position
                 bUpdateSettings = pPlugin->set_position(&pos);
@@ -1078,10 +1087,12 @@ namespace lsp
                 // Skip MESH, FBUFFER, PATH ports visible in global space
                 switch (p->metadata()->role)
                 {
-                    case meta::R_AUDIO:
-                    case meta::R_MIDI:
-                    case meta::R_OSC:
-                    case meta::R_UI_SYNC:
+                    case meta::R_AUDIO_IN:
+                    case meta::R_AUDIO_OUT:
+                    case meta::R_MIDI_IN:
+                    case meta::R_MIDI_OUT:
+                    case meta::R_OSC_IN:
+                    case meta::R_OSC_OUT:
                     case meta::R_MESH:
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:
@@ -2116,6 +2127,11 @@ namespace lsp
         const meta::package_t *Wrapper::package() const
         {
             return pPackage;
+        }
+
+        meta::plugin_format_t Wrapper::plugin_format() const
+        {
+            return meta::PLUGIN_LV2;
         }
 
         void Wrapper::state_changed()

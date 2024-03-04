@@ -34,6 +34,18 @@ namespace lsp
 {
     namespace meta
     {
+        // Different plugin formats
+        enum plugin_format_t
+        {
+            PLUGIN_UNKNOWN,
+            PLUGIN_CLAP,
+            PLUGIN_JACK,
+            PLUGIN_LADSPA,
+            PLUGIN_LV2,
+            PLUGIN_VST2,
+            PLUGIN_VST3
+        };
+
         enum unit_t
         {
             U_NONE,                 // Simple value
@@ -61,6 +73,7 @@ namespace lsp
             U_KHZ,                  // Kilohertz
             U_MHZ,                  // Megahertz
             U_BPM,                  // Beats per minute
+
             U_CENT,                 // Cents
             U_OCTAVES,              // Octaves
             U_SEMITONES,            // Semitones
@@ -98,24 +111,25 @@ namespace lsp
 
         enum role_t
         {
-            R_UI_SYNC,              // Synchronization with UI
-            R_AUDIO,                // Audio port
+            R_AUDIO_IN,             // Audio input port
+            R_AUDIO_OUT,            // Audio output port
             R_CONTROL,              // Control port
             R_METER,                // Metering port
             R_MESH,                 // Mesh port
             R_FBUFFER,              // Frame buffer
             R_PATH,                 // Path to the local file
-            R_MIDI,                 // MIDI events
+            R_MIDI_IN,              // MIDI input events
+            R_MIDI_OUT,             // MIDI output events
             R_PORT_SET,             // Set of ports
-            R_OSC,                  // OSC events
+            R_OSC_IN,               // OSC input events
+            R_OSC_OUT,              // OSC output events
             R_BYPASS,               // Bypass
             R_STREAM                // Stream
         };
 
         enum flags_t
         {
-            F_IN            = (0 << 0),     // Input port
-            F_OUT           = (1 << 0),     // Output port
+            F_OPTIONAL      = (1 << 0),     // Optional port, can be disabled by host
             F_UPPER         = (1 << 1),     // Upper-limit defined
             F_LOWER         = (1 << 2),     // Lower-llmit defined
             F_STEP          = (1 << 3),     // Step defined
@@ -154,6 +168,12 @@ namespace lsp
             C_GENERATOR,
                 C_CONSTANT,
                 C_INSTRUMENT,
+                    C_DRUM,
+                    C_EXTERNAL,
+                    C_PIANO,
+                    C_SAMPLER,
+                    C_SYNTH,
+                    C_SYNTH_SAMPLER,
                 C_OSCILLATOR,
             C_MODULATOR,
                 C_CHORUS,
@@ -416,6 +436,8 @@ namespace lsp
             const char             *lv2_uri;        // LV2 URI
             const char             *lv2ui_uri;      // LV2 UI URI
             const char             *vst2_uid;       // Steinberg VST 2.x ID of the plugin
+            const char             *vst3_uid;       // Steinberg VST 3.x ID of the plugin
+            const char             *vst3ui_uid;     // Steinberg VST 3.x ID of the plugin's UI
             const uint32_t          ladspa_id;      // LADSPA ID of the plugin
             const char             *ladspa_lbl;     // LADSPA unique label of the plugin
             const char             *clap_uid;       // Unique identifier for CLAP format

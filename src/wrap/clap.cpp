@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 дек. 2022 г.
@@ -13,7 +13,7 @@
  * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Lesser General Public License for more des.
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
@@ -250,6 +250,21 @@ namespace lsp
         {
             .save = save_state,
             .load = load_state,
+        };
+
+        //---------------------------------------------------------------------
+        // Tail extension
+        uint32_t CLAP_ABI get_tail(const clap_plugin_t *plugin)
+        {
+            lsp_trace("plugin=%p", plugin);
+
+            Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
+            return w->tail_size();
+        }
+
+        const clap_plugin_tail tail_extension =
+        {
+            .get = get_tail
         };
 
         //---------------------------------------------------------------------
@@ -551,6 +566,8 @@ namespace lsp
                 return &plugin_params_extension;
             if ((!strcmp(id, CLAP_EXT_NOTE_PORTS)) && (w->has_note_ports()))
                 return &note_ports_extension;
+            if (!strcmp(id, CLAP_EXT_TAIL))
+                return &tail_extension;
             if ((!strcmp(id, CLAP_EXT_GUI)) && (w->ui_provided()))
                 return &ui_extension;
 

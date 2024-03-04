@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
@@ -56,6 +57,12 @@ namespace lsp
             { meta::C_GENERATOR,    "GeneratorPlugin"   },
             { meta::C_CONSTANT,     "ConstantPlugin"    },
             { meta::C_INSTRUMENT,   "InstrumentPlugin"  },
+            { meta::C_DRUM,         "InstrumentPlugin"  },
+            { meta::C_EXTERNAL,     "InstrumentPlugin"  },
+            { meta::C_PIANO,        "InstrumentPlugin"  },
+            { meta::C_SAMPLER,      "InstrumentPlugin"  },
+            { meta::C_SYNTH,        "InstrumentPlugin"  },
+            { meta::C_SYNTH_SAMPLER,"InstrumentPlugin"  },
             { meta::C_OSCILLATOR,   "OscillatorPlugin"  },
             { meta::C_MODULATOR,    "ModulatorPlugin"   },
             { meta::C_CHORUS,       "ChorusPlugin"      },
@@ -302,6 +309,8 @@ namespace lsp
         {
             size_t count = 0, emitted = 0;
 
+            lltl::phashset<char> visited;
+
             emit_header(out, count, "\ta");
             for (const int *c = m.classes; ((c != NULL) && ((*c) >= 0)); ++c)
             {
@@ -310,10 +319,14 @@ namespace lsp
                 {
                     if (grp->id == *c)
                     {
-                        if (count++)
-                            fputs(", ", out);
-                        fprintf(out, "lv2:%s", grp->name);
-                        ++emitted;
+                        // Prevent from duplicated values
+                        if (visited.create(const_cast<char *>(grp->name)))
+                        {
+                            if (count++)
+                                fputs(", ", out);
+                            fprintf(out, "lv2:%s", grp->name);
+                            ++emitted;
+                        }
                         break;
                     }
                 }
@@ -408,16 +421,18 @@ namespace lsp
                 // Skip virtual ports
                 switch (p->role)
                 {
-                    case meta::R_UI_SYNC:
                     case meta::R_MESH:
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:
                     case meta::R_PATH:
                     case meta::R_PORT_SET:
-                    case meta::R_MIDI:
-                    case meta::R_OSC:
+                    case meta::R_MIDI_IN:
+                    case meta::R_MIDI_OUT:
+                    case meta::R_OSC_IN:
+                    case meta::R_OSC_OUT:
                         continue;
-                    case meta::R_AUDIO:
+                    case meta::R_AUDIO_IN:
+                    case meta::R_AUDIO_OUT:
                         port_id++;
                         continue;
                     default:
@@ -518,17 +533,17 @@ namespace lsp
                     case meta::R_FBUFFER:
                         result     |= REQ_INSTANCE;
                         break;
-                    case meta::R_MIDI:
-                        if (meta::is_out_port(p))
-                            result     |= REQ_MIDI_OUT;
-                        else
-                            result     |= REQ_MIDI_IN;
+                    case meta::R_MIDI_OUT:
+                        result     |= REQ_MIDI_OUT;
                         break;
-                    case meta::R_OSC:
-                        if (meta::is_out_port(p))
-                            result     |= REQ_OSC_OUT;
-                        else
-                            result     |= REQ_OSC_IN;
+                    case meta::R_MIDI_IN:
+                        result     |= REQ_MIDI_IN;
+                        break;
+                    case meta::R_OSC_OUT:
+                        result     |= REQ_OSC_OUT;
+                        break;
+                    case meta::R_OSC_IN:
+                        result     |= REQ_OSC_IN;
                         break;
                     case meta::R_PORT_SET:
                         if ((p->members != NULL) && (p->items != NULL))
@@ -580,6 +595,7 @@ namespace lsp
             // Output port groups
             const meta::person_t *dev = m.developer;
             const meta::port_group_t *pg_main_in = NULL, *pg_main_out = NULL;
+            lltl::phashset<char> sidechain_ports;
 
             if (requirements & REQ_PORT_GROUPS)
             {
@@ -609,7 +625,13 @@ namespace lsp
                         fprintf(out, "\ta pg:%s ;\n", grp_dir);
 
                     if (pg->flags & meta::PGF_SIDECHAIN)
+                    {
                         fprintf(out, "\tpg:sideChainOf %s:%s ;\n", LV2TTL_PORT_GROUP_PREFIX, pg->parent_id);
+
+                        for (const meta::port_group_item_t *pi = pg->items; (pi != NULL) && (pi->id != NULL); ++pi)
+                            sidechain_ports.create(const_cast<char *>(pi->id));
+                    }
+
                     if (pg->flags & meta::PGF_MAIN)
                     {
                         if (pg->flags & meta::PGF_OUT)
@@ -756,14 +778,15 @@ namespace lsp
                 // Skip virtual ports
                 switch (p->role)
                 {
-                    case meta::R_UI_SYNC:
                     case meta::R_MESH:
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:
                     case meta::R_PATH:
                     case meta::R_PORT_SET:
-                    case meta::R_MIDI:
-                    case meta::R_OSC:
+                    case meta::R_MIDI_IN:
+                    case meta::R_MIDI_OUT:
+                    case meta::R_OSC_IN:
+                    case meta::R_OSC_OUT:
                         continue;
                     default:
                         break;
@@ -774,7 +797,8 @@ namespace lsp
 
                 switch (p->role)
                 {
-                    case meta::R_AUDIO:
+                    case meta::R_AUDIO_IN:
+                    case meta::R_AUDIO_OUT:
                         fprintf(out, "lv2:AudioPort ;\n");
                         break;
                     case meta::R_CONTROL:
@@ -795,6 +819,13 @@ namespace lsp
                 print_units(out, p->unit);
 
                 size_t p_prop = 0;
+
+                if ((meta::is_audio_port(p)) && (sidechain_ports.contains(p->id)))
+                {
+                    emit_header(out, p_prop, "\t\tlv2:portProperty");
+                    emit_option(out, p_prop, true, "lv2:connectionOptional");
+                    emit_option(out, p_prop, true, "lv2:isSideChain");
+                }
 
                 if (p->flags & meta::F_LOG)
                 {
@@ -880,8 +911,8 @@ namespace lsp
                     {
                         emit_header(out, p_prop, "\t\tlv2:portProperty");
                         emit_option(out, p_prop, true, "pp:hasStrictBounds");
-                        emit_end(out, p_prop);
                     }
+                    emit_end(out, p_prop);
 
                     if (p->flags & meta::F_LOWER)
                         fprintf(out, "\t\tlv2:minimum %.6f ;\n", p->min);
@@ -970,17 +1001,19 @@ namespace lsp
                 if ((p->id != NULL) && (p->name != NULL))
                 {
                     fprintf(out, "%s [\n", (port_id == 0) ? "\tlv2:port" : " ,");
-                    fprintf(out, "\t\ta lv2:%s, lv2:ControlPort ;\n", (p->flags & meta::F_OUT) ? "OutputPort" : "InputPort");
+                    fprintf(out, "\t\ta lv2:%s, lv2:ControlPort ;\n", (meta::is_out_port(p)) ? "OutputPort" : "InputPort");
                     fprintf(out, "\t\tlv2:index %d ;\n", int(port_id));
                     fprintf(out, "\t\tlv2:symbol \"%s\" ;\n", p->id);
                     fprintf(out, "\t\tlv2:name \"%s\" ;\n", p->name);
+                    fprintf(out, "\t\tlv2:designation lv2:latency ;\n");
                     fprintf(out, "\t\trdfs:comment \"DSP -> Host latency report\" ;\n");
 
-                    if ((p->flags & (meta::F_LOWER | meta::F_UPPER)) == (meta::F_LOWER | meta::F_UPPER))
-                        fprintf(out, "\t\tlv2:portProperty pp:hasStrictBounds ;\n");
-                    if (p->flags & meta::F_INT)
-                        fprintf(out, "\t\tlv2:portProperty lv2:integer ;\n");
-                    fprintf(out, "\t\tlv2:portProperty lv2:reportsLatency ;\n");
+                    size_t p_prop = 0;
+                    emit_header(out, p_prop, "\t\tlv2:portProperty");
+                    emit_option(out, p_prop, (p->flags & (meta::F_LOWER | meta::F_UPPER)) == (meta::F_LOWER | meta::F_UPPER), "pp:hasStrictBounds");
+                    emit_option(out, p_prop, p->flags & meta::F_INT, "lv2:integer");
+                    emit_option(out, p_prop, true, "lv2:reportsLatency");
+                    emit_end(out, p_prop);
 
                     if (p->flags & meta::F_LOWER)
                         fprintf(out, "\t\tlv2:minimum %d ;\n", int(p->min));

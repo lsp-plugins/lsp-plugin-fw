@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 февр. 2022 г.
@@ -129,6 +129,7 @@ namespace lsp
         {
             status_t res;
             LSPString tmp;
+            char vst3_uid[40];
 
             tmp.fmt_utf8("%d.%d.%d",
                 int(LSP_MODULE_VERSION_MAJOR(m->version)),
@@ -175,6 +176,10 @@ namespace lsp
             if ((res = json_out_property(s, "lv2ui_uri", m->lv2ui_uri)) != STATUS_OK)
                 return res;
             if ((res = json_out_property(s, "vst2_uid", m->vst2_uid)) != STATUS_OK)
+                return res;
+            if ((res = json_out_property(s, "vst3_uid", meta::uid_meta_to_vst3(vst3_uid, m->vst3_uid))) != STATUS_OK)
+                return res;
+            if ((res = json_out_property(s, "vst3ui_uid", meta::uid_meta_to_vst3(vst3_uid, m->vst3ui_uid))) != STATUS_OK)
                 return res;
             if ((res = json_out_property(s, "clap_uid", m->clap_uid)) != STATUS_OK)
                 return res;

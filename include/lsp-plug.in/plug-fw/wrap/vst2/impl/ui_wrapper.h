@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 дек. 2021 г.
@@ -62,7 +62,9 @@ namespace lsp
 
             switch (port->role)
             {
-                case meta::R_AUDIO: // Stub port
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
+                    // Stub port
                     lsp_trace("creating stub audio port %s", port->id);
                     vup = new vst2::UIPort(port, vp);
                     break;
@@ -82,12 +84,13 @@ namespace lsp
                     vup = new vst2::UIFrameBufferPort(port, vp);
                     break;
 
-                case meta::R_OSC:
-                    lsp_trace("creating osc port %s", port->id);
-                    if (meta::is_out_port(port))
-                        vup     = new vst2::UIOscPortIn(port, vp);
-                    else
-                        vup     = new vst2::UIOscPortOut(port, vp);
+                case meta::R_OSC_OUT:
+                    lsp_trace("creating input osc port %s", port->id);
+                    vup     = new vst2::UIOscPortIn(port, vp);
+                    break;
+                case meta::R_OSC_IN:
+                    lsp_trace("creating output osc port %s", port->id);
+                    vup     = new vst2::UIOscPortOut(port, vp);
                     break;
 
                 case meta::R_PATH:
@@ -283,6 +286,11 @@ namespace lsp
         const meta::package_t *UIWrapper::package() const
         {
             return pWrapper->package();
+        }
+
+        meta::plugin_format_t UIWrapper::plugin_format() const
+        {
+            return meta::PLUGIN_VST2;
         }
 
         void UIWrapper::transfer_dsp_to_ui()

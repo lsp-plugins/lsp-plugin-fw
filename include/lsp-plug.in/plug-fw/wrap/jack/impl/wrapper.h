@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 янв. 2022 г.
@@ -506,8 +506,10 @@ namespace lsp
                     jp      = new jack::StreamPort(port, this);
                     break;
 
-                case meta::R_MIDI:
-                case meta::R_AUDIO:
+                case meta::R_MIDI_IN:
+                case meta::R_MIDI_OUT:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                 {
                     jack::DataPort *jdp = new jack::DataPort(port, this);
                     vDataPorts.add(jdp);
@@ -515,7 +517,8 @@ namespace lsp
                     break;
                 }
 
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                     jp      = new jack::OscPort(port, this);
                     break;
 
@@ -1081,6 +1084,12 @@ namespace lsp
         {
             bUpdateSettings     = true;
         }
+
+        meta::plugin_format_t Wrapper::plugin_format() const
+        {
+            return meta::PLUGIN_JACK;
+        }
+
     } /* namespace jack */
 } /* namespace lsp */
 

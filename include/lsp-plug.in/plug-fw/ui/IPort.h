@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -36,6 +36,12 @@ namespace lsp
     {
         class IPortListener;
 
+        enum notify_flags_t
+        {
+            PORT_NONE       = 0,
+            PORT_USER_EDIT  = 1 << 0
+        };
+
         /**
          * Interface for UI port that can hold different types of data
          */
@@ -50,23 +56,6 @@ namespace lsp
                 virtual ~IPort();
 
             public:
-                /** Add listener to the port
-                 *
-                 * @param listener that listens port changes
-                 */
-                void                bind(IPortListener *listener);
-
-                /** Unbind listener
-                 *
-                 * @param listener listener to unbind
-                 */
-                void                unbind(IPortListener *listener);
-
-                /** Unbind all controls
-                 *
-                 */
-                void                unbind_all();
-
                 /** Write some data to port
                  *
                  * @param buffer data to write to port
@@ -117,6 +106,13 @@ namespace lsp
                  */
                 virtual void        set_value(float value, size_t flags);
 
+                /** Set single float value
+                 *
+                 * @param value value to set
+                 * @param nofity_flags port notification flags, @see notify_flags_t
+                 */
+                virtual void        set_value_notify(float value, size_t notify_flags = ui::PORT_USER_EDIT);
+
                 /** Notify all that port data has been changed
                  * @param flags port notification flags, @see notify_flags_t
                  */
@@ -128,6 +124,23 @@ namespace lsp
                 virtual void        sync_metadata();
 
              public:
+                /** Add listener to the port
+                 *
+                 * @param listener that listens port changes
+                 */
+                void                            bind(IPortListener *listener);
+
+                /** Unbind listener
+                 *
+                 * @param listener listener to unbind
+                 */
+                void                            unbind(IPortListener *listener);
+
+                /** Unbind all controls
+                 *
+                 */
+                void                            unbind_all();
+
                 /** Get port metadata
                  *
                  * @return port metadata
@@ -145,13 +158,13 @@ namespace lsp
                  * @return buffer casted to specified type
                  */
                 template <class T>
-                    inline T *buffer()
-                    {
-                        return static_cast<T *>(buffer());
-                    }
+                inline T *buffer()
+                {
+                    return static_cast<T *>(buffer());
+                }
         };
 
-    } /* namespace ctl */
+    } /* namespace ui */
 } /* namespace lsp */
 
 

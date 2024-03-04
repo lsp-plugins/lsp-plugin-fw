@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/test-fw/mtest.h>
 #include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/runtime/system.h>
 
 #include <ladspa/ladspa.h>
@@ -34,7 +35,7 @@ MTEST_BEGIN("", ladspa)
         // Pass the path to resource directory
         io::Path resdir;
         resdir.set(tempdir(), "resources");
-        system::set_env_var("LSP_RESOURCE_PATH", resdir.as_string());
+        system::set_env_var(LSP_RESOURCE_PATH_VAR, resdir.as_string());
 
         // Fetch LADSPA descriptors
         for (size_t i=0; ; ++i)

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 янв. 2022 г.
@@ -139,7 +139,8 @@ namespace lsp
             bool out = meta::is_out_port(port);
             switch (port->role)
             {
-                case meta::R_AUDIO:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                 {
                     result  = new ladspa::AudioPort(port);
                     vExtPorts.add(result);
@@ -167,10 +168,11 @@ namespace lsp
                 case meta::R_MESH:
                 case meta::R_STREAM:
                 case meta::R_FBUFFER:
-                case meta::R_UI_SYNC:
-                case meta::R_MIDI:
+                case meta::R_MIDI_IN:
+                case meta::R_MIDI_OUT:
                 case meta::R_PATH:
-                case meta::R_OSC:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                 default:
                 {
                     result  = new ladspa::Port(port);
@@ -307,6 +309,12 @@ namespace lsp
         {
             bUpdateSettings     = true;
         }
+
+        meta::plugin_format_t Wrapper::plugin_format() const
+        {
+            return meta::PLUGIN_LADSPA;
+        }
+
     } /* namespace ladspa */
 } /* namespace lsp */
 

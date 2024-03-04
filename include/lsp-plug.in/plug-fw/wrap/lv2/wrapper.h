@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 нояб. 2021 г.
@@ -202,7 +202,7 @@ namespace lsp
 
                 inline core::KVTDispatcher     *kvt_dispatcher()        { return pKVTDispatcher; }
 
-            public:
+            public: // plug::IWrapper
                 virtual ipc::IExecutor         *executor() override;
                 virtual core::KVTStorage       *kvt_lock() override;
                 virtual core::KVTStorage       *kvt_trylock() override;
@@ -211,6 +211,7 @@ namespace lsp
                 virtual const meta::package_t  *package() const override;
                 virtual void                    query_display_draw() override;
                 virtual void                    request_settings_update() override;
+                virtual meta::plugin_format_t   plugin_format() const override;
         };
     } /* namespace lv2 */
 } /* namespace lsp */

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 дек. 2021 г.
@@ -249,19 +249,20 @@ namespace lsp
                     plugin_ports->add(vp);
                     break;
 
-                case meta::R_MIDI:
-                    lsp_trace("creating midi port %s", port->id);
-                    if (meta::is_out_port(port))
-                        vp = new vst2::MidiOutputPort(port, pEffect, pMaster);
-                    else
-                    {
-                        pEffect->flags         |= effFlagsIsSynth;
-                        vp = new vst2::MidiInputPort(port, pEffect, pMaster);
-                    }
+                case meta::R_MIDI_OUT:
+                    lsp_trace("creating midi output port %s", port->id);
+                    vp = new vst2::MidiOutputPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     break;
 
-                case meta::R_OSC:
+                case meta::R_MIDI_IN:
+                    pEffect->flags         |= effFlagsIsSynth;
+                    vp = new vst2::MidiInputPort(port, pEffect, pMaster);
+                    plugin_ports->add(vp);
+                    break;
+
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
                     lsp_trace("creating osc port %s", port->id);
                     vp      = new vst2::OscPort(port, pEffect, pMaster);
                     break;
@@ -272,7 +273,8 @@ namespace lsp
                     plugin_ports->add(vp);
                     break;
 
-                case meta::R_AUDIO:
+                case meta::R_AUDIO_IN:
+                case meta::R_AUDIO_OUT:
                     lsp_trace("creating audio port %s", port->id);
                     vp = new vst2::AudioPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
@@ -280,21 +282,25 @@ namespace lsp
                     break;
 
                 case meta::R_CONTROL:
-                case meta::R_METER:
-                case meta::R_BYPASS:
-                    lsp_trace("creating regular port %s", port->id);
-                    // VST specifies only INPUT parameters, output should be read in different way
-                    if (meta::is_out_port(port))
-                        vp      = new vst2::MeterPort(port, pEffect, pMaster);
-                    else
-                    {
-                        vp      = new vst2::ParameterPort(port, pEffect, pMaster);
-                        if (postfix == NULL)
-                            vParams.add(static_cast<vst2::ParameterPort *>(vp));
-                    }
-                    if (port->role == meta::R_BYPASS)
-                        pBypass     = vp;
+                    lsp_trace("creating control port %s", port->id);
+                    vp      = new vst2::ParameterPort(port, pEffect, pMaster);
+                    if (postfix == NULL)
+                        vParams.add(static_cast<vst2::ParameterPort *>(vp));
+                    plugin_ports->add(vp);
+                    break;
 
+                case meta::R_BYPASS:
+                    lsp_trace("creating bypass port %s", port->id);
+                    vp      = new vst2::ParameterPort(port, pEffect, pMaster);
+                    if (postfix == NULL)
+                        vParams.add(static_cast<vst2::ParameterPort *>(vp));
+                    pBypass     = vp;
+                    plugin_ports->add(vp);
+                    break;
+
+                case meta::R_METER:
+                    lsp_trace("creating meter port %s", port->id);
+                    vp      = new vst2::MeterPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     break;
 
@@ -459,8 +465,8 @@ namespace lsp
     //            lsp_trace("ppq_pos = %f, bar_start_pos = %f", float(info->ppqPos), float(info->barStartPos));
                 if ((info->flags & (kVstPpqPosValid | kVstBarsValid)) == (kVstPpqPosValid | kVstBarsValid))
                 {
-                    double uppqPos      = (info->ppqPos - info->barStartPos) * info->timeSigDenominator * 0.25;
-                    npos.tick           = npos.ticksPerBeat * (uppqPos - int64_t(uppqPos));
+                    double uppqPos      = (info->ppqPos - info->barStartPos) * info->timeSigDenominator * 0.25 / npos.numerator;
+                    npos.tick           = npos.ticksPerBeat * npos.numerator * (uppqPos - int64_t(uppqPos));
                 }
             }
 
@@ -475,6 +481,9 @@ namespace lsp
             if (pPlugin->set_position(&npos))
                 bUpdateSettings = true;
             sPosition       = npos;
+
+//            lsp_trace("position sampleRate=%f, speed=%f, num=%f, den=%f, bpm=%f, tpb=%f, tick=%f",
+//                npos.sampleRate, npos.speed, npos.numerator, npos.denominator, npos.beatsPerMinute, npos.ticksPerBeat, npos.tick);
         }
 
         void Wrapper::run(float** inputs, float** outputs, size_t samples)
@@ -751,7 +760,7 @@ namespace lsp
                     // Successful status?
                     if (res != STATUS_OK)
                     {
-                        lsp_trace("it->name() returned NULL");
+                        lsp_trace("KVT serialization failed");
                         break;
                     }
 
@@ -1334,6 +1343,11 @@ namespace lsp
             return pPackage;
         }
 
+        meta::plugin_format_t Wrapper::plugin_format() const
+        {
+            return meta::PLUGIN_VST2;
+        }
+
         core::SamplePlayer *Wrapper::sample_player()
         {
             return pSamplePlayer;
@@ -1343,6 +1357,13 @@ namespace lsp
         {
             bUpdateSettings     = true;
         }
+
+        void Wrapper::state_changed()
+        {
+            if ((pMaster != NULL) && (pEffect != NULL))
+                pMaster(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
+        }
+
     } /* namespace vst2 */
 } /* namespace lsp */
 

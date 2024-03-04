@@ -471,6 +471,11 @@ namespace lsp
                     return p;
             }
 
+            return port_by_id(id);
+        }
+
+        ui::IPort *IWrapper::port_by_id(const char *id)
+        {
             // Do usual stuff
             size_t count = vPorts.size();
             if (vSortedPorts.size() != count)
@@ -863,6 +868,7 @@ namespace lsp
         {
             const meta::package_t *pkg = package();
             const meta::plugin_t *meta = pUI->metadata();
+            char vst3_uid[40];
 
             LSPString pkv;
             pkv.fmt_ascii("%d.%d.%d",
@@ -889,7 +895,9 @@ namespace lsp
             if (meta->lv2_uri != NULL)
                 c->fmt_append_utf8   ("  LV2 URI:             %s\n", meta->lv2_uri);
             if (meta->vst2_uid != NULL)
-                c->fmt_append_utf8   ("  VST identifier:      %s\n", meta->vst2_uid);
+                c->fmt_append_utf8   ("  VST 2.x identifier:  %s\n", meta->vst2_uid);
+            if (meta->vst3_uid != NULL)
+                c->fmt_append_utf8   ("  VST 3.x identifier:  %s\n", meta::uid_meta_to_vst3(vst3_uid, meta->vst3_uid));
             if (meta->ladspa_id > 0)
                 c->fmt_append_utf8   ("  LADSPA identifier:   %d\n", meta->ladspa_id);
             if (meta->ladspa_lbl != NULL)
@@ -1988,9 +1996,14 @@ namespace lsp
             nPlayLength     = length;
         }
 
-        bool IWrapper::accept_window_size(size_t width, size_t height)
+        bool IWrapper::accept_window_size(tk::Window *wnd, size_t width, size_t height)
         {
             return true;
+        }
+
+        meta::plugin_format_t IWrapper::plugin_format() const
+        {
+            return meta::PLUGIN_UNKNOWN;
         }
 
     } /* namespace ui */
