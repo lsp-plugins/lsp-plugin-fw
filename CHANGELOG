@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.23 ===
+
+
 === 1.0.22 ===
 * Added experimental support of VST3 plugin format.
 * Added helper functions to ui::Module.
