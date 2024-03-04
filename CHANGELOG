@@ -6,6 +6,7 @@
 * Added experimental support of VST3 plugin format.
 * Added helper functions to ui::Module.
 * Added possibility to build and launch without builtin resources.
+* Updated module versions in dependencies.
 
 === 1.0.21 ===
 * Fixed configuration file serialization.
