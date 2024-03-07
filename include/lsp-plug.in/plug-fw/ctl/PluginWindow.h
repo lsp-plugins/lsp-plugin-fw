@@ -138,6 +138,7 @@ namespace lsp
                 tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
                 tk::MenuItem               *wZoomableSpectrum;          // Automatic scaling mode of the frequency graph
                 tk::Menu                   *wFilterPointThickness;      // Filter point thickness submenu
+                tk::Timer                   wGreetingTimer;             // Greeting window timer
 
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
@@ -233,6 +234,8 @@ namespace lsp
 
                 static status_t slot_submit_enum_menu_item(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t timer_show_greeting(ws::timestamp_t sched, ws::timestamp_t time, void *arg);
+
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
                 static tk::FileFilters     *create_config_filters(tk::FileDialog *dlg);
@@ -241,8 +244,10 @@ namespace lsp
 
             protected:
                 void                do_destroy();
+                status_t            set_greeting_timer();
                 status_t            show_greeting_window();
                 status_t            show_user_paths_window();
+                status_t            fmt_package_version(LSPString &pkgver);
                 status_t            locate_window();
                 status_t            show_menu(tk::Widget *menu, tk::Widget *actor, void *data);
                 tk::Label          *create_label(tk::WidgetContainer *dst, const char *key, const char *style_name);
