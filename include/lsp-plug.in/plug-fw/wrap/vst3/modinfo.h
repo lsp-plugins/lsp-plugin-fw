@@ -202,7 +202,7 @@ namespace lsp
                 SA(s->write_property("Factory Info"));
                 SA(s->start_object());
                 {
-                    SA(s->prop_string("Vendor", pkg->brand));
+                    SA(s->prop_string("Vendor", &vendor));
                     SA(s->prop_string("URL", site));
                     SA(s->prop_string("E-Mail", email));
                     SA(s->write_property("Flags"));

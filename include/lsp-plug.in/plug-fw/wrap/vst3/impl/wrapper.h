@@ -1561,10 +1561,10 @@ namespace lsp
 
                 IF_TRACE(
                     LSPString tmp;
-                    lsp_trace("  in_bus[%d] min   = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nMinArr));
-                    lsp_trace("  in_bus[%d] max   = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nFullArr));
-                    lsp_trace("  in_bus[%d] curr  = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nCurrArr));
-                    lsp_trace("  in_proposed[%d]  = %s", int(i), speaker_arrangement_to_str(&tmp, inputs[i]));
+                    lsp_trace("  in_bus[%d] min   = 0x%x (%s)", int(i), int(bus->nMinArr), speaker_arrangement_to_str(&tmp, bus->nMinArr));
+                    lsp_trace("  in_bus[%d] max   = 0x%x (%s)", int(i), int(bus->nFullArr), speaker_arrangement_to_str(&tmp, bus->nFullArr));
+                    lsp_trace("  in_bus[%d] curr  = 0x%x (%s)", int(i), int(bus->nCurrArr), speaker_arrangement_to_str(&tmp, bus->nCurrArr));
+                    lsp_trace("  in_proposed[%d]  = 0x%x (%s)", int(i), int(inputs[i]), speaker_arrangement_to_str(&tmp, inputs[i]));
                 );
 
                 const Steinberg::Vst::SpeakerArrangement arr = inputs[i];
@@ -1582,10 +1582,10 @@ namespace lsp
 
                 IF_TRACE(
                     LSPString tmp;
-                    lsp_trace("  out_bus[%d] min  = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nMinArr));
-                    lsp_trace("  out_bus[%d] max  = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nFullArr));
-                    lsp_trace("  out_bus[%d] curr = %s", int(i), speaker_arrangement_to_str(&tmp, bus->nCurrArr));
-                    lsp_trace("  out_proposed[%d] = %s", int(i), speaker_arrangement_to_str(&tmp, inputs[i]));
+                    lsp_trace("  out_bus[%d] min  = 0x%x (%s)", int(i), int(bus->nMinArr), speaker_arrangement_to_str(&tmp, bus->nMinArr));
+                    lsp_trace("  out_bus[%d] max  = 0x%x (%s)", int(i), int(bus->nFullArr), speaker_arrangement_to_str(&tmp, bus->nFullArr));
+                    lsp_trace("  out_bus[%d] curr = 0x%x (%s)", int(i), int(bus->nCurrArr), speaker_arrangement_to_str(&tmp, bus->nCurrArr));
+                    lsp_trace("  out_proposed[%d] = 0x%x (%s)", int(i), int(inputs[i]), speaker_arrangement_to_str(&tmp, inputs[i]));
                 );
 
                 const Steinberg::Vst::SpeakerArrangement arr = outputs[i];
