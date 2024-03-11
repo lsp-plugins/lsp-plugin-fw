@@ -92,10 +92,12 @@ namespace lsp
             pUserPaths                  = NULL;
 
             wContent                    = NULL;
+            wPresetsW                   = NULL;
             wGreeting                   = NULL;
             wAbout                      = NULL;
             wUserPaths                  = NULL;
             wMenu                       = NULL;
+            wPresets                    = NULL;
             wUIScaling                  = NULL;
             wFontScaling                = NULL;
             wResetSettings              = NULL;
@@ -221,10 +223,12 @@ namespace lsp
             pUserPaths      = NULL;
 
             wContent        = NULL;
+            wPresetsW       = NULL;
             wGreeting       = NULL;
             wAbout          = NULL;
             wUserPaths      = NULL;
             wMenu           = NULL;
+            wPresets        = NULL;
             wResetSettings  = NULL;
             wExport         = NULL;
             wImport         = NULL;
@@ -268,6 +272,16 @@ namespace lsp
             Window::set(ctx, name, value);
         }
 
+        void PluginWindow::set_preset_button_text(const char *text)
+        {
+            tk::Button *presetButton = tk::widget_cast<tk::Button>(widgets()->find("trg_presets_menu"));
+
+            if (presetButton != NULL)
+            {
+                presetButton->text()->set_raw(text);
+            }
+        }
+
         status_t PluginWindow::init()
         {
             Window::init();
@@ -308,7 +322,7 @@ namespace lsp
                 wnd->actions()->deny(ws::WA_RESIZE);
 
             LSP_STATUS_ASSERT(create_main_menu());
-            LSP_STATUS_ASSERT(create_reset_settings_menu());
+            // LSP_STATUS_ASSERT(create_reset_settings_menu());
 
             // Bind event handlers
             wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
@@ -341,6 +355,11 @@ namespace lsp
             widgets()->add(WUID_MAIN_MENU, wMenu);
             wMenu->init();
 
+            // TODO: Move to a separate method
+            wPresets = new tk::Menu(dpy);
+            widgets()->add(WUID_PRESETS_MENU, wPresets);
+            wPresets->init();
+
             // Initialize menu items
             {
                 // Add 'Plugin manual' menu item
@@ -358,6 +377,9 @@ namespace lsp
                 itm->text()->set("actions.ui_manual");
                 itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_ui_manual, this);
                 wMenu->add(itm);
+
+                // init_presets(wMenu, true);
+                init_presets(wPresets, false);
 
                 // Add separator
                 itm     = new tk::MenuItem(dpy);
@@ -422,6 +444,14 @@ namespace lsp
                     child->text()->set("actions.import_settings_from_clipboard");
                     child->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_clipboard, this);
                     submenu->add(child);
+
+                    child = new tk::MenuItem(dpy);
+                    widgets()->add(child);
+                    child->init();
+                    child->text()->set("actions.reset_settings");
+                    // TODO: Add confirmation dialog here
+                    child->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
+                    submenu->add(child);
                 }
 
                 itm     = new tk::MenuItem(dpy);
@@ -429,13 +459,6 @@ namespace lsp
                 itm->init();
                 itm->text()->set("actions.user_paths");
                 itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_user_paths_dialog, this);
-                wMenu->add(itm);
-
-                // Add separator
-                itm     = new tk::MenuItem(dpy);
-                widgets()->add(itm);
-                itm->init();
-                itm->type()->set_separator();
                 wMenu->add(itm);
 
                 // Create 'Dump state' menu item if supported
@@ -449,11 +472,12 @@ namespace lsp
                     wMenu->add(itm);
                 }
 
-                // Create UI behaviour menu
-                init_ui_behaviour(wMenu);
-
-                // Create language selection menu
-                init_i18n_support(wMenu);
+                // Add separator
+                itm     = new tk::MenuItem(dpy);
+                widgets()->add(itm);
+                itm->init();
+                itm->type()->set_separator();
+                wMenu->add(itm);
 
                 // Create UI scaling menu
                 init_scaling_support(wMenu);
@@ -464,41 +488,45 @@ namespace lsp
                 // Create schema selection support menu
                 init_visual_schema_support(wMenu);
 
+                // Create language selection menu
+                init_i18n_support(wMenu);
+
                 // Add support of 3D rendering backend switch
                 if (meta->extensions & meta::E_3D_BACKEND)
                     init_r3d_support(wMenu);
 
-                init_presets(wMenu);
+                // Create UI behaviour menu
+                init_ui_behaviour(wMenu);
             }
 
             return STATUS_OK;
         }
 
-        status_t PluginWindow::create_reset_settings_menu()
-        {
-            tk::Window *wnd             = tk::widget_cast<tk::Window>(wWidget);
-            tk::Display *dpy            = wnd->display();
+        // status_t PluginWindow::create_reset_settings_menu()
+        // {
+        //     tk::Window *wnd             = tk::widget_cast<tk::Window>(wWidget);
+        //     tk::Display *dpy            = wnd->display();
 
-            // Initialize menu
-            wResetSettings              = new tk::Menu(dpy);
-            widgets()->add(WUID_RESET_SETTINGS_MENU, wResetSettings);
-            wResetSettings->init();
-            inject_style(wResetSettings, "PluginWindow::ResetMenu");
+        //     // Initialize menu
+        //     wResetSettings              = new tk::Menu(dpy);
+        //     widgets()->add(WUID_RESET_SETTINGS_MENU, wResetSettings);
+        //     wResetSettings->init();
+        //     inject_style(wResetSettings, "PluginWindow::ResetMenu");
 
-            // Initialize menu items
-            {
-                // Add 'Reset' menu item
-                tk::MenuItem *itm       = new tk::MenuItem(dpy);
-                widgets()->add(itm);
-                itm->init();
-                itm->text()->set("actions.reset");
-                inject_style(itm, "PluginWindow::ResetMenu::Reset");
-                itm->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
-                wResetSettings->add(itm);
-            }
+        //     // Initialize menu items
+        //     {
+        //         // Add 'Reset' menu item
+        //         tk::MenuItem *itm       = new tk::MenuItem(dpy);
+        //         widgets()->add(itm);
+        //         itm->init();
+        //         itm->text()->set("actions.reset");
+        //         inject_style(itm, "PluginWindow::ResetMenu::Reset");
+        //         itm->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
+        //         wResetSettings->add(itm);
+        //     }
 
-            return STATUS_OK;
-        }
+        //     return STATUS_OK;
+        // }
 
         tk::MenuItem *PluginWindow::create_menu_item(tk::Menu *dst)
         {
@@ -937,6 +965,9 @@ namespace lsp
                 return STATUS_NO_MEM;
             item->menu()->set(menu);
 
+            // Thickness of the enum menu item
+            wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
+
             // Create menu items
             if ((wKnobScaleEnable = create_menu_item(menu)) != NULL)
             {
@@ -974,9 +1005,6 @@ namespace lsp
                 wZoomableSpectrum->text()->set("actions.ui_behavior.enable_zoomable_spectrum");
                 wZoomableSpectrum->slots()->bind(tk::SLOT_SUBMIT, slot_zoomable_spectrum_changed, this);
             }
-            
-            // Thickness of the enum menu item
-            wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
 
             return STATUS_OK;
         }
@@ -1034,7 +1062,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::init_presets(tk::Menu *menu)
+        status_t PluginWindow::init_presets(tk::Menu *menu, bool add_submenu)
         {
             status_t res;
             if (menu == NULL)
@@ -1043,28 +1071,63 @@ namespace lsp
             // Enumerate presets
             lltl::darray<resource::resource_t> presets;
             const meta::plugin_t *metadata = pWrapper->ui()->metadata();
-            if ((metadata == NULL) || (metadata->ui_presets == NULL))
+            if ((metadata == NULL))
                 return STATUS_OK;
+
+            tk::MenuItem *item;
+
+            if (add_submenu)
+            {
+                // Create submenu item
+                item          = create_menu_item(menu);
+                if (item == NULL)
+                    return STATUS_NO_MEM;
+                item->text()->set("actions.load_preset");
+
+                // Create submenu
+                menu                        = create_menu();
+                if (menu == NULL)
+                    return STATUS_NO_MEM;
+                item->menu()->set(menu);
+            }
+
+            preset_sel_t *sel;
+            io::Path path;
+            LSPString tmp;
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set_raw("Initial preset");
+            // item->text()->set("actions.reset_settings");
+            // TODO: Add confirmation dialog here
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set_raw("Presets window sketch");
+            // item->text()->set("actions.reset_settings");
+            // TODO: Add confirmation dialog here
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_show_presets_window, this);
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->type()->set_separator();
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set("actions.import_settings_from_file");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_file, this);
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set("actions.import_settings_from_clipboard");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_clipboard, this);
+
+            // if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            // item->text()->set("*Open presets folder*");
+
             if (scan_presets(metadata->ui_presets, &presets) != STATUS_OK)
                 return STATUS_OK;
             if (presets.is_empty())
                 return STATUS_OK;
 
-            // Create submenu item
-            tk::MenuItem *item          = create_menu_item(menu);
-            if (item == NULL)
-                return STATUS_NO_MEM;
-            item->text()->set("actions.load_preset");
-
-            // Create submenu
-            menu                        = create_menu();
-            if (menu == NULL)
-                return STATUS_NO_MEM;
-            item->menu()->set(menu);
-
-            preset_sel_t *sel;
-            io::Path path;
-            LSPString tmp;
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->type()->set_separator();
 
             for (size_t i=0, n=presets.size(); i<n; ++i)
             {
@@ -1280,6 +1343,8 @@ namespace lsp
             if ((sender == NULL) || (sel == NULL) || (sel->ctl == NULL) || (sel->item == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
+            sel->ctl->set_preset_button_text(sel->item->text()->raw()->get_utf8());
+
             lsp_trace("Loading preset %s", sel->location.get_native());
             size_t flags = ui::IMPORT_FLAG_PRESET;
             if (sel->patch)
@@ -1483,6 +1548,7 @@ namespace lsp
 
             // Header menu
             bind_trigger("trg_main_menu", tk::SLOT_SUBMIT, slot_show_main_menu);
+            bind_trigger("trg_presets_menu", tk::SLOT_SUBMIT, slot_show_presets_menu);
             bind_trigger("trg_export_settings", tk::SLOT_SUBMIT, slot_export_settings_to_file);
             bind_trigger("trg_import_settings", tk::SLOT_SUBMIT, slot_import_settings_from_file);
             bind_trigger("trg_reset_settings", tk::SLOT_SUBMIT, slot_reset_settings);
@@ -1759,6 +1825,7 @@ namespace lsp
         status_t PluginWindow::slot_confirm_reset_settings(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            __this->set_preset_button_text("Select preset");
             return __this->pWrapper->reset_settings();
         }
 
@@ -1822,6 +1889,15 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::slot_show_presets_window(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            if (__this != NULL)
+                __this->show_presets_window();
+
+            return STATUS_OK;
+        }
+
         status_t PluginWindow::slot_debug_dump(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
@@ -1835,6 +1911,12 @@ namespace lsp
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
             return __this->show_menu(__this->wMenu, sender, data);
+        }
+
+        status_t PluginWindow::slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            return __this->show_menu(__this->wPresets, sender, data);
         }
 
         status_t PluginWindow::slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data)
@@ -1906,6 +1988,14 @@ namespace lsp
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
             if (__this->wGreeting != NULL)
                 __this->wGreeting->visibility()->set(false);
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_presets_close(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            if (__this->wPresetsW != NULL)
+                __this->wPresetsW->visibility()->set(false);
             return STATUS_OK;
         }
 
@@ -2017,6 +2107,53 @@ namespace lsp
             inject_style(hlink, style_name);
 
             return hlink;
+        }
+
+        status_t PluginWindow::show_presets_window()
+        {
+            status_t res;
+            LSPString key, value;
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
+            if (wnd == NULL)
+                return STATUS_BAD_STATE;
+
+            // Get default dictionary
+            const meta::package_t *pkg  = pWrapper->package();
+            const meta::plugin_t *meta  = pWrapper->ui()->metadata();
+
+            LSPString pkgver, plugver;
+            pkgver.fmt_ascii("%d.%d.%d",
+                    int(pkg->version.major),
+                    int(pkg->version.minor),
+                    int(pkg->version.micro)
+            );
+            if (pkg->version.branch)
+                pkgver.fmt_append_utf8("-%s", pkg->version.branch);
+
+            plugver.fmt_ascii("%d.%d.%d",
+                    int(LSP_MODULE_VERSION_MAJOR(meta->version)),
+                    int(LSP_MODULE_VERSION_MINOR(meta->version)),
+                    int(LSP_MODULE_VERSION_MICRO(meta->version))
+            );
+
+            lsp_trace("Showing presets dialog");
+
+            if (wPresetsW == NULL)
+            {
+                ctl::Window *ctl = NULL;
+                res = create_dialog_window(&ctl, &wPresetsW, LSP_BUILTIN_PREFIX "ui/presets.xml");
+                if (res != STATUS_OK)
+                    return res;
+
+                // Bind slots
+                tk::Widget *btn = ctl->widgets()->find("submit");
+                if (btn != NULL)
+                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_presets_close, this);
+                wPresetsW->slots()->bind(tk::SLOT_CLOSE, slot_presets_close, this);
+            }
+
+            wPresetsW->show(wnd);
+            return STATUS_OK;
         }
 
         status_t PluginWindow::set_greeting_timer()

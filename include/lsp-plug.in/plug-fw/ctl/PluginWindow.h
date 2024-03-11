@@ -121,10 +121,12 @@ namespace lsp
                 ctl::Window                *pUserPaths;                 // User paths controller
 
                 tk::WidgetContainer        *wContent;                   // The main box containing all widgets
+                tk::Window                 *wPresetsW;                   // Greeting message window
                 tk::Window                 *wGreeting;                  // Greeting message window
                 tk::Window                 *wAbout;                     // About message window
                 tk::Window                 *wUserPaths;                 // User paths configuration
                 tk::Menu                   *wMenu;                      // Menu
+                tk::Menu                   *wPresets;                   // Presets menu
                 tk::Menu                   *wUIScaling;                 // UI Scaling menu
                 tk::Menu                   *wFontScaling;               // UI Scaling menu
                 tk::Menu                   *wResetSettings;             // Reset settings menu
@@ -173,14 +175,17 @@ namespace lsp
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_window_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_greeting_close(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_presets_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_about_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_about(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_presets_window(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
@@ -245,7 +250,7 @@ namespace lsp
             protected:
                 void                do_destroy();
                 status_t            set_greeting_timer();
-                status_t            show_greeting_window();
+                status_t            show_presets_window();
                 status_t            show_user_paths_window();
                 status_t            fmt_package_version(LSPString &pkgver);
                 status_t            locate_window();
@@ -264,7 +269,7 @@ namespace lsp
                 status_t            init_font_scaling_support(tk::Menu *menu);
                 status_t            init_visual_schema_support(tk::Menu *menu);
                 status_t            init_ui_behaviour(tk::Menu *menu);
-                status_t            init_presets(tk::Menu *menu);
+                status_t            init_presets(tk::Menu *menu, bool add_submenu);
                 status_t            scan_presets(const char *location, lltl::darray<resource::resource_t> *presets);
                 status_t            create_main_menu();
                 status_t            create_reset_settings_menu();
@@ -285,6 +290,8 @@ namespace lsp
                 void                commit_path_param(tk::String *value, const char *port_id);
                 void                commit_bool_param(tk::Boolean *value, const char *port_id);
                 void                bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler);
+
+                void                set_preset_button_text(const char *text);
 
                 status_t            init_context(ui::UIContext *ctx);
 

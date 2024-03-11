@@ -84,14 +84,14 @@ namespace lsp
             KNOB(UI_FONT_SCALING_PORT_ID, "Manual UI font scaling factor", U_PERCENT, 50.0f, 200.0f, 100.0f, 1.0f),
             PATH(UI_VISUAL_SCHEMA_FILE_ID, "Current visual schema file used by the UI"),
             SWITCH(UI_PREVIEW_AUTO_PLAY_ID, "Enable automatic playback of the audio file in the file preview part of the file open dialog", 0.0f),
-            SWITCH(UI_ENABLE_KNOB_SCALE_ACTIONS_ID, "Enable knob scale mouse actions", 1.0f),
+            SWITCH(UI_ENABLE_KNOB_SCALE_ACTIONS_ID, "Enable setting knob value by clicking on its scale feature", 0.0f),
             PATH(UI_USER_HYDROGEN_KIT_PATH_ID, "User Hydrogen kits path"),
             PATH(UI_OVERRIDE_HYDROGEN_KIT_PATH_ID, "Override Hydrogen kits path"),
             SWITCH(UI_OVERRIDE_HYDROGEN_KITS_ID, "Override Hydrogen kits", 1.0f),
             SWITCH(UI_INVERT_VSCROLL_ID, "Invert global mouse vertical scroll behaviour", 0.0f),
             SWITCH(UI_GRAPH_DOT_INVERT_VSCROLL_ID, "Invert mouse vertical scroll behaviour for graph dot widget", 0.0f),
-            SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Enables the automatic scaling mode of the frequency graph", 1.0f),
-            COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", 1.0f, filter_point_thickness_modes),
+            SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Zoom slider affects the frequency graph", 0.0f),
+            COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of filter dots", 2.0f, filter_point_thickness_modes),
             PORTS_END
         };
 
