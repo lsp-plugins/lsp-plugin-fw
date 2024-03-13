@@ -252,7 +252,6 @@ namespace lsp
                 status_t            set_greeting_timer();
                 status_t            show_greeting_window();
                 status_t            show_presets_window();
-                status_t            show_greeting_window();
                 status_t            show_user_paths_window();
                 status_t            fmt_package_version(LSPString &pkgver);
                 status_t            locate_window();
