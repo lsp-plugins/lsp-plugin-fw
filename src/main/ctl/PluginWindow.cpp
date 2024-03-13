@@ -2123,6 +2123,10 @@ namespace lsp
             if ((v != NULL) && (pkgver.equals_utf8(v)))
                 return STATUS_OK;
 
+            // Skip if current version contains "dev"
+            if (strstr(pkgver.get_utf8(), "dev") != NULL)
+                return STATUS_OK;
+
             // Set timer to show the greeting window
             wGreetingTimer.set_handler(timer_show_greeting, this);
             wGreetingTimer.bind(pWrapper->display());
