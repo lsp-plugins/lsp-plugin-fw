@@ -250,6 +250,7 @@ namespace lsp
             protected:
                 void                do_destroy();
                 status_t            set_greeting_timer();
+                status_t            show_greeting_window();
                 status_t            show_presets_window();
                 status_t            show_greeting_window();
                 status_t            show_user_paths_window();
