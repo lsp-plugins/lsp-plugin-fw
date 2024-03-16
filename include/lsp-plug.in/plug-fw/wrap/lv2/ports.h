@@ -859,6 +859,7 @@ namespace lsp
                         path        = tmp_path;
 
                         // We need to translate relative path to absolute path?
+                        io::Path io_path;
                         if ((pExt->mapPath != NULL) && (::strstr(path, LSP_BUILTIN_PREFIX) != path))
                         {
                             mapped = pExt->mapPath->absolute_path(pExt->mapPath->handle, path);
@@ -866,6 +867,17 @@ namespace lsp
                             {
                                 lsp_trace("unmapped path: %s -> %s", path, mapped);
                                 path  = mapped;
+
+                                // Path may be a symlink within a DAW. Make it pointing to the real path
+                                if (io_path.set_native(path) == STATUS_OK)
+                                {
+                                    if (io_path.to_final_path() == STATUS_OK)
+                                    {
+                                        lsp_trace("final path: %s -> %s", path, io_path.as_native());
+                                        path = io_path.as_native();
+                                    }
+                                }
+
                                 count = ::strnlen(path, PATH_MAX-1);
                             }
                         }

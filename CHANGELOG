@@ -3,7 +3,8 @@
 *******************************************************************************
 
 === 1.0.23 ===
-
+* Added obtaining information about the original file provided by the
+  MapPath::absolute_path LV2 extension.
 
 === 1.0.22 ===
 * Added experimental support of VST3 plugin format.
