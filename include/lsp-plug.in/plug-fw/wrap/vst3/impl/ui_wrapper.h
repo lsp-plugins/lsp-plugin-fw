@@ -559,6 +559,7 @@ namespace lsp
             }
 
             wWindow->native()->set_parent(parent);
+            wWindow->position()->set(0, 0);
             wWindow->show();
 
             return Steinberg::kResultOk;

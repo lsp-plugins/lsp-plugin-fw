@@ -2552,16 +2552,14 @@ namespace lsp
 
         Steinberg::uint32 PLUGIN_API Wrapper::getTailSamples()
         {
-            lsp_trace("this=%p", this);
-
             if (pPlugin == NULL)
-                return Steinberg::kInternalError;
+                return Steinberg::Vst::kNoTail;
 
             ssize_t tail_size = pPlugin->tail_size();
             if (tail_size < 0)
                 return Steinberg::Vst::kInfiniteTail;
 
-            return (tail_size > 0) ? tail_size : Steinberg::Vst::kInfiniteTail;
+            return (tail_size > 0) ? tail_size : Steinberg::Vst::kNoTail;
         }
 
         Steinberg::uint32 PLUGIN_API Wrapper::getProcessContextRequirements()
