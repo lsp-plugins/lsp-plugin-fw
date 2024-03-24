@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -92,6 +92,9 @@
 #define CYC_CONTROL(id, label, units, limits) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_CYCLIC, \
         limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL }
+#define CYC_CONTROL_DFL(id, label, units, limits, dfl) \
+    { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_CYCLIC, \
+        limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP, NULL, NULL }
 
 #define UNLIMITED_METER(id, label, units, dfl) \
     { id, label, units, R_METER, 0, 0.0f, 0.0f, dfl, 0.0f, NULL, NULL }
@@ -175,6 +178,8 @@
 #define WET_GAIN(g)         AMP_GAIN10("wet", "Wet amount", g)
 #define WET_GAIN_L(g)       AMP_GAIN10("wet_l", "Wet amount L", g)
 #define WET_GAIN_R(g)       AMP_GAIN10("wet_r", "Wet amount R", g)
+
+#define DRYWET(perc)        PERCENTS("drywet", "Dry/Wet balance", perc, 0.1f)
 
 #define BYPASS              { PORT_NAME_BYPASS, "Bypass", U_BOOL, R_BYPASS, F_UPPER | F_LOWER, 0, 1, 0, 0, NULL, NULL }
 
@@ -308,7 +313,8 @@ namespace lsp
         extern const port_item_t notes[];
         extern const port_item_t fft_windows[];
         extern const port_item_t fft_envelopes[];
-    }
-}
+
+    } /* namespace meta */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_META_PORTS_H_ */
