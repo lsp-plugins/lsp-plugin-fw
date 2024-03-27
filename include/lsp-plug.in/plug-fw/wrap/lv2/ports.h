@@ -273,23 +273,22 @@ namespace lsp
                 void sanitize_before(size_t off, size_t samples)
                 {
                     pBuffer  = &pData[off];
+                    if (pSanitized == NULL)
+                        return;
 
                     // Sanitize plugin's input if possible
-                    if (pSanitized != NULL)
+                    if (pData != NULL)
                     {
-                        if (pBuffer != NULL)
-                        {
-                            dsp::sanitize2(pSanitized, pBuffer, samples);
-                            bZero      = false;
-                        }
-                        else if (!bZero)
-                        {
-                            // This is optional sidechain port that is connectionOptional?
-                            dsp::fill_zero(pSanitized, pExt->nMaxBlockLength);
-                            bZero      = true;
-                        }
-                        pBuffer      = pSanitized;
+                        dsp::sanitize2(pSanitized, pBuffer, samples);
+                        bZero      = false;
                     }
+                    else if (!bZero)
+                    {
+                        // This is optional sidechain port that is connectionOptional?
+                        dsp::fill_zero(pSanitized, pExt->nMaxBlockLength);
+                        bZero      = true;
+                    }
+                    pBuffer      = pSanitized;
                 }
 
                 // Should be always called at least once after bind() and after process() call
