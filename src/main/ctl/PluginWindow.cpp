@@ -1020,9 +1020,13 @@ namespace lsp
             LSPString tmp;
             resource::resource_t *resources = NULL;
 
+            if (!location) return STATUS_NOT_FOUND;
+
             if (tmp.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s", location) < 0)
                 return STATUS_BAD_STATE;
             ssize_t count = pWrapper->resources()->enumerate(&tmp, &resources);
+
+            if (!resources) return STATUS_NOT_FOUND;
 
             // Process all resources and form the final list of preset files
             for (ssize_t i=0; i<count; ++i)
