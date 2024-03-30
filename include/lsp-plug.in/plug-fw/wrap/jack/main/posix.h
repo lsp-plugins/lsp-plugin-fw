@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 янв. 2021 г.
@@ -100,6 +100,18 @@ namespace lsp
         };
     #endif /* ARCH_32_BIT */
 
+        static bool is_shared_object(const char *str)
+        {
+            size_t len = strlen(str);
+            if (len < 3)
+                return false;
+            str += len - 3;
+            return
+                (str[0] == '.') &&
+                (str[1] == 's') &&
+                (str[2] == 'o');
+        }
+
         static jack_main_function_t lookup_jack_main(void **hInstance, const version_t *required, const char *path)
         {
             lsp_trace("Searching core library at %s", path);
@@ -108,16 +120,15 @@ namespace lsp
             DIR *d = opendir(path);
             if (d == NULL)
                 return NULL;
+            lsp_finally {
+                closedir(d);
+            };
 
             struct dirent *de;
             char *ptr = NULL;
 
             while ((de = readdir(d)) != NULL)
             {
-                // Free previously used string
-                if (ptr != NULL)
-                    free(ptr);
-
                 // Skip dot and dotdot
                 ptr = de->d_name;
                 if ((ptr[0] == '.') && ((ptr[1] == '\0') || ((ptr[1] == '.') && (ptr[2] == '\0'))))
@@ -131,6 +142,13 @@ namespace lsp
                 int n = asprintf(&ptr, "%s" FILE_SEPARATOR_S "%s", path, de->d_name);
                 if ((n < 0) || (ptr == NULL))
                     continue;
+                lsp_finally {
+                    if (ptr != NULL)
+                    {
+                        free(ptr);
+                        ptr = NULL;
+                    }
+                };
 
                 // Need to clarify file type?
                 if ((de->d_type == DT_UNKNOWN) || (de->d_type == DT_LNK))
@@ -162,30 +180,35 @@ namespace lsp
                 // Analyze file
                 if (de->d_type == DT_DIR)
                 {
-                #ifdef EXT_ARTIFACT_GROUP
-                    // Skip directory entry if it does not contain EXT_ARTIFACT_GROUP (for example, 'lsp-plugins') in name
-                    if ((strlen(EXT_ARTIFACT_GROUP)) && (strstr(de->d_name, EXT_ARTIFACT_GROUP) == NULL))
+                #ifdef LSP_PLUGIN_ARTIFACT_GROUP
+                    // Skip directory entry if it does not contain LSP_PLUGIN_ARTIFACT_GROUP (for example, 'lsp-plugins') in name
+                    if ((strlen(LSP_PLUGIN_ARTIFACT_GROUP)) && (strstr(de->d_name, LSP_PLUGIN_ARTIFACT_GROUP) == NULL))
                         continue;
-                #endif /* EXT_ARTIFACT_GROUP */
+                #endif /* LSP_PLUGIN_ARTIFACT_GROUP */
 
                     jack_main_function_t f = lookup_jack_main(hInstance, required, ptr);
                     if (f != NULL)
-                    {
-                        free(ptr);
-                        closedir(d);
                         return f;
-                    }
                 }
                 else if (de->d_type == DT_REG)
                 {
-                #ifdef EXT_ARTIFACT_NAME
-                    // Skip directory entry if it does not contain EXT_ARTIFACT_NAME (for example, 'lsp-plugins') in name
-                    if ((strlen(EXT_ARTIFACT_NAME)) && (strstr(de->d_name, EXT_ARTIFACT_NAME) == NULL))
+                #ifdef LSP_PLUGIN_LIBRARY_NAME
+                    if (strcmp(de->d_name, LSP_PLUGIN_LIBRARY_NAME) != 0)
                         continue;
-                #endif /* EXT_ARTIFACT_NAME */
+                #endif /* LSP_PLUGIN_LIBRARY_NAME */
+
+                #ifdef LSP_PLUGIN_ARTIFACT_NAME
+                    // Skip directory entry if it does not contain LSP_PLUGIN_ARTIFACT_NAME (for example, 'lsp-plugins') in name
+                    if ((strlen(LSP_PLUGIN_ARTIFACT_NAME)) && (strstr(de->d_name, LSP_PLUGIN_ARTIFACT_NAME) == NULL))
+                        continue;
+                #endif /* LSP_PLUGIN_ARTIFACT_NAME */
 
                     // Skip library if it doesn't contain 'lsp-plugins' in name
-                    if (strstr(de->d_name, ".so") == NULL)
+                    if (strstr(de->d_name, "-jack-") == NULL)
+                        continue;
+
+                    // Skip library if it doesn't contain 'lsp-plugins' in name
+                    if (!is_shared_object(de->d_name))
                         continue;
 
                     lsp_trace("Trying library %s", ptr);
@@ -197,14 +220,16 @@ namespace lsp
                         lsp_trace("library %s not loaded: %s", ptr, dlerror());
                         continue;
                     }
+                    lsp_finally {
+                        if (inst != NULL)
+                            dlclose(inst);
+                    };
 
                     // Fetch version function
                     module_version_t vf = reinterpret_cast<module_version_t>(dlsym(inst, LSP_VERSION_FUNC_NAME));
                     if (!vf)
                     {
                         lsp_trace("version function %s not found: %s", LSP_VERSION_FUNC_NAME, dlerror());
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
 
@@ -213,8 +238,6 @@ namespace lsp
                     if ((ret == NULL) || (ret->branch == NULL))
                     {
                         lsp_trace("No version or bad version returned, ignoring binary", ret);
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
                     else if ((ret->major != required->major) ||
@@ -227,8 +250,6 @@ namespace lsp
                                 ret->major, ret->minor, ret->micro, ret->branch,
                                 required->major, required->minor, required->micro, required->branch
                             );
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
 
@@ -237,22 +258,14 @@ namespace lsp
                     if (!f)
                     {
                         lsp_trace("function %s not found: %s", JACK_MAIN_FUNCTION_NAME, dlerror());
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
 
-                    *hInstance = inst;
-                    free(ptr);
-                    closedir(d);
+                    *hInstance = release_ptr(inst);
                     return f;
                 }
             }
 
-            // Free previously used string, close directory and exit
-            if (ptr != NULL)
-                free(ptr);
-            closedir(d);
             return NULL;
         }
 

@@ -60,7 +60,7 @@ namespace lsp
                 friend class PluginView;
 
             protected:
-                volatile uatomic_t                  nRefCounter;            // Reference counter
+                uatomic_t                           nRefCounter;            // Reference counter
                 PluginFactory                      *pFactory;               // Reference to the factory
                 resource::ILoader                  *pLoader;                // Resource loader
                 const meta::package_t              *pPackage;               // Package metadata
@@ -87,6 +87,7 @@ namespace lsp
                 uint32_t                            nLatency;               // Plugin latency
                 float                               fScalingFactor;         // Scaling factor
                 bool                                bMidiMapping;           // Use MIDI mapping
+                bool                                bMsgWorkaround;         // Workaround of message exchange for bogus hosts
 
             protected:
                 vst3::CtlPort                      *create_port(const meta::port_t *port, const char *postfix);

@@ -54,7 +54,8 @@ namespace lsp
             const meta::plugin_t *meta)
         {
             lsp_trace("this=%p", this);
-            nRefCounter         = 1;
+
+            atomic_store(&nRefCounter, 1);
             pFactory            = safe_acquire(factory);
             pLoader             = loader;
             pPackage            = package;
@@ -69,6 +70,7 @@ namespace lsp
             nLatency            = 0;
             fScalingFactor      = -1.0f;
             bMidiMapping        = false;
+            bMsgWorkaround      = false;
         }
 
         Controller::~Controller()
@@ -139,6 +141,11 @@ namespace lsp
                 case meta::R_PATH:
                     lsp_trace("creating path port %s", port->id);
                     vup = new vst3::CtlPathPort(port, this);
+                    break;
+
+                case meta::R_STRING:
+                    lsp_trace("creating string port %s", port->id);
+                    vup = new vst3::CtlStringPort(port, this);
                     break;
 
                 case meta::R_CONTROL:
@@ -383,6 +390,7 @@ namespace lsp
 
             pHostContext        = safe_acquire(context);
             pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
+            bMsgWorkaround      = use_message_workaround(pHostApplication);
 
             // Allocate OSC packet data
             lsp_trace("Creating OSC data buffer");
@@ -1041,6 +1049,19 @@ namespace lsp
                             pp->commit_value(name);
                             pp->mark_changed();
                         }
+                        else if (meta::is_string_port(meta))
+                        {
+                            vst3::CtlStringPort *sp     = static_cast<vst3::CtlStringPort *>(p);
+
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
+                            lsp_trace("  %s = %s", meta->id, name);
+                            sp->commit_value(name);
+                            sp->mark_changed();
+                        }
                         else if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)) || (meta::is_port_set_port(meta)))
                         {
                             vst3::CtlParamPort *pp      = static_cast<vst3::CtlParamPort *>(p);
@@ -1368,7 +1389,7 @@ namespace lsp
 
         ui::Module *Controller::create_ui()
         {
-            if ((pUIMetadata == NULL) || (pUIMetadata->vst3ui_uid == NULL))
+            if ((pUIMetadata == NULL) || (pUIMetadata->uids.vst3ui == NULL))
             {
                 lsp_trace("pUIMetadata is not valid");
                 return NULL;
@@ -1383,9 +1404,9 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-                    if (plug_meta->vst3ui_uid == NULL)
+                    if (plug_meta->uids.vst3ui == NULL)
                         continue;
-                    if (memcmp(plug_meta->vst3ui_uid, pUIMetadata->vst3ui_uid, sizeof(Steinberg::TUID)) != 0)
+                    if (memcmp(plug_meta->uids.vst3ui, pUIMetadata->uids.vst3ui, sizeof(Steinberg::TUID)) != 0)
                         continue;
 
                     // Allocate UI module
@@ -1455,7 +1476,7 @@ namespace lsp
             if (pPeerConnection != NULL)
             {
                 // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                 if (msg != NULL)
                 {
                     lsp_finally { safe_release(msg); };
@@ -1548,7 +1569,7 @@ namespace lsp
                 return;
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };
@@ -1573,7 +1594,7 @@ namespace lsp
             if (pPeerConnection != NULL)
             {
                 // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                 if (msg == NULL)
                     return STATUS_OK;
                 lsp_finally { safe_release(msg); };
@@ -1598,7 +1619,7 @@ namespace lsp
                 return STATUS_OK;
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return STATUS_OK;
             lsp_finally { safe_release(msg); };
@@ -1655,7 +1676,7 @@ namespace lsp
                     return;
 
                 // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                 if (msg == NULL)
                     return;
                 lsp_finally { safe_release(msg); };
@@ -1680,6 +1701,38 @@ namespace lsp
                 // Finally, we're ready to send message
                 pPeerConnection->notify(msg);
             }
+            else if (meta::is_string_port(meta))
+            {
+                const char *str = port->buffer<char>();
+                lsp_trace("port write: id=%s, value='%s'", port->id(), str);
+
+                // Check that we are available to send messages
+                if (pPeerConnection == NULL)
+                    return;
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID(vst3::ID_MSG_STRING);
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write port identifier
+                if (!sTxNotifyBuf.set_string(list, "id", meta->id))
+                    return;
+                // Write endianess
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                    return;
+                // Write port identifier
+                if (!sTxNotifyBuf.set_string(list, "value", str))
+                    return;
+
+                // Finally, we're ready to send message
+                pPeerConnection->notify(msg);
+            }
             else
             {
                 vst3::CtlParamPort *ip = static_cast<vst3::CtlParamPort *>(port);
@@ -1693,7 +1746,7 @@ namespace lsp
                         return;
 
                     // Allocate new message
-                    Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                    Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                     if (msg == NULL)
                         return;
                     lsp_finally { safe_release(msg); };
@@ -1767,7 +1820,7 @@ namespace lsp
                     osc::dump_packet(pOscPacket, size);
 
                     // Allocate new message
-                    Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                    Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                     if (msg == NULL)
                         return;
                     lsp_finally { safe_release(msg); };

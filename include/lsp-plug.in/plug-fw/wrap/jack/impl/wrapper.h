@@ -39,12 +39,12 @@ namespace lsp
             nLatency        = 0;
             pExecutor       = NULL;
 
-            nPosition       = 0;
+            atomic_store(&nPosition, 0);
             bUIActive       = false;
 
-            nQueryDrawReq   = 0;
+            atomic_store(&nQueryDrawReq, 0);
             nQueryDrawResp  = 0;
-            nDumpReq        = 0;
+            atomic_store(&nDumpReq, 0);
             nDumpResp       = 0;
 
             pSamplePlayer   = NULL;
@@ -58,9 +58,7 @@ namespace lsp
             nState          = S_CREATED;
             nLatency        = 0;
             pExecutor       = NULL;
-            nQueryDrawReq   = 0;
             nQueryDrawResp  = 0;
-            nDumpReq        = 0;
             nDumpResp       = 0;
             pSamplePlayer   = NULL;
         }
@@ -332,16 +330,24 @@ namespace lsp
                     pPlugin->deactivate_ui();
             }
 
-            // Prepare ports
-            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+            // Pre-process data ports
+            for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
+            {
+                jack::DataPort *dp = vDataPorts.uget(i);
+                if (dp != NULL)
+                    dp->before_process(samples);
+            }
+
+            // Check that input ports have been changed
+            for (size_t i=0, n=vParams.size(); i<n; ++i)
             {
                 // Get port
-                jack::Port *port = vAllPorts.uget(i);
+                jack::Port *port = vParams.uget(i);
                 if (port == NULL)
                     continue;
 
                 // Pre-process data in port
-                if (port->pre_process(samples))
+                if (port->sync())
                 {
                     lsp_trace("port changed: %s", port->metadata()->id);
                     bUpdateSettings = true;
@@ -357,7 +363,7 @@ namespace lsp
             }
 
             // Need to dump state?
-            uatomic_t dump_req  = nDumpReq;
+            uatomic_t dump_req  = atomic_load(&nDumpReq);
             if (dump_req != nDumpResp)
             {
                 dump_plugin_state();
@@ -379,12 +385,12 @@ namespace lsp
                 nLatency = latency;
             }
 
-            // Post-process ALL ports
-            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+            // Post-process data ports
+            for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
             {
-                jack::Port *port = vAllPorts.uget(i);
-                if (port != NULL)
-                    port->post_process(samples);
+                jack::DataPort *dp = vDataPorts.uget(i);
+                if (dp != NULL)
+                    dp->after_process(samples);
             }
             return 0;
         }
@@ -457,6 +463,7 @@ namespace lsp
                 p->destroy();
                 delete p;
             }
+            vParams.flush();
             vAllPorts.flush();
             vSortedPorts.flush();
 
@@ -524,11 +531,18 @@ namespace lsp
 
                 case meta::R_PATH:
                     jp      = new jack::PathPort(port, this);
+                    vParams.add(jp);
+                    break;
+
+                case meta::R_STRING:
+                    jp      = new jack::StringPort(port, this);
+                    vParams.add(jp);
                     break;
 
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
                     jp      = new jack::ControlPort(port, this);
+                    vParams.add(jp);
                     break;
 
                 case meta::R_METER:
@@ -540,6 +554,7 @@ namespace lsp
                     LSPString postfix_str;
                     jack::PortGroup     *pg      = new jack::PortGroup(port, this);
                     pg->init();
+                    vParams.add(pg);
                     vAllPorts.add(pg);
                     plugin_ports->add(pg);
 
@@ -829,11 +844,20 @@ namespace lsp
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t Wrapper::import_settings(config::PullParser *parser)
+        status_t Wrapper::import_settings_work(config::PullParser *parser)
         {
             status_t res;
             config::param_t param;
+
+            // Lock KVT
             core::KVTStorage *kvt = kvt_lock();
+            lsp_finally {
+                if (kvt != NULL)
+                {
+                    kvt->gc();
+                    kvt_release();
+                }
+            };
 
             // Reset all ports to default values
             for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
@@ -847,8 +871,15 @@ namespace lsp
             // Process the configuration file
             while ((res = parser->next(&param)) == STATUS_OK)
             {
-                if ((param.name.starts_with('/')) && (kvt != NULL)) // KVT
+                if (param.name.starts_with('/')) // KVT
                 {
+                    // Do nothing if there is no KVT
+                    if (kvt == NULL)
+                    {
+                        lsp_warn("Could not apply KVT parameter %s because there is no KVT", param.name.get_utf8());
+                        continue;
+                    }
+
                     core::kvt_param_t kp;
 
                     switch (param.type())
@@ -945,14 +976,22 @@ namespace lsp
                 }
             }
 
-            // Release KVT
-            if (kvt != NULL)
-            {
-                kvt->gc();
-                kvt_release();
-            }
-
             return (res == STATUS_EOF) ? STATUS_OK : res;
+        }
+
+        status_t Wrapper::import_settings(config::PullParser *parser)
+        {
+            // Notify plugin that state is about to load
+            pPlugin->before_state_load();
+
+            // Import settings
+            status_t res = import_settings_work(parser);
+
+            // Notify plugin that state has been just loaded
+            if (res == STATUS_OK)
+                pPlugin->state_loaded();
+
+            return res;
         }
 
         bool Wrapper::set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base)
@@ -976,9 +1015,9 @@ namespace lsp
                     if (meta::is_discrete_unit(p->unit))
                     {
                         if (meta::is_bool_unit(p->unit))
-                            port->update_value((param->to_bool()) ? 1.0f : 0.0f);
+                            port->commit_value((param->to_bool()) ? 1.0f : 0.0f);
                         else
-                            port->update_value(param->to_int());
+                            port->commit_value(param->to_int());
                     }
                     else
                     {
@@ -998,7 +1037,7 @@ namespace lsp
                             }
                         }
 
-                        port->update_value(v);
+                        port->commit_value(v);
                     }
                     break;
                 }
@@ -1019,9 +1058,24 @@ namespace lsp
                         len     = strlen(value);
                     }
 
-                    path_t *bpath = (meta::is_path_port(port->metadata())) ? port->buffer<path_t>() : NULL;
+                    path_t *bpath = port->buffer<path_t>();
                     if (bpath != NULL)
                         bpath->submit(value, flags);
+                    break;
+                }
+                case meta::R_STRING:
+                {
+                    // Check type of argument
+                    if (!param->is_string())
+                        return false;
+
+                    // Submit string to the port
+                    const char *value = param->v.str;
+                    jack::StringPort *sp = static_cast<jack::StringPort *>(port);
+                    plug::string_t *str = sp->data();
+                    if (str != NULL)
+                        str->submit(value, false);
+
                     break;
                 }
                 default:
@@ -1032,7 +1086,7 @@ namespace lsp
 
         bool Wrapper::test_display_draw()
         {
-            uatomic_t last      = nQueryDrawReq;
+            uatomic_t last      = atomic_load(&nQueryDrawReq);
             bool result         = last != nQueryDrawResp;
             nQueryDrawResp      = last;
             return result;

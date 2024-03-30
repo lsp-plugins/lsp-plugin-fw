@@ -940,6 +940,9 @@ namespace lsp
                     case meta::R_PATH: // Both sizes: IN and OUT
                         size            += PATCH_OVERHEAD + PATH_MAX;
                         break;
+                    case meta::R_STRING:
+                        size            += PATCH_OVERHEAD + p->max * 4;
+                        break;
                     case meta::R_PORT_SET:
                         if ((p->members != NULL) && (p->items != NULL))
                         {

@@ -58,6 +58,7 @@ namespace lsp
 
             pBypass         = NULL;
             bUpdateSettings = true;
+            bStateManage    = false;
             pUIWrapper      = NULL;
             nUIReq          = 0;
             nUIResp         = 0;
@@ -122,7 +123,7 @@ namespace lsp
             // Update instance parameters
             e->numInputs                    = 0;
             e->numOutputs                   = 0;
-            e->numParams                    = vParams.size();
+            e->numParams                    = vExtParams.size();
 
             for (size_t i=0, n=vAudioPorts.size(); i<n; ++i)
             {
@@ -136,7 +137,7 @@ namespace lsp
 
             // Generate IDs for parameter ports
             for (ssize_t id=0; id < e->numParams; ++id)
-                vParams[id]->set_id(id);
+                vExtParams[id]->set_id(id);
 
             // Initialize state chunk
             pEffect->flags                 |= effFlagsProgramChunks;
@@ -216,8 +217,9 @@ namespace lsp
             }
 
             // Clear all port lists
-            vAudioPorts.clear();
-            vParams.clear();
+            vAudioPorts.flush();
+            vExtParams.flush();
+            vParams.flush();
 
             pMaster     = NULL;
             pEffect     = NULL;
@@ -253,12 +255,14 @@ namespace lsp
                     lsp_trace("creating midi output port %s", port->id);
                     vp = new vst2::MidiOutputPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
+                    vMidiOut.add(static_cast<vst2::MidiOutputPort *>(vp));
                     break;
 
                 case meta::R_MIDI_IN:
                     pEffect->flags         |= effFlagsIsSynth;
                     vp = new vst2::MidiInputPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
+                    vMidiIn.add(static_cast<vst2::MidiInputPort *>(vp));
                     break;
 
                 case meta::R_OSC_IN:
@@ -271,6 +275,14 @@ namespace lsp
                     lsp_trace("creating path port %s", port->id);
                     vp  = new vst2::PathPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
+                    vParams.add(static_cast<vst2::PathPort *>(vp));
+                    break;
+
+                case meta::R_STRING:
+                    lsp_trace("creating string port %s", port->id);
+                    vp  = new vst2::StringPort(port, pEffect, pMaster);
+                    plugin_ports->add(vp);
+                    vParams.add(static_cast<vst2::StringPort *>(vp));
                     break;
 
                 case meta::R_AUDIO_IN:
@@ -284,16 +296,18 @@ namespace lsp
                 case meta::R_CONTROL:
                     lsp_trace("creating control port %s", port->id);
                     vp      = new vst2::ParameterPort(port, pEffect, pMaster);
+                    vParams.add(static_cast<vst2::ParameterPort *>(vp));
                     if (postfix == NULL)
-                        vParams.add(static_cast<vst2::ParameterPort *>(vp));
+                        vExtParams.add(static_cast<vst2::ParameterPort *>(vp));
                     plugin_ports->add(vp);
                     break;
 
                 case meta::R_BYPASS:
                     lsp_trace("creating bypass port %s", port->id);
                     vp      = new vst2::ParameterPort(port, pEffect, pMaster);
+                    vParams.add(static_cast<vst2::ParameterPort *>(vp));
                     if (postfix == NULL)
-                        vParams.add(static_cast<vst2::ParameterPort *>(vp));
+                        vExtParams.add(static_cast<vst2::ParameterPort *>(vp));
                     pBypass     = vp;
                     plugin_ports->add(vp);
                     break;
@@ -313,6 +327,7 @@ namespace lsp
                     lsp_trace("creating port_set port %s", port->id);
                     plugin_ports->add(pg);
                     vPorts.add(pg);
+                    vParams.add(pg);
 
                     // Add nested ports
                     for (size_t row=0; row<pg->rows(); ++row)
@@ -416,7 +431,7 @@ namespace lsp
 
         vst2::ParameterPort *Wrapper::parameter_port(size_t index)
         {
-            return vParams[index];
+            return vExtParams[index];
         }
 
         void Wrapper::open()
@@ -526,19 +541,12 @@ namespace lsp
                 port->sanitize_before(samples);
             }
 
-            // Process ALL ports for changes
-            size_t n_ports      = vPorts.size();
-            vst2::Port **v_ports= vPorts.array();
-
-            for (size_t i=0; i<n_ports; ++i)
+            // Process ALL parameter ports for changes
+            for (size_t i=0, n=vParams.size(); i<n; ++i)
             {
-                // Get port
-                vst2::Port *port = v_ports[i];
-                if (port == NULL)
-                    continue;
-
                 // Pre-process data in port
-                if (port->pre_process(samples))
+                vst2::Port *port = vParams.uget(i);
+                if ((port != NULL) && (port->changed()))
                 {
                     lsp_trace("port changed: %s", port->metadata()->id);
                     bUpdateSettings = true;
@@ -576,6 +584,14 @@ namespace lsp
                     port->sanitize_after(samples);
             }
 
+            // Emit MIDI events if they are present
+            for (size_t i=0, n=vMidiOut.size(); i < n; ++i)
+            {
+                vst2::MidiOutputPort *port = vMidiOut.uget(i);
+                if (port != NULL)
+                    port->flush();
+            }
+
             // Report latency
             float latency           = pPlugin->latency();
             if (fLatency != latency)
@@ -588,30 +604,16 @@ namespace lsp
                     pMaster(pEffect, audioMasterIOChanged, 0, 0, 0, 0);
                 }
             }
-
-            // Post-process ALL ports
-            for (size_t i=0; i<n_ports; ++i)
-            {
-                vst2::Port *port = v_ports[i];
-                if (port != NULL)
-                    port->post_process(samples);
-            }
         }
 
         void Wrapper::process_events(const VstEvents *e)
         {
             // We need to deliver MIDI events to MIDI ports
-            for (size_t i=0; i<vPorts.size(); ++i)
+            for (size_t i=0; i<vMidiIn.size(); ++i)
             {
-                vst2::Port *p               = vPorts[i];
-
-                // Find MIDI port(s)
-                if (!meta::is_midi_in_port(p->metadata()))
-                    continue;
-
-                // Call for event processing
-                vst2::MidiInputPort *mp     = static_cast<vst2::MidiInputPort *>(p);
-                mp->deserialize(e);
+                vst2::MidiInputPort *p = vMidiIn.uget(i);
+                if (p != NULL)
+                    p->deserialize(e);
             }
         }
 
@@ -777,6 +779,13 @@ namespace lsp
 
         size_t Wrapper::serialize_state(const void **dst, bool program)
         {
+            // Set state manage barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Trigger the plugin to prepare the internal state.
+            pPlugin->before_state_save();
+
             // Clear chunk
             status_t res;
             sChunk.clear();
@@ -869,9 +878,9 @@ namespace lsp
                 *dst                = pbank;
             }
 
-            // Issue callback
-            pPlugin->state_saved();
+            // Notify the plugin that the state has been saved
             lsp_trace("Plugin state has been saved");
+            pPlugin->state_saved();
 
             // Return result
             return sChunk.offset;
@@ -952,10 +961,18 @@ namespace lsp
 
         void Wrapper::deserialize_state(const void *data, size_t size)
         {
+            // Set state manage barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
             const fxBank *bank          = static_cast<const fxBank *>(data);
             const fxProgram *prog       = static_cast<const fxProgram *>(data);
             const uint8_t *head         = static_cast<const uint8_t *>(data);
 
+            // Notify plugin that state is about to load
+            pPlugin->before_state_load();
+
+            // Do the state load
             status_t res;
             if ((res = check_vst_bank_header(bank, size)) == STATUS_OK)
             {
@@ -1025,8 +1042,10 @@ namespace lsp
 
             // Call callback
             bUpdateSettings = true;
-            pPlugin->state_loaded();
             lsp_trace("Plugin state has been loaded");
+
+            // Notify the plugin that state has been loaded
+            pPlugin->state_loaded();
         }
 
         void Wrapper::deserialize_new_chunk_format(const uint8_t *data, size_t bytes)
@@ -1360,6 +1379,9 @@ namespace lsp
 
         void Wrapper::state_changed()
         {
+            if (bStateManage)
+                return;
+
             if ((pMaster != NULL) && (pEffect != NULL))
                 pMaster(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
         }

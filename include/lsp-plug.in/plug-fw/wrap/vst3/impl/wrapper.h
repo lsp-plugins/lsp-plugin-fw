@@ -68,7 +68,7 @@ namespace lsp
             IWrapper(plugin, loader),
             sKVTListener(this)
         {
-            nRefCounter         = 1;
+            atomic_store(&nRefCounter, 1);
             pFactory            = safe_acquire(factory);
             pPackage            = package;
             pHostContext        = NULL;
@@ -94,7 +94,9 @@ namespace lsp
             nDumpResp           = 0;
             nMaxSamplesPerBlock = 0;
             bUpdateSettings     = true;
+            bStateManage        = false;
             bMidiMapping        = false;
+            bMsgWorkaround      = false;
 
             nLatency            = 0;
         }
@@ -658,7 +660,18 @@ namespace lsp
 
                 case meta::R_PATH:
                 {
+                    lsp_trace("Creating path port id=%s", port->id);
                     vst3::PathPort *p       = new vst3::PathPort(port);
+                    vParamMapping.create(port->id, p);
+                    vAllParams.add(p);
+                    cp                      = p;
+                    break;
+                }
+
+                case meta::R_STRING:
+                {
+                    lsp_trace("Creating string port id=%s", port->id);
+                    vst3::StringPort *p     = new vst3::StringPort(port);
                     vParamMapping.create(port->id, p);
                     vAllParams.add(p);
                     cp                      = p;
@@ -815,6 +828,7 @@ namespace lsp
             // Set up host context
             pHostContext        = safe_acquire(context);
             pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
+            bMsgWorkaround      = use_message_workaround(pHostApplication);
 
             lsp_trace("Creating executor service");
             ipc::IExecutor *executor    = pFactory->acquire_executor();
@@ -971,14 +985,14 @@ namespace lsp
             lsp_trace("this=%p", this);
 
             const meta::plugin_t *meta = pPlugin->metadata();
-            if (meta->vst3ui_uid == NULL)
+            if (meta->uids.vst3ui == NULL)
             {
                 lsp_warn("meta->vst3ui_uid == NULL");
                 return Steinberg::kResultFalse;
             }
 
             Steinberg::TUID tuid;
-            if (!meta::uid_vst3_to_tuid(tuid, meta->vst3ui_uid))
+            if (!meta::uid_vst3_to_tuid(tuid, meta->uids.vst3ui))
             {
                 lsp_warn("failed uid_vst3_to_tuid");
                 return Steinberg::kResultFalse;
@@ -1281,6 +1295,22 @@ namespace lsp
                         return res;
                     }
                 }
+                else if (meta::is_string_port(meta))
+                {
+                    const char *str = p->buffer<char>();
+                    if (str == NULL)
+                    {
+                        lsp_trace("value == NULL for STRING port");
+                        return STATUS_CORRUPTED;
+                    }
+
+                    lsp_trace("Saving state of string parameter: %s = %s", meta->id, str);
+                    if ((res = write_value(os, meta->id, str)) != STATUS_OK)
+                    {
+                        lsp_trace("write_value failed for id=%s", meta->id);
+                        return res;
+                    }
+                }
                 else
                 {
                     IF_TRACE(
@@ -1308,9 +1338,6 @@ namespace lsp
                     lsp_trace("Failed saving KVT parameters");
                 sKVT.gc();
             }
-
-            if (res == STATUS_OK)
-                pPlugin->state_saved();
 
             return res;
         }
@@ -1401,6 +1428,18 @@ namespace lsp
                             lsp_trace("  %s = %s", meta->id, name);
                             xp->submit(name, strlen(name), plug::PF_STATE_RESTORE);
                         }
+                        else if (meta::is_string_port(meta))
+                        {
+                            vst3::StringPort *sp    = static_cast<vst3::StringPort *>(p);
+                            plug::string_t *xs      = sp->data();
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
+                            lsp_trace("  %s = %s", meta->id, name);
+                            xs->submit(name, strlen(name), true);
+                        }
                         else
                         {
                             vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);
@@ -1450,10 +1489,7 @@ namespace lsp
             // Analyze result
             res = (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
             if (res == STATUS_OK)
-            {
                 bUpdateSettings = true;
-                pPlugin->state_loaded();
-            }
 
             return STATUS_OK;
         }
@@ -1467,7 +1503,20 @@ namespace lsp
                 lsp_dumpb("State dump:", is.data(), is.size());
             );
 
+            // Set state management barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Notify plugin that state is about to load
+            pPlugin->before_state_load();
+
+            // Load the state
             status_t res = load_state(state);
+
+            // Notify the plugin that the state has been loaded
+            if (res == STATUS_OK)
+                pPlugin->state_loaded();
+
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
@@ -1480,7 +1529,19 @@ namespace lsp
                 state = &os;
             );
 
+            // Set state management barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Notify the plugin the state is about to be saved
+            pPlugin->before_state_save();
+
+            // Save plugin's state
             status_t res = save_state(state);
+
+            // Notify the plugin about state just been saved
+            if (res == STATUS_OK)
+                pPlugin->state_saved();
 
             IF_TRACE(
                 lsp_dumpb("State dump:", os.data(), os.size());
@@ -1756,8 +1817,8 @@ namespace lsp
             // Sync position with UI
             if (atomic_trylock(nPositionLock))
             {
+                lsp_finally { atomic_unlock(nPositionLock); };
                 sUIPosition                 = sPosition;
-                atomic_unlock(nPositionLock);
             }
 
 //            lsp_trace("position sampleRate=%f, speed=%f, num=%f, den=%f, bpm=%f, tpb=%f, tick=%f",
@@ -2493,8 +2554,6 @@ namespace lsp
                 // Prepare event block
                 size_t block_size = prepare_block(frame, &data);
 //                lsp_trace("block size=%d", int(block_size));
-                for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
-                    vAllPorts.uget(i)->pre_process(block_size);
 
                 // Update the settings for the plugin
                 if (bUpdateSettings)
@@ -2552,16 +2611,14 @@ namespace lsp
 
         Steinberg::uint32 PLUGIN_API Wrapper::getTailSamples()
         {
-            lsp_trace("this=%p", this);
-
             if (pPlugin == NULL)
-                return Steinberg::kInternalError;
+                return Steinberg::Vst::kNoTail;
 
             ssize_t tail_size = pPlugin->tail_size();
             if (tail_size < 0)
                 return Steinberg::Vst::kInfiniteTail;
 
-            return (tail_size > 0) ? tail_size : Steinberg::Vst::kInfiniteTail;
+            return (tail_size > 0) ? tail_size : Steinberg::Vst::kNoTail;
         }
 
         Steinberg::uint32 PLUGIN_API Wrapper::getProcessContextRequirements()
@@ -2597,6 +2654,9 @@ namespace lsp
 
         void Wrapper::state_changed()
         {
+            if (bStateManage)
+                return;
+
             atomic_add(&nDirtyReq, 1);
         }
 
@@ -2712,6 +2772,42 @@ namespace lsp
                 {
                     lsp_trace("path %s = %s", p->metadata()->id, in_path);
                     path->submit_async(in_path, flags);
+                }
+            }
+            else if (!strcmp(message_id, ID_MSG_STRING))
+            {
+                // Get endianess
+                if ((res = atts->getInt("endian", byte_order)) != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'endian'");
+                    return Steinberg::kResultFalse;
+                }
+
+                // Get port identifier
+                const char *id = sRxNotifyBuf.get_string(atts, "id", byte_order);
+                if (id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Find string port
+                vst3::Port *p = vParamMapping.get(id);
+                if ((p == NULL) || (!meta::is_string_port(p->metadata())))
+                {
+                    lsp_warn("Invalid string port specified: %s", id);
+                    return Steinberg::kResultFalse;
+                }
+
+                // Get the string data
+                const char *in_str = sRxNotifyBuf.get_string(atts, "value", byte_order);
+                if (in_str == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Submit string data
+                vst3::StringPort *sp    = static_cast<vst3::StringPort *>(p);
+                plug::string_t *str     = sp->data();
+                if (str != NULL)
+                {
+                    lsp_trace("string %s = %s", p->metadata()->id, in_str);
+                    str->submit(in_str, false);
                 }
             }
             else if (!strcmp(message_id, vst3::ID_MSG_VIRTUAL_PARAMETER))
@@ -2837,7 +2933,7 @@ namespace lsp
                 return;
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };
@@ -2863,7 +2959,7 @@ namespace lsp
                 return;
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };
@@ -2881,12 +2977,11 @@ namespace lsp
             // Send position information
             if (!atomic_trylock(nPositionLock))
                 return;
-
             plug::position_t pos        = sUIPosition;
             atomic_unlock(nPositionLock);
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };
@@ -2939,7 +3034,7 @@ namespace lsp
                         osc::dump_packet(pOscPacket, size);
 
                         // Allocate new message
-                        Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                        Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                         if (msg == NULL)
                             continue;
                         lsp_finally { safe_release(msg); };
@@ -2976,7 +3071,7 @@ namespace lsp
                 return;
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };
@@ -3011,7 +3106,7 @@ namespace lsp
                     continue;
 
                 // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                 if (msg == NULL)
                     continue;
                 lsp_finally { safe_release(msg); };
@@ -3080,7 +3175,7 @@ namespace lsp
                 // lsp_trace("id = %s, first=%d, last=%d", fb_port->metadata()->id, int(first_row), int(last_row));
 
                 // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                 if (msg == NULL)
                     continue;
                 lsp_finally { safe_release(msg); };
@@ -3162,7 +3257,7 @@ namespace lsp
 //                        int(src_id), int(s_port->frame_id()), int(frame_id), int(last_id), int(delta), int(num_frames));
 
                 // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                 if (msg == NULL)
                     continue;
                 lsp_finally { safe_release(msg); };
@@ -3255,7 +3350,7 @@ namespace lsp
             lsp_trace("position = %lld, length=%lld", (long long)position, (long long)length);
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };

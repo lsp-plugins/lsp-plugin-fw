@@ -57,7 +57,7 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
-            nRefCounter         = 1;
+            atomic_store(&nRefCounter, 1);
             nRefExecutor        = 0;
             pLoader             = NULL;
             pExecutor           = NULL;
@@ -155,7 +155,7 @@ namespace lsp
                     if (plug_meta == NULL)
                         break;
 
-                    if (plug_meta->vst3_uid != NULL)
+                    if (plug_meta->uids.vst3 != NULL)
                     {
                         // We have new plugin record, create class info for this plugin
                         if ((res = create_class_info(manifest, plug_meta)) != STATUS_OK)
@@ -178,20 +178,20 @@ namespace lsp
             if (ci == NULL)
                 return STATUS_NO_MEM;
 
-            if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3_uid))
+            if (!meta::uid_vst3_to_tuid(ci->cid, meta->uids.vst3))
                 return STATUS_BAD_FORMAT;
             ci->cardinality = Steinberg::PClassInfo::kManyInstances;
             Steinberg::strncpy8(ci->category, kVstAudioEffectClass, Steinberg::PClassInfo::kCategorySize);
             Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
 
             // Generate class info for controller
-            if (meta->vst3ui_uid != NULL)
+            if (meta->uids.vst3ui != NULL)
             {
                 ci = vClassInfo.add();
                 if (ci == NULL)
                     return STATUS_NO_MEM;
 
-                if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3ui_uid))
+                if (!meta::uid_vst3_to_tuid(ci->cid, meta->uids.vst3ui))
                     return STATUS_BAD_FORMAT;
 
                 ci->cardinality = Steinberg::PClassInfo::kManyInstances;
@@ -220,7 +220,7 @@ namespace lsp
             if (ci == NULL)
                 return STATUS_NO_MEM;
 
-            if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3_uid))
+            if (!meta::uid_vst3_to_tuid(ci->cid, meta->uids.vst3))
                 return STATUS_BAD_FORMAT;
             if ((res = make_plugin_categories(&tmp, meta)) != STATUS_OK)
                 return res;
@@ -237,13 +237,13 @@ namespace lsp
             Steinberg::strncpy8(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfo2::kVersionSize);
 
             // Generate class info for controller
-            if (meta->vst3ui_uid != NULL)
+            if (meta->uids.vst3ui != NULL)
             {
                 ci = vClassInfo2.add();
                 if (ci == NULL)
                     return STATUS_NO_MEM;
 
-                if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3ui_uid))
+                if (!meta::uid_vst3_to_tuid(ci->cid, meta->uids.vst3ui))
                     return STATUS_BAD_FORMAT;
 
                 ci->cardinality = Steinberg::PClassInfo::kManyInstances;
@@ -279,7 +279,7 @@ namespace lsp
             if (ci == NULL)
                 return STATUS_NO_MEM;
 
-            if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3_uid))
+            if (!meta::uid_vst3_to_tuid(ci->cid, meta->uids.vst3))
                 return STATUS_BAD_FORMAT;
 
             ci->cardinality = Steinberg::PClassInfo::kManyInstances;
@@ -305,13 +305,13 @@ namespace lsp
             Steinberg::str8ToStr16(ci->sdkVersion, Steinberg::Vst::SDKVersionString, Steinberg::PClassInfoW::kVersionSize);
 
             // Generate class info for controller
-            if (meta->vst3ui_uid != NULL)
+            if (meta->uids.vst3ui != NULL)
             {
                 ci = vClassInfoW.add();
                 if (ci == NULL)
                     return STATUS_NO_MEM;
 
-                if (!meta::uid_vst3_to_tuid(ci->cid, meta->vst3ui_uid))
+                if (!meta::uid_vst3_to_tuid(ci->cid, meta->uids.vst3ui))
                     return STATUS_BAD_FORMAT;
 
                 ci->cardinality = Steinberg::PClassInfo::kManyInstances;
@@ -496,7 +496,7 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-                    if ((plug_meta->vst3_uid == NULL) || (!meta::uid_vst3_to_tuid(tuid, plug_meta->vst3_uid)))
+                    if ((plug_meta->uids.vst3 == NULL) || (!meta::uid_vst3_to_tuid(tuid, plug_meta->uids.vst3)))
                         continue;
                     if (!Steinberg::iidEqual(tuid, cid))
                         continue;
@@ -533,7 +533,7 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-                    if ((plug_meta->vst3ui_uid == NULL) || (!meta::uid_vst3_to_tuid(tuid, plug_meta->vst3ui_uid)))
+                    if ((plug_meta->uids.vst3ui == NULL) || (!meta::uid_vst3_to_tuid(tuid, plug_meta->uids.vst3ui)))
                         continue;
                     if (!Steinberg::iidEqual(tuid, cid))
                         continue;

@@ -98,7 +98,7 @@ namespace lsp
                 };
 
             protected:
-                volatile uatomic_t                  nRefCounter;            // Reference counter
+                uatomic_t                           nRefCounter;            // Reference counter
                 PluginFactory                      *pFactory;               // Reference to the factory
                 const meta::package_t              *pPackage;               // Package information
                 Steinberg::FUnknown                *pHostContext;           // Host context
@@ -123,7 +123,6 @@ namespace lsp
                 wssize_t                            nPlayLength;            // Sample playback length
                 plug::position_t                    sUIPosition;            // Position notified to UI
 
-
                 vst3::string_buf                    sRxNotifyBuf;           // Notify buffer for notify() processing
                 vst3::string_buf                    sTxNotifyBuf;           // Notify buffer for sync_data()
                 core::KVTStorage                    sKVT;                   // KVT storage
@@ -132,7 +131,7 @@ namespace lsp
                 core::KVTDispatcher                *pKVTDispatcher;         // KVT dispatcher
                 uint8_t                            *pOscPacket;             // OSC packet data
 
-                volatile uatomic_t                  nPositionLock;          // Position lock
+                uatomic_t                           nPositionLock;          // Position lock
                 uatomic_t                           nUICounterReq;          // UI counter request
                 uatomic_t                           nUICounterResp;         // Actual number of UIs
                 uatomic_t                           nDirtyReq;              // Dirty state request
@@ -141,7 +140,9 @@ namespace lsp
                 uatomic_t                           nDumpResp;              // State dump response
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
+                bool                                bStateManage;           // State management barrier
                 bool                                bMidiMapping;           // Midi mapping is used
+                bool                                bMsgWorkaround;         // Message workaround for bogus hosts
 
                 uint32_t                            nLatency;               // Current latency of the plugin
 
@@ -174,8 +175,10 @@ namespace lsp
                 size_t                      prepare_block(int32_t frame, Steinberg::Vst::ProcessData *pdata);
                 vst3::ParameterPort        *input_parameter(Steinberg::Vst::ParamID id);
                 status_t                    save_kvt_parameters_v1(Steinberg::IBStream *os, core::KVTStorage *kvt);
+
                 status_t                    save_state(Steinberg::IBStream *os);
                 status_t                    load_state(Steinberg::IBStream *is);
+
                 bool                        decode_midi_event(midi::event_t &e, const Steinberg::Vst::Event &ev);
                 bool                        decode_parameter_as_midi_event(midi::event_t &e, size_t offset, size_t id, double value);
                 bool                        encode_midi_event(Steinberg::Vst::Event &ev, const midi::event_t &e);

@@ -79,6 +79,7 @@ namespace lsp
                 lltl::parray<MidiInputPort>     vMidiIn;            // Midi input ports
                 lltl::parray<MidiOutputPort>    vMidiOut;           // Midi output ports
                 lltl::parray<clap::Port>        vAllPorts;          // List of all available ports
+                lltl::parray<clap::StringPort>  vStringPorts;       // List of string ports
                 lltl::parray<clap::Port>        vSortedPorts;       // List of ports sorted by metadata identifier
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
@@ -87,6 +88,7 @@ namespace lsp
 
                 bool                            bLatencyChanged;    // Flag that indicates that the plugin restart was requested
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
+                bool                            bStateManage;       // State management barrier
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
 
             protected:
@@ -160,7 +162,9 @@ namespace lsp
             public:
                 // CLAP state extension
                 status_t        save_state(const clap_ostream_t *os);
+                status_t        save_state_work(const clap_ostream_t *os);
                 status_t        load_state(const clap_istream_t *is);
+                status_t        load_state_work(const clap_istream_t *is);
 
             public:
                 // CLAP tail extension

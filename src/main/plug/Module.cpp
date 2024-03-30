@@ -64,6 +64,18 @@ namespace lsp
             ui_deactivated();
         }
 
+        void Module::set_active(bool active)
+        {
+            if (active == bActivated)
+                return;
+            bActivated      = active;
+            if (active)
+                activated();
+            else
+                deactivated();
+            pWrapper->query_display_draw();
+        }
+
         void Module::activate()
         {
             if (bActivated)
@@ -157,7 +169,15 @@ namespace lsp
                 pWrapper->kvt_release();
         }
 
+        void Module::before_state_save()
+        {
+        }
+
         void Module::state_saved()
+        {
+        }
+
+        void Module::before_state_load()
         {
         }
 

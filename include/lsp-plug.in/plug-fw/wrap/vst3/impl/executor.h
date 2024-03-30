@@ -35,7 +35,7 @@ namespace lsp
         Executor::Executor(ipc::IExecutor *executor)
         {
             pExecutor       = executor;
-            nActiveTasks    = 0;
+            atomic_store(&nActiveTasks, 0);
         }
 
         Executor::~Executor()
@@ -70,7 +70,7 @@ namespace lsp
         void Executor::shutdown()
         {
             // We need to wait until all offline tasks have been executed
-            while (nActiveTasks > 0)
+            while (atomic_load(&nActiveTasks) > 0)
                 ipc::Thread::sleep(10);
         }
 

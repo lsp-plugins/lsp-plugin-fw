@@ -79,10 +79,11 @@ namespace lsp
 
             bQueueDraw      = false;
             bUpdateSettings = true;
+            bStateManage    = false;
             fSampleRate     = DEFAULT_SAMPLE_RATE;
             pOscPacket      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX));
-            nStateMode      = SM_LOADING;
-            nDumpReq        = 0;
+            atomic_store(&nStateMode, SM_LOADING);
+            atomic_store(&nDumpReq, 0);
             nDumpResp       = 0;
             pPackage        = NULL;
             pKVTDispatcher  = NULL;
@@ -346,7 +347,9 @@ namespace lsp
 
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
+                    lsp_trace("Added mesh port id=%s", result->metadata()->id);
                     break;
+
                 case meta::R_STREAM:
                     if (pExt->atom_supported())
                     {
@@ -357,7 +360,9 @@ namespace lsp
                         result = new lv2::Port(p, pExt, false);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
+                    lsp_trace("Added stream port id=%s", result->metadata()->id);
                     break;
+
                 case meta::R_FBUFFER:
                     if (pExt->atom_supported())
                     {
@@ -368,7 +373,9 @@ namespace lsp
                         result = new lv2::Port(p, pExt, false);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
+                    lsp_trace("Added framebuffer port id=%s", result->metadata()->id);
                     break;
+
                 case meta::R_PATH:
                     if (pExt->atom_supported())
                         result      = new lv2::PathPort(p, pExt);
@@ -376,6 +383,17 @@ namespace lsp
                         result      = new lv2::Port(p, pExt, false);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
+                    lsp_trace("Added path port id=%s", result->metadata()->id);
+                    break;
+
+                case meta::R_STRING:
+                    if (pExt->atom_supported())
+                        result      = new lv2::StringPort(p, pExt);
+                    else
+                        result      = new lv2::Port(p, pExt, false);
+                    vPluginPorts.add(result);
+                    plugin_ports->add(result);
+                    lsp_trace("Added string port id=%s", result->metadata()->id);
                     break;
 
                 case meta::R_MIDI_IN:
@@ -388,7 +406,10 @@ namespace lsp
                     else
                         result = new lv2::Port(p, pExt, false);
                     plugin_ports->add(result);
+
+                    lsp_trace("Added midi port id=%s", result->metadata()->id);
                     break;
+
                 case meta::R_OSC_IN:
                 case meta::R_OSC_OUT:
                     if (pExt->atom_supported())
@@ -399,6 +420,8 @@ namespace lsp
                     else
                         result = new lv2::Port(p, pExt, false);
                     plugin_ports->add(result);
+
+                    lsp_trace("Added osc port id=%s", result->metadata()->id);
                     break;
 
 
@@ -414,8 +437,10 @@ namespace lsp
                     {
                         result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
-                        lsp_trace("Added external port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                        lsp_trace("Added external audio port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
+                    else
+                        lsp_trace("Added audio port id=%s", result->metadata()->id);
                     break;
                 case meta::R_CONTROL:
                 case meta::R_METER:
@@ -431,8 +456,10 @@ namespace lsp
                     {
                         result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
-                        lsp_trace("Added external port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                        lsp_trace("Added external control port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
+                    else
+                        lsp_trace("Added control port id=%s", result->metadata()->id);
                     break;
 
                 case meta::R_BYPASS:
@@ -450,6 +477,8 @@ namespace lsp
                         vExtPorts.add(result);
                         lsp_trace("Added bypass port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
+                    else
+                        lsp_trace("Added bypass port id=%s", result->metadata()->id);
                     break;
 
                 case meta::R_PORT_SET:
@@ -461,6 +490,7 @@ namespace lsp
                     vPluginPorts.add(pg);
                     vAllPorts.add(pg);
                     plugin_ports->add(pg);
+                    lsp_trace("Added port_set port id=%s", result->metadata()->id);
 
                     // Generate nested ports
                     for (size_t row=0; row<pg->rows(); ++row)
@@ -542,7 +572,7 @@ namespace lsp
             receive_atoms(samples);
 
             // Pre-rocess regular ports
-            size_t smode            = nStateMode;
+            size_t smode            = atomic_load(&nStateMode);
             for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
             {
                 // Get port
@@ -551,7 +581,7 @@ namespace lsp
                     continue;
 
                 // Pre-process data in port
-                if (port->pre_process(samples))
+                if (port->pre_process())
                 {
                     lsp_trace("port changed: %s, value=%f", port->metadata()->id, port->value());
                     bUpdateSettings = true;
@@ -572,7 +602,7 @@ namespace lsp
             }
 
             // Need to dump state?
-            uatomic_t dump_req  = nDumpReq;
+            uatomic_t dump_req  = atomic_load(&nDumpReq);
             if (dump_req != nDumpResp)
             {
                 dump_plugin_state();
@@ -617,7 +647,7 @@ namespace lsp
                 // Get port
                 lv2::Port *port = vAllPorts.uget(i);
                 if (port != NULL)
-                    port->post_process(samples);
+                    port->post_process();
             }
 
             // Transmit latency (if possible)
@@ -1097,6 +1127,7 @@ namespace lsp
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:
                         continue;
+                    case meta::R_STRING:
                     case meta::R_PATH:
                         if (p->tx_pending()) // Tranmission request pending?
                             break;
@@ -1344,7 +1375,7 @@ namespace lsp
                 pExt->forge_frame_time(0); // Event header
                 pExt->forge_object(&frame, pExt->uridBlank, pExt->uridStateChanged);
                 pExt->forge_pop(&frame);
-                lsp_trace("#STATE MODE = %d", nStateMode);
+                lsp_trace("#STATE MODE = %d", atomic_load(&nStateMode));
             }
 
             // For each MIDI port, serialize it's data
@@ -1627,11 +1658,19 @@ namespace lsp
                 uint32_t                   flags,
                 const LV2_Feature *const * features)
         {
-            pExt->init_state_context(store, NULL, handle, flags, features);
+            // Set state management barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Trigger the plugin to prepare the internal state.
+            pPlugin->before_state_save();
 
             // Mark state as synchronized
-            nStateMode      = SM_SYNC;
-            lsp_trace("#STATE MODE = %d", nStateMode);
+            atomic_store(&nStateMode, SM_SYNC);
+            lsp_trace("#STATE MODE = %d", atomic_load(&nStateMode));
+
+            // Init context
+            pExt->init_state_context(store, NULL, handle, flags, features);
 
             // Save state of all ports
             size_t ports_count = vAllPorts.size();
@@ -1656,6 +1695,8 @@ namespace lsp
             }
 
             pExt->reset_state_context();
+
+            // Notify the plugin that state has been saged
             pPlugin->state_saved();
         }
 
@@ -1978,9 +2019,16 @@ namespace lsp
             LV2_State_Retrieve_Function retrieve,
             LV2_State_Handle            handle,
             uint32_t                    flags,
-            const LV2_Feature *const *  features
-        )
+            const LV2_Feature *const *  features)
         {
+            // Set state management barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Notify plugin that state is about to load
+            pPlugin->before_state_load();
+
+            // Initialize context
             pExt->init_state_context(NULL, retrieve, handle, flags, features);
 
             // Restore posts state
@@ -2005,11 +2053,13 @@ namespace lsp
                 sKVTMutex.unlock();
             }
 
+            // Update the state
             pExt->reset_state_context();
-            pPlugin->state_loaded();
+            atomic_store(&nStateMode, SM_LOADING);
+            lsp_trace("#STATE MODE = %d", atomic_load(&nStateMode));
 
-            nStateMode = SM_LOADING;
-            lsp_trace("#STATE MODE = %d", nStateMode);
+            // Notify that plugin state has been loaded
+            pPlugin->state_loaded();
         }
 
         bool Wrapper::change_state_atomic(state_mode_t from, state_mode_t to)
@@ -2017,7 +2067,7 @@ namespace lsp
             // Perform atomic state change
             while (true)
             {
-                if (nStateMode != from)
+                if (atomic_load(&nStateMode) != from)
                     return false;
                 if (atomic_cas(&nStateMode, from, to))
                 {
@@ -2136,6 +2186,9 @@ namespace lsp
 
         void Wrapper::state_changed()
         {
+            if (bStateManage)
+                return;
+
             change_state_atomic(SM_SYNC, SM_CHANGED);
         }
 

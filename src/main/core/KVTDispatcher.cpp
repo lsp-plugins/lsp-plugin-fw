@@ -34,8 +34,8 @@ namespace lsp
             pKVT        = kvt;
             pKVTMutex   = mutex;
             pPacket     = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX));
-            nClients    = 0;
-            nTxRequest  = 0;
+            atomic_store(&nClients, 0);
+            atomic_store(&nTxRequest, 0);
         }
 
         KVTDispatcher::~KVTDispatcher()
@@ -188,9 +188,9 @@ namespace lsp
                 return changes;
             lsp_finally { pKVTMutex->unlock(); };
 
-            if (nClients > 0)
+            if (atomic_load(&nClients) > 0)
             {
-                if (nTxRequest > 0)
+                if (atomic_load(&nTxRequest) > 0)
                 {
                     lsp_trace("Setting all KVT parameters as required for transfer");
                     pKVT->touch_all(KVT_TX);
@@ -244,7 +244,7 @@ namespace lsp
         void KVTDispatcher::disconnect_client()
         {
             if (atomic_add(&nClients, -1) == 0)
-                nTxRequest  = 0;
+                atomic_store(&nTxRequest, 0);
         }
 
         status_t KVTDispatcher::parse_message(KVTStorage *kvt, const void *data, size_t size, size_t flags)

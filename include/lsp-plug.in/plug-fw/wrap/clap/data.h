@@ -160,8 +160,7 @@ namespace lsp
 
             status_t serialize(const clap_ostream_t *os)
             {
-                ssize_t res = write_string(os, sPath);
-                return (res < 0) ? -res : STATUS_OK;
+                return write_string(os, sPath);
             }
 
             status_t deserialize(const clap_istream_t *is)

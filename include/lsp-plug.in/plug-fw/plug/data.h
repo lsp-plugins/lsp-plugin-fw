@@ -24,9 +24,11 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/const.h>
+#include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/protocol/midi.h>
+#include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/stdlib/string.h>
 
 #define STREAM_MESH_ALIGN           0x40
@@ -269,7 +271,7 @@ namespace lsp
                 size_t              nRows;              // Number of rows
                 size_t              nCols;              // Number of columns
                 uint32_t            nCapacity;          // Capacity (power of 2)
-                volatile uint32_t   nRowID;             // Unique row identifier
+                mutable uint32_t    nRowID;             // Unique row identifier
                 float              *vData;              // Aligned row data
                 uint8_t            *pData;              // Allocated row data
 
@@ -312,7 +314,7 @@ namespace lsp
                  * Get number of next row identifier
                  * @return next row identifier
                  */
-                inline uint32_t next_rowid() const { return nRowID; }
+                inline uint32_t next_rowid() const { return atomic_load(&nRowID); }
 
                 /**
                  * Return actual number of columns
@@ -505,6 +507,94 @@ namespace lsp
             virtual void commit();
         } path_t;
 
+        typedef struct string_t
+        {
+            char               *sData;              // Actual value available to host
+            char               *sPending;           // Pending value
+            uint32_t            nCapacity;          // Capacity
+            uint32_t            nLock;              // Write lock + flags
+            uint32_t            nSerial;            // Current serial version
+            uint32_t            nRequest;           // Requested version
+
+            /**
+             * Submit string contents. If string length is larger than allowed capacity, it is truncated.
+             * This method introduces atomic locks and should never be called from real-time thread.
+             * @param str UTF-8 string to submit
+             * @param state indicates that value has been restored from state
+             * @return serial number associated with this change
+             */
+            uint32_t            submit(const char *str, bool state);
+
+            /**
+             * Submit string contents. If string length is larger than allowed capacity, it is truncated.
+             * This method introduces atomic locks and should never be called from real-time thread.
+             * @param str UTF-8 string to submit
+             * @param size size of data in bytes
+             * @param state indicates that value has been restored from state
+             * @return serial number associated with this change
+             */
+            uint32_t            submit(const void *buffer, size_t size, bool state);
+
+            /**
+             * Submit string contents. If string length is larger than allowed capacity, it is truncated.
+             * This method introduces atomic locks and should never be called from real-time thread.
+             * @param str string to submit
+             * @param state indicates that value has been restored from state
+             * @return serial number associated with this change
+             */
+            uint32_t            submit(const LSPString *str, bool state);
+
+            /**
+             * Read current contents of the string to passed buffer if serial value differs to the passed one,
+             * store new serial value into the passed pointer.
+             * This method introduces atomic locks and should never be called from real-time thread.
+             * @param serial pointer to the strings's serial number the requestor holds
+             * @param dst destination buffer to store the string
+             * @param size size of destination buffer in bytes
+             * @return true if passed serial number differed to the string's serial number and
+             * destination buffer was filled with data
+             */
+            bool                fetch(uint32_t *serial, char *dst, size_t size);
+
+            /**
+             * Synchronize state. This method is designed to be called from real-time thread to commit
+             * pending state change of the string and return update status.
+             * @return true if value of the string has been updated
+             */
+            bool                sync();
+
+            /**
+             * Check that string has been restored from plugin's state
+             * @return true if string has been restored from plugin's state
+             */
+            bool                is_state() const;
+
+            /**
+             * Maximum number of bytes that can be stored in this string
+             * @return maximum number of bytes (without trailing zero)
+             */
+            size_t              max_bytes() const;
+
+            /**
+             * return actual serial number
+             * @return actual serial number
+             */
+            uint32_t            serial() const;
+
+            /**
+             * Allocate string parameter
+             * @param max_length maximum string length
+             * @return pointer to allocated string
+             */
+            static string_t    *allocate(size_t max_length);
+
+            /**
+             * Destroy string parameter
+             * @param str string parameter to destroy
+             */
+            static void         destroy(string_t *str);
+        } string_t;
+
         // Position port structure
         typedef struct position_t
         {
@@ -556,6 +646,26 @@ namespace lsp
 
             static void init(position_t *pos);
         } position_t;
+
+
+        /**
+         * Copy UTF-8 encoded string to destination string, limit number of characters to the specified.
+         * The buffer should be of enough size to contain the additional zero-terminating character.
+         * @param dst destination string
+         * @param dst_max maximum number of UTF-8 characters (excluding trailing zero)
+         * @param src source string
+         */
+        void utf8_strncpy(char *dst, size_t dst_max, const char *src);
+
+        /**
+         * Copy UTF-8 encoded string to destination string, limit number of characters to the specified.
+         * The buffer should be of enough size to contain the additional zero-terminating character.
+         * @param dst destination string
+         * @param dst_max maximum number of UTF-8 characters (excluding trailing zero)
+         * @param src source buffer
+         * @param size size of source buffer
+         */
+        void utf8_strncpy(char *dst, size_t dst_max, const void *src, size_t size);
 
     } /* namespace plug */
 } /* namespace lsp */

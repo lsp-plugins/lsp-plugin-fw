@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 2 окт. 2021 г.
@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
@@ -208,32 +209,31 @@ namespace lsp
                 nDenom = nDenomMax;
 
             // Call for values update
-            update_values();
+            update_values(NULL);
         }
 
         void Fraction::notify(ui::IPort *port, size_t flags)
         {
             if ((port == pPort) || (port == pDen))
-                update_values();
+                update_values(port);
 
             Widget::notify(port, flags);
         }
 
-        void Fraction::update_values()
+        void Fraction::update_values(ui::IPort *port)
         {
             tk::Fraction *fr = tk::widget_cast<tk::Fraction>(wWidget);
             if (fr == NULL)
                 return;
 
-            if (pDen != NULL)
-                nDenom      = pDen->value();
-            if (pPort != NULL)
+            if ((port == pDen) && (pDen != NULL))
             {
-                fSig        = pPort->value();
-                if (fSig < 0.0f)
-                    fSig        = 0.0f;
-                else if (fSig > fMaxSig)
-                    fSig        = fMaxSig;
+                nDenom      = pDen->value();
+                lsp_trace("nDenom = %d", int(nDenom));
+            }
+            if ((port == pPort) && (pPort != NULL))
+            {
+                fSig        = lsp_limit(pPort->value(), 0.0f, fMaxSig);
             }
 
             tk::ListBoxItem *sel = fr->den_items()->get(nDenom - 1);
@@ -284,7 +284,7 @@ namespace lsp
             tk::WidgetList<tk::ListBoxItem> *nl = fr->num_items();
 
             // Add missing list items
-            ssize_t num_max = fMaxSig * nDenom;
+            ssize_t num_max = fMaxSig * nDenom + 0.5f;
             for (ssize_t i = nl->size(); i <= num_max; ++i)
                 add_list_item(nl, i, NULL);
 

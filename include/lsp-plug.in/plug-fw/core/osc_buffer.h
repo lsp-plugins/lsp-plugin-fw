@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 мар. 2023 г.
@@ -24,6 +24,7 @@
 #define LSP_PLUG_IN_PLUG_FW_CORE_OSC_BUFFER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/protocol/osc.h>
 
@@ -39,7 +40,7 @@ namespace lsp
          */
         typedef struct osc_buffer_t
         {
-            volatile size_t     nSize;
+            mutable size_t      nSize;
             size_t              nCapacity;
             size_t              nHead;
             size_t              nTail;
@@ -57,7 +58,7 @@ namespace lsp
              * Get buffer size
              * @return buffer size
              */
-            inline size_t       size() const { return nSize; }
+            inline size_t       size() const { return atomic_load(&nSize); }
 
             /**
              * Initialize buffer

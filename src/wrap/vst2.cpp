@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 дек. 2021 г.
@@ -744,12 +744,12 @@ namespace lsp
                         char FUID[40];
                         const meta::plugin_t *m = w->metadata();
 
-                        if ((m != NULL) && (m->vst3_uid != NULL))
+                        if ((m != NULL) && (m->uids.vst3 != NULL))
                         {
                             const char *plugin_name = (m->vst2_name != NULL) ? m->vst2_name : m->name;
-                            if (meta::uid_vst2_to_vst3(FUID, m->vst2_uid, plugin_name) != NULL)
+                            if (meta::uid_vst2_to_vst3(FUID, m->uids.vst2, plugin_name) != NULL)
                             {
-                                lsp_trace("Reporting compatibility of VST 2.x plugin uid='%s' with VST3.x plugin uuid='%s'", m->vst2_uid, FUID);
+                                lsp_trace("Reporting compatibility of VST 2.x plugin uid='%s' with VST3.x plugin uuid='%s'", m->uids.vst2, FUID);
                                 if (meta::uid_vst3_to_tuid(reinterpret_cast<char *>(ptr), FUID))
                                     v   = 1;
                             }
@@ -934,16 +934,16 @@ namespace lsp
                     if (plug_meta == NULL)
                         break;
                     if ((plug_meta->uid == NULL) ||
-                        (plug_meta->vst2_uid == NULL))
+                        (plug_meta->uids.vst2 == NULL))
                         continue;
 
                     // Check plugin identifier
-                    if (!strcmp(plug_meta->vst2_uid, uid))
+                    if (!strcmp(plug_meta->uids.vst2, uid))
                     {
                         // Instantiate the plugin and return
                         if ((plugin = f->create(plug_meta)) == NULL)
                         {
-                            lsp_error("Plugin instantiation error: '%s' ('%s')", plug_meta->uid, plug_meta->vst2_uid);
+                            lsp_error("Plugin instantiation error: '%s' ('%s')", plug_meta->uid, plug_meta->uids.vst2);
                             return NULL;
                         }
                     }
@@ -996,7 +996,7 @@ namespace lsp
                     e->initialDelay                     = 0;
                     e->object                           = wrapper;
                     e->user                             = NULL;
-                    e->uniqueID                         = vst2::cconst(meta->vst2_uid);
+                    e->uniqueID                         = vst2::cconst(meta->uids.vst2);
                     e->version                          = vst2::version(meta->version);
                     e->processReplacing                 = vst2::process_replacing;
                     e->processDoubleReplacing           = NULL; // Currently no double-replacing

@@ -77,17 +77,18 @@ namespace lsp
                 core::KVTStorage                sKVT;               // Key-value tree
                 ipc::Mutex                      sKVTMutex;          // Key-value tree mutex
 
-                volatile uatomic_t              nPosition;          // Position counter
+                uatomic_t                       nPosition;          // Position counter
                 volatile bool                   bUIActive;          // UI activity flag
 
-                volatile uatomic_t              nQueryDrawReq;      // QueryDraw request
+                uatomic_t                       nQueryDrawReq;      // QueryDraw request
                 uatomic_t                       nQueryDrawResp;     // QueryDraw response
-                volatile uatomic_t              nDumpReq;           // Dump state to file request
+                uatomic_t                       nDumpReq;           // Dump state to file request
                 uatomic_t                       nDumpResp;          // Dump state to file response
 
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
 
                 lltl::parray<jack::Port>        vAllPorts;          // All ports
+                lltl::parray<jack::Port>        vParams;            // All input parameters
                 lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
                 lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
@@ -101,6 +102,7 @@ namespace lsp
                 int             run(size_t samples);
 
                 status_t        import_settings(config::PullParser *parser);
+                status_t        import_settings_work(config::PullParser *parser);
 
             protected:
                 static int      process(jack_nframes_t nframes, void *arg);

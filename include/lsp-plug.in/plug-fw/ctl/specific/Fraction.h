@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 2 окт. 2021 г.
@@ -65,14 +65,19 @@ namespace lsp
                 static status_t     slot_submit(tk::Widget *sender, void *ptr, void *data);
 
             protected:
-                void                update_values();
+                void                update_values(ui::IPort *port);
                 void                submit_value();
                 void                sync_numerator();
                 status_t            add_list_item(tk::WidgetList<tk::ListBoxItem> *list, int i, const char *text);
 
             public:
                 explicit Fraction(ui::IWrapper *wrapper, tk::Fraction *widget);
+                Fraction(const Fraction &) = delete;
+                Fraction(Fraction &&) = delete;
                 virtual ~Fraction() override;
+
+                Fraction & operator = (const Fraction &) = delete;
+                Fraction & operator = (Fraction &&) = delete;
 
                 virtual status_t    init() override;
 

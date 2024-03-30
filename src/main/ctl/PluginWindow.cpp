@@ -2230,9 +2230,11 @@ namespace lsp
                 return res;
 
             // Check that we really need to show notification window
-            const char *old_pkgver = pPVersion->buffer<char>();
             const char *vstring = pkgver.get_utf8();
+        #ifdef LSP_TRACE
+            const char *old_pkgver = pPVersion->buffer<char>();
             lsp_trace("Updating last version from %s to %s", old_pkgver, vstring);
+        #endif /* LSP_TRACE */
 
             pPVersion->write(vstring, strlen(vstring));
             pPVersion->notify_all(ui::PORT_NONE);

@@ -720,16 +720,16 @@ namespace lsp
             {
                 for (size_t i=0; ; ++i)
                 {
-                    // Skip plugins not compatible with LV2
+                    // Skip plugins not compatible with CLAP
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if ((meta == NULL) || (meta->lv2_uri == NULL))
+                    if ((meta == NULL) || (meta->uids.clap == NULL))
                         break;
 
                     // Allocate new descriptor
                     clap_plugin_descriptor_t *d = result.add();
                     if (d == NULL)
                     {
-                        lsp_warn("Error allocating LV2 descriptor for plugin %s", meta->lv2_uri);
+                        lsp_warn("Error allocating CLAP descriptor for plugin %s", meta->uids.clap);
                         continue;
                     }
 
@@ -738,7 +738,7 @@ namespace lsp
                     bzero(d, sizeof(*d));
 
                     d->clap_version     = CLAP_VERSION;
-                    d->id               = meta->clap_uid;
+                    d->id               = meta->uids.clap;
                     d->name             = meta->description;
                     d->vendor           = NULL;
                     d->url              = NULL;
@@ -858,7 +858,7 @@ namespace lsp
                     if (meta == NULL)
                         break;
 
-                    if (!strcmp(meta->clap_uid, plugin_id))
+                    if (!strcmp(meta->uids.clap, plugin_id))
                     {
                         // Create module
                         plug::Module *plugin = f->create(meta);

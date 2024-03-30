@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -28,110 +28,118 @@
 
 // Port definitions for metadata
 #define AUDIO_INPUT(id, label) \
-    { id, label, U_NONE, R_AUDIO_IN, 0, 0, 0, 0, 0, NULL, NULL    }
+    { id, label, U_NONE, R_AUDIO_IN, 0, 0, 0, 0, 0, NULL, NULL, NULL    }
 #define AUDIO_OUTPUT(id, label) \
-    { id, label, U_NONE, R_AUDIO_OUT, 0, 0, 0, 0, 0, NULL, NULL    }
+    { id, label, U_NONE, R_AUDIO_OUT, 0, 0, 0, 0, 0, NULL, NULL, NULL    }
 #define MIDI_IN_CHANNEL(id, label) \
-    { id, label, U_NONE, R_MIDI_IN, 0, 0, 0, 0, 0, NULL, NULL    }
+    { id, label, U_NONE, R_MIDI_IN, 0, 0, 0, 0, 0, NULL, NULL, NULL    }
 #define MIDI_OUT_CHANNEL(id, label) \
-    { id, label, U_NONE, R_MIDI_OUT, 0, 0, 0, 0, 0, NULL, NULL    }
+    { id, label, U_NONE, R_MIDI_OUT, 0, 0, 0, 0, 0, NULL, NULL, NULL    }
 #define OSC_IN_CHANNEL(id, label) \
-    { id, label, U_NONE, R_OSC_IN, 0, 0, 0, 0, 0, NULL, NULL    }
+    { id, label, U_NONE, R_OSC_IN, 0, 0, 0, 0, 0, NULL, NULL, NULL    }
 #define OSC_OUT_CHANNEL(id, label) \
-    { id, label, U_NONE, R_OSC_OUT, 0, 0, 0, 0, 0, NULL, NULL    }
+    { id, label, U_NONE, R_OSC_OUT, 0, 0, 0, 0, 0, NULL, NULL, NULL    }
 #define FILE_CHANNEL(id, label) \
-    { id, label, U_ENUM, R_CONTROL, F_INT, 0, 0, 0, 0, file_channels, NULL }
+    { id, label, U_ENUM, R_CONTROL, F_INT, 0, 0, 0, 0, file_channels, NULL, NULL }
 #define AMP_GAIN(id, label, dfl, max) \
-    { id, label, U_GAIN_AMP, R_CONTROL, F_LOG | F_UPPER | F_LOWER | F_STEP, 0, max, dfl, GAIN_AMP_S_0_5_DB, NULL, NULL }
+    { id, label, U_GAIN_AMP, R_CONTROL, F_LOG | F_UPPER | F_LOWER | F_STEP, 0, max, dfl, GAIN_AMP_S_0_5_DB, NULL, NULL, NULL }
 #define AMP_GAIN1(id, label, dfl)  AMP_GAIN(id, label, dfl, 1.0f)
 #define AMP_GAIN10(id, label, dfl)  AMP_GAIN(id, label, dfl, 10.0f)
 #define AMP_GAIN100(id, label, dfl)  AMP_GAIN(id, label, dfl, 100.0f)
 #define AMP_GAIN1000(id, label, dfl)  AMP_GAIN(id, label, dfl, 1000.0f)
 #define AMP_GAIN_RANGE(id, label, dfl, min, max) \
-    { id, label, U_GAIN_AMP, R_CONTROL, F_LOG | F_UPPER | F_LOWER | F_STEP, min, max, dfl, GAIN_AMP_S_0_5_DB, NULL, NULL }
+    { id, label, U_GAIN_AMP, R_CONTROL, F_LOG | F_UPPER | F_LOWER | F_STEP, min, max, dfl, GAIN_AMP_S_0_5_DB, NULL, NULL, NULL }
 #define STATUS(id, label) \
-    { id, label, U_NONE, R_METER, F_INT | F_UPPER | F_LOWER, 0, STATUS_MAX, STATUS_UNSPECIFIED, 0, NULL, NULL }
+    { id, label, U_NONE, R_METER, F_INT | F_UPPER | F_LOWER, 0, STATUS_MAX, STATUS_UNSPECIFIED, 0, NULL, NULL, NULL }
 #define MESH(id, label, dim, points) \
-    { id, label, U_NONE, R_MESH, 0, 0.0, 0.0, points, dim, NULL, NULL }
+    { id, label, U_NONE, R_MESH, 0, 0.0, 0.0, points, dim, NULL, NULL, NULL }
 #define STREAM(id, label, dim, frames, capacity) \
-    { id, label, U_NONE, R_STREAM, 0, dim, frames, capacity, 0.0f, NULL, NULL }
+    { id, label, U_NONE, R_STREAM, 0, dim, frames, capacity, 0.0f, NULL, NULL, NULL }
 #define FBUFFER(id, label, rows, cols) \
-    { id, label, U_NONE, R_FBUFFER, 0, 0.0, 0.0, rows, cols, NULL, NULL }
+    { id, label, U_NONE, R_FBUFFER, 0, 0.0, 0.0, rows, cols, NULL, NULL, NULL }
 #define PATH(id, label) \
-    { id, label, U_STRING, R_PATH, 0, 0, 0, 0, 0, NULL, NULL }
+    { id, label, U_STRING, R_PATH, 0, 0, 0, 0, 0, NULL, NULL, NULL }
 #define TRIGGER(id, label)  \
-    { id, label, U_BOOL, R_CONTROL, F_TRG, 0, 0, 0.0f, 0, NULL, NULL }
+    { id, label, U_BOOL, R_CONTROL, F_TRG, 0, 0, 0.0f, 0, NULL, NULL, NULL }
 #define SWITCH(id, label, dfl)  \
-    { id, label, U_BOOL, R_CONTROL, 0, 0, 0, dfl, 0, NULL, NULL }
+    { id, label, U_BOOL, R_CONTROL, 0, 0, 0, dfl, 0, NULL, NULL, NULL }
 #define COMBO(id, label, dfl, list) \
-    { id, label, U_ENUM, R_CONTROL, 0, 0, 0, dfl, 0, list, NULL }
+    { id, label, U_ENUM, R_CONTROL, 0, 0, 0, dfl, 0, list, NULL, NULL }
 #define COMBO_START(id, label, dfl, list, min) \
-    { id, label, U_ENUM, R_CONTROL, F_MIN, min, 0, dfl, 0, list, NULL }
+    { id, label, U_ENUM, R_CONTROL, F_MIN, min, 0, dfl, 0, list, NULL, NULL }
 #define BLINK(id, label) \
-    { id, label, U_BOOL, R_METER, 0, 0, 0, 0, 0, NULL, NULL }
+    { id, label, U_BOOL, R_METER, 0, 0, 0, 0, 0, NULL, NULL, NULL }
 #define KNOB(id, label, units, min, max, dfl, step) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP, \
-        min, max, dfl, step, NULL, NULL }
+        min, max, dfl, step, NULL, NULL, NULL }
 #define CKNOB(id, label, units, min, max, dfl, step) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_CYCLIC, \
-        min, max, dfl, step, NULL, NULL }
+        min, max, dfl, step, NULL, NULL, NULL }
 #define CONTROL(id, label, units, limits) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP, \
-        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL }
+        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
 #define CONTROL_DFL(id, label, units, limits, dfl) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP, \
-        limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP, NULL, NULL }
+        limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP, NULL, NULL, NULL }
 #define INT_CONTROL(id, label, units, limits) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_INT, \
-        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL }
+        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
 #define INT_CONTROL_RANGE(id, label, units, min, max, dfl, step) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_INT, \
-        min, max, dfl, step, NULL, NULL }
+        min, max, dfl, step, NULL, NULL, NULL }
 #define HUE_CTL(id, label, dfl) \
-    { id, label, U_NONE, R_CONTROL, F_UPPER | F_LOWER | F_STEP | F_CYCLIC, 0.0f, 1.0f, (dfl), 0.25f/360.0f, NULL     }
+    { id, label, U_NONE, R_CONTROL, F_UPPER | F_LOWER | F_STEP | F_CYCLIC, 0.0f, 1.0f, (dfl), 0.25f/360.0f, NULL, NULL     }
 #define CYC_CONTROL(id, label, units, limits) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_CYCLIC, \
-        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL }
+        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
+#define CYC_CONTROL_DFL(id, label, units, limits, dfl) \
+    { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_CYCLIC, \
+        limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP, NULL, NULL, NULL }
 
 #define UNLIMITED_METER(id, label, units, dfl) \
-    { id, label, units, R_METER, 0, 0.0f, 0.0f, dfl, 0.0f, NULL, NULL }
+    { id, label, units, R_METER, 0, 0.0f, 0.0f, dfl, 0.0f, NULL, NULL, NULL }
 #define METER(id, label, units, limits) \
     { id, label, units, R_METER, F_LOWER | F_UPPER | F_STEP, \
-        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL }
+        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
 #define METERZ(id, label, units, limits) \
     { id, label, units, R_METER, F_LOWER | F_UPPER | F_STEP, \
-        limits ## _MIN, limits ## _MAX, 0.0f, 0.0f, NULL, NULL }
+        limits ## _MIN, limits ## _MAX, 0.0f, 0.0f, NULL, NULL, NULL }
 #define METER_MINMAX(id, label, units, min, max) \
     { id, label, units, R_METER, F_LOWER | F_UPPER | F_STEP, \
-        min, max, min, 0.0f, NULL, NULL }
+        min, max, min, 0.0f, NULL, NULL, NULL }
 #define LOG_CONTROL(id, label, units, limits) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOG, \
-        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL }
+        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
 #define EXT_LOG_CONTROL(id, label, units, limits) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOG | F_EXT, \
-        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL }
+        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
 #define LOG_CONTROL_DFL(id, label, units, limits, dfl) \
     { id, label, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOG, \
-        limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP, NULL, NULL }
+        limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP, NULL, NULL, NULL }
 #define PORT_SET(id, label, keys, ports)  \
-    { id, label, U_ENUM, R_PORT_SET, 0, 0, 0, 0, 0, keys, ports }
+    { id, label, U_ENUM, R_PORT_SET, 0, 0, 0, 0, 0, keys, ports, NULL }
 #define PAN_CTL(id, label, dfl) \
-    { id, label, U_PERCENT, R_CONTROL, F_LOWER | F_UPPER | F_STEP, -100.0f, 100.0f, dfl, 0.1, NULL, NULL }
+    { id, label, U_PERCENT, R_CONTROL, F_LOWER | F_UPPER | F_STEP, -100.0f, 100.0f, dfl, 0.1, NULL, NULL, NULL }
 #define PERCENTS(id, label, dfl, step) \
-    { id, label, U_PERCENT, R_CONTROL, F_LOWER | F_UPPER | F_STEP, 0, 100, dfl, step, NULL, NULL }
+    { id, label, U_PERCENT, R_CONTROL, F_LOWER | F_UPPER | F_STEP, 0, 100, dfl, step, NULL, NULL, NULL }
 #define OUT_PERCENTS(id, label) \
     { id, label, U_PERCENT, R_METER, F_LOWER | F_UPPER, 0, 100, 0, 0, NULL, NULL }
 #define METER_GAIN(id, label, max) \
-    { id, label, U_GAIN_AMP, R_METER, F_LOG | F_UPPER | F_LOWER | F_PEAK, 0, max, 0.0f, 0, NULL, NULL }
+    { id, label, U_GAIN_AMP, R_METER, F_LOG | F_UPPER | F_LOWER | F_PEAK, 0, max, 0.0f, 0, NULL, NULL, NULL }
 #define METER_GAIN_DFL(id, label, max, dfl) \
-    { id, label, U_GAIN_AMP, R_METER, F_LOG | F_UPPER | F_LOWER | F_PEAK, 0, max, dfl, 0, NULL, NULL }
+    { id, label, U_GAIN_AMP, R_METER, F_LOG | F_UPPER | F_LOWER | F_PEAK, 0, max, dfl, 0, NULL, NULL, NULL }
 #define METER_OUT_GAIN(id, label, max) \
-    { id, label, U_GAIN_AMP, R_METER, F_LOG | F_UPPER | F_LOWER, 0, max, 0.0f, 0, NULL, NULL }
+    { id, label, U_GAIN_AMP, R_METER, F_LOG | F_UPPER | F_LOWER, 0, max, 0.0f, 0, NULL, NULL, NULL }
 #define LUFS_METER(id, label, max) \
-    { id, label, U_LUFS, R_METER, F_UPPER | F_LOWER, -72.0f, max, 0.0f, 0, NULL, NULL }
+    { id, label, U_LUFS, R_METER, F_UPPER | F_LOWER, -72.0f, max, 0.0f, 0, NULL, NULL, NULL }
 #define METER_GAIN10(id, label)  METER_GAIN(id, label, 10.0f)
 #define METER_GAIN20(id, label)  METER_GAIN(id, label, 20.0f)
-#define METER_PERCENT(id, label)  { id, label, U_PERCENT, R_METER, F_UPPER | F_LOWER, 0.0f, 100.0f, 0.0f, 0.1f, NULL, NULL }
+#define METER_PERCENT(id, label)  { id, label, U_PERCENT, R_METER, F_UPPER | F_LOWER, 0.0f, 100.0f, 0.0f, 0.1f, NULL, NULL, NULL }
+
+#define STRING(id, label, length)               { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER, 0, length, 0, 0, NULL, NULL, "" }
+#define STRING_DFL(id, label, length, text)     { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER, 0, length, 0, 0, NULL, NULL, text }
+#define OPT_STRING(id, label, length)           { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER | F_OPTIONAL, 0, length, 0, 0, NULL, NULL, "" }
+#define OPT_STRING_DFL(id, label, length, text) { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER | F_OPTIONAL, 0, length, 0, 0, NULL, NULL, text }
 
 #define PORTS_END   \
     { NULL, NULL }
@@ -176,7 +184,11 @@
 #define WET_GAIN_L(g)       AMP_GAIN10("wet_l", "Wet amount L", g)
 #define WET_GAIN_R(g)       AMP_GAIN10("wet_r", "Wet amount R", g)
 
-#define BYPASS              { PORT_NAME_BYPASS, "Bypass", U_BOOL, R_BYPASS, F_UPPER | F_LOWER, 0, 1, 0, 0, NULL, NULL }
+#define DRYWET(perc)        PERCENTS("drywet", "Dry/Wet balance", perc, 0.1f)
+#define DRYWET_L(perc)      PERCENTS("dwmix_l", "Dry/Wet balance Left", perc, 0.1f)
+#define DRYWET_R(perc)      PERCENTS("dwmix_r", "Dry/Wet balance Right", perc, 0.1f)
+
+#define BYPASS              { PORT_NAME_BYPASS, "Bypass", U_BOOL, R_BYPASS, F_UPPER | F_LOWER, 0, 1, 0, 0, NULL, NULL, NULL }
 
 
 // Port configurations
@@ -308,7 +320,8 @@ namespace lsp
         extern const port_item_t notes[];
         extern const port_item_t fft_windows[];
         extern const port_item_t fft_envelopes[];
-    }
-}
+
+    } /* namespace meta */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_META_PORTS_H_ */

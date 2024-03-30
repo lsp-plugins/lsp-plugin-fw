@@ -53,7 +53,7 @@ namespace lsp
             status_t res = STATUS_OK;
 
             // Force position sync at startup
-            nPosition   = pWrapper->nPosition - 1;
+            nPosition   = atomic_load(&pWrapper->nPosition) - 1;
             const meta::plugin_t *meta = pUI->metadata();
             if (pUI->metadata() == NULL)
                 return STATUS_BAD_STATE;
@@ -197,7 +197,7 @@ namespace lsp
 
         void UIWrapper::dump_state_request()
         {
-            return pWrapper->dump_plugin_state();
+            atomic_add(&pWrapper->nDumpReq, 1);
         }
 
         void UIWrapper::main_iteration()
@@ -266,6 +266,10 @@ namespace lsp
 
                 case meta::R_PATH:
                     jup     = new jack::UIPathPort(jp);
+                    break;
+
+                case meta::R_STRING:
+                    jup     = new jack::UIStringPort(jp);
                     break;
 
                 case meta::R_CONTROL:
@@ -385,7 +389,7 @@ namespace lsp
             dsp::start(&ctx);
 
             // Check that position has been updated and sync it's state
-            atomic_t pos    = pWrapper->nPosition;
+            atomic_t pos    = atomic_load(&pWrapper->nPosition);
             if (nPosition != pos)
             {
                 position_updated(pWrapper->position());
@@ -492,6 +496,57 @@ namespace lsp
             ctl::revoke_style(pJackStatus, JACK_STATUS_ON);
             ctl::inject_style(pJackStatus, (connected) ? JACK_STATUS_ON : JACK_STATUS_OFF);
             pJackStatus->text()->set((connected) ? "statuses.jack.on" : "statuses.jack.off");
+        }
+
+        status_t UIWrapper::export_settings(config::Serializer *s, const io::Path *basedir)
+        {
+            // Notify the plugin the state is about to be saved
+            pPlugin->before_state_save();
+
+            // Synchronize KVT state as before_state_save() can change it
+            core::KVTStorage *kvt = pWrapper->kvt_trylock();
+            if (kvt != NULL)
+            {
+                lsp_finally { pWrapper->kvt_release(); };
+                sync_kvt(kvt);
+                kvt->gc();
+            }
+
+            // Do the usual stuff
+            status_t res = ui::IWrapper::export_settings(s, basedir);
+
+            // Notify the plugin that the state has been just saved
+            if (res == STATUS_OK)
+                pPlugin->state_saved();
+
+            return res;
+        }
+
+        status_t UIWrapper::import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir)
+        {
+            // Notify the plugin the state is about to be load
+            pPlugin->before_state_load();
+
+            // Do the usual stuff
+            status_t res = ui::IWrapper::import_settings(parser, flags, basedir);
+
+            // Synchronize KVT state as there can be changes
+            core::KVTStorage *kvt = pWrapper->kvt_trylock();
+            if (kvt != NULL)
+            {
+                lsp_finally { pWrapper->kvt_release(); };
+                sync_kvt(kvt);
+                kvt->gc();
+            }
+
+            // Notify the plugin that the state has been just loaded
+            if (res == STATUS_OK)
+            {
+                pPlugin->state_loaded();
+                pWrapper->bUpdateSettings = true;
+            }
+
+            return res;
         }
     } /* namespace jack */
 } /* namespace lsp */

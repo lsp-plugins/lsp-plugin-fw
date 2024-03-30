@@ -140,6 +140,12 @@ namespace lsp
                 void                        deactivate();
 
                 /**
+                 * Set plugin's active/inactive state
+                 * @param active active state flag
+                 */
+                void                        set_active(bool active);
+
+                /**
                  * Check current activity state of the plugin.
                  * @return true if plugin is active
                  */
@@ -249,12 +255,23 @@ namespace lsp
                 virtual void                kvt_release();
 
                 /**
-                 * Callback for case when plugin's state has been saved
+                 * Callback before the state of the plugin becomes saved.
+                 */
+                virtual void                before_state_save();
+
+                /**
+                 * Callback for case when plugin's state has been just saved
                  */
                 virtual void                state_saved();
 
                 /**
-                 * Callback for case when plugin's state has been loaded
+                 * Callback before the state of the plugin becomes saved. The plugin can store to
+                 * KVT some internal state that can be used after state has been loaded.
+                 */
+                virtual void                before_state_load();
+
+                /**
+                 * Callback for case when plugin's state has been just loaded
                  */
                 virtual void                state_loaded();
 

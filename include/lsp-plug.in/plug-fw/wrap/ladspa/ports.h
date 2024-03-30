@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 нояб. 2021 г.
@@ -43,13 +43,19 @@ namespace lsp
 
             public:
                 explicit Port(const meta::port_t *meta) : IPort(meta), pData(NULL) {};
-                virtual ~Port()
+                Port(const Port &) = delete;
+                Port(Port &&) = delete;
+
+                virtual ~Port() override
                 {
                     pData   = NULL;
                 }
 
+                Port & operator = (const Port &) = delete;
+                Port & operator = (Port &&) = delete;
+
             public:
-                virtual void bind(void *data)
+                void bind(void *data)
                 {
                     pData   = reinterpret_cast<float *>(data);
                 }
@@ -76,17 +82,26 @@ namespace lsp
                     }
                 }
 
-                virtual ~AudioPort()
+                AudioPort(const AudioPort &) = delete;
+                AudioPort(AudioPort &&) = delete;
+
+                virtual ~AudioPort() override
                 {
                     if (pSanitized != NULL)
                     {
                         ::free(pSanitized);
                         pSanitized = NULL;
                     }
-                };
+                }
+
+                AudioPort & operator = (const AudioPort &) = delete;
+                AudioPort & operator = (AudioPort &&) = delete;
 
             public:
-                virtual void *buffer()      { return pBuffer; };
+                virtual void *buffer() override
+                {
+                    return pBuffer;
+                };
 
                 // Should be always called at least once after bind() and before process() call
                 void sanitize_before(size_t off, size_t samples)
@@ -116,35 +131,42 @@ namespace lsp
         class InputPort: public Port
         {
             private:
-                float   fPrev;
                 float   fValue;
 
             public:
                 explicit InputPort(const meta::port_t *meta) : Port(meta)
                 {
-                    fPrev       = meta->start;
                     fValue      = meta->start;
                 }
 
-                virtual ~InputPort()
+                InputPort(const InputPort &) = delete;
+                InputPort(InputPort &&) = delete;
+
+                virtual ~InputPort() override
                 {
-                    fPrev       = 0.0f;
                     fValue      = 0.0f;
                 }
 
-            public:
-                virtual float value()   { return fValue; }
+                InputPort & operator = (const InputPort &) = delete;
+                InputPort & operator = (InputPort &&) = delete;
 
-                virtual bool pre_process(size_t samples)
+            public:
+                virtual float value() override
+                {
+                    return fValue;
+                }
+
+            public:
+                bool changed()
                 {
                     if (pData == NULL)
                         return false;
 
-                    fValue      = limit_value(pMetadata, *pData);
-                    return fPrev != fValue;
+                    const float value   = limit_value(pMetadata, *pData);
+                    bool changed        = value != fValue;
+                    fValue              = value;
+                    return changed;
                 }
-
-                virtual void post_process(size_t samples) { fPrev = fValue; };
         };
 
         class OutputPort: public Port
@@ -158,18 +180,24 @@ namespace lsp
                     fValue      = meta->start;
                 }
 
-                virtual ~OutputPort()
+                OutputPort(const OutputPort &) = delete;
+                OutputPort(OutputPort &&) = delete;
+
+                virtual ~OutputPort() override
                 {
                     fValue      = 0.0f;
-                };
+                }
+
+                OutputPort & operator = (const OutputPort &) = delete;
+                OutputPort & operator = (OutputPort) = delete;
 
             public:
-                virtual float value()
+                virtual float value() override
                 {
                     return      fValue;
                 }
 
-                virtual void set_value(float value)
+                virtual void set_value(float value) override
                 {
                     value       = limit_value(pMetadata, value);
                     if (pMetadata->flags & meta::F_PEAK)
@@ -181,21 +209,58 @@ namespace lsp
                         fValue = value;
                 };
 
-                virtual void bind(void *data)   { pData = reinterpret_cast<float *>(data); };
-
-                virtual bool pre_process(size_t samples)
+            public:
+                void clear()
                 {
                     if (pMetadata->flags & meta::F_PEAK)
                         fValue      = 0.0f;
-                    return false;
                 }
 
-                virtual void post_process(size_t samples)
+                void sync()
                 {
                     if (pData != NULL)
                         *pData      = fValue;
-                    if (pMetadata->flags & meta::F_PEAK)
-                        fValue      = 0.0f;
+                }
+        };
+
+        class PathPort: public Port
+        {
+            private:
+                plug::path_t sPath;
+
+            public:
+                explicit PathPort(const meta::port_t *meta) : Port(meta)
+                {
+                }
+
+                PathPort(const PathPort &) = delete;
+                PathPort(PathPort &&) = delete;
+                PathPort & operator = (const PathPort &) = delete;
+                PathPort & operator = (PathPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return &sPath;
+                }
+        };
+
+        class StringPort: public Port
+        {
+            public:
+                explicit StringPort(const meta::port_t *meta) : Port(meta)
+                {
+                }
+
+                StringPort(const StringPort &) = delete;
+                StringPort(StringPort &&) = delete;
+                StringPort & operator = (const StringPort &) = delete;
+                StringPort & operator = (StringPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return const_cast<char *>(pMetadata->value);
                 }
         };
 

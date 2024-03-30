@@ -2,8 +2,21 @@
 * RECENT CHANGES
 *******************************************************************************
 
-=== 1.0.23 ===
+=== 1.0.25 ===
+* Added support of string ports.
 
+=== 1.0.24 ===
+* Updated module versions in dependencies.
+
+=== 1.0.23 ===
+* Added obtaining information about the original file provided by the
+  MapPath::absolute_path LV2 extension.
+* Added custom option support by ComboBox.
+* Fixed behaviour of ctl::Fraction when writing values.
+* Added text estimation support by the Parameter controller.
+* Added ListBox controller.
+* Added empty text support for Edit controller.
+* Updated module versions in dependencies.
 
 === 1.0.22 ===
 * Added experimental support of VST3 plugin format.

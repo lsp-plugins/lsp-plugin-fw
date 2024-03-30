@@ -32,11 +32,13 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/executor.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/controller.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/message.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/string_buf.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/impl/message.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/executor.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/controller.h>
@@ -50,7 +52,7 @@ namespace lsp
 {
     namespace vst3
     {
-        static volatile atomic_t entry_counter = 0;
+        static atomic_t entry_counter       = 0;
         static lsp::singletone_t library;
         static PluginFactory *plugin_factory = NULL;
 
