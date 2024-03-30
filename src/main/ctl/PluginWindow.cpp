@@ -83,6 +83,14 @@ namespace lsp
             { tk::TF_BOTTOM | tk::TF_LEFT,      1.0f,  1.0f },
         };
 
+        const tk::tether_t PluginWindow::presets_tether[] =
+        {
+            { tk::TF_BOTTOM | tk::TF_LEFT,      1.0f,  1.0f },
+            { tk::TF_TOP | tk::TF_LEFT,         1.0f, -1.0f },
+            { tk::TF_BOTTOM | tk::TF_RIGHT,    -1.0f,  1.0f },
+            { tk::TF_TOP | tk::TF_RIGHT,       -1.0f, -1.0f },
+        };
+
         PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget): Window(src, widget)
         {
             pClass                      = &metadata;
@@ -90,6 +98,7 @@ namespace lsp
             bResizable                  = false;
 
             pUserPaths                  = NULL;
+            pPresetsWnd                 = NULL;
 
             wContent                    = NULL;
             wPresetsW                   = NULL;
@@ -1995,14 +2004,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::slot_presets_close(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            if (__this->wPresetsW != NULL)
-                __this->wPresetsW->visibility()->set(false);
-            return STATUS_OK;
-        }
-
         status_t PluginWindow::slot_about_close(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
@@ -2177,42 +2178,32 @@ namespace lsp
             if (wnd == NULL)
                 return STATUS_BAD_STATE;
 
-            // Get default dictionary
-            const meta::package_t *pkg  = pWrapper->package();
-            const meta::plugin_t *meta  = pWrapper->ui()->metadata();
-
-            LSPString pkgver, plugver;
-            pkgver.fmt_ascii("%d.%d.%d",
-                    int(pkg->version.major),
-                    int(pkg->version.minor),
-                    int(pkg->version.micro)
-            );
-            if (pkg->version.branch)
-                pkgver.fmt_append_utf8("-%s", pkg->version.branch);
-
-            plugver.fmt_ascii("%d.%d.%d",
-                    int(LSP_MODULE_VERSION_MAJOR(meta->version)),
-                    int(LSP_MODULE_VERSION_MINOR(meta->version)),
-                    int(LSP_MODULE_VERSION_MICRO(meta->version))
-            );
-
             lsp_trace("Showing presets dialog");
 
             if (wPresetsW == NULL)
             {
-                ctl::Window *ctl = NULL;
-                res = create_dialog_window(&ctl, &wPresetsW, LSP_BUILTIN_PREFIX "ui/presets.xml");
+                res = create_presets_window();
                 if (res != STATUS_OK)
                     return res;
-
-                // Bind slots
-                tk::Widget *btn = ctl->widgets()->find("submit");
-                if (btn != NULL)
-                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_presets_close, this);
-                wPresetsW->slots()->bind(tk::SLOT_CLOSE, slot_presets_close, this);
             }
 
-            wPresetsW->show(wnd);
+            // Show the widget relative to the actor
+            tk::Widget *actor = widgets()->find("trg_presets_menu");
+            if (actor != NULL)
+            {
+                ws::rectangle_t r;
+                actor->get_screen_rectangle(&r);
+
+                wPresetsW->set_tether(presets_tether, sizeof(presets_tether)/sizeof(tk::tether_t));
+                wPresetsW->trigger_widget()->set(actor);
+                wPresetsW->trigger_area()->set(&r);
+                wPresetsW->show();
+            }
+            else
+                wPresetsW->show(wnd);
+
+            wPresetsW->grab_events(ws::GRAB_DROPDOWN);
+
             return STATUS_OK;
         }
 
@@ -2471,6 +2462,41 @@ namespace lsp
                 *ctl    = wc;
             if (dst != NULL)
                 *dst    = w;
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::create_presets_window()
+        {
+            status_t res;
+
+            // Create window
+            tk::PopupWindow *w = new tk::PopupWindow(wWidget->display());
+            if (w == NULL)
+                return STATUS_NO_MEM;
+            widgets()->add(w);
+            w->init();
+            w->auto_close()->set(true);
+
+            // Create controller
+            ctl::Window *wc = new ctl::PresetsWindow(pWrapper, w);
+            if (wc == NULL)
+                return STATUS_NO_MEM;
+            controllers()->add(wc);
+            wc->init();
+
+            ui::UIContext uctx(pWrapper, wc->controllers(), wc->widgets());
+            if ((res = init_context(&uctx)) != STATUS_OK)
+                return res;
+
+            // Parse the XML document
+            ui::xml::RootNode root(&uctx, "window", wc);
+            ui::xml::Handler handler(pWrapper->resources());
+            if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/presets.xml", &root)) != STATUS_OK)
+                return res;
+
+            wPresetsW = w;
+            pPresetsWnd = wc;
 
             return STATUS_OK;
         }

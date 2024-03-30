@@ -50,6 +50,7 @@
     #include <lsp-plug.in/plug-fw/ctl/Registry.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
     #include <lsp-plug.in/plug-fw/ctl/Window.h>
+    #include <lsp-plug.in/plug-fw/ctl/PresetsWindow.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
 
     #include <lsp-plug.in/plug-fw/ctl/simple/Void.h>

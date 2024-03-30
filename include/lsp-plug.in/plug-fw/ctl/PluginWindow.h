@@ -45,6 +45,7 @@ namespace lsp
             private:
                 static const tk::tether_t top_tether[];
                 static const tk::tether_t bottom_tether[];
+                static const tk::tether_t presets_tether[];
 
             protected:
                 typedef struct backend_sel_t
@@ -119,9 +120,10 @@ namespace lsp
                 bool                        bResizable;
 
                 ctl::Window                *pUserPaths;                 // User paths controller
+                ctl::Window                *pPresetsWnd;                // Presets window
 
                 tk::WidgetContainer        *wContent;                   // The main box containing all widgets
-                tk::Window                 *wPresetsW;                   // Greeting message window
+                tk::PopupWindow            *wPresetsW;                  // Greeting message window
                 tk::Window                 *wGreeting;                  // Greeting message window
                 tk::Window                 *wAbout;                     // About message window
                 tk::Window                 *wUserPaths;                 // User paths configuration
@@ -175,7 +177,6 @@ namespace lsp
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_window_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_greeting_close(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_presets_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_about_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
@@ -263,6 +264,7 @@ namespace lsp
                 tk::Menu           *create_menu();
                 tk::Menu           *create_enum_menu(enum_menu_t *em, tk::Menu *parent, const char *label);
                 status_t            create_dialog_window(ctl::Window **ctl, tk::Window **dst, const char *path);
+                status_t            create_presets_window();
 
                 status_t            init_r3d_support(tk::Menu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);
