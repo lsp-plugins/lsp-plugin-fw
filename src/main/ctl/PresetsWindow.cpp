@@ -37,57 +37,50 @@ namespace lsp
 
         PresetsWindow::~PresetsWindow()
         {
-            destroy();
         }
 
         status_t PresetsWindow::init()
         {
-            lsp_trace("PresetsWindow initializing");
             status_t res = ctl::Window::init();
             if (res != STATUS_OK)
                 return res;
 
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::post_init()
+        {
             tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
-            if (wnd != NULL)
-            {
-                // Bind slots
-                tk::Widget *btn = widgets()->find("submit");
-                if (btn != NULL)
-                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_window_close, this);
+            if (wnd == NULL)
+                return STATUS_BAD_STATE;
 
-                wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
+            bind_slot("btn_new", tk::SLOT_SUBMIT, slot_preset_new_click);
 
+            tk::Widget *deletePreset = widgets()->find("btn_delete");
+            if (deletePreset != NULL)
+                deletePreset->slots()->bind(tk::SLOT_SUBMIT, slot_preset_delete_click, this);
 
-                tk::Widget *newPreset = widgets()->find("btn_new_preset");
-                if (newPreset != NULL)
-                    newPreset->slots()->bind(tk::SLOT_SUBMIT, slot_preset_new_click, this);
+            tk::Widget *overridePreset = widgets()->find("btn_override");
+            if (overridePreset != NULL)
+                overridePreset->slots()->bind(tk::SLOT_SUBMIT, slot_preset_override_click, this);
 
-                tk::Widget *deletePreset = widgets()->find("btn_delete_preset");
-                if (deletePreset != NULL)
-                    deletePreset->slots()->bind(tk::SLOT_SUBMIT, slot_preset_delete_click, this);
+            tk::Widget *importMenu = widgets()->find("btn_import");
+            if (importMenu != NULL)
+                importMenu->slots()->bind(tk::SLOT_SUBMIT, slot_import_click, this);
 
-                tk::Widget *overridePreset = widgets()->find("btn_override_preset");
-                if (overridePreset != NULL)
-                    overridePreset->slots()->bind(tk::SLOT_SUBMIT, slot_preset_override_click, this);
+            tk::Widget *exportMenu = widgets()->find("btn_export");
+            if (exportMenu != NULL)
+                exportMenu->slots()->bind(tk::SLOT_SUBMIT, slot_export_click, this);
 
-                tk::Widget *importMenu = widgets()->find("btn_import");
-                if (importMenu != NULL)
-                    importMenu->slots()->bind(tk::SLOT_SUBMIT, slot_import_click, this);
+            tk::Widget *copyState = widgets()->find("btn_copy");
+            if (copyState != NULL)
+                copyState->slots()->bind(tk::SLOT_SUBMIT, slot_state_copy_click, this);
 
-                tk::Widget *exportMenu = widgets()->find("btn_export");
-                if (exportMenu != NULL)
-                    exportMenu->slots()->bind(tk::SLOT_SUBMIT, slot_export_click, this);
+            tk::Widget *pasteState = widgets()->find("btn_paste");
+            if (pasteState != NULL)
+                pasteState->slots()->bind(tk::SLOT_SUBMIT, slot_state_paste_click, this);
 
-                tk::Widget *copyState = widgets()->find("btn_copy");
-                if (copyState != NULL)
-                    copyState->slots()->bind(tk::SLOT_SUBMIT, slot_state_copy_click, this);
-
-                tk::Widget *pasteState = widgets()->find("btn_paste");
-                if (pasteState != NULL)
-                    pasteState->slots()->bind(tk::SLOT_SUBMIT, slot_state_paste_click, this);
-
-                lsp_trace("PresetsWindow initialized");
-            }
+            lsp_trace("PresetsWindow post_init OK");
 
             return STATUS_OK;
         }
@@ -95,6 +88,18 @@ namespace lsp
         void PresetsWindow::destroy()
         {
             ctl::Window::destroy();
+        }
+
+        void PresetsWindow::bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler)
+        {
+            tk::Widget *w = widgets()->find(widget_id);
+            if (w == NULL)
+            {
+                lsp_warn("Not found widget: ui:id=%s", widget_id);
+                return;
+            }
+
+            w->slots()->bind(id, handler, this);
         }
 
         // Slots

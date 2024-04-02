@@ -242,6 +242,7 @@ namespace lsp
             wExport         = NULL;
             wImport         = NULL;
             wPreferHost     = NULL;
+            wPresetsW       = NULL;
         }
 
         void PluginWindow::init_enum_menu(enum_menu_t *menu)
@@ -2481,7 +2482,7 @@ namespace lsp
             w->auto_close()->set(true);
 
             // Create controller
-            ctl::Window *wc = new ctl::PresetsWindow(pWrapper, w, self);
+            ctl::PresetsWindow *wc = new ctl::PresetsWindow(pWrapper, w, self);
             if (wc == NULL)
                 return STATUS_NO_MEM;
             controllers()->add(wc);
@@ -2495,6 +2496,9 @@ namespace lsp
             ui::xml::RootNode root(&uctx, "window", wc);
             ui::xml::Handler handler(pWrapper->resources());
             if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/presets.xml", &root)) != STATUS_OK)
+                return res;
+
+            if ((res = wc->post_init()) != STATUS_OK)
                 return res;
 
             wPresetsW = w;

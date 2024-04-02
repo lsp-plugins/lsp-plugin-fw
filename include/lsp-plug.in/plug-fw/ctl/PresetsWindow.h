@@ -48,6 +48,7 @@ namespace lsp
             protected:
                 PluginWindow *pPluginWindow;
 
+            protected:
                 // Slots
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_preset_new_click(tk::Widget *sender, void *ptr, void *data);
@@ -58,6 +59,9 @@ namespace lsp
                 static status_t slot_state_copy_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_state_paste_click(tk::Widget *sender, void *ptr, void *data);
 
+            protected:
+                void bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
+
             public:
                 explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow);
                 PresetsWindow(const PresetsWindow &) = delete;
@@ -67,15 +71,11 @@ namespace lsp
                 PresetsWindow & operator = (const PresetsWindow &) = delete;
                 PresetsWindow & operator = (PresetsWindow &&) = delete;
 
-                /** Init widget
-                 *
-                 */
                 virtual status_t    init() override;
-
-                /**
-                 * Destroy widget
-                 */
                 virtual void        destroy() override;
+
+            public:
+                status_t            post_init();
 
         };
 
