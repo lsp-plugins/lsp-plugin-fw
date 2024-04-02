@@ -28,18 +28,21 @@ namespace lsp
     {
         const ctl_class_t PresetsWindow::metadata = { "PresetsWindow", &Window::metadata };
 
-        PresetsWindow::PresetsWindow(ui::IWrapper *src, tk::Window *widget):
+        PresetsWindow::PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow):
             ctl::Window(src, widget)
         {
-            pClass      = &metadata;
+            pClass          = &metadata;
+            pPluginWindow   = pluginWindow;
         }
 
         PresetsWindow::~PresetsWindow()
         {
+            destroy();
         }
 
         status_t PresetsWindow::init()
         {
+            lsp_trace("PresetsWindow initializing");
             status_t res = ctl::Window::init();
             if (res != STATUS_OK)
                 return res;
@@ -53,6 +56,37 @@ namespace lsp
                     btn->slots()->bind(tk::SLOT_SUBMIT, slot_window_close, this);
 
                 wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
+
+
+                tk::Widget *newPreset = widgets()->find("btn_new_preset");
+                if (newPreset != NULL)
+                    newPreset->slots()->bind(tk::SLOT_SUBMIT, slot_preset_new_click, this);
+
+                tk::Widget *deletePreset = widgets()->find("btn_delete_preset");
+                if (deletePreset != NULL)
+                    deletePreset->slots()->bind(tk::SLOT_SUBMIT, slot_preset_delete_click, this);
+
+                tk::Widget *overridePreset = widgets()->find("btn_override_preset");
+                if (overridePreset != NULL)
+                    overridePreset->slots()->bind(tk::SLOT_SUBMIT, slot_preset_override_click, this);
+
+                tk::Widget *importMenu = widgets()->find("btn_import");
+                if (importMenu != NULL)
+                    importMenu->slots()->bind(tk::SLOT_SUBMIT, slot_import_click, this);
+
+                tk::Widget *exportMenu = widgets()->find("btn_export");
+                if (exportMenu != NULL)
+                    exportMenu->slots()->bind(tk::SLOT_SUBMIT, slot_export_click, this);
+
+                tk::Widget *copyState = widgets()->find("btn_copy");
+                if (copyState != NULL)
+                    copyState->slots()->bind(tk::SLOT_SUBMIT, slot_state_copy_click, this);
+
+                tk::Widget *pasteState = widgets()->find("btn_paste");
+                if (pasteState != NULL)
+                    pasteState->slots()->bind(tk::SLOT_SUBMIT, slot_state_paste_click, this);
+
+                lsp_trace("PresetsWindow initialized");
             }
 
             return STATUS_OK;
@@ -63,12 +97,56 @@ namespace lsp
             ctl::Window::destroy();
         }
 
+        // Slots
+
         status_t PresetsWindow::slot_window_close(tk::Widget *sender, void *ptr, void *data)
         {
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             tk::Window *wnd = tk::widget_cast<tk::Window>(self->wWidget);
             if (wnd != NULL)
                 wnd->visibility()->set(false);
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_preset_new_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("slot_preset_new_click");
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("slot_preset_delete_click");
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_preset_override_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("slot_preset_override_click");
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_import_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("slot_import_click");
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_export_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("slot_export_click");
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_state_copy_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("slot_state_copy_click");
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_state_paste_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("slot_state_paste_click");
             return STATUS_OK;
         }
 

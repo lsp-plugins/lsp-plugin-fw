@@ -2470,6 +2470,8 @@ namespace lsp
         {
             status_t res;
 
+            PluginWindow *self = this;
+
             // Create window
             tk::PopupWindow *w = new tk::PopupWindow(wWidget->display());
             if (w == NULL)
@@ -2479,7 +2481,7 @@ namespace lsp
             w->auto_close()->set(true);
 
             // Create controller
-            ctl::Window *wc = new ctl::PresetsWindow(pWrapper, w);
+            ctl::Window *wc = new ctl::PresetsWindow(pWrapper, w, self);
             if (wc == NULL)
                 return STATUS_NO_MEM;
             controllers()->add(wc);

@@ -34,6 +34,9 @@ namespace lsp
 {
     namespace ctl
     {
+
+        class PluginWindow;
+
         /**
          * The plugin's window controller
          */
@@ -43,10 +46,20 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                PluginWindow *pPluginWindow;
+
+                // Slots
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_preset_new_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_preset_override_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_import_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_export_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_state_copy_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_state_paste_click(tk::Widget *sender, void *ptr, void *data);
 
             public:
-                explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget);
+                explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow);
                 PresetsWindow(const PresetsWindow &) = delete;
                 PresetsWindow(PresetsWindow &&) = delete;
                 virtual ~PresetsWindow() override;
