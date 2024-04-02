@@ -56,34 +56,14 @@ namespace lsp
                 return STATUS_BAD_STATE;
 
             bind_slot("btn_new", tk::SLOT_SUBMIT, slot_preset_new_click);
-
-            tk::Widget *deletePreset = widgets()->find("btn_delete");
-            if (deletePreset != NULL)
-                deletePreset->slots()->bind(tk::SLOT_SUBMIT, slot_preset_delete_click, this);
-
-            tk::Widget *overridePreset = widgets()->find("btn_override");
-            if (overridePreset != NULL)
-                overridePreset->slots()->bind(tk::SLOT_SUBMIT, slot_preset_override_click, this);
-
-            tk::Widget *importMenu = widgets()->find("btn_import");
-            if (importMenu != NULL)
-                importMenu->slots()->bind(tk::SLOT_SUBMIT, slot_import_click, this);
-
-            tk::Widget *exportMenu = widgets()->find("btn_export");
-            if (exportMenu != NULL)
-                exportMenu->slots()->bind(tk::SLOT_SUBMIT, slot_export_click, this);
-
-            tk::Widget *copyState = widgets()->find("btn_copy");
-            if (copyState != NULL)
-                copyState->slots()->bind(tk::SLOT_SUBMIT, slot_state_copy_click, this);
-
-            tk::Widget *pasteState = widgets()->find("btn_paste");
-            if (pasteState != NULL)
-                pasteState->slots()->bind(tk::SLOT_SUBMIT, slot_state_paste_click, this);
+            bind_slot("btn_delete", tk::SLOT_SUBMIT, slot_preset_delete_click);
+            bind_slot("btn_override", tk::SLOT_SUBMIT, slot_preset_override_click);
+            bind_slot("btn_import", tk::SLOT_SUBMIT, slot_import_click);
+            bind_slot("btn_export", tk::SLOT_SUBMIT, slot_export_click);
+            bind_slot("btn_copy", tk::SLOT_SUBMIT, slot_state_copy_click);
+            bind_slot("btn_paste", tk::SLOT_SUBMIT, slot_state_paste_click);
 
             refresh_presets();
-
-            lsp_trace("PresetsWindow post_init OK");
 
             return STATUS_OK;
         }
