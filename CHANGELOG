@@ -4,6 +4,7 @@
 
 === 1.0.25 ===
 * Added support of string ports.
+* Added empty text support for Edit controller.
 
 === 1.0.24 ===
 * Updated module versions in dependencies.
