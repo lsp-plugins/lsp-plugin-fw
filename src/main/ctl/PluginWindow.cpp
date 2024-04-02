@@ -1561,7 +1561,7 @@ namespace lsp
 
             // Header menu
             bind_trigger("trg_main_menu", tk::SLOT_SUBMIT, slot_show_main_menu);
-            bind_trigger("trg_presets_menu", tk::SLOT_SUBMIT, slot_show_presets_menu);
+            bind_trigger("trg_presets_menu", tk::SLOT_SUBMIT, slot_show_presets_window);
             bind_trigger("trg_export_settings", tk::SLOT_SUBMIT, slot_export_settings_to_file);
             bind_trigger("trg_import_settings", tk::SLOT_SUBMIT, slot_import_settings_from_file);
             bind_trigger("trg_reset_settings", tk::SLOT_SUBMIT, slot_reset_settings);
