@@ -119,9 +119,57 @@ namespace lsp
                 return STATUS_NOT_FOUND;
             core::sort_presets(&presets, true);
 
-            // TODO: add to list box
+            put_presets_to_list(&presets);
 
             return STATUS_OK;
+        }
+
+        void PresetsWindow::put_presets_to_list(lltl::darray<resource::resource_t> *presets)
+        {
+            tk::ListBox *lb = widgets()->get<tk::ListBox>("presets_list");
+            if (lb == NULL)
+                return;
+
+            lb->items()->clear();
+            status_t res;
+            io::Path path;
+            LSPString preset_name;
+
+            for (size_t i=0, n=presets->size(); i<n; ++i)
+            {
+                const resource::resource_t *r = presets->uget(i);
+                if (r == NULL)
+                    continue;
+
+                // Obtain preset name
+                if ((res = path.set(r->name)) != STATUS_OK)
+                    continue;
+                if ((res = path.get_last_noext(&preset_name)) != STATUS_OK)
+                    continue;
+
+                // Create list box item
+                tk::ListBoxItem *item = new tk::ListBoxItem(lb->display());
+                if (item == NULL)
+                    continue;
+                lsp_finally {
+                    if (item != NULL)
+                    {
+                        item->destroy();
+                        delete item;
+                    }
+                };
+
+                if ((res = item->init()) != STATUS_OK)
+                    continue;
+
+                // Fill item
+                item->text()->set_raw(&preset_name);
+                item->tag()->set(i);
+
+                // Add item to list
+                if ((res = lb->items()->madd(item)) == STATUS_OK)
+                    item    = NULL;
+            }
         }
 
         // Slots
