@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 
 namespace lsp
@@ -80,6 +81,8 @@ namespace lsp
             if (pasteState != NULL)
                 pasteState->slots()->bind(tk::SLOT_SUBMIT, slot_state_paste_click, this);
 
+            refresh_presets();
+
             lsp_trace("PresetsWindow post_init OK");
 
             return STATUS_OK;
@@ -100,6 +103,25 @@ namespace lsp
             }
 
             w->slots()->bind(id, handler, this);
+        }
+
+        status_t PresetsWindow::refresh_presets()
+        {
+            status_t res;
+            lltl::darray<resource::resource_t> presets;
+            const meta::plugin_t *metadata = pWrapper->ui()->metadata();
+            if (metadata == NULL)
+                return STATUS_NOT_FOUND;
+
+            if ((res = core::scan_presets(&presets, pWrapper->resources(), metadata->ui_presets)) != STATUS_OK)
+                return res;
+            if (presets.is_empty())
+                return STATUS_NOT_FOUND;
+            core::sort_presets(&presets, true);
+
+            // TODO: add to list box
+
+            return STATUS_OK;
         }
 
         // Slots

@@ -245,7 +245,6 @@ namespace lsp
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
                 static tk::FileFilters     *create_config_filters(tk::FileDialog *dlg);
-                static ssize_t              compare_presets(const resource::resource_t *a, const resource::resource_t *b);
                 void                init_enum_menu(enum_menu_t *menu);
 
             protected:
@@ -273,7 +272,6 @@ namespace lsp
                 status_t            init_visual_schema_support(tk::Menu *menu);
                 status_t            init_ui_behaviour(tk::Menu *menu);
                 status_t            init_presets(tk::Menu *menu, bool add_submenu);
-                status_t            scan_presets(const char *location, lltl::darray<resource::resource_t> *presets);
                 status_t            create_main_menu();
                 status_t            create_reset_settings_menu();
                 void                sync_ui_scaling();

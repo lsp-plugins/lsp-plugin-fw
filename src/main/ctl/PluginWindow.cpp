@@ -22,6 +22,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/runtime/system.h>
@@ -1019,63 +1020,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        ssize_t PluginWindow::compare_presets(const resource::resource_t *a, const resource::resource_t *b)
-        {
-            return strcmp(a->name, b->name);
-        }
-
-        status_t PluginWindow::scan_presets(const char *location, lltl::darray<resource::resource_t> *presets)
-        {
-            io::Path path;
-            LSPString tmp;
-            resource::resource_t *resources = NULL;
-
-            if (!location) return STATUS_NOT_FOUND;
-
-            if (tmp.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s", location) < 0)
-                return STATUS_BAD_STATE;
-            ssize_t count = pWrapper->resources()->enumerate(&tmp, &resources);
-
-            if (!resources) return STATUS_NOT_FOUND;
-
-            // Process all resources and form the final list of preset files
-            for (ssize_t i=0; i<count; ++i)
-            {
-                resource::resource_t *item = &resources[i];
-
-                // Filter the preset file
-                if (item->type != resource::RES_FILE)
-                    continue;
-                if (path.set(item->name) != STATUS_OK)
-                {
-                    free(resources);
-                    return STATUS_NO_MEM;
-                }
-                if (path.get_ext(&tmp) != STATUS_OK)
-                {
-                    free(resources);
-                    return STATUS_BAD_STATE;
-                }
-
-                if ((!tmp.equals_ascii("patch")) && (!tmp.equals_ascii("preset")))
-                    continue;
-
-                // Add preset file to result
-                strncpy(item->name, path.get(), resource::RESOURCE_NAME_MAX);
-                item->name[resource::RESOURCE_NAME_MAX-1] = '\0';
-                if (!presets->add(item))
-                {
-                    free(resources);
-                    return STATUS_NO_MEM;
-                }
-            }
-
-            free(resources);
-            presets->qsort(compare_presets);
-
-            return STATUS_OK;
-        }
-
         status_t PluginWindow::init_presets(tk::Menu *menu, bool add_submenu)
         {
             status_t res;
@@ -1135,12 +1079,14 @@ namespace lsp
             // if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
             // item->text()->set("*Open presets folder*");
 
-            if (scan_presets(metadata->ui_presets, &presets) != STATUS_OK)
+            if (core::scan_presets(&presets, pWrapper->resources(), metadata->ui_presets) != STATUS_OK)
                 return STATUS_OK;
             if (presets.is_empty())
                 return STATUS_OK;
+            core::sort_presets(&presets, true);
 
-            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
             item->type()->set_separator();
 
             for (size_t i=0, n=presets.size(); i<n; ++i)

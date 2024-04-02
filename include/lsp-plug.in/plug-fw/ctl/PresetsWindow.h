@@ -61,6 +61,7 @@ namespace lsp
 
             protected:
                 void bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
+                status_t refresh_presets();
 
             public:
                 explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow);
