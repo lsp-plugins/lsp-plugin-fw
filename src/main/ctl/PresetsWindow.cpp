@@ -62,6 +62,7 @@ namespace lsp
             bind_slot("btn_export", tk::SLOT_SUBMIT, slot_export_click);
             bind_slot("btn_copy", tk::SLOT_SUBMIT, slot_state_copy_click);
             bind_slot("btn_paste", tk::SLOT_SUBMIT, slot_state_paste_click);
+            bind_slot("presets_list", tk::SLOT_SUBMIT, slot_preset_select);
 
             refresh_presets();
 
@@ -202,6 +203,12 @@ namespace lsp
         status_t PresetsWindow::slot_state_paste_click(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("slot_state_paste_click");
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_preset_select(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("slot_preset_select");
             return STATUS_OK;
         }
 

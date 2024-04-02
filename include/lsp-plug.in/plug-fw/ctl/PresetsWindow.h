@@ -58,6 +58,7 @@ namespace lsp
                 static status_t slot_export_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_state_copy_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_state_paste_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_preset_select(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
