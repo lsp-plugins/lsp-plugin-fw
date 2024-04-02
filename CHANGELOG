@@ -6,6 +6,7 @@
 * Added obtaining information about the original file provided by the
   MapPath::absolute_path LV2 extension.
 * Added ListBox controller.
+* Added empty text support for Edit controller.
 
 === 1.0.22 ===
 * Added experimental support of VST3 plugin format.

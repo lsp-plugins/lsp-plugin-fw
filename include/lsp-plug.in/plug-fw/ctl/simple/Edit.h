@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 15 апр. 2022 г.
@@ -42,11 +42,13 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                ctl::LCString       sEmptyText;
                 ctl::Color          sColor;
                 ctl::Color          sBorderColor;
                 ctl::Color          sBorderGapColor;
                 ctl::Color          sCursorColor;
                 ctl::Color          sTextColor;
+                ctl::Color          sEmptyTextColor;
                 ctl::Color          sTextSelectedColor;
 
                 ctl::Integer        sBorderSize;
