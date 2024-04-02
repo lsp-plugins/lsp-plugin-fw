@@ -46,7 +46,8 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
-                PluginWindow *pPluginWindow;
+                PluginWindow           *pPluginWindow;
+                tk::ListBox            *wPresetsList;
 
             protected:
                 // Slots
@@ -64,6 +65,7 @@ namespace lsp
                 void bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
                 status_t refresh_presets();
                 void put_presets_to_list(lltl::darray<resource::resource_t> *presets);
+                void sync_preset_selection();
 
             public:
                 explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow);

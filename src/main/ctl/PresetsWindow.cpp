@@ -33,7 +33,9 @@ namespace lsp
             ctl::Window(src, widget)
         {
             pClass          = &metadata;
+
             pPluginWindow   = pluginWindow;
+            wPresetsList    = NULL;
         }
 
         PresetsWindow::~PresetsWindow()
@@ -65,6 +67,9 @@ namespace lsp
             bind_slot("presets_list", tk::SLOT_SUBMIT, slot_preset_select);
 
             refresh_presets();
+
+            wPresetsList = widgets()->get<tk::ListBox>("presets_list");
+            sync_preset_selection();
 
             return STATUS_OK;
         }
@@ -153,6 +158,23 @@ namespace lsp
             }
         }
 
+        void PresetsWindow::sync_preset_selection()
+        {
+            if (wPresetsList == NULL)
+                return;
+
+            tk::ListBoxItem *item = wPresetsList->selected()->any();
+            const bool editable = (item != NULL);
+
+            tk::Button *btn_delete = widgets()->get<tk::Button>("btn_delete");
+            if (btn_delete != NULL)
+                btn_delete->editable()->set(editable);
+
+            tk::Button *btn_override = widgets()->get<tk::Button>("btn_override");
+            if (btn_override != NULL)
+                btn_override->editable()->set(editable);
+        }
+
         // Slots
 
         status_t PresetsWindow::slot_window_close(tk::Widget *sender, void *ptr, void *data)
@@ -209,6 +231,10 @@ namespace lsp
         status_t PresetsWindow::slot_preset_select(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("slot_preset_select");
+
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            self->sync_preset_selection();
+
             return STATUS_OK;
         }
 
