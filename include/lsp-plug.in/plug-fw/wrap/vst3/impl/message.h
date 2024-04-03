@@ -39,7 +39,7 @@ namespace lsp
         {
             nRefCounter     = 1;
             sMessageId      = NULL;
-            lsp_trace("this = %p" , this);
+//            lsp_trace("this = %p" , this);
         }
 
         Message::~Message()
@@ -54,7 +54,7 @@ namespace lsp
                 free(it.get());
             vItems.flush();
 
-            lsp_trace("this = %p" , this);
+//            lsp_trace("this = %p" , this);
         }
 
         Steinberg::tresult PLUGIN_API Message::queryInterface(const Steinberg::TUID _iid, void **obj)

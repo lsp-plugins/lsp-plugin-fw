@@ -1033,9 +1033,15 @@ namespace lsp
             if (check.set_ascii("bitwig studio"))
             {
                 if (name.index_of(&check) >= 0)
+                {
+                    lsp_trace("Using Steinberg::Vst::IMessage workaround");
                     return true;
+                }
+                else
+                    lsp_trace("string '%s' not matched '%s'", name.get_native(), check.get_native());
             }
 
+            lsp_trace("Using standard Steinberg::Vst::IMessage implementation");
             return false;
         }
 
