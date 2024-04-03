@@ -39,6 +39,7 @@
 #include <steinberg/vst3.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/data.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/message.h>
 
 namespace lsp
 {
@@ -658,6 +659,7 @@ namespace lsp
          */
         inline Steinberg::Vst::IMessage *alloc_message(Steinberg::Vst::IHostApplication *host)
         {
+        #if 1
             if (host == NULL)
                 return NULL;
 
@@ -668,6 +670,9 @@ namespace lsp
             if (host->createInstance(iid, iid, reinterpret_cast<void **>(&m)) == Steinberg::kResultOk)
                 return m;
             return NULL;
+        #else
+            return new Message();
+        #endif
         }
 
         inline Steinberg::Vst::TChar *to_tchar(lsp_utf16_t *str)
