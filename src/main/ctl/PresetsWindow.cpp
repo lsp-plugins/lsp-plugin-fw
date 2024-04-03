@@ -65,6 +65,7 @@ namespace lsp
             bind_slot("btn_copy", tk::SLOT_SUBMIT, slot_state_copy_click);
             bind_slot("btn_paste", tk::SLOT_SUBMIT, slot_state_paste_click);
             bind_slot("presets_list", tk::SLOT_SUBMIT, slot_preset_select);
+            bind_slot("presets_list", tk::SLOT_MOUSE_DBL_CLICK, slot_preset_dblclick);
 
             refresh_presets();
 
@@ -104,6 +105,12 @@ namespace lsp
             if (presets.is_empty())
                 return STATUS_NOT_FOUND;
             core::sort_presets(&presets, true);
+
+            // Initial preset
+            resource::resource_t initial_preset;
+            initial_preset.type = resource::RES_DIR;
+            strcpy(initial_preset.name, "-- Initial preset --");
+            presets.insert(0, initial_preset);
 
             put_presets_to_list(&presets);
 
@@ -234,6 +241,15 @@ namespace lsp
 
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             self->sync_preset_selection();
+
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("slot_preset_dblclick");
+
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
 
             return STATUS_OK;
         }
