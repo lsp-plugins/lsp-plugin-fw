@@ -36,6 +36,20 @@ namespace lsp
     {
 
         class PluginWindow;
+        class PresetsWindow;
+
+        /**
+         * Preset descriptor
+         */
+        typedef struct preset_item_t
+        {
+            PluginWindow       *plugin_window;
+            PresetsWindow      *presets_window;
+            LSPString           name;
+            LSPString           location;
+            // LSPString           author;
+            //                     date;
+        } preset_item_t;
 
         /**
          * The plugin's window controller
@@ -48,6 +62,7 @@ namespace lsp
             protected:
                 PluginWindow           *pPluginWindow;
                 tk::ListBox            *wPresetsList;
+                int16_t                 iSelectedPreset = -1;
 
             protected:
                 // Slots

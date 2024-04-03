@@ -95,24 +95,24 @@ namespace lsp
         status_t PresetsWindow::refresh_presets()
         {
             status_t res;
-            lltl::darray<resource::resource_t> presets;
+            lltl::darray<resource::resource_t> build_in_presets;
             const meta::plugin_t *metadata = pWrapper->ui()->metadata();
             if (metadata == NULL)
                 return STATUS_NOT_FOUND;
 
-            if ((res = core::scan_presets(&presets, pWrapper->resources(), metadata->ui_presets)) != STATUS_OK)
+            if ((res = core::scan_presets(&build_in_presets, pWrapper->resources(), metadata->ui_presets)) != STATUS_OK)
                 return res;
-            if (presets.is_empty())
+            if (build_in_presets.is_empty())
                 return STATUS_NOT_FOUND;
-            core::sort_presets(&presets, true);
+            core::sort_presets(&build_in_presets, true);
 
             // Initial preset
             resource::resource_t initial_preset;
             initial_preset.type = resource::RES_DIR;
             strcpy(initial_preset.name, "-- Initial preset --");
-            presets.insert(0, initial_preset);
+            build_in_presets.insert(0, initial_preset);
 
-            put_presets_to_list(&presets);
+            put_presets_to_list(&build_in_presets);
 
             return STATUS_OK;
         }
@@ -180,6 +180,8 @@ namespace lsp
             tk::Button *btn_override = widgets()->get<tk::Button>("btn_override");
             if (btn_override != NULL)
                 btn_override->editable()->set(editable);
+
+            // TODO: Save selected preset index to iSelectedPreset
         }
 
         // Slots
@@ -196,42 +198,75 @@ namespace lsp
         status_t PresetsWindow::slot_preset_new_click(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("slot_preset_new_click");
+
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+
+            // TODO: Ask for name using prompt dialog
+            // Validate the name
+            // TODO: Save preset to the folder
+            self->refresh_presets();
+
             return STATUS_OK;
         }
 
         status_t PresetsWindow::slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("slot_preset_delete_click");
+
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+
+            // TODO: Ask for deletion confirmation
+            // TODO: Delete preset from the folder
+            self->refresh_presets();
+
             return STATUS_OK;
         }
 
         status_t PresetsWindow::slot_preset_override_click(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("slot_preset_override_click");
+
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+
+            // TODO: Ask for override confirmation
+            // TODO: Update preset in the folder
+
             return STATUS_OK;
         }
 
         status_t PresetsWindow::slot_import_click(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("slot_import_click");
+
+            // TODO: Show import context menu
+
             return STATUS_OK;
         }
 
         status_t PresetsWindow::slot_export_click(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("slot_export_click");
+
+            // TODO: Show export context menu
+
             return STATUS_OK;
         }
 
         status_t PresetsWindow::slot_state_copy_click(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("slot_state_copy_click");
+
+            // TODO: Copy current plugin state to clipboard
+
             return STATUS_OK;
         }
 
         status_t PresetsWindow::slot_state_paste_click(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("slot_state_paste_click");
+
+            // TODO: Paste plugin state from clipboard
+
             return STATUS_OK;
         }
 
@@ -250,6 +285,12 @@ namespace lsp
             lsp_trace("slot_preset_dblclick");
 
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+
+            if (self->iSelectedPreset < 0)
+                return STATUS_OK; // Impossible
+
+            // TODO: If iSelectedPreset == 0 -> PluginWindow.slot_confirm_reset_settings();
+            // TODO: Else -> load preset
 
             return STATUS_OK;
         }
