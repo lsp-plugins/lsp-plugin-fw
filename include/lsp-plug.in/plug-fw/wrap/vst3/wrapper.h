@@ -142,6 +142,7 @@ namespace lsp
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
                 bool                                bMidiMapping;           // Midi mapping is used
+                bool                                bMsgWorkaround;         // Message workaround for bogus hosts
 
                 uint32_t                            nLatency;               // Current latency of the plugin
 

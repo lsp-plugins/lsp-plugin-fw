@@ -95,6 +95,7 @@ namespace lsp
             nMaxSamplesPerBlock = 0;
             bUpdateSettings     = true;
             bMidiMapping        = false;
+            bMsgWorkaround      = false;
 
             nLatency            = 0;
         }
@@ -815,6 +816,7 @@ namespace lsp
             // Set up host context
             pHostContext        = safe_acquire(context);
             pHostApplication    = safe_query_iface<Steinberg::Vst::IHostApplication>(context);
+            bMsgWorkaround      = use_message_workaround(pHostApplication);
 
             lsp_trace("Creating executor service");
             ipc::IExecutor *executor    = pFactory->acquire_executor();
@@ -2835,7 +2837,7 @@ namespace lsp
                 return;
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };
@@ -2861,7 +2863,7 @@ namespace lsp
                 return;
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };
@@ -2884,7 +2886,7 @@ namespace lsp
             atomic_unlock(nPositionLock);
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };
@@ -2937,7 +2939,7 @@ namespace lsp
                         osc::dump_packet(pOscPacket, size);
 
                         // Allocate new message
-                        Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                        Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                         if (msg == NULL)
                             continue;
                         lsp_finally { safe_release(msg); };
@@ -2974,7 +2976,7 @@ namespace lsp
                 return;
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };
@@ -3009,7 +3011,7 @@ namespace lsp
                     continue;
 
                 // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                 if (msg == NULL)
                     continue;
                 lsp_finally { safe_release(msg); };
@@ -3078,7 +3080,7 @@ namespace lsp
                 // lsp_trace("id = %s, first=%d, last=%d", fb_port->metadata()->id, int(first_row), int(last_row));
 
                 // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                 if (msg == NULL)
                     continue;
                 lsp_finally { safe_release(msg); };
@@ -3160,7 +3162,7 @@ namespace lsp
 //                        int(src_id), int(s_port->frame_id()), int(frame_id), int(last_id), int(delta), int(num_frames));
 
                 // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
                 if (msg == NULL)
                     continue;
                 lsp_finally { safe_release(msg); };
@@ -3253,7 +3255,7 @@ namespace lsp
             lsp_trace("position = %lld, length=%lld", (long long)position, (long long)length);
 
             // Allocate new message
-            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication);
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
             if (msg == NULL)
                 return;
             lsp_finally { safe_release(msg); };
