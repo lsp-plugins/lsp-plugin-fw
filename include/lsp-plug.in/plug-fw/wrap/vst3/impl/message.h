@@ -206,7 +206,7 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Message::getBinary(AttrID id, const void *& data, Steinberg::uint32& sizeInBytes)
         {
-            item_t *item = get_item(id, STRING);
+            item_t *item = get_item(id, BLOB);
             if (item == NULL)
                 return Steinberg::kInvalidArgument;
 
