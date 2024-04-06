@@ -100,6 +100,7 @@ namespace lsp
                 ssize_t                 nDirectClients; // Number of direct clients
                 bool                    bQueueDraw;     // Queue draw request
                 bool                    bUpdateSettings;// Settings update
+                bool                    bStateManage;   // State management barrier
                 float                   fSampleRate;
                 uint8_t                *pOscPacket;     // OSC packet data
                 volatile uatomic_t      nStateMode;     // State change flag
@@ -167,23 +168,20 @@ namespace lsp
                     LV2_State_Store_Function   store,
                     LV2_State_Handle           handle,
                     uint32_t                   flags,
-                    const LV2_Feature *const * features
-                );
+                    const LV2_Feature *const * features);
 
                 inline void restore_state(
                     LV2_State_Retrieve_Function retrieve,
                     LV2_State_Handle            handle,
                     uint32_t                    flags,
-                    const LV2_Feature *const *  features
-                );
+                    const LV2_Feature *const *  features);
 
                 // Job part
                 inline void job_run(
                     LV2_Worker_Respond_Handle   handle,
                     LV2_Worker_Respond_Function respond,
                     uint32_t                    size,
-                    const void*                 data
-                );
+                    const void*                 data);
 
                 inline void job_response(size_t size, const void *body) {}
                 inline void job_end() {}

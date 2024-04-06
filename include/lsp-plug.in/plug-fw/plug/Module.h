@@ -249,12 +249,23 @@ namespace lsp
                 virtual void                kvt_release();
 
                 /**
-                 * Callback for case when plugin's state has been saved
+                 * Callback before the state of the plugin becomes saved.
+                 */
+                virtual void                before_state_save();
+
+                /**
+                 * Callback for case when plugin's state has been just saved
                  */
                 virtual void                state_saved();
 
                 /**
-                 * Callback for case when plugin's state has been loaded
+                 * Callback before the state of the plugin becomes saved. The plugin can store to
+                 * KVT some internal state that can be used after state has been loaded.
+                 */
+                virtual void                before_state_load();
+
+                /**
+                 * Callback for case when plugin's state has been just loaded
                  */
                 virtual void                state_loaded();
 

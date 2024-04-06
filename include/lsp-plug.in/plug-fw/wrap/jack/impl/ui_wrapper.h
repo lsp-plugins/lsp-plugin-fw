@@ -493,6 +493,57 @@ namespace lsp
             ctl::inject_style(pJackStatus, (connected) ? JACK_STATUS_ON : JACK_STATUS_OFF);
             pJackStatus->text()->set((connected) ? "statuses.jack.on" : "statuses.jack.off");
         }
+
+        status_t UIWrapper::export_settings(config::Serializer *s, const io::Path *basedir)
+        {
+            // Notify the plugin the state is about to be saved
+            pPlugin->before_state_save();
+
+            // Synchronize KVT state as before_state_save() can change it
+            core::KVTStorage *kvt = pWrapper->kvt_trylock();
+            if (kvt != NULL)
+            {
+                lsp_finally { pWrapper->kvt_release(); };
+                sync_kvt(kvt);
+                kvt->gc();
+            }
+
+            // Do the usual stuff
+            status_t res = ui::IWrapper::export_settings(s, basedir);
+
+            // Notify the plugin that the state has been just saved
+            if (res == STATUS_OK)
+                pPlugin->state_saved();
+
+            return res;
+        }
+
+        status_t UIWrapper::import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir)
+        {
+            // Notify the plugin the state is about to be load
+            pPlugin->before_state_load();
+
+            // Do the usual stuff
+            status_t res = ui::IWrapper::import_settings(parser, flags, basedir);
+
+            // Synchronize KVT state as there can be changes
+            core::KVTStorage *kvt = pWrapper->kvt_trylock();
+            if (kvt != NULL)
+            {
+                lsp_finally { pWrapper->kvt_release(); };
+                sync_kvt(kvt);
+                kvt->gc();
+            }
+
+            // Notify the plugin that the state has been just loaded
+            if (res == STATUS_OK)
+            {
+                pPlugin->state_loaded();
+                pWrapper->bUpdateSettings = true;
+            }
+
+            return res;
+        }
     } /* namespace jack */
 } /* namespace lsp */
 

@@ -94,6 +94,7 @@ namespace lsp
             nDumpResp           = 0;
             nMaxSamplesPerBlock = 0;
             bUpdateSettings     = true;
+            bStateManage        = false;
             bMidiMapping        = false;
             bMsgWorkaround      = false;
 
@@ -1311,9 +1312,6 @@ namespace lsp
                 sKVT.gc();
             }
 
-            if (res == STATUS_OK)
-                pPlugin->state_saved();
-
             return res;
         }
 
@@ -1452,10 +1450,7 @@ namespace lsp
             // Analyze result
             res = (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
             if (res == STATUS_OK)
-            {
                 bUpdateSettings = true;
-                pPlugin->state_loaded();
-            }
 
             return STATUS_OK;
         }
@@ -1469,7 +1464,20 @@ namespace lsp
                 lsp_dumpb("State dump:", is.data(), is.size());
             );
 
+            // Set state management barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Notify plugin that state is about to load
+            pPlugin->before_state_load();
+
+            // Load the state
             status_t res = load_state(state);
+
+            // Notify the plugin that the state has been loaded
+            if (res == STATUS_OK)
+                pPlugin->state_loaded();
+
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
 
@@ -1482,7 +1490,19 @@ namespace lsp
                 state = &os;
             );
 
+            // Set state management barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Notify the plugin the state is about to be saved
+            pPlugin->before_state_save();
+
+            // Save plugin's state
             status_t res = save_state(state);
+
+            // Notify the plugin about state just been saved
+            if (res == STATUS_OK)
+                pPlugin->state_saved();
 
             IF_TRACE(
                 lsp_dumpb("State dump:", os.data(), os.size());
@@ -2597,6 +2617,9 @@ namespace lsp
 
         void Wrapper::state_changed()
         {
+            if (bStateManage)
+                return;
+
             atomic_add(&nDirtyReq, 1);
         }
 

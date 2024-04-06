@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -1205,6 +1205,13 @@ namespace lsp
             status_t res;
             config::param_t param;
             core::KVTStorage *kvt = kvt_lock();
+            lsp_finally {
+                if (kvt != NULL)
+                {
+                    kvt->gc();
+                    kvt_release();
+                }
+            };
 
             // Reset all ports to default values
             if (!(flags & IMPORT_FLAG_PATCH))
@@ -1225,8 +1232,15 @@ namespace lsp
 
             while ((res = parser->next(&param)) == STATUS_OK)
             {
-                if ((param.name.starts_with('/')) && (kvt != NULL)) // KVT
+                if (param.name.starts_with('/')) // KVT
                 {
+                    // Do nothing if there is no KVT
+                    if (kvt == NULL)
+                    {
+                        lsp_warn("Could not apply KVT parameter %s because there is no KVT", param.name.get_utf8());
+                        continue;
+                    }
+
                     core::kvt_param_t kp;
 
                     switch (param.type())
@@ -1326,13 +1340,6 @@ namespace lsp
                         }
                     }
                 }
-            }
-
-            // Release KVT
-            if (kvt != NULL)
-            {
-                kvt->gc();
-                kvt_release();
             }
 
             return (res == STATUS_EOF) ? STATUS_OK : res;
