@@ -180,6 +180,8 @@
 #define WET_GAIN_R(g)       AMP_GAIN10("wet_r", "Wet amount R", g)
 
 #define DRYWET(perc)        PERCENTS("drywet", "Dry/Wet balance", perc, 0.1f)
+#define DRYWET_L(perc)      PERCENTS("dwmix_l", "Dry/Wet balance Left", perc, 0.1f)
+#define DRYWET_R(perc)      PERCENTS("dwmix_r", "Dry/Wet balance Right", perc, 0.1f)
 
 #define BYPASS              { PORT_NAME_BYPASS, "Bypass", U_BOOL, R_BYPASS, F_UPPER | F_LOWER, 0, 1, 0, 0, NULL, NULL }
 
