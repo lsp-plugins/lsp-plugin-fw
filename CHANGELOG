@@ -5,6 +5,7 @@
 === 1.0.23 ===
 * Added obtaining information about the original file provided by the
   MapPath::absolute_path LV2 extension.
+* Fixed behaviour of ctl::Fraction when writing values.
 * Added ListBox controller.
 * Added empty text support for Edit controller.
 
