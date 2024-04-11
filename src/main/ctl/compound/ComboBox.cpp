@@ -69,6 +69,27 @@ namespace lsp
 
         ComboBox::~ComboBox()
         {
+            do_destroy();
+        }
+
+        void ComboBox::destroy()
+        {
+            do_destroy();
+            Widget::destroy();
+        }
+
+        void ComboBox::do_destroy()
+        {
+            if (!vItems.is_empty())
+            {
+                for (lltl::iterator<ListBoxItem> it = vItems.values(); it; ++it)
+                {
+                    ListBoxItem *item = it.get();
+                    if (item != NULL)
+                        item->set_child_sync(NULL);
+                }
+                vItems.flush();
+            }
         }
 
         status_t ComboBox::init()
@@ -137,11 +158,59 @@ namespace lsp
         {
             Widget::notify(port, flags);
 
-            if ((port == NULL) || (pPort != port))
+            bool update = false;
+            if ((port != NULL) && (pPort == port))
+                update = true;
+            else if (!vItems.is_empty())
+                update = true;
+
+            if (update)
+                update_selection();
+        }
+
+        status_t ComboBox::add(ui::UIContext *ctx, ctl::Widget *child)
+        {
+            ctl::ListBoxItem *item = ctl::ctl_cast<ctl::ListBoxItem>(child);
+            if (item == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            if (!vItems.add(item))
+                return STATUS_NO_MEM;
+
+            item->set_child_sync(this);
+            return STATUS_OK;
+        }
+
+        void ComboBox::end(ui::UIContext *ctx)
+        {
+            sync_metadata(pPort);
+
+            Widget::end(ctx);
+        }
+
+        void ComboBox::update_selection()
+        {
+            tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
+            if (cbox == NULL)
                 return;
 
-            tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
-            if (cbox != NULL)
+            if (!vItems.is_empty())
+            {
+                ctl::ListBoxItem *sel = vItems.uget(0);
+                for (size_t i=1, n=vItems.size(); i < n; ++i)
+                {
+                    ctl::ListBoxItem *item = vItems.uget(i);
+                    if ((item != NULL) && (item->selected()))
+                    {
+                        sel = item;
+                        break;
+                    }
+                }
+
+                tk::Widget *li = (sel != NULL) ? sel->widget() : NULL;
+                cbox->selected()->set(tk::widget_cast<tk::ListBoxItem>(li));
+            }
+            else if (pPort != NULL)
             {
                 ssize_t index = (pPort->value() - fMin) / fStep;
 
@@ -150,31 +219,43 @@ namespace lsp
             }
         }
 
-        void ComboBox::end(ui::UIContext *ctx)
-        {
-            if (pPort != NULL)
-                sync_metadata(pPort);
-
-            Widget::end(ctx);
-        }
-
         void ComboBox::sync_metadata(ui::IPort *port)
         {
             tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
             if (cbox == NULL)
                 return;
 
-            if (port != pPort)
-                return;
-
-            const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
-            if (p == NULL)
-                return;
-
-            meta::get_port_parameters(p, &fMin, &fMax, &fStep);
-
-            if (p->unit == meta::U_ENUM)
+            if (!vItems.is_empty())
             {
+                // Need to initialize items?
+                if (cbox->items()->is_empty())
+                {
+                    for (lltl::iterator<ListBoxItem> it=vItems.values(); it; ++it)
+                    {
+                        ListBoxItem *item = it.get();
+                        if (item == NULL)
+                            continue;
+
+                        tk::ListBoxItem *li = tk::widget_cast<tk::ListBoxItem>(item->widget());
+                        if (li == NULL)
+                            continue;
+
+                        cbox->items()->add(li);
+                    }
+                }
+
+                update_selection();
+            }
+            else if (port == pPort)
+            {
+                const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
+                if (p == NULL)
+                    return;
+
+                meta::get_port_parameters(p, &fMin, &fMax, &fStep);
+                if (p->unit != meta::U_ENUM)
+                    return;
+
                 ssize_t value   = pPort->value();
                 size_t i        = 0;
 
@@ -218,21 +299,55 @@ namespace lsp
 
         void ComboBox::submit_value()
         {
-            if (pPort == NULL)
-                return;
-
             tk::ComboBox *cbox = tk::widget_cast<tk::ComboBox>(wWidget);
             if (cbox == NULL)
                 return;
 
-            ssize_t index = cbox->items()->index_of(cbox->selected()->get());
+            if (!vItems.is_empty())
+            {
+                if (pPort == NULL)
+                    return;
 
-            float value = fMin + fStep * index;
-            lsp_trace("index = %d, value=%f", int(index), value);
+                tk::ListBoxItem *li = cbox->selected()->get();
 
-            pPort->set_value(value);
-            pPort->notify_all(ui::PORT_USER_EDIT);
+                // Find the item that matches the list box
+                ListBoxItem *found = NULL;
+                for (lltl::iterator<ListBoxItem> it=vItems.values(); it; ++it)
+                {
+                    ListBoxItem *item = it.get();
+                    if ((item != NULL) && (item->widget() == li))
+                    {
+                        found = item;
+                        break;
+                    }
+                }
+
+                if (found == NULL)
+                    return;
+
+                float value = found->value();
+                lsp_trace("index = %d, value=%f", int(vItems.index_of(found)), value);
+
+                pPort->set_value(value);
+                pPort->notify_all(ui::PORT_USER_EDIT);
+            }
+            else if (pPort != NULL)
+            {
+                ssize_t index = cbox->items()->index_of(cbox->selected()->get());
+
+                float value = fMin + fStep * index;
+                lsp_trace("index = %d, value=%f", int(index), value);
+
+                pPort->set_value(value);
+                pPort->notify_all(ui::PORT_USER_EDIT);
+            }
         }
+
+        void ComboBox::child_changed(Widget *child)
+        {
+            update_selection();
+        }
+
     } /* namespace ctl */
 } /* namespace lsp */
 

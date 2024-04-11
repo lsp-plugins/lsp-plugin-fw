@@ -43,6 +43,7 @@
     #include <lsp-plug.in/plug-fw/ctl/util/Direction.h>
     #include <lsp-plug.in/plug-fw/ctl/util/Layout.h>
     #include <lsp-plug.in/plug-fw/ctl/util/TextLayout.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/IChildSync.h>
 
     // Widget controllers
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
@@ -74,6 +75,7 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/MultiLabel.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/TabControl.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/ListBox.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/ListBoxItem.h>
 
     #include <lsp-plug.in/plug-fw/ctl/compound/ComboBox.h>
     #include <lsp-plug.in/plug-fw/ctl/compound/ComboGroup.h>

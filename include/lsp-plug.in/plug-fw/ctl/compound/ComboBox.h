@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 27 июн. 2021 г.
@@ -33,27 +33,30 @@ namespace lsp
 {
     namespace ctl
     {
+        class ListBoxItem;
+
         /**
          * ComboBox controller
          */
-        class ComboBox: public Widget
+        class ComboBox: public Widget, public IChildSync
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ui::IPort          *pPort;
-                ctl::Color          sColor;
-                ctl::Color          sSpinColor;
-                ctl::Color          sTextColor;
-                ctl::Color          sSpinTextColor;
-                ctl::Color          sBorderColor;
-                ctl::Color          sBorderGapColor;
-                ctl::LCString       sEmptyText;
+                ui::IPort                  *pPort;
+                ctl::Color                  sColor;
+                ctl::Color                  sSpinColor;
+                ctl::Color                  sTextColor;
+                ctl::Color                  sSpinTextColor;
+                ctl::Color                  sBorderColor;
+                ctl::Color                  sBorderGapColor;
+                ctl::LCString               sEmptyText;
+                lltl::parray<ListBoxItem>   vItems;             // Custom items
 
-                float               fMin;
-                float               fMax;
-                float               fStep;
+                float                       fMin;
+                float                       fMax;
+                float                       fStep;
 
             protected:
                 static status_t     slot_combo_submit(tk::Widget *sender, void *ptr, void *data);
@@ -61,17 +64,30 @@ namespace lsp
             protected:
                 virtual void        sync_metadata(ui::IPort *port) override;
                 void                submit_value();
+                void                do_destroy();
+                void                update_selection();
 
             public:
                 explicit ComboBox(ui::IWrapper *wrapper, tk::ComboBox *widget);
+                ComboBox(const ComboBox &) = delete;
+                ComboBox(ComboBox &&) = delete;
                 virtual ~ComboBox() override;
 
-                virtual status_t    init() override;
+                ComboBox & operator = (const ComboBox &) = delete;
+                ComboBox & operator = (ComboBox &&) = delete;
 
-            public:
+                virtual status_t    init() override;
+                virtual void        destroy() override;
+
+            public: // ctl::Widget
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child) override;
                 virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        end(ui::UIContext *ctx) override;
+
+            public: // ctl::IChildSync
+                virtual void        child_changed(Widget *child) override;
+
         };
 
     } /* namespace ctl */
