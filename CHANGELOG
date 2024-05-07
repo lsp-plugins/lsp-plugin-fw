@@ -7,6 +7,7 @@
   MapPath::absolute_path LV2 extension.
 * Added custom option support by ComboBox.
 * Fixed behaviour of ctl::Fraction when writing values.
+* Added text estimation support by the Parameter controller.
 * Added ListBox controller.
 * Added empty text support for Edit controller.
 

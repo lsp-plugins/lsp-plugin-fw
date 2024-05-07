@@ -555,15 +555,12 @@ namespace lsp
             const char *fmt;
             const char *unit    = (units) ? get_unit_name(meta::U_DB) : NULL;
             double mul          = (meta->unit == U_GAIN_AMP) ? 20.0 : 10.0;
-            if (value < 0.0f)
-                value               = - value;
-
-            value               = mul * log(value) / M_LN10;
+            value               = mul * logf(fabsf(value)) / M_LN10;
             float thresh        = (meta->flags & F_EXT) ? -140.0f : -80.0f;
 
             if (unit != NULL)
             {
-                if (value <= thresh)
+                if (value < thresh)
                 {
                     snprintf(buf, len, "-inf %s", unit);
                     if (len > 0)
@@ -586,7 +583,7 @@ namespace lsp
             }
             else
             {
-                if (value <= thresh)
+                if (value < thresh)
                 {
                     strcpy(buf, "-inf");
                     return;
@@ -638,6 +635,78 @@ namespace lsp
                 format_int(buf, len, meta, value, units);
             else
                 format_float(buf, len, meta, value, precision, units);
+        }
+
+        void patch_buffer(char *buf, size_t len)
+        {
+            for (size_t i=0; i<len; ++i)
+            {
+                char c = buf[i];
+                if (c == '\0')
+                    return;
+                if ((c >= '1') && (c <= '9'))
+                    buf[i] = '0';
+            }
+        }
+
+        bool estimate_value(char *buf, size_t len, const port_t *meta, estimation_t e, ssize_t precision, bool units)
+        {
+            float value = 0.0f;
+            if (meta->unit == U_BOOL)
+            {
+                switch (e)
+                {
+                    case EST_MIN: value = 0.0f; break;
+                    case EST_MAX: value = 1.0f; break;
+                    case EST_DFL: value = meta->start; break;
+                    default: return false;
+                };
+
+                format_bool(buf, len, meta, value);
+                return true;
+            }
+            else if (meta->unit == U_ENUM)
+            {
+                return false;
+            }
+            else if ((meta->unit == U_GAIN_AMP) || (meta->unit == U_GAIN_POW))
+            {
+                switch (e)
+                {
+                    case EST_MIN: value = meta->min; break;
+                    case EST_MAX: value = meta->max; break;
+                    case EST_DFL: value = meta->start; break;
+                    case EST_SPECIAL: value = 0.0f; break;
+                    default: return false;
+                };
+
+                float thresh        = 0.0f;
+                if (meta->flags & F_EXT)
+                    thresh = (meta->unit == U_GAIN_AMP) ? 1e-7 : 1e-14;
+                else
+                    thresh = (meta->unit == U_GAIN_AMP) ? 1e-4 : 1e-8;
+
+                if ((e != EST_SPECIAL) && (fabsf(value) < thresh))
+                    value               = thresh;
+
+                format_value(buf, len, meta, value, precision, units);
+            }
+            else
+            {
+                switch (e)
+                {
+                    case EST_MIN: value = meta->min; break;
+                    case EST_MAX: value = meta->max; break;
+                    case EST_DFL: value = meta->start; break;
+                    case EST_SPECIAL: value = 0.0f; break;
+                    default: return false;
+                };
+
+                format_value(buf, len, meta, value, precision, units);
+            }
+
+            patch_buffer(buf, len);
+            return true;
         }
 
         status_t parse_bool(float *dst, const char *text, const port_t *meta)
