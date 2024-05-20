@@ -56,6 +56,7 @@ namespace lsp
 
             bLatencyChanged     = false;
             bUpdateSettings     = true;
+            bStateManage        = false;
             pSamplePlayer       = NULL;
         }
 
@@ -1159,7 +1160,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t Wrapper::save_state(const clap_ostream_t *os)
+        status_t Wrapper::save_state_work(const clap_ostream_t *os)
         {
             status_t res        = STATUS_OK;
 
@@ -1339,6 +1340,21 @@ namespace lsp
                     }
                 }
             }
+
+            return res;
+        }
+
+        status_t Wrapper::save_state(const clap_ostream_t *os)
+        {
+            // Set state management barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Trigger the plugin to prepare the internal state
+            pPlugin->before_state_save();
+
+            // Do the state save
+            status_t res = save_state_work(os);
 
             // Notify the plugin
             if (res == STATUS_OK)
@@ -1593,7 +1609,7 @@ namespace lsp
             p->type = core::KVT_ANY;
         }
 
-        status_t Wrapper::load_state(const clap_istream_t *is)
+        status_t Wrapper::load_state_work(const clap_istream_t *is)
         {
             status_t res;
             uint32_t magic = 0, version = 0;
@@ -1710,10 +1726,26 @@ namespace lsp
             // Analyze result
             res = (res == STATUS_EOF) ? STATUS_OK : STATUS_CORRUPTED;
             if (res == STATUS_OK)
-            {
                 bUpdateSettings = true;
+
+            return res;
+        }
+
+        status_t Wrapper::load_state(const clap_istream_t *is)
+        {
+            // Set state management barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Notify plugin that state is about to load
+            pPlugin->before_state_load();
+
+            // Do the state load
+            status_t res = load_state_work(is);
+
+            // Notify plugin about successful state load
+            if (res == STATUS_OK)
                 pPlugin->state_loaded();
-            }
 
             return res;
         }
@@ -1950,6 +1982,9 @@ namespace lsp
 
         void Wrapper::state_changed()
         {
+            if (bStateManage)
+                return;
+
             if (pExt->state != NULL)
                 pExt->state->mark_dirty(pHost);
         }

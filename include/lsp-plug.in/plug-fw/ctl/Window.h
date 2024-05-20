@@ -65,8 +65,8 @@ namespace lsp
 
                 virtual void            reloaded(const tk::StyleSheet *sheet);
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

@@ -829,11 +829,20 @@ namespace lsp
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t Wrapper::import_settings(config::PullParser *parser)
+        status_t Wrapper::import_settings_work(config::PullParser *parser)
         {
             status_t res;
             config::param_t param;
+
+            // Lock KVT
             core::KVTStorage *kvt = kvt_lock();
+            lsp_finally {
+                if (kvt != NULL)
+                {
+                    kvt->gc();
+                    kvt_release();
+                }
+            };
 
             // Reset all ports to default values
             for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
@@ -847,8 +856,15 @@ namespace lsp
             // Process the configuration file
             while ((res = parser->next(&param)) == STATUS_OK)
             {
-                if ((param.name.starts_with('/')) && (kvt != NULL)) // KVT
+                if (param.name.starts_with('/')) // KVT
                 {
+                    // Do nothing if there is no KVT
+                    if (kvt == NULL)
+                    {
+                        lsp_warn("Could not apply KVT parameter %s because there is no KVT", param.name.get_utf8());
+                        continue;
+                    }
+
                     core::kvt_param_t kp;
 
                     switch (param.type())
@@ -945,14 +961,22 @@ namespace lsp
                 }
             }
 
-            // Release KVT
-            if (kvt != NULL)
-            {
-                kvt->gc();
-                kvt_release();
-            }
-
             return (res == STATUS_EOF) ? STATUS_OK : res;
+        }
+
+        status_t Wrapper::import_settings(config::PullParser *parser)
+        {
+            // Notify plugin that state is about to load
+            pPlugin->before_state_load();
+
+            // Import settings
+            status_t res = import_settings_work(parser);
+
+            // Notify plugin that state has been just loaded
+            if (res == STATUS_OK)
+                pPlugin->state_loaded();
+
+            return res;
         }
 
         bool Wrapper::set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base)

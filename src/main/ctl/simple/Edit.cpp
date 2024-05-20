@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 15 апр. 2022 г.
@@ -71,12 +71,14 @@ namespace lsp
             tk::Edit *ed = tk::widget_cast<tk::Edit>(wWidget);
             if (ed != NULL)
             {
+                sEmptyText.init(pWrapper, ed->empty_text());
                 sColor.init(pWrapper, ed->color());
                 sBorderColor.init(pWrapper, ed->border_color());
                 sBorderGapColor.init(pWrapper, ed->border_gap_color());
                 sCursorColor.init(pWrapper, ed->cursor_color());
                 sTextColor.init(pWrapper, ed->text_color());
                 sTextSelectedColor.init(pWrapper, ed->text_selected_color());
+                sEmptyTextColor.init(pWrapper, ed->placeholder_text_color());
 
                 sBorderSize.init(pWrapper, ed->border_size());
                 sBorderGapSize.init(pWrapper, ed->border_size());
@@ -91,6 +93,8 @@ namespace lsp
             tk::Edit *ed = tk::widget_cast<tk::Edit>(wWidget);
             if (ed != NULL)
             {
+                sEmptyText.set("text.empty", name, value);
+                sEmptyText.set("etext", name, value);
                 sColor.set("color", name, value);
                 sBorderColor.set("border.color", name, value);
                 sBorderColor.set("bcolor", name, value);
@@ -100,6 +104,8 @@ namespace lsp
                 sCursorColor.set("ccolor", name, value);
                 sTextColor.set("text.color", name, value);
                 sTextColor.set("tcolor", name, value);
+                sEmptyTextColor.set("text.empty.color", name, value);
+                sEmptyTextColor.set("etext.color", name, value);
                 sTextSelectedColor.set("text.selected.color", name, value);
                 sTextSelectedColor.set("tsel.color", name, value);
 

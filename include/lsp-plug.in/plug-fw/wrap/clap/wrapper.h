@@ -87,6 +87,7 @@ namespace lsp
 
                 bool                            bLatencyChanged;    // Flag that indicates that the plugin restart was requested
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
+                bool                            bStateManage;       // State management barrier
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
 
             protected:
@@ -160,7 +161,9 @@ namespace lsp
             public:
                 // CLAP state extension
                 status_t        save_state(const clap_ostream_t *os);
+                status_t        save_state_work(const clap_ostream_t *os);
                 status_t        load_state(const clap_istream_t *is);
+                status_t        load_state_work(const clap_istream_t *is);
 
             public:
                 // CLAP tail extension

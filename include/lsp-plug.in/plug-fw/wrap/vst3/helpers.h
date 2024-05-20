@@ -39,6 +39,9 @@
 #include <steinberg/vst3.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/data.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/message.h>
+
+#include <ctype.h>
 
 namespace lsp
 {
@@ -656,8 +659,11 @@ namespace lsp
          * Helper function to allocate a message
          * @param host IHostApplication instance
          */
-        inline Steinberg::Vst::IMessage *alloc_message(Steinberg::Vst::IHostApplication *host)
+        inline Steinberg::Vst::IMessage *alloc_message(Steinberg::Vst::IHostApplication *host, bool workaround)
         {
+            if (workaround)
+                return new Message();
+
             if (host == NULL)
                 return NULL;
 
@@ -1009,6 +1015,34 @@ namespace lsp
                 return "dB";
             const char *res = meta::get_unit_name(unit);
             return (res != NULL) ? res : "";
+        }
+
+        inline bool use_message_workaround(Steinberg::Vst::IHostApplication *host)
+        {
+            Steinberg::Vst::String128 host_name;
+            if (host->getName(host_name) != Steinberg::kResultOk)
+                return false;
+
+            LSPString name, check;
+            if (!name.set_utf16(to_utf16(host_name)))
+                return false;
+
+            lsp_trace("Obtained VST3 Host Name: %s", name.get_native());
+            name.tolower();
+
+            if (check.set_ascii("bitwig studio"))
+            {
+                if (name.index_of(&check) >= 0)
+                {
+                    lsp_trace("Using Steinberg::Vst::IMessage workaround");
+                    return true;
+                }
+                else
+                    lsp_trace("string '%s' not matched '%s'", name.get_native(), check.get_native());
+            }
+
+            lsp_trace("Using standard Steinberg::Vst::IMessage implementation");
+            return false;
         }
 
     } /* namespace vst3 */

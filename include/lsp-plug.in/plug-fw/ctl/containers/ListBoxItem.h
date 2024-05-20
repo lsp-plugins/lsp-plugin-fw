@@ -2,8 +2,8 @@
  * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugin-fw
- * Created on: 15 апр. 2022 г.
+ * This file is part of lsp-plugins
+ * Created on: 11 апр. 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_EDIT_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_EDIT_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_LISTBOXITEM_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_LISTBOXITEM_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,38 +34,52 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Edit widget controller
+         * ComboBox controller
          */
-        class Edit: public Widget
+        class ListBoxItem: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::LCString       sEmptyText;
-                ctl::Color          sColor;
-                ctl::Color          sBorderColor;
-                ctl::Color          sBorderGapColor;
-                ctl::Color          sCursorColor;
+                IChildSync         *pSync;
+                bool                bSelected;
+                float               fValue;
+                ctl::Expression     sSelected;
+                ctl::Expression     sValue;
+                ctl::LCString       sText;
+                ctl::Color          sBgSelectedColor;
+                ctl::Color          sBgHoverColor;
                 ctl::Color          sTextColor;
-                ctl::Color          sEmptyTextColor;
                 ctl::Color          sTextSelectedColor;
-
-                ctl::Integer        sBorderSize;
-                ctl::Integer        sBorderGapSize;
-                ctl::Integer        sBorderRadius;
+                ctl::Color          sTextHoverColor;
 
             public:
-                explicit Edit(ui::IWrapper *wrapper, tk::Edit *widget);
-                virtual ~Edit() override;
+                explicit ListBoxItem(ui::IWrapper *wrapper, tk::ListBoxItem *widget);
+                ListBoxItem(const ListBoxItem &) = delete;
+                ListBoxItem(ListBoxItem &&) = delete;
+                virtual ~ListBoxItem() override;
+
+                ListBoxItem & operator = (const ListBoxItem &) = delete;
+                ListBoxItem & operator = (ListBoxItem &&) = delete;
 
                 virtual status_t    init() override;
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
+                virtual void        end(ui::UIContext *ctx) override;
+
+            public:
+                void                set_child_sync(IChildSync *sync);
+                bool                selected() const;
+                float               value() const;
         };
+
     } /* namespace ctl */
 } /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_EDIT_H_ */
+
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_LISTBOXITEM_H_ */

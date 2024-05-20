@@ -297,9 +297,9 @@ namespace lsp
                  * @param file file name
                  * @param relative use relative paths to the exported file
                  */
-                virtual status_t                export_settings(const char *file, bool relative = false);
-                virtual status_t                export_settings(const io::Path *file, bool relative = false);
-                virtual status_t                export_settings(const LSPString *file, bool relative = false);
+                status_t                        export_settings(const char *file, bool relative = false);
+                status_t                        export_settings(const io::Path *file, bool relative = false);
+                status_t                        export_settings(const LSPString *file, bool relative = false);
 
                 /**
                  * Export settings
@@ -307,9 +307,9 @@ namespace lsp
                  * @param basedir the directory the config file will be written, can be NULL
                  * @return status of operation
                  */
-                virtual status_t                export_settings(io::IOutSequence *os, const char *basedir);
-                virtual status_t                export_settings(io::IOutSequence *os, const LSPString *basedir);
-                virtual status_t                export_settings(io::IOutSequence *os, const io::Path *basedir = NULL);
+                status_t                        export_settings(io::IOutSequence *os, const char *basedir);
+                status_t                        export_settings(io::IOutSequence *os, const LSPString *basedir);
+                status_t                        export_settings(io::IOutSequence *os, const io::Path *basedir = NULL);
 
                 /**
                  * Export settings
@@ -317,8 +317,8 @@ namespace lsp
                  * @param basedir the directory the config file will be written, can be NULL
                  * @return status of operation
                  */
-                virtual status_t                export_settings(config::Serializer *s, const char *basedir);
-                virtual status_t                export_settings(config::Serializer *s, const LSPString *basedir);
+                status_t                        export_settings(config::Serializer *s, const char *basedir);
+                status_t                        export_settings(config::Serializer *s, const LSPString *basedir);
                 virtual status_t                export_settings(config::Serializer *s, const io::Path *basedir = NULL);
 
                 /**
@@ -327,14 +327,14 @@ namespace lsp
                  * @param flags different flags (@see import_flags_t)
                  * @return status of operation
                  */
-                virtual status_t                import_settings(const char *file, size_t flags);
-                virtual status_t                import_settings(const io::Path *file, size_t flags);
-                virtual status_t                import_settings(const LSPString *file, size_t flags);
-                virtual status_t                import_settings(io::IInSequence *is, size_t flags, const char *basedir);
-                virtual status_t                import_settings(io::IInSequence *is, size_t flags, const LSPString *basedir);
-                virtual status_t                import_settings(io::IInSequence *is, size_t flags, const io::Path *basedir = NULL);
-                virtual status_t                import_settings(config::PullParser *parser, size_t flags, const char *basedir);
-                virtual status_t                import_settings(config::PullParser *parser, size_t flags, const LSPString *basedir);
+                status_t                        import_settings(const char *file, size_t flags);
+                status_t                        import_settings(const io::Path *file, size_t flags);
+                status_t                        import_settings(const LSPString *file, size_t flags);
+                status_t                        import_settings(io::IInSequence *is, size_t flags, const char *basedir);
+                status_t                        import_settings(io::IInSequence *is, size_t flags, const LSPString *basedir);
+                status_t                        import_settings(io::IInSequence *is, size_t flags, const io::Path *basedir = NULL);
+                status_t                        import_settings(config::PullParser *parser, size_t flags, const char *basedir);
+                status_t                        import_settings(config::PullParser *parser, size_t flags, const LSPString *basedir);
                 virtual status_t                import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir = NULL);
 
                 /**

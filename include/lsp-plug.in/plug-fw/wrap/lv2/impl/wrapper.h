@@ -79,6 +79,7 @@ namespace lsp
 
             bQueueDraw      = false;
             bUpdateSettings = true;
+            bStateManage    = false;
             fSampleRate     = DEFAULT_SAMPLE_RATE;
             pOscPacket      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX));
             nStateMode      = SM_LOADING;
@@ -1627,11 +1628,19 @@ namespace lsp
                 uint32_t                   flags,
                 const LV2_Feature *const * features)
         {
-            pExt->init_state_context(store, NULL, handle, flags, features);
+            // Set state management barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Trigger the plugin to prepare the internal state.
+            pPlugin->before_state_save();
 
             // Mark state as synchronized
             nStateMode      = SM_SYNC;
             lsp_trace("#STATE MODE = %d", nStateMode);
+
+            // Init context
+            pExt->init_state_context(store, NULL, handle, flags, features);
 
             // Save state of all ports
             size_t ports_count = vAllPorts.size();
@@ -1656,6 +1665,8 @@ namespace lsp
             }
 
             pExt->reset_state_context();
+
+            // Notify the plugin that state has been saged
             pPlugin->state_saved();
         }
 
@@ -1978,9 +1989,16 @@ namespace lsp
             LV2_State_Retrieve_Function retrieve,
             LV2_State_Handle            handle,
             uint32_t                    flags,
-            const LV2_Feature *const *  features
-        )
+            const LV2_Feature *const *  features)
         {
+            // Set state management barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Notify plugin that state is about to load
+            pPlugin->before_state_load();
+
+            // Initialize context
             pExt->init_state_context(NULL, retrieve, handle, flags, features);
 
             // Restore posts state
@@ -2005,11 +2023,13 @@ namespace lsp
                 sKVTMutex.unlock();
             }
 
+            // Update the state
             pExt->reset_state_context();
-            pPlugin->state_loaded();
-
             nStateMode = SM_LOADING;
             lsp_trace("#STATE MODE = %d", nStateMode);
+
+            // Notify that plugin state has been loaded
+            pPlugin->state_loaded();
         }
 
         bool Wrapper::change_state_atomic(state_mode_t from, state_mode_t to)
@@ -2136,6 +2156,9 @@ namespace lsp
 
         void Wrapper::state_changed()
         {
+            if (bStateManage)
+                return;
+
             change_state_atomic(SM_SYNC, SM_CHANGED);
         }
 

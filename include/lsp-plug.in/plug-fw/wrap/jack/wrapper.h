@@ -101,6 +101,7 @@ namespace lsp
                 int             run(size_t samples);
 
                 status_t        import_settings(config::PullParser *parser);
+                status_t        import_settings_work(config::PullParser *parser);
 
             protected:
                 static int      process(jack_nframes_t nframes, void *arg);

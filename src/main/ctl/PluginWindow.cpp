@@ -153,6 +153,9 @@ namespace lsp
 
         void PluginWindow::do_destroy()
         {
+            // Cancel greeting timer
+            wGreetingTimer.cancel();
+
             // Unbind configuration sink
             if (pConfigSink != NULL)
             {
@@ -253,9 +256,9 @@ namespace lsp
 
         status_t PluginWindow::slot_window_show(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            __this->locate_window();
-            __this->show_greeting_window();
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            self->locate_window();
+            self->set_greeting_timer();
             return STATUS_OK;
         }
 
@@ -2016,46 +2019,81 @@ namespace lsp
             return hlink;
         }
 
+        status_t PluginWindow::set_greeting_timer()
+        {
+            if (pPVersion == NULL)
+                return STATUS_OK;
+
+            LSPString pkgver;
+            status_t res = fmt_package_version(pkgver);
+            if (res != STATUS_OK)
+                return res;
+
+            const char *v = pPVersion->buffer<char>();
+            if ((v != NULL) && (pkgver.equals_utf8(v)))
+                return STATUS_OK;
+
+            // Set timer to show the greeting window
+            wGreetingTimer.set_handler(timer_show_greeting, this);
+            wGreetingTimer.bind(pWrapper->display());
+            wGreetingTimer.launch(1, 0, 1000);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::fmt_package_version(LSPString &pkgver)
+        {
+            const meta::package_t *pkg  = pWrapper->package();
+            if (pkg == NULL)
+                return STATUS_NO_DATA;
+
+            const meta::plugin_t *meta  = pWrapper->ui()->metadata();
+            if (meta == NULL)
+                return STATUS_NO_DATA;
+
+            pkgver.fmt_ascii("%d.%d.%d",
+                int(pkg->version.major),
+                int(pkg->version.minor),
+                int(pkg->version.micro));
+            if (pkg->version.branch)
+                pkgver.fmt_append_utf8("-%s", pkg->version.branch);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::timer_show_greeting(ws::timestamp_t sched, ws::timestamp_t time, void *arg)
+        {
+            if (arg == NULL)
+                return STATUS_OK;
+
+            PluginWindow *self = static_cast<PluginWindow *>(arg);
+            self->wGreetingTimer.cancel();
+            self->show_greeting_window();
+            return STATUS_OK;
+        }
+
         status_t PluginWindow::show_greeting_window()
         {
             status_t res;
-            LSPString key, value;
+            if (pPVersion == NULL)
+                return STATUS_BAD_STATE;
             tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
             if (wnd == NULL)
                 return STATUS_BAD_STATE;
 
-            // Get default dictionary
-            const meta::package_t *pkg  = pWrapper->package();
-            const meta::plugin_t *meta  = pWrapper->ui()->metadata();
-
-            LSPString pkgver, plugver;
-            pkgver.fmt_ascii("%d.%d.%d",
-                    int(pkg->version.major),
-                    int(pkg->version.minor),
-                    int(pkg->version.micro)
-            );
-            if (pkg->version.branch)
-                pkgver.fmt_append_utf8("-%s", pkg->version.branch);
-
-            plugver.fmt_ascii("%d.%d.%d",
-                    int(LSP_MODULE_VERSION_MAJOR(meta->version)),
-                    int(LSP_MODULE_VERSION_MINOR(meta->version)),
-                    int(LSP_MODULE_VERSION_MICRO(meta->version))
-            );
+            LSPString pkgver;
+            if ((res = fmt_package_version(pkgver)) != STATUS_OK)
+                return res;
 
             // Check that we really need to show notification window
-            if (pPVersion != NULL)
-            {
-                const char *v = pPVersion->buffer<char>();
-                if ((v != NULL) && (pkgver.equals_utf8(v)))
-                    return STATUS_OK;
+            const char *vstring = pkgver.get_utf8();
+        #ifdef LSP_TRACE
+            const char *old_pkgver = pPVersion->buffer<char>();
+            lsp_trace("Updating last version from %s to %s", old_pkgver, vstring);
+        #endif /* LSP_TRACE */
 
-                const char *vstring = pkgver.get_utf8();
-                lsp_trace("Updating last version from %s to %s", v, vstring);
-
-                pPVersion->write(vstring, strlen(vstring));
-                pPVersion->notify_all(ui::PORT_NONE);
-            }
+            pPVersion->write(vstring, strlen(vstring));
+            pPVersion->notify_all(ui::PORT_NONE);
 
             lsp_trace("Showing greeting dialog");
 

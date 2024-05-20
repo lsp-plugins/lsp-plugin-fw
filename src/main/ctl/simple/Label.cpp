@@ -253,13 +253,15 @@ namespace lsp
                     else
                         sunit.set(meta::get_unit_lc_key((meta::is_decibel_unit(mdata->unit)) ? meta::U_DB : mdata->unit));
 
-                    // Format the value
+                    // Prepare formatting
                     char buf[TMP_BUF_SIZE];
                     expr::Parameters params;
                     LSPString text, funit;
 
+                    // Format the value
                     meta::format_value(buf, TMP_BUF_SIZE, mdata, fValue, nPrecision, false);
                     text.set_ascii(buf);
+
                     sunit.format(&funit);
                     if (mdata->unit == meta::U_BOOL)
                     {
@@ -268,8 +270,6 @@ namespace lsp
                         sunit.format(&text);
                         detailed = false;
                     }
-
-                    // Update text
                     const char *key = "labels.values.fmt_value";
                     if ((detailed) && (funit.length() > 0))
                         key = (bSameLine) ? "labels.values.fmt_single_line" : "labels.values.fmt_multi_line";
@@ -278,6 +278,26 @@ namespace lsp
                     params.add_string("unit", &funit);
 
                     lbl->text()->set(key, &params);
+
+                    // Make estimations
+                    lbl->clear_text_estimations();
+                    for (int i=meta::EST_MIN; i<=meta::EST_SPECIAL; ++i)
+                    {
+                        if (!meta::estimate_value(buf, TMP_BUF_SIZE, mdata, meta::estimation_t(i), nPrecision, false))
+                            continue;
+                        text.set_ascii(buf);
+                        if (mdata->unit == meta::U_BOOL)
+                            text.prepend_ascii("labels.bool.");
+
+                        params.clear();
+                        params.add_string("value", &text);
+                        params.add_string("unit", &funit);
+
+                        tk::String *est_text = lbl->add_text_estimation();
+                        if (est_text != NULL)
+                            est_text->set(key, &params);
+                    }
+
                     break;
                 }
 

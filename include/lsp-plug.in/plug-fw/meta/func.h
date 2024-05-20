@@ -30,6 +30,14 @@ namespace lsp
 {
     namespace meta
     {
+        enum estimation_t
+        {
+            EST_MIN,        // Minimum value but not inf, nan, etc
+            EST_MAX,        // Maximum value
+            EST_DFL,        // Default value
+            EST_SPECIAL,    // Minimum value like inf, nan, etc
+        };
+
         static inline bool is_out_port(const port_t *p)
         {
             switch (p->role)
@@ -363,6 +371,16 @@ namespace lsp
          * @param units emit units to the final format if possible
          */
         void            format_value(char *buf, size_t len, const port_t *meta, float value, ssize_t precision, bool units);
+
+        /**
+         * Form the esimation string for a value
+         * @param buf buffer to store estimation pattern
+         * @param len length of the buffer
+         * @param meta port metadata
+         * @param units use units
+         * @return true if estimation is supported
+         */
+        bool            estimate_value(char *buf, size_t len, const port_t *meta, estimation_t e, ssize_t precision, bool units);
 
         /**
          * Parse some text value associated with specified metadata and considered to be boolean

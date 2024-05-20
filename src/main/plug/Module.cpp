@@ -157,7 +157,15 @@ namespace lsp
                 pWrapper->kvt_release();
         }
 
+        void Module::before_state_save()
+        {
+        }
+
         void Module::state_saved()
+        {
+        }
+
+        void Module::before_state_load()
         {
         }
 

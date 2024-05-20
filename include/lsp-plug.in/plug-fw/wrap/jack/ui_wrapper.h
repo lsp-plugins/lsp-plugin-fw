@@ -85,6 +85,11 @@ namespace lsp
                 virtual const meta::package_t      *package() const override;
                 virtual status_t                    play_file(const char *file, wsize_t position, bool release) override;
                 virtual meta::plugin_format_t       plugin_format() const override;
+                virtual status_t                    export_settings(config::Serializer *s, const io::Path *basedir = NULL) override;
+                virtual status_t                    import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir = NULL) override;
+
+                using ui::IWrapper::export_settings;
+                using ui::IWrapper::import_settings;
 
             public:
                 /**

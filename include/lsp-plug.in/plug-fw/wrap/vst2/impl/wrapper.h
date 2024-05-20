@@ -58,6 +58,7 @@ namespace lsp
 
             pBypass         = NULL;
             bUpdateSettings = true;
+            bStateManage    = false;
             pUIWrapper      = NULL;
             nUIReq          = 0;
             nUIResp         = 0;
@@ -777,6 +778,13 @@ namespace lsp
 
         size_t Wrapper::serialize_state(const void **dst, bool program)
         {
+            // Set state manage barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
+            // Trigger the plugin to prepare the internal state.
+            pPlugin->before_state_save();
+
             // Clear chunk
             status_t res;
             sChunk.clear();
@@ -869,9 +877,9 @@ namespace lsp
                 *dst                = pbank;
             }
 
-            // Issue callback
-            pPlugin->state_saved();
+            // Notify the plugin that the state has been saved
             lsp_trace("Plugin state has been saved");
+            pPlugin->state_saved();
 
             // Return result
             return sChunk.offset;
@@ -952,10 +960,18 @@ namespace lsp
 
         void Wrapper::deserialize_state(const void *data, size_t size)
         {
+            // Set state manage barrier
+            bStateManage = true;
+            lsp_finally { bStateManage = false; };
+
             const fxBank *bank          = static_cast<const fxBank *>(data);
             const fxProgram *prog       = static_cast<const fxProgram *>(data);
             const uint8_t *head         = static_cast<const uint8_t *>(data);
 
+            // Notify plugin that state is about to load
+            pPlugin->before_state_load();
+
+            // Do the state load
             status_t res;
             if ((res = check_vst_bank_header(bank, size)) == STATUS_OK)
             {
@@ -1025,8 +1041,10 @@ namespace lsp
 
             // Call callback
             bUpdateSettings = true;
-            pPlugin->state_loaded();
             lsp_trace("Plugin state has been loaded");
+
+            // Notify the plugin that state has been loaded
+            pPlugin->state_loaded();
         }
 
         void Wrapper::deserialize_new_chunk_format(const uint8_t *data, size_t bytes)
@@ -1360,6 +1378,9 @@ namespace lsp
 
         void Wrapper::state_changed()
         {
+            if (bStateManage)
+                return;
+
             if ((pMaster != NULL) && (pEffect != NULL))
                 pMaster(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
         }
