@@ -10,6 +10,7 @@
 * Added text estimation support by the Parameter controller.
 * Added ListBox controller.
 * Added empty text support for Edit controller.
+* Updated module versions in dependencies.
 
 === 1.0.22 ===
 * Added experimental support of VST3 plugin format.
