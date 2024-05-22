@@ -32,13 +32,13 @@ LSP_COMMON_LIB_TYPE        := src
 LSP_COMMON_LIB_URL_RO      := https://github.com/lsp-plugins/$(LSP_COMMON_LIB_NAME).git
 LSP_COMMON_LIB_URL_RW      := git@github.com:lsp-plugins/$(LSP_COMMON_LIB_NAME).git
 
-LSP_DSP_LIB_VERSION        := 1.0.23
+LSP_DSP_LIB_VERSION        := 1.0.24
 LSP_DSP_LIB_NAME           := lsp-dsp-lib
 LSP_DSP_LIB_TYPE           := src
 LSP_DSP_LIB_URL_RO         := https://github.com/lsp-plugins/$(LSP_DSP_LIB_NAME).git
 LSP_DSP_LIB_URL_RW         := git@github.com:lsp-plugins/$(LSP_DSP_LIB_NAME).git
 
-LSP_DSP_UNITS_VERSION      := 1.0.22
+LSP_DSP_UNITS_VERSION      := 1.0.23
 LSP_DSP_UNITS_NAME         := lsp-dsp-units
 LSP_DSP_UNITS_TYPE         := src
 LSP_DSP_UNITS_URL_RO       := https://github.com/lsp-plugins/$(LSP_DSP_UNITS_NAME).git
@@ -86,13 +86,13 @@ LSP_TEST_FW_TYPE           := src
 LSP_TEST_FW_URL_RO         := https://github.com/lsp-plugins/$(LSP_TEST_FW_NAME).git
 LSP_TEST_FW_URL_RW         := git@github.com:lsp-plugins/$(LSP_TEST_FW_NAME).git
 
-LSP_TK_LIB_VERSION         := 1.0.21
+LSP_TK_LIB_VERSION         := 1.0.22
 LSP_TK_LIB_NAME            := lsp-tk-lib
 LSP_TK_LIB_TYPE            := src
 LSP_TK_LIB_URL_RO          := https://github.com/lsp-plugins/$(LSP_TK_LIB_NAME).git
 LSP_TK_LIB_URL_RW          := git@github.com:lsp-plugins/$(LSP_TK_LIB_NAME).git
 
-LSP_WS_LIB_VERSION         := 1.0.21
+LSP_WS_LIB_VERSION         := 1.0.22
 LSP_WS_LIB_NAME            := lsp-ws-lib
 LSP_WS_LIB_TYPE            := src
 LSP_WS_LIB_URL_RO          := https://github.com/lsp-plugins/$(LSP_WS_LIB_NAME).git
