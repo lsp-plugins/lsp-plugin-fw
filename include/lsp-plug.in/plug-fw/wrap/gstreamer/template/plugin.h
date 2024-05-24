@@ -19,14 +19,17 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#define LSP_PLUG_IN_GSTREAMER_MAIN_IMPL
+
 #include <gst/gst.h>
 #include <gst/audio/audio.h>
 #include <gst/audio/gstaudiofilter.h>
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/finally.h>
-#include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/main/posix.h>
 
 // Define plugin metadata
 /* PLUGIN_METADATA_DEFINITIONS */
@@ -89,7 +92,7 @@ G_DEFINE_TYPE( // @suppress("Unused static function")
 
 GST_ELEMENT_REGISTER_DEFINE(
     xx_plugin_id_xx,
-    DEF_PLUGIN_ID,
+    "xx_plugin_id_xx",
     GST_RANK_NONE,
     GST_TYPE_XX_PLUGIN_ID_XX);
 
@@ -105,7 +108,8 @@ static void gst_xx_plugin_id_xx_set_property(
     GST_OBJECT_LOCK(filter);
     lsp_finally { GST_OBJECT_UNLOCK(filter); };
 
-    // TODO
+    if (filter->wrapper != NULL)
+        filter->wrapper->set_property(prop_id, value, pspec);
 }
 
 static void gst_xx_plugin_id_xx_get_property(
@@ -119,7 +123,8 @@ static void gst_xx_plugin_id_xx_get_property(
     GST_OBJECT_LOCK(filter);
     lsp_finally { GST_OBJECT_UNLOCK(filter); };
 
-    // TODO
+    if (filter->wrapper != NULL)
+        filter->wrapper->get_property(prop_id, value, pspec);
 }
 
 static gboolean gst_xx_plugin_id_xx_setup(
@@ -127,16 +132,10 @@ static gboolean gst_xx_plugin_id_xx_setup(
     const GstAudioInfo * info)
 {
     GstAudioFilterClass *audio_filter_class = GST_AUDIO_FILTER_CLASS(parent_class);
-//    GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
-//
-//    gint sample_rate = GST_AUDIO_INFO_RATE(info);
-//    IF_TRACE(
-//        gint channels = GST_AUDIO_INFO_CHANNELS(info);
-//        GstAudioFormat fmt = GST_AUDIO_INFO_FORMAT(info);
-//    );
 
-    // Update sample rate
-    // TODO
+    GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
+    if (filter->wrapper != NULL)
+        filter->wrapper->setup(info);
 
     return (audio_filter_class->setup) ?
         audio_filter_class->setup(object, info) :
@@ -148,9 +147,8 @@ static GstFlowReturn gst_xx_plugin_id_xx_filter(
     GstBuffer *inbuf,
     GstBuffer *outbuf)
 {
-//    GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
+    GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
 
-    // Map buffers
     GstMapInfo map_in;
     if (!gst_buffer_map (inbuf, &map_in, GST_MAP_READ))
         return GST_FLOW_OK;
@@ -161,10 +159,9 @@ static GstFlowReturn gst_xx_plugin_id_xx_filter(
         return GST_FLOW_OK;
     lsp_finally { gst_buffer_unmap (outbuf, &map_out); };
 
-    g_assert (map_out.size == map_in.size);
+    if (filter->wrapper != NULL)
+        filter->wrapper->process(map_out.data, map_in.data, map_out.size, map_in.size);
 
-    // Call processing
-//    gst_xx_plugin_id_xx_process(filter, map_out.data, map_in.data, map_out.size);
     return GST_FLOW_OK;
 }
 
@@ -172,29 +169,36 @@ static GstFlowReturn gst_xx_plugin_id_xx_filter_inplace(
     GstBaseTransform *object,
     GstBuffer *buf)
 {
-//    GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
+    GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
 
-    // Map buffer
     GstMapInfo map;
     if (!gst_buffer_map (buf, &map, GST_MAP_READWRITE))
         return GST_FLOW_OK;
     lsp_finally { gst_buffer_unmap (buf, &map); };
 
-    // Call processing
-//    gst_xx_plugin_id_xx_process(filter, map.data, map.data, map.size);
+    if (filter->wrapper != NULL)
+        filter->wrapper->process(map.data, map.data, map.size, map.size);
+
     return GST_FLOW_OK;
 }
 
 static void gst_xx_plugin_id_xx_init(GstXx_PluginId_Xx *filter)
 {
-    // TODO
+    lsp::gst::Factory *f = lsp::gst::get_factory();
+
+    filter->wrapper     = (f != NULL) ? f->instantiate("xx_plugin_id_xx") : NULL;
 }
 
 static void gst_xx_plugin_id_xx_finalize(GObject * object)
 {
-//    GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
+    GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
 
-    // TODO
+    if (filter->wrapper != NULL)
+    {
+        filter->wrapper->destroy();
+        delete filter->wrapper;
+        filter->wrapper = NULL;
+    }
 
     G_OBJECT_CLASS(parent_class)->finalize(object);
 }
@@ -203,7 +207,7 @@ static void gst_xx_plugin_id_xx_finalize(GObject * object)
 static void gst_xx_plugin_id_xx_class_init(GstXx_PluginId_XxClass * klass)
 {
     GObjectClass *gobject_class = reinterpret_cast<GObjectClass *>(klass);
-//    GstElementClass *element_class = reinterpret_cast<GstElementClass *>(klass); // TODO
+    GstElementClass *element_class = reinterpret_cast<GstElementClass *>(klass);
     GstBaseTransformClass *btrans_class = reinterpret_cast<GstBaseTransformClass *>(klass);
     GstAudioFilterClass *audio_filter_class = reinterpret_cast<GstAudioFilterClass *>(klass);
 
@@ -211,16 +215,14 @@ static void gst_xx_plugin_id_xx_class_init(GstXx_PluginId_XxClass * klass)
     gobject_class->get_property = gst_xx_plugin_id_xx_get_property;
     gobject_class->finalize = gst_xx_plugin_id_xx_finalize;
 
-    // this function will be called when the format is set before the
-    // first buffer comes in, and whenever the format changes
     audio_filter_class->setup = gst_xx_plugin_id_xx_setup;
 
-    // here you set up functions to process data (either in place, or from
-    // one input buffer to another output buffer); only one is required
     btrans_class->transform = gst_xx_plugin_id_xx_filter;
     btrans_class->transform_ip = gst_xx_plugin_id_xx_filter_inplace;
 
-    // TODO
+    lsp::gst::Factory *f = lsp::gst::get_factory();
+    if (f != NULL)
+        f->init_class(element_class, "xx_plugin_id_xx");
 }
 
 static gboolean plugin_init(GstPlugin *plugin)

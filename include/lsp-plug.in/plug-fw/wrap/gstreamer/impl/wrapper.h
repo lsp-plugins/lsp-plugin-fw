@@ -2,7 +2,7 @@
  * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of llsp-plugin-fw
+ * This file is part of lsp-plugins
  * Created on: 25 мая 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
@@ -19,40 +19,51 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_GSTREAMER_WRAPPER_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_GSTREAMER_WRAPPER_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_GSTREAMER_IMPL_WRAPPER_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_GSTREAMER_IMPL_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
-
-#include <gst/gst.h>
-#include <gst/audio/audio.h>
-#include <gst/audio/gstaudiofilter.h>
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
 
 namespace lsp
 {
     namespace gst
     {
-        /**
-         * Wrapper for the plugin module
-         */
-        class Wrapper
+        Wrapper::~Wrapper()
         {
             // TODO
-            public:
-                virtual ~Wrapper();
+        }
 
-                virtual void destroy();
+        void Wrapper::destroy()
+        {
+            // TODO
+        }
 
-            public: // Gstreamer-specific functions
-                void setup(const GstAudioInfo * info);
-                void set_property(guint prop_id, const GValue *value, GParamSpec *pspec);
-                void get_property(guint prop_id, GValue * value, GParamSpec * pspec);
-                void process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size);
-        };
+        void Wrapper::setup(const GstAudioInfo * info)
+        {
+            // TODO
+        }
+
+        void Wrapper::set_property(guint prop_id, const GValue *value, GParamSpec *pspec)
+        {
+            // TODO
+        }
+
+        void Wrapper::get_property(guint prop_id, GValue * value, GParamSpec * pspec)
+        {
+            // TODO
+        }
+
+        void Wrapper::process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size)
+        {
+            // TODO
+        }
+
     } /* namespace gst */
 } /* namespace lsp */
 
 
 
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_GSTREAMER_IMPL_WRAPPER_H_ */
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_GSTREAMER_WRAPPER_H_ */
+
