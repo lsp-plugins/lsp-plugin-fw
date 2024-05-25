@@ -19,8 +19,6 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define LSP_PLUG_IN_GSTREAMER_MAIN_IMPL
-
 #include <gst/gst.h>
 #include <gst/audio/audio.h>
 #include <gst/audio/gstaudiofilter.h>
@@ -29,10 +27,10 @@
 #include <lsp-plug.in/common/finally.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/factory.h>
-#include <lsp-plug.in/plug-fw/wrap/gstreamer/main/posix.h>
 
-// Define plugin metadata
-/* PLUGIN_METADATA_DEFINITIONS */
+#define LSP_PLUG_IN_GSTREAMER_MAIN_IMPL
+    #include <lsp-plug.in/plug-fw/wrap/gstreamer/main.h>
+#undef LSP_PLUG_IN_GSTREAMER_MAIN_IMPL
 
 // Definitions of plugin metadata parameters to make IDE not frustrating with names
 #ifdef LSP_IDE_DEBUG
@@ -57,7 +55,7 @@
     #endif /* DEF_PLUGIN_VERSION_STR */
 
     #ifndef DEF_PLUGIN_LICENSE
-        #define DEF_PLUGIN_LICENSE              ""
+        #define DEF_PLUGIN_LICENSE              "unknown"
     #endif /* DEF_PLUGIN_LICENSE */
 
     #ifndef DEF_PLUGIN_ORIGIN

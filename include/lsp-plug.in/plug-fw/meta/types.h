@@ -441,6 +441,7 @@ namespace lsp
             const uint32_t          ladspa_id;      // LADSPA ID of the plugin
             const char             *ladspa_lbl;     // LADSPA unique label of the plugin
             const char             *clap_uid;       // Unique identifier for CLAP format
+            const char             *gst_uid;        // GStreamer unique plugin identifier
             const module_version_t  version;        // Version of the plugin
             const int              *classes;        // List of plugin classes terminated by negative value
             const int              *clap_features;  // List of CLAP plugin features
