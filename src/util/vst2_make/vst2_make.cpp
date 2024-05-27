@@ -302,7 +302,7 @@ namespace lsp
 
             fprintf(out, "\n");
             fprintf(out, "$(OBJ_FILES):\n");
-            fprintf(out, "\techo \"  $(CXX) [vst2] $(FILE)\"\n");
+            fprintf(out, "\techo \"  $(CXX)  [vst2] $(FILE)\"\n");
             fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(CXXDEFS) $(EXT_CXXFLAGS) $(VST2_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(SO_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");

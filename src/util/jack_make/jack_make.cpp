@@ -271,7 +271,7 @@ namespace lsp
 
             fprintf(out, "\n");
             fprintf(out, "$(EXE_FILES):\n");
-            fprintf(out, "\techo \"  $(CXX) [jack] $(FILE)\"\n");
+            fprintf(out, "\techo \"  $(CXX)  [jack] $(FILE)\"\n");
             fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(CXXDEFS) $(EXT_CXXFLAGS) $(JACK_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");

@@ -143,13 +143,21 @@ PLUGIN_GROUP_NAME       = $(if $(PLUGIN_ARTIFACT_NAME),$(PLUGIN_ARTIFACT_NAME),)
 PLUGIN_SHARED_NAME     ?= $($(ROOT_ARTIFACT_ID)_NAME)
 INSTALL_LIBDIR         := $($(ROOT_ARTIFACT_ID)_NAME)
 INSTALL_GROUP_LIBDIR   := $(if $(PLUGIN_GROUP_NAME),$(PLUGIN_GROUP_NAME),$(INSTALL_LIBDIR))
+
+CLAP_LIBDIR            := $(LIBDIR)/clap
+GST_LIBDIR             := $(GSTREAMER_INSTDIR)
 JACK_LIBDIR            := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 LADSPA_LIBDIR          := $(LIBDIR)/ladspa
 LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
 VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_GROUP_LIBDIR)
 VST3_LIBDIR            := $(LIBDIR)/vst3/$(INSTALL_LIBDIR).vst3
-CLAP_LIBDIR            := $(LIBDIR)/clap
 DOC_SHAREDDIR          := $(SHAREDDIR)/doc/$($(ROOT_ARTIFACT_ID)_NAME)
+
+ifeq ($(PLATFORM),Windows)
+  GSTREAMER_INSTDIR      := $(LIBDIR)/gstreamer-1.0
+else
+  GSTREAMER_INSTDIR      := $(call fcheck,lv2,$(ENABLED_FEATURES),$(shell pkg-config --variable=pluginsdir gstreamer-1.0),$(LIBDIR)/gstreamer-1.0)
+endif
 
 ifeq ($(PLATFORM),Linux)
   ifeq ($(ARCHITECTURE_FAMILY),ia32)
@@ -864,6 +872,11 @@ DEP_FILE                    = $(patsubst %.o,%.d, $(@))
 
 #------------------------------------------------------------------------------
 # Plugin instance settings
+WRAP_GST_CFLAGS            := $(VERSION_CFLAGS)
+WRAP_GST_LDFLAGS           := $(call query,LDFLAGS,$(DEPENDENCIES_GST_WRAP))
+WRAP_GST_OBJS              := $(call query,OBJ,$(DEPENDENCIES_GST_WRAP))
+WRAP_GST_INC               := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_GST_WRAP) $(ARTIFACT_ID)))
+
 WRAP_JACK_CFLAGS           := $(VERSION_CFLAGS)
 WRAP_JACK_LDFLAGS          := $(call query,LDFLAGS,$(DEPENDENCIES_JACK_WRAP))
 WRAP_JACK_OBJS             := $(call query,OBJ,$(DEPENDENCIES_JACK_WRAP))
@@ -1144,8 +1157,8 @@ gst: resources $(HOST_UTL_GST_MAKE)
 	echo 'EXT_CXXFLAGS=$(WRAP_GST_CFLAGS)' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_LDFLAGS=$(WRAP_GST_LDFLAGS)' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_INCLUDE=$(WRAP_GST_INC)' >> $(ARTIFACT_LIB_GST_SETTINGS)
-	#$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
-	#$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
+	$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
+	$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
 
 doc: meta
 	echo "  make DOC"
