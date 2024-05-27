@@ -26,7 +26,6 @@
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/impl/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/impl/wrapper.h>
 
-#include <lsp-plug.in/plug-fw/wrap/gstreamer/template/plugin.h>
 
 
 
