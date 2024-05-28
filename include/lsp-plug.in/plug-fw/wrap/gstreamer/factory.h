@@ -24,11 +24,15 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/ipc/Mutex.h>
+#include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
+#include <lsp-plug.in/resource/ILoader.h>
+
 #include <gst/gst.h>
 #include <gst/audio/audio.h>
 #include <gst/audio/gstaudiofilter.h>
-
-#include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
 
 namespace lsp
 {
@@ -39,10 +43,39 @@ namespace lsp
          */
         class Factory
         {
-            public:
-                void init_class(GstElementClass *element, const char *plugin_id);
+            private:
+                resource::ILoader      *pLoader;        // Resource loader
+                meta::package_t        *pPackage;       // Package manifest
+                uatomic_t               nReferences;    // Number of references
+                ipc::Mutex              sMutex;         // Mutex for managing factory state
+                size_t                  nRefExecutor;   // Number of executor references
+                ipc::IExecutor         *pExecutor;      // Executor service
 
-                Wrapper *instantiate(const char *plugin_id);
+            public:
+                Factory();
+                Factory(const Factory &) = delete;
+                Factory(Factory &&) = delete;
+                ~Factory();
+
+                Factory & operator = (const Factory &) = delete;
+                Factory & operator = (Factory &&) = delete;
+
+                status_t                init();
+                void                    destroy();
+
+            public: // Reference counting
+                atomic_t                acquire();
+                atomic_t                release();
+
+            public: // Resource management
+                ipc::IExecutor         *acquire_executor();
+                void                    release_executor();
+                const meta::package_t  *package() const;
+
+            public: // Interface for GStreamer
+                void                    init_class(GstElementClass *element, const char *plugin_id);
+                Wrapper                *instantiate(const char *plugin_id);
+
         };
     } /* namespace gst */
 } /* namespace lsp */

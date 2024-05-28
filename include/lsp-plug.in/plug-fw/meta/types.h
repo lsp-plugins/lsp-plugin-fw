@@ -39,11 +39,12 @@ namespace lsp
         {
             PLUGIN_UNKNOWN,
             PLUGIN_CLAP,
+            PLUGIN_GSTREAMER,
             PLUGIN_JACK,
             PLUGIN_LADSPA,
             PLUGIN_LV2,
             PLUGIN_VST2,
-            PLUGIN_VST3
+            PLUGIN_VST3,
         };
 
         enum unit_t

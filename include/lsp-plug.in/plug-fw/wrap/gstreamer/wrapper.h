@@ -24,6 +24,9 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/plug.h>
+
 #include <gst/gst.h>
 #include <gst/audio/audio.h>
 #include <gst/audio/gstaudiofilter.h>
@@ -32,16 +35,42 @@ namespace lsp
 {
     namespace gst
     {
+        class Factory;
+
         /**
          * Wrapper for the plugin module
          */
-        class Wrapper
+        class Wrapper: public plug::IWrapper
         {
-            // TODO
-            public:
-                virtual ~Wrapper();
+            protected:
+                gst::Factory                       *pFactory;           // Plugin factory
+                const meta::package_t              *pPackage;           // Package information
+                ipc::IExecutor                     *pExecutor;          // Executor service
+                bool                                bUpdateSettings;    // Settings update flag
+                ssize_t                             nOldLatency;        // Old latency value
+                ssize_t                             nNewLatency;        // New latency value
 
-                virtual void destroy();
+//                lltl::parray<gst::Port>             vAllPorts;          // All created ports
+//                lltl::parray<gst::AudioPort>        vAudioInputs;       // All available audio inputs
+//                lltl::parray<gst::AudioPort>        vAudioOutputs;      // All available audio outputs
+//                lltl::parray<gst::Port>             vExtPorts;          // All ports visible to host
+
+            protected:
+//                gst::Port                          *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port);
+                void                                do_destroy();
+
+            public:
+                explicit Wrapper(gst::Factory *factory, plug::Module *plugin, resource::ILoader *loader);
+                virtual ~Wrapper() override;
+
+                status_t                            init();
+                void                                destroy();
+
+            public: // plug::IWrapper
+                virtual ipc::IExecutor             *executor() override;
+                virtual const meta::package_t      *package() const override;
+                virtual void                        request_settings_update() override;
+                virtual meta::plugin_format_t       plugin_format() const override;
 
             public: // Gstreamer-specific functions
                 void setup(const GstAudioInfo * info);

@@ -1411,6 +1411,7 @@ namespace lsp
             switch (format)
             {
                 case PLUGIN_CLAP:       return "CLAP";
+                case PLUGIN_GSTREAMER:  return "GST";
                 case PLUGIN_JACK:       return "JACK";
                 case PLUGIN_LADSPA:     return "LADSPA";
                 case PLUGIN_LV2:        return "LV2";

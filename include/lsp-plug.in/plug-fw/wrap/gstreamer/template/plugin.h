@@ -25,6 +25,7 @@
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/finally.h>
+#include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/factory.h>
 

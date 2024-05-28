@@ -24,19 +24,72 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/helpers.h>
 
 namespace lsp
 {
     namespace gst
     {
+        Wrapper::Wrapper(gst::Factory *factory, plug::Module *plugin, resource::ILoader *loader):
+            IWrapper(plugin, loader)
+        {
+            pFactory            = safe_acquire(pFactory);
+            pExecutor           = NULL;
+            bUpdateSettings     = true;
+            pPackage            = NULL;
+            nOldLatency         = -1;
+            nNewLatency         = 0;
+        }
+
         Wrapper::~Wrapper()
         {
-            // TODO
+            destroy();
         }
 
         void Wrapper::destroy()
         {
+            // Release executor
+            if (pExecutor != NULL)
+            {
+                pFactory->release_executor();
+                pExecutor = NULL;
+            }
+
+            // Release factory
+            safe_release(pFactory);
+        }
+
+        status_t Wrapper::init()
+        {
             // TODO
+
+            return STATUS_OK;
+        }
+
+        ipc::IExecutor *Wrapper::executor()
+        {
+            if (pExecutor != NULL)
+                return pExecutor;
+            if (pFactory == NULL)
+                return NULL;
+
+            pExecutor = pFactory->acquire_executor();
+            return pExecutor;
+        }
+
+        const meta::package_t *Wrapper::package() const
+        {
+            return (pFactory != NULL) ? pFactory->package() : NULL;
+        }
+
+        void Wrapper::request_settings_update()
+        {
+            bUpdateSettings     = true;
+        }
+
+        meta::plugin_format_t Wrapper::plugin_format() const
+        {
+            return meta::PLUGIN_GSTREAMER;
         }
 
         void Wrapper::setup(const GstAudioInfo * info)
