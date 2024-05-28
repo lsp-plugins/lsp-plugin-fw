@@ -53,7 +53,7 @@ namespace lsp
 //                lltl::parray<gst::Port>             vAllPorts;          // All created ports
 //                lltl::parray<gst::AudioPort>        vAudioInputs;       // All available audio inputs
 //                lltl::parray<gst::AudioPort>        vAudioOutputs;      // All available audio outputs
-//                lltl::parray<gst::Port>             vExtPorts;          // All ports visible to host
+//                lltl::parray<gst::AudioPort>        vAudioOutputs;      // All available audio outputs
 
             protected:
 //                gst::Port                          *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port);
