@@ -27,6 +27,8 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/ports.h>
+
 #include <gst/gst.h>
 #include <gst/audio/audio.h>
 #include <gst/audio/gstaudiofilter.h>
@@ -50,13 +52,16 @@ namespace lsp
                 ssize_t                             nOldLatency;        // Old latency value
                 ssize_t                             nNewLatency;        // New latency value
 
-//                lltl::parray<gst::Port>             vAllPorts;          // All created ports
-//                lltl::parray<gst::AudioPort>        vAudioInputs;       // All available audio inputs
-//                lltl::parray<gst::AudioPort>        vAudioOutputs;      // All available audio outputs
-//                lltl::parray<gst::AudioPort>        vAudioOutputs;      // All available audio outputs
+                lltl::parray<plug::IPort>           vAllPorts;          // All created ports
+                lltl::parray<gst::AudioPort>        vAudioIn;           // All available audio inputs
+                lltl::parray<gst::AudioPort>        vAudioOut;          // All available audio outputs
+                lltl::parray<gst::ParameterPort>    vParameters;        // All available parameters
+                lltl::parray<gst::MeterPort>        vMeters;            // All available meters
+                lltl::parray<plug::IPort>           vPortMapping;       // All parameters visible to the host
+                lltl::parray<meta::port_t>          vGenMetadata;       // Generated metadata
 
             protected:
-//                gst::Port                          *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port);
+                plug::IPort                        *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 void                                do_destroy();
 
             public:

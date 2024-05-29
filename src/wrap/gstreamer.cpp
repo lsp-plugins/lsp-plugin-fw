@@ -22,6 +22,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/ports.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/impl/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/impl/wrapper.h>
