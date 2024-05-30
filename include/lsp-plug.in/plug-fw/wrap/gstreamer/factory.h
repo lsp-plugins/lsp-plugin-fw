@@ -26,6 +26,7 @@
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/ipc/Mutex.h>
+#include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
 #include <lsp-plug.in/resource/ILoader.h>
@@ -44,12 +45,28 @@ namespace lsp
         class Factory
         {
             private:
+                typedef struct enumeration_t
+                {
+                    lltl::parray<meta::port_t>  inputs;     // Inputs
+                    lltl::parray<meta::port_t>  outputs;    // Outputs
+                    lltl::parray<meta::port_t>  params;     // Parameters
+                    lltl::parray<meta::port_t>  generated;  // Generated metadata
+                } enumeration_t;
+
+            private:
                 resource::ILoader      *pLoader;        // Resource loader
                 meta::package_t        *pPackage;       // Package manifest
                 uatomic_t               nReferences;    // Number of references
                 ipc::Mutex              sMutex;         // Mutex for managing factory state
                 size_t                  nRefExecutor;   // Number of executor references
                 ipc::IExecutor         *pExecutor;      // Executor service
+
+            private:
+                static const meta::plugin_t *find_plugin(const char *id);
+                static plug::Module        *create_plugin(const char *id);
+                static void                 destroy_enumeration(enumeration_t *en);
+                static bool                 enumerate_port(enumeration_t *en, const meta::port_t *port, const char *postfix);
+                static const meta::port_group_t *find_main_group(const meta::plugin_t *plug, bool in);
 
             public:
                 Factory();

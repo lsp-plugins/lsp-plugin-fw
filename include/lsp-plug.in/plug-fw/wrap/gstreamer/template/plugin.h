@@ -141,6 +141,17 @@ static gboolean gst_xx_plugin_id_xx_setup(
         TRUE;
 }
 
+static GstStateChangeReturn gst_xx_plugin_id_xx_change_state(GstElement *object, GstStateChange transition)
+{
+    GstAudioFilterClass *audio_filter_class = GST_AUDIO_FILTER_CLASS(parent_class);
+
+    GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
+    if (filter->wrapper != NULL)
+        filter->wrapper->change_state(transition);
+
+    return GST_STATE_CHANGE_SUCCESS;
+}
+
 static GstFlowReturn gst_xx_plugin_id_xx_filter(
     GstBaseTransform *object,
     GstBuffer *inbuf,
@@ -210,9 +221,12 @@ static void gst_xx_plugin_id_xx_class_init(GstXx_PluginId_XxClass * klass)
     GstBaseTransformClass *btrans_class = reinterpret_cast<GstBaseTransformClass *>(klass);
     GstAudioFilterClass *audio_filter_class = reinterpret_cast<GstAudioFilterClass *>(klass);
 
+
     gobject_class->set_property = gst_xx_plugin_id_xx_set_property;
     gobject_class->get_property = gst_xx_plugin_id_xx_get_property;
     gobject_class->finalize = gst_xx_plugin_id_xx_finalize;
+
+    element_class->change_state = gst_xx_plugin_id_xx_change_state;
 
     audio_filter_class->setup = gst_xx_plugin_id_xx_setup;
 

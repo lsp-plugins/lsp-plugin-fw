@@ -54,8 +54,19 @@ namespace lsp
             // Release executor
             if (pExecutor != NULL)
             {
+                pExecutor->shutdown();
                 pFactory->release_executor();
+
+                delete pExecutor;
                 pExecutor = NULL;
+            }
+
+            // Now we are able to destroy the plugin
+            if (pPlugin != NULL)
+            {
+                pPlugin->destroy();
+                delete pPlugin;
+                pPlugin = NULL;
             }
 
             // Cleanup ports
@@ -92,6 +103,20 @@ namespace lsp
             lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(&plugin_ports, port, NULL);
+
+            // Create executor service
+            lsp_trace("Creating executor service");
+            ipc::IExecutor *executor    = pFactory->acquire_executor();
+            if (executor != NULL)
+            {
+                // Create wrapper around native executor
+                pExecutor           = new gst::Executor(executor);
+                if (pExecutor == NULL)
+                {
+                    pFactory->release_executor();
+                    return STATUS_NO_MEM;
+                }
+            }
 
             return STATUS_OK;
         }
@@ -223,12 +248,6 @@ namespace lsp
 
         ipc::IExecutor *Wrapper::executor()
         {
-            if (pExecutor != NULL)
-                return pExecutor;
-            if (pFactory == NULL)
-                return NULL;
-
-            pExecutor = pFactory->acquire_executor();
             return pExecutor;
         }
 
@@ -247,9 +266,19 @@ namespace lsp
             return meta::PLUGIN_GSTREAMER;
         }
 
-        void Wrapper::setup(const GstAudioInfo * info)
+        core::KVTStorage *Wrapper::kvt_lock()
         {
-            // TODO
+            return (sKVTMutex.lock()) ? &sKVT : NULL;
+        }
+
+        core::KVTStorage *Wrapper::kvt_trylock()
+        {
+            return (sKVTMutex.try_lock()) ? &sKVT : NULL;
+        }
+
+        bool Wrapper::kvt_release()
+        {
+            return sKVTMutex.unlock();
         }
 
         void Wrapper::set_property(guint prop_id, const GValue *value, GParamSpec *pspec)
@@ -377,6 +406,16 @@ namespace lsp
                     lsp_warn("Could not get port id=%s (index=%d): unsupported operation", meta->id, int(prop_id));
                     break;
             }
+        }
+
+        void Wrapper::setup(const GstAudioInfo * info)
+        {
+            // TODO
+        }
+
+        void Wrapper::change_state(GstStateChange transition)
+        {
+            // TODO
         }
 
         void Wrapper::process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size)

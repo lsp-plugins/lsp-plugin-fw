@@ -185,6 +185,14 @@ namespace lsp
             return (p != NULL) && (p->flags & F_OPTIONAL);
         }
 
+        static inline size_t port_count(const meta::port_group_t *g)
+        {
+            size_t count = 0;
+            for (const meta::port_group_item_t *i = g->items; (i != NULL) && (i->id != NULL); ++i)
+                ++count;
+            return count;
+        }
+
         /**
          * Get name of the unit
          * @param unit unit_t unit

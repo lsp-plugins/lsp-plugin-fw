@@ -29,6 +29,8 @@
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
+#include <lsp-plug.in/stdlib/stdio.h>
 
 namespace lsp
 {
@@ -189,14 +191,274 @@ namespace lsp
             return pPackage;
         }
 
+        const meta::plugin_t *Factory::find_plugin(const char *id)
+        {
+            // Lookup plugin factories
+            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *plug_meta = f->enumerate(i);
+                    if (plug_meta == NULL)
+                        break;
+                    if (plug_meta->gst_uid == NULL)
+                        continue;
+                    if (strcmp(plug_meta->gst_uid, id) == 0)
+                        return plug_meta;
+                }
+            }
+
+            return NULL;
+        }
+
+        plug::Module *Factory::create_plugin(const char *id)
+        {
+            // Lookup plugin factories
+            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *plug_meta = f->enumerate(i);
+                    if (plug_meta == NULL)
+                        break;
+                    if (plug_meta->gst_uid == NULL)
+                        continue;
+                    if (strcmp(plug_meta->gst_uid, id) == 0)
+                        return f->create(plug_meta);
+                }
+            }
+
+            return NULL;
+        }
+
+        void Factory::destroy_enumeration(enumeration_t *en)
+        {
+            for (size_t i=0, n=en->generated.size(); i<n; ++i)
+                meta::drop_port_metadata(en->generated.uget(i));
+
+            en->inputs.flush();
+            en->outputs.flush();
+            en->params.flush();
+            en->generated.flush();
+        }
+
+        bool Factory::enumerate_port(enumeration_t *en, const meta::port_t *port, const char *postfix)
+        {
+            switch (port->role)
+            {
+                case meta::R_AUDIO_IN:
+                {
+                    en->inputs.add(const_cast<meta::port_t *>(port));
+                    lsp_trace("audio_in id=%s", port->id);
+                    break;
+                }
+                case meta::R_AUDIO_OUT:
+                {
+                    en->outputs.add(const_cast<meta::port_t *>(port));
+                    lsp_trace("audio_out id=%s", port->id);
+                    break;
+                }
+                case meta::R_CONTROL:
+                case meta::R_BYPASS:
+                case meta::R_METER:
+                case meta::R_PATH:
+                {
+                    en->params.add(const_cast<meta::port_t *>(port));
+                    lsp_trace("parameter id=%s, index=%d", port->id, int(en->params.size() - 1));
+                    break;
+                }
+
+                case meta::R_PORT_SET:
+                {
+                    char postfix_buf[MAX_PARAM_ID_BYTES];
+
+                    // Add Port Set immediately
+                    en->params.add(const_cast<meta::port_t *>(port));
+                    lsp_trace("port_set id=%s, index=%d", port->id, int(en->params.size() - 1));
+
+                    // Generate nested ports
+                    const size_t rows   = meta::list_size(port->items);
+                    for (size_t row=0; row < rows; ++row)
+                    {
+                        // Generate postfix
+                        snprintf(postfix_buf, sizeof(postfix_buf)-1, "%s_%d", (postfix != NULL) ? postfix : "", int(row));
+
+                        // Clone port metadata
+                        meta::port_t *cm        = meta::clone_port_metadata(port->members, postfix_buf);
+                        if (cm == NULL)
+                            return false;
+
+                        en->generated.add(cm);
+                        size_t col          = 0;
+                        for (; cm->id != NULL; ++cm, ++col)
+                        {
+                            if (meta::is_growing_port(cm))
+                                cm->start    = cm->min + ((cm->max - cm->min) * row) / float(rows);
+                            else if (meta::is_lowering_port(cm))
+                                cm->start    = cm->max - ((cm->max - cm->min) * row) / float(rows);
+
+                            // Recursively generate new ports associated with the port set
+                            if (!enumerate_port(en, cm, postfix_buf))
+                                return false;
+                        }
+                    }
+
+                    break;
+                }
+
+                // Not supported by GStreamer, skip
+                case meta::R_MESH:
+                case meta::R_STREAM:
+                case meta::R_FBUFFER:
+                case meta::R_MIDI_IN:
+                case meta::R_MIDI_OUT:
+                case meta::R_OSC_IN:
+                case meta::R_OSC_OUT:
+                default:
+                {
+                    lsp_trace("stub id=%s", port->id);
+                    break;
+                }
+            }
+
+            return true;
+        }
+
+        const meta::port_group_t *Factory::find_main_group(const meta::plugin_t *plug, bool in)
+        {
+            size_t direction = (in) ? meta::PGF_IN : meta::PGF_OUT;
+
+            for (const meta::port_group_t *pg = plug->port_groups; (pg != NULL) && (pg->id != NULL); ++pg)
+            {
+                if (!(pg->flags & meta::PGF_MAIN))
+                    continue;
+
+                if ((pg->flags & meta::PGF_OUT) == direction)
+                    return pg;
+            }
+
+            return NULL;
+        }
+
         void Factory::init_class(GstElementClass *element, const char *plugin_id)
         {
-            // TODO
+            // Find the plugin
+            const meta::plugin_t *meta = find_plugin(plugin_id);
+            if (meta == NULL)
+                return;
+
+            gst_element_class_set_details_simple(
+                element,
+                meta->description,
+                "Filter/Effect/Audio",
+                meta->bundle->description,
+                meta->developer->name);
+
+            // Enumerate plugin ports
+            enumeration_t en;
+            lsp_finally { destroy_enumeration(&en); };
+
+            for (const meta::port_t *port = meta->ports; port != NULL; ++port)
+            {
+                if (!enumerate_port(&en, port, NULL))
+                    return;
+            }
+
+            // Create sink pad
+            {
+                const meta::port_group_t *main_in = find_main_group(meta, true);
+                const gint min_count = (main_in != NULL) ? meta::port_count(main_in) : en.inputs.size();
+                const gint max_count = en.inputs.size();
+
+                GstCaps *caps = gst_caps_new_empty();
+                lsp_finally {
+                    gst_caps_unref(caps);
+                };
+
+                gst_caps_append_structure(
+                    caps,
+                    gst_structure_new(
+                        "audio/x-raw",
+                        "format", G_TYPE_STRING, GST_AUDIO_NE(F32),
+                        "channels", GST_TYPE_INT_RANGE, min_count, max_count,
+                        "rate", GST_TYPE_INT_RANGE, 1, G_MAXINT,
+                        "layout", G_TYPE_STRING, "interleaved", NULL));
+                gst_caps_append_structure(
+                    caps,
+                    gst_structure_new(
+                        "audio/x-raw",
+                        "format", G_TYPE_STRING, GST_AUDIO_NE(F32),
+                        "channels", GST_TYPE_INT_RANGE, min_count, max_count,
+                        "rate", GST_TYPE_INT_RANGE, 1, G_MAXINT,
+                        "layout", G_TYPE_STRING, "non_interleaved", NULL));
+
+                GstPadTemplate *pad_template = gst_pad_template_new(
+                    GST_BASE_TRANSFORM_SINK_NAME, GST_PAD_SINK, GST_PAD_ALWAYS,
+                    caps);
+
+                gst_element_class_add_pad_template(element, pad_template);
+            }
+
+            // Create source pad
+            {
+                const meta::port_group_t *main_out = find_main_group(meta, false);
+                const gint min_count = (main_out != NULL) ? meta::port_count(main_out) : en.outputs.size();
+                const gint max_count = en.outputs.size();
+
+                GstCaps *caps = gst_caps_new_empty();
+                lsp_finally {
+                    gst_caps_unref(caps);
+                };
+
+                gst_caps_append_structure(
+                    caps,
+                    gst_structure_new(
+                        "audio/x-raw",
+                        "format", G_TYPE_STRING, GST_AUDIO_NE(F32),
+                        "channels", GST_TYPE_INT_RANGE, min_count, max_count,
+                        "rate", GST_TYPE_INT_RANGE, 1, G_MAXINT,
+                        "layout", G_TYPE_STRING, "interleaved", NULL));
+                gst_caps_append_structure(
+                    caps,
+                    gst_structure_new(
+                        "audio/x-raw",
+                        "format", G_TYPE_STRING, GST_AUDIO_NE(F32),
+                        "channels", GST_TYPE_INT_RANGE, min_count, max_count,
+                        "rate", GST_TYPE_INT_RANGE, 1, G_MAXINT,
+                        "layout", G_TYPE_STRING, "non_interleaved", NULL));
+
+                GstPadTemplate *pad_template = gst_pad_template_new(
+                    GST_BASE_TRANSFORM_SRC_NAME, GST_PAD_SRC, GST_PAD_ALWAYS,
+                    caps);
+
+                gst_element_class_add_pad_template(element, pad_template);
+            }
+
+            // TODO: add properties
         }
 
         Wrapper *Factory::instantiate(const char *plugin_id)
         {
-            gst::Wrapper *wrapper = NULL;
+            // Find and instantiate the plugin
+            plug::Module *plugin = create_plugin(plugin_id);
+            if (plugin == NULL)
+                return NULL;
+            lsp_finally {
+                if (plugin != NULL)
+                {
+                    plugin->destroy();
+                    delete plugin;
+                }
+            };
+
+            // Create the wrapper
+            gst::Wrapper *wrapper = new gst::Wrapper(this, plugin, pLoader);
+            if (wrapper == NULL)
+                return NULL;
+            plugin  = NULL;     // Will be destroyed by the wrapper
+
 
             // TODO
 

@@ -60,6 +60,9 @@ namespace lsp
                 lltl::parray<plug::IPort>           vPortMapping;       // All parameters visible to the host
                 lltl::parray<meta::port_t>          vGenMetadata;       // Generated metadata
 
+                core::KVTStorage                    sKVT;
+                ipc::Mutex                          sKVTMutex;
+
             protected:
                 plug::IPort                        *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 void                                do_destroy();
@@ -76,12 +79,16 @@ namespace lsp
                 virtual const meta::package_t      *package() const override;
                 virtual void                        request_settings_update() override;
                 virtual meta::plugin_format_t       plugin_format() const override;
+                virtual core::KVTStorage           *kvt_lock() override;
+                virtual core::KVTStorage           *kvt_trylock() override;
+                virtual bool                        kvt_release() override;
 
             public: // Gstreamer-specific functions
-                void setup(const GstAudioInfo * info);
-                void set_property(guint prop_id, const GValue *value, GParamSpec *pspec);
-                void get_property(guint prop_id, GValue * value, GParamSpec * pspec);
-                void process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size);
+                void                                setup(const GstAudioInfo * info);
+                void                                change_state(GstStateChange transition);
+                void                                set_property(guint prop_id, const GValue *value, GParamSpec *pspec);
+                void                                get_property(guint prop_id, GValue * value, GParamSpec * pspec);
+                void                                process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size);
         };
     } /* namespace gst */
 } /* namespace lsp */
