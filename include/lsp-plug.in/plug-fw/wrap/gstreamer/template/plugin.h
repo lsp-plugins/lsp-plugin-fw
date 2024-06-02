@@ -235,7 +235,7 @@ static void gst_xx_plugin_id_xx_class_init(GstXx_PluginId_XxClass * klass)
 
     lsp::gst::Factory *f = lsp::gst::get_factory();
     if (f != NULL)
-        f->init_class(element_class, "xx_plugin_id_xx");
+        f->init_class(audio_filter_class, "xx_plugin_id_xx");
 }
 
 static gboolean plugin_init(GstPlugin *plugin)

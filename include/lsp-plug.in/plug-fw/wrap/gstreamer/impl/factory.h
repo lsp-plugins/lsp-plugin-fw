@@ -342,15 +342,18 @@ namespace lsp
             return NULL;
         }
 
-        void Factory::init_class(GstElementClass *element, const char *plugin_id)
+        void Factory::init_class(GstAudioFilterClass *klass, const char *plugin_id)
         {
             // Find the plugin
             const meta::plugin_t *meta = find_plugin(plugin_id);
             if (meta == NULL)
                 return;
 
+            GstElementClass *element_class = reinterpret_cast<GstElementClass *>(klass);
+            GObjectClass *gobject_class = reinterpret_cast<GObjectClass *>(klass);
+
             gst_element_class_set_details_simple(
-                element,
+                element_class,
                 meta->description,
                 "Filter/Effect/Audio",
                 meta->bundle->description,
@@ -398,7 +401,7 @@ namespace lsp
                     GST_BASE_TRANSFORM_SINK_NAME, GST_PAD_SINK, GST_PAD_ALWAYS,
                     caps);
 
-                gst_element_class_add_pad_template(element, pad_template);
+                gst_element_class_add_pad_template(element_class, pad_template);
             }
 
             // Create source pad
@@ -433,10 +436,70 @@ namespace lsp
                     GST_BASE_TRANSFORM_SRC_NAME, GST_PAD_SRC, GST_PAD_ALWAYS,
                     caps);
 
-                gst_element_class_add_pad_template(element, pad_template);
+                gst_element_class_add_pad_template(element_class, pad_template);
             }
 
-            // TODO: add properties
+            // Install properties
+            LSPString tmp;
+
+            for (size_t i=0, n=en.params.size(); i < n; ++i)
+            {
+                const meta::port_t *port = en.params.uget(i);
+                if (port == NULL)
+                    continue;
+
+                const int param_id = i + 1;
+
+                int param_flags = G_PARAM_READABLE | G_PARAM_STATIC_NAME | G_PARAM_STATIC_NICK;
+                if (meta::is_in_port(port))
+                    param_flags        |= G_PARAM_WRITABLE;
+
+                const char *blurb   = port->name;
+                const char *unit    = meta::get_unit_name(port->unit);
+                if ((unit != NULL) && (strlen(unit) > 0))
+                {
+                    tmp.fmt_utf8("%s [%s]", meta->name, unit);
+                    blurb               = tmp.get_native();
+                }
+                else
+                    param_flags        |= G_PARAM_STATIC_BLURB;
+
+                GParamSpec * spec = NULL;
+
+                if (port->flags & meta::F_INT)
+                {
+                    spec = g_param_spec_int(
+                        port->id, port->name, blurb,
+                        port->min, port->max, port->start,
+                        GParamFlags(param_flags));
+                }
+                else if (meta::is_enum_unit(port->unit))
+                {
+                    const int min = port->start;
+                    const int count = meta::list_size(port->items);
+
+                    spec = g_param_spec_int(
+                        port->id, port->name, blurb,
+                        min, min + count - 1, port->start,
+                        GParamFlags(param_flags));
+                }
+                else if (meta::is_path_port(port))
+                {
+                    spec = g_param_spec_string(
+                        port->id, port->name, blurb,
+                        "",
+                        GParamFlags(param_flags));
+                }
+                else
+                {
+                    spec = g_param_spec_float(
+                        port->id, port->name, blurb,
+                        port->min, port->max, port->start,
+                        GParamFlags(param_flags));
+                }
+
+                g_object_class_install_property(gobject_class, param_id, spec);
+            }
         }
 
         Wrapper *Factory::instantiate(const char *plugin_id)

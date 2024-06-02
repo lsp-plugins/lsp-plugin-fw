@@ -90,7 +90,7 @@ namespace lsp
                 const meta::package_t  *package() const;
 
             public: // Interface for GStreamer
-                void                    init_class(GstElementClass *element, const char *plugin_id);
+                void                    init_class(GstAudioFilterClass *klass, const char *plugin_id);
                 Wrapper                *instantiate(const char *plugin_id);
 
         };
