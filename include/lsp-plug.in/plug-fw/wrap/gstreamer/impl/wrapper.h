@@ -94,6 +94,108 @@ namespace lsp
             safe_release(pFactory);
         }
 
+        gst::AudioPort *Wrapper::find_port(lltl::parray<gst::AudioPort> & list, const char *id)
+        {
+            for (size_t i=0, n=list.size(); i<n; ++i)
+            {
+                gst::AudioPort *p = list.uget(i);
+                if (p == NULL)
+                    continue;
+                const meta::port_t *meta = p->metadata();
+                if ((meta == NULL) || (meta->id == NULL))
+                    continue;
+
+                if (strcmp(meta->id, id) == 0)
+                    return p;
+            }
+
+            return NULL;
+        }
+
+        ssize_t Wrapper::compare_port_items(const meta::port_group_item_t *a, const meta::port_group_item_t *b)
+        {
+            return a->role - b->role;
+        }
+
+        void Wrapper::make_port_group_mapping(
+            lltl::parray<gst::AudioPort> & sink,
+            lltl::parray<gst::AudioPort> & list,
+            const meta::port_group_t *grp)
+        {
+            // Fill list of ports and sort by the role
+            lltl::parray<meta::port_group_item_t> ports;
+            for (const meta::port_group_item_t *item = grp->items; (item != NULL) && (item->id != NULL); ++item)
+                ports.add(const_cast<meta::port_group_item_t *>(item));
+            ports.qsort(compare_port_items);
+
+            // Add new unique ports to the output list
+            for (size_t i=0, n=ports.size(); i<n; ++i)
+            {
+                const meta::port_group_item_t *item = ports.uget(i);
+                if (item == NULL)
+                    continue;
+
+                gst::AudioPort *p = find_port(list, item->id);
+                if (p == NULL)
+                    continue;
+                if (!sink.contains(p))
+                    sink.add(p);
+            }
+        }
+
+        void Wrapper::make_port_mapping(
+            lltl::parray<gst::AudioPort> & sink,
+            lltl::parray<gst::AudioPort> & list)
+        {
+            for (size_t i=0, n=list.size(); i<n; ++i)
+            {
+                gst::AudioPort *p = list.uget(i);
+                if (p == NULL)
+                    continue;
+
+                if (!sink.contains(p))
+                    sink.add(p);
+            }
+        }
+
+        void Wrapper::make_audio_mapping(
+            lltl::parray<gst::AudioPort> & sink,
+            lltl::parray<gst::AudioPort> & list,
+            const meta::plugin_t *meta,
+            bool out)
+        {
+            const int grp_flags = (out) ? meta::PGF_OUT : meta::PGF_IN;
+
+            // Find main group and emit ports for it
+            const meta::port_group_t *main = NULL;
+            for (const meta::port_group_t *grp = meta->port_groups; (grp != NULL) && (grp->id != NULL); ++grp)
+            {
+                if ((grp->flags & meta::PGF_OUT) != grp_flags)
+                    continue;
+                if (grp->flags & meta::PGF_MAIN)
+                {
+                    main = grp;
+                    make_port_group_mapping(sink, list, grp);
+                    break;
+                }
+            }
+
+            // Now iterate over all groups and make mapping
+            for (const meta::port_group_t *grp = meta->port_groups; (grp != NULL) && (grp->id != NULL); ++grp)
+            {
+                if ((grp->flags & meta::PGF_OUT) != grp_flags)
+                    continue;
+                if (grp != main)
+                {
+                    make_port_group_mapping(sink, list, grp);
+                    break;
+                }
+            }
+
+            // Make mapping for non-assigned ports
+            make_port_mapping(sink, list);
+        }
+
         status_t Wrapper::init()
         {
             const meta::plugin_t *meta = pPlugin->metadata();
@@ -103,6 +205,10 @@ namespace lsp
             lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(&plugin_ports, port, NULL);
+
+            // Create audio port mapping
+            make_audio_mapping(vSinkIn, vAudioIn, meta, false);
+            make_audio_mapping(vSinkOut, vAudioOut, meta, true);
 
             // Create executor service
             lsp_trace("Creating executor service");
