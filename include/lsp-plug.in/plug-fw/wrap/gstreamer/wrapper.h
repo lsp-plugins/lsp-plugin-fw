@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/ports.h>
@@ -48,9 +49,13 @@ namespace lsp
                 gst::Factory                       *pFactory;           // Plugin factory
                 const meta::package_t              *pPackage;           // Package information
                 ipc::IExecutor                     *pExecutor;          // Executor service
+                ssize_t                             nLatency;           // Current latency value
+                uint32_t                            nChannels;          // Number of channels
+                uint32_t                            nFrameSize;         // Frame size
+
                 bool                                bUpdateSettings;    // Settings update flag
-                ssize_t                             nOldLatency;        // Old latency value
-                ssize_t                             nNewLatency;        // New latency value
+                bool                                bUpdateSampleRate;  // Flag that forces plugin to update sample rate
+                bool                                bInterleaved;       // Interleaved audio layout
 
                 lltl::parray<plug::IPort>           vAllPorts;          // All created ports
                 lltl::parray<gst::AudioPort>        vAudioIn;           // All available audio inputs
@@ -59,11 +64,12 @@ namespace lsp
                 lltl::parray<gst::MeterPort>        vMeters;            // All available meters
                 lltl::parray<plug::IPort>           vPortMapping;       // All parameters visible to the host
                 lltl::parray<meta::port_t>          vGenMetadata;       // Generated metadata
-                lltl::parray<gst::AudioPort>        vSinkIn;            // All available audio inputs
-                lltl::parray<gst::AudioPort>        vSinkOut;           // All available audio outputs
+                lltl::parray<gst::AudioPort>        vSink;              // All available audio inputs
+                lltl::parray<gst::AudioPort>        vSource;            // All available audio outputs
 
-                core::KVTStorage                    sKVT;
-                ipc::Mutex                          sKVTMutex;
+                core::KVTStorage                    sKVT;               // Key-value tree
+                ipc::Mutex                          sKVTMutex;          // Key-value tree lock mutex
+                core::SamplePlayer                 *pSamplePlayer;      // Sample player
 
             protected:
                 plug::IPort                        *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);

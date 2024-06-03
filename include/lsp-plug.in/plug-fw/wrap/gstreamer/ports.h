@@ -40,11 +40,13 @@ namespace lsp
         {
             protected:
                 float      *pBuffer;
+                bool        bZero;
 
             public:
                 explicit AudioPort(const meta::port_t *meta) : plug::IPort(meta)
                 {
-                    pBuffer  = reinterpret_cast<float *>(::malloc(sizeof(float) * MAX_BLOCK_LENGTH));
+                    pBuffer     = reinterpret_cast<float *>(::malloc(sizeof(float) * MAX_BLOCK_LENGTH));
+                    bZero       = false;
                     if (pBuffer != NULL)
                         dsp::fill_zero(pBuffer, MAX_BLOCK_LENGTH);
                 }
@@ -68,9 +70,20 @@ namespace lsp
                 virtual void *buffer() override     { return pBuffer; };
 
             public:
+                inline void clear()
+                {
+                    if (!bZero)
+                    {
+                        dsp::fill_zero(pBuffer, MAX_BLOCK_LENGTH);
+                        bZero       = true;
+                    }
+                }
+
                 // Sanitize non-interleaved input samples
                 inline void sanitize_input(const float *src, size_t samples)
                 {
+                    bZero       = false;
+
                     dsp::sanitize2(pBuffer, src, samples);
                 }
 
@@ -83,6 +96,8 @@ namespace lsp
                 // Deinterleave and sanitize samples from buffer
                 inline void deinterleave(const float *src, size_t stride, size_t samples)
                 {
+                    bZero       = false;
+
                     for (size_t i=0; i<samples; ++i)
                     {
                         pBuffer[i]  = *src;
@@ -97,10 +112,13 @@ namespace lsp
                 inline void interleave(float *dst, size_t stride, size_t samples)
                 {
                     // Sanitize plugin's output
-                    dsp::sanitize1(pBuffer, samples); // Sanitize output of plugin
+                    dsp::sanitize1(pBuffer, samples);
 
-                    // Clear the buffer pointer
-                    pBuffer    = NULL;
+                    for (size_t i=0; i<samples; ++i)
+                    {
+                        *dst        = pBuffer[i];
+                        dst        += stride;
+                    }
                 }
         };
 

@@ -38,10 +38,16 @@ namespace lsp
         {
             pFactory            = safe_acquire(pFactory);
             pExecutor           = NULL;
-            bUpdateSettings     = true;
             pPackage            = NULL;
-            nOldLatency         = -1;
-            nNewLatency         = 0;
+            nLatency            = -1;
+
+            nChannels           = 0;
+            nFrameSize          = 0;
+            bUpdateSettings     = true;
+            bUpdateSampleRate   = true;
+            bInterleaved        = false;
+
+            pSamplePlayer       = NULL;
         }
 
         Wrapper::~Wrapper()
@@ -59,6 +65,14 @@ namespace lsp
 
                 delete pExecutor;
                 pExecutor = NULL;
+            }
+
+            // Destroy sample player
+            if (pSamplePlayer != NULL)
+            {
+                pSamplePlayer->destroy();
+                delete pSamplePlayer;
+                pSamplePlayer = NULL;
             }
 
             // Now we are able to destroy the plugin
@@ -194,6 +208,12 @@ namespace lsp
 
             // Make mapping for non-assigned ports
             make_port_mapping(sink, list);
+
+        #ifdef LSP_TRACE
+            lsp_trace("%s port mapping", (out) ? "Output" : "Input");
+            for (size_t i=0, n=sink.size(); i<n; ++i)
+                lsp_trace("  #%d: %s", int(i), sink.uget(i)->metadata()->id);
+        #endif /* LSP_TRACE */
         }
 
         status_t Wrapper::init()
@@ -207,8 +227,8 @@ namespace lsp
                 create_port(&plugin_ports, port, NULL);
 
             // Create audio port mapping
-            make_audio_mapping(vSinkIn, vAudioIn, meta, false);
-            make_audio_mapping(vSinkOut, vAudioOut, meta, true);
+            make_audio_mapping(vSink, vAudioIn, meta, false);
+            make_audio_mapping(vSource, vAudioOut, meta, true);
 
             // Create executor service
             lsp_trace("Creating executor service");
@@ -223,6 +243,18 @@ namespace lsp
                     return STATUS_NO_MEM;
                 }
             }
+
+            // Create sample player if required
+            if (meta->extensions & meta::E_FILE_PREVIEW)
+            {
+                pSamplePlayer       = new core::SamplePlayer(meta);
+                if (pSamplePlayer == NULL)
+                    return STATUS_NO_MEM;
+                pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
+            }
+
+            // Initialize plugin
+            pPlugin->init(this, plugin_ports.array());
 
             return STATUS_OK;
         }
@@ -514,19 +546,101 @@ namespace lsp
             }
         }
 
-        void Wrapper::setup(const GstAudioInfo * info)
+        void Wrapper::setup(const GstAudioInfo *info)
         {
-            // TODO
+            const size_t srate  = GST_AUDIO_INFO_RATE(info);
+            nChannels           = GST_AUDIO_INFO_CHANNELS(info);
+            nFrameSize          = GST_AUDIO_INFO_BPF(info);
+            bInterleaved        = GST_AUDIO_INFO_LAYOUT(info) == GST_AUDIO_LAYOUT_INTERLEAVED;
+
+            // Set sample rate for plugin
+            if ((pPlugin->sample_rate() != srate) || (bUpdateSampleRate))
+            {
+                pPlugin->set_sample_rate(srate);
+                bUpdateSampleRate   = false;
+                bUpdateSettings     = true;
+            }
+
+            // Set sample rate for sample player
+            if (pSamplePlayer != NULL)
+                pSamplePlayer->set_sample_rate(srate);
         }
 
         void Wrapper::change_state(GstStateChange transition)
         {
-            // TODO
+            const GstState state = GST_STATE_TRANSITION_NEXT(transition);
+            pPlugin->set_active(state == GST_STATE_PLAYING);
         }
 
         void Wrapper::process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size)
         {
-            // TODO
+            // Compute number of samples
+            const size_t in_samples = in_size / nFrameSize;
+            const size_t out_samples = out_size / nFrameSize;
+            const size_t samples = lsp_min(in_samples, out_samples);
+
+            const float *in_buf     = reinterpret_cast<const float *>(in);
+            float *out_buf          = reinterpret_cast<float *>(out);
+
+            for (size_t offset=0; offset<samples; )
+            {
+                const size_t to_do      = lsp_min(samples - offset, MAX_BLOCK_LENGTH);
+
+                // Update settings if needed
+                if (bUpdateSettings)
+                {
+                    lsp_trace("updating settings");
+                    bUpdateSettings         = false;
+                    pPlugin->update_settings();
+                }
+
+                // Process input buffers
+                for (size_t i=0, n=vSink.size(); i<n; ++i)
+                {
+                    gst::AudioPort *p = vSink.uget(i);
+                    if (i < nChannels)
+                    {
+                        if (bInterleaved)
+                            p->deinterleave(&in_buf[offset*nChannels + i], nChannels, to_do);
+                        else
+                            p->sanitize_input(&in_buf[offset + i*in_samples], to_do);
+                    }
+                    else
+                        p->clear();
+                }
+
+                // Call plugin
+                pPlugin->process(to_do);
+
+                // Call sample player
+                pSamplePlayer->process(samples);
+
+                // Process output buffers
+                for (size_t i=0, n=vSource.size(); i<n; ++i)
+                {
+                    gst::AudioPort *p = vSource.uget(i);
+                    if (i < nChannels)
+                    {
+                        if (bInterleaved)
+                            p->interleave(&out_buf[offset*nChannels + i], nChannels, to_do);
+                        else
+                            p->sanitize_output(&out_buf[offset + i*in_samples], to_do);
+                    }
+                    else
+                        p->clear();
+                }
+
+                // Update pointer
+                offset                 += to_do;
+            }
+
+            // Report latency if changed
+            ssize_t latency = pPlugin->latency();
+            if (latency != nLatency)
+            {
+
+                nLatency = latency;
+            }
         }
 
     } /* namespace gst */

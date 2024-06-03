@@ -64,6 +64,18 @@ namespace lsp
             ui_deactivated();
         }
 
+        void Module::set_active(bool active)
+        {
+            if (active == bActivated)
+                return;
+            bActivated      = active;
+            if (active)
+                activated();
+            else
+                deactivated();
+            pWrapper->query_display_draw();
+        }
+
         void Module::activate()
         {
             if (bActivated)
