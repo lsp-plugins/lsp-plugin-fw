@@ -47,11 +47,13 @@ namespace lsp
         {
             protected:
                 gst::Factory                       *pFactory;           // Plugin factory
+                GstAudioFilter                     *pFilter;            // GStreamer audio filter class
                 const meta::package_t              *pPackage;           // Package information
                 ipc::IExecutor                     *pExecutor;          // Executor service
                 ssize_t                             nLatency;           // Current latency value
                 uint32_t                            nChannels;          // Number of channels
                 uint32_t                            nFrameSize;         // Frame size
+                uint32_t                            nSampleRate;        // Sample rate
 
                 bool                                bUpdateSettings;    // Settings update flag
                 bool                                bUpdateSampleRate;  // Flag that forces plugin to update sample rate
@@ -74,6 +76,8 @@ namespace lsp
             protected:
                 plug::IPort                        *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 void                                do_destroy();
+                void                                report_latency();
+                GstClockTime                        gst_latency() const;
 
                 static ssize_t                      compare_port_items(const meta::port_group_item_t *a, const meta::port_group_item_t *b);
                 static gst::AudioPort              *find_port(lltl::parray<gst::AudioPort> & list, const char *id);
@@ -91,7 +95,7 @@ namespace lsp
                                                         lltl::parray<gst::AudioPort> & list);
 
             public:
-                explicit Wrapper(gst::Factory *factory, plug::Module *plugin, resource::ILoader *loader);
+                explicit Wrapper(gst::Factory *factory, GstAudioFilter *filter, plug::Module *plugin, resource::ILoader *loader);
                 virtual ~Wrapper() override;
 
                 status_t                            init();
@@ -111,6 +115,7 @@ namespace lsp
                 void                                change_state(GstStateChange transition);
                 void                                set_property(guint prop_id, const GValue *value, GParamSpec *pspec);
                 void                                get_property(guint prop_id, GValue * value, GParamSpec * pspec);
+                gboolean                            query(GstPad *pad, GstQuery *query);
                 void                                process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size);
         };
     } /* namespace gst */

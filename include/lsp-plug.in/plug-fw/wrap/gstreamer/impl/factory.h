@@ -502,7 +502,7 @@ namespace lsp
             }
         }
 
-        Wrapper *Factory::instantiate(const char *plugin_id)
+        Wrapper *Factory::instantiate(const char *plugin_id, GstAudioFilter *filter)
         {
             // Find and instantiate the plugin
             plug::Module *plugin = create_plugin(plugin_id);
@@ -517,7 +517,7 @@ namespace lsp
             };
 
             // Create the wrapper
-            gst::Wrapper *wrapper = new gst::Wrapper(this, plugin, pLoader);
+            gst::Wrapper *wrapper = new gst::Wrapper(this, filter, plugin, pLoader);
             if (wrapper == NULL)
                 return NULL;
             plugin  = NULL;     // Will be destroyed by the wrapper

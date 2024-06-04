@@ -192,11 +192,27 @@ static GstFlowReturn gst_xx_plugin_id_xx_filter_inplace(
     return GST_FLOW_OK;
 }
 
+static gboolean gst_xx_plugin_id_xx_query(GstPad *pad, GstObject *object, GstQuery *query)
+{
+    GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
+
+    if (filter->wrapper != NULL)
+        return filter->wrapper->query(pad, query);
+
+    return gst_pad_query_default (pad, object, query);
+}
+
 static void gst_xx_plugin_id_xx_init(GstXx_PluginId_Xx *filter)
 {
     lsp::gst::Factory *f = lsp::gst::get_factory();
+    GstBaseTransform *transform = GST_BASE_TRANSFORM(filter);
+    if (transform != NULL)
+    {
+        gst_pad_set_query_function(GST_BASE_TRANSFORM_SRC_PAD(transform), gst_xx_plugin_id_xx_query);
+        gst_pad_set_query_function(GST_BASE_TRANSFORM_SINK_PAD(transform), gst_xx_plugin_id_xx_query);
+    }
 
-    filter->wrapper     = (f != NULL) ? f->instantiate("xx_plugin_id_xx") : NULL;
+    filter->wrapper     = (f != NULL) ? f->instantiate("xx_plugin_id_xx", GST_AUDIO_FILTER(filter)) : NULL;
 }
 
 static void gst_xx_plugin_id_xx_finalize(GObject * object)
@@ -220,7 +236,6 @@ static void gst_xx_plugin_id_xx_class_init(GstXx_PluginId_XxClass * klass)
     GstElementClass *element_class = reinterpret_cast<GstElementClass *>(klass);
     GstBaseTransformClass *btrans_class = reinterpret_cast<GstBaseTransformClass *>(klass);
     GstAudioFilterClass *audio_filter_class = reinterpret_cast<GstAudioFilterClass *>(klass);
-
 
     gobject_class->set_property = gst_xx_plugin_id_xx_set_property;
     gobject_class->get_property = gst_xx_plugin_id_xx_get_property;

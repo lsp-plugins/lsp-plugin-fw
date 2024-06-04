@@ -91,7 +91,7 @@ namespace lsp
 
             public: // Interface for GStreamer
                 void                    init_class(GstAudioFilterClass *klass, const char *plugin_id);
-                Wrapper                *instantiate(const char *plugin_id);
+                Wrapper                *instantiate(const char *plugin_id, GstAudioFilter *filter);
 
         };
     } /* namespace gst */

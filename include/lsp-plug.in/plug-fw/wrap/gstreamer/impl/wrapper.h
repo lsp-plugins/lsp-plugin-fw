@@ -33,13 +33,15 @@ namespace lsp
 {
     namespace gst
     {
-        Wrapper::Wrapper(gst::Factory *factory, plug::Module *plugin, resource::ILoader *loader):
+        Wrapper::Wrapper(gst::Factory *factory, GstAudioFilter *filter, plug::Module *plugin, resource::ILoader *loader):
             IWrapper(plugin, loader)
         {
             pFactory            = safe_acquire(pFactory);
+            pFilter             = filter;
             pExecutor           = NULL;
             pPackage            = NULL;
             nLatency            = -1;
+            nSampleRate         = 0;
 
             nChannels           = 0;
             nFrameSize          = 0;
@@ -548,28 +550,98 @@ namespace lsp
 
         void Wrapper::setup(const GstAudioInfo *info)
         {
-            const size_t srate  = GST_AUDIO_INFO_RATE(info);
             nChannels           = GST_AUDIO_INFO_CHANNELS(info);
             nFrameSize          = GST_AUDIO_INFO_BPF(info);
+            nSampleRate         = GST_AUDIO_INFO_RATE(info);
             bInterleaved        = GST_AUDIO_INFO_LAYOUT(info) == GST_AUDIO_LAYOUT_INTERLEAVED;
 
             // Set sample rate for plugin
-            if ((pPlugin->sample_rate() != srate) || (bUpdateSampleRate))
+            if ((pPlugin->sample_rate() != nSampleRate) || (bUpdateSampleRate))
             {
-                pPlugin->set_sample_rate(srate);
+                pPlugin->set_sample_rate(nSampleRate);
                 bUpdateSampleRate   = false;
                 bUpdateSettings     = true;
             }
 
             // Set sample rate for sample player
             if (pSamplePlayer != NULL)
-                pSamplePlayer->set_sample_rate(srate);
+                pSamplePlayer->set_sample_rate(nSampleRate);
         }
 
         void Wrapper::change_state(GstStateChange transition)
         {
             const GstState state = GST_STATE_TRANSITION_NEXT(transition);
             pPlugin->set_active(state == GST_STATE_PLAYING);
+        }
+
+        void Wrapper::report_latency()
+        {
+            const GstClockTime latency = gst_latency();
+            GstBaseTransform *transform = GST_BASE_TRANSFORM(pFilter);
+            if (transform == NULL)
+                return;
+
+            GstPad *sink = GST_BASE_TRANSFORM_SRC_PAD(transform);
+            if (sink != NULL)
+                gst_pad_send_event(sink, gst_event_new_latency(latency));
+
+            GstPad *src = GST_BASE_TRANSFORM_SRC_PAD(transform);
+            if (sink != NULL)
+                gst_pad_send_event(src, gst_event_new_latency(latency));
+        }
+
+        GstClockTime Wrapper::gst_latency() const
+        {
+            return (nSampleRate != 0) ? (GST_SECOND * nLatency) / nSampleRate : 0;
+        }
+
+        gboolean Wrapper::query(GstPad *pad, GstQuery *query)
+        {
+            switch (GST_QUERY_TYPE(query))
+            {
+                case GST_QUERY_LATENCY:
+                {
+                    // Get self pad
+                    GstBaseTransform *transform = GST_BASE_TRANSFORM(pFilter);
+                    if (transform == NULL)
+                        return FALSE;
+                    GstPad *sink = GST_BASE_TRANSFORM_SRC_PAD(transform);
+                    if (sink == NULL)
+                        return FALSE;
+
+                    // Get peer pad
+                    GstPad *peer = gst_pad_get_peer(sink);
+                    if (peer == NULL)
+                        return FALSE;
+                    lsp_finally {
+                        gst_object_unref (peer);
+                    };
+
+                    // Query the latency of the peer
+                    if (!gst_pad_query(peer, query))
+                        return FALSE;
+
+                    // Parse latency
+                    GstClockTime min = 0, max = 0;
+                    gboolean live = FALSE;
+                    gst_query_parse_latency(query, &live, &min, &max);
+
+                    // Apply self latency
+                    const GstClockTime latency = gst_latency();
+                    min += latency;
+                    if (max != GST_CLOCK_TIME_NONE)
+                        max += latency;
+
+                    // Update the query
+                    gst_query_set_latency(query, live, min, max);
+                    return TRUE;
+                }
+
+                default:
+                    break;
+            }
+
+            return gst_pad_query_default(pad, GST_OBJECT(pFilter), query);
         }
 
         void Wrapper::process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size)
@@ -638,8 +710,8 @@ namespace lsp
             ssize_t latency = pPlugin->latency();
             if (latency != nLatency)
             {
-
                 nLatency = latency;
+                report_latency();
             }
         }
 
