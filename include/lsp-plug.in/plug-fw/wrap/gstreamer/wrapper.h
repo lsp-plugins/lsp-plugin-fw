@@ -43,7 +43,7 @@ namespace lsp
         /**
          * Wrapper for the plugin module
          */
-        class Wrapper: public plug::IWrapper
+        class Wrapper: public plug::IWrapper, public gst::IWrapper
         {
             protected:
                 gst::Factory                       *pFactory;           // Plugin factory
@@ -110,13 +110,13 @@ namespace lsp
                 virtual core::KVTStorage           *kvt_trylock() override;
                 virtual bool                        kvt_release() override;
 
-            public: // Gstreamer-specific functions
-                void                                setup(const GstAudioInfo * info);
-                void                                change_state(GstStateChange transition);
-                void                                set_property(guint prop_id, const GValue *value, GParamSpec *pspec);
-                void                                get_property(guint prop_id, GValue * value, GParamSpec * pspec);
-                gboolean                            query(GstPad *pad, GstQuery *query);
-                void                                process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size);
+            public: // gst::IWrapper interface
+                virtual void                        setup(const GstAudioInfo * info) override;
+                virtual void                        change_state(GstStateChange transition) override;
+                virtual void                        set_property(guint prop_id, const GValue *value, GParamSpec *pspec) override;
+                virtual void                        get_property(guint prop_id, GValue *value, GParamSpec *pspec) override;
+                virtual gboolean                    query(GstPad *pad, GstQuery *query) override;
+                virtual void                        process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size) override;
         };
     } /* namespace gst */
 } /* namespace lsp */

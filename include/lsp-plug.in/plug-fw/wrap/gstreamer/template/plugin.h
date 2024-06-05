@@ -26,8 +26,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/finally.h>
 #include <lsp-plug.in/common/status.h>
-#include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/gstreamer/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/defs.h>
 
 #define LSP_PLUG_IN_GSTREAMER_MAIN_IMPL
     #include <lsp-plug.in/plug-fw/wrap/gstreamer/main.h>
@@ -81,7 +80,7 @@ G_DECLARE_FINAL_TYPE( // @suppress("Unused static function")
 struct _GstXx_PluginId_Xx
 {
     GstAudioFilter audiofilter;
-    lsp::gst::Wrapper *wrapper;
+    lsp::gst::IWrapper *wrapper;
 };
 
 G_DEFINE_TYPE( // @suppress("Unused static function")
@@ -143,8 +142,6 @@ static gboolean gst_xx_plugin_id_xx_setup(
 
 static GstStateChangeReturn gst_xx_plugin_id_xx_change_state(GstElement *object, GstStateChange transition)
 {
-    GstAudioFilterClass *audio_filter_class = GST_AUDIO_FILTER_CLASS(parent_class);
-
     GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
     if (filter->wrapper != NULL)
         filter->wrapper->change_state(transition);
@@ -204,7 +201,7 @@ static gboolean gst_xx_plugin_id_xx_query(GstPad *pad, GstObject *object, GstQue
 
 static void gst_xx_plugin_id_xx_init(GstXx_PluginId_Xx *filter)
 {
-    lsp::gst::Factory *f = lsp::gst::get_factory();
+    lsp::gst::IFactory *f = lsp::gst::lookup_factory();
     GstBaseTransform *transform = GST_BASE_TRANSFORM(filter);
     if (transform != NULL)
     {
@@ -221,7 +218,6 @@ static void gst_xx_plugin_id_xx_finalize(GObject * object)
 
     if (filter->wrapper != NULL)
     {
-        filter->wrapper->destroy();
         delete filter->wrapper;
         filter->wrapper = NULL;
     }
@@ -248,13 +244,15 @@ static void gst_xx_plugin_id_xx_class_init(GstXx_PluginId_XxClass * klass)
     btrans_class->transform = gst_xx_plugin_id_xx_filter;
     btrans_class->transform_ip = gst_xx_plugin_id_xx_filter_inplace;
 
-    lsp::gst::Factory *f = lsp::gst::get_factory();
+    lsp::gst::IFactory *f = lsp::gst::lookup_factory();
     if (f != NULL)
         f->init_class(audio_filter_class, "xx_plugin_id_xx");
 }
 
 static gboolean plugin_init(GstPlugin *plugin)
 {
+    IF_DEBUG( lsp::debug::redirect("lsp-vst2-loader.log"); );
+
     return GST_ELEMENT_REGISTER(xx_plugin_id_xx, plugin);
 }
 

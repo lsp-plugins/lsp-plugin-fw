@@ -25,7 +25,6 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/gstreamer/helpers.h>
 
 #include <lsp-plug.in/stdlib/stdio.h>
 
@@ -34,7 +33,8 @@ namespace lsp
     namespace gst
     {
         Wrapper::Wrapper(gst::Factory *factory, GstAudioFilter *filter, plug::Module *plugin, resource::ILoader *loader):
-            IWrapper(plugin, loader)
+            plug::IWrapper(plugin, loader),
+            gst::IWrapper()
         {
             pFactory            = safe_acquire(pFactory);
             pFilter             = filter;

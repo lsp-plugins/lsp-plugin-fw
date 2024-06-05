@@ -139,6 +139,12 @@ HOST_PLUG_DEPS                  = $(foreach dep, $(HOST_DEPENDENCIES) $(HOST_PLU
 
 #------------------------------------------------------------------------------
 # Miscellaneous names and paths
+ifeq ($(PLATFORM),Windows)
+  GSTREAMER_INSTDIR      := $(LIBDIR)/gstreamer-1.0
+else
+  GSTREAMER_INSTDIR      := $(call fcheck,lv2,$(ENABLED_FEATURES),$(shell pkg-config --variable=pluginsdir gstreamer-1.0),$(LIBDIR)/gstreamer-1.0)
+endif
+
 PLUGIN_ARTIFACT_ID     := $(ROOT_ARTIFACT_ID)
 PLUGIN_ARTIFACT_NAME   := $(if $(PLUGIN_PACKAGE_NAME),$(PLUGIN_PACKAGE_NAME),$($(ROOT_ARTIFACT_ID)_NAME))
 PLUGIN_ARTIFACT_PREFIX := $(if $(PLUGIN_ARTIFACT_NAME),$(PLUGIN_ARTIFACT_NAME)-,)
@@ -155,12 +161,6 @@ LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
 VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_GROUP_LIBDIR)
 VST3_LIBDIR            := $(LIBDIR)/vst3/$(INSTALL_LIBDIR).vst3
 DOC_SHAREDDIR          := $(SHAREDDIR)/doc/$($(ROOT_ARTIFACT_ID)_NAME)
-
-ifeq ($(PLATFORM),Windows)
-  GSTREAMER_INSTDIR      := $(LIBDIR)/gstreamer-1.0
-else
-  GSTREAMER_INSTDIR      := $(call fcheck,lv2,$(ENABLED_FEATURES),$(shell pkg-config --variable=pluginsdir gstreamer-1.0),$(LIBDIR)/gstreamer-1.0)
-endif
 
 ifeq ($(PLATFORM),Linux)
   ifeq ($(ARCHITECTURE_FAMILY),ia32)
@@ -217,6 +217,8 @@ PLUGIN_PACKAGE_MICRO       := $(call vmicro,$(PLUGIN_PACKAGE_VERSION))
 PLUGIN_PACKAGE_BRANCH      := $(call vbranch,$(PLUGIN_PACKAGE_VERSION))
 
 VERSION_CFLAGS             := \
+  -DLSP_PLUGIN_ARTIFACT_GROUP=\"$(PLUGIN_GROUP_NAME)\" \
+  -DLSP_PLUGIN_ARTIFACT_NAME=\"$(PLUGIN_SHARED_NAME)\" \
   -DLSP_PLUGIN_PACKAGE_MAJOR=$(PLUGIN_PACKAGE_MAJOR) \
   -DLSP_PLUGIN_PACKAGE_MINOR=$(PLUGIN_PACKAGE_MINOR) \
   -DLSP_PLUGIN_PACKAGE_MICRO=$(PLUGIN_PACKAGE_MICRO) \
@@ -665,6 +667,7 @@ ARTIFACT_LIB_GST_OBJS       = \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
   $(LSP_PLUGIN_FW_OBJ_RES) \
+  $(OBJ_EXPORT) \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_PLUG_SHARED) \
@@ -871,17 +874,17 @@ DEP_FILE                    = $(patsubst %.o,%.d, $(@))
 
 #------------------------------------------------------------------------------
 # Plugin instance settings
-WRAP_GST_CFLAGS            := $(VERSION_CFLAGS)
+WRAP_GST_CFLAGS            := $(VERSION_CFLAGS) -DLSP_PLUGIN_LIBRARY_NAME=\"$(notdir $(ARTIFACT_LIB_GST))\"
 WRAP_GST_LDFLAGS           := $(call query,LDFLAGS,$(DEPENDENCIES_GST_WRAP))
 WRAP_GST_OBJS              := $(call query,OBJ,$(DEPENDENCIES_GST_WRAP))
 WRAP_GST_INC               := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_GST_WRAP) $(ARTIFACT_ID)))
 
-WRAP_JACK_CFLAGS           := $(VERSION_CFLAGS)
+WRAP_JACK_CFLAGS           := $(VERSION_CFLAGS) -DLSP_PLUGIN_LIBRARY_NAME=\"$(notdir $(ARTIFACT_LIB_JACK))\"
 WRAP_JACK_LDFLAGS          := $(call query,LDFLAGS,$(DEPENDENCIES_JACK_WRAP))
 WRAP_JACK_OBJS             := $(call query,OBJ,$(DEPENDENCIES_JACK_WRAP))
 WRAP_JACK_INC              := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_JACK_WRAP) $(ARTIFACT_ID)))
 
-WRAP_VST2_CFLAGS           := $(VERSION_CFLAGS)
+WRAP_VST2_CFLAGS           := $(VERSION_CFLAGS) -DLSP_PLUGIN_LIBRARY_NAME=\"$(notdir $(ARTIFACT_LIB_VST2))\"
 WRAP_VST2_LDFLAGS          := $(call query,LDFLAGS,$(DEPENDENCIES_VST2_WRAP))
 WRAP_VST2_OBJS             := $(call query,OBJ,$(DEPENDENCIES_VST2_WRAP))
 WRAP_VST2_INC              := $(call query,CFLAGS,$(call uniq,$(DEPENDENCIES_VST2_WRAP) $(ARTIFACT_ID)))
@@ -1150,6 +1153,7 @@ gst: resources $(HOST_UTL_GST_MAKE) $(ARTIFACT_LIB_GST) $(DEPENDENCIES_BIN)
 	echo '# Auto-generated script, do not edit' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_ARTIFACT_NAME=$(PLUGIN_SHARED_NAME)' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_ARTIFACT_GROUP=$(PLUGIN_GROUP_NAME)' >> $(ARTIFACT_LIB_GST_SETTINGS)
+	echo 'EXT_LIBRARY_NAME=$(notdir $(ARTIFACT_LIB_GST))' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_PREFIX=$(PLUGIN_ARTIFACT_PREFIX)' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_OBJS=$(WRAP_GST_OBJS)' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_CFLAGS=$(WRAP_GST_CFLAGS)' >> $(ARTIFACT_LIB_GST_SETTINGS)

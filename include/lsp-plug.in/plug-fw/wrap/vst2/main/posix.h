@@ -171,11 +171,11 @@ namespace lsp
                 // Analyze file
                 if (de->d_type == DT_DIR)
                 {
-                #ifdef EXT_ARTIFACT_GROUP
-                    // Skip directory entry if it doesn't contain EXT_ARTIFACT_GROUP (for example, 'lsp-plugins') in name
-                    if ((strlen(EXT_ARTIFACT_GROUP) > 0) && (strstr(de->d_name, EXT_ARTIFACT_GROUP) == NULL))
+                #ifdef LSP_PLUGIN_ARTIFACT_GROUP
+                    // Skip directory entry if it does not contain LSP_PLUGIN_ARTIFACT_GROUP (for example, 'lsp-plugins') in name
+                    if ((strlen(LSP_PLUGIN_ARTIFACT_GROUP)) && (strstr(de->d_name, LSP_PLUGIN_ARTIFACT_GROUP) == NULL))
                         continue;
-                #endif /* EXT_ARTIFACT_GROUP */
+                #endif /* LSP_PLUGIN_ARTIFACT_GROUP */
                     if (subdir)
                     {
                         vst2::create_instance_t f = lookup_factory(hInstance, ptr, required, false);
@@ -185,11 +185,20 @@ namespace lsp
                 }
                 else if (de->d_type == DT_REG)
                 {
-                #ifdef EXT_ARTIFACT_NAME
-                    // Skip directory entry if it doesn't contain EXT_ARTIFACT_NAME (for example, 'lsp-plugins') in name
-                    if ((strlen(EXT_ARTIFACT_NAME) > 0) && (strstr(de->d_name, EXT_ARTIFACT_NAME) == NULL))
+                #ifdef LSP_PLUGIN_LIBRARY_NAME
+                    if (strcmp(de->d_name, LSP_PLUGIN_LIBRARY_NAME) != 0)
                         continue;
-                #endif /* EXT_ARTIFACT_NAME */
+                #endif /* LSP_PLUGIN_LIBRARY_NAME */
+
+                #ifdef LSP_PLUGIN_ARTIFACT_NAME
+                    // Skip directory entry if it does not contain LSP_PLUGIN_ARTIFACT_NAME (for example, 'lsp-plugins') in name
+                    if ((strlen(LSP_PLUGIN_ARTIFACT_NAME)) && (strstr(de->d_name, LSP_PLUGIN_ARTIFACT_NAME) == NULL))
+                        continue;
+                #endif /* LSP_PLUGIN_ARTIFACT_NAME */
+
+                    // Skip library if it doesn't contain gst format specifier
+                    if (strstr(de->d_name, "-vst2-") == NULL)
+                        continue;
 
                     // Skip library if it doesn't contain 'lsp-plugins' in name
                     if (strcasestr(de->d_name, ".so") == NULL)

@@ -26,9 +26,11 @@
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/ipc/Mutex.h>
+#include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
-#include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
+#include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/defs.h>
 #include <lsp-plug.in/resource/ILoader.h>
 
 #include <gst/gst.h>
@@ -42,7 +44,7 @@ namespace lsp
         /**
          * GStreamer plugin factory
          */
-        class Factory
+        class Factory: public gst::IFactory
         {
             private:
                 typedef struct enumeration_t
@@ -72,13 +74,17 @@ namespace lsp
                 Factory();
                 Factory(const Factory &) = delete;
                 Factory(Factory &&) = delete;
-                ~Factory();
+                virtual ~Factory();
 
                 Factory & operator = (const Factory &) = delete;
                 Factory & operator = (Factory &&) = delete;
 
-                status_t                init();
                 void                    destroy();
+
+            public: // gst::IFactory implementation
+                virtual status_t        init() override;
+                virtual void            init_class(GstAudioFilterClass *klass, const char *plugin_id) override;
+                virtual gst::IWrapper  *instantiate(const char *plugin_id, GstAudioFilter *filter) override;
 
             public: // Reference counting
                 atomic_t                acquire();
@@ -88,10 +94,6 @@ namespace lsp
                 ipc::IExecutor         *acquire_executor();
                 void                    release_executor();
                 const meta::package_t  *package() const;
-
-            public: // Interface for GStreamer
-                void                    init_class(GstAudioFilterClass *klass, const char *plugin_id);
-                Wrapper                *instantiate(const char *plugin_id, GstAudioFilter *filter);
 
         };
     } /* namespace gst */
