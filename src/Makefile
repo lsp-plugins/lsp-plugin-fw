@@ -86,35 +86,52 @@ MERGED_DEPENDENCIES             = \
   ) \
   $(call fcheck,clap,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_CLAP) \
+    $(DEPENDENCIES_CLAP_BIN) \
   ) \
   $(call fcheck,gst,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_GST) \
+    $(DEPENDENCIES_GST_BIN) \
   ) \
   $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
     $(DEPENDENCIES_JACK) \
     $(DEPENDENCIES_JACK_UI) \
     $(DEPENDENCIES_JACK_WRAP) \
+    $(DEPENDENCIES_JACK_BIN) \
   ) \
   $(call fcheck,ladspa,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_LADSPA) \
+    $(DEPENDENCIES_LADSPA_BIN) \
   ) \
   $(call fcheck,lv2,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_LV2) \
     $(DEPENDENCIES_LV2_UI) \
     $(DEPENDENCIES_LV2TTL_GEN) \
+    $(DEPENDENCIES_LV2_BIN) \
   ) \
   $(call fcheck,vst2,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_VST2) \
+    $(DEPENDENCIES_VST2_BIN) \
   ) \
   $(call fcheck,vst3,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_VST3) \
+    $(DEPENDENCIES_VST3_BIN) \
   ) \
   $(EXTRA_DEPENDENCIES) \
   $(ARTIFACT_ID) \
   $(PLUGIN_SHARED)
 
+MERGED_DEPENDENCIES_BIN        := \
+  $(DEPENDENCIES_BIN) \
+  $(call fcheck,clap,$(ENABLED_FEATURES),$(DEPENDENCIES_CLAP_BIN)) \
+  $(call fcheck,gst,$(ENABLED_FEATURES),$(DEPENDENCIES_GST_BIN)) \
+  $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(DEPENDENCIES_JACK_BIN)) \
+  $(call fcheck,ladspa,$(DEPENDENCIES_LADSPA_BIN)) \
+  $(call fcheck,lv2,$(ENABLED_FEATURES),$(DEPENDENCIES_LV2_BIN)) \
+  $(call fcheck,vst2,$(ENABLED_FEATURES),$(DEPENDENCIES_VST2_BIN)) \
+  $(call fcheck,vst3,$(ENABLED_FEATURES),$(DEPENDENCIES_VST3_BIN))
+
 UNIQ_DEPENDENCIES              := $(sort $(MERGED_DEPENDENCIES))
-UNIQ_DEPENDENCIES_BIN          := $(sort $(DEPENDENCIES_BIN))
+UNIQ_DEPENDENCIES_BIN          := $(sort $(MERGED_DEPENDENCIES_BIN))
 UNIQ_PLUGIN_DEPENDENCIES       := $(sort $(PLUGIN_DEPENDENCIES))
 HOST_UNIQ_DEPENDENCIES         := $(UNIQ_DEPENDENCIES)
 HOST_UNIQ_DEPENDENCIES_BIN     := $(UNIQ_DEPENDENCIES_BIN)
@@ -462,7 +479,7 @@ HOST_UTL_VALIDATOR_OBJS         = \
     $(HOST_LSP_PLUGIN_FW_OBJ_UI) \
     $(HOST_LSP_PLUGIN_FW_OBJ_CTL) \
   ) \
-  $(call fcheck,clap jack lv2 vst2 vst3,$(ENABLED_FEATURES), \
+  $(call fcheck,clap gst jack ladspa lv2 vst2 vst3,$(ENABLED_FEATURES), \
     $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
   ) \
   $(HOST_OBJ_PLUG_META) \
@@ -843,9 +860,18 @@ ARTIFACT_XDG_UNINST         = $(foreach dep, $(ARTIFACT_XDG_MAKEFILES), xdg_unin
 ARTIFACT_XDG_INST_ID        = $(patsubst xdg_install_%,%,$(@))
 ARTIFACT_XDG_UNINST_ID      = $(patsubst xdg_uninstall_%,%,$(@))
 
-BIN_INSTALL                 = $(foreach dep, $(DEPENDENCIES_BIN), install_$(dep))
-BIN_UNINSTALL               = $(foreach dep, $(DEPENDENCIES_BIN), uninstall_$(dep))
-BIN_PACKAGE                 = $(foreach dep, $(DEPENDENCIES_BIN), package_$(dep))
+BIN_INSTALL                 = $(foreach dep, $(UNIQ_DEPENDENCIES_BIN), install_$(dep))
+BIN_UNINSTALL               = $(foreach dep, $(UNIQ_DEPENDENCIES_BIN), uninstall_$(dep))
+
+BIN_PACKAGE                 = $(foreach dep, $(UNIQ_BIN_DEPENDENCIES), package_$(dep))
+BIN_PACKAGE_CLAP            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_CLAP_BIN)), package_$(dep))
+BIN_PACKAGE_GST             = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_GST_BIN)), package_$(dep))
+BIN_PACKAGE_JACK            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_JACK_BIN)), package_$(dep))
+BIN_PACKAGE_LADSPA          = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_LADSPA_BIN)), package_$(dep))
+BIN_PACKAGE_LV2             = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_LV2_BIN)), package_$(dep))
+BIN_PACKAGE_VST2            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_VST2_BIN)), package_$(dep))
+BIN_PACKAGE_VST3            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_VST3_BIN)), package_$(dep))
+
 BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
 BIN_UNINST_ARTIFACT_ID      = $(patsubst uninstall_%,%,$(@))
 BIN_PKG_ARTIFACT_ID         = $(patsubst package_%,%,$(@))
@@ -1310,7 +1336,7 @@ package_clap: clap $(BIN_PACKAGE)
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)/"
-	$(foreach target,$(BIN_PACKAGE), \
+	$(foreach target,$(BIN_PACKAGE_CLAP), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
@@ -1339,6 +1365,9 @@ package_gst: gst $(BIN_PACKAGE)
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(GST_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_GST) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(GST_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(GSTREAMER_PKGDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
+	$(foreach target,$(BIN_PACKAGE_GST), \
+	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
 	)
@@ -1353,7 +1382,7 @@ package_jack: jack $(BIN_PACKAGE)
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(BINDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_JACK) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(JACK_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_JACK_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_JACK_SETTINGS)"
-	$(foreach target,$(BIN_PACKAGE), \
+	$(foreach target,$(BIN_PACKAGE_JACK), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
 	$(if $(findstring xdg,$(ENABLED_FEATURES)), \
@@ -1376,6 +1405,9 @@ package_ladspa: ladspa $(BIN_PACKAGE)
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)/"
+	$(foreach target,$(BIN_PACKAGE_LADSPA), \
+	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
 	)
@@ -1390,7 +1422,7 @@ package_lv2: lv2 $(BIN_PACKAGE)
 	$(INSTALL) $(ARTIFACT_LIB_LV2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/"
 	$(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/"
 	$(HOST_UTL_LV2TTL_GEN) -o "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" -ui $(ARTIFACT_LIB_LV2_UI)
-	$(foreach target,$(BIN_PACKAGE), \
+	$(foreach target,$(BIN_PACKAGE_LV2), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
@@ -1406,7 +1438,7 @@ package_vst2: vst2 $(BIN_PACKAGE)
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
-	$(foreach target,$(BIN_PACKAGE), \
+	$(foreach target,$(BIN_PACKAGE_VST2), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
@@ -1423,7 +1455,7 @@ package_vst3: vst3 $(BIN_PACKAGE)
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
 	$(HOST_UTL_VST3_MODINFO) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
-	$(foreach target,$(BIN_PACKAGE), \
+	$(foreach target,$(BIN_PACKAGE_VST3), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
