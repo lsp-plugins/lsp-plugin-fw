@@ -141,8 +141,10 @@ HOST_PLUG_DEPS                  = $(foreach dep, $(HOST_DEPENDENCIES) $(HOST_PLU
 # Miscellaneous names and paths
 ifeq ($(PLATFORM),Windows)
   GSTREAMER_INSTDIR      := $(LIBDIR)/gstreamer-1.0
+  GSTREAMER_PKGDIR       := $(LIBDIR)/gstreamer-1.0
 else
   GSTREAMER_INSTDIR      := $(call fcheck,lv2,$(ENABLED_FEATURES),$(shell pkg-config --variable=pluginsdir gstreamer-1.0),$(LIBDIR)/gstreamer-1.0)
+  GSTREAMER_PKGDIR       := $(LIBDIR)/gstreamer-1.0
 endif
 
 PLUGIN_ARTIFACT_ID     := $(ROOT_ARTIFACT_ID)
@@ -154,7 +156,7 @@ INSTALL_LIBDIR         := $($(ROOT_ARTIFACT_ID)_NAME)
 INSTALL_GROUP_LIBDIR   := $(if $(PLUGIN_GROUP_NAME),$(PLUGIN_GROUP_NAME),$(INSTALL_LIBDIR))
 
 CLAP_LIBDIR            := $(LIBDIR)/clap
-GST_LIBDIR             := $(GSTREAMER_INSTDIR)
+GST_LIBDIR             := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 JACK_LIBDIR            := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 LADSPA_LIBDIR          := $(LIBDIR)/ladspa
 LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
@@ -633,7 +635,7 @@ HOST_OBJ_PLUG               = $(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP) $(HOST_
 
 #------------------------------------------------------------------------------
 # Binaries
-ARTIFACT_LIB_JACK           = $(LSP_PLUGIN_FW_BIN)/lib$(PLUGIN_SHARED_NAME)-jack-$(PLUGIN_PACKAGE_VERSION)$(LIBRARY_EXT)
+ARTIFACT_LIB_JACK           = $(LSP_PLUGIN_FW_BIN)/$(LIBRARY_PREFIX)$(PLUGIN_SHARED_NAME)-jack-$(PLUGIN_PACKAGE_VERSION)$(LIBRARY_EXT)
 ARTIFACT_LIB_JACK_PATH      = $(LSP_PLUGIN_FW_BIN)/jack
 ARTIFACT_LIB_JACK_SETTINGS  = $(ARTIFACT_LIB_JACK_PATH)/.settings.mk
 ARTIFACT_LIB_JACK_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_JACK) $(DEPENDENCIES_JACK_UI) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(PLUGIN_SHARED)))
@@ -655,7 +657,7 @@ ARTIFACT_LIB_JACK_OBJS      = \
   $(OBJ_PLUG_UI) \
   $(OBJ_WRAP_JACK)
   
-ARTIFACT_LIB_GST            = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-gstreamer-$(PLUGIN_PACKAGE_VERSION)$(LIBRARY_EXT)
+ARTIFACT_LIB_GST            = $(LSP_PLUGIN_FW_BIN)/$(LIBRARY_PREFIX)$(PLUGIN_SHARED_NAME)-gstreamer-$(PLUGIN_PACKAGE_VERSION)$(LIBRARY_EXT)
 ARTIFACT_LIB_GST_PATH       = $(LSP_PLUGIN_FW_BIN)/gst
 ARTIFACT_LIB_GST_SETTINGS   = $(ARTIFACT_LIB_GST_PATH)/.settings.mk
 ARTIFACT_LIB_GST_DEPS_ALL   = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_GST) $(DEPENDENCIES_TEST) $(PLUGIN_SHARED)))
@@ -722,7 +724,7 @@ ARTIFACT_LIB_LV2_UI_OBJS    = \
   $(OBJ_PLUG_UI) \
   $(OBJ_WRAP_LV2_UI)
   
-ARTIFACT_LIB_VST2           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-vst2-$(PLUGIN_PACKAGE_VERSION)$(LIBRARY_EXT)
+ARTIFACT_LIB_VST2           = $(LSP_PLUGIN_FW_BIN)/$(LIBRARY_PREFIX)$(PLUGIN_SHARED_NAME)-vst2-$(PLUGIN_PACKAGE_VERSION)$(LIBRARY_EXT)
 ARTIFACT_LIB_VST2_PATH      = $(LSP_PLUGIN_FW_BIN)/vst2
 ARTIFACT_LIB_VST2_SETTINGS  = $(ARTIFACT_LIB_VST2_PATH)/.settings.mk
 ARTIFACT_LIB_VST2_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_VST2) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(PLUGIN_SHARED)))
@@ -1251,7 +1253,11 @@ install_doc: doc
 	cp -R $(ARTIFACT_DOC_PATH)/* "$(DESTDIR)$(DOC_SHAREDDIR)"
 
 install_gst: gst
-	# TODO
+	echo "Install gst"
+	mkdir -p "$(DESTDIR)$(GSTREAMER_INSTDIR)"
+	mkdir -p "$(DESTDIR)$(GST_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_GST) "$(DESTDIR)$(GST_LIBDIR)/"
+	$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)" install DESTDIR="$(DESTDIR)$(GSTREAMER_INSTDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
 
 install_jack: jack
 	echo "Install jack"
@@ -1328,7 +1334,17 @@ package_doc: doc
 
 package_gst: gst $(BIN_PACKAGE)
 	echo "Package gst"
-	# TODO
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(GSTREAMER_PKGDIR)"
+	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(GST_LIBDIR)"
+	$(INSTALL) $(ARTIFACT_LIB_GST) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(GST_LIBDIR)/"
+	$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(GSTREAMER_PKGDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
+	$(foreach file,$(BIN_EXTRA_FILES), \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	)
+	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
+	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
 package_jack: jack $(BIN_PACKAGE)
 	echo "Package jack"
@@ -1440,8 +1456,10 @@ uninstall_doc:
 	-rm -rf "$(DESTDIR)$(DOC_SHAREDDIR)"
 
 uninstall_gst:
-	echo "Uninstall doc"
-	# TODO
+	echo "Uninstall gst"
+	-rm -f $(INSTALL) $(DESTDIR)$(GST_LIBDIR)/$(notdir $(ARTIFACT_LIB_GST))
+	-rmdir "$(DESTDIR)$(GST_LIBDIR)" >/dev/null 2>&1
+	$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)" uninstall DESTDIR="$(DESTDIR)$(GSTREAMER_INSTDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
 
 uninstall_jack:
 	echo "Uninstall jack"
