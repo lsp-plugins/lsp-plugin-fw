@@ -42,10 +42,6 @@
         #define DEF_PLUGIN_PACKAGE_NAME         "Plugin Template Package"
     #endif /* DEF_PLUGIN_PACKAGE_NAME */
 
-    #ifndef DEF_PLUGIN_ID
-        #define DEF_PLUGIN_ID                   "plugin_template"
-    #endif /* DEF_PLUGIN_TYPE */
-
     #ifndef DEF_PLUGIN_NAME
         #define DEF_PLUGIN_NAME                 "Plugin Template"
     #endif /* DEF_PLUGIN_NAME */
@@ -90,7 +86,7 @@ G_DEFINE_TYPE( // @suppress("Unused static function")
 
 GST_ELEMENT_REGISTER_DEFINE(
     xx_plugin_id_xx,
-    "xx_plugin_id_xx",
+    "xc_plugin_id_cx",
     GST_RANK_NONE,
     GST_TYPE_XX_PLUGIN_ID_XX);
 

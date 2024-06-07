@@ -32,11 +32,28 @@ namespace lsp
 {
     namespace gst
     {
+    #ifdef LSP_TRACE
+        static const char *gst_state_str(GstState state)
+        {
+            switch (state)
+            {
+                case GST_STATE_VOID_PENDING: return "Void";
+                case GST_STATE_NULL: return "Null";
+                case GST_STATE_READY: return "Ready";
+                case GST_STATE_PAUSED: return "Paused";
+                case GST_STATE_PLAYING: return "Playing";
+                default:
+                    break;
+            }
+            return "Unknown";
+        }
+    #endif /* LSP_TRACE */
+
         Wrapper::Wrapper(gst::Factory *factory, GstAudioFilter *filter, plug::Module *plugin, resource::ILoader *loader):
             plug::IWrapper(plugin, loader),
             gst::IWrapper()
         {
-            pFactory            = safe_acquire(pFactory);
+            pFactory            = safe_acquire(factory);
             pFilter             = filter;
             pExecutor           = NULL;
             pPackage            = NULL;
@@ -225,7 +242,7 @@ namespace lsp
             // Create all possible ports for plugin
             lltl::parray<plug::IPort> plugin_ports;
             lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
-            for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
+            for (const meta::port_t *port = meta->ports; (port != NULL) && (port->id != NULL); ++port)
                 create_port(&plugin_ports, port, NULL);
 
             // Create audio port mapping
@@ -444,12 +461,21 @@ namespace lsp
                     gst::ParameterPort *p   = static_cast<gst::ParameterPort *>(pp);
                     float xv = 0.0f;
 
-                    if (meta::is_bool_unit(meta->role))
+                    if (meta::is_bool_unit(meta->unit))
+                    {
+                        lsp_trace("bool %s = %s", p->id(), g_value_get_boolean(value) ? "true" : "false");
                         xv = g_value_get_boolean(value) ? 1.0f : 0.0f;
-                    else if (meta::is_discrete_unit(meta->role))
+                    }
+                    else if (meta::is_discrete_unit(meta->unit))
+                    {
+                        lsp_trace("int %s = %d", p->id(), int(g_value_get_int(value)));
                         xv = g_value_get_int(value);
+                    }
                     else
+                    {
+                        lsp_trace("int %s = %f", p->id(), int(g_value_get_float(value)));
                         xv = g_value_get_float(value);
+                    }
 
                     if (p->submit_value(xv))
                         bUpdateSettings = true;
@@ -466,6 +492,8 @@ namespace lsp
                 {
                     gst::PathPort *p        = static_cast<gst::PathPort *>(pp);
                     const gchar *xv         = g_value_get_string(value);
+                    lsp_trace("path %s = %s", p->id(), xv);
+
                     LSPString path;
                     if (!path.set_native(reinterpret_cast<const char *>(xv)))
                     {
@@ -511,12 +539,21 @@ namespace lsp
                     gst::ParameterPort *p   = static_cast<gst::ParameterPort *>(pp);
                     float xv                = p->value();
 
-                    if (meta::is_bool_unit(meta->role))
+                    if (meta::is_bool_unit(meta->unit))
+                    {
+                        lsp_trace("return param bool %s = %s", p->id(), (xv >= 0.5f) ? "true" : "false");
                         g_value_set_boolean(value, xv >= 0.5f);
-                    else if (meta::is_discrete_unit(meta->role))
+                    }
+                    else if (meta::is_discrete_unit(meta->unit))
+                    {
+                        lsp_trace("return param int %s = %d", p->id(), int(xv));
                         g_value_set_int(value, gint(xv));
+                    }
                     else
+                    {
+                        lsp_trace("return param float %s = %f", p->id(), xv);
                         g_value_set_float(value, xv);
+                    }
 
                     break;
                 }
@@ -526,7 +563,21 @@ namespace lsp
                     gst::MeterPort *p       = static_cast<gst::MeterPort *>(pp);
                     float xv                = p->value();
 
-                    g_value_set_float(value, xv);
+                    if (meta::is_bool_unit(meta->unit))
+                    {
+                        lsp_trace("return meter bool %s = %s", p->id(), (xv >= 0.5f) ? "true" : "false");
+                        g_value_set_boolean(value, xv >= 0.5f);
+                    }
+                    else if (meta::is_discrete_unit(meta->unit))
+                    {
+                        lsp_trace("return meter int %s = %d", p->id(), int(xv));
+                        g_value_set_int(value, gint(xv));
+                    }
+                    else
+                    {
+                        lsp_trace("return meter float %s = %f", p->id(), xv);
+                        g_value_set_float(value, xv);
+                    }
                     break;
                 }
 
@@ -539,6 +590,8 @@ namespace lsp
 
                     const gchar *xv         = reinterpret_cast<const gchar *>(path.get_native());
                     g_value_set_string(value, xv);
+
+                    lsp_trace("return path %s = %s", p->id(), xv);
 
                     break;
                 }
@@ -555,6 +608,9 @@ namespace lsp
             nSampleRate         = GST_AUDIO_INFO_RATE(info);
             bInterleaved        = GST_AUDIO_INFO_LAYOUT(info) == GST_AUDIO_LAYOUT_INTERLEAVED;
 
+            lsp_trace("setup channels=%d, frame_size=%d, sample_rate=%d, interleaved=%s",
+                int(nChannels), int(nFrameSize), int(nSampleRate), (bInterleaved) ? "true" : "false");
+
             // Set sample rate for plugin
             if ((pPlugin->sample_rate() != nSampleRate) || (bUpdateSampleRate))
             {
@@ -570,6 +626,12 @@ namespace lsp
 
         void Wrapper::change_state(GstStateChange transition)
         {
+            lsp_trace("change_state %s (%d) -> %s (%d)",
+                gst_state_str(GST_STATE_TRANSITION_CURRENT(transition)),
+                int(GST_STATE_TRANSITION_CURRENT(transition)),
+                gst_state_str(GST_STATE_TRANSITION_NEXT(transition)),
+                int(GST_STATE_TRANSITION_NEXT(transition)));
+
             const GstState state = GST_STATE_TRANSITION_NEXT(transition);
             pPlugin->set_active(state == GST_STATE_PLAYING);
         }
@@ -601,6 +663,7 @@ namespace lsp
             {
                 case GST_QUERY_LATENCY:
                 {
+                    lsp_trace("Query latency");
                     // Get self pad
                     GstBaseTransform *transform = GST_BASE_TRANSFORM(pFilter);
                     if (transform == NULL)
@@ -633,6 +696,8 @@ namespace lsp
                         max += latency;
 
                     // Update the query
+                    lsp_trace("Query latency result live=%s, min=%lld, max=%lld",
+                        (live) ? "true" : "false", (long long)(min), (long long)(max));
                     gst_query_set_latency(query, live, min, max);
                     return TRUE;
                 }
@@ -646,6 +711,9 @@ namespace lsp
 
         void Wrapper::process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size)
         {
+            lsp_trace("process out=%p, in=%p, out_size=%d, in_size=%d",
+                out, in, int(out_size), int(in_size));
+
             // Compute number of samples
             const size_t in_samples = in_size / nFrameSize;
             const size_t out_samples = out_size / nFrameSize;

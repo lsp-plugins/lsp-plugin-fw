@@ -160,7 +160,7 @@ ifeq ($(PLATFORM),Windows)
   GSTREAMER_INSTDIR      := $(LIBDIR)/gstreamer-1.0
   GSTREAMER_PKGDIR       := $(LIBDIR)/gstreamer-1.0
 else
-  GSTREAMER_INSTDIR      := $(call fcheck,lv2,$(ENABLED_FEATURES),$(shell pkg-config --variable=pluginsdir gstreamer-1.0),$(LIBDIR)/gstreamer-1.0)
+  GSTREAMER_INSTDIR      := $(call fcheck,gst,$(ENABLED_FEATURES),$(shell pkg-config --variable=pluginsdir gstreamer-1.0),$(LIBDIR)/gstreamer-1.0)
   GSTREAMER_PKGDIR       := $(LIBDIR)/gstreamer-1.0
 endif
 
@@ -1182,7 +1182,7 @@ gst: resources $(HOST_UTL_GST_MAKE) $(ARTIFACT_LIB_GST) $(DEPENDENCIES_BIN)
 	echo 'EXT_ARTIFACT_NAME=$(PLUGIN_SHARED_NAME)' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_ARTIFACT_GROUP=$(PLUGIN_GROUP_NAME)' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_LIBRARY_NAME=$(notdir $(ARTIFACT_LIB_GST))' >> $(ARTIFACT_LIB_GST_SETTINGS)
-	echo 'EXT_PREFIX=$(PLUGIN_ARTIFACT_PREFIX)' >> $(ARTIFACT_LIB_GST_SETTINGS)
+	echo 'EXT_PREFIX=' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_OBJS=$(WRAP_GST_OBJS)' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_CFLAGS=$(WRAP_GST_CFLAGS)' >> $(ARTIFACT_LIB_GST_SETTINGS)
 	echo 'EXT_CXXFLAGS=$(WRAP_GST_CFLAGS)' >> $(ARTIFACT_LIB_GST_SETTINGS)
@@ -1514,7 +1514,7 @@ uninstall_vst2:
 
 uninstall_vst3:
 	echo "Uninstall vst3"
-	-rm -f "$(DESTDIR)$(VST3_LIBDIR)"
+	-rm -rf "$(DESTDIR)$(VST3_LIBDIR)"
 
 uninstall_xdg_msg:
 	echo "Unnstall xdg"

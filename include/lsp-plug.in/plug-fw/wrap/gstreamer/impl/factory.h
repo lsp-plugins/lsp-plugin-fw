@@ -31,6 +31,7 @@
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
 #include <lsp-plug.in/stdlib/stdio.h>
+#include <lsp-plug.in/stdlib/string.h>
 
 namespace lsp
 {
@@ -342,6 +343,26 @@ namespace lsp
             return NULL;
         }
 
+        bool Factory::is_canonical_gst_name(const char *name)
+        {
+            return strchr(name, '_') == NULL;
+        }
+
+        const char *Factory::make_canonical_gst_name(char *buf, const char *name)
+        {
+            size_t i = 0;
+            char ch;
+            do
+            {
+                ch = *(name++);
+                if (i >= MAX_PARAM_ID_BYTES)
+                    return name;
+                buf[i++] = (ch == '_') ? '-' : ch;
+            } while (ch != '\0');
+
+            return buf;
+        }
+
         void Factory::init_class(GstAudioFilterClass *klass, const char *plugin_id)
         {
             // Find the plugin
@@ -363,7 +384,7 @@ namespace lsp
             enumeration_t en;
             lsp_finally { destroy_enumeration(&en); };
 
-            for (const meta::port_t *port = meta->ports; port != NULL; ++port)
+            for (const meta::port_t *port = meta->ports; (port != NULL) && (port->id != NULL); ++port)
             {
                 if (!enumerate_port(&en, port, NULL))
                     return;
@@ -375,27 +396,27 @@ namespace lsp
                 const gint min_count = (main_in != NULL) ? meta::port_count(main_in) : en.inputs.size();
                 const gint max_count = en.inputs.size();
 
+                lsp_trace("Creating sink pad channels=[%d, %d]", int(min_count), int(max_count));
+
                 GstCaps *caps = gst_caps_new_empty();
                 lsp_finally {
                     gst_caps_unref(caps);
                 };
 
-                gst_caps_append_structure(
-                    caps,
-                    gst_structure_new(
-                        "audio/x-raw",
-                        "format", G_TYPE_STRING, GST_AUDIO_NE(F32),
-                        "channels", GST_TYPE_INT_RANGE, min_count, max_count,
-                        "rate", GST_TYPE_INT_RANGE, 1, G_MAXINT,
-                        "layout", G_TYPE_STRING, "interleaved", NULL));
-                gst_caps_append_structure(
-                    caps,
-                    gst_structure_new(
-                        "audio/x-raw",
-                        "format", G_TYPE_STRING, GST_AUDIO_NE(F32),
-                        "channels", GST_TYPE_INT_RANGE, min_count, max_count,
-                        "rate", GST_TYPE_INT_RANGE, 1, G_MAXINT,
-                        "layout", G_TYPE_STRING, "non_interleaved", NULL));
+                GstStructure *gsts = gst_structure_new(
+                    "audio/x-raw",
+                    "format", G_TYPE_STRING, GST_AUDIO_NE(F32),
+                    "rate", GST_TYPE_INT_RANGE, 1, G_MAXINT,
+                    "layout", G_TYPE_STRING, "interleaved", NULL);
+
+                if (min_count >= max_count)
+                    gst_structure_set(gsts, "channels", G_TYPE_INT, min_count, NULL);
+                else
+                    gst_structure_set(gsts, "channels", GST_TYPE_INT_RANGE, min_count, max_count, NULL);
+                gst_caps_append_structure(caps, gst_structure_copy(gsts));
+
+                gst_structure_set(gsts, "layout", G_TYPE_STRING, "non_interleaved", NULL);
+                gst_caps_append_structure(caps, gsts);
 
                 GstPadTemplate *pad_template = gst_pad_template_new(
                     GST_BASE_TRANSFORM_SINK_NAME, GST_PAD_SINK, GST_PAD_ALWAYS,
@@ -410,27 +431,27 @@ namespace lsp
                 const gint min_count = (main_out != NULL) ? meta::port_count(main_out) : en.outputs.size();
                 const gint max_count = en.outputs.size();
 
+                lsp_trace("Creating source pad channels=[%d, %d]", int(min_count), int(max_count));
+
                 GstCaps *caps = gst_caps_new_empty();
                 lsp_finally {
                     gst_caps_unref(caps);
                 };
 
-                gst_caps_append_structure(
-                    caps,
-                    gst_structure_new(
-                        "audio/x-raw",
-                        "format", G_TYPE_STRING, GST_AUDIO_NE(F32),
-                        "channels", GST_TYPE_INT_RANGE, min_count, max_count,
-                        "rate", GST_TYPE_INT_RANGE, 1, G_MAXINT,
-                        "layout", G_TYPE_STRING, "interleaved", NULL));
-                gst_caps_append_structure(
-                    caps,
-                    gst_structure_new(
-                        "audio/x-raw",
-                        "format", G_TYPE_STRING, GST_AUDIO_NE(F32),
-                        "channels", GST_TYPE_INT_RANGE, min_count, max_count,
-                        "rate", GST_TYPE_INT_RANGE, 1, G_MAXINT,
-                        "layout", G_TYPE_STRING, "non_interleaved", NULL));
+                GstStructure *gsts = gst_structure_new(
+                    "audio/x-raw",
+                    "format", G_TYPE_STRING, GST_AUDIO_NE(F32),
+                    "rate", GST_TYPE_INT_RANGE, 1, G_MAXINT,
+                    "layout", G_TYPE_STRING, "interleaved", NULL);
+
+                if (min_count >= max_count)
+                    gst_structure_set(gsts, "channels", G_TYPE_INT, min_count, NULL);
+                else
+                    gst_structure_set(gsts, "channels", GST_TYPE_INT_RANGE, min_count, max_count, NULL);
+                gst_caps_append_structure(caps, gst_structure_copy(gsts));
+
+                gst_structure_set(gsts, "layout", G_TYPE_STRING, "non_interleaved", NULL);
+                gst_caps_append_structure(caps, gsts);
 
                 GstPadTemplate *pad_template = gst_pad_template_new(
                     GST_BASE_TRANSFORM_SRC_NAME, GST_PAD_SRC, GST_PAD_ALWAYS,
@@ -441,6 +462,7 @@ namespace lsp
 
             // Install properties
             LSPString tmp;
+            char port_name[MAX_PARAM_ID_BYTES];
 
             for (size_t i=0, n=en.params.size(); i < n; ++i)
             {
@@ -450,15 +472,21 @@ namespace lsp
 
                 const int param_id = i + 1;
 
-                int param_flags = G_PARAM_READABLE | G_PARAM_STATIC_NAME | G_PARAM_STATIC_NICK;
+                int param_flags = G_PARAM_READABLE | G_PARAM_STATIC_NICK;
                 if (meta::is_in_port(port))
                     param_flags        |= G_PARAM_WRITABLE;
+
+                const char *name    = port->id;
+                if (is_canonical_gst_name(name))
+                    param_flags        |= G_PARAM_STATIC_NAME;
+                else
+                    name                = make_canonical_gst_name(port_name, port->id);
 
                 const char *blurb   = port->name;
                 const char *unit    = meta::get_unit_name(port->unit);
                 if ((unit != NULL) && (strlen(unit) > 0))
                 {
-                    tmp.fmt_utf8("%s [%s]", meta->name, unit);
+                    tmp.fmt_utf8("%s [%s]", port->name, unit);
                     blurb               = tmp.get_native();
                 }
                 else
@@ -466,35 +494,65 @@ namespace lsp
 
                 GParamSpec * spec = NULL;
 
-                if (port->flags & meta::F_INT)
+                if (meta::is_bool_unit(port->unit))
                 {
-                    spec = g_param_spec_int(
-                        port->id, port->name, blurb,
-                        port->min, port->max, port->start,
+                    lsp_trace("[%d] g_param_spec_boolean(%s, %s, %s, %s)",
+                        param_id, name, port->name, blurb, (port->start >= 0.5f) ? "true" : "false");
+                    spec = g_param_spec_boolean(
+                        name, port->name, blurb,
+                        (port->start >= 0.5f),
                         GParamFlags(param_flags));
                 }
-                else if (meta::is_enum_unit(port->unit))
+                else if (meta::is_discrete_unit(port->unit))
                 {
-                    const int min = port->start;
-                    const int count = meta::list_size(port->items);
+                    if (meta::is_enum_unit(port->unit))
+                    {
+                        const int min = int(port->min);
+                        const int max = min + meta::list_size(port->items) - 1;
 
-                    spec = g_param_spec_int(
-                        port->id, port->name, blurb,
-                        min, min + count - 1, port->start,
-                        GParamFlags(param_flags));
+                        lsp_trace("[%d] g_param_spec_float(%s, %s, %s, %f, %f, %f)",
+                            param_id, name, port->name, blurb, min, max, port->start);
+                        spec = g_param_spec_int(
+                            name, port->name, blurb,
+                            min, max, port->start,
+                            GParamFlags(param_flags));
+                    }
+                    else
+                    {
+                        int min = port->min;
+                        int max = port->max;
+                        if (min > max)
+                            lsp::swap(min, max);
+
+                        lsp_trace("[%d] g_param_spec_int(%s, %s, %s, %d, %d, %d)",
+                            param_id, name, port->name, blurb, min, max, int(port->start));
+                        spec = g_param_spec_int(
+                            name, port->name, blurb,
+                            min, max, int(port->start),
+                            GParamFlags(param_flags));
+                    }
                 }
                 else if (meta::is_path_port(port))
                 {
+                    lsp_trace("[%d] g_param_spec_string(%s, %s, %s, \"\")",
+                        param_id, name, port->name, blurb);
                     spec = g_param_spec_string(
-                        port->id, port->name, blurb,
+                        name, port->name, blurb,
                         "",
                         GParamFlags(param_flags));
                 }
                 else
                 {
+                    float min = port->min;
+                    float max = port->max;
+                    if (min > max)
+                        lsp::swap(min, max);
+
+                    lsp_trace("[%d] g_param_spec_float(%s, %s, %s, %f, %f, %f)",
+                        param_id, name, port->name, blurb, min, max, port->start);
                     spec = g_param_spec_float(
-                        port->id, port->name, blurb,
-                        port->min, port->max, port->start,
+                        name, port->name, blurb,
+                        min, max, port->start,
                         GParamFlags(param_flags));
                 }
 

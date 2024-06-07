@@ -205,8 +205,17 @@ namespace lsp
             fprintf(out,    "//------------------------------------------------------------------------------\n\n");
 
             // Pass plugin metadata definitions
+            LSPString package_id;
+            if (!package_id.set_utf8(package->brand_id))
+                return STATUS_NO_MEM;
+            if (!package_id.append('-'))
+                return STATUS_NO_MEM;
+            if (!package_id.append_utf8(meta->bundle->uid))
+                return STATUS_NO_MEM;
+            package_id.replace_all('_', '-');
+
             fprintf(out,    "// Pass Plugin metadata definitions\n");
-            fprintf(out,    "#define DEF_PLUGIN_PACKAGE_ID           \"%s_%s\"\n", package->brand_id, meta->bundle->uid);
+            fprintf(out,    "#define DEF_PLUGIN_PACKAGE_ID           \"%s\"\n", package_id.get_utf8());
             fprintf(out,    "#define DEF_PLUGIN_PACKAGE_NAME         \"%s %s\"\n", package->brand, meta->bundle->name);
             fprintf(out,    "#define DEF_PLUGIN_ID                   \"%s\"\n", meta->gst_uid);
             fprintf(out,    "#define DEF_PLUGIN_NAME                 \"%s\"\n", meta->description);
@@ -216,7 +225,7 @@ namespace lsp
             fprintf(out,    "\n\n");
 
             // Preprocess template file
-            LSPString plugin_upper, plugin_lower, plugin_camel;
+            LSPString plugin_upper, plugin_lower, plugin_camel, plugin_canonical;
 
             if (!plugin_upper.set_ascii(meta->gst_uid))
                 return STATUS_NO_MEM;
@@ -228,6 +237,10 @@ namespace lsp
 
             if (!make_camel_case(&plugin_camel, &plugin_lower))
                 return STATUS_NO_MEM;
+
+            if (!plugin_canonical.set(&plugin_lower))
+                return STATUS_NO_MEM;
+            plugin_canonical.replace_all('_', '-');
 
             ssize_t pos = 0;
             const ssize_t length = ftemplate->length();
@@ -264,6 +277,11 @@ namespace lsp
                 {
                     fputs(plugin_camel.get_utf8(), out);
                     pos    = index + strlen("Xx_PluginId_Xx");
+                }
+                else if (ftemplate->starts_with_ascii("xc_plugin_id_cx", index))
+                {
+                    fputs(plugin_canonical.get_utf8(), out);
+                    pos    = index + strlen("xc_plugin_id_cx");
                 }
                 else // didn't match
                 {

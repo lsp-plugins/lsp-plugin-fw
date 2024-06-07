@@ -131,20 +131,9 @@ namespace lsp
 
             struct dirent *de;
             char *ptr = NULL;
-            lsp_finally {
-                if (ptr != NULL)
-                    free(ptr);
-            };
 
             while ((de = readdir(d)) != NULL)
             {
-                // Free previously used string
-                if (ptr != NULL)
-                {
-                    free(ptr);
-                    ptr = NULL;
-                }
-
                 // Skip dot and dotdot
                 if (is_dots(de->d_name))
                     continue;
@@ -153,6 +142,13 @@ namespace lsp
                 int n = asprintf(&ptr, "%s" FILE_SEPARATOR_S "%s", path, de->d_name);
                 if ((n < 0) || (ptr == NULL))
                     continue;
+                lsp_finally {
+                    if (ptr != NULL)
+                    {
+                        free(ptr);
+                        ptr = NULL;
+                    }
+                };
 
                 // Need to clarify file type?
                 if ((de->d_type == DT_UNKNOWN) || (de->d_type == DT_LNK))

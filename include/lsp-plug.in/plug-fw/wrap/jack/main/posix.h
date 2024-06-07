@@ -126,10 +126,6 @@ namespace lsp
 
             while ((de = readdir(d)) != NULL)
             {
-                // Free previously used string
-                if (ptr != NULL)
-                    free(ptr);
-
                 // Skip dot and dotdot
                 ptr = de->d_name;
                 if ((ptr[0] == '.') && ((ptr[1] == '\0') || ((ptr[1] == '.') && (ptr[2] == '\0'))))
@@ -143,6 +139,13 @@ namespace lsp
                 int n = asprintf(&ptr, "%s" FILE_SEPARATOR_S "%s", path, de->d_name);
                 if ((n < 0) || (ptr == NULL))
                     continue;
+                lsp_finally {
+                    if (ptr != NULL)
+                    {
+                        free(ptr);
+                        ptr = NULL;
+                    }
+                };
 
                 // Need to clarify file type?
                 if ((de->d_type == DT_UNKNOWN) || (de->d_type == DT_LNK))

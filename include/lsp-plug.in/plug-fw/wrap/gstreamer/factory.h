@@ -69,6 +69,8 @@ namespace lsp
                 static void                 destroy_enumeration(enumeration_t *en);
                 static bool                 enumerate_port(enumeration_t *en, const meta::port_t *port, const char *postfix);
                 static const meta::port_group_t *find_main_group(const meta::plugin_t *plug, bool in);
+                static bool                 is_canonical_gst_name(const char *name);
+                static const char          *make_canonical_gst_name(char *buf, const char *name);
 
             public:
                 Factory();

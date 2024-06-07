@@ -125,7 +125,10 @@ namespace lsp
             // Try to open directory
             DIR *d = opendir(path);
             if (d == NULL)
+            {
+                lsp_trace("Could not open %s", path);
                 return NULL;
+            }
             lsp_finally {
                 closedir(d);
             };
@@ -135,10 +138,6 @@ namespace lsp
 
             while ((de = readdir(d)) != NULL)
             {
-                // Free previously used string
-                if (ptr != NULL)
-                    free(ptr);
-
                 // Skip dot and dotdot
                 ptr = de->d_name;
                 if ((ptr[0] == '.') && ((ptr[1] == '\0') || ((ptr[1] == '.') && (ptr[2] == '\0'))))
@@ -154,7 +153,10 @@ namespace lsp
                     continue;
                 lsp_finally {
                     if (ptr != NULL)
+                    {
                         free(ptr);
+                        ptr = NULL;
+                    }
                 };
 
                 // Need to clarify file type?
@@ -254,9 +256,8 @@ namespace lsp
                         )
                     {
                         lsp_trace("wrong version %d.%d.%d '%s' returned, expected %d.%d.%d '%s', ignoring binary",
-                                ret->major, ret->minor, ret->micro, ret->branch,
-                                required->major, required->minor, required->micro, required->branch
-                            );
+                            ret->major, ret->minor, ret->micro, ret->branch,
+                            required->major, required->minor, required->micro, required->branch);
                         continue;
                     }
 
@@ -275,6 +276,8 @@ namespace lsp
                         lsp_trace("could not obtain factory: %s", GSTREAMER_FACTORY_FUNCTION_NAME, dlerror());
                         continue;
                     }
+
+                    lsp_trace("found library %s at %s", de->d_name, path);
 
                     *hInstance = release_ptr(inst);
                     return factory;
@@ -363,16 +366,6 @@ namespace lsp
             }
 
             // Try to lookup additional directories obtained from file mapping
-            if (factory == NULL)
-            {
-                char *libpath = get_library_path();
-                if (libpath != NULL)
-                {
-                    factory         = lookup_factory(hInstance, required, libpath);
-                    ::free(libpath);
-                }
-            }
-
             if (factory == NULL)
             {
                 char **paths = get_library_paths(core_library_paths);
