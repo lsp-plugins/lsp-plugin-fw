@@ -23,9 +23,10 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_GSTREAMER_IMPL_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+
+#include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
-
 #include <lsp-plug.in/stdlib/stdio.h>
 
 namespace lsp
@@ -151,7 +152,7 @@ namespace lsp
         }
 
         void Wrapper::make_port_group_mapping(
-            lltl::parray<gst::AudioPort> & sink,
+            lltl::parray<gst::AudioPort> & dst,
             lltl::parray<gst::AudioPort> & list,
             const meta::port_group_t *grp)
         {
@@ -171,28 +172,33 @@ namespace lsp
                 gst::AudioPort *p = find_port(list, item->id);
                 if (p == NULL)
                     continue;
-                if (!sink.contains(p))
-                    sink.add(p);
+                if (!dst.contains(p))
+                    dst.add(p);
             }
         }
 
         void Wrapper::make_port_mapping(
-            lltl::parray<gst::AudioPort> & sink,
-            lltl::parray<gst::AudioPort> & list)
+            lltl::parray<gst::AudioPort> & dst,
+            lltl::parray<gst::AudioPort> & list,
+            bool out)
         {
+            const meta::role_t r = (out) ? meta::R_AUDIO_OUT : meta::R_AUDIO_IN;
+
             for (size_t i=0, n=list.size(); i<n; ++i)
             {
                 gst::AudioPort *p = list.uget(i);
                 if (p == NULL)
                     continue;
+                if (p->metadata()->role != r)
+                    continue;
 
-                if (!sink.contains(p))
-                    sink.add(p);
+                if (!dst.contains(p))
+                    dst.add(p);
             }
         }
 
         void Wrapper::make_audio_mapping(
-            lltl::parray<gst::AudioPort> & sink,
+            lltl::parray<gst::AudioPort> & dst,
             lltl::parray<gst::AudioPort> & list,
             const meta::plugin_t *meta,
             bool out)
@@ -208,7 +214,7 @@ namespace lsp
                 if (grp->flags & meta::PGF_MAIN)
                 {
                     main = grp;
-                    make_port_group_mapping(sink, list, grp);
+                    make_port_group_mapping(dst, list, grp);
                     break;
                 }
             }
@@ -220,18 +226,18 @@ namespace lsp
                     continue;
                 if (grp != main)
                 {
-                    make_port_group_mapping(sink, list, grp);
+                    make_port_group_mapping(dst, list, grp);
                     break;
                 }
             }
 
             // Make mapping for non-assigned ports
-            make_port_mapping(sink, list);
+            make_port_mapping(dst, list, out);
 
         #ifdef LSP_TRACE
             lsp_trace("%s port mapping", (out) ? "Output" : "Input");
-            for (size_t i=0, n=sink.size(); i<n; ++i)
-                lsp_trace("  #%d: %s", int(i), sink.uget(i)->metadata()->id);
+            for (size_t i=0, n=dst.size(); i<n; ++i)
+                lsp_trace("  #%d: %s", int(i), dst.uget(i)->metadata()->id);
         #endif /* LSP_TRACE */
         }
 
@@ -298,7 +304,7 @@ namespace lsp
                 {
                     gst::AudioPort *p = new gst::AudioPort(port);
                     result = p;
-                    vAudioIn.add(p);
+                    vAudioOut.add(p);
                     plugin_ports->add(p);
 
                     lsp_trace("audio_out id=%s", result->metadata()->id);
@@ -440,6 +446,8 @@ namespace lsp
 
         void Wrapper::set_property(guint prop_id, const GValue *value, GParamSpec *pspec)
         {
+            lsp_trace("id=%d", int(prop_id));
+
             if (prop_id-- < 1)
                 return;
             if (prop_id >= vPortMapping.size())
@@ -473,7 +481,7 @@ namespace lsp
                     }
                     else
                     {
-                        lsp_trace("int %s = %f", p->id(), int(g_value_get_float(value)));
+                        lsp_trace("float %s = %f", p->id(), g_value_get_float(value));
                         xv = g_value_get_float(value);
                     }
 
@@ -518,6 +526,8 @@ namespace lsp
 
         void Wrapper::get_property(guint prop_id, GValue * value, GParamSpec * pspec)
         {
+            lsp_trace("id=%d", int(prop_id));
+
             if (prop_id-- < 1)
                 return;
             if (prop_id >= vPortMapping.size())
@@ -711,8 +721,13 @@ namespace lsp
 
         void Wrapper::process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size)
         {
-            lsp_trace("process out=%p, in=%p, out_size=%d, in_size=%d",
-                out, in, int(out_size), int(in_size));
+//            lsp_trace("process out=%p, in=%p, out_size=%d, in_size=%d",
+//                out, in, int(out_size), int(in_size));
+
+            // Optimize DSP
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
 
             // Compute number of samples
             const size_t in_samples = in_size / nFrameSize;
@@ -753,7 +768,8 @@ namespace lsp
                 pPlugin->process(to_do);
 
                 // Call sample player
-                pSamplePlayer->process(samples);
+                if (pSamplePlayer != NULL)
+                    pSamplePlayer->process(samples);
 
                 // Process output buffers
                 for (size_t i=0, n=vSource.size(); i<n; ++i)

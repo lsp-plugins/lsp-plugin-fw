@@ -82,17 +82,18 @@ namespace lsp
                 static ssize_t                      compare_port_items(const meta::port_group_item_t *a, const meta::port_group_item_t *b);
                 static gst::AudioPort              *find_port(lltl::parray<gst::AudioPort> & list, const char *id);
                 static void                         make_audio_mapping(
-                                                        lltl::parray<gst::AudioPort> & sink,
+                                                        lltl::parray<gst::AudioPort> & dst,
                                                         lltl::parray<gst::AudioPort> & list,
                                                         const meta::plugin_t *meta,
                                                         bool out);
                 static void                         make_port_group_mapping(
-                                                        lltl::parray<gst::AudioPort> & sink,
+                                                        lltl::parray<gst::AudioPort> & dst,
                                                         lltl::parray<gst::AudioPort> & list,
                                                         const meta::port_group_t *grp);
                 static void                         make_port_mapping(
-                                                        lltl::parray<gst::AudioPort> & sink,
-                                                        lltl::parray<gst::AudioPort> & list);
+                                                        lltl::parray<gst::AudioPort> & dst,
+                                                        lltl::parray<gst::AudioPort> & list,
+                                                        bool out);
 
             public:
                 explicit Wrapper(gst::Factory *factory, GstAudioFilter *filter, plug::Module *plugin, resource::ILoader *loader);

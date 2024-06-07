@@ -139,10 +139,15 @@ static gboolean gst_xx_plugin_id_xx_setup(
 static GstStateChangeReturn gst_xx_plugin_id_xx_change_state(GstElement *object, GstStateChange transition)
 {
     GstXx_PluginId_Xx *filter = GST_XX_PLUGIN_ID_XX(object);
+
+    GstStateChangeReturn ret = GST_ELEMENT_CLASS(parent_class)->change_state(object, transition);
+    if (ret == GST_STATE_CHANGE_FAILURE)
+        return ret;
+
     if (filter->wrapper != NULL)
         filter->wrapper->change_state(transition);
 
-    return GST_STATE_CHANGE_SUCCESS;
+    return ret;
 }
 
 static GstFlowReturn gst_xx_plugin_id_xx_filter(
