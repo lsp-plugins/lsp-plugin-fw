@@ -452,7 +452,7 @@ namespace lsp
                 #endif /* LSP_PLUGIN_ARTIFACT_NAME */
 
                     // Skip library if it doesn't contain gst format specifier
-                    if (contains_substring(dirent.cFileName, "-vst2-") == NULL)
+                    if (!contains_substring(dirent.cFileName, "-vst2-"))
                         continue;
 
                     // Check that file is a shared library
