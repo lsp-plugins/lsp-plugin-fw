@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 22 янв. 2021 г.
+ * Created on: 25 мая 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,20 +19,22 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_GSTREAMER_MAIN_POSIX_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_GSTREAMER_MAIN_POSIX_H_
+
+#ifndef LSP_PLUG_IN_GSTREAMER_MAIN_IMPL
+    #error "This header should not be included directly"
+#endif /* LSP_PLUG_IN_GSTREAMER_MAIN_IMPL */
 
 #include <lsp-plug.in/plug-fw/version.h>
 
-#ifndef LSP_PLUG_IN_JACK_MAIN_IMPL
-    #error "This header should not be included directly"
-#endif /* LSP_PLUG_IN_JACK_MAIN_IMPL */
-
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/common/singletone.h>
+#include <lsp-plug.in/common/static.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/common/types.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/common/libpath.h>
+#include <lsp-plug.in/plug-fw/wrap/gstreamer/defs.h>
 
 // System libraries
 #include <sys/types.h>
@@ -46,8 +48,12 @@
 
 namespace lsp
 {
-    namespace jack
+    namespace gst
     {
+        static void *instance               = NULL;
+        static gst::IFactory *factory       = NULL;
+        static lsp::singletone_t library;
+
     #ifdef ARCH_32BIT
         static const char *core_library_paths[] =
         {
@@ -112,14 +118,20 @@ namespace lsp
                 (str[2] == 'o');
         }
 
-        static jack_main_function_t lookup_jack_main(void **hInstance, const version_t *required, const char *path)
+        static gst::IFactory *lookup_factory(void **hInstance, const version_t *required, const char *path)
         {
             lsp_trace("Searching core library at %s", path);
 
             // Try to open directory
             DIR *d = opendir(path);
             if (d == NULL)
+            {
+                lsp_trace("Could not open %s", path);
                 return NULL;
+            }
+            lsp_finally {
+                closedir(d);
+            };
 
             struct dirent *de;
             char *ptr = NULL;
@@ -183,13 +195,9 @@ namespace lsp
                         continue;
                 #endif /* LSP_PLUGIN_ARTIFACT_GROUP */
 
-                    jack_main_function_t f = lookup_jack_main(hInstance, required, ptr);
+                    gst::IFactory *f = lookup_factory(hInstance, required, ptr);
                     if (f != NULL)
-                    {
-                        free(ptr);
-                        closedir(d);
                         return f;
-                    }
                 }
                 else if (de->d_type == DT_REG)
                 {
@@ -204,8 +212,8 @@ namespace lsp
                         continue;
                 #endif /* LSP_PLUGIN_ARTIFACT_NAME */
 
-                    // Skip library if it doesn't contain 'lsp-plugins' in name
-                    if (strstr(de->d_name, "-jack-") == NULL)
+                    // Skip library if it doesn't contain gst format specifier
+                    if (strstr(de->d_name, "-gstreamer-") == NULL)
                         continue;
 
                     // Skip library if it doesn't contain 'lsp-plugins' in name
@@ -215,20 +223,22 @@ namespace lsp
                     lsp_trace("Trying library %s", ptr);
 
                     // Try to load library
-                    void *inst = dlopen (ptr, RTLD_NOW);
+                    void *inst = dlopen(ptr, RTLD_NOW);
                     if (!inst)
                     {
                         lsp_trace("library %s not loaded: %s", ptr, dlerror());
                         continue;
                     }
+                    lsp_finally {
+                        if (inst)
+                            dlclose(inst);
+                    };
 
                     // Fetch version function
                     module_version_t vf = reinterpret_cast<module_version_t>(dlsym(inst, LSP_VERSION_FUNC_NAME));
                     if (!vf)
                     {
                         lsp_trace("version function %s not found: %s", LSP_VERSION_FUNC_NAME, dlerror());
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
 
@@ -237,8 +247,6 @@ namespace lsp
                     if ((ret == NULL) || (ret->branch == NULL))
                     {
                         lsp_trace("No version or bad version returned, ignoring binary", ret);
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
                     else if ((ret->major != required->major) ||
@@ -248,60 +256,60 @@ namespace lsp
                         )
                     {
                         lsp_trace("wrong version %d.%d.%d '%s' returned, expected %d.%d.%d '%s', ignoring binary",
-                                ret->major, ret->minor, ret->micro, ret->branch,
-                                required->major, required->minor, required->micro, required->branch
-                            );
-                        // Close library
-                        dlclose(inst);
+                            ret->major, ret->minor, ret->micro, ret->branch,
+                            required->major, required->minor, required->micro, required->branch);
                         continue;
                     }
 
                     // Fetch function
-                    jack_main_function_t f = reinterpret_cast<jack_main_function_t>(dlsym(inst, JACK_MAIN_FUNCTION_NAME));
+                    gst::factory_function_t f = reinterpret_cast<gst::factory_function_t>(dlsym(inst, GSTREAMER_FACTORY_FUNCTION_NAME));
                     if (!f)
                     {
-                        lsp_trace("function %s not found: %s", JACK_MAIN_FUNCTION_NAME, dlerror());
-                        // Close library
-                        dlclose(inst);
+                        lsp_trace("function %s not found: %s", GSTREAMER_FACTORY_FUNCTION_NAME, dlerror());
                         continue;
                     }
 
-                    *hInstance = inst;
-                    free(ptr);
-                    closedir(d);
-                    return f;
+                    // Obtain the factory
+                    gst::IFactory *factory = f();
+                    if (!factory)
+                    {
+                        lsp_trace("could not obtain factory: %s", GSTREAMER_FACTORY_FUNCTION_NAME, dlerror());
+                        continue;
+                    }
+
+                    lsp_trace("found library %s at %s", de->d_name, path);
+
+                    *hInstance = release_ptr(inst);
+                    return factory;
                 }
             }
 
-            // Free previously used string, close directory and exit
-            if (ptr != NULL)
-                free(ptr);
-            closedir(d);
             return NULL;
         }
 
-        static jack_main_function_t get_main_function(void **hInstance, const version_t *required, const char *binary_path)
+        static gst::IFactory *get_gstreamer_factory(void **hInstance, const version_t *required)
         {
-            lsp_debug("Trying to find CORE library");
+            lsp_debug("Trying to find GStreamer CORE library");
 
             char path[PATH_MAX+1];
-            jack_main_function_t jack_main  = NULL;
+            gst::IFactory *factory = NULL;
 
-            // Try to find files in current directory
-            if (binary_path != NULL)
+            // Try to lookup the same directory the shared object is located
+            char *libpath = get_library_path();
+            if (libpath != NULL)
             {
-                strncpy(path, binary_path, PATH_MAX);
-                char *rchr  = strrchr(path, FILE_SEPARATOR_C);
-                if (rchr != NULL)
-                {
-                    *rchr       = '\0';
-                    jack_main   = lookup_jack_main(hInstance, required, path);
-                }
+                lsp_finally { free(libpath); };
+                if ((factory = lookup_factory(hInstance, required, libpath)) != NULL)
+                    return factory;
             }
 
             // Get the home directory
             const char *homedir = getenv("HOME");
             char *buf = NULL;
+            lsp_finally {
+                if (buf != NULL)
+                    delete [] buf;
+            };
 
             if (homedir == NULL)
             {
@@ -322,71 +330,61 @@ namespace lsp
             }
 
             // Scan home directory first
-            if ((jack_main == NULL) && (homedir != NULL))
+            if ((factory == NULL) && (homedir != NULL))
             {
                 lsp_trace("home directory = %s", homedir);
-                jack_main       = lookup_jack_main(hInstance, required, homedir);
+                factory     = lookup_factory(hInstance, required, homedir);
 
-                if (jack_main == NULL)
+                if (factory == NULL)
                 {
                     snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib", homedir);
-                    jack_main       = lookup_jack_main(hInstance, required, path);
+                    factory         = lookup_factory(hInstance, required, path);
                 }
 
-                if (jack_main == NULL)
+                if (factory == NULL)
                 {
                     snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib64", homedir);
-                    jack_main       = lookup_jack_main(hInstance, required, path);
+                    factory         = lookup_factory(hInstance, required, path);
                 }
 
-                if (jack_main == NULL)
+                if (factory == NULL)
                 {
                     snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "bin", homedir);
-                    jack_main       = lookup_jack_main(hInstance, required, path);
+                    factory         = lookup_factory(hInstance, required, path);
                 }
             }
 
             // Scan system directories
-            if (jack_main == NULL)
+            if (factory == NULL)
             {
                 for (const char **p = core_library_paths; (p != NULL) && (*p != NULL); ++p)
                 {
-                    jack_main       = lookup_jack_main(hInstance, required, *p);
-                    if (jack_main != NULL)
+                    factory         = lookup_factory(hInstance, required, *p);
+                    if (factory != NULL)
                         break;
                 }
             }
 
             // Try to lookup additional directories obtained from file mapping
-            if (jack_main == NULL)
-            {
-                char *libpath = get_library_path();
-                if (libpath != NULL)
-                {
-                    jack_main     = lookup_jack_main(hInstance, required, libpath);
-                    ::free(libpath);
-                }
-            }
-
-            if (jack_main == NULL)
+            if (factory == NULL)
             {
                 char **paths = get_library_paths(core_library_paths);
                 if (paths != NULL)
                 {
                     for (char **p = paths; (p != NULL) && (*p != NULL); ++p)
                     {
-                        jack_main     = lookup_jack_main(hInstance, required, *p);
-                        if (jack_main != NULL)
+                        factory         = lookup_factory(hInstance, required, *p);
+                        if (factory != NULL)
                             break;
 
                         snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib", *p);
-                        jack_main       = lookup_jack_main(hInstance, required, path);
-                        if (jack_main != NULL)
+                        factory         = lookup_factory(hInstance, required, path);
+                        if (factory != NULL)
                             break;
 
                         snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib64", *p);
-                        jack_main       = lookup_jack_main(hInstance, required, path);
-                        if (jack_main != NULL)
+                        factory         = lookup_factory(hInstance, required, path);
+                        if (factory != NULL)
                             break;
                     }
 
@@ -394,44 +392,53 @@ namespace lsp
                 }
             }
 
-            // Delete buffer if allocated
-            if (buf != NULL)
-                delete [] buf;
-
             // Return factory instance (if present)
-            return jack_main;
+            return factory;
         }
-    } /* namespace jack */
-}; /* namespace lsp */
 
-//------------------------------------------------------------------------
-int main(int argc, const char **argv)
-{
-    IF_DEBUG( lsp::debug::redirect("lsp-jack-loader.log"); );
+        void free_core_library()
+        {
+            if (instance != NULL)
+            {
+                dlclose(instance);
+                instance = NULL;
+                factory = NULL;
+            }
+        }
 
-    void *hInstance;
-    static const lsp::version_t version =
-    {
-        LSP_PLUGIN_PACKAGE_MAJOR,
-        LSP_PLUGIN_PACKAGE_MINOR,
-        LSP_PLUGIN_PACKAGE_MICRO,
-        LSP_PLUGIN_PACKAGE_BRANCH
-    };
+        static StaticFinalizer finalizer(free_core_library);
 
-    lsp::jack_main_function_t jack_main = lsp::jack::get_main_function(&hInstance, &version, argv[0]);
-    if (jack_main == NULL)
-    {
-        lsp_error("Could not find JACK plugin core library");
-        return -lsp::STATUS_NOT_FOUND;
-    }
+        static gst::IFactory *lookup_factory()
+        {
+            // Check that data already has been initialized
+            if (library.initialized())
+                return factory;
 
-    int code = jack_main(JACK_PLUGIN_UID, argc, argv);
+            static const lsp::version_t version =
+            {
+                LSP_PLUGIN_PACKAGE_MAJOR,
+                LSP_PLUGIN_PACKAGE_MINOR,
+                LSP_PLUGIN_PACKAGE_MICRO,
+                LSP_PLUGIN_PACKAGE_BRANCH
+            };
 
-    if (hInstance != NULL)
-        dlclose(hInstance);
+            void *dl_instance = NULL;
+            gst::IFactory *dl_factory = get_gstreamer_factory(&dl_instance, &version);
 
-    return code;
-}
+            // Commit the loaded factory
+            lsp_singletone_init(library) {
+                instance    = release_ptr(dl_instance);
+                factory     = release_ptr(dl_factory);
+            };
 
+            // Release instance if we failed to commit it and return the actual factory
+            if (dl_instance != NULL)
+                dlclose(dl_instance);
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_ */
+            return factory;
+        }
+
+    } // namespace gst
+} // namespace lsp
+
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_GSTREAMER_MAIN_POSIX_H_ */

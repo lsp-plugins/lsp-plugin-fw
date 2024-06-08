@@ -228,13 +228,13 @@ namespace lsp
                     {
                         // Enumerate next element
                         const meta::plugin_t *plug_meta = it.get();
-                        if (plug_meta->vst3_uid == NULL)
+                        if (plug_meta->uids.vst3 == NULL)
                             continue;
 
                         // Create plugin record
                         SA(s->start_object());
                         {
-                            if (!meta::uid_vst3_to_tuid(cid, plug_meta->vst3_uid))
+                            if (!meta::uid_vst3_to_tuid(cid, plug_meta->uids.vst3))
                                 return STATUS_BAD_FORMAT;
                             plugver.fmt_ascii(
                                 "%d.%d.%d",
@@ -292,13 +292,13 @@ namespace lsp
                         const meta::plugin_t *ui_meta = it.get();
                         if (ui_meta == NULL)
                             break;
-                        if ((ui_meta->vst3_uid == NULL)|| (ui_meta->vst3ui_uid == NULL))
+                        if ((ui_meta->uids.vst3 == NULL)|| (ui_meta->uids.vst3ui == NULL))
                             continue;
 
                         // Create plugin record
                         SA(s->start_object());
                         {
-                            if (!meta::uid_vst3_to_tuid(cid, ui_meta->vst3ui_uid))
+                            if (!meta::uid_vst3_to_tuid(cid, ui_meta->uids.vst3ui))
                                 return STATUS_BAD_FORMAT;
                             plugver.fmt_ascii(
                                 "%d.%d.%d",
@@ -334,13 +334,13 @@ namespace lsp
                         const meta::plugin_t *plug_meta = it.get();
                         if (plug_meta == NULL)
                             break;
-                        if ((plug_meta->vst3_uid == NULL) || (plug_meta->vst2_uid == NULL))
+                        if ((plug_meta->uids.vst3 == NULL) || (plug_meta->uids.vst2 == NULL))
                             continue;
                         const char *plugin_name = (plug_meta->vst2_name != NULL) ? plug_meta->vst2_name : plug_meta->name;
 
-                        if (!meta::uid_meta_to_vst3(vst3_uid, plug_meta->vst3_uid))
+                        if (!meta::uid_meta_to_vst3(vst3_uid, plug_meta->uids.vst3))
                             continue;
-                        if (!meta::uid_vst2_to_vst3(vst3_legacy_uid, plug_meta->vst2_uid, plugin_name))
+                        if (!meta::uid_vst2_to_vst3(vst3_legacy_uid, plug_meta->uids.vst2, plugin_name))
                             continue;
                         if (!strcmp(vst3_uid, vst3_legacy_uid))
                             continue;

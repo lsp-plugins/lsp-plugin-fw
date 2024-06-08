@@ -50,7 +50,7 @@ namespace lsp
                     const meta::plugin_t *meta = f->enumerate(i);
                     if ((meta == NULL) ||
                         (meta->uid == NULL) ||
-                        (meta->vst2_uid == NULL))
+                        (meta->uids.vst2 == NULL))
                         break;
 
                     // Add metadata to list
@@ -86,10 +86,10 @@ namespace lsp
                         return STATUS_BAD_STATE;
                     }
 
-                    if (strcmp(prev->vst2_uid, curr->vst2_uid) == 0)
+                    if (strcmp(prev->uids.vst2, curr->uids.vst2) == 0)
                     {
                         fprintf(stderr, "Duplicate plugin VST2 unique identifier: '%s', conflicting plugin names: '%s' and '%s'\n",
-                                prev->vst2_uid, prev->name, curr->name);
+                            prev->uids.vst2, prev->name, curr->name);
                         return STATUS_BAD_STATE;
                     }
                 }
@@ -115,7 +115,7 @@ namespace lsp
             if (fname != NULL)
                 fprintf(out,    "// File:            %s\n", fname);
             fprintf(out,    "// VST2 Plugin:     %s - %s [VST2]\n", meta->name, meta->description);
-            fprintf(out,    "// VST2 UID:        '%s'\n", meta->vst2_uid);
+            fprintf(out,    "// VST2 UID:        '%s'\n", meta->uids.vst2);
             fprintf(out,    "// Version:         %d.%d.%d\n",
                     LSP_MODULE_VERSION_MAJOR(meta->version),
                     LSP_MODULE_VERSION_MINOR(meta->version),
@@ -125,7 +125,7 @@ namespace lsp
 
             // Write code
             fprintf(out,    "// Pass Plugin UID for factory function\n");
-            fprintf(out,    "#define VST2_PLUGIN_UID     \"%s\"\n", meta->vst2_uid);
+            fprintf(out,    "#define VST2_PLUGIN_UID     \"%s\"\n", meta->uids.vst2);
             fprintf(out,    "\n");
 
             fprintf(out,    "#include <lsp-plug.in/common/types.h>\n");
@@ -302,7 +302,7 @@ namespace lsp
 
             fprintf(out, "\n");
             fprintf(out, "$(OBJ_FILES):\n");
-            fprintf(out, "\techo \"  $(CXX) [vst2] $(FILE)\"\n");
+            fprintf(out, "\techo \"  $(CXX)  [vst2] $(FILE)\"\n");
             fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(CXXDEFS) $(EXT_CXXFLAGS) $(VST2_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(SO_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");

@@ -34,11 +34,11 @@ namespace lsp
 
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
-                if (meta->lv2_uri == NULL)
+                if (meta->uids.lv2 == NULL)
                 {
-                    if (meta->lv2ui_uri != NULL)
+                    if (meta->uids.lv2ui != NULL)
                         validation_error(ctx, "Plugin uid='%s' has not specified LV2 URI but provides LV2 UI URI='%s'",
-                            meta->uid, meta->lv2ui_uri);
+                            meta->uid, meta->uids.lv2ui);
                     return;
                 }
             }

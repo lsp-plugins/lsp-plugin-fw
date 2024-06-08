@@ -140,6 +140,12 @@ namespace lsp
                 void                        deactivate();
 
                 /**
+                 * Set plugin's active/inactive state
+                 * @param active active state flag
+                 */
+                void                        set_active(bool active);
+
+                /**
                  * Check current activity state of the plugin.
                  * @return true if plugin is active
                  */

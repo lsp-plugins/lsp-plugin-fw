@@ -553,7 +553,7 @@ namespace lsp
         void Wrapper::lookup_ui_factory()
         {
             // Create UI wrapper
-            const char *clap_uid = metadata()->clap_uid;
+            const char *clap_uid = metadata()->uids.clap;
 
             // Lookup plugin identifier among all registered plugin factories
             for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
@@ -566,7 +566,7 @@ namespace lsp
                         break;
 
                     // Check plugin identifier
-                    if (!::strcmp(meta->clap_uid, clap_uid))
+                    if (!::strcmp(meta->uids.clap, clap_uid))
                     {
                         pUIMetadata     = meta;
                         pUIFactory      = f;
@@ -1403,7 +1403,7 @@ namespace lsp
             if (pUIWrapper != NULL)
                 return pUIWrapper;
 
-            const char *clap_uid = metadata()->clap_uid;
+            const char *clap_uid = metadata()->uids.clap;
             if (!ui_provided())
             {
                 fprintf(stderr, "Not found UI for plugin: %s, will continue in headless mode\n", clap_uid);

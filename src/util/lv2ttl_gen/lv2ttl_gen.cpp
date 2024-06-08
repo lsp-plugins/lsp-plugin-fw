@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 дек. 2021 г.
@@ -398,7 +398,7 @@ namespace lsp
             const meta::package_t *manifest,
             const cmdline_t *cmd)
         {
-            fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_UI_PREFIX, get_module_uid(m.lv2ui_uri));
+            fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_UI_PREFIX, get_module_uid(m.uids.lv2ui));
             fprintf(out, "\ta ui:" LV2TTL_UI_CLASS " ;\n");
             fprintf(out, "\tlv2:minorVersion %d ;\n", int(LSP_MODULE_VERSION_MINOR(m.version)));
             fprintf(out, "\tlv2:microVersion %d ;\n", int(LSP_MODULE_VERSION_MICRO(m.version)));
@@ -440,7 +440,7 @@ namespace lsp
                 }
 
                 fprintf(out, "%s [\n", (ports == 0) ? "\tui:portNotification" : " ,");
-                fprintf(out, "\t\tui:plugin %s:%s ;\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.lv2_uri));
+                fprintf(out, "\t\tui:plugin %s:%s ;\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.uids.lv2));
                 fprintf(out, "\t\tui:portIndex %d ;\n", int(port_id));
 
                 switch (p->role)
@@ -466,7 +466,7 @@ namespace lsp
             for (size_t i=0; i<2; ++i)
             {
                 fprintf(out, "%s [\n", (ports == 0) ? "\tui:portNotification" : " ,");
-                fprintf(out, "\t\tui:plugin %s:%s ;\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.lv2_uri));
+                fprintf(out, "\t\tui:plugin %s:%s ;\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.uids.lv2));
                 fprintf(out, "\t\tui:portIndex %d ;\n", int(port_id));
                 fprintf(out, "\t\tui:protocol atom:eventTransfer ;\n");
                 fprintf(out, "\t\tui:notifyType atom:Sequence ;\n");
@@ -482,7 +482,7 @@ namespace lsp
                 if ((p->id != NULL) && (p->name != NULL))
                 {
                     fprintf(out, "%s [\n", (ports == 0) ? "\tui:portNotification" : " ,");
-                    fprintf(out, "\t\tui:plugin %s:%s ;\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.lv2_uri));
+                    fprintf(out, "\t\tui:plugin %s:%s ;\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.uids.lv2));
                     fprintf(out, "\t\tui:portIndex %d ;\n", int(port_id));
                     fprintf(out, "\t\tui:protocol ui:floatProtocol ;\n");
                     fprintf(out, "\t]");
@@ -561,7 +561,7 @@ namespace lsp
         {
             size_t result   = 0;
 
-            if (m.lv2ui_uri != NULL)
+            if (m.uids.lv2ui != NULL)
             {
                 if (m.ui_resource != NULL)
                     result |= REQ_LV2UI;
@@ -684,7 +684,7 @@ namespace lsp
             }
 
             // Output plugin
-            fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.lv2_uri));
+            fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.uids.lv2));
             print_plugin_groups(out, m);
             fprintf(out, "\tdoap:name \"%s %s\" ;\n", manifest->brand, m.description);
             fprintf(out, "\tlv2:minorVersion %d ;\n", int(LSP_MODULE_VERSION_MINOR(m.version)));
@@ -697,7 +697,7 @@ namespace lsp
                 fprintf(out, "\tdoap:license <%s> ;\n", manifest->lv2_license);
             fprintf(out, "\tlv2:binary <%s> ;\n", cmd->lv2_binary);
             if ((requirements & REQ_LV2UI) && (cmd->lv2ui_binary))
-                fprintf(out, "\tui:ui %s:%s ;\n", LV2TTL_PLUGIN_UI_PREFIX, get_module_uid(m.lv2ui_uri));
+                fprintf(out, "\tui:ui %s:%s ;\n", LV2TTL_PLUGIN_UI_PREFIX, get_module_uid(m.uids.lv2ui));
 
             // Emit required features
             fprintf(out, "\tlv2:requiredFeature urid:map ;\n");
@@ -718,8 +718,8 @@ namespace lsp
                 fprintf(out, "\tpg:mainOutput %s:%s ;\n", LV2TTL_PORT_GROUP_PREFIX, pg_main_out->id);
 
             // Replacement for LADSPA plugin
-            if (m.ladspa_id > 0)
-                fprintf(out, "\tdc:replaces <urn:ladspa:%ld> ;\n", long(m.ladspa_id));
+            if (m.uids.ladspa_id > 0)
+                fprintf(out, "\tdc:replaces <urn:ladspa:%ld> ;\n", long(m.uids.ladspa_id));
 
             // Separator
             fprintf(out, "\n");
@@ -1037,7 +1037,7 @@ namespace lsp
         {
             char fname[PATH_MAX];
             FILE *out = NULL;
-            snprintf(fname, sizeof(fname)-1, "%s/%s.ttl", cmd->out_dir, get_module_uid(m.lv2_uri));
+            snprintf(fname, sizeof(fname)-1, "%s/%s.ttl", cmd->out_dir, get_module_uid(m.uids.lv2));
             size_t requirements     = scan_requirements(m);
 
             // Generate manifest.ttl
@@ -1073,14 +1073,14 @@ namespace lsp
             if (requirements & REQ_TIME)
                 emit_prefix(out, "time", LV2_TIME_URI "#");
             emit_prefix(out, "hcid", LV2_INLINEDISPLAY_PREFIX);
-            emit_prefix(out, LV2TTL_PLUGIN_PREFIX, get_module_prefix(fname, sizeof(fname), m.lv2_uri));
+            emit_prefix(out, LV2TTL_PLUGIN_PREFIX, get_module_prefix(fname, sizeof(fname), m.uids.lv2));
             if (requirements & REQ_PORT_GROUPS)
             {
-                snprintf(fname, sizeof(fname), "%s/port_groups#", m.lv2_uri);
+                snprintf(fname, sizeof(fname), "%s/port_groups#", m.uids.lv2);
                 emit_prefix(out, LV2TTL_PORT_GROUP_PREFIX, fname);
             }
             if (requirements & REQ_LV2UI)
-                emit_prefix(out, LV2TTL_PLUGIN_UI_PREFIX, get_module_prefix(fname, sizeof(fname), m.lv2ui_uri));
+                emit_prefix(out, LV2TTL_PLUGIN_UI_PREFIX, get_module_prefix(fname, sizeof(fname), m.uids.lv2ui));
             emit_prefix(out, LV2TTL_DEVELOPERS_PREFIX, LSP_LV2_BASE_URI "developers/");
             if (requirements & REQ_PATCH)
                 emit_prefix(out, LV2TTL_PORTS_PREFIX, LSP_LV2_BASE_URI "/ports#");
@@ -1160,9 +1160,9 @@ namespace lsp
                 for (size_t i=0, n=plugins.size(); i<n; ++i)
                 {
                     const meta::plugin_t *m = plugins.uget(i);
-                    if (m->lv2_uri)
+                    if (m->uids.lv2)
                     {
-                        get_module_prefix(prefix, sizeof(prefix), m->lv2_uri);
+                        get_module_prefix(prefix, sizeof(prefix), m->uids.lv2);
                         emit_prefix(out, LV2TTL_PLUGIN_PREFIX, prefix);
                         break;
                     }
@@ -1173,9 +1173,9 @@ namespace lsp
                 for (size_t i=0, n=plugins.size(); i<n; ++i)
                 {
                     const meta::plugin_t *m = plugins.uget(i);
-                    if (m->lv2ui_uri)
+                    if (m->uids.lv2ui)
                     {
-                        get_module_prefix(ui_prefix, sizeof(ui_prefix), m->lv2ui_uri);
+                        get_module_prefix(ui_prefix, sizeof(ui_prefix), m->uids.lv2ui);
                         emit_prefix(out, LV2TTL_PLUGIN_UI_PREFIX, ui_prefix);
                         break;
                     }
@@ -1190,15 +1190,15 @@ namespace lsp
                 for (size_t i=0, n=plugins.size(); i<n; ++i)
                 {
                     const meta::plugin_t *m = plugins.uget(i);
-                    if (m->lv2_uri != NULL)
+                    if (m->uids.lv2 != NULL)
                     {
-                        if (strncmp(prefix, m->lv2_uri, prefix_len) == 0)
-                            fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_PREFIX, &m->lv2_uri[prefix_len]);
+                        if (strncmp(prefix, m->uids.lv2, prefix_len) == 0)
+                            fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_PREFIX, &m->uids.lv2[prefix_len]);
                         else
-                            fprintf(out, "<%s>\n", m->lv2_uri);
+                            fprintf(out, "<%s>\n", m->uids.lv2);
                         fprintf(out, "\ta lv2:Plugin ;\n");
                         fprintf(out, "\tlv2:binary <%s> ;\n", cmd->lv2_binary);
-                        fprintf(out, "\trdfs:seeAlso <%s.ttl> .\n\n", get_module_uid(m->lv2_uri));
+                        fprintf(out, "\trdfs:seeAlso <%s.ttl> .\n\n", get_module_uid(m->uids.lv2));
                     }
                 }
             }
@@ -1211,15 +1211,15 @@ namespace lsp
                 for (size_t i=0, n=plugins.size(); i<n; ++i)
                 {
                     const meta::plugin_t *m = plugins.uget(i);
-                    if ((m->lv2_uri != NULL) && (m->lv2ui_uri != NULL))
+                    if ((m->uids.lv2 != NULL) && (m->uids.lv2ui != NULL))
                     {
-                        if (strncmp(ui_prefix, m->lv2ui_uri, ui_prefix_len) == 0)
-                            fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_UI_PREFIX, &m->lv2ui_uri[ui_prefix_len]);
+                        if (strncmp(ui_prefix, m->uids.lv2ui, ui_prefix_len) == 0)
+                            fprintf(out, "%s:%s\n", LV2TTL_PLUGIN_UI_PREFIX, &m->uids.lv2ui[ui_prefix_len]);
                         else
-                            fprintf(out, "<%s>\n", m->lv2ui_uri);
+                            fprintf(out, "<%s>\n", m->uids.lv2ui);
                         fprintf(out, "\ta ui:" LV2TTL_UI_CLASS " ;\n");
                         fprintf(out, "\tlv2:binary <%s> ;\n", cmd->lv2ui_binary);
-                        fprintf(out, "\trdfs:seeAlso <%s.ttl> .\n\n", get_module_uid(m->lv2_uri));
+                        fprintf(out, "\trdfs:seeAlso <%s.ttl> .\n\n", get_module_uid(m->uids.lv2));
                     }
                 }
             }
@@ -1229,7 +1229,7 @@ namespace lsp
 
         static ssize_t cmp_by_lv2_uri(const meta::plugin_t *a, const meta::plugin_t *b)
         {
-            return strcmp(a->lv2_uri, b->lv2_uri);
+            return strcmp(a->uids.lv2, b->uids.lv2);
         }
 
         status_t main(int argc, const char **argv)
@@ -1252,7 +1252,7 @@ namespace lsp
                 {
                     // Enumerate next element
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if ((meta == NULL) || (meta->lv2_uri == NULL))
+                    if ((meta == NULL) || (meta->uids.lv2 == NULL))
                         break;
 
                     // Add metadata to list

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 23 мая 2021 г.
@@ -241,14 +241,22 @@ namespace lsp
             params->set_cstring("meta_plugin_developer_nick", plugin->developer->nick);
             params->set_cstring("meta_plugin_developer_site", plugin->developer->homepage);
             params->set_cstring("meta_plugin_developer_mail", plugin->developer->mailbox);
+
+            char *gst_uid = meta::make_gst_canonical_name(plugin->uids.gst);
+            lsp_finally {
+                if (gst_uid != NULL)
+                    free(gst_uid);
+            };
             params->set_cstring("meta_plugin_uid", plugin->uid);
-            params->set_cstring("meta_plugin_lv2_uri", plugin->lv2_uri);
-            params->set_cstring("meta_plugin_lv2ui_uri", plugin->lv2ui_uri);
-            params->set_cstring("meta_plugin_vst2_uid", plugin->vst2_uid);
-            params->set_cstring("meta_plugin_vst3_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->vst3_uid));
-            params->set_cstring("meta_plugin_vst3ui_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->vst3ui_uid));
-            params->set_int    ("meta_plugin_ladspa_id", plugin->ladspa_id);
-            params->set_cstring("meta_plugin_ladspa_lbl", plugin->ladspa_lbl);
+            params->set_cstring("meta_plugin_clap_uid", plugin->uids.clap);
+            params->set_cstring("meta_plugin_gst_uid", gst_uid);
+            params->set_int    ("meta_plugin_ladspa_id", plugin->uids.ladspa_id);
+            params->set_cstring("meta_plugin_ladspa_lbl", plugin->uids.ladspa_lbl);
+            params->set_cstring("meta_plugin_lv2_uri", plugin->uids.lv2);
+            params->set_cstring("meta_plugin_lv2ui_uri", plugin->uids.lv2ui);
+            params->set_cstring("meta_plugin_vst2_uid", plugin->uids.vst2);
+            params->set_cstring("meta_plugin_vst3_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->uids.vst3));
+            params->set_cstring("meta_plugin_vst3ui_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->uids.vst3ui));
 
             tmp.set_ascii(meta::plugin_format_name(pWrapper->plugin_format()));
             params->set_string ("meta_plugin_format", &tmp);

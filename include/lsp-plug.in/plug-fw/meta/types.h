@@ -39,11 +39,12 @@ namespace lsp
         {
             PLUGIN_UNKNOWN,
             PLUGIN_CLAP,
+            PLUGIN_GSTREAMER,
             PLUGIN_JACK,
             PLUGIN_LADSPA,
             PLUGIN_LV2,
             PLUGIN_VST2,
-            PLUGIN_VST3
+            PLUGIN_VST3,
         };
 
         enum unit_t
@@ -423,6 +424,22 @@ namespace lsp
         } bundle_t;
 
         /**
+         * Plugin identifiers for different plugin formats
+         */
+        typedef struct plugin_fmt_uids_t
+        {
+            const char             *lv2;            // LV2 URI (NULL if not supported)
+            const char             *lv2ui;          // LV2 UI URI (NULL if not supported)
+            const char             *vst2;           // Steinberg VST 2.x ID of the plugin (NULL if not supported)
+            const char             *vst3;           // Steinberg VST 3.x ID of the plugin (NULL if not supported)
+            const char             *vst3ui;         // Steinberg VST 3.x ID of the plugin's UI (NULL if not supported)
+            const uint32_t          ladspa_id;      // LADSPA ID of the plugin (zero if not supported)
+            const char             *ladspa_lbl;     // LADSPA unique label of the plugin (NULL if not supported)
+            const char             *clap;           // Unique identifier for CLAP format (NULL if not supported)
+            const char             *gst;            // GStreamer unique plugin identifier (NULL if not supported)
+        } plugin_fmt_uids_t;
+
+        /**
          * Metadata for plugin instance classs
          */
         typedef struct plugin_t
@@ -433,14 +450,7 @@ namespace lsp
             const char             *acronym;        // Plugin acronym
             const person_t         *developer;      // Developer
             const char             *uid;            // Unique character identifier of plugin
-            const char             *lv2_uri;        // LV2 URI
-            const char             *lv2ui_uri;      // LV2 UI URI
-            const char             *vst2_uid;       // Steinberg VST 2.x ID of the plugin
-            const char             *vst3_uid;       // Steinberg VST 3.x ID of the plugin
-            const char             *vst3ui_uid;     // Steinberg VST 3.x ID of the plugin's UI
-            const uint32_t          ladspa_id;      // LADSPA ID of the plugin
-            const char             *ladspa_lbl;     // LADSPA unique label of the plugin
-            const char             *clap_uid;       // Unique identifier for CLAP format
+            const plugin_fmt_uids_t uids;           // Plugin unique identifiers
             const module_version_t  version;        // Version of the plugin
             const int              *classes;        // List of plugin classes terminated by negative value
             const int              *clap_features;  // List of CLAP plugin features
