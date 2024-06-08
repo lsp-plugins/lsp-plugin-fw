@@ -62,6 +62,8 @@ namespace lsp
                 lltl::parray<plug::IPort>           vAllPorts;          // All created ports
                 lltl::parray<gst::AudioPort>        vAudioIn;           // All available audio inputs
                 lltl::parray<gst::AudioPort>        vAudioOut;          // All available audio outputs
+                lltl::parray<gst::MidiPort>         vMidiIn;            // All available MIDI inputs
+                lltl::parray<gst::MidiPort>         vMidiOut;           // All available MIDI outputs
                 lltl::parray<gst::ParameterPort>    vParameters;        // All available parameters
                 lltl::parray<gst::MeterPort>        vMeters;            // All available meters
                 lltl::parray<plug::IPort>           vPortMapping;       // All parameters visible to the host
@@ -94,6 +96,9 @@ namespace lsp
                                                         lltl::parray<gst::AudioPort> & dst,
                                                         lltl::parray<gst::AudioPort> & list,
                                                         bool out);
+
+                void                                process_input_events();
+                void                                process_output_events();
 
             public:
                 explicit Wrapper(gst::Factory *factory, GstAudioFilter *filter, plug::Module *plugin, resource::ILoader *loader);

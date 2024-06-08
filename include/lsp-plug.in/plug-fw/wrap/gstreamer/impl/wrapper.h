@@ -310,6 +310,27 @@ namespace lsp
                     lsp_trace("audio_out id=%s", result->metadata()->id);
                     break;
                 }
+                case meta::R_MIDI_IN:
+                {
+                    gst::MidiPort *p = new gst::MidiPort(port);
+                    result = p;
+                    vMidiIn.add(p);
+                    plugin_ports->add(p);
+
+                    lsp_trace("midi_in id=%s", result->metadata()->id);
+                    break;
+                }
+                case meta::R_MIDI_OUT:
+                {
+                    gst::MidiPort *p = new gst::MidiPort(port);
+                    result = p;
+                    vMidiOut.add(p);
+                    plugin_ports->add(p);
+
+                    lsp_trace("midi_out id=%s", result->metadata()->id);
+                    break;
+                }
+
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
                 {
@@ -389,8 +410,6 @@ namespace lsp
                 case meta::R_MESH:
                 case meta::R_STREAM:
                 case meta::R_FBUFFER:
-                case meta::R_MIDI_IN:
-                case meta::R_MIDI_OUT:
                 case meta::R_OSC_IN:
                 case meta::R_OSC_OUT:
                 default:
@@ -719,6 +738,75 @@ namespace lsp
             return gst_pad_query_default(pad, GST_OBJECT(pFilter), query);
         }
 
+        void Wrapper::process_input_events()
+        {
+            // TODO: implement this when GStreamer introduces normal MIDI support
+            for (size_t i=0, n=vMidiIn.size(); i<n; ++i)
+            {
+                gst::MidiPort *p = vMidiIn.uget(i);
+                if (p == NULL)
+                    continue;
+
+                plug::midi_t *queue = p->queue();
+                queue->clear();
+            }
+        }
+
+        void Wrapper::process_output_events()
+        {
+            // TODO: do a proper MIDI signal emission when GStreamer introduces normal MIDI support
+            for (size_t i=0, n=vMidiOut.size(); i<n; ++i)
+            {
+                gst::MidiPort *p = vMidiOut.uget(i);
+                if (p == NULL)
+                    continue;
+
+                // Re-order events
+                plug::midi_t *queue = p->queue();
+                queue->sort();
+
+                // Post MIDI events
+                for (size_t j=0; j<queue->nEvents; ++j)
+                {
+                    // Encode MIDI event
+                    const midi::event_t *ev = &queue->vEvents[j];
+                    const size_t length = midi::size_of(ev);
+
+                    GByteArray *data = g_byte_array_sized_new(length);
+                    if (data == NULL)
+                        continue;
+
+                    g_byte_array_set_size(data, length);
+                    midi::encode(reinterpret_cast<uint8_t *>(data->data), ev);
+
+                    GstStructure *structure = gst_structure_new(
+                        "raw-midi",
+                        "frame", G_TYPE_UINT, guint(ev->timestamp),
+                        "data", G_TYPE_BYTE_ARRAY, data,
+                        NULL);
+                    if (structure == NULL)
+                    {
+                        g_byte_array_unref(data);
+                        continue;
+                    }
+
+                    // Send MIDI event
+                    GstMessage *message = gst_message_new_element(GST_OBJECT(pFilter), structure);
+                    if (message == NULL)
+                    {
+                        gst_structure_free(structure);
+                        g_byte_array_unref(data);
+                        continue;
+                    }
+
+                    gst_element_post_message(GST_ELEMENT(pFilter), message);
+                }
+
+                // Clear the output queue
+                queue->clear();
+            }
+        }
+
         void Wrapper::process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size)
         {
 //            lsp_trace("process out=%p, in=%p, out_size=%d, in_size=%d",
@@ -728,6 +816,9 @@ namespace lsp
             dsp::context_t ctx;
             dsp::start(&ctx);
             lsp_finally { dsp::finish(&ctx); };
+
+            // Process input events
+            process_input_events();
 
             // Compute number of samples
             const size_t in_samples = in_size / nFrameSize;
@@ -764,12 +855,32 @@ namespace lsp
                         p->clear();
                 }
 
+                // Prepare incoming MIDI events
+                for (size_t i=0, n=vMidiIn.size(); i<n; ++i)
+                {
+                    gst::MidiPort *p = vMidiIn.uget(i);
+                    if (p != NULL)
+                        p->prepare(offset, to_do);
+                }
+
+                // Update position
+                sPosition.frame     = offset;
+                pPlugin->set_position(&sPosition);
+
                 // Call plugin
                 pPlugin->process(to_do);
 
                 // Call sample player
                 if (pSamplePlayer != NULL)
                     pSamplePlayer->process(samples);
+
+                // Process generated MIDI events
+                for (size_t i=0, n=vMidiOut.size(); i<n; ++i)
+                {
+                    gst::MidiPort *p = vMidiOut.uget(i);
+                    if (p != NULL)
+                        p->commit(offset);
+                }
 
                 // Process output buffers
                 for (size_t i=0, n=vSource.size(); i<n; ++i)
@@ -789,6 +900,9 @@ namespace lsp
                 // Update pointer
                 offset                 += to_do;
             }
+
+            // Process output events
+            process_output_events();
 
             // Report latency if changed
             ssize_t latency = pPlugin->latency();
