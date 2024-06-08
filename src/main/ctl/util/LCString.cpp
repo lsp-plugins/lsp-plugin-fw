@@ -258,8 +258,7 @@ namespace lsp
             params->set_cstring("meta_plugin_vst3_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->uids.vst3));
             params->set_cstring("meta_plugin_vst3ui_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->uids.vst3ui));
 
-            tmp.set_ascii(meta::plugin_format_name(pWrapper->plugin_format()));
-            params->set_string ("meta_plugin_format", &tmp);
+            params->set_cstring("meta_plugin_format", meta::plugin_format_name(pWrapper->plugin_format()));
 
             tmp.fmt_utf8("%d.%d.%d",
                 int(LSP_MODULE_VERSION_MAJOR(plugin->version)),
