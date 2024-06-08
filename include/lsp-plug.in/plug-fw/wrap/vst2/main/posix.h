@@ -118,6 +118,18 @@ namespace lsp
             return ((name[0] == '.') && ((name[1] == '\0') || ((name[1] == '.') && (name[2] == '\0'))));
         }
 
+        static bool is_shared_object(const char *str)
+        {
+            size_t len = strlen(str);
+            if (len < 3)
+                return false;
+            str += len - 3;
+            return
+                (str[0] == '.') &&
+                (str[1] == 's') &&
+                (str[2] == 'o');
+        }
+
         // The factory for creating plugin instances
         static vst2::create_instance_t lookup_factory(void **hInstance, const char *path, const version_t *required, bool subdir = true)
         {
@@ -192,12 +204,12 @@ namespace lsp
                         continue;
                 #endif /* LSP_PLUGIN_ARTIFACT_NAME */
 
-                    // Skip library if it doesn't contain gst format specifier
+                    // Skip library if it doesn't contain vst2 format specifier
                     if (strstr(de->d_name, "-vst2-") == NULL)
                         continue;
 
                     // Skip library if it doesn't contain 'lsp-plugins' in name
-                    if (strcasestr(de->d_name, ".so") == NULL)
+                    if (!is_shared_object(de->d_name))
                         continue;
 
                     lsp_trace("Trying library %s", ptr);

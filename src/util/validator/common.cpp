@@ -267,6 +267,7 @@ namespace lsp
             vst3::validate_port(ctx, meta, port);
             jack::validate_port(ctx, meta, port);
             clap::validate_port(ctx, meta, port);
+            gst::validate_port(ctx, meta, port);
 
             if ((port->role == meta::R_PORT_SET) && (port->items != NULL))
             {
@@ -544,6 +545,7 @@ namespace lsp
             vst3::validate_package(ctx, pkg);
             jack::validate_package(ctx, pkg);
             clap::validate_package(ctx, pkg);
+            gst::validate_package(ctx, pkg);
         }
 
         void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
@@ -631,6 +633,7 @@ namespace lsp
             vst3::validate_plugin(ctx, meta);
             jack::validate_plugin(ctx, meta);
             clap::validate_plugin(ctx, meta);
+            gst::validate_plugin(ctx, meta);
         }
 
     } /* namespace validator */
