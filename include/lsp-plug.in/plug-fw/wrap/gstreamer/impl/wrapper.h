@@ -807,6 +807,15 @@ namespace lsp
             }
         }
 
+        void Wrapper::clear_interleaved(float *dst, size_t stride, size_t count)
+        {
+            for (size_t i=0; i<count; ++i)
+            {
+                *dst    = 0.0f;
+                dst    += stride;
+            }
+        }
+
         void Wrapper::process(guint8 *out, const guint8 *in, size_t out_size, size_t in_size)
         {
 //            lsp_trace("process out=%p, in=%p, out_size=%d, in_size=%d",
@@ -844,7 +853,7 @@ namespace lsp
                 for (size_t i=0, n=vSink.size(); i<n; ++i)
                 {
                     gst::AudioPort *p = vSink.uget(i);
-                    if (i < nChannels)
+                    if (i < n)
                     {
                         if (bInterleaved)
                             p->deinterleave(&in_buf[offset*nChannels + i], nChannels, to_do);
@@ -886,7 +895,7 @@ namespace lsp
                 for (size_t i=0, n=vSource.size(); i<n; ++i)
                 {
                     gst::AudioPort *p = vSource.uget(i);
-                    if (i < nChannels)
+                    if (i < n)
                     {
                         if (bInterleaved)
                             p->interleave(&out_buf[offset*nChannels + i], nChannels, to_do);
@@ -894,7 +903,12 @@ namespace lsp
                             p->sanitize_output(&out_buf[offset + i*in_samples], to_do);
                     }
                     else
-                        p->clear();
+                    {
+                        if (bInterleaved)
+                            clear_interleaved(&out_buf[offset*nChannels + i], nChannels, to_do);
+                        else
+                            dsp::fill_zero(&out_buf[offset + i*in_samples], to_do);
+                    }
                 }
 
                 // Update pointer

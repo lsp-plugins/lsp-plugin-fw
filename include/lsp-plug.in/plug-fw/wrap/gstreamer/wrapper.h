@@ -96,6 +96,7 @@ namespace lsp
                                                         lltl::parray<gst::AudioPort> & dst,
                                                         lltl::parray<gst::AudioPort> & list,
                                                         bool out);
+                static void                         clear_interleaved(float *dst, size_t stride, size_t count);
 
                 void                                process_input_events();
                 void                                process_output_events();
