@@ -1370,7 +1370,7 @@ namespace lsp
 
         ui::Module *Controller::create_ui()
         {
-            if ((pUIMetadata == NULL) || (pUIMetadata->vst3ui_uid == NULL))
+            if ((pUIMetadata == NULL) || (pUIMetadata->uids.vst3ui == NULL))
             {
                 lsp_trace("pUIMetadata is not valid");
                 return NULL;
@@ -1385,9 +1385,9 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-                    if (plug_meta->vst3ui_uid == NULL)
+                    if (plug_meta->uids.vst3ui == NULL)
                         continue;
-                    if (memcmp(plug_meta->vst3ui_uid, pUIMetadata->vst3ui_uid, sizeof(Steinberg::TUID)) != 0)
+                    if (memcmp(plug_meta->uids.vst3ui, pUIMetadata->uids.vst3ui, sizeof(Steinberg::TUID)) != 0)
                         continue;
 
                     // Allocate UI module

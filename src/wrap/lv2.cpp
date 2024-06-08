@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 нояб. 2021 г.
@@ -105,21 +105,21 @@ namespace lsp
                     if ((meta = f->enumerate(i)) == NULL)
                         break;
                     if ((meta->uid == NULL) ||
-                        (meta->lv2_uri == NULL))
+                        (meta->uids.lv2 == NULL))
                         continue;
 
                     // Check plugin identifier
-                    if (!::strcmp(meta->lv2_uri, descriptor->URI))
+                    if (!::strcmp(meta->uids.lv2, descriptor->URI))
                     {
                         // Instantiate the plugin and return
                         if ((plugin = f->create(meta)) == NULL)
                         {
-                            lsp_error("Plugin instantiation error: %s", meta->lv2_uri);
+                            lsp_error("Plugin instantiation error: %s", meta->uids.lv2);
                             return NULL;
                         }
                         else
                         {
-                            lsp_trace("%p: Instantiated plugin with URI=%s", descriptor, meta->lv2_uri);
+                            lsp_trace("%p: Instantiated plugin with URI=%s", descriptor, meta->uids.lv2);
                         }
                     }
                 }
@@ -132,7 +132,7 @@ namespace lsp
                 return NULL;
             }
 
-            lsp_trace("%p: descriptor_uri=%s, uri=%s, sample_rate=%f", descriptor, descriptor->URI, meta->lv2_uri, sample_rate);
+            lsp_trace("%p: descriptor_uri=%s, uri=%s, sample_rate=%f", descriptor, descriptor->URI, meta->uids.lv2, sample_rate);
 
             // Create resource loader
             resource::ILoader *loader = core::create_resource_loader();
@@ -140,7 +140,7 @@ namespace lsp
             {
                 // Create LV2 extension handler
                 lv2::Extensions *ext = new lv2::Extensions(features,
-                        meta->lv2_uri, LSP_LV2_TYPES_URI, LSP_LV2_KVT_URI,
+                        meta->uids.lv2, LSP_LV2_TYPES_URI, LSP_LV2_KVT_URI,
                         NULL, NULL);
                 if (ext != NULL)
                 {
@@ -330,19 +330,19 @@ namespace lsp
                 {
                     // Skip plugins not compatible with LV2
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if ((meta == NULL) || (meta->lv2_uri == NULL))
+                    if ((meta == NULL) || (meta->uids.lv2 == NULL))
                         break;
 
                     // Allocate new descriptor
                     LV2_Descriptor *d = result.add();
                     if (d == NULL)
                     {
-                        lsp_warn("Error allocating LV2 descriptor for plugin %s", meta->lv2_uri);
+                        lsp_warn("Error allocating LV2 descriptor for plugin %s", meta->uids.lv2);
                         continue;
                     }
 
                     // Initialize descriptor
-                    d->URI                  = meta->lv2_uri;
+                    d->URI                  = meta->uids.lv2;
                     d->instantiate          = instantiate;
                     d->connect_port         = connect_port;
                     d->activate             = activate;

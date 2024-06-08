@@ -627,7 +627,7 @@ namespace lsp
 
         UIWrapper *UIWrapper::create(vst2::Wrapper *wrapper, void *root_widget)
         {
-            const char *vst2_uid = wrapper->metadata()->vst2_uid;
+            const char *vst2_uid = wrapper->metadata()->uids.vst2;
 
             // Lookup plugin identifier among all registered plugin factories
             for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
@@ -640,7 +640,7 @@ namespace lsp
                         break;
 
                     // Check plugin identifier
-                    if (!::strcmp(meta->vst2_uid, vst2_uid))
+                    if (!::strcmp(meta->uids.vst2, vst2_uid))
                     {
                         // Instantiate the plugin UI and return
                         ui::Module *ui = f->create(meta);

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 янв. 2023 г.
@@ -98,6 +98,29 @@ namespace lsp
             return "<unknown>";
         }
 
+        static bool validate_identifier(const char *id)
+        {
+            size_t count = 0;
+            for (; *id != '\0'; ++id)
+            {
+                const char ch = *id;
+
+                if ((ch >= 'a') && (ch <= 'z'))
+                    ++count;
+                else if ((ch >= 'A') && (ch <= 'Z'))
+                    ++count;
+                else if ((ch >= '0') && (ch <= '9'))
+                {
+                    if ((count++) <= 0)
+                        return false;
+                }
+                else if (ch != '_')
+                    return false;
+            }
+
+            return count > 0;
+        }
+
         static void validate_classes(context_t *ctx, const meta::plugin_t *meta)
         {
             // Ensure that classes are defined
@@ -136,6 +159,11 @@ namespace lsp
             // Check that port identifier is present
             if (port->id == NULL)
                 validation_error(ctx, "Not specified port identifier for plugin uid='%s'", meta->uid);
+
+            // Check that port identifier is valid
+            if (!validate_identifier(port->id))
+                validation_error(ctx, "Invalid port identifier '%s' for plugin uid='%s', allowed characters are: a-z, A-Z, _, 0-9",
+                    port->id, meta->uid);
 
             // Ensure that port identifier doesn't clash any other port identifier
             const meta::port_t *clash = ctx->port_ids.get(port->id);
@@ -343,9 +371,43 @@ namespace lsp
                 visited_groups.flush();
             };
 
+            const meta::port_group_t *main_in = NULL;
+            const meta::port_group_t *main_out = NULL;
+
             // Process all port groups
             for (const meta::port_group_t *pg = meta->port_groups; pg->id != NULL; ++pg)
             {
+                // Validate port group identifier
+                if (!validate_identifier(pg->id))
+                    validation_error(ctx, "Plugin uid='%s' has invalid port group identifier id='%s', allowed characters are: a-z, A-Z, _, 0-9",
+                        meta->uid, pg->id);
+
+                // Check that main input and output groups are unique
+                if (meta::is_main_group(pg))
+                {
+                    if (meta::is_in_group(pg))
+                    {
+                        if (main_in == NULL)
+                            main_in = pg;
+                        else
+                            validation_error(ctx, "Plugin uid='%s' main input port group id='%s' clashes with main input port group id='%s': only one main input group is allowed",
+                                meta->uid, pg->id, main_in->id);
+                    }
+                    else
+                    {
+                        if (main_out == NULL)
+                            main_out = pg;
+                        else
+                            validation_error(ctx, "Plugin uid='%s' main output port group id='%s' clashes with main output port group id='%s': only one main output group is allowed",
+                                meta->uid, pg->id, main_in->id);
+                    }
+
+                    // Check that flags are valid
+                    if (meta::is_sidechain_group(pg))
+                        validation_error(ctx, "Plugin uid='%s' main %s port group id='%s' is also marked as sidechain group, sidechain groups can not be main groups",
+                            meta->uid, (meta::is_in_group(pg)) ? "input" : "output", pg->id);
+                }
+
                 // Check that we did not process group with such name
                 if (!visited_groups.create(const_cast<char *>(pg->id)))
                 {
@@ -385,12 +447,15 @@ namespace lsp
                         validation_error(ctx, "The role of port '%s' of group '%s' should be R_AUDIO for plugin uid='%s'",
                             item->id, pg->id, meta->uid);
                     }
-                    if ((pg->flags & meta::PGF_OUT) && (!meta::is_out_port(p)))
+                    if (meta::is_out_group(pg))
                     {
-                        validation_error(ctx, "The port '%s' of output group '%s' should also be an output port for plugin uid='%s'",
-                            item->id, pg->id, meta->uid);
+                        if (!meta::is_out_port(p))
+                        {
+                            validation_error(ctx, "The port '%s' of output group '%s' should also be an output port for plugin uid='%s'",
+                                item->id, pg->id, meta->uid);
+                        }
                     }
-                    if ((!(pg->flags & meta::PGF_OUT)) && (!meta::is_in_port(p)))
+                    else if (!meta::is_in_port(p))
                     {
                         validation_error(ctx, "The port '%s' of input group '%s' should also be an input port for plugin uid='%s'",
                             item->id, pg->id, meta->uid);

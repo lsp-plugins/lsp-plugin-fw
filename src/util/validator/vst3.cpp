@@ -97,11 +97,12 @@ namespace lsp
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
                 status_t res;
+                const meta::plugin_fmt_uids_t *uids = &meta->uids;
 
                 // Does plugin support VST 3.x?
-                if (meta->vst3_uid == NULL)
+                if (uids->vst3 == NULL)
                 {
-                    if (meta->vst3ui_uid != NULL)
+                    if (uids->vst3ui != NULL)
                         validation_error(ctx, "Plugin uid='%s', VST3 UI identifier is defined but VST3 identifier is missing", meta->uid);
                     return;
                 }
@@ -123,9 +124,9 @@ namespace lsp
 //                        meta->uid, meta->vst3ui_uid, vst3_iid);
 
                 // Process VST3 identifier for processor (DSP)
-                if (!meta::uid_vst3_to_tuid(tuid, meta->vst3_uid))
+                if (!meta::uid_vst3_to_tuid(tuid, uids->vst3))
                     validation_error(ctx, "Plugin uid='%s', failed to parse VST3 processor (DSP) TUID '%s': should be string of 16 ASCII characters or string of 32 hexadecimal characters",
-                        meta->uid, meta->vst3_uid);
+                        meta->uid, uids->vst3);
 
                 if ((vst3_id = meta::uid_tuid_to_vst3(vst3_iid, tuid)) != NULL)
                 {
@@ -134,15 +135,15 @@ namespace lsp
                     if (clash != NULL)
                     {
                         validation_error(ctx, "Plugin uid='%s' clashes plugin uid='%s': duplicate VST 3 processor (DSP) identifier '%s' ('%s')",
-                            meta->uid, clash->uid, meta->vst3_uid, vst3_id);
+                            meta->uid, clash->uid, uids->vst3, vst3_id);
                     }
                     else if (!ctx->vst3_ids.create(vst3_id, const_cast<meta::plugin_t *>(meta)))
                         allocation_error(ctx);
 
                     // Check VST3 legacy processor identifier
-                    if (meta->vst2_uid != NULL)
+                    if (uids->vst2 != NULL)
                     {
-                        if ((vst3_legacy_id = meta::uid_vst2_to_vst3(vst3_legacy_iid, meta->vst2_uid, plugin_name, false)) != NULL)
+                        if ((vst3_legacy_id = meta::uid_vst2_to_vst3(vst3_legacy_iid, uids->vst2, plugin_name, false)) != NULL)
                         {
                             const meta::plugin_t *clash = ctx->vst3_ids.get(vst3_id);
                             if (clash != NULL)
@@ -156,19 +157,19 @@ namespace lsp
                         }
                         else
                             validation_error(ctx, "Plugin uid='%s', failed to generate legacy VST2 processor (DSP) identifier hexadecimal string from '%s'",
-                                meta->uid, meta->vst2_uid);
+                                meta->uid, uids->vst2);
                     }
                 }
                 else
                     validation_error(ctx, "Plugin uid='%s', failed to convert VST3 processor (DSP) TUID '%s' to VST3 hexadecimal string",
-                        meta->uid, meta->vst3_uid);
+                        meta->uid, uids->vst3);
 
                 // Process VST3 identifier for controller (UI)
-                if (meta->vst3ui_uid != NULL)
+                if (uids->vst3ui != NULL)
                 {
-                    if (!meta::uid_vst3_to_tuid(tuid, meta->vst3ui_uid))
+                    if (!meta::uid_vst3_to_tuid(tuid, uids->vst3ui))
                         validation_error(ctx, "Plugin uid='%s', failed to parse VST3 controller (UI) TUID '%s': should be string of 16 ASCII characters or string of 32 hexadecimal characters",
-                            meta->uid, meta->vst3ui_uid);
+                            meta->uid, uids->vst3ui);
 
                     if ((vst3_id = meta::uid_tuid_to_vst3(vst3_iid, tuid)) != NULL)
                     {
@@ -177,15 +178,15 @@ namespace lsp
                         if (clash != NULL)
                         {
                             validation_error(ctx, "Plugin uid='%s' clashes plugin uid='%s': duplicate VST 3 controller (DSP) identifier '%s' ('%s')",
-                                meta->uid, clash->uid, meta->vst3ui_uid, vst3_id);
+                                meta->uid, clash->uid, uids->vst3ui, vst3_id);
                         }
                         else if (!ctx->vst3_ids.create(vst3_id, const_cast<meta::plugin_t *>(meta)))
                             allocation_error(ctx);
 
                         // Check VST3 legacy controller identifier
-                        if (meta->vst2_uid != NULL)
+                        if (uids->vst2 != NULL)
                         {
-                            if ((vst3_legacy_id = meta::uid_vst2_to_vst3(vst3_legacy_iid, meta->vst2_uid, plugin_name, true)) != NULL)
+                            if ((vst3_legacy_id = meta::uid_vst2_to_vst3(vst3_legacy_iid, uids->vst2, plugin_name, true)) != NULL)
                             {
                                 const meta::plugin_t *clash = ctx->vst3_ids.get(vst3_id);
                                 if (clash != NULL)
@@ -199,12 +200,12 @@ namespace lsp
                             }
                             else
                                 validation_error(ctx, "Plugin uid='%s', failed to generate legacy VST3 controller (UI) identifier hexadecimal string from '%s'",
-                                    meta->uid, meta->vst2_uid);
+                                    meta->uid, uids->vst2);
                         }
                     }
                     else
                         validation_error(ctx, "Plugin uid='%s', failed to convert VST3 processor (DSP) TUID '%s' to VST3 hexadecimal string",
-                            meta->uid, meta->vst3_uid);
+                            meta->uid, uids->vst3);
                 }
 
                 // Validate length of the version string

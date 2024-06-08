@@ -32,22 +32,6 @@ namespace lsp
 {
     namespace pluglist_gen
     {
-        static status_t json_out_property(json::Serializer *s, const char *field, const char *value)
-        {
-            status_t res;
-            if ((res = s->write_property(field)) != STATUS_OK)
-                return res;
-            return s->write_string(value);
-        }
-
-        static status_t json_out_property(json::Serializer *s, const char *field, const LSPString *value)
-        {
-            status_t res;
-            if ((res = s->write_property(field)) != STATUS_OK)
-                return res;
-            return s->write_string(value);
-        }
-
         status_t json_write_plugin_groups(json::Serializer *s, const int *c)
         {
             status_t res;
@@ -86,21 +70,21 @@ namespace lsp
 
 
             // artifact
-            if ((res = json_out_property(s, "artifact", package->artifact)) != STATUS_OK)
+            if ((res = s->prop_string("artifact", package->artifact)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "name", package->artifact_name)) != STATUS_OK)
+            if ((res = s->prop_string("name", package->artifact_name)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "version", &tmp)) != STATUS_OK)
+            if ((res = s->prop_string("version", &tmp)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "brand", package->brand)) != STATUS_OK)
+            if ((res = s->prop_string("brand", package->brand)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "short", package->short_name)) != STATUS_OK)
+            if ((res = s->prop_string("short", package->short_name)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "full", package->full_name)) != STATUS_OK)
+            if ((res = s->prop_string("full", package->full_name)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "license", package->license)) != STATUS_OK)
+            if ((res = s->prop_string("license", package->license)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "copyright", package->copyright)) != STATUS_OK)
+            if ((res = s->prop_string("copyright", package->copyright)) != STATUS_OK)
                 return res;
 
             return STATUS_OK;
@@ -111,15 +95,15 @@ namespace lsp
             status_t res;
 
             // artifact
-            if ((res = json_out_property(s, "id", bundle->uid)) != STATUS_OK)
+            if ((res = s->prop_string("id", bundle->uid)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "name", bundle->name)) != STATUS_OK)
+            if ((res = s->prop_string("name", bundle->name)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "group", get_enumeration(bundle->group, bundle_groups))) != STATUS_OK)
+            if ((res = s->prop_string("group", get_enumeration(bundle->group, bundle_groups))) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "video", bundle->video_id)) != STATUS_OK)
+            if ((res = s->prop_string("video", bundle->video_id)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "description", bundle->description)) != STATUS_OK)
+            if ((res = s->prop_string("description", bundle->description)) != STATUS_OK)
                 return res;
 
             return STATUS_OK;
@@ -137,55 +121,57 @@ namespace lsp
                 int(LSP_MODULE_VERSION_MICRO(m->version))
             );
 
-            if ((res = json_out_property(s, "id", m->uid)) != STATUS_OK)
+            if ((res = s->prop_string("id", m->uid)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "name", m->name)) != STATUS_OK)
+            if ((res = s->prop_string("name", m->name)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "author", m->developer->name)) != STATUS_OK)
+            if ((res = s->prop_string("author", m->developer->name)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "version", &tmp)) != STATUS_OK)
+            if ((res = s->prop_string("version", &tmp)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "bundle", (m->bundle) ? m->bundle->uid : NULL)) != STATUS_OK)
+            if ((res = s->prop_string("bundle", (m->bundle) ? m->bundle->uid : NULL)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "description", m->description)) != STATUS_OK)
+            if ((res = s->prop_string("description", m->description)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "acronym", m->acronym)) != STATUS_OK)
+            if ((res = s->prop_string("acronym", m->acronym)) != STATUS_OK)
                 return res;
 
-            if (m->ladspa_id > 0)
+            if (m->uids.ladspa_id > 0)
             {
-                if ((res = s->write_property("ladspa_uid")) != STATUS_OK)
+                if ((res = s->prop_int("ladspa_uid", m->uids.ladspa_id)) != STATUS_OK)
                     return res;
-                if ((res = s->write_int(m->ladspa_id)) != STATUS_OK)
-                    return res;
-                if ((res = json_out_property(s, "ladspa_label", m->ladspa_lbl)) != STATUS_OK)
+                if ((res = s->prop_string("ladspa_label", m->uids.ladspa_lbl)) != STATUS_OK)
                     return res;
             }
             else
             {
-                if ((res = s->write_property("ladspa_uid")) != STATUS_OK)
+                if ((res = s->prop_null("ladspa_uid")) != STATUS_OK)
                     return res;
-                if ((res = s->write_null()) != STATUS_OK)
-                    return res;
-                if ((res = json_out_property(s, "ladspa_label", (const char *)NULL)) != STATUS_OK)
+                if ((res = s->prop_null("ladspa_label")) != STATUS_OK)
                     return res;
             }
 
-            if ((res = json_out_property(s, "lv2_uri", m->lv2_uri)) != STATUS_OK)
+            char *gst_uid = meta::make_gst_canonical_name(m->uids.gst);
+            lsp_finally {
+                if (gst_uid != NULL)
+                    free(gst_uid);
+            };
+
+            if ((res = s->prop_string("lv2_uri", m->uids.lv2)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "lv2ui_uri", m->lv2ui_uri)) != STATUS_OK)
+            if ((res = s->prop_string("lv2ui_uri", m->uids.lv2ui)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "vst2_uid", m->vst2_uid)) != STATUS_OK)
+            if ((res = s->prop_string("vst2_uid", m->uids.vst2)) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "vst3_uid", meta::uid_meta_to_vst3(vst3_uid, m->vst3_uid))) != STATUS_OK)
+            if ((res = s->prop_string("vst3_uid", meta::uid_meta_to_vst3(vst3_uid, m->uids.vst3))) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "vst3ui_uid", meta::uid_meta_to_vst3(vst3_uid, m->vst3ui_uid))) != STATUS_OK)
+            if ((res = s->prop_string("vst3ui_uid", meta::uid_meta_to_vst3(vst3_uid, m->uids.vst3ui))) != STATUS_OK)
                 return res;
-            if ((res = json_out_property(s, "clap_uid", m->clap_uid)) != STATUS_OK)
+            if ((res = s->prop_string("clap_uid", m->uids.clap)) != STATUS_OK)
                 return res;
-            if ((res = s->write_property("jack")) != STATUS_OK)
+            if ((res = s->prop_string("gst_uid", gst_uid)) != STATUS_OK)
                 return res;
-            if ((res = s->write_bool(true)) != STATUS_OK)
+            if ((res = s->prop_bool("jack", true)) != STATUS_OK)
                 return res;
             if ((res = s->write_property("groups")) != STATUS_OK)
                 return res;

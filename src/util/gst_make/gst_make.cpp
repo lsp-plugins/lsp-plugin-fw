@@ -54,7 +54,7 @@ namespace lsp
                         break;
 
                     // Check that gstreamer is supported by plugin
-                    if (meta->gst_uid == NULL)
+                    if (meta->uids.gst == NULL)
                         continue;
 
                     // Add metadata to list
@@ -76,7 +76,7 @@ namespace lsp
         {
             if (!fname->set_ascii("libgst"))
                 return STATUS_NO_MEM;
-            if (!fname->append_ascii(meta->gst_uid))
+            if (!fname->append_ascii(meta->uids.gst))
                 return STATUS_NO_MEM;
 
             fname->replace_all('_', '-');
@@ -196,7 +196,7 @@ namespace lsp
             if (fname != NULL)
                 fprintf(out,    "// File:            %s\n", fname);
             fprintf(out,    "// GST Plugin:      %s - %s [GStreamer]\n", meta->name, meta->description);
-            fprintf(out,    "// GST UID:         '%s'\n", meta->gst_uid);
+            fprintf(out,    "// GST UID:         '%s'\n", meta->uids.gst);
             fprintf(out,    "// Version:         %d.%d.%d\n",
                     LSP_MODULE_VERSION_MAJOR(meta->version),
                     LSP_MODULE_VERSION_MINOR(meta->version),
@@ -217,7 +217,7 @@ namespace lsp
             fprintf(out,    "// Pass Plugin metadata definitions\n");
             fprintf(out,    "#define DEF_PLUGIN_PACKAGE_ID           \"%s\"\n", package_id.get_utf8());
             fprintf(out,    "#define DEF_PLUGIN_PACKAGE_NAME         \"%s %s\"\n", package->brand, meta->bundle->name);
-            fprintf(out,    "#define DEF_PLUGIN_ID                   \"%s\"\n", meta->gst_uid);
+            fprintf(out,    "#define DEF_PLUGIN_ID                   \"%s\"\n", meta->uids.gst);
             fprintf(out,    "#define DEF_PLUGIN_NAME                 \"%s\"\n", meta->description);
             fprintf(out,    "#define DEF_PLUGIN_VERSION_STR          \"%d.%d.%d\"\n", int(meta->version.major), int(meta->version.minor), int(meta->version.micro));
             fprintf(out,    "#define DEF_PLUGIN_LICENSE              \"%s\"\n", get_license(package->license));
@@ -227,7 +227,7 @@ namespace lsp
             // Preprocess template file
             LSPString plugin_upper, plugin_lower, plugin_camel, plugin_canonical;
 
-            if (!plugin_upper.set_ascii(meta->gst_uid))
+            if (!plugin_upper.set_ascii(meta->uids.gst))
                 return STATUS_NO_MEM;
             plugin_upper.toupper();
 

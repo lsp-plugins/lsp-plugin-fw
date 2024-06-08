@@ -203,9 +203,9 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-                    if (plug_meta->gst_uid == NULL)
+                    if (plug_meta->uids.gst == NULL)
                         continue;
-                    if (strcmp(plug_meta->gst_uid, id) == 0)
+                    if (strcmp(plug_meta->uids.gst, id) == 0)
                         return plug_meta;
                 }
             }
@@ -224,9 +224,9 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-                    if (plug_meta->gst_uid == NULL)
+                    if (plug_meta->uids.gst == NULL)
                         continue;
-                    if (strcmp(plug_meta->gst_uid, id) == 0)
+                    if (strcmp(plug_meta->uids.gst, id) == 0)
                         return f->create(plug_meta);
                 }
             }

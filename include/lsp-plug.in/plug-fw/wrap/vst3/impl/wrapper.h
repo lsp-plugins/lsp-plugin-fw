@@ -974,14 +974,14 @@ namespace lsp
             lsp_trace("this=%p", this);
 
             const meta::plugin_t *meta = pPlugin->metadata();
-            if (meta->vst3ui_uid == NULL)
+            if (meta->uids.vst3ui == NULL)
             {
                 lsp_warn("meta->vst3ui_uid == NULL");
                 return Steinberg::kResultFalse;
             }
 
             Steinberg::TUID tuid;
-            if (!meta::uid_vst3_to_tuid(tuid, meta->vst3ui_uid))
+            if (!meta::uid_vst3_to_tuid(tuid, meta->uids.vst3ui))
             {
                 lsp_warn("failed uid_vst3_to_tuid");
                 return Steinberg::kResultFalse;

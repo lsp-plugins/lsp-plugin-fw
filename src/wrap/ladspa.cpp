@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 2 нояб. 2021 г.
@@ -100,13 +100,13 @@ namespace lsp
                         break;
 
                     // Check plugin identifier
-                    if ((meta->ladspa_id == descriptor->UniqueID) &&
-                        (!::strcmp(meta->ladspa_lbl, descriptor->Label)))
+                    if ((meta->uids.ladspa_id == descriptor->UniqueID) &&
+                        (!::strcmp(meta->uids.ladspa_lbl, descriptor->Label)))
                     {
                         // Instantiate the plugin and return
                         if ((plugin = f->create(meta)) == NULL)
                         {
-                            lsp_error("Plugin instantiation error: %s", meta->ladspa_lbl);
+                            lsp_error("Plugin instantiation error: %s", meta->uids.ladspa_lbl);
                             return NULL;
                         }
                     }
@@ -208,10 +208,10 @@ namespace lsp
                 return strdup(m->name);
             if (m->uid)
                 return strdup(m->uid);
-            if (m->ladspa_lbl)
-                return strdup(m->ladspa_lbl);
+            if (m->uids.ladspa_lbl)
+                return strdup(m->uids.ladspa_lbl);
             char *str = NULL;
-            if (asprintf(&str, "plugin %u", (unsigned int)m->ladspa_id) >= 0)
+            if (asprintf(&str, "plugin %u", (unsigned int)m->uids.ladspa_id) >= 0)
                 return str;
 
             return NULL;
@@ -222,8 +222,8 @@ namespace lsp
             ssize_t n;
             char *str               = NULL;
 
-            d->UniqueID             = m->ladspa_id;
-            d->Label                = m->ladspa_lbl;
+            d->UniqueID             = m->uids.ladspa_id;
+            d->Label                = m->uids.ladspa_lbl;
             d->Properties           = LADSPA_PROPERTY_HARD_RT_CAPABLE;
             d->Name                 = make_plugin_name(m);
             n                       = ((manifest) && (manifest->brand)) ? asprintf(&str, "%s LADSPA", manifest->brand) : -1;
@@ -477,14 +477,14 @@ namespace lsp
                         break;
 
                     // Skip plugins not compatible with LADSPA
-                    if ((meta->ladspa_id == 0) || (meta->ladspa_lbl == NULL))
+                    if ((meta->uids.ladspa_id == 0) || (meta->uids.ladspa_lbl == NULL))
                         continue;
 
                     // Allocate new descriptor
                     LADSPA_Descriptor *d = result.add();
                     if (d == NULL)
                     {
-                        lsp_warn("Error allocating LADSPA descriptor for plugin %s", meta->ladspa_lbl);
+                        lsp_warn("Error allocating LADSPA descriptor for plugin %s", meta->uids.ladspa_lbl);
                         continue;
                     }
 
