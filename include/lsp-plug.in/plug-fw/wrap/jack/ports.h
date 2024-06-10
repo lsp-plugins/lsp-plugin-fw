@@ -624,7 +624,7 @@ namespace lsp
                     return static_cast<plug::path_t *>(&sPath);
                 }
 
-                virtual bool sync(size_t samples)
+                virtual bool sync() override
                 {
                     return sPath.pending();
                 }
