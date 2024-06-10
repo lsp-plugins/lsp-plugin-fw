@@ -289,11 +289,23 @@ namespace lsp
                     if (port != NULL)
                         port->sanitize_before(off, to_process);
                 }
+                for (size_t i=0, n=vAudioOut.size(); i < n; ++i)
+                {
+                    ladspa::AudioPort *port = vAudioOut.uget(i);
+                    if (port != NULL)
+                        port->sanitize_before(off, to_process);
+                }
 
                 // Process samples
                 pPlugin->process(to_process);
 
                 // Sanitize output data
+                for (size_t i=0, n=vAudioIn.size(); i < n; ++i)
+                {
+                    ladspa::AudioPort *port = vAudioIn.uget(i);
+                    if (port != NULL)
+                        port->sanitize_after(off, to_process);
+                }
                 for (size_t i=0, n=vAudioOut.size(); i < n; ++i)
                 {
                     ladspa::AudioPort *port = vAudioOut.uget(i);
