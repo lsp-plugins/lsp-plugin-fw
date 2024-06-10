@@ -332,16 +332,24 @@ namespace lsp
                     pPlugin->deactivate_ui();
             }
 
-            // Prepare ports
-            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+            // Pre-process data ports
+            for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
+            {
+                jack::DataPort *dp = vDataPorts.uget(i);
+                if (dp != NULL)
+                    dp->before_process(samples);
+            }
+
+            // Check that input ports have been changed
+            for (size_t i=0, n=vParams.size(); i<n; ++i)
             {
                 // Get port
-                jack::Port *port = vAllPorts.uget(i);
+                jack::Port *port = vParams.uget(i);
                 if (port == NULL)
                     continue;
 
                 // Pre-process data in port
-                if (port->pre_process(samples))
+                if (port->sync())
                 {
                     lsp_trace("port changed: %s", port->metadata()->id);
                     bUpdateSettings = true;
@@ -379,12 +387,12 @@ namespace lsp
                 nLatency = latency;
             }
 
-            // Post-process ALL ports
-            for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
+            // Post-process data ports
+            for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
             {
-                jack::Port *port = vAllPorts.uget(i);
-                if (port != NULL)
-                    port->post_process(samples);
+                jack::DataPort *dp = vDataPorts.uget(i);
+                if (dp != NULL)
+                    dp->after_process(samples);
             }
             return 0;
         }
@@ -524,11 +532,13 @@ namespace lsp
 
                 case meta::R_PATH:
                     jp      = new jack::PathPort(port, this);
+                    vParams.add(jp);
                     break;
 
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
                     jp      = new jack::ControlPort(port, this);
+                    vParams.add(jp);
                     break;
 
                 case meta::R_METER:
@@ -540,6 +550,7 @@ namespace lsp
                     LSPString postfix_str;
                     jack::PortGroup     *pg      = new jack::PortGroup(port, this);
                     pg->init();
+                    vParams.add(pg);
                     vAllPorts.add(pg);
                     plugin_ports->add(pg);
 
@@ -1000,9 +1011,9 @@ namespace lsp
                     if (meta::is_discrete_unit(p->unit))
                     {
                         if (meta::is_bool_unit(p->unit))
-                            port->update_value((param->to_bool()) ? 1.0f : 0.0f);
+                            port->commit_value((param->to_bool()) ? 1.0f : 0.0f);
                         else
-                            port->update_value(param->to_int());
+                            port->commit_value(param->to_int());
                     }
                     else
                     {
@@ -1022,7 +1033,7 @@ namespace lsp
                             }
                         }
 
-                        port->update_value(v);
+                        port->commit_value(v);
                     }
                     break;
                 }

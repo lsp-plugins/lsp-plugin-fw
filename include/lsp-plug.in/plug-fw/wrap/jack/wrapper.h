@@ -88,6 +88,7 @@ namespace lsp
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
 
                 lltl::parray<jack::Port>        vAllPorts;          // All ports
+                lltl::parray<jack::Port>        vParams;            // All input parameters
                 lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
                 lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
