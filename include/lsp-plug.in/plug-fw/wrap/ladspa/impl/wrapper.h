@@ -106,7 +106,10 @@ namespace lsp
                 delete vAllPorts[i];
             }
             vAllPorts.flush();
-            vAudioPorts.flush();
+            vAudioIn.flush();
+            vAudioOut.flush();
+            vParams.flush();
+            vMeters.flush();
             vExtPorts.flush();
 
             // Delete plugin
@@ -134,37 +137,63 @@ namespace lsp
 
         ladspa::Port *Wrapper::create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port)
         {
-            lsp_trace("creating port id=%s", port->id);
             ladspa::Port *result = NULL;
-            bool out = meta::is_out_port(port);
+
             switch (port->role)
             {
                 case meta::R_AUDIO_IN:
+                {
+                    ladspa::AudioPort *ap   = new ladspa::AudioPort(port);
+                    vExtPorts.add(ap);
+                    vAudioIn.add(ap);
+                    plugin_ports->add(ap);
+                    result = ap;
+                    lsp_trace("audio_in id=%s, index=%d", port->id, int(vExtPorts.size() - 1));
+                    break;
+                }
+
                 case meta::R_AUDIO_OUT:
                 {
-                    result  = new ladspa::AudioPort(port);
-                    vExtPorts.add(result);
-                    vAudioPorts.add(static_cast<ladspa::AudioPort *>(result));
-                    plugin_ports->add(result);
-                    lsp_trace("external id=%s, index=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                    ladspa::AudioPort *ap   = new ladspa::AudioPort(port);
+                    vExtPorts.add(ap);
+                    vAudioOut.add(ap);
+                    plugin_ports->add(ap);
+                    result = ap;
+                    lsp_trace("audio_out id=%s, index=%d", port->id, int(vExtPorts.size() - 1));
                     break;
                 }
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
+                {
+                    ladspa::InputPort *pp = new ladspa::InputPort(port);
+                    vExtPorts.add(pp);
+                    vParams.add(pp);
+                    plugin_ports->add(pp);
+                    result = pp;
+                    lsp_trace("parameter id=%s, index=%d", port->id, int(vExtPorts.size() - 1));
+                    break;
+                }
                 case meta::R_METER:
                 {
-                    if (out)
-                        result  = new ladspa::OutputPort(port);
-                    else
-                        result  = new ladspa::InputPort(port);
-                    vExtPorts.add(result);
-                    plugin_ports->add(result);
-                    lsp_trace("external id=%s, index=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                    ladspa::OutputPort *mp = new ladspa::OutputPort(port);
+                    vExtPorts.add(mp);
+                    vMeters.add(mp);
+                    plugin_ports->add(mp);
+                    result = mp;
+                    lsp_trace("meter id=%s, index=%d", port->id, int(vExtPorts.size() - 1));
                     break;
                 }
 
                 // Not supported by LADSPA, make it as stub ports
                 case meta::R_PORT_SET: // TODO: implement recursive port creation?
+                {
+                    ladspa::InputPort *ps = new ladspa::InputPort(port);
+                    plugin_ports->add(ps);
+                    vParams.add(ps);
+                    result = ps;
+                    lsp_trace("port_set id=%s, index=%d", port->id);
+                    break;
+                }
                 case meta::R_MESH:
                 case meta::R_STREAM:
                 case meta::R_FBUFFER:
@@ -177,7 +206,7 @@ namespace lsp
                 {
                     result  = new ladspa::Port(port);
                     plugin_ports->add(result);
-                    lsp_trace("added id=%s as stub port", result->metadata()->id);
+                    lsp_trace("stub id=%s, index=%d", port->id, int(vExtPorts.size() - 1));
                     break;
                 }
             }
@@ -213,18 +242,25 @@ namespace lsp
             sPosition = sNewPosition;
 //                lsp_trace("frame = %ld, tick = %f", long(sPosition.frame), float(sPosition.tick));
 
-            // Process external ports for changes
-            size_t n_ports          = vExtPorts.size();
-            ladspa::Port **v_ports  = vExtPorts.array();
-            for (size_t i=0; i<n_ports; ++i)
+            // Cleanup meters
+            for (size_t i=0, n=vMeters.size(); i<n; ++i)
             {
                 // Get port
-                ladspa::Port *port = v_ports[i];
+                ladspa::OutputPort *port = vMeters.uget(i);
+                if (port != NULL)
+                    port->clear();
+            }
+
+            // Process parameter changes
+            for (size_t i=0, n=vParams.size(); i<n; ++i)
+            {
+                // Get port
+                ladspa::InputPort *port = vParams.uget(i);
                 if (port == NULL)
                     continue;
 
                 // Pre-process data in port
-                if (port->pre_process(samples))
+                if (port->changed())
                 {
                     lsp_trace("port changed: %s", port->metadata()->id);
                     bUpdateSettings = true;
@@ -240,7 +276,6 @@ namespace lsp
             }
 
             // Call the main processing unit (split data buffers into chunks of maximum LADSPA_MAX_BLOCK_LENGTH size)
-            size_t n_in_ports = vAudioPorts.size();
             for (size_t off=0; off < samples; )
             {
                 size_t to_process = samples - off;
@@ -248,18 +283,20 @@ namespace lsp
                     to_process = LADSPA_MAX_BLOCK_LENGTH;
 
                 // Sanitize input data
-                for (size_t i=0; i<n_in_ports; ++i)
+                for (size_t i=0, n=vAudioIn.size(); i < n; ++i)
                 {
-                    ladspa::AudioPort *port = vAudioPorts.uget(i);
+                    ladspa::AudioPort *port = vAudioIn.uget(i);
                     if (port != NULL)
                         port->sanitize_before(off, to_process);
                 }
+
                 // Process samples
                 pPlugin->process(to_process);
+
                 // Sanitize output data
-                for (size_t i=0; i<n_in_ports; ++i)
+                for (size_t i=0, n=vAudioOut.size(); i < n; ++i)
                 {
-                    ladspa::AudioPort *port = vAudioPorts.uget(i);
+                    ladspa::AudioPort *port = vAudioOut.uget(i);
                     if (port != NULL)
                         port->sanitize_after(off, to_process);
                 }
@@ -267,12 +304,13 @@ namespace lsp
                 off += to_process;
             }
 
-            // Process external ports for changes
-            for (size_t i=0; i<n_ports; ++i)
+            // Output meter values
+            for (size_t i=0, n=vMeters.size(); i<n; ++i)
             {
-                ladspa::Port *port = v_ports[i];
+                // Get port
+                ladspa::OutputPort *port = vMeters.uget(i);
                 if (port != NULL)
-                    port->post_process(samples);
+                    port->sync();
             }
 
             // Write latency

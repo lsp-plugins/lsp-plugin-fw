@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 нояб. 2021 г.
@@ -43,13 +43,13 @@ namespace lsp
 
             public:
                 explicit Port(const meta::port_t *meta) : IPort(meta), pData(NULL) {};
-                virtual ~Port()
+                virtual ~Port() override
                 {
                     pData   = NULL;
                 }
 
             public:
-                virtual void bind(void *data)
+                void bind(void *data)
                 {
                     pData   = reinterpret_cast<float *>(data);
                 }
@@ -76,7 +76,7 @@ namespace lsp
                     }
                 }
 
-                virtual ~AudioPort()
+                virtual ~AudioPort() override
                 {
                     if (pSanitized != NULL)
                     {
@@ -86,7 +86,10 @@ namespace lsp
                 };
 
             public:
-                virtual void *buffer()      { return pBuffer; };
+                virtual void *buffer() override
+                {
+                    return pBuffer;
+                };
 
                 // Should be always called at least once after bind() and before process() call
                 void sanitize_before(size_t off, size_t samples)
@@ -116,35 +119,36 @@ namespace lsp
         class InputPort: public Port
         {
             private:
-                float   fPrev;
                 float   fValue;
 
             public:
                 explicit InputPort(const meta::port_t *meta) : Port(meta)
                 {
-                    fPrev       = meta->start;
                     fValue      = meta->start;
                 }
 
-                virtual ~InputPort()
+                virtual ~InputPort() override
                 {
-                    fPrev       = 0.0f;
                     fValue      = 0.0f;
                 }
 
             public:
-                virtual float value()   { return fValue; }
+                virtual float value() override
+                {
+                    return fValue;
+                }
 
-                virtual bool pre_process(size_t samples)
+            public:
+                bool changed()
                 {
                     if (pData == NULL)
                         return false;
 
-                    fValue      = limit_value(pMetadata, *pData);
-                    return fPrev != fValue;
+                    const float value   = limit_value(pMetadata, *pData);
+                    bool changed        = value != fValue;
+                    fValue              = value;
+                    return changed;
                 }
-
-                virtual void post_process(size_t samples) { fPrev = fValue; };
         };
 
         class OutputPort: public Port
@@ -158,18 +162,18 @@ namespace lsp
                     fValue      = meta->start;
                 }
 
-                virtual ~OutputPort()
+                virtual ~OutputPort() override
                 {
                     fValue      = 0.0f;
                 };
 
             public:
-                virtual float value()
+                virtual float value() override
                 {
                     return      fValue;
                 }
 
-                virtual void set_value(float value)
+                virtual void set_value(float value) override
                 {
                     value       = limit_value(pMetadata, value);
                     if (pMetadata->flags & meta::F_PEAK)
@@ -181,21 +185,17 @@ namespace lsp
                         fValue = value;
                 };
 
-                virtual void bind(void *data)   { pData = reinterpret_cast<float *>(data); };
-
-                virtual bool pre_process(size_t samples)
+            public:
+                void clear()
                 {
                     if (pMetadata->flags & meta::F_PEAK)
                         fValue      = 0.0f;
-                    return false;
                 }
 
-                virtual void post_process(size_t samples)
+                void sync()
                 {
                     if (pData != NULL)
                         *pData      = fValue;
-                    if (pMetadata->flags & meta::F_PEAK)
-                        fValue      = 0.0f;
                 }
         };
 

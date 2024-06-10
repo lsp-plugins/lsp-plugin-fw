@@ -465,6 +465,7 @@ namespace lsp
                 p->destroy();
                 delete p;
             }
+            vParams.flush();
             vAllPorts.flush();
             vSortedPorts.flush();
 

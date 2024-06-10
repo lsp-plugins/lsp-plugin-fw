@@ -53,7 +53,10 @@ namespace lsp
 
             protected:
                 lltl::parray<ladspa::Port>          vAllPorts;          // All created ports
-                lltl::parray<ladspa::AudioPort>     vAudioPorts;        // All available audio ports
+                lltl::parray<ladspa::AudioPort>     vAudioIn;           // Input audio ports
+                lltl::parray<ladspa::AudioPort>     vAudioOut;          // Output audio ports
+                lltl::parray<ladspa::InputPort>     vParams;            // All parameters
+                lltl::parray<ladspa::OutputPort>    vMeters;            // All meters
                 lltl::parray<ladspa::Port>          vExtPorts;          // All ports visible to host
 
                 ipc::IExecutor                     *pExecutor;          // Executor service
@@ -76,11 +79,8 @@ namespace lsp
 
             public:
                 inline void                         activate();
-
                 inline void                         connect(size_t id, void *data);
-
                 inline void                         run(size_t samples);
-
                 inline void                         deactivate();
 
             public: // plug::IWrapper
