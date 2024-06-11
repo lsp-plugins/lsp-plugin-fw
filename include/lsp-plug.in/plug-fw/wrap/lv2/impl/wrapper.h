@@ -552,7 +552,7 @@ namespace lsp
                     continue;
 
                 // Pre-process data in port
-                if (port->pre_process(samples))
+                if (port->pre_process())
                 {
                     lsp_trace("port changed: %s, value=%f", port->metadata()->id, port->value());
                     bUpdateSettings = true;
@@ -618,7 +618,7 @@ namespace lsp
                 // Get port
                 lv2::Port *port = vAllPorts.uget(i);
                 if (port != NULL)
-                    port->post_process(samples);
+                    port->post_process();
             }
 
             // Transmit latency (if possible)

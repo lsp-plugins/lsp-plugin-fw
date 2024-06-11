@@ -321,8 +321,6 @@ namespace lsp
                     plugin_ports->add(pg);
                     vPorts.add(pg);
                     vParams.add(pg);
-                    if (postfix == NULL)
-                        vExtParams.add(pg);
 
                     // Add nested ports
                     for (size_t row=0; row<pg->rows(); ++row)

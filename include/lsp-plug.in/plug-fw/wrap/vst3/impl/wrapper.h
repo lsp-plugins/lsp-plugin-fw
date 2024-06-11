@@ -2515,8 +2515,6 @@ namespace lsp
                 // Prepare event block
                 size_t block_size = prepare_block(frame, &data);
 //                lsp_trace("block size=%d", int(block_size));
-                for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
-                    vAllPorts.uget(i)->pre_process(block_size);
 
                 // Update the settings for the plugin
                 if (bUpdateSettings)

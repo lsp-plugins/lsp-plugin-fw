@@ -49,11 +49,23 @@ namespace lsp
                 }
 
             public:
+                /** Pre-process port state before processor execution
+                 * @param samples number of estimated samples to process
+                 * @return true if port value has been externally modified
+                 */
+                virtual bool pre_process(size_t samples)            { return false; }
+
+                /** Post-process port state after processor execution
+                 * @param samples number of samples processed by plugin
+                 */
+                virtual void post_process(size_t samples)           {}
+
+
                 /**
                  * Ensure that port is serializable
                  * @return true if port is serializable
                  */
-                virtual bool serializable() const { return false; }
+                virtual bool serializable() const                   { return false; }
 
                 /** Serialize the state of the port to the chunk
                  *
