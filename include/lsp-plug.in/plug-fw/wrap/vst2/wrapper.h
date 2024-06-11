@@ -63,7 +63,10 @@ namespace lsp
                 vst2::Port                         *pBypass;
 
                 lltl::parray<vst2::AudioPort>       vAudioPorts;    // List of audio ports
-                lltl::parray<vst2::ParameterPort>   vParams;        // List of controllable parameters
+                lltl::parray<vst2::MidiInputPort>   vMidiIn;        // Input MIDI ports
+                lltl::parray<vst2::MidiOutputPort>  vMidiOut;       // Output MIDI ports
+                lltl::parray<vst2::ParameterPort>   vExtParams;     // List of controllable external parameters
+                lltl::parray<vst2::Port>            vParams;        // List of controllable parameters
                 lltl::parray<vst2::Port>            vPorts;         // List of all created VST ports
                 lltl::parray<vst2::Port>            vSortedPorts;   // List of all created VST ports ordered by unique id
                 lltl::parray<vst2::Port>            vProxyPorts;    // List of all created VST proxy ports

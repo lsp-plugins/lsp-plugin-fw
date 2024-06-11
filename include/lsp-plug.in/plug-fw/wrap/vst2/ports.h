@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 дек. 2021 г.
@@ -149,7 +149,8 @@ namespace lsp
                     hCallback       = callback;
                     nID             = -1;
                 }
-                virtual ~Port()
+
+                virtual ~Port() override
                 {
                     pEffect         = NULL;
                     hCallback       = NULL;
@@ -157,16 +158,6 @@ namespace lsp
                 }
 
             public:
-                inline AEffect                 *effect()            { return pEffect;               };
-                inline audioMasterCallback      callback()          { return hCallback;             };
-                inline ssize_t                  id() const          { return nID;                   };
-                inline void                     set_id(ssize_t id)  { nID = id;                     };
-
-                inline VstIntPtr                masterCallback(VstInt32 opcode, VstInt32 index, VstIntPtr value, void* ptr, float opt)
-                {
-                    return hCallback(pEffect, opcode, index, value, ptr, opt);
-                }
-
                 /**
                  * Commit scalar value to the port
                  * @param value scalar value to commit
@@ -207,98 +198,26 @@ namespace lsp
                 {
                     return true;
                 }
-        };
 
-        class PortGroup: public Port
-        {
-            private:
-                float                   nCurrRow;
-                size_t                  nCols;
-                size_t                  nRows;
-                uatomic_t               nSID; // Serial ID of the parameter
-
-            public:
-                explicit PortGroup(const meta::port_t *meta, AEffect *effect, audioMasterCallback callback):
-                    Port(meta, effect, callback)
+                /**
+                 * Return true if port has been changed
+                 * @return true if port has been changed
+                 */
+                virtual bool changed()
                 {
-                    nCurrRow            = meta->start;
-                    nCols               = port_list_size(meta->members);
-                    nRows               = list_size(meta->items);
-                    nSID                = 0;
-                }
-
-                virtual ~PortGroup()
-                {
-                    nCurrRow            = 0;
-                    nCols               = 0;
-                    nRows               = 0;
-                    nSID                = 0;
+                    return false;
                 }
 
             public:
-                virtual void set_value(float value)
+                inline AEffect                 *effect()            { return pEffect;               };
+                inline audioMasterCallback      callback()          { return hCallback;             };
+                inline ssize_t                  id() const          { return nID;                   };
+                inline void                     set_id(ssize_t id)  { nID = id;                     };
+
+                inline VstIntPtr                masterCallback(VstInt32 opcode, VstInt32 index, VstIntPtr value, void* ptr, float opt)
                 {
-                    int32_t v   = value;
-                    if ((v >= 0) && (v < ssize_t(nRows)))
-                        nCurrRow        = v;
+                    return hCallback(pEffect, opcode, index, value, ptr, opt);
                 }
-
-                virtual float value()
-                {
-                    return nCurrRow;
-                }
-
-                inline uatomic_t sid()
-                {
-                    return nSID;
-                }
-
-                virtual bool serializable() const { return true; }
-
-                virtual void serialize(vst2::chunk_t *chunk)
-                {
-                    chunk->write(CPU_TO_BE(int32_t(nCurrRow)));
-                }
-
-                virtual ssize_t deserialize_v1(const void *data, size_t length)
-                {
-                    if (length < sizeof(int32_t))
-                        return -1;
-                    int32_t value   = BE_TO_CPU(*(reinterpret_cast<const int32_t *>(data)));
-                    if ((value >= 0) && (value < ssize_t(nRows)))
-                    {
-                        nCurrRow        = value;
-                        atomic_add(&nSID, 1);
-                    }
-                    return sizeof(int32_t);
-                }
-
-                virtual bool deserialize_v2(const uint8_t *data, size_t size)
-                {
-                    if (size < sizeof(int32_t))
-                        return false;
-
-                    int32_t v;
-                    IF_UNALIGNED_MEMORY_SAFE(
-                        v = BE_TO_CPU(*(reinterpret_cast<const int32_t *>(data)));
-                    )
-                    IF_UNALIGNED_MEMORY_UNSAFE(
-                        memcpy(&v, data, sizeof(v));
-                        v               = BE_TO_CPU(v);
-                    )
-                    if ((v >= 0) && (v < ssize_t(nRows)))
-                    {
-                        nCurrRow        = v;
-                        atomic_add(&nSID, 1);
-                    }
-
-                    return true;
-                }
-
-            public:
-                inline size_t rows() const      { return nRows; }
-                inline size_t cols() const      { return nCols; }
-                inline size_t curr_row() const  { return nCurrRow; }
         };
 
         class AudioPort: public Port
@@ -317,7 +236,7 @@ namespace lsp
                     nBufSize    = 0;
                 }
 
-                virtual ~AudioPort()
+                virtual ~AudioPort() override
                 {
                     pBuffer     = NULL;
 
@@ -330,8 +249,12 @@ namespace lsp
                 };
 
             public:
-                virtual void *buffer() { return pBuffer; };
+                virtual void *buffer() override
+                {
+                    return pBuffer;
+                }
 
+            public:
                 void bind(float *data)
                 {
                     pBuffer     = data;
@@ -385,7 +308,7 @@ namespace lsp
 
         class ParameterPort: public Port
         {
-            private:
+            protected:
                 float       fValue;         // The internal value
                 float       fVstPrev;       // Previous value in VST standard notation
                 float       fVstValue;      // Current value in VST standard notation
@@ -401,7 +324,7 @@ namespace lsp
                     nSID        = 0;
                 }
 
-                virtual ~ParameterPort()
+                virtual ~ParameterPort() override
                 {
                     fValue      = pMetadata->start;
                     fVstPrev    = 0.0f;
@@ -410,31 +333,21 @@ namespace lsp
                 }
 
             public:
-                virtual float value()
+                virtual float value() override
                 {
                     return fValue;
                 }
 
-                virtual void set_value(float value)
+                virtual void set_value(float value) override
                 {
                     fValue      = meta::limit_value(pMetadata, value);
                     fVstValue   = to_vst(fValue);
                 }
 
-                virtual bool pre_process(size_t samples)
+                virtual void write_value(float value) override
                 {
-                    if (fVstValue == fVstPrev)
-                        return false;
-                    fVstPrev = fVstValue;
+                    lsp_trace("id=%s, value=%f", pMetadata->id, value);
 
-                    if ((nID < 0) && (pEffect != NULL) && (hCallback != NULL))
-                        hCallback(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
-
-                    return true;
-                }
-
-                virtual void write_value(float value)
-                {
                     set_value(value);
                     if ((nID >= 0) && (pEffect != NULL) && (hCallback != NULL))
                     {
@@ -444,6 +357,51 @@ namespace lsp
                     }
                 }
 
+                virtual bool serializable() const override
+                {
+                    return true;
+                }
+
+                virtual void serialize(vst2::chunk_t *chunk) override
+                {
+                    float v = CPU_TO_BE(fValue);
+                    chunk->write(&v, sizeof(v));
+                }
+
+                virtual ssize_t deserialize_v1(const void *data, size_t length) override
+                {
+                    if (length < sizeof(float))
+                        return -1;
+                    float value     = BE_TO_CPU(*(reinterpret_cast<const float *>(data)));
+                    write_value(value);
+                    atomic_add(&nSID, 1);
+                    return sizeof(float);
+                }
+
+                virtual bool deserialize_v2(const uint8_t *data, size_t size) override
+                {
+                    if (size < sizeof(float))
+                        return false;
+
+                    float v         = BE_TO_CPU(*(reinterpret_cast<const float *>(data)));
+                    write_value(v);
+                    atomic_add(&nSID, 1);
+                    return true;
+                }
+
+                virtual bool changed() override
+                {
+                    if (fVstValue == fVstPrev)
+                        return false;
+
+                    fVstPrev = fVstValue;
+                    if ((nID < 0) && (pEffect != NULL) && (hCallback != NULL))
+                        hCallback(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
+
+                    return true;
+                }
+
+            public:
                 void set_vst_value(float value)
                 {
                     if (fVstValue == value)
@@ -462,35 +420,6 @@ namespace lsp
                 {
                     return nSID;
                 }
-
-                virtual bool serializable() const { return true; }
-
-                virtual void serialize(vst2::chunk_t *chunk)
-                {
-                    float v = CPU_TO_BE(fValue);
-                    chunk->write(&v, sizeof(v));
-                }
-
-                virtual ssize_t deserialize_v1(const void *data, size_t length)
-                {
-                    if (length < sizeof(float))
-                        return -1;
-                    float value     = BE_TO_CPU(*(reinterpret_cast<const float *>(data)));
-                    write_value(value);
-                    atomic_add(&nSID, 1);
-                    return sizeof(float);
-                }
-
-                virtual bool deserialize_v2(const uint8_t *data, size_t size)
-                {
-                    if (size < sizeof(float))
-                        return false;
-
-                    float v         = BE_TO_CPU(*(reinterpret_cast<const float *>(data)));
-                    write_value(v);
-                    atomic_add(&nSID, 1);
-                    return true;
-                }
         };
 
         class MeterPort: public Port
@@ -507,19 +436,18 @@ namespace lsp
                     bForce      = true;
                 }
 
-                virtual ~MeterPort()
+                virtual ~MeterPort() override
                 {
                     fValue      = pMetadata->start;
                 }
 
-            public:
-                // Native Interface
-                virtual float value()
+            public: // Native Interface
+                virtual float value() override
                 {
                     return fValue;
                 }
 
-                virtual void set_value(float value)
+                virtual void set_value(float value) override
                 {
                     value       = meta::limit_value(pMetadata, value);
 
@@ -535,12 +463,87 @@ namespace lsp
                         fValue = value;
                 }
 
+            public:
                 float sync_value()
                 {
                     float value = fValue;
                     bForce      = true;
                     return value;
                 }
+        };
+
+        class PortGroup: public ParameterPort
+        {
+            private:
+                size_t                  nCols;
+                size_t                  nRows;
+
+            public:
+                explicit PortGroup(const meta::port_t *meta, AEffect *effect, audioMasterCallback callback):
+                    ParameterPort(meta, effect, callback)
+                {
+                    nCols               = port_list_size(meta->members);
+                    nRows               = list_size(meta->items);
+                }
+
+                virtual ~PortGroup() override
+                {
+                    nCols               = 0;
+                    nRows               = 0;
+                }
+
+            public:
+                virtual void set_value(float value) override
+                {
+                    int32_t v   = value;
+                    if ((v >= 0) && (v < ssize_t(nRows)))
+                        fValue              = v;
+                }
+
+                virtual void serialize(vst2::chunk_t *chunk) override
+                {
+                    chunk->write(CPU_TO_BE(int32_t(fValue)));
+                }
+
+                virtual ssize_t deserialize_v1(const void *data, size_t length) override
+                {
+                    if (length < sizeof(int32_t))
+                        return -1;
+                    int32_t value   = BE_TO_CPU(*(reinterpret_cast<const int32_t *>(data)));
+                    if ((value >= 0) && (value < ssize_t(nRows)))
+                    {
+                        fValue          = value;
+                        atomic_add(&nSID, 1);
+                    }
+                    return sizeof(int32_t);
+                }
+
+                virtual bool deserialize_v2(const uint8_t *data, size_t size) override
+                {
+                    if (size < sizeof(int32_t))
+                        return false;
+
+                    int32_t v;
+                    IF_UNALIGNED_MEMORY_SAFE(
+                        v = BE_TO_CPU(*(reinterpret_cast<const int32_t *>(data)));
+                    )
+                    IF_UNALIGNED_MEMORY_UNSAFE(
+                        memcpy(&v, data, sizeof(v));
+                        v               = BE_TO_CPU(v);
+                    )
+                    if ((v >= 0) && (v < ssize_t(nRows)))
+                    {
+                        fValue          = v;
+                        atomic_add(&nSID, 1);
+                    }
+
+                    return true;
+                }
+
+            public:
+                inline size_t rows() const      { return nRows; }
+                inline size_t cols() const      { return nCols; }
+                inline size_t curr_row() const  { return fValue; }
         };
 
         class MeshPort: public Port
@@ -555,14 +558,14 @@ namespace lsp
                     pMesh   = vst2::create_mesh(meta);
                 }
 
-                virtual ~MeshPort()
+                virtual ~MeshPort() override
                 {
                     vst2::destroy_mesh(pMesh);
                     pMesh = NULL;
                 }
 
             public:
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return pMesh;
                 }
@@ -580,7 +583,7 @@ namespace lsp
                     pStream     = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
                 }
 
-                virtual ~StreamPort()
+                virtual ~StreamPort() override
                 {
                     if (pStream != NULL)
                     {
@@ -590,7 +593,7 @@ namespace lsp
                 }
 
             public:
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return pStream;
                 }
@@ -608,20 +611,15 @@ namespace lsp
                     sFB.init(pMetadata->start, pMetadata->step);
                 }
 
-                virtual ~FrameBufferPort()
+                virtual ~FrameBufferPort() override
                 {
                     sFB.destroy();
                 }
 
             public:
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return &sFB;
-                }
-
-                virtual void destroy()
-                {
-                    sFB.destroy();
                 }
         };
 
@@ -637,24 +635,17 @@ namespace lsp
                     sQueue.clear();
                 }
 
-                virtual ~MidiInputPort()
-                {
-                }
-
             public:
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return &sQueue;
-                }
-
-                virtual void post_process(size_t samples)
-                {
-                    sQueue.clear();
                 }
 
             public:
                 void deserialize(const VstEvents *e)
                 {
+                    sQueue.clear();
+
                     size_t count    = e->numEvents;
                     for (size_t i=0; i<count; ++i)
                     {
@@ -744,7 +735,7 @@ namespace lsp
                     pEvents         = reinterpret_cast<VstEvents *>(new uint8_t[evt_size]);
                 }
 
-                virtual ~MidiOutputPort()
+                virtual ~MidiOutputPort() override
                 {
                     if (pEvents != NULL)
                     {
@@ -754,12 +745,13 @@ namespace lsp
                 }
 
             public:
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return &sQueue;
                 }
 
-                virtual void post_process(size_t samples)
+            public:
+                void flush()
                 {
                     // Check that there are pending MIDI events
                     if (sQueue.nEvents <= 0)
@@ -861,44 +853,18 @@ namespace lsp
                     sPath.init();
                 }
 
-                virtual ~PathPort()
-                {
-                }
-
             public:
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return static_cast<plug::path_t *>(&sPath);
                 }
 
-                virtual bool pre_process(size_t samples)
-                {
-                    if (!sPath.update())
-                        return false;
-                    if ((hCallback != NULL) && (pEffect != NULL))
-                        hCallback(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
-                    return true;
-                }
-
-                size_t sizeof_state()
-                {
-                    size_t bytes    = strlen(sPath.sPath);
-                    if (bytes >= 0x7fff)
-                        bytes           = 0x7fff;
-                    if (bytes > 0x7f)
-                        bytes          += 2;
-                    else
-                        bytes          += 1;
-
-                    return bytes;
-                }
-
-                virtual void serialize(vst2::chunk_t *chunk)
+                virtual void serialize(vst2::chunk_t *chunk) override
                 {
                     chunk->write_string(sPath.sPath);
                 }
 
-                virtual ssize_t deserialize_v1(const void *data, size_t length)
+                virtual ssize_t deserialize_v1(const void *data, size_t length) override
                 {
                     const uint8_t  *ptr     = reinterpret_cast<const uint8_t *>(data);
                     const uint8_t  *tail    = ptr + length;
@@ -926,7 +892,7 @@ namespace lsp
                     return ptr - reinterpret_cast<const uint8_t *>(data);
                 }
 
-                virtual bool deserialize_v2(const uint8_t *data, size_t size)
+                virtual bool deserialize_v2(const uint8_t *data, size_t size) override
                 {
                     const char *str = reinterpret_cast<const char *>(data);
                     size_t len  = ::strnlen(str, size) + 1;
@@ -937,7 +903,19 @@ namespace lsp
                     return true;
                 }
 
-                virtual bool serializable() const { return true; }
+                virtual bool serializable() const override
+                {
+                    return true;
+                }
+
+                virtual bool changed() override
+                {
+                    if (!sPath.update())
+                        return false;
+                    if ((hCallback != NULL) && (pEffect != NULL))
+                        hCallback(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
+                    return true;
+                }
         };
 
         class OscPort: public Port
@@ -949,26 +927,10 @@ namespace lsp
                 explicit OscPort(const meta::port_t *meta, AEffect *effect, audioMasterCallback callback):
                     Port(meta, effect, callback)
                 {
-                    pFB     = NULL;
-                }
-
-                virtual ~OscPort()
-                {
-                }
-
-            public:
-                virtual void *buffer()
-                {
-                    return pFB;
-                }
-
-                virtual int init()
-                {
                     pFB     = core::osc_buffer_t::create(OSC_BUFFER_MAX);
-                    return (pFB == NULL) ? STATUS_NO_MEM : STATUS_OK;
                 }
 
-                virtual void destroy()
+                virtual ~OscPort() override
                 {
                     if (pFB != NULL)
                     {
@@ -976,6 +938,13 @@ namespace lsp
                         pFB     = NULL;
                     }
                 }
+
+            public:
+                virtual void *buffer() override
+                {
+                    return pFB;
+                }
+
         };
     } /* namespace vst2 */
 } /* namespace lsp */
