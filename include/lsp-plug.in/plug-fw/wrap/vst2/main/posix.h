@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 дек. 2021 г.
@@ -205,7 +205,7 @@ namespace lsp
                 #endif /* LSP_PLUGIN_ARTIFACT_NAME */
 
                     // Skip library if it doesn't contain vst2 format specifier
-                    if (strstr(de->d_name, "-vst2-") == NULL)
+                    if (strstr(de->d_name, "-vst2") == NULL)
                         continue;
 
                     // Skip library if it doesn't contain 'lsp-plugins' in name

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 дек. 2021 г.
@@ -452,7 +452,7 @@ namespace lsp
                 #endif /* LSP_PLUGIN_ARTIFACT_NAME */
 
                     // Skip library if it doesn't contain gst format specifier
-                    if (!contains_substring(dirent.cFileName, "-vst2-"))
+                    if (!contains_substring(dirent.cFileName, "-vst2"))
                         continue;
 
                     // Check that file is a shared library
