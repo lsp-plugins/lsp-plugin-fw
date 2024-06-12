@@ -377,12 +377,9 @@ namespace lsp
             float                   max;            // Maximum value
             float                   start;          // Initial value
             float                   step;           // Change step
-            union
-            {
-                const port_item_t      *items;          // Items for enum / port set
-                const char             *value;          // Default value for string
-            };
+            const port_item_t      *items;          // Items for enum / port set
             const port_t           *members;        // Port members for group
+            const char             *value;          // Default value for string
         } port_t;
 
         /**

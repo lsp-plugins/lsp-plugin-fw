@@ -268,6 +268,10 @@ namespace lsp
                     jup     = new jack::UIPathPort(jp);
                     break;
 
+                case meta::R_STRING:
+                    jup     = new jack::UIStringPort(jp);
+                    break;
+
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
                     jup     = new jack::UIControlPort(jp);

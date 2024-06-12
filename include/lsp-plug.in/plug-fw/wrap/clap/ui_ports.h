@@ -395,6 +395,9 @@ namespace lsp
                     pValue                  = sp->data();
                     pData                   = (pValue != NULL) ? reinterpret_cast<char *>(malloc(pValue->max_bytes() + 1)) : NULL;
                     nSerial                 = (pValue != NULL) ?  pValue->serial() - 1 : 0;
+
+                    if (pData != NULL)
+                        pData[0]                = '\0';
                 }
 
                 UIStringPort(const UIStringPort &) = delete;
@@ -426,21 +429,29 @@ namespace lsp
 
                 virtual void write(const void *buffer, size_t size) override
                 {
-                    if (pValue != NULL)
-                        nSerial = pValue->submit(buffer, size, false);
+                    return write(buffer, size, 0);
                 }
 
                 virtual void write(const void *buffer, size_t size, size_t flags) override
                 {
-                    if (pValue != NULL)
-                        nSerial = pValue->submit(buffer, size, flags & plug::PF_STATE_RESTORE);
+                    if ((pData == NULL) || (pValue == NULL))
+                        return;
+
+                    const size_t count = lsp_min(size, pValue->nCapacity);
+                    plug::utf8_strncpy(pData, count, buffer, size);
+                    nSerial = pValue->submit(buffer, size, flags & plug::PF_STATE_RESTORE);
                 }
 
                 virtual void set_default() override
                 {
+                    if ((pData == NULL) || (pValue == NULL))
+                        return;
+
                     const meta::port_t *meta = metadata();
                     const char *text = (meta != NULL) ? meta->value : "";
-                    write(text, strlen(text), plug::PF_PRESET_IMPORT);
+
+                    plug::utf8_strncpy(pData, pValue->nCapacity, text);
+                    write(pData, strlen(pData), plug::PF_PRESET_IMPORT);
                 }
         };
 

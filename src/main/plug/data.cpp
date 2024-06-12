@@ -146,7 +146,18 @@ namespace lsp
         // string_t methods
         uint32_t string_t::submit(const char *str, bool state)
         {
-            return submit(str, strlen(str), state);
+            // Acquire lock
+            while (!atomic_trylock(nLock))
+                ipc::Thread::yield();
+            lsp_finally {
+                atomic_unlock(nLock);
+            };
+
+            // Update string
+            utf8_strncpy(sPending, nCapacity, str);
+            const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
+            nRequest        = serial;
+            return serial;
         }
 
         uint32_t string_t::submit(const void *buffer, size_t size, bool state)
@@ -159,18 +170,7 @@ namespace lsp
             };
 
             // Update string
-            const char *src = static_cast<const char *>(buffer);
-            char *dst       = sPending;
-            for (size_t i=0, n=nCapacity; i<n; ++i)
-            {
-                const lsp_utf32_t ch = read_utf8_streaming(&src, &size, true);
-                if ((ch == '\0') || (ch == LSP_UTF32_EOF))
-                    break;
-                write_utf8_codepoint(&dst, ch);
-            }
-
-            // append the ending NULL character
-            *dst            = '\0';
+            utf8_strncpy(sPending, nCapacity, buffer, size);
             const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
             nRequest        = serial;
             return serial;
@@ -891,6 +891,36 @@ namespace lsp
             if (nEvents > 1)
                 ::qsort(vEvents, nEvents, sizeof(midi::event_t), compare_midi_events);
         }
+
+        //-------------------------------------------------------------------------
+        // misc functions
+        void utf8_strncpy(char *dst, size_t dst_max, const char *src)
+        {
+            for (size_t i=0; i<dst_max; ++i)
+            {
+                const lsp_utf32_t ch = read_utf8_codepoint(&src);
+                if (ch == '\0')
+                    break;
+                write_utf8_codepoint(&dst, ch);
+            }
+
+            *dst    = '\0';
+        }
+
+        void utf8_strncpy(char *dst, size_t dst_max, const void *buffer, size_t size)
+        {
+            const char *src = static_cast<const char *>(buffer);
+            for (size_t i=0; i<dst_max; ++i)
+            {
+                const lsp_utf32_t ch = read_utf8_streaming(&src, &size, true);
+                if (ch == LSP_UTF32_EOF)
+                    break;
+                write_utf8_codepoint(&dst, ch);
+            }
+
+            *dst    = '\0';
+        }
+
 
     } /* namespace plug */
 } /* namespace lsp */

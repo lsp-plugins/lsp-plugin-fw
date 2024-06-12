@@ -42,6 +42,10 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                ui::IPort          *pPort;
+                tk::Timer           sTimer;
+                ssize_t             nInputDelay;
+
                 ctl::LCString       sEmptyText;
                 ctl::Color          sColor;
                 ctl::Color          sBorderColor;
@@ -55,14 +59,28 @@ namespace lsp
                 ctl::Integer        sBorderGapSize;
                 ctl::Integer        sBorderRadius;
 
+            protected:
+                static status_t     slot_key_up(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_change_value(tk::Widget *sender, void *ptr, void *data);
+                static status_t     timer_fired(ws::timestamp_t sched, ws::timestamp_t time, void *arg);
+
+            protected:
+                void                commit_value();
+                void                submit_value();
+                void                setup_timer();
+                const char         *get_input_style();
+
             public:
                 explicit Edit(ui::IWrapper *wrapper, tk::Edit *widget);
                 virtual ~Edit() override;
 
                 virtual status_t    init() override;
+                virtual void        destroy() override;
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
+                virtual void        end(ui::UIContext *ctx) override;
         };
     } /* namespace ctl */
 } /* namespace lsp */

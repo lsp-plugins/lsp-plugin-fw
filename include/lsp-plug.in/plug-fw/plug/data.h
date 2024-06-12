@@ -646,6 +646,24 @@ namespace lsp
             static void init(position_t *pos);
         } position_t;
 
+
+        /**
+         * Copy UTF-8 encoded string to destination string, limit number of characters to the specified
+         * @param dst destination string
+         * @param dst_max maximum number of UTF-8 characters (excluding trailing zero)
+         * @param src source string
+         */
+        void utf8_strncpy(char *dst, size_t dst_max, const char *src);
+
+        /**
+         * Copy UTF-8 encoded string to destination string, limit number of characters to the specified
+         * @param dst destination string
+         * @param dst_max maximum number of UTF-8 characters (excluding trailing zero)
+         * @param src source buffer
+         * @param size size of source buffer
+         */
+        void utf8_strncpy(char *dst, size_t dst_max, const void *src, size_t size);
+
     } /* namespace plug */
 } /* namespace lsp */
 
