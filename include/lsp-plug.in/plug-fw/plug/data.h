@@ -27,6 +27,7 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/protocol/midi.h>
+#include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/stdlib/string.h>
 
 #define STREAM_MESH_ALIGN           0x40
@@ -504,6 +505,50 @@ namespace lsp
              */
             virtual void commit();
         } path_t;
+
+        typedef struct string_t
+        {
+            char           *sData;              // Actual value available to host
+            char           *sPending;           // Pending value
+            uint32_t        nCapacity;          // Capacity
+            uint32_t        nLock;              // Write lock + flags
+            uint32_t        nSerial;            // Current serial version
+            uint32_t        nRequest;           // Requested version
+
+            /**
+             * Submit string contents. If string length is larger than allowed capacity, it is truncated.
+             * This method introduces atomic locks and should never be called from real-time thread.
+             * @param str UTF-8 string to submit
+             */
+            void                submit(const char *str);
+
+            /**
+             * Submit string contents. If string length is larger than allowed capacity, it is truncated.
+             * This method introduces atomic locks and should never be called from real-time thread.
+             * @param str string to submit
+             */
+            void                submit(const LSPString *str);
+
+            /**
+             * Synchronize state. This method is designed to be called from real-time thread to commit
+             * pending state change of the string and return update status.
+             * @return true if value of the string has been updated
+             */
+            bool                sync();
+
+            /**
+             * Allocate string parameter
+             * @param max_length maximum string length
+             * @return pointer to allocated string
+             */
+            static string_t    *allocate(size_t max_length);
+
+            /**
+             * Destroy string parameter
+             * @param str string parameter to destroy
+             */
+            static void         destroy(string_t *str);
+        } string_t;
 
         // Position port structure
         typedef struct position_t

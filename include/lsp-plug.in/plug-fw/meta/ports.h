@@ -136,6 +136,11 @@
 #define METER_GAIN20(id, label)  METER_GAIN(id, label, 20.0f)
 #define METER_PERCENT(id, label)  { id, label, U_PERCENT, R_METER, F_UPPER | F_LOWER, 0.0f, 100.0f, 0.0f, 0.1f, NULL, NULL }
 
+#define STRING(id, label, length)               { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER, 0, length, 0, 0, "", NULL }
+#define STRING_DFL(id, label, length, text)     { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER, 0, length, 0, 0, text, NULL }
+#define OPT_STRING(id, label, length)           { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER | F_OPTIONAL, 0, length, 0, 0, "", NULL }
+#define OPT_STRING_DFL(id, label, length, text) { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER | F_OPTIONAL, 0, length, 0, 0, text, NULL }
+
 #define PORTS_END   \
     { NULL, NULL }
 

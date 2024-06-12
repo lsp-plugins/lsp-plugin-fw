@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -23,10 +23,13 @@
 #include <lsp-plug.in/plug-fw/plug/data.h>
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/atomic.h>
-#include <lsp-plug.in/stdlib/string.h>
-#include <lsp-plug.in/stdlib/stdlib.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/dsp-units/const.h>
+#include <lsp-plug.in/io/charset.h>
+#include <lsp-plug.in/ipc/Thread.h>
+#include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/stdlib/stdlib.h>
+
 
 namespace lsp
 {
@@ -137,6 +140,97 @@ namespace lsp
         bool path_t::accepted()
         {
             return false;
+        }
+
+        //-------------------------------------------------------------------------
+        // string_t methods
+        void string_t::submit(const char *str)
+        {
+            // Acquire lock
+            while (!atomic_trylock(nLock))
+                ipc::Thread::yield();
+            lsp_finally {
+                ++nRequest;
+                atomic_unlock(nLock);
+            };
+
+            // Update string
+            char *dst       = sPending;
+            for (size_t i=0, n=nCapacity; i<n; ++i)
+            {
+                const lsp_utf32_t ch = read_utf8_codepoint(&str);
+                write_utf8_codepoint(&dst, ch);
+                if (ch == '\0')
+                    return;
+            }
+
+            // append the ending NULL character
+            *dst            = '\0';
+        }
+
+        void string_t::submit(const LSPString *str)
+        {
+            // Obtain a valid UTF-8 string limite by nCapacity characters
+            size_t len = lsp_min(str->length(), nCapacity);
+            const char *src = str->get_utf8(0, len);
+            if (src == NULL)
+                return;
+
+            // Acquire lock
+            while (!atomic_trylock(nLock))
+                ipc::Thread::yield();
+            lsp_finally { atomic_unlock(nLock); };
+
+            // Update string
+            strcpy(sPending, src);
+            ++nRequest;
+        }
+
+        bool string_t::sync()
+        {
+            if (!atomic_trylock(nLock))
+                return false;
+            lsp_finally { atomic_unlock(nLock); };
+
+            if (nSerial == nRequest)
+                return false;
+
+            // Copy contents and update state
+            strcpy(sData, sPending);
+            nSerial     = nRequest;
+
+            return true;
+        }
+
+        string_t *string_t::allocate(size_t max_length)
+        {
+            const size_t szof_type      = align_size(sizeof(string_t), DEFAULT_ALIGN);
+            const size_t szof_data      = align_size(max_length * 4 + 1, DEFAULT_ALIGN); // Max 4 bytes per code point + end of line
+            const size_t to_alloc       = szof_type + 2 * szof_data;
+
+            uint8_t *ptr                = reinterpret_cast<uint8_t *>(malloc(to_alloc));
+            if (ptr == NULL)
+                return NULL;
+
+            // Initialize object
+            string_t *res               = advance_ptr_bytes<string_t>(ptr, szof_type);
+            res->sData                  = advance_ptr_bytes<char>(ptr, szof_data);
+            res->sPending               = advance_ptr_bytes<char>(ptr, szof_data);
+            res->nCapacity              = max_length;
+            atomic_init(res->nLock);
+            res->nSerial                = 0;
+            res->nRequest               = 0;
+
+            // Cleanup string content
+            bzero(res->sData, szof_data * 2);
+
+            return res;
+        }
+
+        void string_t::destroy(string_t *str)
+        {
+            if (str != NULL)
+                free(str);
         }
 
         //-------------------------------------------------------------------------

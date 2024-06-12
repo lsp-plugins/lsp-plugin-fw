@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins
  * Created on: 28 сент. 2015 г.
@@ -119,6 +119,7 @@ namespace lsp
             R_MESH,                 // Mesh port
             R_FBUFFER,              // Frame buffer
             R_PATH,                 // Path to the local file
+            R_STRING,               // String parameter (stored as UTF-8 string)
             R_MIDI_IN,              // MIDI input events
             R_MIDI_OUT,             // MIDI output events
             R_PORT_SET,             // Set of ports
@@ -376,7 +377,11 @@ namespace lsp
             float                   max;            // Maximum value
             float                   start;          // Initial value
             float                   step;           // Change step
-            const port_item_t      *items;          // Items for enum / port set
+            union
+            {
+                const port_item_t      *items;          // Items for enum / port set
+                const char             *value;          // Default value for string
+            };
             const port_t           *members;        // Port members for group
         } port_t;
 
