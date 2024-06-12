@@ -79,6 +79,7 @@ namespace lsp
                 lltl::parray<MidiInputPort>     vMidiIn;            // Midi input ports
                 lltl::parray<MidiOutputPort>    vMidiOut;           // Midi output ports
                 lltl::parray<clap::Port>        vAllPorts;          // List of all available ports
+                lltl::parray<clap::StringPort>  vStringPorts;       // List of string ports
                 lltl::parray<clap::Port>        vSortedPorts;       // List of ports sorted by metadata identifier
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 

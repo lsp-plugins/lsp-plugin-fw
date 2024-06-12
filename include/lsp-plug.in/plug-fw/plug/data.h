@@ -508,26 +508,52 @@ namespace lsp
 
         typedef struct string_t
         {
-            char           *sData;              // Actual value available to host
-            char           *sPending;           // Pending value
-            uint32_t        nCapacity;          // Capacity
-            uint32_t        nLock;              // Write lock + flags
-            uint32_t        nSerial;            // Current serial version
-            uint32_t        nRequest;           // Requested version
+            char               *sData;              // Actual value available to host
+            char               *sPending;           // Pending value
+            uint32_t            nCapacity;          // Capacity
+            uint32_t            nLock;              // Write lock + flags
+            uint32_t            nSerial;            // Current serial version
+            uint32_t            nRequest;           // Requested version
 
             /**
              * Submit string contents. If string length is larger than allowed capacity, it is truncated.
              * This method introduces atomic locks and should never be called from real-time thread.
              * @param str UTF-8 string to submit
+             * @param state indicates that value has been restored from state
+             * @return serial number associated with this change
              */
-            void                submit(const char *str);
+            uint32_t            submit(const char *str, bool state);
+
+            /**
+             * Submit string contents. If string length is larger than allowed capacity, it is truncated.
+             * This method introduces atomic locks and should never be called from real-time thread.
+             * @param str UTF-8 string to submit
+             * @param size size of data in bytes
+             * @param state indicates that value has been restored from state
+             * @return serial number associated with this change
+             */
+            uint32_t            submit(const void *buffer, size_t size, bool state);
 
             /**
              * Submit string contents. If string length is larger than allowed capacity, it is truncated.
              * This method introduces atomic locks and should never be called from real-time thread.
              * @param str string to submit
+             * @param state indicates that value has been restored from state
+             * @return serial number associated with this change
              */
-            void                submit(const LSPString *str);
+            uint32_t            submit(const LSPString *str, bool state);
+
+            /**
+             * Read current contents of the string to passed buffer if serial value differs to the passed one,
+             * store new serial value into the passed pointer.
+             * This method introduces atomic locks and should never be called from real-time thread.
+             * @param serial pointer to the strings's serial number the requestor holds
+             * @param dst destination buffer to store the string
+             * @param size size of destination buffer in bytes
+             * @return true if passed serial number differed to the string's serial number and
+             * destination buffer was filled with data
+             */
+            bool                fetch(uint32_t *serial, char *dst, size_t size);
 
             /**
              * Synchronize state. This method is designed to be called from real-time thread to commit
@@ -535,6 +561,24 @@ namespace lsp
              * @return true if value of the string has been updated
              */
             bool                sync();
+
+            /**
+             * Check that string has been restored from plugin's state
+             * @return true if string has been restored from plugin's state
+             */
+            bool                is_state() const;
+
+            /**
+             * Maximum number of bytes that can be stored in this string
+             * @return maximum number of bytes (without trailing zero)
+             */
+            size_t              max_bytes() const;
+
+            /**
+             * return actual serial number
+             * @return actual serial number
+             */
+            uint32_t            serial() const;
 
             /**
              * Allocate string parameter

@@ -152,14 +152,17 @@ namespace lsp
             {
                 case meta::R_MESH:
                     cp                      = new clap::MeshPort(port);
+                    lsp_trace("mesh id=%s", port->id);
                     break;
 
                 case meta::R_FBUFFER:
                     cp                      = new clap::FrameBufferPort(port);
+                    lsp_trace("fbuffer id=%s", port->id);
                     break;
 
                 case meta::R_STREAM:
                     cp                      = new clap::StreamPort(port);
+                    lsp_trace("stream id=%s", port->id);
                     break;
 
                 case meta::R_MIDI_IN:
@@ -167,6 +170,7 @@ namespace lsp
                     clap::MidiInputPort *mi = new clap::MidiInputPort(port);
                     vMidiIn.add(mi);
                     cp  = mi;
+                    lsp_trace("midi_in id=%s", port->id);
                     break;
                 }
                 case meta::R_MIDI_OUT:
@@ -174,23 +178,46 @@ namespace lsp
                     clap::MidiOutputPort *mo = new clap::MidiOutputPort(port);
                     vMidiOut.add(mo);
                     cp  = mo;
+                    lsp_trace("midi_out id=%s", port->id);
                     break;
                 }
 
                 case meta::R_AUDIO_IN:
+                    // Audio ports will be organized into groups after instantiation of all ports
+                    cp = new clap::AudioPort(port);
+                    lsp_trace("audio_in id=%s", port->id);
+                    break;
+
                 case meta::R_AUDIO_OUT:
                     // Audio ports will be organized into groups after instantiation of all ports
                     cp = new clap::AudioPort(port);
+                    lsp_trace("audio_out id=%s", port->id);
                     break;
 
                 case meta::R_OSC_IN:
+                    cp = new clap::OscPort(port);
+                    lsp_trace("osc_in id=%s", port->id);
+                    break;
+
                 case meta::R_OSC_OUT:
                     cp = new clap::OscPort(port);
+                    lsp_trace("osc_out id=%s", port->id);
                     break;
 
                 case meta::R_PATH:
                     cp                      = new clap::PathPort(port);
+                    lsp_trace("path id=%s", port->id);
                     break;
+
+                case meta::R_STRING:
+                {
+                    clap::StringPort *sp    = new clap::StringPort(port);
+                    vStringPorts.add(sp);
+                    cp                      = sp;
+
+                    lsp_trace("string id=%s", port->id);
+                    break;
+                }
 
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
@@ -198,11 +225,14 @@ namespace lsp
                     clap::ParameterPort *pp = new clap::ParameterPort(port);
                     vParamPorts.add(pp);
                     cp  = pp;
+
+                    lsp_trace("parameter id=%s", port->id);
                     break;
                 }
 
                 case meta::R_METER:
                     cp                      = new clap::MeterPort(port);
+                    lsp_trace("meter id=%s", port->id);
                     break;
 
                 case meta::R_PORT_SET:
@@ -212,6 +242,8 @@ namespace lsp
                     vAllPorts.add(pg);
                     vParamPorts.add(pg);
                     plugin_ports->add(pg);
+
+                    lsp_trace("port_set id=%s", port->id);
 
                     for (size_t row=0; row<pg->rows(); ++row)
                     {
@@ -990,6 +1022,23 @@ namespace lsp
                 }
             }
 
+            // Detect that string ports have changed
+            for (size_t i=0, n=vStringPorts.size(); i<n; ++i)
+            {
+                clap::StringPort *sp = vStringPorts.uget(i);
+                if ((sp != NULL) && (sp->changed()))
+                {
+                    bUpdateSettings     = true;
+                    if (!sp->is_state())
+                    {
+                        state_changed();
+                        lsp_trace("port change from UI: id=%s value=%s",
+                            sp->metadata()->id,
+                            static_cast<const char *>(sp->buffer()));
+                    }
+                }
+            }
+
             // Need to dump state?
             uatomic_t dump_req      = nDumpReq;
             if (dump_req != nDumpResp)
@@ -1015,8 +1064,6 @@ namespace lsp
                 // Prepare event block
                 size_t block_size = prepare_block(&ev_index, offset, process);
 //                lsp_trace("block size=%d", int(block_size));
-                for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
-                    vAllPorts.uget(i)->pre_process(block_size);
 
                 // Update the settings for the plugin
                 if (bUpdateSettings)

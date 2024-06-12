@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 дек. 2022 г.
@@ -47,19 +47,16 @@ namespace lsp
                 explicit Port(const meta::port_t *meta): plug::IPort(meta)
                 {
                 }
+                Port(const Port &) = delete;
+                Port(Port &&) = delete;
+                Port & operator = (const Port &) = delete;
+                Port & operator = (Port &&) = delete;
 
             public:
-                /** Pre-process port state before processor execution
-                 * @param samples number of estimated samples to process
-                 * @return true if port value has been externally modified
-                 */
-                virtual bool pre_process(size_t samples)            { return false; }
-
                 /** Post-process port state after processor execution
                  * @param samples number of samples processed by plugin
                  */
                 virtual void post_process(size_t samples)           {}
-
 
                 /**
                  * Ensure that port is serializable
@@ -103,6 +100,8 @@ namespace lsp
                     nBufCap     = 0;
                     bZero       = false;
                 }
+                AudioPort(const Port &) = delete;
+                AudioPort(Port &&) = delete;
 
                 virtual ~AudioPort() override
                 {
@@ -111,7 +110,10 @@ namespace lsp
                         ::free(pBuffer);
                         pBuffer = NULL;
                     }
-                };
+                }
+
+                AudioPort & operator = (const AudioPort &) = delete;
+                AudioPort & operator = (AudioPort &&) = delete;
 
             public:
                 virtual void *buffer() override
@@ -198,9 +200,13 @@ namespace lsp
                 {
                     sQueue.clear();
                 }
+                MidiInputPort(const MidiInputPort &) = delete;
+                MidiInputPort(MidiInputPort &&) = delete;
+                Port & operator = (const Port &) = delete;
+                Port & operator = (Port &&) = delete;
 
             public:
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return &sQueue;
                 }
@@ -230,8 +236,13 @@ namespace lsp
                     sQueue.clear();
                 }
 
+                MidiOutputPort(const MidiOutputPort &) = delete;
+                MidiOutputPort(MidiOutputPort &&) = delete;
+                MidiOutputPort & operator = (const MidiOutputPort &) = delete;
+                MidiOutputPort & operator = (MidiOutputPort &&) = delete;
+
             public:
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return &sQueue;
                 }
@@ -286,6 +297,11 @@ namespace lsp
                     nPendingSID         = nSID;
                     bPending            = false;
                 }
+
+                ParameterPort(const ParameterPort &) = delete;
+                ParameterPort(ParameterPort &&) = delete;
+                ParameterPort & operator = (const ParameterPort &) = delete;
+                ParameterPort & operator = (ParameterPort &&) = delete;
 
             public:
                 inline clap_id uid() const      { return nID;       }
@@ -447,11 +463,15 @@ namespace lsp
                     fValue      = meta->start;
                     bForce      = true;
                 }
-
+                MeterPort(const MeterPort &) = delete;
+                MeterPort(MeterPort &&) = delete;
                 virtual ~MeterPort()
                 {
                     fValue      = pMetadata->start;
                 }
+
+                MeterPort & operator = (const MeterPort &) = delete;
+                MeterPort & operator = (MeterPort &&) = delete;
 
             public:
                 // Native Interface
@@ -496,12 +516,16 @@ namespace lsp
                     nCols               = meta::port_list_size(meta->members);
                     nRows               = meta::list_size(meta->items);
                 }
+                PortGroup(const PortGroup &) = delete;
+                PortGroup(PortGroup &&) = delete;
 
                 virtual ~PortGroup()
                 {
                     nCols               = 0;
                     nRows               = 0;
                 }
+                PortGroup & operator = (const PortGroup &) = delete;
+                PortGroup & operator = (PortGroup &&) = delete;
 
             public:
                 virtual float value() override
@@ -526,12 +550,16 @@ namespace lsp
                 {
                     pMesh   = clap::create_mesh(meta);
                 }
+                MeshPort(const MeshPort &) = delete;
+                MeshPort(MeshPort &&) = delete;
 
                 virtual ~MeshPort() override
                 {
                     clap::destroy_mesh(pMesh);
                     pMesh = NULL;
                 }
+                MeshPort & operator = (const MeshPort &) = delete;
+                MeshPort & operator = (MeshPort &&) = delete;
 
             public:
                 virtual void *buffer() override
@@ -551,6 +579,8 @@ namespace lsp
                 {
                     pStream     = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
                 }
+                StreamPort(const StreamPort &) = delete;
+                StreamPort(StreamPort &&) = delete;
 
                 virtual ~StreamPort() override
                 {
@@ -560,6 +590,9 @@ namespace lsp
                         pStream     = NULL;
                     }
                 }
+
+                StreamPort & operator = (const StreamPort &) = delete;
+                StreamPort & operator = (StreamPort &&) = delete;
 
             public:
                 virtual void *buffer() override
@@ -579,11 +612,16 @@ namespace lsp
                 {
                     sFB.init(pMetadata->start, pMetadata->step);
                 }
+                FrameBufferPort(const FrameBufferPort &) = delete;
+                FrameBufferPort(FrameBufferPort &&) = delete;
 
                 virtual ~FrameBufferPort() override
                 {
                     sFB.destroy();
                 }
+
+                FrameBufferPort & operator = (const FrameBufferPort &) = delete;
+                FrameBufferPort & operator = (FrameBufferPort &&) = delete;
 
             public:
                 virtual void *buffer() override
@@ -604,9 +642,10 @@ namespace lsp
                     sPath.init();
                 }
 
-                virtual ~PathPort()
-                {
-                }
+                PathPort(const PathPort &) = delete;
+                PathPort(PathPort &&) = delete;
+                PathPort & operator = (const PathPort &) = delete;
+                PathPort & operator = (PathPort &&) = delete;
 
             public:
                 virtual void *buffer() override
@@ -614,18 +653,13 @@ namespace lsp
                     return static_cast<plug::path_t *>(&sPath);
                 }
 
-                virtual bool pre_process(size_t samples) override
-                {
-                    return sPath.pending();
-                }
-
                 virtual status_t serialize(const clap_ostream_t *os) override
                 {
                     status_t res = write_fully(os, uint8_t(clap::TYPE_STRING));
-                    if (res != STATUS_OK)
-                        return res;
+                    if (res == STATUS_OK)
+                        res = sPath.serialize(os);
 
-                    return sPath.serialize(os);
+                    return res;
                 }
 
                 virtual status_t deserialize(const clap_istream_t *is) override
@@ -647,6 +681,105 @@ namespace lsp
                 }
 
                 virtual bool serializable() const override { return true; }
+
+        };
+
+        class StringPort: public Port
+        {
+            private:
+                plug::string_t     *pValue;
+
+            public:
+                explicit StringPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    pValue          = plug::string_t::allocate(size_t(meta->max));
+                }
+                StringPort(const StringPort &) = delete;
+                StringPort(StringPort &&) = delete;
+
+                ~StringPort() override
+                {
+                    if (pValue != NULL)
+                    {
+                        plug::string_t::destroy(pValue);
+                        pValue          = NULL;
+                    }
+                }
+
+                StringPort & operator = (const StringPort &) = delete;
+                StringPort & operator = (StringPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return (pValue != NULL) ? pValue->sData : NULL;
+                }
+
+                virtual status_t serialize(const clap_ostream_t *os) override
+                {
+                    if (pValue == NULL)
+                        return STATUS_OK;
+
+                    status_t res = write_fully(os, uint8_t(clap::TYPE_STRING));
+                    if (res == STATUS_OK)
+                        res = write_string(os, pValue->sData);
+
+                    return res;
+                }
+
+                virtual status_t deserialize(const clap_istream_t *is) override
+                {
+                    if (pValue == NULL)
+                        return STATUS_BAD_STATE;
+
+                    uint8_t type = 0;
+
+                    // Read the type
+                    status_t res = read_fully(is, &type);
+                    if (res != STATUS_OK)
+                        return res;
+                    else if (type != clap::TYPE_STRING)
+                        return STATUS_BAD_FORMAT;
+
+                    // Read the string
+                    char *str = NULL;
+                    size_t size = 0;
+                    lsp_finally {
+                        if (str != NULL)
+                            free(str);
+                    };
+
+                    res = read_string(is, &str, &size);
+                    if (res == STATUS_OK)
+                    {
+                        lsp_trace("  value = %s", str);
+                        pValue->submit(str, true);
+                    }
+
+                    return res;
+                }
+
+                virtual bool serializable() const override
+                {
+                    return true;
+                }
+
+            public:
+                plug::string_t *data()
+                {
+                    return pValue;
+                }
+
+                bool changed()
+                {
+                    return (pValue != NULL) ? pValue->sync() : false;
+                }
+
+                bool is_state() const
+                {
+                    return (pValue != NULL) ? pValue->is_state() : false;
+                }
         };
 
         class OscPort: public Port
@@ -658,26 +791,10 @@ namespace lsp
                 explicit OscPort(const meta::port_t *meta):
                     Port(meta)
                 {
-                    pFB     = NULL;
-                }
-
-                virtual ~OscPort()
-                {
-                }
-
-            public:
-                virtual void *buffer()
-                {
-                    return pFB;
-                }
-
-                virtual int init()
-                {
                     pFB     = core::osc_buffer_t::create(OSC_BUFFER_MAX);
-                    return (pFB == NULL) ? STATUS_NO_MEM : STATUS_OK;
                 }
 
-                virtual void destroy()
+                virtual ~OscPort() override
                 {
                     if (pFB != NULL)
                     {
@@ -685,6 +802,18 @@ namespace lsp
                         pFB     = NULL;
                     }
                 }
+
+                OscPort(const OscPort &) = delete;
+                OscPort(OscPort &&) = delete;
+                OscPort & operator = (const OscPort &) = delete;
+                OscPort & operator = (OscPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return pFB;
+                }
+
         };
     } /* namespace clap */
 } /* namespace lsp */

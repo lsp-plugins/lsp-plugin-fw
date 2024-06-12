@@ -144,37 +144,45 @@ namespace lsp
 
         //-------------------------------------------------------------------------
         // string_t methods
-        void string_t::submit(const char *str)
+        uint32_t string_t::submit(const char *str, bool state)
+        {
+            return submit(str, strlen(str), state);
+        }
+
+        uint32_t string_t::submit(const void *buffer, size_t size, bool state)
         {
             // Acquire lock
             while (!atomic_trylock(nLock))
                 ipc::Thread::yield();
             lsp_finally {
-                ++nRequest;
                 atomic_unlock(nLock);
             };
 
             // Update string
+            const char *src = static_cast<const char *>(buffer);
             char *dst       = sPending;
             for (size_t i=0, n=nCapacity; i<n; ++i)
             {
-                const lsp_utf32_t ch = read_utf8_codepoint(&str);
+                const lsp_utf32_t ch = read_utf8_streaming(&src, &size, true);
+                if ((ch == '\0') || (ch == LSP_UTF32_EOF))
+                    break;
                 write_utf8_codepoint(&dst, ch);
-                if (ch == '\0')
-                    return;
             }
 
             // append the ending NULL character
             *dst            = '\0';
+            const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
+            nRequest        = serial;
+            return serial;
         }
 
-        void string_t::submit(const LSPString *str)
+        uint32_t string_t::submit(const LSPString *str, bool state)
         {
             // Obtain a valid UTF-8 string limite by nCapacity characters
             size_t len = lsp_min(str->length(), nCapacity);
             const char *src = str->get_utf8(0, len);
             if (src == NULL)
-                return;
+                return nRequest;
 
             // Acquire lock
             while (!atomic_trylock(nLock))
@@ -183,7 +191,30 @@ namespace lsp
 
             // Update string
             strcpy(sPending, src);
-            ++nRequest;
+
+            const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
+            nRequest        = serial;
+            return serial;
+        }
+
+        bool string_t::fetch(uint32_t *serial, char *dst, size_t size)
+        {
+            if (nSerial == *serial)
+                return false;
+
+            // Acquire lock
+            while (!atomic_trylock(nLock))
+                ipc::Thread::yield();
+            lsp_finally {
+                atomic_unlock(nLock);
+            };
+
+            // Copy data
+            strncpy(dst, sData, size);
+            sData[size-1] = '\0';
+            *serial = nSerial;
+
+            return true;
         }
 
         bool string_t::sync()
@@ -200,6 +231,21 @@ namespace lsp
             nSerial     = nRequest;
 
             return true;
+        }
+
+        bool string_t::is_state() const
+        {
+            return nSerial & 1;
+        }
+
+        size_t string_t::max_bytes() const
+        {
+            return nCapacity * 4;
+        }
+
+        uint32_t string_t::serial() const
+        {
+            return nSerial;
         }
 
         string_t *string_t::allocate(size_t max_length)
