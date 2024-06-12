@@ -536,6 +536,11 @@ namespace lsp
                     vParams.add(jp);
                     break;
 
+                case meta::R_STRING:
+                    jp      = new jack::StringPort(port, this);
+                    vParams.add(jp);
+                    break;
+
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
                     jp      = new jack::ControlPort(port, this);
@@ -1055,9 +1060,24 @@ namespace lsp
                         len     = strlen(value);
                     }
 
-                    path_t *bpath = (meta::is_path_port(port->metadata())) ? port->buffer<path_t>() : NULL;
+                    path_t *bpath = port->buffer<path_t>();
                     if (bpath != NULL)
                         bpath->submit(value, flags);
+                    break;
+                }
+                case meta::R_STRING:
+                {
+                    // Check type of argument
+                    if (!param->is_string())
+                        return false;
+
+                    // Submit string to the port
+                    const char *value = param->v.str;
+                    jack::StringPort *sp = static_cast<jack::StringPort *>(port);
+                    plug::string_t *str = sp->data();
+                    if (str != NULL)
+                        str->submit(value, false);
+
                     break;
                 }
                 default:

@@ -56,11 +56,18 @@ namespace lsp
                     pWrapper        = w;
                 }
 
-                virtual ~Port()
+                Port(const Port &) = delete;
+                Port(Port &&) = delete;
+
+                virtual ~Port() override
                 {
                     pWrapper        = NULL;
                 }
 
+                Port & operator = (const Port &) = delete;
+                Port & operator = (Port &&) = delete;
+
+            public:
                 virtual status_t init()
                 {
                     return STATUS_OK;
@@ -105,6 +112,9 @@ namespace lsp
                     nBufSize    = 0;
                 }
 
+                DataPort(const DataPort &) = delete;
+                DataPort(DataPort &&) = delete;
+
                 virtual ~DataPort() override
                 {
                     pPort       = NULL;
@@ -115,6 +125,10 @@ namespace lsp
                     nBufSize    = 0;
                 };
 
+                DataPort & operator = (const DataPort &) = delete;
+                DataPort & operator = (DataPort &&) = delete;
+
+            public:
                 virtual int init() override
                 {
                     return connect();
@@ -367,11 +381,17 @@ namespace lsp
                     fCurrValue  = meta->start;
                 }
 
+                ControlPort(const ControlPort &) = delete;
+                ControlPort(ControlPort &&) = delete;
+
                 virtual ~ControlPort() override
                 {
                     fNewValue   = pMetadata->start;
                     fCurrValue  = pMetadata->start;
                 };
+
+                ControlPort & operator = (const ControlPort &) = delete;
+                ControlPort & operator = (ControlPort &&) = delete;
 
             public:
                 virtual bool sync() override
@@ -407,11 +427,17 @@ namespace lsp
                     nRows               = meta::list_size(meta->items);
                 }
 
+                PortGroup(const Port &) = delete;
+                PortGroup(Port &&) = delete;
+
                 virtual ~PortGroup() override
                 {
                     nCols               = 0;
                     nRows               = 0;
                 }
+
+                PortGroup & operator = (const PortGroup &) = delete;
+                PortGroup & operator = (PortGroup &&) = delete;
 
             public:
                 virtual void commit_value(float value) override
@@ -437,10 +463,16 @@ namespace lsp
                     bForce      = true;
                 }
 
+                MeterPort(const Port &) = delete;
+                MeterPort(Port &&) = delete;
+
                 virtual ~MeterPort() override
                 {
                     fValue      = pMetadata->start;
                 };
+
+                MeterPort & operator = (const MeterPort &) = delete;
+                MeterPort & operator = (MeterPort &&) = delete;
 
             public:
                 virtual float value() override
@@ -484,11 +516,18 @@ namespace lsp
                     pMesh   = NULL;
                 }
 
+                MeshPort(const MeshPort &) = delete;
+                MeshPort(MeshPort &&) = delete;
+
                 virtual ~MeshPort() override
                 {
                     pMesh   = NULL;
                 }
 
+                MeshPort & operator = (const MeshPort &) = delete;
+                MeshPort & operator = (MeshPort &&) = delete;
+
+            public:
                 virtual int init() override
                 {
                     pMesh   = jack::create_mesh(pMetadata);
@@ -522,11 +561,18 @@ namespace lsp
                     pStream     = NULL;
                 }
 
+                StreamPort(const Port &) = delete;
+                StreamPort(Port &&) = delete;
+
                 virtual ~StreamPort() override
                 {
                     pStream     = NULL;
                 }
 
+                StreamPort & operator = (const StreamPort &) = delete;
+                StreamPort & operator = (StreamPort &&) = delete;
+
+            public:
                 virtual int init() override
                 {
                     pStream = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
@@ -557,6 +603,12 @@ namespace lsp
                     bzero(&sFB, sizeof(sFB));
                 }
 
+                FrameBufferPort(const FrameBufferPort &) = delete;
+                FrameBufferPort(FrameBufferPort &&) = delete;
+                FrameBufferPort & operator = (const FrameBufferPort &) = delete;
+                FrameBufferPort & operator = (FrameBufferPort &&) = delete;
+
+            public:
                 virtual int init() override
                 {
                     return sFB.init(pMetadata->start, pMetadata->step);
@@ -585,6 +637,12 @@ namespace lsp
                     pFB     = NULL;
                 }
 
+                OscPort(const OscPort &) = delete;
+                OscPort(OscPort &&) = delete;
+                OscPort & operator = (const OscPort &) = delete;
+                OscPort & operator = (OscPort &&) = delete;
+
+            public:
                 virtual int init() override
                 {
                     pFB = core::osc_buffer_t::create(OSC_BUFFER_MAX);
@@ -618,6 +676,11 @@ namespace lsp
                     sPath.init();
                 }
 
+                PathPort(const PathPort &) = delete;
+                PathPort(PathPort &&) = delete;
+                PathPort & operator = (const PathPort &) = delete;
+                PathPort & operator = (PathPort &&) = delete;
+
             public:
                 virtual void *buffer() override
                 {
@@ -627,6 +690,49 @@ namespace lsp
                 virtual bool sync() override
                 {
                     return sPath.pending();
+                }
+        };
+
+        class StringPort: public Port
+        {
+            private:
+                plug::string_t     *pValue;
+
+            public:
+                explicit StringPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
+                {
+                    pValue          = plug::string_t::allocate(size_t(meta->max));
+                }
+                StringPort(const StringPort &) = delete;
+                StringPort(StringPort &&) = delete;
+
+                ~StringPort() override
+                {
+                    if (pValue != NULL)
+                    {
+                        plug::string_t::destroy(pValue);
+                        pValue          = NULL;
+                    }
+                }
+
+                StringPort & operator = (const StringPort &) = delete;
+                StringPort & operator = (StringPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return (pValue != NULL) ? pValue->sData : NULL;
+                }
+
+                virtual bool sync() override
+                {
+                    return (pValue != NULL) ? pValue->sync() : false;
+                }
+
+            public:
+                plug::string_t *data()
+                {
+                    return pValue;
                 }
         };
 

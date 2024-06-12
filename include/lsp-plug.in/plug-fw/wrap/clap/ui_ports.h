@@ -402,7 +402,12 @@ namespace lsp
 
                 virtual ~UIStringPort() override
                 {
-                    pValue  = NULL;
+                    pValue                  = NULL;
+                    if (pData != NULL)
+                    {
+                        free(pData);
+                        pData                   = NULL;
+                    }
                 }
 
                 UIStringPort & operator = (const UIStringPort &) = delete;
