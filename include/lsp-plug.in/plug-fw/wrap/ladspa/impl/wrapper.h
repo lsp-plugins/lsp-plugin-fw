@@ -194,12 +194,29 @@ namespace lsp
                     lsp_trace("port_set id=%s, index=%d", port->id);
                     break;
                 }
+
+                case meta::R_PATH:
+                {
+                    ladspa::PathPort *pp = new ladspa::PathPort(port);
+                    plugin_ports->add(pp);
+                    result = pp;
+                    lsp_trace("path id=%s", port->id);
+                    break;
+                }
+                case meta::R_STRING:
+                {
+                    ladspa::StringPort *sp = new ladspa::StringPort(port);
+                    plugin_ports->add(sp);
+                    result = sp;
+                    lsp_trace("string id=%s", port->id);
+                    break;
+                }
+
                 case meta::R_MESH:
                 case meta::R_STREAM:
                 case meta::R_FBUFFER:
                 case meta::R_MIDI_IN:
                 case meta::R_MIDI_OUT:
-                case meta::R_PATH:
                 case meta::R_OSC_IN:
                 case meta::R_OSC_OUT:
                 default:

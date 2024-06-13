@@ -43,10 +43,16 @@ namespace lsp
 
             public:
                 explicit Port(const meta::port_t *meta) : IPort(meta), pData(NULL) {};
+                Port(const Port &) = delete;
+                Port(Port &&) = delete;
+
                 virtual ~Port() override
                 {
                     pData   = NULL;
                 }
+
+                Port & operator = (const Port &) = delete;
+                Port & operator = (Port &&) = delete;
 
             public:
                 void bind(void *data)
@@ -76,6 +82,9 @@ namespace lsp
                     }
                 }
 
+                AudioPort(const AudioPort &) = delete;
+                AudioPort(AudioPort &&) = delete;
+
                 virtual ~AudioPort() override
                 {
                     if (pSanitized != NULL)
@@ -83,7 +92,10 @@ namespace lsp
                         ::free(pSanitized);
                         pSanitized = NULL;
                     }
-                };
+                }
+
+                AudioPort & operator = (const AudioPort &) = delete;
+                AudioPort & operator = (AudioPort &&) = delete;
 
             public:
                 virtual void *buffer() override
@@ -127,10 +139,16 @@ namespace lsp
                     fValue      = meta->start;
                 }
 
+                InputPort(const InputPort &) = delete;
+                InputPort(InputPort &&) = delete;
+
                 virtual ~InputPort() override
                 {
                     fValue      = 0.0f;
                 }
+
+                InputPort & operator = (const InputPort &) = delete;
+                InputPort & operator = (InputPort &&) = delete;
 
             public:
                 virtual float value() override
@@ -162,10 +180,16 @@ namespace lsp
                     fValue      = meta->start;
                 }
 
+                OutputPort(const OutputPort &) = delete;
+                OutputPort(OutputPort &&) = delete;
+
                 virtual ~OutputPort() override
                 {
                     fValue      = 0.0f;
-                };
+                }
+
+                OutputPort & operator = (const OutputPort &) = delete;
+                OutputPort & operator = (OutputPort) = delete;
 
             public:
                 virtual float value() override
@@ -196,6 +220,47 @@ namespace lsp
                 {
                     if (pData != NULL)
                         *pData      = fValue;
+                }
+        };
+
+        class PathPort: public Port
+        {
+            private:
+                plug::path_t sPath;
+
+            public:
+                explicit PathPort(const meta::port_t *meta) : Port(meta)
+                {
+                }
+
+                PathPort(const PathPort &) = delete;
+                PathPort(PathPort &&) = delete;
+                PathPort & operator = (const PathPort &) = delete;
+                PathPort & operator = (PathPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return &sPath;
+                }
+        };
+
+        class StringPort: public Port
+        {
+            public:
+                explicit StringPort(const meta::port_t *meta) : Port(meta)
+                {
+                }
+
+                StringPort(const StringPort &) = delete;
+                StringPort(StringPort &&) = delete;
+                StringPort & operator = (const StringPort &) = delete;
+                StringPort & operator = (StringPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return const_cast<char *>(pMetadata->value);
                 }
         };
 

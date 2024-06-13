@@ -184,6 +184,13 @@ namespace lsp
                 case meta::R_FBUFFER:
                 case meta::R_PATH:
                     break;
+                case meta::R_STRING:
+                    if (port->value == NULL)
+                    {
+                        validation_error(ctx, "The default string value should be specified for plugin uid='%s', STRING port='%s'",
+                            meta->uid, port->id);
+                    }
+                    break;
                 case meta::R_MIDI_IN:
                 {
                     if ((++ctx->midi_in) == 2)
@@ -207,7 +214,7 @@ namespace lsp
                     // Ensure that PORT_SET contains items
                     if (port->items == NULL)
                     {
-                        validation_error(ctx, "List items not specified for the port set port id='s' uid='%s'",
+                        validation_error(ctx, "List items not specified for the PORT SET port id='s' uid='%s'",
                             meta->uid);
                         return;
                     }

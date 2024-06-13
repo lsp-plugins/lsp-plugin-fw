@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 янв. 2023 г.
@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/util/validator/validator.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
@@ -71,6 +72,27 @@ namespace lsp
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)
             {
+                switch (port->role)
+                {
+                    case meta::R_PATH:
+                        if (!meta::is_optional_port(port))
+                        {
+                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support PATH port, "
+                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
+                                meta->uid, port->id);
+                        }
+                        break;
+                    case meta::R_STRING:
+                        if (!meta::is_optional_port(port))
+                        {
+                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support STRING port, "
+                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
+                                meta->uid, port->id);
+                        }
+                        break;
+                    default:
+                        break;
+                }
             }
         } /* namespace ladspa */
     } /* namespace validator */
