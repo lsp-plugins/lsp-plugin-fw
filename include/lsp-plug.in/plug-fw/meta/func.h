@@ -63,6 +63,7 @@ namespace lsp
                 case R_AUDIO_IN:
                 case R_CONTROL:
                 case R_PATH:
+                case R_STRING:
                 case R_MIDI_IN:
                 case R_PORT_SET:
                 case R_OSC_IN:

@@ -1688,8 +1688,8 @@ namespace lsp
 
                     lsp_trace("  param = %s, value = %s", param->name.get_utf8(), param->v.str);
 
-                    const char *value = param->v.str;
-                    size_t len      = ::strlen(value);
+                    const char *value   = param->v.str;
+                    size_t len          = ::strlen(value);
                     io::Path path;
 
                     if (core::parse_relative_path(&path, base, value, len))
@@ -1699,6 +1699,20 @@ namespace lsp
                         len     = strlen(value);
                     }
 
+                    port->write(value, len, flags);
+                    break;
+                }
+                case meta::R_STRING:
+                {
+                    // Check type of argument
+                    if (!param->is_string())
+                        return false;
+
+                    lsp_trace("  param = %s, value = %s", param->name.get_utf8(), param->v.str);
+
+                    // Submit string to the port
+                    const char *value   = param->v.str;
+                    const size_t len    = ::strlen(value);
                     port->write(value, len, flags);
                     break;
                 }
