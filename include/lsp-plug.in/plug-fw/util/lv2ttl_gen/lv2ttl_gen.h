@@ -73,6 +73,7 @@ namespace lsp
             REQ_OSC_OUT     = 1 << 12,
             REQ_MAP_PATH    = 1 << 13,
 
+            REQ_STRING_MASK = REQ_PATCH | REQ_STATE | REQ_PATCH_WR,
             REQ_PATH_MASK   = REQ_PATCH | REQ_STATE | REQ_MAP_PATH | REQ_WORKER | REQ_PATCH_WR,
             REQ_MIDI        = REQ_MIDI_IN | REQ_MIDI_OUT
         };

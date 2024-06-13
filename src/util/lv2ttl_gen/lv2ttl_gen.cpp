@@ -425,6 +425,7 @@ namespace lsp
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:
                     case meta::R_PATH:
+                    case meta::R_STRING:
                     case meta::R_PORT_SET:
                     case meta::R_MIDI_IN:
                     case meta::R_MIDI_OUT:
@@ -527,6 +528,9 @@ namespace lsp
                 {
                     case meta::R_PATH:
                         result     |= REQ_PATH_MASK | REQ_INSTANCE;
+                        break;
+                    case meta::R_STRING:
+                        result     |= REQ_STRING_MASK | REQ_INSTANCE;
                         break;
                     case meta::R_MESH:
                     case meta::R_STREAM:
@@ -678,6 +682,18 @@ namespace lsp
                         }
                         break;
                     }
+                    case meta::R_STRING:
+                    {
+                        if (requirements & REQ_PATCH)
+                        {
+                            fprintf(out, "%s:%s\n", LV2TTL_PORTS_PREFIX, p->id);
+                            fprintf(out, "\ta lv2:Parameter ;\n");
+                            fprintf(out, "\trdfs:label \"%s\" ;\n", p->name);
+                            fprintf(out, "\trdfs:range atom:String\n");
+                            fprintf(out, "\t.\n\n");
+                        }
+                        break;
+                    }
                     default:
                         break;
                 }
@@ -736,6 +752,7 @@ namespace lsp
                     switch (p->role)
                     {
                         case meta::R_PATH:
+                        case meta::R_STRING:
                             count++;
                             if (first == NULL)
                                 first = p;
@@ -756,6 +773,7 @@ namespace lsp
                             switch (p->role)
                             {
                                 case meta::R_PATH:
+                                case meta::R_STRING:
                                 {
                                     fprintf(out, "\t\t%s:%s", LV2TTL_PORTS_PREFIX, p->id);
                                     if (--count)
@@ -782,6 +800,7 @@ namespace lsp
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:
                     case meta::R_PATH:
+                    case meta::R_STRING:
                     case meta::R_PORT_SET:
                     case meta::R_MIDI_IN:
                     case meta::R_MIDI_OUT:

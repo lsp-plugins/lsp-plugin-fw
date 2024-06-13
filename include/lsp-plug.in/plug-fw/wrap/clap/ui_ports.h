@@ -444,14 +444,10 @@ namespace lsp
 
                 virtual void set_default() override
                 {
-                    if ((pData == NULL) || (pValue == NULL))
-                        return;
-
                     const meta::port_t *meta = metadata();
                     const char *text = (meta != NULL) ? meta->value : "";
 
-                    plug::utf8_strncpy(pData, pValue->nCapacity, text);
-                    write(pData, strlen(pData), plug::PF_PRESET_IMPORT);
+                    write(text, strlen(text), plug::PF_PRESET_IMPORT);
                 }
         };
 

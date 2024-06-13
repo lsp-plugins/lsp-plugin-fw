@@ -393,6 +393,13 @@ namespace lsp
                         result = new lv2::UIPort(p, pExt); // Stub port
                     lsp_trace("Added path port id=%", p->id);
                     break;
+                case meta::R_STRING:
+                    if (pExt->atom_supported())
+                        result = new lv2::UIStringPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
+                    else
+                        result = new lv2::UIPort(p, pExt); // Stub port
+                    lsp_trace("Added string port id=%", p->id);
+                    break;
                 case meta::R_MESH:
                     if (pExt->atom_supported())
                     {
@@ -737,6 +744,7 @@ namespace lsp
             }
             else
             {
+                lsp_trace("Received object");
                 lsp_trace("obj->body.otype = %d (%s)", int(obj->body.otype), pExt->unmap_urid(obj->body.otype));
                 lsp_trace("obj->body.id = %d (%s)", int(obj->body.id), pExt->unmap_urid(obj->body.id));
             }
@@ -760,7 +768,7 @@ namespace lsp
 
                 // Check that event is an object
                 const LV2_Atom* atom = reinterpret_cast<const LV2_Atom*>(buf);
-                lsp_trace("atom.type = %d (%s)", int(atom->type), pExt->unmap_urid(atom->type));
+//                lsp_trace("atom.type = %d (%s)", int(atom->type), pExt->unmap_urid(atom->type));
 
                 if ((atom->type == pExt->uridObject) || (atom->type == pExt->uridBlank))
                     receive_atom(reinterpret_cast<const LV2_Atom_Object *>(atom));

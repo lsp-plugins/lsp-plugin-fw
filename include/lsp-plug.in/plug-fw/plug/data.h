@@ -648,7 +648,8 @@ namespace lsp
 
 
         /**
-         * Copy UTF-8 encoded string to destination string, limit number of characters to the specified
+         * Copy UTF-8 encoded string to destination string, limit number of characters to the specified.
+         * The buffer should be of enough size to contain the additional zero-terminating character.
          * @param dst destination string
          * @param dst_max maximum number of UTF-8 characters (excluding trailing zero)
          * @param src source string
@@ -656,7 +657,8 @@ namespace lsp
         void utf8_strncpy(char *dst, size_t dst_max, const char *src);
 
         /**
-         * Copy UTF-8 encoded string to destination string, limit number of characters to the specified
+         * Copy UTF-8 encoded string to destination string, limit number of characters to the specified.
+         * The buffer should be of enough size to contain the additional zero-terminating character.
          * @param dst destination string
          * @param dst_max maximum number of UTF-8 characters (excluding trailing zero)
          * @param src source buffer

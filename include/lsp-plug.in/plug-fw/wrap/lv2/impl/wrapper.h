@@ -347,7 +347,9 @@ namespace lsp
 
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
+                    lsp_trace("Added mesh port id=%s", result->metadata()->id);
                     break;
+
                 case meta::R_STREAM:
                     if (pExt->atom_supported())
                     {
@@ -358,7 +360,9 @@ namespace lsp
                         result = new lv2::Port(p, pExt, false);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
+                    lsp_trace("Added stream port id=%s", result->metadata()->id);
                     break;
+
                 case meta::R_FBUFFER:
                     if (pExt->atom_supported())
                     {
@@ -369,7 +373,9 @@ namespace lsp
                         result = new lv2::Port(p, pExt, false);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
+                    lsp_trace("Added framebuffer port id=%s", result->metadata()->id);
                     break;
+
                 case meta::R_PATH:
                     if (pExt->atom_supported())
                         result      = new lv2::PathPort(p, pExt);
@@ -377,6 +383,17 @@ namespace lsp
                         result      = new lv2::Port(p, pExt, false);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
+                    lsp_trace("Added path port id=%s", result->metadata()->id);
+                    break;
+
+                case meta::R_STRING:
+                    if (pExt->atom_supported())
+                        result      = new lv2::StringPort(p, pExt);
+                    else
+                        result      = new lv2::Port(p, pExt, false);
+                    vPluginPorts.add(result);
+                    plugin_ports->add(result);
+                    lsp_trace("Added string port id=%s", result->metadata()->id);
                     break;
 
                 case meta::R_MIDI_IN:
@@ -389,7 +406,10 @@ namespace lsp
                     else
                         result = new lv2::Port(p, pExt, false);
                     plugin_ports->add(result);
+
+                    lsp_trace("Added midi port id=%s", result->metadata()->id);
                     break;
+
                 case meta::R_OSC_IN:
                 case meta::R_OSC_OUT:
                     if (pExt->atom_supported())
@@ -400,6 +420,8 @@ namespace lsp
                     else
                         result = new lv2::Port(p, pExt, false);
                     plugin_ports->add(result);
+
+                    lsp_trace("Added osc port id=%s", result->metadata()->id);
                     break;
 
 
@@ -415,8 +437,10 @@ namespace lsp
                     {
                         result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
-                        lsp_trace("Added external port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                        lsp_trace("Added external audio port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
+                    else
+                        lsp_trace("Added audio port id=%s", result->metadata()->id);
                     break;
                 case meta::R_CONTROL:
                 case meta::R_METER:
@@ -432,8 +456,10 @@ namespace lsp
                     {
                         result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
-                        lsp_trace("Added external port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                        lsp_trace("Added external control port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
+                    else
+                        lsp_trace("Added control port id=%s", result->metadata()->id);
                     break;
 
                 case meta::R_BYPASS:
@@ -451,6 +477,8 @@ namespace lsp
                         vExtPorts.add(result);
                         lsp_trace("Added bypass port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
+                    else
+                        lsp_trace("Added bypass port id=%s", result->metadata()->id);
                     break;
 
                 case meta::R_PORT_SET:
@@ -462,6 +490,7 @@ namespace lsp
                     vPluginPorts.add(pg);
                     vAllPorts.add(pg);
                     plugin_ports->add(pg);
+                    lsp_trace("Added port_set port id=%s", result->metadata()->id);
 
                     // Generate nested ports
                     for (size_t row=0; row<pg->rows(); ++row)
@@ -1098,6 +1127,7 @@ namespace lsp
                     case meta::R_STREAM:
                     case meta::R_FBUFFER:
                         continue;
+                    case meta::R_STRING:
                     case meta::R_PATH:
                         if (p->tx_pending()) // Tranmission request pending?
                             break;
