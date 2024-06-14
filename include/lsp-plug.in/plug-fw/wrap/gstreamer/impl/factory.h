@@ -265,6 +265,7 @@ namespace lsp
                 case meta::R_BYPASS:
                 case meta::R_METER:
                 case meta::R_PATH:
+                case meta::R_STRING:
                 {
                     en->params.add(const_cast<meta::port_t *>(port));
                     lsp_trace("parameter id=%s, index=%d", port->id, int(en->params.size() - 1));
@@ -539,6 +540,17 @@ namespace lsp
                     spec = g_param_spec_string(
                         name, port->name, blurb,
                         "",
+                        GParamFlags(param_flags));
+                }
+                else if (meta::is_string_port(port))
+                {
+                    lsp_trace("[%d] g_param_spec_string(%s, %s, %s, \"\")",
+                        param_id, name, port->name, blurb);
+
+                    tmp.set_utf8(port->value);
+                    spec = g_param_spec_string(
+                        name, port->name, blurb,
+                        tmp.get_native(),
                         GParamFlags(param_flags));
                 }
                 else

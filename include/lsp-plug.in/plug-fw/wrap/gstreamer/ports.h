@@ -315,6 +315,55 @@ namespace lsp
                 }
         };
 
+        class StringPort: public plug::IPort
+        {
+            protected:
+                char                   *pData;
+                uint32_t                nCapacity;
+
+            public:
+                explicit StringPort(const meta::port_t *meta): plug::IPort(meta)
+                {
+                    nCapacity       = size_t(meta->max) * 4;
+
+                    // Allocate buffer to store value
+                    pData                   = reinterpret_cast<char *>(malloc(nCapacity + 1));
+                    if (pData != NULL)
+                        pData[0]                = '\0';
+                }
+                StringPort(const StringPort &) = delete;
+                StringPort(StringPort &&) = delete;
+
+                ~StringPort() override
+                {
+                    if (pData != NULL)
+                    {
+                        free(pData);
+                        pData                   = NULL;
+                    }
+                }
+
+                StringPort & operator = (const StringPort &) = delete;
+                StringPort & operator = (StringPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return pData;
+                }
+
+            public:
+                inline void submit(const char *string)
+                {
+                    plug::utf8_strncpy(pData, nCapacity, string);
+                }
+
+                const char *get() const
+                {
+                    return pData;
+                }
+        };
+
 
     } /* namespace gst */
 } /* namespace lsp */

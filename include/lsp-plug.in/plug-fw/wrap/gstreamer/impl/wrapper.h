@@ -366,6 +366,17 @@ namespace lsp
                     break;
                 }
 
+                case meta::R_STRING:
+                {
+                    gst::StringPort *p = new gst::StringPort(port);
+                    result = p;
+                    vPortMapping.add(p);
+                    plugin_ports->add(p);
+
+                    lsp_trace("string id=%s, index=%d", result->metadata()->id, int(vPortMapping.size() - 1));
+                    break;
+                }
+
                 case meta::R_PORT_SET:
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES];
@@ -537,6 +548,30 @@ namespace lsp
 
                     break;
                 }
+
+                case meta::R_STRING:
+                {
+                    gst::StringPort *p      = static_cast<gst::StringPort *>(pp);
+                    const gchar *xv         = g_value_get_string(value);
+                    lsp_trace("string %s = %s", p->id(), xv);
+
+                    LSPString path;
+                    if (!path.set_native(reinterpret_cast<const char *>(xv)))
+                    {
+                        lsp_warn("Failed to parse native string for port id=%s (index=%d)", meta->id, int(prop_id));
+                        return;
+                    }
+
+                    const char *xpath       = path.get_utf8();
+                    if (xpath == NULL)
+                        return;
+
+                    p->submit(xpath);
+                    bUpdateSettings = true;
+
+                    break;
+                }
+
                 default:
                     lsp_warn("Could not set port id=%s (index=%d): unsupported operation", meta->id, int(prop_id));
                     break;
@@ -624,6 +659,22 @@ namespace lsp
 
                     break;
                 }
+
+                case meta::R_STRING:
+                {
+                    gst::StringPort *p      = static_cast<gst::StringPort *>(pp);
+
+                    LSPString path;
+                    path.set_utf8(p->get());
+
+                    const gchar *xv         = reinterpret_cast<const gchar *>(path.get_native());
+                    g_value_set_string(value, xv);
+
+                    lsp_trace("return string %s = %s", p->id(), xv);
+
+                    break;
+                }
+
                 default:
                     lsp_warn("Could not get port id=%s (index=%d): unsupported operation", meta->id, int(prop_id));
                     break;
