@@ -98,6 +98,11 @@ namespace lsp
                     vup = new vst2::UIPathPort(port, vp);
                     break;
 
+                case meta::R_STRING:
+                    lsp_trace("creating string port %s", port->id);
+                    vup = new vst2::UIStringPort(port, vp);
+                    break;
+
                 case meta::R_CONTROL:
                 case meta::R_METER:
                 case meta::R_BYPASS:

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 дек. 2021 г.
@@ -43,10 +43,16 @@ namespace lsp
                     pPort       = port;
                 }
 
-                virtual ~UIPort()
+                UIPort(const UIPort &) = delete;
+                UIPort(UIPort &&) = delete;
+
+                virtual ~UIPort() override
                 {
                     pPort       = NULL;
                 }
+
+                UIPort & operator = (const UIPort &) = delete;
+                UIPort & operator = (UIPort &&) = delete;
 
             public:
                 virtual bool sync()         { return false; };
@@ -67,9 +73,10 @@ namespace lsp
                     nSID                = port->sid() - 1;
                 }
 
-                virtual ~UIPortGroup()
-                {
-                }
+                UIPortGroup(const UIPortGroup &) = delete;
+                UIPortGroup(UIPortGroup &&) = delete;
+                UIPortGroup & operator = (const UIPortGroup &) = delete;
+                UIPortGroup & operator = (UIPortGroup &&) = delete;
 
             public:
                 virtual float value()
@@ -111,10 +118,16 @@ namespace lsp
                     nSID        = port->sid() - 1;
                 }
 
+                UIParameterPort(const UIParameterPort &) = delete;
+                UIParameterPort(UIParameterPort &&) = delete;
+
                 virtual ~UIParameterPort()
                 {
                     fValue      = pMetadata->start;
                 }
+
+                UIParameterPort & operator = (const UIParameterPort &) = delete;
+                UIParameterPort & operator = (UIParameterPort &&) = delete;
 
             public:
                 virtual float value()
@@ -158,10 +171,16 @@ namespace lsp
                     fValue      = meta->start;
                 }
 
+                UIMeterPort(const UIMeterPort &) = delete;
+                UIMeterPort(UIMeterPort &&) = delete;
+
                 virtual ~UIMeterPort()
                 {
                     fValue      = pMetadata->start;
                 }
+
+                UIMeterPort & operator = (const UIMeterPort &) = delete;
+                UIMeterPort & operator = (UIMeterPort &&) = delete;
 
             public:
                 virtual float value()
@@ -195,11 +214,17 @@ namespace lsp
                     pMesh       = vst2::create_mesh(meta);
                 }
 
+                UIMeshPort(const UIMeshPort &) = delete;
+                UIMeshPort(UIMeshPort &&) = delete;
+
                 virtual ~UIMeshPort()
                 {
                     vst2::destroy_mesh(pMesh);
                     pMesh = NULL;
                 }
+
+                UIMeshPort & operator = (const UIMeshPort &) = delete;
+                UIMeshPort & operator = (UIMeshPort &&) = delete;
 
             public:
                 virtual bool sync()
@@ -237,11 +262,17 @@ namespace lsp
                     pStream     = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
                 }
 
+                UIStreamPort(const UIStreamPort &) = delete;
+                UIStreamPort(UIStreamPort &&) = delete;
+
                 virtual ~UIStreamPort()
                 {
                     plug::stream_t::destroy(pStream);
                     pStream     = NULL;
                 }
+
+                UIStreamPort & operator = (const UIStreamPort &) = delete;
+                UIStreamPort & operator = (UIStreamPort &&) = delete;
 
             public:
                 virtual bool sync()
@@ -268,10 +299,16 @@ namespace lsp
                     sFB.init(pMetadata->start, pMetadata->step);
                 }
 
+                UIFrameBufferPort(const UIFrameBufferPort &) = delete;
+                UIFrameBufferPort(UIFrameBufferPort &&) = delete;
+
                 virtual ~UIFrameBufferPort()
                 {
                     sFB.destroy();
                 }
+
+                UIFrameBufferPort & operator = (const UIFrameBufferPort &) = delete;
+                UIFrameBufferPort & operator = (UIFrameBufferPort &&) = delete;
 
             public:
                 virtual bool sync()
@@ -302,10 +339,16 @@ namespace lsp
                         pPath               = NULL;
                 }
 
+                UIPathPort(const UIPathPort &) = delete;
+                UIPathPort(UIPathPort &&) = delete;
+
                 virtual ~UIPathPort()
                 {
                     pPath       = NULL;
                 }
+
+                UIPathPort & operator = (const UIPathPort &) = delete;
+                UIPathPort & operator = (UIPathPort &&) = delete;
 
             public:
                 virtual bool sync()
@@ -335,6 +378,76 @@ namespace lsp
                 }
         };
 
+        class UIStringPort: public UIPort
+        {
+            private:
+                plug::string_t     *pValue;
+                char               *pData;
+                uint32_t            nSerial;
+
+            public:
+                explicit UIStringPort(const meta::port_t *meta, vst2::Port *port): UIPort(meta, port)
+                {
+                    vst2::StringPort *sp    = static_cast<vst2::StringPort *>(port);
+                    pValue                  = sp->data();
+                    pData                   = (pValue != NULL) ? reinterpret_cast<char *>(malloc(pValue->max_bytes() + 1)) : NULL;
+                    nSerial                 = (pValue != NULL) ?  pValue->serial() - 1 : 0;
+
+                    if (pData != NULL)
+                        pData[0]                = '\0';
+                }
+
+                UIStringPort(const UIStringPort &) = delete;
+                UIStringPort(UIStringPort &&) = delete;
+
+                virtual ~UIStringPort()
+                {
+                    pValue                  = NULL;
+                    if (pData != NULL)
+                    {
+                        free(pData);
+                        pData                   = NULL;
+                    }
+                }
+
+                UIStringPort & operator = (const UIStringPort &) = delete;
+                UIStringPort & operator = (UIStringPort &&) = delete;
+
+            public:
+                virtual void *buffer()
+                {
+                    return pData;
+                }
+
+                virtual bool sync()
+                {
+                    return pValue->fetch(&nSerial, pData, pValue->max_bytes() + 1);
+                }
+
+                virtual void write(const void *buffer, size_t size)
+                {
+                    write(buffer, size, 0);
+                }
+
+                virtual void write(const void *buffer, size_t size, size_t flags) override
+                {
+                    if ((pData == NULL) || (pValue == NULL))
+                        return;
+
+                    const size_t count = lsp_min(size, pValue->nCapacity);
+                    plug::utf8_strncpy(pData, count, buffer, size);
+                    nSerial = pValue->submit(buffer, size, flags & plug::PF_STATE_RESTORE);
+                }
+
+                virtual void set_default() override
+                {
+                    const meta::port_t *meta = metadata();
+                    const char *text = (meta != NULL) ? meta->value : "";
+
+                    write(text, strlen(text), plug::PF_PRESET_IMPORT);
+                }
+        };
+
         class UIOscPortIn: public UIPort
         {
             private:
@@ -351,6 +464,9 @@ namespace lsp
                     sPacket.size    = 0;
                 }
 
+                UIOscPortIn(const UIOscPortIn &) = delete;
+                UIOscPortIn(UIOscPortIn &&) = delete;
+
                 virtual ~UIOscPortIn()
                 {
                     if (sPacket.data != NULL)
@@ -359,6 +475,9 @@ namespace lsp
                         sPacket.data    = NULL;
                     }
                 }
+
+                UIOscPortIn & operator = (const UIOscPortIn &) = delete;
+                UIOscPortIn & operator = (UIOscPortIn &&) = delete;
 
             public:
                 virtual bool sync()
@@ -418,9 +537,10 @@ namespace lsp
                 {
                 }
 
-                virtual ~UIOscPortOut()
-                {
-                }
+                UIOscPortOut(const UIOscPortOut &) = delete;
+                UIOscPortOut(UIOscPortOut &&) = delete;
+                UIOscPortOut & operator = (const UIOscPortOut &) = delete;
+                UIOscPortOut & operator = (UIOscPortOut &&) = delete;
 
             public:
                 virtual void *buffer() { return NULL; }

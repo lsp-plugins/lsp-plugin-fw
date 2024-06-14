@@ -278,6 +278,13 @@ namespace lsp
                     vParams.add(static_cast<vst2::PathPort *>(vp));
                     break;
 
+                case meta::R_STRING:
+                    lsp_trace("creating string port %s", port->id);
+                    vp  = new vst2::StringPort(port, pEffect, pMaster);
+                    plugin_ports->add(vp);
+                    vParams.add(static_cast<vst2::StringPort *>(vp));
+                    break;
+
                 case meta::R_AUDIO_IN:
                 case meta::R_AUDIO_OUT:
                     lsp_trace("creating audio port %s", port->id);
