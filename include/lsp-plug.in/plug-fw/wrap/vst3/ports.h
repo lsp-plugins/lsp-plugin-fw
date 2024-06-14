@@ -533,6 +533,56 @@ namespace lsp
                 }
         };
 
+        class StringPort: public Port
+        {
+            private:
+                plug::string_t     *pValue;
+
+            public:
+                explicit StringPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                    pValue          = plug::string_t::allocate(size_t(meta->max));
+                }
+
+                StringPort(const StringPort &) = delete;
+                StringPort(StringPort &&) = delete;
+
+                ~StringPort() override
+                {
+                    if (pValue != NULL)
+                    {
+                        plug::string_t::destroy(pValue);
+                        pValue          = NULL;
+                    }
+                }
+
+                StringPort & operator = (const StringPort &) = delete;
+                StringPort & operator = (StringPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return pValue->sData;
+                }
+
+                virtual sync_flags_t sync() override
+                {
+                    if (pValue == NULL)
+                        return SYNC_NONE;
+                    if (!pValue->sync())
+                        return SYNC_NONE;
+
+                    return (pValue->is_state()) ? SYNC_CHANGED : SYNC_STATE;
+                }
+
+            public:
+                plug::string_t *data()
+                {
+                    return pValue;
+                }
+        };
+
         class OscPort: public Port
         {
             private:

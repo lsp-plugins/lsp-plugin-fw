@@ -131,6 +131,11 @@ namespace lsp
                     vup     = new vst3::UIPort(p);
                     break;
 
+                case meta::R_STRING:
+                    lsp_trace("creating string port %s", port->id);
+                    vup     = new vst3::UIPort(p);
+                    break;
+
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
                 {

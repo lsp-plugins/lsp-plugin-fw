@@ -660,7 +660,18 @@ namespace lsp
 
                 case meta::R_PATH:
                 {
+                    lsp_trace("Creating path port id=%s", port->id);
                     vst3::PathPort *p       = new vst3::PathPort(port);
+                    vParamMapping.create(port->id, p);
+                    vAllParams.add(p);
+                    cp                      = p;
+                    break;
+                }
+
+                case meta::R_STRING:
+                {
+                    lsp_trace("Creating string port id=%s", port->id);
+                    vst3::StringPort *p     = new vst3::StringPort(port);
                     vParamMapping.create(port->id, p);
                     vAllParams.add(p);
                     cp                      = p;
@@ -1284,6 +1295,22 @@ namespace lsp
                         return res;
                     }
                 }
+                else if (meta::is_string_port(meta))
+                {
+                    const char *str = p->buffer<char>();
+                    if (str == NULL)
+                    {
+                        lsp_trace("value == NULL for STRING port");
+                        return STATUS_CORRUPTED;
+                    }
+
+                    lsp_trace("Saving state of string parameter: %s = %s", meta->id, str);
+                    if ((res = write_value(os, meta->id, str)) != STATUS_OK)
+                    {
+                        lsp_trace("write_value failed for id=%s", meta->id);
+                        return res;
+                    }
+                }
                 else
                 {
                     IF_TRACE(
@@ -1400,6 +1427,18 @@ namespace lsp
                             }
                             lsp_trace("  %s = %s", meta->id, name);
                             xp->submit(name, strlen(name), plug::PF_STATE_RESTORE);
+                        }
+                        else if (meta::is_string_port(meta))
+                        {
+                            vst3::StringPort *sp    = static_cast<vst3::StringPort *>(p);
+                            plug::string_t *xs      = sp->data();
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
+                            lsp_trace("  %s = %s", meta->id, name);
+                            xs->submit(name, strlen(name), true);
                         }
                         else
                         {
@@ -2733,6 +2772,42 @@ namespace lsp
                 {
                     lsp_trace("path %s = %s", p->metadata()->id, in_path);
                     path->submit_async(in_path, flags);
+                }
+            }
+            else if (!strcmp(message_id, ID_MSG_STRING))
+            {
+                // Get endianess
+                if ((res = atts->getInt("endian", byte_order)) != Steinberg::kResultOk)
+                {
+                    lsp_warn("Failed to read property 'endian'");
+                    return Steinberg::kResultFalse;
+                }
+
+                // Get port identifier
+                const char *id = sRxNotifyBuf.get_string(atts, "id", byte_order);
+                if (id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Find string port
+                vst3::Port *p = vParamMapping.get(id);
+                if ((p == NULL) || (!meta::is_string_port(p->metadata())))
+                {
+                    lsp_warn("Invalid string port specified: %s", id);
+                    return Steinberg::kResultFalse;
+                }
+
+                // Get the string data
+                const char *in_str = sRxNotifyBuf.get_string(atts, "value", byte_order);
+                if (in_str == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Submit string data
+                vst3::StringPort *sp    = static_cast<vst3::StringPort *>(p);
+                plug::string_t *str     = sp->data();
+                if (str != NULL)
+                {
+                    lsp_trace("string %s = %s", p->metadata()->id, in_str);
+                    str->submit(in_str, false);
                 }
             }
             else if (!strcmp(message_id, vst3::ID_MSG_VIRTUAL_PARAMETER))

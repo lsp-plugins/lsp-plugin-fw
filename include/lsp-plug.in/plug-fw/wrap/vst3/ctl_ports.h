@@ -337,6 +337,76 @@ namespace lsp
                 }
         };
 
+        class CtlStringPort: public CtlPort
+        {
+            protected:
+                CtlPortChangeHandler   *pHandler;
+                char                   *pData;
+                uint32_t                nCapacity;
+
+            public:
+                explicit CtlStringPort(const meta::port_t *meta, CtlPortChangeHandler *handler):
+                    CtlPort(meta)
+                {
+                    pHandler        = handler;
+                    nCapacity       = size_t(meta->max) * 4;
+
+                    // Allocate buffer to store value
+                    pData                   = reinterpret_cast<char *>(malloc(nCapacity + 1));
+                    if (pData != NULL)
+                        pData[0]                = '\0';
+                }
+
+                virtual ~CtlStringPort()
+                {
+                    pHandler        = NULL;
+                    if (pData != NULL)
+                    {
+                        free(pData);
+                        pData                   = NULL;
+                    }
+                }
+
+                CtlStringPort(const CtlPathPort &) = delete;
+                CtlStringPort(CtlPathPort &&) = delete;
+
+                CtlStringPort & operator = (const CtlStringPort &) = delete;
+                CtlStringPort & operator = (CtlStringPort &&) = delete;
+
+            public:
+                virtual void write(const void* buffer, size_t size, size_t flags) override
+                {
+                    plug::utf8_strncpy(pData, nCapacity, buffer, size);
+                    if (pHandler != NULL)
+                        pHandler->port_write(this, flags);
+                }
+
+                virtual void write(const void* buffer, size_t size) override
+                {
+                    write(buffer, size, 0);
+                }
+
+                virtual void *buffer() override
+                {
+                    return pData;
+                }
+
+                virtual void set_default() override
+                {
+                    const meta::port_t *meta = metadata();
+                    const char *text = (meta != NULL) ? meta->value : "";
+
+                    write(text, strlen(text), plug::PF_PRESET_IMPORT);
+                }
+
+            public:
+                void commit_value(const char *text)
+                {
+                    plug::utf8_strncpy(pData, nCapacity, text);
+                }
+        };
+
+
         class CtlMeshPort: public CtlPort
         {
             protected:

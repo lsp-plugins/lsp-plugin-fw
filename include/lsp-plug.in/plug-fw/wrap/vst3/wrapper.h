@@ -123,7 +123,6 @@ namespace lsp
                 wssize_t                            nPlayLength;            // Sample playback length
                 plug::position_t                    sUIPosition;            // Position notified to UI
 
-
                 vst3::string_buf                    sRxNotifyBuf;           // Notify buffer for notify() processing
                 vst3::string_buf                    sTxNotifyBuf;           // Notify buffer for sync_data()
                 core::KVTStorage                    sKVT;                   // KVT storage

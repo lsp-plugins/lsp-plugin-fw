@@ -142,6 +142,11 @@ namespace lsp
                     vup = new vst3::CtlPathPort(port, this);
                     break;
 
+                case meta::R_STRING:
+                    lsp_trace("creating string port %s", port->id);
+                    vup = new vst3::CtlStringPort(port, this);
+                    break;
+
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
                 {
@@ -1043,6 +1048,19 @@ namespace lsp
                             pp->commit_value(name);
                             pp->mark_changed();
                         }
+                        else if (meta::is_string_port(meta))
+                        {
+                            vst3::CtlStringPort *sp     = static_cast<vst3::CtlStringPort *>(p);
+
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
+                            lsp_trace("  %s = %s", meta->id, name);
+                            sp->commit_value(name);
+                            sp->mark_changed();
+                        }
                         else if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)) || (meta::is_port_set_port(meta)))
                         {
                             vst3::CtlParamPort *pp      = static_cast<vst3::CtlParamPort *>(p);
@@ -1677,6 +1695,38 @@ namespace lsp
                     return;
                 // Write port identifier
                 if (!sTxNotifyBuf.set_string(list, "value", path))
+                    return;
+
+                // Finally, we're ready to send message
+                pPeerConnection->notify(msg);
+            }
+            else if (meta::is_string_port(meta))
+            {
+                const char *str = port->buffer<char>();
+                lsp_trace("port write: id=%s, value='%s'", port->id(), str);
+
+                // Check that we are available to send messages
+                if (pPeerConnection == NULL)
+                    return;
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID(vst3::ID_MSG_STRING);
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write port identifier
+                if (!sTxNotifyBuf.set_string(list, "id", meta->id))
+                    return;
+                // Write endianess
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                    return;
+                // Write port identifier
+                if (!sTxNotifyBuf.set_string(list, "value", str))
                     return;
 
                 // Finally, we're ready to send message
