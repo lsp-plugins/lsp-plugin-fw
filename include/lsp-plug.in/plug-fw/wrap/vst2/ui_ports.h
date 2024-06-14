@@ -79,17 +79,17 @@ namespace lsp
                 UIPortGroup & operator = (UIPortGroup &&) = delete;
 
             public:
-                virtual float value()
+                virtual float value() override
                 {
                     return pPort->value();
                 }
 
-                virtual void set_value(float value)
+                virtual void set_value(float value) override
                 {
                     pPort->set_value(value);
                 }
 
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     uatomic_t sid = pPG->sid();
                     if (sid == nSID)
@@ -121,7 +121,7 @@ namespace lsp
                 UIParameterPort(const UIParameterPort &) = delete;
                 UIParameterPort(UIParameterPort &&) = delete;
 
-                virtual ~UIParameterPort()
+                virtual ~UIParameterPort() override
                 {
                     fValue      = pMetadata->start;
                 }
@@ -130,19 +130,19 @@ namespace lsp
                 UIParameterPort & operator = (UIParameterPort &&) = delete;
 
             public:
-                virtual float value()
+                virtual float value() override
                 {
                     return fValue;
                 }
 
-                virtual void set_value(float value)
+                virtual void set_value(float value) override
                 {
                     fValue = meta::limit_value(pMetadata, value);
                     if (pPort != NULL)
                         pPort->write_value(value);
                 }
 
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     uatomic_t sid = static_cast<vst2::ParameterPort *>(pPort)->sid();
                     if (sid == nSID)
@@ -153,7 +153,7 @@ namespace lsp
                     return true;
                 }
 
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return pPort->buffer();
                 }
@@ -174,7 +174,7 @@ namespace lsp
                 UIMeterPort(const UIMeterPort &) = delete;
                 UIMeterPort(UIMeterPort &&) = delete;
 
-                virtual ~UIMeterPort()
+                virtual ~UIMeterPort() override
                 {
                     fValue      = pMetadata->start;
                 }
@@ -183,12 +183,12 @@ namespace lsp
                 UIMeterPort & operator = (UIMeterPort &&) = delete;
 
             public:
-                virtual float value()
+                virtual float value() override
                 {
                     return fValue;
                 }
 
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     float value = fValue;
                     if (pMetadata->flags & meta::F_PEAK)
@@ -217,7 +217,7 @@ namespace lsp
                 UIMeshPort(const UIMeshPort &) = delete;
                 UIMeshPort(UIMeshPort &&) = delete;
 
-                virtual ~UIMeshPort()
+                virtual ~UIMeshPort() override
                 {
                     vst2::destroy_mesh(pMesh);
                     pMesh = NULL;
@@ -227,7 +227,7 @@ namespace lsp
                 UIMeshPort & operator = (UIMeshPort &&) = delete;
 
             public:
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     plug::mesh_t *mesh = reinterpret_cast<plug::mesh_t *>(pPort->buffer());
                     if ((mesh == NULL) || (!mesh->containsData()))
@@ -244,7 +244,7 @@ namespace lsp
                     return true;
                 }
 
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return pMesh;
                 }
@@ -265,7 +265,7 @@ namespace lsp
                 UIStreamPort(const UIStreamPort &) = delete;
                 UIStreamPort(UIStreamPort &&) = delete;
 
-                virtual ~UIStreamPort()
+                virtual ~UIStreamPort() override
                 {
                     plug::stream_t::destroy(pStream);
                     pStream     = NULL;
@@ -275,13 +275,13 @@ namespace lsp
                 UIStreamPort & operator = (UIStreamPort &&) = delete;
 
             public:
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     plug::stream_t *stream = pPort->buffer<plug::stream_t>();
                     return (stream != NULL) ? pStream->sync(stream) : false;
                 }
 
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return pStream;
                 }
@@ -302,7 +302,7 @@ namespace lsp
                 UIFrameBufferPort(const UIFrameBufferPort &) = delete;
                 UIFrameBufferPort(UIFrameBufferPort &&) = delete;
 
-                virtual ~UIFrameBufferPort()
+                virtual ~UIFrameBufferPort() override
                 {
                     sFB.destroy();
                 }
@@ -311,14 +311,14 @@ namespace lsp
                 UIFrameBufferPort & operator = (UIFrameBufferPort &&) = delete;
 
             public:
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     // Check if there is data for viewing
                     plug::frame_buffer_t *fb = pPort->buffer<plug::frame_buffer_t>();
                     return (fb != NULL) ? sFB.sync(fb) : false;
                 }
 
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return &sFB;
                 }
@@ -342,7 +342,7 @@ namespace lsp
                 UIPathPort(const UIPathPort &) = delete;
                 UIPathPort(UIPathPort &&) = delete;
 
-                virtual ~UIPathPort()
+                virtual ~UIPathPort() override
                 {
                     pPath       = NULL;
                 }
@@ -351,28 +351,28 @@ namespace lsp
                 UIPathPort & operator = (UIPathPort &&) = delete;
 
             public:
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     return pPath->ui_sync();
                 }
 
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return (pPath != NULL) ? pPath->sUiPath : NULL;
                 }
 
-                virtual void write(const void *buffer, size_t size)
+                virtual void write(const void *buffer, size_t size) override
                 {
                     write(buffer, size, 0);
                 }
 
-                virtual void write(const void *buffer, size_t size, size_t flags)
+                virtual void write(const void *buffer, size_t size, size_t flags) override
                 {
                     if (pPath != NULL)
                         pPath->submit(static_cast<const char *>(buffer), size, true, flags);
                 }
 
-                virtual void set_default()
+                virtual void set_default() override
                 {
                     write("", 0, plug::PF_PRESET_IMPORT);
                 }
@@ -400,7 +400,7 @@ namespace lsp
                 UIStringPort(const UIStringPort &) = delete;
                 UIStringPort(UIStringPort &&) = delete;
 
-                virtual ~UIStringPort()
+                virtual ~UIStringPort() override
                 {
                     pValue                  = NULL;
                     if (pData != NULL)
@@ -414,17 +414,17 @@ namespace lsp
                 UIStringPort & operator = (UIStringPort &&) = delete;
 
             public:
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return pData;
                 }
 
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     return pValue->fetch(&nSerial, pData, pValue->max_bytes() + 1);
                 }
 
-                virtual void write(const void *buffer, size_t size)
+                virtual void write(const void *buffer, size_t size) override
                 {
                     write(buffer, size, 0);
                 }
@@ -467,7 +467,7 @@ namespace lsp
                 UIOscPortIn(const UIOscPortIn &) = delete;
                 UIOscPortIn(UIOscPortIn &&) = delete;
 
-                virtual ~UIOscPortIn()
+                virtual ~UIOscPortIn() override
                 {
                     if (sPacket.data != NULL)
                     {
@@ -480,7 +480,7 @@ namespace lsp
                 UIOscPortIn & operator = (UIOscPortIn &&) = delete;
 
             public:
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     // Check if there is data for viewing
                     bSyncAgain              = false;
@@ -521,9 +521,12 @@ namespace lsp
                     }
                 }
 
-                virtual bool sync_again() { return bSyncAgain; }
+                virtual bool sync_again() override
+                {
+                    return bSyncAgain;
+                }
 
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return &sPacket;
                 }
@@ -543,9 +546,12 @@ namespace lsp
                 UIOscPortOut & operator = (UIOscPortOut &&) = delete;
 
             public:
-                virtual void *buffer() { return NULL; }
+                virtual void *buffer() override
+                {
+                    return NULL;
+                }
 
-                virtual void write(const void *buffer, size_t size)
+                virtual void write(const void *buffer, size_t size) override
                 {
                     core::osc_buffer_t *fb = pPort->buffer<core::osc_buffer_t>();
                     if (fb != NULL)
