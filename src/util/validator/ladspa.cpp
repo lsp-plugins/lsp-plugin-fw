@@ -72,6 +72,10 @@ namespace lsp
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)
             {
+                // Skip plugins that do not introduce LADSPA support
+                if ((meta->uids.ladspa_id <= 0) || (meta->uids.ladspa_lbl == NULL))
+                    return;
+
                 switch (port->role)
                 {
                     case meta::R_PATH:

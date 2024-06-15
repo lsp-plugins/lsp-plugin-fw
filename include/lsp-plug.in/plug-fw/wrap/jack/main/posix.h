@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 янв. 2021 г.
@@ -120,6 +120,9 @@ namespace lsp
             DIR *d = opendir(path);
             if (d == NULL)
                 return NULL;
+            lsp_finally {
+                closedir(d);
+            };
 
             struct dirent *de;
             char *ptr = NULL;
@@ -185,11 +188,7 @@ namespace lsp
 
                     jack_main_function_t f = lookup_jack_main(hInstance, required, ptr);
                     if (f != NULL)
-                    {
-                        free(ptr);
-                        closedir(d);
                         return f;
-                    }
                 }
                 else if (de->d_type == DT_REG)
                 {
@@ -221,14 +220,16 @@ namespace lsp
                         lsp_trace("library %s not loaded: %s", ptr, dlerror());
                         continue;
                     }
+                    lsp_finally {
+                        if (inst != NULL)
+                            dlclose(inst);
+                    };
 
                     // Fetch version function
                     module_version_t vf = reinterpret_cast<module_version_t>(dlsym(inst, LSP_VERSION_FUNC_NAME));
                     if (!vf)
                     {
                         lsp_trace("version function %s not found: %s", LSP_VERSION_FUNC_NAME, dlerror());
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
 
@@ -237,8 +238,6 @@ namespace lsp
                     if ((ret == NULL) || (ret->branch == NULL))
                     {
                         lsp_trace("No version or bad version returned, ignoring binary", ret);
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
                     else if ((ret->major != required->major) ||
@@ -251,8 +250,6 @@ namespace lsp
                                 ret->major, ret->minor, ret->micro, ret->branch,
                                 required->major, required->minor, required->micro, required->branch
                             );
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
 
@@ -261,22 +258,14 @@ namespace lsp
                     if (!f)
                     {
                         lsp_trace("function %s not found: %s", JACK_MAIN_FUNCTION_NAME, dlerror());
-                        // Close library
-                        dlclose(inst);
                         continue;
                     }
 
-                    *hInstance = inst;
-                    free(ptr);
-                    closedir(d);
+                    *hInstance = release_ptr(inst);
                     return f;
                 }
             }
 
-            // Free previously used string, close directory and exit
-            if (ptr != NULL)
-                free(ptr);
-            closedir(d);
             return NULL;
         }
 
