@@ -44,17 +44,41 @@ namespace lsp
             private:
                 friend class Catalog;
 
+                typedef struct state_t
+                {
+                    volatile uint32_t       nRequest;
+                    volatile uint32_t       nResponse;
+                } state_t;
+
             private:
+                state_t                 sUpdate;
+                state_t                 sApply;
+
+            protected:
                 Catalog                *pCatalog;
-                volatile uint32_t       nRequest;
-                volatile uint32_t       nResponse;
 
             private:
                 status_t                do_close();
 
             public:
                 ICatalogClient();
+                ICatalogClient(const ICatalogClient &) = delete;
+                ICatalogClient(ICatalogClient &&) = delete;
                 virtual ~ICatalogClient();
+
+                ICatalogClient & operator = (const ICatalogClient &) = delete;
+                ICatalogClient & operator = (ICatalogClient &&) = delete;
+
+            protected:
+                /**
+                 * Request the catalog to call update() in it's thread.
+                 */
+                void                    request_update();
+
+                /**
+                 * Request the catalog to call update() in it's thread.
+                 */
+                void                    request_apply();
 
             public:
                 /**
@@ -71,11 +95,6 @@ namespace lsp
                 status_t                close();
 
                 /**
-                 * Request the catalog to call update() in it's thread.
-                 */
-                void                    request();
-
-                /**
                  * Check that client is connected to catalog
                  * @return true if client is connected to catalog
                  */
@@ -85,13 +104,17 @@ namespace lsp
                 /**
                  * Notify client about changes in the catalog and force the client to
                  * update configuration.
+                 * @param catalog the catalog that can be modified
+                 * @return true if update has successfully passed, false if update call should be retried after a while
                  */
-                virtual void            update();
+                virtual bool            update(dspu::Catalog * catalog);
 
                 /**
                  * Apply changes introduced by the client to the catalog.
+                 * @param catalog the catalog that can be modified
+                 * @return true if apply has successfully passed, false if apply call should be retried after a while
                  */
-                virtual void            apply();
+                virtual bool            apply(dspu::Catalog * catalog);
         };
 
     } /* namespace core */

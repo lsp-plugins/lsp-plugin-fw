@@ -29,6 +29,7 @@ namespace lsp
 
         Catalog::Catalog()
         {
+            pThread         = NULL;
         }
 
         Catalog::~Catalog()
@@ -37,7 +38,7 @@ namespace lsp
 
         status_t Catalog::run()
         {
-            while (!cancelled())
+            while (!ipc::Thread::is_cancelled())
             {
                 // Ensure that catalog is opened
                 if (!sCatalog.opened())
@@ -45,19 +46,17 @@ namespace lsp
                     status_t res    = sCatalog.open("lsp-catalog.shm", 8192);
                     if (res != STATUS_OK)
                     {
-                        Thread::sleep(100);
+                        ipc::Thread::sleep(100);
                         continue;
                     }
                 }
 
                 // Process change requests
-                while (process_events())
+                if (!process_events())
                 {
-                    // Nothing
+                    // Perform short sleep
+                    ipc::Thread::sleep(50);
                 }
-
-                // Perform small sleep
-                Thread::sleep(50);
             }
 
             // Disconnect from catalog
@@ -69,43 +68,36 @@ namespace lsp
 
         bool Catalog::process_events()
         {
-            size_t processed = process_requests();
-            processed += process_changes();
-            return  processed > 0;
+            sync_catalog();
+
+            size_t processed = process_update();
+            processed += process_apply();
+
+            return processed > 0;
         }
 
-        size_t Catalog::process_requests()
+        void Catalog::sync_catalog()
         {
-            size_t count = 0;
+            if (!sCatalog.sync())
+                return;
 
             // Lock the state
             if (!sMutex.lock())
-                return count;
+                return;
             lsp_finally {
                 sMutex.unlock();
             };
 
-            // Iterate over the clients
+            // Iterate over the clients and mark them for update
             for (lltl::iterator<ICatalogClient> it = vClients.values(); it; ++it)
             {
                 ICatalogClient *c = it.get();
-                if (c == NULL)
-                    continue;
-
-                // Call the client to apply changes
-                const uint32_t response = c->nRequest;
-                if (response != c->nResponse)
-                {
-                    c->apply();
-                    c->nResponse = response;
-                    ++count;
-                }
+                if (c != NULL)
+                    atomic_add(&c->sUpdate.nRequest, 1);
             }
-
-            return count;
         }
 
-        size_t Catalog::process_changes()
+        size_t Catalog::process_update()
         {
             size_t count = 0;
 
@@ -119,7 +111,7 @@ namespace lsp
                 sMutex.unlock();
             };
 
-            // Iterate over the clients
+            // Iterate over the clients and try to update them
             for (lltl::iterator<ICatalogClient> it = vClients.values(); it; ++it)
             {
                 ICatalogClient *c = it.get();
@@ -127,13 +119,52 @@ namespace lsp
                     continue;
 
                 // Call the client to update
-                const uint32_t response = c->nRequest;
-                if (response != c->nResponse)
+                const uint32_t response     = c->sUpdate.nRequest;
+                if (response == c->sUpdate.nResponse)
+                    continue;
+                ++count;
+
+                // Commit only if update was successful
+                if (c->update(&sCatalog))
+                    c->sUpdate.nResponse    = response;
+            }
+
+            return count;
+        }
+
+        size_t Catalog::process_apply()
+        {
+            size_t count = 0;
+
+            // Lock the state
+            if (!sMutex.lock())
+                return count;
+            lsp_finally {
+                sMutex.unlock();
+            };
+
+            // Iterate over the clients
+            for (lltl::iterator<ICatalogClient> it = vClients.values(); it; ++it)
+            {
+                ICatalogClient *c = it.get();
+                if (c == NULL)
+                    continue;
+
+                // Do not call apply if update is pending
+                if (c->sUpdate.nRequest != c->sUpdate.nResponse)
                 {
-                    c->update();
-                    c->nResponse = response;
                     ++count;
+                    continue;
                 }
+
+                // Call the client to apply changes
+                const uint32_t response = c->sApply.nRequest;
+                if (response == c->sApply.nResponse)
+                    continue;
+                ++count;
+
+                if (c->apply(&sCatalog))
+                    c->sApply.nResponse = response;
             }
 
             return count;
@@ -141,32 +172,86 @@ namespace lsp
 
         status_t Catalog::add_client(ICatalogClient *client)
         {
-            // Lock data structures
-            if (!sMutex.lock())
+            // Lock thread mutex
+            if (!sThread.lock())
                 return STATUS_UNKNOWN_ERR;
             lsp_finally {
-                sMutex.unlock();
+                sThread.unlock();
             };
 
-            // Check that client is not connected already
-            if (vClients.contains(client))
-                return STATUS_ALREADY_BOUND;
+            // Add client
+            {
+                // Lock data structures
+                if (!sMutex.lock())
+                    return STATUS_UNKNOWN_ERR;
+                lsp_finally {
+                    sMutex.unlock();
+                };
 
-            // Add client to the list of clients
-            return (vClients.add(client)) ? STATUS_OK : STATUS_NO_MEM;
+                // Check that client is not connected already
+                if (vClients.contains(client))
+                    return STATUS_ALREADY_BOUND;
+
+                // Add client to the list of clients
+                if (!vClients.add(client))
+                    return STATUS_NO_MEM;
+            }
+
+            // Check that we have a dispatcher tread running
+            if (pThread != NULL)
+                return STATUS_OK;
+
+            // Start the dispatcher thread
+            pThread         = new ipc::Thread(this);
+            status_t res    = (pThread != NULL) ? pThread->start() : STATUS_NO_MEM;
+            if (res != STATUS_OK)
+            {
+                if (pThread != NULL)
+                    delete pThread;
+                vClients.qpremove(client);
+            }
+
+            return res;
         }
 
         status_t Catalog::remove_client(ICatalogClient *client)
         {
-            // Lock data structures
-            if (!sMutex.lock())
+            // Lock thread mutex
+            if (!sThread.lock())
                 return STATUS_UNKNOWN_ERR;
             lsp_finally {
-                sMutex.unlock();
+                sThread.unlock();
             };
 
-            // Just remove client
-            return (vClients.qpremove(client)) ? STATUS_OK : STATUS_NOT_BOUND;
+            // Remove client
+            {
+                // Lock data structures
+                if (!sMutex.lock())
+                    return STATUS_UNKNOWN_ERR;
+                lsp_finally {
+                    sMutex.unlock();
+                };
+
+                // Remove client
+                if (!vClients.qpremove(client))
+                    return STATUS_NOT_BOUND;
+
+                if (!vClients.is_empty())
+                    return STATUS_OK;
+            }
+
+            // Check that we don't have a dispatcher tread running
+            if (pThread == NULL)
+                return STATUS_OK;
+
+            // Stop the dispatcher thread
+            if (pThread != NULL)
+            {
+                pThread->cancel();
+                pThread->join();
+            }
+
+            return STATUS_OK;
         }
     } /* namespace core */
 } /* namespace lsp */

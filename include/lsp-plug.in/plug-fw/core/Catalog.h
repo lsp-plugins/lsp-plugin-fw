@@ -38,22 +38,25 @@ namespace lsp
         /**
          * Catalog manager
          */
-        class Catalog: public ipc::Thread
+        class Catalog: public ipc::IRunnable
         {
             private:
                 friend class ICatalogClient;
 
             private:
                 dspu::Catalog           sCatalog;
+                ipc::Mutex              sThread;
                 ipc::Mutex              sMutex;
+                ipc::Thread            *pThread;
                 lltl::parray<ICatalogClient>  vClients;
 
             protected:
                 status_t            add_client(ICatalogClient *client);
                 status_t            remove_client(ICatalogClient *client);
                 bool                process_events();
-                size_t              process_requests();
-                size_t              process_changes();
+                void                sync_catalog();
+                size_t              process_apply();
+                size_t              process_update();
 
             public:
                 explicit Catalog();
@@ -64,9 +67,8 @@ namespace lsp
                 Catalog & operator = (const Catalog &) = delete;
                 Catalog & operator = (Catalog &) = delete;
 
-            public:
+            public: // ipc::IRunnable
                 virtual status_t    run() override;
-
         };
 
     } /* namespace core */

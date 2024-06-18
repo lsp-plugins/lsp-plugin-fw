@@ -28,9 +28,11 @@ namespace lsp
     {
         ICatalogClient::ICatalogClient()
         {
-            pCatalog        = NULL;
-            nRequest        = 0;
-            nResponse       = 0;
+            pCatalog            = NULL;
+            sUpdate.nRequest    = 0;
+            sUpdate.nResponse   = 0;
+            sApply.nRequest     = 0;
+            sApply.nResponse    = 0;
         }
 
         ICatalogClient::~ICatalogClient()
@@ -53,13 +55,18 @@ namespace lsp
                 return STATUS_ALREADY_BOUND;
 
             // Mark for update
-            const uint32_t response = nResponse;
-            nResponse               = nRequest - 1;
+            const uint32_t upd_response = sUpdate.nResponse;
+            const uint32_t apl_response = sApply.nResponse;
+            sUpdate.nResponse           = sUpdate.nRequest - 1;
+            sApply.nResponse            = sApply.nRequest - 1;
 
             // Connect and verify result
             status_t res = catalog->add_client(this);
             if (res != STATUS_OK)
-                nResponse               = response;
+            {
+                sUpdate.nResponse           = upd_response;
+                sApply.nResponse            = apl_response;
+            }
 
             return res;
         }
@@ -69,17 +76,19 @@ namespace lsp
             return do_close();
         }
 
-        void ICatalogClient::request()
+        void ICatalogClient::request_update()
         {
-            atomic_add(&nRequest, 1);
+            atomic_add(&sUpdate.nRequest, 1);
         }
 
-        void ICatalogClient::update()
+        bool ICatalogClient::update(dspu::Catalog * catalog)
         {
+            return true;
         }
 
-        void ICatalogClient::apply()
+        bool ICatalogClient::apply(dspu::Catalog * catalog)
         {
+            return true;
         }
 
         bool ICatalogClient::connected() const
