@@ -29,9 +29,9 @@ namespace lsp
         ICatalogClient::ICatalogClient()
         {
             pCatalog            = NULL;
-            sUpdate.nRequest    = 0;
+            atomic_store(&sUpdate.nRequest, 0);
             sUpdate.nResponse   = 0;
-            sApply.nRequest     = 0;
+            atomic_store(&sApply.nRequest, 0);
             sApply.nResponse    = 0;
         }
 

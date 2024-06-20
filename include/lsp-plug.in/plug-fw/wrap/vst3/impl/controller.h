@@ -54,7 +54,8 @@ namespace lsp
             const meta::plugin_t *meta)
         {
             lsp_trace("this=%p", this);
-            nRefCounter         = 1;
+
+            atomic_store(&nRefCounter, 1);
             pFactory            = safe_acquire(factory);
             pLoader             = loader;
             pPackage            = package;

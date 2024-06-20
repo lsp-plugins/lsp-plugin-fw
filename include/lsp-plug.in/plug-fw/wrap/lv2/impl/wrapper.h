@@ -82,8 +82,8 @@ namespace lsp
             bStateManage    = false;
             fSampleRate     = DEFAULT_SAMPLE_RATE;
             pOscPacket      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX));
-            nStateMode      = SM_LOADING;
-            nDumpReq        = 0;
+            atomic_store(&nStateMode, SM_LOADING);
+            atomic_store(&nDumpReq, 0);
             nDumpResp       = 0;
             pPackage        = NULL;
             pKVTDispatcher  = NULL;
@@ -572,7 +572,7 @@ namespace lsp
             receive_atoms(samples);
 
             // Pre-rocess regular ports
-            size_t smode            = nStateMode;
+            size_t smode            = atomic_load(&nStateMode);
             for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
             {
                 // Get port
@@ -602,7 +602,7 @@ namespace lsp
             }
 
             // Need to dump state?
-            uatomic_t dump_req  = nDumpReq;
+            uatomic_t dump_req  = atomic_load(&nDumpReq);
             if (dump_req != nDumpResp)
             {
                 dump_plugin_state();
@@ -1375,7 +1375,7 @@ namespace lsp
                 pExt->forge_frame_time(0); // Event header
                 pExt->forge_object(&frame, pExt->uridBlank, pExt->uridStateChanged);
                 pExt->forge_pop(&frame);
-                lsp_trace("#STATE MODE = %d", nStateMode);
+                lsp_trace("#STATE MODE = %d", atomic_load(&nStateMode));
             }
 
             // For each MIDI port, serialize it's data
@@ -1666,8 +1666,8 @@ namespace lsp
             pPlugin->before_state_save();
 
             // Mark state as synchronized
-            nStateMode      = SM_SYNC;
-            lsp_trace("#STATE MODE = %d", nStateMode);
+            atomic_store(&nStateMode, SM_SYNC);
+            lsp_trace("#STATE MODE = %d", atomic_load(&nStateMode));
 
             // Init context
             pExt->init_state_context(store, NULL, handle, flags, features);
@@ -2055,8 +2055,8 @@ namespace lsp
 
             // Update the state
             pExt->reset_state_context();
-            nStateMode = SM_LOADING;
-            lsp_trace("#STATE MODE = %d", nStateMode);
+            atomic_store(&nStateMode, SM_LOADING);
+            lsp_trace("#STATE MODE = %d", atomic_load(&nStateMode));
 
             // Notify that plugin state has been loaded
             pPlugin->state_loaded();
@@ -2067,7 +2067,7 @@ namespace lsp
             // Perform atomic state change
             while (true)
             {
-                if (nStateMode != from)
+                if (atomic_load(&nStateMode) != from)
                     return false;
                 if (atomic_cas(&nStateMode, from, to))
                 {

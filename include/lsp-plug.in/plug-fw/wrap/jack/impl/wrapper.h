@@ -39,12 +39,12 @@ namespace lsp
             nLatency        = 0;
             pExecutor       = NULL;
 
-            nPosition       = 0;
+            atomic_store(&nPosition, 0);
             bUIActive       = false;
 
-            nQueryDrawReq   = 0;
+            atomic_store(&nQueryDrawReq, 0);
             nQueryDrawResp  = 0;
-            nDumpReq        = 0;
+            atomic_store(&nDumpReq, 0);
             nDumpResp       = 0;
 
             pSamplePlayer   = NULL;
@@ -58,9 +58,7 @@ namespace lsp
             nState          = S_CREATED;
             nLatency        = 0;
             pExecutor       = NULL;
-            nQueryDrawReq   = 0;
             nQueryDrawResp  = 0;
-            nDumpReq        = 0;
             nDumpResp       = 0;
             pSamplePlayer   = NULL;
         }
@@ -365,7 +363,7 @@ namespace lsp
             }
 
             // Need to dump state?
-            uatomic_t dump_req  = nDumpReq;
+            uatomic_t dump_req  = atomic_load(&nDumpReq);
             if (dump_req != nDumpResp)
             {
                 dump_plugin_state();
@@ -1088,7 +1086,7 @@ namespace lsp
 
         bool Wrapper::test_display_draw()
         {
-            uatomic_t last      = nQueryDrawReq;
+            uatomic_t last      = atomic_load(&nQueryDrawReq);
             bool result         = last != nQueryDrawResp;
             nQueryDrawResp      = last;
             return result;

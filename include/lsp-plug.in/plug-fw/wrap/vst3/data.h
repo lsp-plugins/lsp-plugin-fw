@@ -108,7 +108,7 @@ namespace lsp
             };
 
             uint8_t             nFlags;                 // Current state of path primitive
-            volatile uint8_t    nAFlags;                // Async request status
+            uint8_t             nAFlags;                // Async request status
             atomic_t            nLock;                  // Atomic lock variable for async access
             uint32_t            nPathFlags;             // Path flags
             uint32_t            nPPathFlags;            // Pending path flags
@@ -121,7 +121,7 @@ namespace lsp
             virtual void init() override
             {
                 nFlags          = 0;
-                nAFlags         = 0;
+                atomic_store(&nAFlags, 0);
                 atomic_init(nLock);
                 sPath[0]        = '\0';
                 sQPath[0]       = '\0';
@@ -172,7 +172,7 @@ namespace lsp
                 }
 
                 // Check that we have pending async request
-                if (!(nAFlags & XF_APATH))
+                if (!(atomic_load(&nAFlags) & XF_APATH))
                     return false;
                 if (atomic_trylock(nLock))
                 {
@@ -182,7 +182,7 @@ namespace lsp
                     strncpy(sPath, sAPath, MAX_PATH_LEN);
                     sPath[MAX_PATH_LEN-1]   = '\0';
                     sAPath[0]               = '\0';
-                    nAFlags                 = 0;
+                    atomic_store(&nAFlags, 0);
                     nPathFlags              = nAPathFlags;
                     nFlags                  = F_PENDING;
                 }
@@ -225,7 +225,7 @@ namespace lsp
                         // Write Async request
                         ::strncpy(sAPath, path, MAX_PATH_LEN);
                         sAPath[MAX_PATH_LEN-1]  = '\0';
-                        nAFlags                 = XF_APATH;
+                        atomic_store(&nAFlags, XF_APATH);
                         nAPathFlags             = flags;
                         break;
                     }

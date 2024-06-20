@@ -103,8 +103,8 @@ namespace lsp
                 bool                    bStateManage;   // State management barrier
                 float                   fSampleRate;
                 uint8_t                *pOscPacket;     // OSC packet data
-                volatile uatomic_t      nStateMode;     // State change flag
-                volatile uatomic_t      nDumpReq;
+                uatomic_t               nStateMode;     // State change flag
+                uatomic_t               nDumpReq;
                 uatomic_t               nDumpResp;
                 meta::package_t        *pPackage;
 

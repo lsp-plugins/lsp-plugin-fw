@@ -44,19 +44,19 @@ namespace lsp
         {
             protected:
                 const meta::port_t             *pMetadata;
-                volatile uatomic_t              nSerial;
+                mutable uatomic_t               nSerial;
 
             public:
                 explicit CtlPort(const meta::port_t *meta)
                 {
                     pMetadata           = meta;
-                    nSerial             = 0;
+                    atomic_store(&nSerial, 0);
                 }
 
                 virtual ~CtlPort()
                 {
                     pMetadata           = NULL;
-                    nSerial             = 0;
+                    atomic_store(&nSerial, 0);
                 }
 
                 CtlPort(const CtlPort &) = delete;
@@ -124,7 +124,7 @@ namespace lsp
                  * Get serial version of the port
                  * @return serial version of the port
                  */
-                inline uatomic_t                serial() const { return nSerial; }
+                inline uatomic_t                serial() const { return atomic_load(&nSerial); }
 
                 /**
                  * Mark port as been changed

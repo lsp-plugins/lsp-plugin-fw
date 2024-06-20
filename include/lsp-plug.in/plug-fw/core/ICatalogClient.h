@@ -46,8 +46,8 @@ namespace lsp
 
                 typedef struct state_t
                 {
-                    volatile uint32_t       nRequest;
-                    volatile uint32_t       nResponse;
+                    uint32_t                nRequest;
+                    uint32_t                nResponse;
                 } state_t;
 
             private:

@@ -39,7 +39,7 @@ namespace lsp
     {
         PlatformTimer::PlatformTimer(IUISync *handler)
         {
-            nRefCounter     = 1;
+            atomic_store(&nRefCounter, 1);
             pHandler        = handler;
         }
 

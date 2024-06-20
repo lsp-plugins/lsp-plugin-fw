@@ -98,7 +98,7 @@ namespace lsp
                 };
 
             protected:
-                volatile uatomic_t                  nRefCounter;            // Reference counter
+                uatomic_t                           nRefCounter;            // Reference counter
                 PluginFactory                      *pFactory;               // Reference to the factory
                 const meta::package_t              *pPackage;               // Package information
                 Steinberg::FUnknown                *pHostContext;           // Host context
@@ -131,7 +131,7 @@ namespace lsp
                 core::KVTDispatcher                *pKVTDispatcher;         // KVT dispatcher
                 uint8_t                            *pOscPacket;             // OSC packet data
 
-                volatile uatomic_t                  nPositionLock;          // Position lock
+                uatomic_t                           nPositionLock;          // Position lock
                 uatomic_t                           nUICounterReq;          // UI counter request
                 uatomic_t                           nUICounterResp;         // Actual number of UIs
                 uatomic_t                           nDirtyReq;              // Dirty state request

@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/const.h>
+#include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/protocol/midi.h>
@@ -270,7 +271,7 @@ namespace lsp
                 size_t              nRows;              // Number of rows
                 size_t              nCols;              // Number of columns
                 uint32_t            nCapacity;          // Capacity (power of 2)
-                volatile uint32_t   nRowID;             // Unique row identifier
+                mutable uint32_t    nRowID;             // Unique row identifier
                 float              *vData;              // Aligned row data
                 uint8_t            *pData;              // Allocated row data
 
@@ -313,7 +314,7 @@ namespace lsp
                  * Get number of next row identifier
                  * @return next row identifier
                  */
-                inline uint32_t next_rowid() const { return nRowID; }
+                inline uint32_t next_rowid() const { return atomic_load(&nRowID); }
 
                 /**
                  * Return actual number of columns

@@ -52,7 +52,7 @@ namespace lsp
 {
     namespace vst3
     {
-        static volatile atomic_t entry_counter = 0;
+        static atomic_t entry_counter       = 0;
         static lsp::singletone_t library;
         static PluginFactory *plugin_factory = NULL;
 

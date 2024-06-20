@@ -719,7 +719,7 @@ namespace lsp
 
         void frame_buffer_t::seek(uint32_t row_id)
         {
-            nRowID          = row_id;
+            atomic_store(&nRowID, row_id);
         }
 
         void frame_buffer_t::read_row(float *dst, size_t row_id) const
@@ -736,13 +736,13 @@ namespace lsp
 
         float *frame_buffer_t::next_row() const
         {
-            uint32_t off    = nRowID & (nCapacity - 1);
+            uint32_t off    = atomic_load(&nRowID) & (nCapacity - 1);
             return &vData[off * nCols];
         }
 
         void frame_buffer_t::write_row(const float *row)
         {
-            uint32_t off    = nRowID & (nCapacity - 1);
+            uint32_t off    = atomic_load(&nRowID) & (nCapacity - 1);
             dsp::copy(&vData[off * nCols], row, nCols);
             atomic_add(&nRowID, 1); // Increment row identifier after bulk write
         }
@@ -765,7 +765,7 @@ namespace lsp
                 return false;
 
             // Estimate what to do
-            uint32_t src_rid = fb->next_rowid(), dst_rid = nRowID;
+            uint32_t src_rid = fb->next_rowid(), dst_rid = atomic_load(&nRowID);
             uint32_t delta = src_rid - dst_rid;
             if (delta == 0)
                 return false; // No changes
@@ -781,7 +781,7 @@ namespace lsp
                 dst_rid++;
             }
 
-            nRowID      = dst_rid;
+            atomic_store(&nRowID, dst_rid);
             return true;
         }
 
@@ -810,7 +810,7 @@ namespace lsp
             fb->nRows           = rows;
             fb->nCols           = cols;
             fb->nCapacity       = hcap;
-            fb->nRowID          = rows;
+            atomic_store(&fb->nRowID, rows);
             fb->vData           = reinterpret_cast<float *>(ptr);
             fb->pData           = data;
 
@@ -839,7 +839,7 @@ namespace lsp
             nRows               = rows;
             nCols               = cols;
             nCapacity           = hcap;
-            nRowID              = rows;
+            atomic_store(&nRowID, rows);
 
             dsp::fill_zero(vData, rows * cols);
             return STATUS_OK;

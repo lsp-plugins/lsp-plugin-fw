@@ -37,7 +37,7 @@ namespace lsp
 
         Message::Message()
         {
-            nRefCounter     = 1;
+            atomic_store(&nRefCounter, 1);
             sMessageId      = NULL;
 //            lsp_trace("this = %p" , this);
         }

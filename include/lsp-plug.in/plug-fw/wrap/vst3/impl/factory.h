@@ -57,7 +57,7 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
-            nRefCounter         = 1;
+            atomic_store(&nRefCounter, 1);
             nRefExecutor        = 0;
             pLoader             = NULL;
             pExecutor           = NULL;

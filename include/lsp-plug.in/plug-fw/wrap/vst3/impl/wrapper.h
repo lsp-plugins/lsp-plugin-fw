@@ -68,7 +68,7 @@ namespace lsp
             IWrapper(plugin, loader),
             sKVTListener(this)
         {
-            nRefCounter         = 1;
+            atomic_store(&nRefCounter, 1);
             pFactory            = safe_acquire(factory);
             pPackage            = package;
             pHostContext        = NULL;
@@ -1817,8 +1817,8 @@ namespace lsp
             // Sync position with UI
             if (atomic_trylock(nPositionLock))
             {
+                lsp_finally { atomic_unlock(nPositionLock); };
                 sUIPosition                 = sPosition;
-                atomic_unlock(nPositionLock);
             }
 
 //            lsp_trace("position sampleRate=%f, speed=%f, num=%f, den=%f, bpm=%f, tpb=%f, tick=%f",
@@ -2977,7 +2977,6 @@ namespace lsp
             // Send position information
             if (!atomic_trylock(nPositionLock))
                 return;
-
             plug::position_t pos        = sUIPosition;
             atomic_unlock(nPositionLock);
 
