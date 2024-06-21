@@ -226,7 +226,7 @@ namespace lsp
         {
             lsp_trace("slot_preset_override_click");
 
-            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+//            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
 
             // TODO: Ask for override confirmation
             // TODO: Update preset in the folder
