@@ -170,7 +170,7 @@ namespace lsp
             return count;
         }
 
-        status_t Catalog::add_client(ICatalogClient *client)
+        status_t Catalog::attach_client(ICatalogClient *client)
         {
             // Lock thread mutex
             if (!sThread.lock())
@@ -214,7 +214,7 @@ namespace lsp
             return res;
         }
 
-        status_t Catalog::remove_client(ICatalogClient *client)
+        status_t Catalog::detach_client(ICatalogClient *client)
         {
             // Lock thread mutex
             if (!sThread.lock())
