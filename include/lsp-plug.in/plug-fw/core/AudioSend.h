@@ -125,19 +125,19 @@ namespace lsp
                  * @param catalog catalog to connect to
                  * @return status of operation
                  */
-                status_t                connect(Catalog *catalog);
+                status_t                attach(Catalog *catalog);
 
                 /**
                  * Disconnect from catalog
                  * @return status of operation
                  */
-                status_t                close();
+                status_t                detach();
 
                 /**
                  * Check that client is connected to catalog
                  * @return true if client is connected to catalog
                  */
-                bool                    connected() const;
+                bool                    attached() const;
 
             public:
                 /**

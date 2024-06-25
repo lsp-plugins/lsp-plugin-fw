@@ -89,6 +89,21 @@ namespace lsp
             ptr->bFree          = true;
         }
 
+        status_t AudioSend::attach(Catalog *catalog)
+        {
+            return sClient.attach(catalog);
+        }
+
+        status_t AudioSend::detach()
+        {
+            return sClient.detach();
+        }
+
+        bool AudioSend::attached() const
+        {
+            return sClient.attached();
+        }
+
         AudioSend::stream_t *AudioSend::create_stream(Record *record, dspu::Catalog *catalog, const params_t * params)
         {
             // Allocate record
