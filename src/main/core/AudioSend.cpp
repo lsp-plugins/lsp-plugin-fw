@@ -70,6 +70,7 @@ namespace lsp
             {
                 params_t *p         = &vState[i];
                 p->nChannels        = 0;
+                p->nLength          = 0;
                 p->sName[0]         = '\0';
                 p->bFree            = true;
             }
@@ -272,6 +273,16 @@ namespace lsp
             return pStream->pStream->write(channel, src, samples);
         }
 
+        status_t AudioSend::write_sanitized(size_t channel, const float *src, size_t samples)
+        {
+            if (!bProcessing)
+                return STATUS_BAD_STATE;
+            if ((pStream == NULL) || (pStream->pStream == NULL))
+                return STATUS_OK;
+
+            return pStream->pStream->write_sanitized(channel, src, samples);
+        }
+
         status_t AudioSend::end()
         {
             if (!bProcessing)
@@ -281,6 +292,7 @@ namespace lsp
                 return STATUS_OK;
 
             status_t res = (pStream->pStream != NULL) ? pStream->pStream->end() : STATUS_OK;
+            bProcessing = false;
             pStream     = NULL;
 
             return res;

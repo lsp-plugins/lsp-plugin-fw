@@ -2,8 +2,8 @@
  * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugin-fw
- * Created on: 18 июн. 2024 г.
+ * This file is part of lsp-plugins-plugin-template
+ * Created on: 26 июн. 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CORE_AUDIOSEND_H_
-#define LSP_PLUG_IN_PLUG_FW_CORE_AUDIOSEND_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CORE_AUDIORETURN_H_
+#define LSP_PLUG_IN_PLUG_FW_CORE_AUDIORETURN_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 
@@ -33,9 +33,9 @@ namespace lsp
     namespace core
     {
         /**
-         * Audio send
+         * Audio return
          */
-        class AudioSend
+        class AudioReturn
         {
             private:
                 enum conn_status_t
@@ -43,14 +43,13 @@ namespace lsp
                     ST_INACTIVE,        // Inactive, no I/O is performing
                     ST_UPDATING,        // The update is in progress
                     ST_ACTIVE,          // The send is active and available for transferring data
+                    ST_STALLED,         // The transfer was stalled
                 };
 
                 typedef dspu::Catalog::Record   Record;
 
                 typedef struct params_t
                 {
-                    uint32_t            nChannels;      // Number of channels
-                    uint32_t            nLength;        // Buffer length
                     char                sName[64];      // Name of the connection
                     bool                bFree;          // Free flag
                 } params_t;
@@ -58,6 +57,8 @@ namespace lsp
                 typedef struct stream_t
                 {
                     dspu::AudioStream  *pStream;        // Stream for writing
+                    uint32_t            nStreamCounter; // Stream version counter
+                    uint32_t            nStallCounter;  // Stalled counter
                     params_t            sParams;        // Current params applied to stream
                 } stream_t;
 
@@ -65,10 +66,10 @@ namespace lsp
                 class Client: public ICatalogClient
                 {
                     private:
-                        AudioSend              *pSend;
+                        AudioReturn        *pReturn;
 
                     public:
-                        Client(AudioSend *send);
+                        Client(AudioReturn *rtrn);
                         virtual ~Client() override;
 
                     public:
@@ -85,6 +86,7 @@ namespace lsp
                 lltl::state<stream_t>   sStream;        // Current stream for RT operations
                 lltl::state<params_t>   sParams;        // Current state for RT operations
                 Record                  sRecord;        // Catalog record
+                params_t                sSetup;         // Setup parameters
                 params_t                vState[4];      // Allocation list
 
                 stream_t               *pStream;        // Current state used for RT I/O operations
@@ -93,7 +95,7 @@ namespace lsp
 
             private:
                 static void             free_params(params_t *ptr);
-                static stream_t        *create_stream(Record *record, dspu::Catalog *catalog, const params_t * params);
+                static stream_t        *create_stream(const Record *record, dspu::Catalog *catalog, const params_t * params);
                 static void             free_stream(stream_t *ptr);
 
             private:
@@ -101,13 +103,13 @@ namespace lsp
                 bool                    apply(dspu::Catalog *catalog);
 
             public:
-                AudioSend();
-                AudioSend(const AudioSend &) = delete;
-                AudioSend(AudioSend &&) = delete;
-                ~AudioSend();
+                AudioReturn();
+                AudioReturn(const AudioReturn &) = delete;
+                AudioReturn(AudioReturn &&) = delete;
+                ~AudioReturn();
 
-                AudioSend & operator = (const AudioSend &) = delete;
-                AudioSend & operator = (AudioSend &&) = delete;
+                AudioReturn & operator = (const AudioReturn &) = delete;
+                AudioReturn & operator = (AudioReturn &&) = delete;
 
             public:
                 /**
@@ -131,25 +133,29 @@ namespace lsp
 
             public:
                 /**
-                 * Publish new stream, RT safe
+                 * Connect to a publisher, RT safe
                  * @param name stream name
-                 * @param channels number of channels
-                 * @param length buffer length in audio frames
                  * @return true if operation wass successful
                  */
-                bool                    publish(const char *name, size_t channels, size_t length);
+                bool                    connect(const char *name);
 
                 /**
-                 * Revoke current published stream, RT safe
+                 * Disconnect from a publisher
                  * @return true if operation wass successful
                  */
-                bool                    revoke();
+                bool                    disconnect();
 
                 /**
-                 * Check that send is active and available for data transfer, RT safe
-                 * @return true if send is active and available for data transfer
+                 * Check that return is active and available for data receive
+                 * @return true if return is active and available for data receive
                  */
                 bool                    active() const;
+
+                /**
+                 * Check that return is stalled (connected but not receiving data)
+                 * @return true if return is stalled
+                 */
+                bool                    stalled() const;
 
                 /**
                  * Get name of the stream, RT safe
@@ -158,13 +164,13 @@ namespace lsp
                 const char             *name() const;
 
                 /**
-                 * Get number of channels, RT safe
+                 * Get number of channels of the publisher stream, RT safe
                  * @return number of channels or negative value if send is inactive
                  */
                 ssize_t                 channels() const;
 
                 /**
-                 * Get length of the audio buffer, RT safe
+                 * Get length of the audio buffer in the publisher stream, RT safe
                  * @return length of the audio buffer in frames or negative value if send is inactive
                  */
                 ssize_t                 length() const;
@@ -177,7 +183,7 @@ namespace lsp
                 status_t                begin(ssize_t block_size = 0);
 
                 /**
-                 * Write contents of the specific channel, RT safe
+                 * Read contents of specific channel, RT safe
                  * Should be called between begin() and end() calls
                  *
                  * @param channel number of channel
@@ -185,10 +191,10 @@ namespace lsp
                  * @param samples number of samples to read
                  * @return status of operation
                  */
-                status_t                write(size_t channel, const float *src, size_t samples);
+                status_t                read(size_t channel, float *dst, size_t samples);
 
                 /**
-                 * Write sanitized contents (removed NaNs, Infs and denormals) of the specific channel, RT safe
+                 * Read sanitized contents (removed NaNs, Infs and denormals) of specific channel, RT safe
                  * Should be called between begin() and end() calls
                  *
                  * @param channel number of channel
@@ -196,7 +202,7 @@ namespace lsp
                  * @param samples number of samples to read
                  * @return status of operation
                  */
-                status_t                write_sanitized(size_t channel, const float *src, size_t samples);
+                status_t                read_sanitized(size_t channel, float *dst, size_t samples);
 
                 /**
                  * End I/O operations on the stream, RT safe
@@ -208,4 +214,7 @@ namespace lsp
     } /* namespace core */
 } /* namespace lsp */
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CORE_AUDIOSEND_H_ */
+
+
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CORE_AUDIORETURN_H_ */
