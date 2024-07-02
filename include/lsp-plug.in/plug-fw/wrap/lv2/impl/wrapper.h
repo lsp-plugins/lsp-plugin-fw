@@ -490,7 +490,7 @@ namespace lsp
                     vPluginPorts.add(pg);
                     vAllPorts.add(pg);
                     plugin_ports->add(pg);
-                    lsp_trace("Added port_set port id=%s", result->metadata()->id);
+                    lsp_trace("Added port_set port id=%s", pg->metadata()->id);
 
                     // Generate nested ports
                     for (size_t row=0; row<pg->rows(); ++row)

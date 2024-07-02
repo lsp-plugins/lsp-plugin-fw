@@ -159,6 +159,14 @@ namespace lsp
 
         void Wrapper::destroy()
         {
+            // Destroy UI wrapper
+            if (pUIWrapper != NULL)
+            {
+                lsp_trace("Destroy UI wrapper ui=%p", pUIWrapper);
+                pUIWrapper->destroy();
+                delete pUIWrapper;
+            }
+
             // Destroy sample player
             if (pSamplePlayer != NULL)
             {
@@ -444,7 +452,8 @@ namespace lsp
                 return;
 
             pUIWrapper  = ui;
-            atomic_add(&nUIReq, 1);
+            if (ui != NULL)
+                atomic_add(&nUIReq, 1);
         }
 
         UIWrapper *Wrapper::ui_wrapper()

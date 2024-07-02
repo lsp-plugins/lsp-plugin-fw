@@ -648,6 +648,7 @@ namespace lsp
                 case effEditClose: // Close editor
                 {
                     UIWrapper *ui = w->ui_wrapper();
+                    lsp_trace("effEditClose ui=%p", ui);
                     if (ui == NULL)
                         break;
 

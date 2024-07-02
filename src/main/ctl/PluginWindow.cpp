@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 13 апр. 2021 г.
@@ -2305,6 +2305,8 @@ namespace lsp
                 return STATUS_NO_MEM;
             widgets()->add(w);
             w->init();
+
+            lsp_trace("Registered window ptr=%p, path=%s", static_cast<tk::Widget *>(w), path);
 
             // Create controller
             ctl::Window *wc = new ctl::Window(pWrapper, w);
