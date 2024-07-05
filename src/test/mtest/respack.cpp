@@ -53,6 +53,9 @@ MTEST_BEGIN("", respack)
             MTEST_ASSERT(cksum.fmt("%s/mtest-%s-cksum.json", tempdir(), full_name()) > 0);
 
             respack::cmdline_t cmd;
+            lsp_finally {
+                lsp::respack::free_cmdline(&cmd);
+            };
             cmd.src_dir = resdir.as_native();
             cmd.dst_file = outfile.as_native();
             cmd.checksums = cksum.as_native();

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 дек. 2021 г.
@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/io/PathPattern.h>
 
 namespace lsp
 {
@@ -34,9 +35,10 @@ namespace lsp
          */
         typedef struct cmdline_t
         {
-            const char         *src_dir;    // Source directory
-            const char         *dst_file;   // Destination file
-            const char         *checksums;  // Output checksums file
+            const char         *src_dir;            // Source directory
+            const char         *dst_file;           // Destination file
+            const char         *checksums;          // Output checksums file
+            lltl::parray<io::PathPattern> exclude;
         } cmdline_t;
 
         /**
@@ -56,14 +58,20 @@ namespace lsp
         status_t pack_resources(const cmdline_t *cmd);
 
         /**
+         *
+         */
+        void free_cmdline(cmdline_t *cmd);
+
+        /**
          * Execute the code of utility
          * @param argc number of command line arguments
          * @param argv list of command line arguments
          * @return status of operation
          */
         status_t main(int argc, const char **argv);
-    }
-}
+
+    } /* namespace respack */
+} /* namespace lsp */
 
 
 
