@@ -59,7 +59,13 @@ INTERNAL_FEATURES           =
 ifeq ($(TEST),1)
   INTERNAL_FEATURES            += test
 endif
-ENABLED_FEATURES            = $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
+ENABLED_FEATURES           := $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
+ifdef INSTALL_FEATURES
+  TMP_INSTALL_FEATURES       := $(call intersection,$(INSTALL_FEATURES),$(ENABLED_FEATURES))
+  override INSTALL_FEATURES   = $(TMP_INSTALL_FEATURES)
+else
+  INSTALL_FEATURES           := $(ENABLED_FEATURES)
+endif
 INTERNAL_FEATURES          += \
   $(call fcheck,$(ALLOWED_FEATURES),$(ENABLED_FEATURES),meta validate)
 
@@ -902,8 +908,8 @@ BIN_EXTRA_FILES             = $(foreach dep, $(BIN_EXTRA_SHARED) $(BIN_EXTRA_PLU
 )
 
 BUILD_TARGETS               = $(foreach feature,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(feature))
-INSTALL_TARGETS             = $(foreach feature,$(ENABLED_FEATURES),install_$(feature))
-UNINSTALL_TARGETS           = $(foreach feature,$(ENABLED_FEATURES),uninstall_$(feature))
+INSTALL_TARGETS             = $(foreach feature,$(INSTALL_FEATURES),install_$(feature))
+UNINSTALL_TARGETS           = $(foreach feature,$(INSTALL_FEATURES),uninstall_$(feature))
 PACKAGE_TARGETS             = $(foreach feature,$(filter-out xdg,$(ENABLED_FEATURES)),package_$(feature))
 
 #------------------------------------------------------------------------------
