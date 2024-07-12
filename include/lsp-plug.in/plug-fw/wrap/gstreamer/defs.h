@@ -32,6 +32,61 @@
 #include <gst/audio/audio.h>
 #include <gst/audio/gstaudiofilter.h>
 
+//-----------------------------------------------------------------------------
+// Workaround for rare GStreamer library begin
+G_BEGIN_DECLS
+
+#ifndef _GST_ELEMENT_REGISTER_DEFINE_BEGIN
+    #define _GST_ELEMENT_REGISTER_DEFINE_BEGIN(element) \
+    G_BEGIN_DECLS \
+    gboolean G_PASTE (gst_element_register_, element) (GstPlugin * plugin) \
+    { \
+      {
+#endif /* _GST_ELEMENT_REGISTER_DEFINE_BEGIN */
+
+#ifndef _GST_ELEMENT_REGISTER_DEFINE_END
+    #define _GST_ELEMENT_REGISTER_DEFINE_END(element_name, rank, type) \
+      } \
+      return gst_element_register (plugin, element_name, rank, type); \
+    } \
+    G_END_DECLS
+#endif /* _GST_ELEMENT_REGISTER_DEFINE_END */
+
+#ifndef GST_ELEMENT_REGISTER_DEFINE_CUSTOM
+    #define GST_ELEMENT_REGISTER_DEFINE_CUSTOM(element, register_func) \
+    G_BEGIN_DECLS \
+    gboolean G_PASTE (gst_element_register_, element) (GstPlugin * plugin) \
+    { \
+      return register_func (plugin); \
+    } \
+    G_END_DECLS
+#endif /* GST_ELEMENT_REGISTER_DEFINE_CUSTOM */
+
+#ifndef GST_ELEMENT_REGISTER_DEFINE
+    #define GST_ELEMENT_REGISTER_DEFINE(e, e_n, r, t) _GST_ELEMENT_REGISTER_DEFINE_BEGIN(e) _GST_ELEMENT_REGISTER_DEFINE_END(e_n, r, t)
+#endif /* GST_ELEMENT_REGISTER_DEFINE */
+
+#ifndef GST_ELEMENT_REGISTER_DEFINE_WITH_CODE
+    #define GST_ELEMENT_REGISTER_DEFINE_WITH_CODE(e, e_n, r, t, _c_) _GST_ELEMENT_REGISTER_DEFINE_BEGIN(e) {_c_;} _GST_ELEMENT_REGISTER_DEFINE_END(e_n, r, t)
+#endif /* GST_ELEMENT_REGISTER_DEFINE_WITH_CODE */
+
+#ifndef GST_ELEMENT_REGISTER_DECLARE
+    #define GST_ELEMENT_REGISTER_DECLARE(element) \
+    G_BEGIN_DECLS \
+    gboolean G_PASTE(gst_element_register_, element) (GstPlugin * plugin); \
+    G_END_DECLS
+#endif /* GST_ELEMENT_REGISTER_DECLARE */
+
+#ifndef GST_ELEMENT_REGISTER
+    #define GST_ELEMENT_REGISTER(element, plugin) G_PASTE(gst_element_register_, element) (plugin)
+#endif /* GST_ELEMENT_REGISTER */
+
+G_END_DECLS
+
+// Workaround for rare GStreamer library end
+//-----------------------------------------------------------------------------
+
+
 #define GSTREAMER_FACTORY_FUNCTION          plug_fw_get_gst_factory
 #define GSTREAMER_FACTORY_FUNCTION_NAME     LSP_STRINGIFY(GSTREAMER_FACTORY_FUNCTION)
 
