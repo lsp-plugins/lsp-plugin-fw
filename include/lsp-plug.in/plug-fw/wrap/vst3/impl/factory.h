@@ -734,6 +734,8 @@ namespace lsp
         {
             lsp_trace("enter main loop this=%p", this);
 
+            static constexpr size_t LOOP_INTERVAL = 40;
+
             lltl::parray<IDataSync> list;
 
             while (!ipc::Thread::is_cancelled())
@@ -773,8 +775,9 @@ namespace lsp
                 }
 
                 // Wait for a while
-                const system::time_millis_t delay = lsp_min(system::get_time_millis() - time, 40u);
-                ipc::Thread::sleep(delay);
+                const system::time_millis_t consumed = system::get_time_millis() - time;
+                if (consumed < LOOP_INTERVAL)
+                    ipc::Thread::sleep(LOOP_INTERVAL - consumed);
             }
 
             lsp_trace("leave main loop this=%p", this);
