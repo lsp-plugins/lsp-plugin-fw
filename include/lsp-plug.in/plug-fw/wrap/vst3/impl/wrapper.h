@@ -2236,6 +2236,7 @@ namespace lsp
                     continue;
 
                 plug::midi_t *queue = p->queue();
+                queue->clear();
 
                 // Process parameter changes
                 if (bMidiMapping)
@@ -2455,6 +2456,19 @@ namespace lsp
             return true;
         }
 
+        void Wrapper::clear_output_events()
+        {
+            if (pEventsOut == NULL)
+                return;
+
+            for (size_t i=0; i<pEventsOut->nPorts; ++i)
+            {
+                vst3::MidiPort *p = pEventsOut->vPorts[i];
+                if (p != NULL)
+                    p->queue()->clear();
+            }
+        }
+
         void Wrapper::process_output_events(Steinberg::Vst::IEventList *events)
         {
             if ((pEventsOut == NULL) || (events == NULL))
@@ -2469,17 +2483,15 @@ namespace lsp
                     continue;
 
                 plug::midi_t *queue = p->queue();
+
+                // Sort and encode events
                 queue->sort();
 
-                // Encode events
                 for (size_t j=0; j<queue->nEvents; ++j)
                 {
                     if (encode_midi_event(ev, queue->vEvents[j]))
                         events->addEvent(ev);
                 }
-
-                // Clear the output queue
-                queue->clear();
             }
         }
 
@@ -2509,6 +2521,7 @@ namespace lsp
             bind_bus_buffers(&vAudioOut, data.outputs, data.numOutputs, data.numSamples);
 
             // Process input events
+            clear_output_events();
             process_input_events(data.inputEvents, data.inputParameterChanges);
 
             // Reset change indices for parameters

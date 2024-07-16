@@ -183,6 +183,7 @@ namespace lsp
                 bool                        decode_parameter_as_midi_event(midi::event_t &e, size_t offset, size_t id, double value);
                 bool                        encode_midi_event(Steinberg::Vst::Event &ev, const midi::event_t &e);
                 void                        toggle_ui_state();
+                void                        clear_output_events();
                 void                        process_input_events(Steinberg::Vst::IEventList *events, Steinberg::Vst::IParameterChanges *params);
                 void                        process_output_events(Steinberg::Vst::IEventList *events);
                 void                        report_latency();
