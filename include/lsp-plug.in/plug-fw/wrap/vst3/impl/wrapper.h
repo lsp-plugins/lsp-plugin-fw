@@ -2464,7 +2464,7 @@ namespace lsp
 
             for (size_t i=0; i<pEventsOut->nPorts; ++i)
             {
-                vst3::MidiPort *p = pEventsIn->vPorts[i];
+                vst3::MidiPort *p = pEventsOut->vPorts[i];
                 if (p == NULL)
                     continue;
 

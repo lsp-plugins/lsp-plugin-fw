@@ -6,6 +6,7 @@
 * Added support of string ports.
 * Improved build tools: UI resources are now built-in only for libraries that
   need them.
+* Several fixes for VST3 wrapper.
 * Added INSTALL_FEATURES option.
 
 === 1.0.24 ===
