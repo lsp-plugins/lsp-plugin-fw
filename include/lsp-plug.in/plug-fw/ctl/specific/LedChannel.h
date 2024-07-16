@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 авг. 2021 г.
@@ -65,6 +65,7 @@ namespace lsp
                 float               fMax;
                 float               fBalance;
                 float               fValue;
+                float               fMaxValue;
                 float               fRms;
                 float               fReport;
                 float               fAttack;
@@ -80,6 +81,7 @@ namespace lsp
                 ctl::Boolean        sPeakVisible;
                 ctl::Boolean        sBalanceVisible;
                 ctl::Boolean        sTextVisible;
+                ctl::Boolean        sHeaderVisible;
 
                 ctl::Color          sColor;
                 ctl::Color          sValueColor;
@@ -93,20 +95,27 @@ namespace lsp
                 static status_t     update_meter(ws::timestamp_t sched, ws::timestamp_t time, void *arg);
                 static status_t     slot_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_hide(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_mouse_click(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                update_peaks(ws::timestamp_t ts);
                 float               calc_value(float value);
-                void                set_meter_text(tk::LedMeterChannel *lmc, float value);
+                void                set_meter_text(tk::String *dst, float value);
                 void                sync_channel();
                 void                sync_colors();
+                void                on_mouse_click(const ws::event_t *ev);
 
             protected:
                 virtual void        property_changed(tk::Property *prop) override;
 
             public:
                 explicit LedChannel(ui::IWrapper *wrapper, tk::LedMeterChannel *widget);
+                LedChannel(const LedChannel &) = delete;
+                LedChannel(LedChannel &&) = delete;
                 virtual ~LedChannel() override;
+
+                LedChannel & operator = (const LedChannel &) = delete;
+                LedChannel & operator = (LedChannel &&) = delete;
 
                 virtual status_t    init() override;
                 virtual void        destroy() override;
@@ -116,9 +125,12 @@ namespace lsp
                 virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        end(ui::UIContext *ctx) override;
                 virtual void        reloaded(const tk::StyleSheet *sheet) override;
+
+            public:
+                void                cleanup_header();
         };
-    } // namespace ctl
-} // namespace lsp
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_LEDCHANNEL_H_ */

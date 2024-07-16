@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 июл. 2021 г.
@@ -71,8 +71,12 @@ namespace lsp
             tk::LedMeter *lm = tk::widget_cast<tk::LedMeter>(wWidget);
             if (lm != NULL)
             {
+                lm->pass_events()->set(false);
+
                 sEstText.init(pWrapper, lm->estimation_text());
                 sColor.init(pWrapper, lm->color());
+
+                lm->slots()->bind(tk::SLOT_MOUSE_CLICK, slot_mouse_click, self());
             }
 
             return STATUS_OK;
@@ -96,6 +100,8 @@ namespace lsp
                 set_param(lm->stereo_groups(), "sgroups", name, value);
                 set_param(lm->text_visible(), "text.visible", name, value);
                 set_param(lm->text_visible(), "tvisible", name, value);
+                set_param(lm->header_visible(), "header.visible", name, value);
+                set_param(lm->header_visible(), "hvisible", name, value);
                 set_param(lm->min_channel_width(), "channel_width.min", name, value);
                 set_param(lm->min_channel_width(), "cwidth.min", name, value);
             }
@@ -113,10 +119,51 @@ namespace lsp
             if (lm == NULL)
                 return STATUS_BAD_STATE;
 
+            vChildren.add(child);
+
             return lm->items()->add(lmc);
         }
 
-    } // namespace ctl
-} // namespace lsp
+        status_t LedMeter::slot_mouse_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            LedMeter *self = static_cast<LedMeter *>(ptr);
+            if (self != NULL)
+                self->on_mouse_click(static_cast<ws::event_t *>(data));
+
+            return STATUS_OK;
+        }
+
+        void LedMeter::on_mouse_click(const ws::event_t *ev)
+        {
+            tk::LedMeter *lm = tk::widget_cast<tk::LedMeter>(wWidget);
+            if (lm == NULL)
+                return;
+
+            // Check that we need to cleanup all values
+            bool cleanup = false;
+            tk::WidgetList<tk::LedMeterChannel> *wl = lm->items();
+            for (size_t i=0, n = wl->size(); i<n; ++i)
+            {
+                tk::LedMeterChannel *lmc = wl->get(i);
+                if ((lmc != NULL) && (lmc->is_header(ev->nLeft, ev->nTop)))
+                {
+                    cleanup     = true;
+                    break;
+                }
+            }
+
+            if (cleanup)
+            {
+                for (size_t i=0, n = vChildren.size(); i<n; ++i)
+                {
+                    LedChannel *lc = ctl_cast<LedChannel>(vChildren.uget(i));
+                    if (lc != NULL)
+                        lc->cleanup_header();
+                }
+            }
+        }
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 июл. 2021 г.
@@ -44,10 +44,22 @@ namespace lsp
             protected:
                 ctl::LCString       sEstText;
                 ctl::Color          sColor;
+                lltl::parray<Widget> vChildren;
+
+            protected:
+                static status_t     slot_mouse_click(tk::Widget *sender, void *ptr, void *data);
+
+            protected:
+                void                on_mouse_click(const ws::event_t *ev);
 
             public:
                 explicit LedMeter(ui::IWrapper *wrapper, tk::LedMeter *widget);
+                LedMeter(const LedMeter &) = delete;
+                LedMeter(LedMeter &&) = delete;
                 virtual ~LedMeter() override;
+
+                LedMeter & operator = (const LedMeter &) = delete;
+                LedMeter & operator = (LedMeter &&) = delete;
 
                 virtual status_t    init() override;
 
@@ -55,8 +67,7 @@ namespace lsp
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
                 virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child) override;
         };
-    } // namespace ctl
-} // namespace lsp
-
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_LEDMETER_H_ */
