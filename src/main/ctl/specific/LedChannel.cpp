@@ -66,6 +66,7 @@ namespace lsp
         {
             pClass          = &metadata;
 
+            pParent         = NULL;
             pPort           = NULL;
             nFlags          = 0;
             nType           = MT_PEAK;
@@ -436,10 +437,13 @@ namespace lsp
             if (lmc == NULL)
                 return;
 
-            if (!lmc->is_header(ev->nLeft, ev->nTop))
-                return;
-
-            cleanup_header();
+            if (lmc->is_header(ev->nLeft, ev->nTop))
+            {
+                if (pParent != NULL)
+                    pParent->cleanup_header();
+                else
+                    cleanup_header();
+            }
         }
 
         status_t LedChannel::update_meter(ws::timestamp_t sched, ws::timestamp_t time, void *arg)
@@ -497,6 +501,11 @@ namespace lsp
 
             lmc->header_value()->set(calc_value(fMaxValue));
             set_meter_text(lmc->header(), fMaxValue);
+        }
+
+        void LedChannel::set_parent(ctl::LedMeter *meter)
+        {
+            pParent     = meter;
         }
 
     } /* namespace ctl */

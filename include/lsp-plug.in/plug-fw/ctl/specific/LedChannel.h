@@ -33,6 +33,8 @@ namespace lsp
 {
     namespace ctl
     {
+        class LedMeter;
+
         /**
          * Led Meter channel widget controller
          */
@@ -58,6 +60,7 @@ namespace lsp
                 };
 
             protected:
+                ctl::LedMeter      *pParent;
                 ui::IPort          *pPort;
                 size_t              nFlags;
                 size_t              nType;
@@ -128,6 +131,7 @@ namespace lsp
 
             public:
                 void                cleanup_header();
+                void                set_parent(ctl::LedMeter *meter);
         };
     } /* namespace ctl */
 } /* namespace lsp */

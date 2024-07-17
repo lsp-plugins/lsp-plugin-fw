@@ -33,6 +33,8 @@ namespace lsp
 {
     namespace ctl
     {
+        class LedChannel;
+
         /**
          * Led Meter widget controller
          */
@@ -42,15 +44,9 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::LCString       sEstText;
-                ctl::Color          sColor;
-                lltl::parray<Widget> vChildren;
-
-            protected:
-                static status_t     slot_mouse_click(tk::Widget *sender, void *ptr, void *data);
-
-            protected:
-                void                on_mouse_click(const ws::event_t *ev);
+                ctl::LCString               sEstText;
+                ctl::Color                  sColor;
+                lltl::parray<LedChannel>    vChildren;
 
             public:
                 explicit LedMeter(ui::IWrapper *wrapper, tk::LedMeter *widget);
@@ -66,6 +62,9 @@ namespace lsp
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
                 virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child) override;
+
+            public:
+                void                cleanup_header();
         };
     } /* namespace ctl */
 } /* namespace lsp */

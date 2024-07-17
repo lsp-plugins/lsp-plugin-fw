@@ -71,12 +71,8 @@ namespace lsp
             tk::LedMeter *lm = tk::widget_cast<tk::LedMeter>(wWidget);
             if (lm != NULL)
             {
-                lm->pass_events()->set(false);
-
                 sEstText.init(pWrapper, lm->estimation_text());
                 sColor.init(pWrapper, lm->color());
-
-                lm->slots()->bind(tk::SLOT_MOUSE_CLICK, slot_mouse_click, self());
             }
 
             return STATUS_OK;
@@ -119,47 +115,23 @@ namespace lsp
             if (lm == NULL)
                 return STATUS_BAD_STATE;
 
-            vChildren.add(child);
+            LedChannel *lc = ctl_cast<LedChannel>(child);
+            if (lc != NULL)
+            {
+                vChildren.add(lc);
+                lc->set_parent(this);
+            }
 
             return lm->items()->add(lmc);
         }
 
-        status_t LedMeter::slot_mouse_click(tk::Widget *sender, void *ptr, void *data)
+        void LedMeter::cleanup_header()
         {
-            LedMeter *self = static_cast<LedMeter *>(ptr);
-            if (self != NULL)
-                self->on_mouse_click(static_cast<ws::event_t *>(data));
-
-            return STATUS_OK;
-        }
-
-        void LedMeter::on_mouse_click(const ws::event_t *ev)
-        {
-            tk::LedMeter *lm = tk::widget_cast<tk::LedMeter>(wWidget);
-            if (lm == NULL)
-                return;
-
-            // Check that we need to cleanup all values
-            bool cleanup = false;
-            tk::WidgetList<tk::LedMeterChannel> *wl = lm->items();
-            for (size_t i=0, n = wl->size(); i<n; ++i)
+            for (size_t i=0, n = vChildren.size(); i<n; ++i)
             {
-                tk::LedMeterChannel *lmc = wl->get(i);
-                if ((lmc != NULL) && (lmc->is_header(ev->nLeft, ev->nTop)))
-                {
-                    cleanup     = true;
-                    break;
-                }
-            }
-
-            if (cleanup)
-            {
-                for (size_t i=0, n = vChildren.size(); i<n; ++i)
-                {
-                    LedChannel *lc = ctl_cast<LedChannel>(vChildren.uget(i));
-                    if (lc != NULL)
-                        lc->cleanup_header();
-                }
+                LedChannel *lc = vChildren.uget(i);
+                if (lc != NULL)
+                    lc->cleanup_header();
             }
         }
 
