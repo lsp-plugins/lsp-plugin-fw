@@ -147,6 +147,7 @@ help:
 	echo "  jack                      Standalone JACK plugin format binaries"
 	echo "  ladspa                    LADSPA plugin format binaries"
 	echo "  lv2                       LV2 plugin format binaries"
+	echo "  ui                        Enables UI for LV2"
 	echo "  vst2                      VST 2.x plugin format binaries"
 	echo "  vst3                      VST 3.x plugin format binaries"
 	echo "  xdg                       Desktop integration icons"

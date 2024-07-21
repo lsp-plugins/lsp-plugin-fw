@@ -3,6 +3,8 @@
 *******************************************************************************
 
 === 1.0.25 ===
+* Plugins now can be built without the ui if we omit the 'ui' feature in
+  build configuration.
 * Added support of string ports.
 * Improved build tools: UI resources are now built-in only for libraries that
   need them.
