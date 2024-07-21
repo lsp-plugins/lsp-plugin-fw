@@ -33,6 +33,10 @@
 #include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/vst2/ui_wrapper.h>
+#endif /* WITH_UI_FEATURE */
+
 namespace lsp
 {
     namespace vst2
@@ -44,24 +48,24 @@ namespace lsp
             audioMasterCallback callback)
             : plug::IWrapper(plugin, loader)
         {
-            pPlugin         = plugin;
             pEffect         = effect;
-
             pMaster         = callback;
             pExecutor       = NULL;
+            bUpdateSettings = true;
+            bStateManage    = false;
+
+        #ifdef WITH_UI_FEATURE
+            pUIWrapper      = NULL;
+            nUIReq          = 0;
+            nUIResp         = 0;
+        #endif /* WITH_UI_FEATURE */
 
             fLatency        = 0.0f;
             nDumpReq        = 0;
             nDumpResp       = 0;
 
-            pSamplePlayer   = NULL;
-
             pBypass         = NULL;
-            bUpdateSettings = true;
-            bStateManage    = false;
-            pUIWrapper      = NULL;
-            nUIReq          = 0;
-            nUIResp         = 0;
+            pSamplePlayer   = NULL;
             pPackage        = NULL;
         }
 
@@ -159,6 +163,7 @@ namespace lsp
 
         void Wrapper::destroy()
         {
+        #ifdef WITH_UI_FEATURE
             // Destroy UI wrapper
             if (pUIWrapper != NULL)
             {
@@ -166,6 +171,7 @@ namespace lsp
                 pUIWrapper->destroy();
                 delete pUIWrapper;
             }
+        #endif /* WITH_UI_FEATURE */
 
             // Destroy sample player
             if (pSamplePlayer != NULL)
@@ -446,6 +452,7 @@ namespace lsp
         {
         }
 
+    #ifdef WITH_UI_FEATURE
         void Wrapper::set_ui_wrapper(UIWrapper *ui)
         {
             if (pUIWrapper == ui)
@@ -460,6 +467,7 @@ namespace lsp
         {
             return pUIWrapper;
         }
+    #endif /* WITH_UI_FEATURE */
 
         void Wrapper::sync_position()
         {
@@ -524,6 +532,7 @@ namespace lsp
                 return;
             }
 
+        #ifdef WITH_UI_FEATURE
             // Sync UI state
             const uatomic_t ui_req = nUIReq;
             if (ui_req != nUIResp)
@@ -534,6 +543,7 @@ namespace lsp
                     pPlugin->activate_ui();
                 nUIResp     = ui_req;
             }
+        #endif /* WITH_UI_FEATURE */
 
             // Synchronize position
             sync_position();

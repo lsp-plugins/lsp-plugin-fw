@@ -21,19 +21,22 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/vst2/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/impl/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/vst2/impl/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/debug.h>
-#include <lsp-plug.in/ws/keycodes.h>
 
-#ifdef USE_LIBX11
-    #include <lsp-plug.in/ws/x11/decode.h>
-#endif /* USE_LIBX11 */
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/vst2/ui_wrapper.h>
+    #include <lsp-plug.in/plug-fw/wrap/vst2/impl/ui_wrapper.h>
+    #include <lsp-plug.in/ws/keycodes.h>
+
+    #ifdef USE_LIBX11
+        #include <lsp-plug.in/ws/x11/decode.h>
+    #endif /* USE_LIBX11 */
+#endif /* WITH_UI_FEATURE */
 
 #define VST2_LOG_FILE   "lsp-vst2-aeffect.log"
 
@@ -45,6 +48,7 @@ namespace lsp
         static const VstInt32 VST2_MAGIC_stCa        = CCONST('s', 't', 'C', 'a');
         static const VstInt32 VST2_MAGIC_FUID        = CCONST('F', 'U', 'I', 'D');
 
+    #ifdef WITH_UI_FEATURE
         typedef struct key_code_t
         {
             uint8_t     vst;
@@ -168,6 +172,7 @@ namespace lsp
 
             return v;
         }
+    #endif /* WITH_UI_FEATURE */
 
         void finalize(AEffect *e)
         {
@@ -627,7 +632,7 @@ namespace lsp
                     break;
                 }
 
-            #ifndef LSP_NO_VST_UI
+            #ifdef WITH_UI_FEATURE
                 case effEditOpen: // Run editor
                 {
                     UIWrapper *ui = w->ui_wrapper();
@@ -695,7 +700,7 @@ namespace lsp
                     v = process_key_event(uiw, opcode, index, value);
                     break;
                 }
-            #endif /* LSP_NO_VST_UI */
+            #endif /* WITH_UI_FEATURE */
 
                 case effSetProgram:
                 case effGetProgram:
@@ -1003,8 +1008,10 @@ namespace lsp
                     e->processDoubleReplacing           = NULL; // Currently no double-replacing
 
                     // Additional flags
+                #ifdef WITH_UI_FEATURE
                     if (meta->ui_resource != NULL)
                         e->flags                        |= effFlagsHasEditor; // Has custom UI
+                #endif /* WITH_UI_FEATURE */
 
                     status_t res = wrapper->init();
                     if (res == STATUS_OK)
