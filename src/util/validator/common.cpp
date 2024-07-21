@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -26,13 +27,9 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/static.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
-#if defined(USE_LSP_TK_LIB) || defined(LSP_IDE_DEBUG)
-    #define LSP_VALIDATE_PLUGIN_UI
-#endif /* defined(USE_LSP_TK_LIB) || defined(LSP_IDE_DEBUG) */
-
-#ifdef LSP_VALIDATE_PLUGIN_UI
+#ifdef WITH_UI_FEATURE
     #include <lsp-plug.in/plug-fw/ui.h>
-#endif /* USE_LSP_TK_LIB */
+#endif /* WITH_UI_FEATURE */
 
 namespace lsp
 {
@@ -496,7 +493,7 @@ namespace lsp
             }
         }
 
-    #ifdef LSP_VALIDATE_PLUGIN_UI
+    #ifdef WITH_UI_FEATURE
         const meta::plugin_t *find_ui(const meta::plugin_t *meta)
         {
             for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
@@ -537,7 +534,7 @@ namespace lsp
         void validate_ui(context_t *ctx, const meta::plugin_t *meta)
         {
         }
-    #endif /* LSP_VALIDATE_PLUGIN_UI */
+    #endif /* WITH_UI_FEATURE */
 
         void validate_package(context_t *ctx, const meta::package_t *pkg)
         {
