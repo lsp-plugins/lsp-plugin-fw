@@ -61,17 +61,20 @@ namespace lsp
             protected:
                 const clap_host_t              *pHost;              // Host interface
                 const meta::package_t          *pPackage;           // Package metadata
-                const meta::plugin_t           *pUIMetadata;        // UI metadata
-                void                           *pUIFactory;         // UI factory
-                clap::UIWrapper                *pUIWrapper;         // UI wrapper
-                uatomic_t                       nUIReq;             // UI change request
-                uatomic_t                       nUIResp;            // UI change response
                 clap::HostExtensions           *pExt;               // CLAP Extensions
                 ipc::IExecutor                 *pExecutor;          // Executor service
                 ssize_t                         nLatency;           // The actual plugin latency
                 ssize_t                         nTailSize;          // Tail size
                 uatomic_t                       nDumpReq;           // State dump request counter
                 uatomic_t                       nDumpResp;          // State dump response counter
+
+            #ifdef LSP_WITH_UI_FEATURE
+                const meta::plugin_t           *pUIMetadata;        // UI metadata
+                void                           *pUIFactory;         // UI factory
+                clap::UIWrapper                *pUIWrapper;         // UI wrapper
+                uatomic_t                       nUIReq;             // UI change request
+                uatomic_t                       nUIResp;            // UI change response
+            #endif /* LSP_WITH_UI_FEATURE */
 
                 lltl::parray<audio_group_t>     vAudioIn;           // Input audio ports
                 lltl::parray<audio_group_t>     vAudioOut;          // Output audio ports
@@ -106,13 +109,17 @@ namespace lsp
                 static void     destroy_value(core::kvt_param_t *p);
 
             protected:
-                void            lookup_ui_factory();
                 void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 status_t        create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta);
                 status_t        generate_audio_port_groups(const meta::plugin_t *meta);
                 clap::ParameterPort  *find_param(clap_id param_id);
                 size_t          prepare_block(size_t *ev_index, size_t offset, const clap_process_t *process);
                 void            generate_output_events(size_t offset, const clap_process_t *process);
+
+        #ifdef LSP_WITH_UI_FEATURE
+            protected:
+                void            lookup_ui_factory();
+        #endif /* LSP_WITH_UI_FEATURE */
 
             public:
                 explicit Wrapper(
@@ -185,12 +192,17 @@ namespace lsp
                 clap::Port                     *find_by_id(const char *id);
                 inline core::SamplePlayer      *sample_player();
                 void                            request_state_dump();
+                inline HostExtensions          *extensions();
+
+        #ifdef LSP_WITH_UI_FEATURE
+            public:
+                // UI-related functions
                 inline UIWrapper               *ui_wrapper();
                 UIWrapper                      *create_ui();
                 void                            destroy_ui();
-                inline HostExtensions          *extensions();
                 bool                            ui_provided();
                 void                            ui_visibility_changed();
+        #endif /* LSP_WITH_UI_FEATURE */
         };
     } /* namespace clap */
 } /* namespace lsp */

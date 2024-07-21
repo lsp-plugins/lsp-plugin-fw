@@ -41,13 +41,16 @@ namespace lsp
         {
             pHost               = host;
             pPackage            = package;
+            pExt                = NULL;
+            pExecutor           = NULL;
+
+        #ifdef LSP_WITH_UI_FEATURE
             pUIMetadata         = NULL;
             pUIFactory          = NULL;
             pUIWrapper          = NULL;
             nUIReq              = 0;
             nUIResp             = 0;
-            pExt                = NULL;
-            pExecutor           = NULL;
+        #endif /* LSP_WITH_UI_FEATURE */
 
             nLatency            = 0;
             nTailSize           = 0;
@@ -582,37 +585,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Wrapper::lookup_ui_factory()
-        {
-            // Create UI wrapper
-            const char *clap_uid = metadata()->uids.clap;
-
-            // Lookup plugin identifier among all registered plugin factories
-            for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
-            {
-                for (size_t i=0; ; ++i)
-                {
-                    // Enumerate next element
-                    const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
-                        break;
-
-                    // Check plugin identifier
-                    if (!::strcmp(meta->uids.clap, clap_uid))
-                    {
-                        pUIMetadata     = meta;
-                        pUIFactory      = f;
-
-                        lsp_trace("UI factory: %p, UI metadata: %p", pUIFactory, pUIMetadata);
-                        return;
-                    }
-                }
-            }
-
-            pUIMetadata     = NULL;
-            pUIFactory      = NULL;
-        }
-
         status_t Wrapper::init()
         {
             // Obtain the plugin metadata
@@ -620,8 +592,10 @@ namespace lsp
             if (meta == NULL)
                 return STATUS_BAD_STATE;
 
+        #ifdef LSP_WITH_UI_FEATURE
             // Lookup for the UI factory
             lookup_ui_factory();
+        #endif /*  LSP_WITH_UI_FEATURE */
 
             // Create extensions
             pExt    = new HostExtensions(pHost);
@@ -945,6 +919,7 @@ namespace lsp
                 (process->audio_outputs_count > vAudioOut.size()))
                 return CLAP_PROCESS_ERROR;
 
+        #ifdef LSP_WITH_UI_FEATURE
             // Update UI activity state
             const uatomic_t ui_req = nUIReq;
             if (ui_req != nUIResp)
@@ -955,6 +930,7 @@ namespace lsp
                     pPlugin->activate_ui();
                 nUIResp     = ui_req;
             }
+        #endif /* LSP_WITH_UI_FEATURE */
 
             // Bind audio inputs
 //            lsp_trace("audio_inputs.count=%d", int(process->audio_inputs_count));
@@ -1440,6 +1416,38 @@ namespace lsp
             return pSamplePlayer;
         }
 
+    #ifdef LSP_WITH_UI_FEATURE
+        void Wrapper::lookup_ui_factory()
+        {
+            // Create UI wrapper
+            const char *clap_uid = metadata()->uids.clap;
+
+            // Lookup plugin identifier among all registered plugin factories
+            for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *meta = f->enumerate(i);
+                    if (meta == NULL)
+                        break;
+
+                    // Check plugin identifier
+                    if (!::strcmp(meta->uids.clap, clap_uid))
+                    {
+                        pUIMetadata     = meta;
+                        pUIFactory      = f;
+
+                        lsp_trace("UI factory: %p, UI metadata: %p", pUIFactory, pUIMetadata);
+                        return;
+                    }
+                }
+            }
+
+            pUIMetadata     = NULL;
+            pUIFactory      = NULL;
+        }
+
         UIWrapper *Wrapper::ui_wrapper()
         {
             return pUIWrapper;
@@ -1513,6 +1521,7 @@ namespace lsp
         {
             atomic_add(&nUIReq, 1);
         }
+    #endif /* LSP_WITH_UI_FEATURE */
 
         HostExtensions *Wrapper::extensions()
         {
