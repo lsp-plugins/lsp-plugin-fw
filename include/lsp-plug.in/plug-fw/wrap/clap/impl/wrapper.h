@@ -27,6 +27,7 @@
 #include <clap/clap.h>
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
+#include <lsp-plug.in/stdlib/stdio.h>
 
 namespace lsp
 {
@@ -44,13 +45,13 @@ namespace lsp
             pExt                = NULL;
             pExecutor           = NULL;
 
-        #ifdef LSP_WITH_UI_FEATURE
+        #ifdef WITH_UI_FEATURE
             pUIMetadata         = NULL;
             pUIFactory          = NULL;
             pUIWrapper          = NULL;
             nUIReq              = 0;
             nUIResp             = 0;
-        #endif /* LSP_WITH_UI_FEATURE */
+        #endif /* WITH_UI_FEATURE */
 
             nLatency            = 0;
             nTailSize           = 0;
@@ -592,10 +593,10 @@ namespace lsp
             if (meta == NULL)
                 return STATUS_BAD_STATE;
 
-        #ifdef LSP_WITH_UI_FEATURE
+        #ifdef WITH_UI_FEATURE
             // Lookup for the UI factory
             lookup_ui_factory();
-        #endif /*  LSP_WITH_UI_FEATURE */
+        #endif /*  WITH_UI_FEATURE */
 
             // Create extensions
             pExt    = new HostExtensions(pHost);
@@ -919,7 +920,7 @@ namespace lsp
                 (process->audio_outputs_count > vAudioOut.size()))
                 return CLAP_PROCESS_ERROR;
 
-        #ifdef LSP_WITH_UI_FEATURE
+        #ifdef WITH_UI_FEATURE
             // Update UI activity state
             const uatomic_t ui_req = nUIReq;
             if (ui_req != nUIResp)
@@ -930,7 +931,7 @@ namespace lsp
                     pPlugin->activate_ui();
                 nUIResp     = ui_req;
             }
-        #endif /* LSP_WITH_UI_FEATURE */
+        #endif /* WITH_UI_FEATURE */
 
             // Bind audio inputs
 //            lsp_trace("audio_inputs.count=%d", int(process->audio_inputs_count));
@@ -1416,7 +1417,7 @@ namespace lsp
             return pSamplePlayer;
         }
 
-    #ifdef LSP_WITH_UI_FEATURE
+    #ifdef WITH_UI_FEATURE
         void Wrapper::lookup_ui_factory()
         {
             // Create UI wrapper
@@ -1521,7 +1522,7 @@ namespace lsp
         {
             atomic_add(&nUIReq, 1);
         }
-    #endif /* LSP_WITH_UI_FEATURE */
+    #endif /* WITH_UI_FEATURE */
 
         HostExtensions *Wrapper::extensions()
         {

@@ -94,7 +94,9 @@ MERGED_DEPENDENCIES             = \
   $(call fcheck,clap,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_CLAP) \
     $(DEPENDENCIES_CLAP_BIN) \
-    $(call fcheck,ui,$(ENABLED_FEATURES), $(DEPENDENCIES_CLAP_UI_BIN)) \
+    $(call fcheck,ui,$(ENABLED_FEATURES), \
+      $(DEPENDENCIES_CLAP_UI) \
+      $(DEPENDENCIES_CLAP_UI_BIN)) \
   ) \
   $(call fcheck,gst,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_GST) \
@@ -709,6 +711,39 @@ HOST_OBJ_PLUG               = $(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP) $(HOST_
 
 #------------------------------------------------------------------------------
 # Binaries
+ARTIFACT_LIB_CLAP           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME).clap
+ARTIFACT_LIB_CLAP_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), \
+  $(call uniq, \
+    $(DEPENDENCIES_CLAP) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_CLAP_UI)) \
+    $(DEPENDENCIES_TEST) \
+    $(DEPENDENCIES_TEST_UI) \
+    $(PLUGIN_SHARED) \
+  ) \
+)
+
+$(info ARTIFACT_LIB_CLAP_DEPS_ALL = $(ARTIFACT_LIB_CLAP_DEPS_ALL))
+$(info PLUGIN_SHARED=$(PLUGIN_SHARED))
+
+ARTIFACT_LIB_CLAP_DEPS      = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
+ARTIFACT_LIB_CLAP_LIBS      = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $($(dep)_OBJ))
+ARTIFACT_LIB_CLAP_LDFLAGS   = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $($(dep)_LDFLAGS))
+ARTIFACT_LIB_CLAP_OBJS      = \
+  $(LSP_PLUGIN_FW_OBJ_CORE) \
+  $(LSP_PLUGIN_FW_OBJ_META) \
+  $(LSP_PLUGIN_FW_OBJ_DSP) \
+  $(call fcheck,ui,$(ENABLED_FEATURES), \
+    $(LSP_PLUGIN_FW_OBJ_UI) \
+    $(LSP_PLUGIN_FW_OBJ_CTL) \
+    $(LSP_PLUGIN_FW_OBJ_UI_RES), \
+    $(LSP_PLUGIN_FW_OBJ_RES) \
+  ) \
+  $(OBJ_PLUG_META) \
+  $(OBJ_PLUG_DSP) \
+  $(OBJ_PLUG_SHARED) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_PLUG_UI)) \
+  $(OBJ_WRAP_CLAP)
+
 ARTIFACT_LIB_JACK           = $(LSP_PLUGIN_FW_BIN)/$(LIBRARY_PREFIX)$(PLUGIN_SHARED_NAME)-jack-$(PLUGIN_PACKAGE_VERSION)$(LIBRARY_EXT)
 ARTIFACT_LIB_JACK_PATH      = $(LSP_PLUGIN_FW_BIN)/jack
 ARTIFACT_LIB_JACK_SETTINGS  = $(ARTIFACT_LIB_JACK_PATH)/.settings.mk
@@ -844,27 +879,6 @@ ARTIFACT_LIB_VST3_OBJS      = \
   $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_PLUG_UI)) \
   $(OBJ_WRAP_VST3)
 
-ARTIFACT_LIB_CLAP           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME).clap
-ARTIFACT_LIB_CLAP_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_CLAP) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(PLUGIN_SHARED)))
-ARTIFACT_LIB_CLAP_DEPS      = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-ARTIFACT_LIB_CLAP_LIBS      = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $($(dep)_OBJ))
-ARTIFACT_LIB_CLAP_LDFLAGS   = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $($(dep)_LDFLAGS))
-ARTIFACT_LIB_CLAP_OBJS      = \
-  $(LSP_PLUGIN_FW_OBJ_CORE) \
-  $(LSP_PLUGIN_FW_OBJ_META) \
-  $(LSP_PLUGIN_FW_OBJ_DSP) \
-  $(call fcheck,ui,$(ENABLED_FEATURES), \
-    $(LSP_PLUGIN_FW_OBJ_UI) \
-    $(LSP_PLUGIN_FW_OBJ_CTL) \
-    $(LSP_PLUGIN_FW_OBJ_UI_RES), \
-    $(LSP_PLUGIN_FW_OBJ_RES) \
-  ) \
-  $(OBJ_PLUG_META) \
-  $(OBJ_PLUG_DSP) \
-  $(OBJ_PLUG_SHARED) \
-  $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_PLUG_UI)) \
-  $(OBJ_WRAP_CLAP)
-
 ifeq ($(TEST),1)
   ARTIFACT_BIN_TEST           = $(HOST_LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-test$(EXECUTABLE_EXT)
   ARTIFACT_BIN_TEST_PATH      = $(HOST_LSP_PLUGIN_FW_BIN)
@@ -932,13 +946,55 @@ BIN_INSTALL                 = $(foreach dep, $(UNIQ_DEPENDENCIES_BIN), install_$
 BIN_UNINSTALL               = $(foreach dep, $(UNIQ_DEPENDENCIES_BIN), uninstall_$(dep))
 
 BIN_PACKAGE                 = $(foreach dep, $(UNIQ_BIN_DEPENDENCIES), package_$(dep))
-BIN_PACKAGE_CLAP            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_CLAP_BIN)), package_$(dep))
-BIN_PACKAGE_GST             = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_GST_BIN)), package_$(dep))
-BIN_PACKAGE_JACK            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_JACK_BIN)), package_$(dep))
-BIN_PACKAGE_LADSPA          = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_LADSPA_BIN)), package_$(dep))
-BIN_PACKAGE_LV2             = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_LV2_BIN)), package_$(dep))
-BIN_PACKAGE_VST2            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_VST2_BIN)), package_$(dep))
-BIN_PACKAGE_VST3            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_VST3_BIN)), package_$(dep))
+BIN_PACKAGE_CLAP_DEPS       = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_CLAP_BIN) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),\
+    $(DEPENDENCIES_UI_BIN) \
+    $(DEPENDENCIES_CLAP_UI_BIN) \
+  )
+BIN_PACKAGE_GST_DEPS        = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_GST_BIN)
+BIN_PACKAGE_JACK_DEPS       = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_JACK_BIN) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),\
+    $(DEPENDENCIES_UI_BIN) \
+    $(DEPENDENCIES_JACK_UI_BIN) \
+  )
+BIN_PACKAGE_LADSPA_DEPS     = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_LADSPA_BIN)
+BIN_PACKAGE_LV2_DEPS        = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_LV2_BIN) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),\
+    $(DEPENDENCIES_UI_BIN) \
+    $(DEPENDENCIES_LV2_UI_BIN) \
+  )
+BIN_PACKAGE_VST2_DEPS       = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_VST2_BIN) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),\
+    $(DEPENDENCIES_UI_BIN) \
+    $(DEPENDENCIES_VST2_UI_BIN) \
+  )
+BIN_PACKAGE_VST3_DEPS       = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_VST3_BIN) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),\
+    $(DEPENDENCIES_UI_BIN) \
+    $(DEPENDENCIES_VST3_UI_BIN) \
+  )
+
+BIN_PACKAGE_CLAP            = $(foreach dep, $(sort $(BIN_PACKAGE_CLAP_DEPS)), package_$(dep))
+BIN_PACKAGE_GST             = $(foreach dep, $(sort $(BIN_PACKAGE_GST_DEPS)), package_$(dep))
+BIN_PACKAGE_JACK            = $(foreach dep, $(sort $(BIN_PACKAGE_JACK_DEPS)), package_$(dep))
+BIN_PACKAGE_LADSPA          = $(foreach dep, $(sort $(BIN_PACKAGE_LADSPA_DEPS)), package_$(dep))
+BIN_PACKAGE_LV2             = $(foreach dep, $(sort $(BIN_PACKAGE_LV2_DEPS)), package_$(dep))
+BIN_PACKAGE_VST2            = $(foreach dep, $(sort $(BIN_PACKAGE_VST2_DEPS)), package_$(dep))
+BIN_PACKAGE_VST3            = $(foreach dep, $(sort $(BIN_PACKAGE_VST3_DEPS)), package_$(dep))
 
 BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
 BIN_UNINST_ARTIFACT_ID      = $(patsubst uninstall_%,%,$(@))

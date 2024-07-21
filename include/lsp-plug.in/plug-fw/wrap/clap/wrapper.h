@@ -33,15 +33,25 @@
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/ports.h>
-#include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
+
+    namespace lsp
+    {
+        namespace clap
+        {
+            class UIWrapper;
+        } /* namespace clap */
+    } /* namespace lsp */
+
+#endif /* WITH_UI_FEATURE */
 
 namespace lsp
 {
     namespace clap
     {
-        class UIWrapper;
-
         /**
          * CLAP plugin wrapper interface
          */
@@ -68,13 +78,13 @@ namespace lsp
                 uatomic_t                       nDumpReq;           // State dump request counter
                 uatomic_t                       nDumpResp;          // State dump response counter
 
-            #ifdef LSP_WITH_UI_FEATURE
+            #ifdef WITH_UI_FEATURE
                 const meta::plugin_t           *pUIMetadata;        // UI metadata
                 void                           *pUIFactory;         // UI factory
                 clap::UIWrapper                *pUIWrapper;         // UI wrapper
                 uatomic_t                       nUIReq;             // UI change request
                 uatomic_t                       nUIResp;            // UI change response
-            #endif /* LSP_WITH_UI_FEATURE */
+            #endif /* WITH_UI_FEATURE */
 
                 lltl::parray<audio_group_t>     vAudioIn;           // Input audio ports
                 lltl::parray<audio_group_t>     vAudioOut;          // Output audio ports
@@ -116,10 +126,10 @@ namespace lsp
                 size_t          prepare_block(size_t *ev_index, size_t offset, const clap_process_t *process);
                 void            generate_output_events(size_t offset, const clap_process_t *process);
 
-        #ifdef LSP_WITH_UI_FEATURE
+        #ifdef WITH_UI_FEATURE
             protected:
                 void            lookup_ui_factory();
-        #endif /* LSP_WITH_UI_FEATURE */
+        #endif /* WITH_UI_FEATURE */
 
             public:
                 explicit Wrapper(
@@ -194,7 +204,7 @@ namespace lsp
                 void                            request_state_dump();
                 inline HostExtensions          *extensions();
 
-        #ifdef LSP_WITH_UI_FEATURE
+        #ifdef WITH_UI_FEATURE
             public:
                 // UI-related functions
                 inline UIWrapper               *ui_wrapper();
@@ -202,7 +212,7 @@ namespace lsp
                 void                            destroy_ui();
                 bool                            ui_provided();
                 void                            ui_visibility_changed();
-        #endif /* LSP_WITH_UI_FEATURE */
+        #endif /* WITH_UI_FEATURE */
         };
     } /* namespace clap */
 } /* namespace lsp */

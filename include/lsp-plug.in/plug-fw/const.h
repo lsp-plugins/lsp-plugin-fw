@@ -58,9 +58,9 @@
         #define LSP_NO_BUILTIN_RESOURCES
     #endif /* LSP_NO_BUILTIN_RESOURCES */
 
-    #ifndef LSP_WITH_UI_FEATURE
-        #define LSP_WITH_UI_FEATURE
-    #endif /* LSP_WITH_UI_FEATURE */
+    #ifndef WITH_UI_FEATURE
+        #define WITH_UI_FEATURE
+    #endif /* WITH_UI_FEATURE */
 #endif /* LSP_IDE_DEBUG */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CONST_H_ */

@@ -34,10 +34,10 @@
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
-#ifdef LSP_WITH_UI_FEATURE
+#ifdef WITH_UI_FEATURE
     #include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
     #include <lsp-plug.in/plug-fw/wrap/clap/impl/ui_wrapper.h>
-#endif /* LSP_WITH_UI_FEATURE */
+#endif /* WITH_UI_FEATURE */
 
 #define CLAP_LOG_FILE           "lsp-clap.log"
 
@@ -269,7 +269,7 @@ namespace lsp
             .get = get_tail
         };
 
-    #ifdef LSP_WITH_UI_FEATURE
+    #ifdef WITH_UI_FEATURE
         //---------------------------------------------------------------------
         // UI extension
         bool CLAP_ABI ui_is_api_supported(const clap_plugin_t *plugin, const char *api, bool is_floating)
@@ -443,7 +443,7 @@ namespace lsp
             .show = ui_show,
             .hide = ui_hide
         };
-    #endif /* LSP_WITH_UI_FEATURE */
+    #endif /* WITH_UI_FEATURE */
 
         //---------------------------------------------------------------------
         // Plugin instance related stuff
@@ -573,10 +573,10 @@ namespace lsp
             if (!strcmp(id, CLAP_EXT_TAIL))
                 return &tail_extension;
 
-        #ifdef LSP_WITH_UI_FEATURE
+        #ifdef WITH_UI_FEATURE
             if ((!strcmp(id, CLAP_EXT_GUI)) && (w->ui_provided()))
                 return &ui_extension;
-        #endif /* LSP_WITH_UI_FEATURE */
+        #endif /* WITH_UI_FEATURE */
 
             return w->get_extension(id);
         }
