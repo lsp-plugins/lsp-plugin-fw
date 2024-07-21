@@ -27,11 +27,14 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
-#include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/data.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 
 #include <steinberg/vst3.h>
+
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/ui.h>
+#endif /* WITH_UI_FEATURE */
 
 namespace lsp
 {
@@ -208,7 +211,11 @@ namespace lsp
 
                 virtual void set_value(float value) override
                 {
+                #ifdef WITH_UI_FEATURE
                     set_value(value, ui::IMPORT_FLAG_NONE);
+                #else
+                    set_value(value, 0);
+                #endif /* WITH_UI_FEATURE */
                 }
 
             public:
