@@ -684,10 +684,7 @@ namespace lsp
                 lsp_finally { sDataMutex.unlock(); };
 
                 if (!vDataSync.remove(sync))
-                {
-                    lsp_warn("Non-existing client=%p", sync);
                     return STATUS_NOT_FOUND;
-                }
 
                 while (pActiveSync == sync)
                 {
