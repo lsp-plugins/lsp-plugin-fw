@@ -11,6 +11,7 @@
   need them.
 * Several fixes for VST3 wrapper.
 * Added INSTALL_FEATURES option.
+* Updated module versions in dependencies.
 
 === 1.0.24 ===
 * Updated module versions in dependencies.
