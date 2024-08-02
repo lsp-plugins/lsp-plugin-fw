@@ -56,7 +56,7 @@ namespace lsp
             public ipc::IRunnable
         {
             protected:
-                volatile uatomic_t                      nRefCounter;    // Reference counter
+                uatomic_t                               nRefCounter;    // Reference counter
                 uatomic_t                               nRefExecutor;   // Number of references to the executor
                 ipc::Mutex                              sMutex;         // Mutex for managing factory state
                 ipc::Mutex                              sDataMutex;     // Mutex for managing data synchronization primitives

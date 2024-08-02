@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -23,10 +23,13 @@
 #include <lsp-plug.in/plug-fw/plug/data.h>
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/atomic.h>
-#include <lsp-plug.in/stdlib/string.h>
-#include <lsp-plug.in/stdlib/stdlib.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/dsp-units/const.h>
+#include <lsp-plug.in/io/charset.h>
+#include <lsp-plug.in/ipc/Thread.h>
+#include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/stdlib/stdlib.h>
+
 
 namespace lsp
 {
@@ -137,6 +140,143 @@ namespace lsp
         bool path_t::accepted()
         {
             return false;
+        }
+
+        //-------------------------------------------------------------------------
+        // string_t methods
+        uint32_t string_t::submit(const char *str, bool state)
+        {
+            // Acquire lock
+            while (!atomic_trylock(nLock))
+                ipc::Thread::yield();
+            lsp_finally {
+                atomic_unlock(nLock);
+            };
+
+            // Update string
+            utf8_strncpy(sPending, nCapacity, str);
+            const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
+            nRequest        = serial;
+            return serial;
+        }
+
+        uint32_t string_t::submit(const void *buffer, size_t size, bool state)
+        {
+            // Acquire lock
+            while (!atomic_trylock(nLock))
+                ipc::Thread::yield();
+            lsp_finally {
+                atomic_unlock(nLock);
+            };
+
+            // Update string
+            utf8_strncpy(sPending, nCapacity, buffer, size);
+            const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
+            nRequest        = serial;
+            return serial;
+        }
+
+        uint32_t string_t::submit(const LSPString *str, bool state)
+        {
+            // Obtain a valid UTF-8 string limite by nCapacity characters
+            size_t len = lsp_min(str->length(), nCapacity);
+            const char *src = str->get_utf8(0, len);
+            if (src == NULL)
+                return nRequest;
+
+            // Acquire lock
+            while (!atomic_trylock(nLock))
+                ipc::Thread::yield();
+            lsp_finally { atomic_unlock(nLock); };
+
+            // Update string
+            strcpy(sPending, src);
+
+            const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
+            nRequest        = serial;
+            return serial;
+        }
+
+        bool string_t::fetch(uint32_t *serial, char *dst, size_t size)
+        {
+            if (nSerial == *serial)
+                return false;
+
+            // Acquire lock
+            while (!atomic_trylock(nLock))
+                ipc::Thread::yield();
+            lsp_finally {
+                atomic_unlock(nLock);
+            };
+
+            // Copy data
+            strncpy(dst, sData, size);
+            sData[size-1] = '\0';
+            *serial = nSerial;
+
+            return true;
+        }
+
+        bool string_t::sync()
+        {
+            if (!atomic_trylock(nLock))
+                return false;
+            lsp_finally { atomic_unlock(nLock); };
+
+            if (nSerial == nRequest)
+                return false;
+
+            // Copy contents and update state
+            strcpy(sData, sPending);
+            nSerial     = nRequest;
+
+            return true;
+        }
+
+        bool string_t::is_state() const
+        {
+            return nSerial & 1;
+        }
+
+        size_t string_t::max_bytes() const
+        {
+            return nCapacity * 4;
+        }
+
+        uint32_t string_t::serial() const
+        {
+            return nSerial;
+        }
+
+        string_t *string_t::allocate(size_t max_length)
+        {
+            const size_t szof_type      = align_size(sizeof(string_t), DEFAULT_ALIGN);
+            const size_t szof_data      = align_size(max_length * 4 + 1, DEFAULT_ALIGN); // Max 4 bytes per code point + end of line
+            const size_t to_alloc       = szof_type + 2 * szof_data;
+
+            uint8_t *ptr                = reinterpret_cast<uint8_t *>(malloc(to_alloc));
+            if (ptr == NULL)
+                return NULL;
+
+            // Initialize object
+            string_t *res               = advance_ptr_bytes<string_t>(ptr, szof_type);
+            res->sData                  = advance_ptr_bytes<char>(ptr, szof_data);
+            res->sPending               = advance_ptr_bytes<char>(ptr, szof_data);
+            res->nCapacity              = max_length;
+            atomic_init(res->nLock);
+            res->nSerial                = 0;
+            res->nRequest               = 0;
+
+            // Cleanup string content
+            bzero(res->sData, szof_data * 2);
+
+            return res;
+        }
+
+        void string_t::destroy(string_t *str)
+        {
+            if (str != NULL)
+                free(str);
         }
 
         //-------------------------------------------------------------------------
@@ -579,7 +719,7 @@ namespace lsp
 
         void frame_buffer_t::seek(uint32_t row_id)
         {
-            nRowID          = row_id;
+            atomic_store(&nRowID, row_id);
         }
 
         void frame_buffer_t::read_row(float *dst, size_t row_id) const
@@ -596,13 +736,13 @@ namespace lsp
 
         float *frame_buffer_t::next_row() const
         {
-            uint32_t off    = nRowID & (nCapacity - 1);
+            uint32_t off    = atomic_load(&nRowID) & (nCapacity - 1);
             return &vData[off * nCols];
         }
 
         void frame_buffer_t::write_row(const float *row)
         {
-            uint32_t off    = nRowID & (nCapacity - 1);
+            uint32_t off    = atomic_load(&nRowID) & (nCapacity - 1);
             dsp::copy(&vData[off * nCols], row, nCols);
             atomic_add(&nRowID, 1); // Increment row identifier after bulk write
         }
@@ -625,7 +765,7 @@ namespace lsp
                 return false;
 
             // Estimate what to do
-            uint32_t src_rid = fb->next_rowid(), dst_rid = nRowID;
+            uint32_t src_rid = fb->next_rowid(), dst_rid = atomic_load(&nRowID);
             uint32_t delta = src_rid - dst_rid;
             if (delta == 0)
                 return false; // No changes
@@ -641,7 +781,7 @@ namespace lsp
                 dst_rid++;
             }
 
-            nRowID      = dst_rid;
+            atomic_store(&nRowID, dst_rid);
             return true;
         }
 
@@ -670,7 +810,7 @@ namespace lsp
             fb->nRows           = rows;
             fb->nCols           = cols;
             fb->nCapacity       = hcap;
-            fb->nRowID          = rows;
+            atomic_store(&fb->nRowID, rows);
             fb->vData           = reinterpret_cast<float *>(ptr);
             fb->pData           = data;
 
@@ -699,7 +839,7 @@ namespace lsp
             nRows               = rows;
             nCols               = cols;
             nCapacity           = hcap;
-            nRowID              = rows;
+            atomic_store(&nRowID, rows);
 
             dsp::fill_zero(vData, rows * cols);
             return STATUS_OK;
@@ -751,6 +891,36 @@ namespace lsp
             if (nEvents > 1)
                 ::qsort(vEvents, nEvents, sizeof(midi::event_t), compare_midi_events);
         }
+
+        //-------------------------------------------------------------------------
+        // misc functions
+        void utf8_strncpy(char *dst, size_t dst_max, const char *src)
+        {
+            for (size_t i=0; i<dst_max; ++i)
+            {
+                const lsp_utf32_t ch = read_utf8_codepoint(&src);
+                if (ch == '\0')
+                    break;
+                write_utf8_codepoint(&dst, ch);
+            }
+
+            *dst    = '\0';
+        }
+
+        void utf8_strncpy(char *dst, size_t dst_max, const void *buffer, size_t size)
+        {
+            const char *src = static_cast<const char *>(buffer);
+            for (size_t i=0; i<dst_max; ++i)
+            {
+                const lsp_utf32_t ch = read_utf8_streaming(&src, &size, true);
+                if (ch == LSP_UTF32_EOF)
+                    break;
+                write_utf8_codepoint(&dst, ch);
+            }
+
+            *dst    = '\0';
+        }
+
 
     } /* namespace plug */
 } /* namespace lsp */

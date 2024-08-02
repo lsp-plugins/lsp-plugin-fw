@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 дек. 2021 г.
@@ -351,10 +351,9 @@ namespace lsp
             return ((name[0] == '.') && ((name[1] == '\0') || ((name[1] == '.') && (name[2] == '\0'))));
         }
 
-    #ifdef EXT_ARTIFACT_NAME
-        static bool contains_artifact_name(const WCHAR *file, const char *name)
+        static bool contains_substring(const WCHAR *file, const char *name)
         {
-            if (strlen(EXT_ARTIFACT_NAME) <= 0)
+            if (strlen(name) <= 0)
                 return false;
             for (; *file != '\0'; ++file)
             {
@@ -369,7 +368,21 @@ namespace lsp
 
             return false;
         }
-    #endif /* EXT_ARTIFACT_NAME */
+
+    #if defined(LSP_PLUGIN_LIBRARY_NAME) || defined(LSP_PLUGIN_ARTIFACT_GROUP)
+        static bool equal_string(const WCHAR *file, const char *name)
+        {
+            if (strlen(name) <= 0)
+                return false;
+            for (; (*file != '\0') && (*name != '\0'); ++file, ++name)
+            {
+                if (towupper(*file) != toupper(*name))
+                    return false;
+            }
+
+            return (*file == '\0') && (*name == '\0');
+        }
+    #endif /* defined(LSP_PLUGIN_LIBRARY_NAME) || defined(LSP_PLUGIN_ARTIFACT_GROUP) */
 
         static bool file_name_is_dll(const WCHAR *name)
         {
@@ -410,6 +423,12 @@ namespace lsp
                 {
                     if (subdir)
                     {
+                    #ifdef LSP_PLUGIN_ARTIFACT_GROUP
+                        // Skip directory entry if it does not contain LSP_PLUGIN_ARTIFACT_GROUP (for example, 'lsp-plugins') in name
+                        if (!equal_string(dirent.cFileName, LSP_PLUGIN_ARTIFACT_GROUP))
+                            continue;
+                    #endif /* LSP_PLUGIN_ARTIFACT_GROUP */
+
                         path_string_t subdir_name;
                         if (!subdir_name.set(path, dirent.cFileName))
                             continue;
@@ -421,11 +440,20 @@ namespace lsp
                 }
                 else if (!(dirent.dwFileAttributes & FILE_ATTRIBUTE_DEVICE))
                 {
-                #ifdef EXT_ARTIFACT_NAME
-                    // Skip directory entry if it doesn't contain EXT_ARTIFACT_NAME (for example, 'lsp-plugins') in name
-                    if (!(contains_artifact_name(dirent.cFileName, EXT_ARTIFACT_NAME)))
+                #ifdef LSP_PLUGIN_LIBRARY_NAME
+                    if (!equal_string(dirent.cFileName, LSP_PLUGIN_LIBRARY_NAME))
                         continue;
-                #endif /* EXT_ARTIFACT_NAME */
+                #endif /* LSP_PLUGIN_LIBRARY_NAME */
+
+                #ifdef LSP_PLUGIN_ARTIFACT_NAME
+                    // Skip directory entry if it doesn't contain EXT_ARTIFACT_NAME (for example, 'lsp-plugins') in name
+                    if (!(contains_substring(dirent.cFileName, LSP_PLUGIN_ARTIFACT_NAME)))
+                        continue;
+                #endif /* LSP_PLUGIN_ARTIFACT_NAME */
+
+                    // Skip library if it doesn't contain gst format specifier
+                    if (!contains_substring(dirent.cFileName, "-vst2"))
+                        continue;
 
                     // Check that file is a shared library
                     if (!file_name_is_dll(dirent.cFileName))

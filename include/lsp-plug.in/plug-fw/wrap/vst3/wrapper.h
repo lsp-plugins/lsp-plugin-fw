@@ -98,7 +98,7 @@ namespace lsp
                 };
 
             protected:
-                volatile uatomic_t                  nRefCounter;            // Reference counter
+                uatomic_t                           nRefCounter;            // Reference counter
                 PluginFactory                      *pFactory;               // Reference to the factory
                 const meta::package_t              *pPackage;               // Package information
                 Steinberg::FUnknown                *pHostContext;           // Host context
@@ -123,7 +123,6 @@ namespace lsp
                 wssize_t                            nPlayLength;            // Sample playback length
                 plug::position_t                    sUIPosition;            // Position notified to UI
 
-
                 vst3::string_buf                    sRxNotifyBuf;           // Notify buffer for notify() processing
                 vst3::string_buf                    sTxNotifyBuf;           // Notify buffer for sync_data()
                 core::KVTStorage                    sKVT;                   // KVT storage
@@ -132,7 +131,7 @@ namespace lsp
                 core::KVTDispatcher                *pKVTDispatcher;         // KVT dispatcher
                 uint8_t                            *pOscPacket;             // OSC packet data
 
-                volatile uatomic_t                  nPositionLock;          // Position lock
+                uatomic_t                           nPositionLock;          // Position lock
                 uatomic_t                           nUICounterReq;          // UI counter request
                 uatomic_t                           nUICounterResp;         // Actual number of UIs
                 uatomic_t                           nDirtyReq;              // Dirty state request
@@ -184,6 +183,7 @@ namespace lsp
                 bool                        decode_parameter_as_midi_event(midi::event_t &e, size_t offset, size_t id, double value);
                 bool                        encode_midi_event(Steinberg::Vst::Event &ev, const midi::event_t &e);
                 void                        toggle_ui_state();
+                void                        clear_output_events();
                 void                        process_input_events(Steinberg::Vst::IEventList *events, Steinberg::Vst::IParameterChanges *params);
                 void                        process_output_events(Steinberg::Vst::IEventList *events);
                 void                        report_latency();

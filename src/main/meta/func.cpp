@@ -1411,6 +1411,7 @@ namespace lsp
             switch (format)
             {
                 case PLUGIN_CLAP:       return "CLAP";
+                case PLUGIN_GSTREAMER:  return "GST";
                 case PLUGIN_JACK:       return "JACK";
                 case PLUGIN_LADSPA:     return "LADSPA";
                 case PLUGIN_LV2:        return "LV2";
@@ -1623,6 +1624,20 @@ namespace lsp
             if (!uid_vst3_to_tuid(tuid, meta_uid))
                 return NULL;
             return uid_tuid_to_vst3(vst3_uid, tuid);
+        }
+
+        char *make_gst_canonical_name(const char *id)
+        {
+            char *res = (id != NULL) ? strdup(id) : NULL;
+            if (res != NULL)
+            {
+                // Replace all underscores with dashes
+                for (char *c = res; *c != '\0'; ++c)
+                    if (*c == '_')
+                        *c = '-';
+            }
+
+            return res;
         }
 
     } /* namespace meta */

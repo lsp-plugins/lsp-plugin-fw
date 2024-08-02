@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/io/charset.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/const.h>
@@ -36,12 +37,15 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/controller.h>
-#include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/debug.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
 #include <steinberg/vst3.h>
+
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
+#endif /* WITH_UI_FEATURE */
 
 namespace lsp
 {
@@ -54,7 +58,8 @@ namespace lsp
             const meta::plugin_t *meta)
         {
             lsp_trace("this=%p", this);
-            nRefCounter         = 1;
+
+            atomic_store(&nRefCounter, 1);
             pFactory            = safe_acquire(factory);
             pLoader             = loader;
             pPackage            = package;
@@ -140,6 +145,11 @@ namespace lsp
                 case meta::R_PATH:
                     lsp_trace("creating path port %s", port->id);
                     vup = new vst3::CtlPathPort(port, this);
+                    break;
+
+                case meta::R_STRING:
+                    lsp_trace("creating string port %s", port->id);
+                    vup = new vst3::CtlStringPort(port, this);
                     break;
 
                 case meta::R_CONTROL:
@@ -572,6 +582,7 @@ namespace lsp
                 pos.sampleRate      = sr;
                 pos.frame           = frame;
 
+            #ifdef WITH_UI_FEATURE
                 // Notify UI about position update
                 if (sWrappersLock.lock())
                 {
@@ -583,6 +594,7 @@ namespace lsp
                             w->commit_position(&pos);
                     }
                 }
+            #endif /* WITH_UI_FEATURE */
             }
             else if (!strcmp(message_id, ID_MSG_PLAY_SAMPLE_POSITION))
             {
@@ -595,6 +607,7 @@ namespace lsp
 
                 // lsp_trace("Received play position = %lld, length=%lld", (long long)position, (long long)length);
 
+            #ifdef WITH_UI_FEATURE
                 // Notify UI about position update
                 if (sWrappersLock.lock())
                 {
@@ -606,6 +619,7 @@ namespace lsp
                             w->set_play_position(position, length);
                     }
                 }
+            #endif /* WITH_UI_FEATURE */
             }
             else if (!strcmp(message_id, ID_MSG_METERS))
             {
@@ -1043,6 +1057,19 @@ namespace lsp
                             pp->commit_value(name);
                             pp->mark_changed();
                         }
+                        else if (meta::is_string_port(meta))
+                        {
+                            vst3::CtlStringPort *sp     = static_cast<vst3::CtlStringPort *>(p);
+
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
+                            lsp_trace("  %s = %s", meta->id, name);
+                            sp->commit_value(name);
+                            sp->mark_changed();
+                        }
                         else if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)) || (meta::is_port_set_port(meta)))
                         {
                             vst3::CtlParamPort *pp      = static_cast<vst3::CtlParamPort *>(p);
@@ -1368,9 +1395,10 @@ namespace lsp
             return Steinberg::kResultTrue;
         }
 
+    #ifdef WITH_UI_FEATURE
         ui::Module *Controller::create_ui()
         {
-            if ((pUIMetadata == NULL) || (pUIMetadata->vst3ui_uid == NULL))
+            if ((pUIMetadata == NULL) || (pUIMetadata->uids.vst3ui == NULL))
             {
                 lsp_trace("pUIMetadata is not valid");
                 return NULL;
@@ -1385,9 +1413,9 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-                    if (plug_meta->vst3ui_uid == NULL)
+                    if (plug_meta->uids.vst3ui == NULL)
                         continue;
-                    if (memcmp(plug_meta->vst3ui_uid, pUIMetadata->vst3ui_uid, sizeof(Steinberg::TUID)) != 0)
+                    if (memcmp(plug_meta->uids.vst3ui, pUIMetadata->uids.vst3ui, sizeof(Steinberg::TUID)) != 0)
                         continue;
 
                     // Allocate UI module
@@ -1404,6 +1432,32 @@ namespace lsp
             lsp_trace("Not found matching factory");
 
             return NULL;
+        }
+
+        status_t Controller::detach_ui_wrapper(UIWrapper *wrapper)
+        {
+            if (sWrappersLock.lock())
+            {
+                lsp_finally { sWrappersLock.unlock(); };
+                if (!vWrappers.qpremove(wrapper))
+                    return STATUS_NOT_FOUND;
+            }
+
+            // Notify backend about UI deactivation
+            if (pPeerConnection != NULL)
+            {
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
+                if (msg == NULL)
+                    return STATUS_OK;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize and send the message
+                msg->setMessageID(vst3::ID_MSG_DEACTIVATE_UI);
+                pPeerConnection->notify(msg);
+            }
+
+            return STATUS_OK;
         }
 
         Steinberg::IPlugView * PLUGIN_API Controller::createView(Steinberg::FIDString name)
@@ -1471,13 +1525,6 @@ namespace lsp
             return w;
         }
 
-        Steinberg::tresult PLUGIN_API Controller::setKnobMode(Steinberg::Vst::KnobMode mode)
-        {
-            lsp_trace("this=%p, mode=%d", this, int(mode));
-
-            return Steinberg::kNotImplemented;
-        }
-
         Steinberg::tresult PLUGIN_API Controller::openHelp(Steinberg::TBool onlyCheck)
         {
             lsp_trace("this=%p, onlyCheck=%d", this, int(onlyCheck));
@@ -1506,6 +1553,29 @@ namespace lsp
 
             vst3::UIWrapper *w = vWrappers.last();
             return (w != NULL) ? w->show_about_box() : Steinberg::kResultOk;
+        }
+    #else
+        Steinberg::IPlugView * PLUGIN_API Controller::createView(Steinberg::FIDString name)
+        {
+            return NULL;
+        }
+
+        Steinberg::tresult PLUGIN_API Controller::openHelp(Steinberg::TBool onlyCheck)
+        {
+            return Steinberg::kNotImplemented;
+        }
+
+        Steinberg::tresult PLUGIN_API Controller::openAboutBox(Steinberg::TBool onlyCheck)
+        {
+            return Steinberg::kNotImplemented;
+        }
+    #endif /* WITH_UI_FEATURE */
+
+        Steinberg::tresult PLUGIN_API Controller::setKnobMode(Steinberg::Vst::KnobMode mode)
+        {
+            lsp_trace("this=%p, mode=%d", this, int(mode));
+
+            return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API Controller::getMidiControllerAssignment(
@@ -1560,32 +1630,6 @@ namespace lsp
 
             // Send the message
             pPeerConnection->notify(msg);
-        }
-
-        status_t Controller::detach_ui_wrapper(UIWrapper *wrapper)
-        {
-            if (sWrappersLock.lock())
-            {
-                lsp_finally { sWrappersLock.unlock(); };
-                if (!vWrappers.qpremove(wrapper))
-                    return STATUS_NOT_FOUND;
-            }
-
-            // Notify backend about UI deactivation
-            if (pPeerConnection != NULL)
-            {
-                // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
-                if (msg == NULL)
-                    return STATUS_OK;
-                lsp_finally { safe_release(msg); };
-
-                // Initialize and send the message
-                msg->setMessageID(vst3::ID_MSG_DEACTIVATE_UI);
-                pPeerConnection->notify(msg);
-            }
-
-            return STATUS_OK;
         }
 
         const meta::package_t *Controller::package() const
@@ -1682,6 +1726,38 @@ namespace lsp
                 // Finally, we're ready to send message
                 pPeerConnection->notify(msg);
             }
+            else if (meta::is_string_port(meta))
+            {
+                const char *str = port->buffer<char>();
+                lsp_trace("port write: id=%s, value='%s'", port->id(), str);
+
+                // Check that we are available to send messages
+                if (pPeerConnection == NULL)
+                    return;
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID(vst3::ID_MSG_STRING);
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write port identifier
+                if (!sTxNotifyBuf.set_string(list, "id", meta->id))
+                    return;
+                // Write endianess
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                    return;
+                // Write port identifier
+                if (!sTxNotifyBuf.set_string(list, "value", str))
+                    return;
+
+                // Finally, we're ready to send message
+                pPeerConnection->notify(msg);
+            }
             else
             {
                 vst3::CtlParamPort *ip = static_cast<vst3::CtlParamPort *>(port);
@@ -1731,7 +1807,7 @@ namespace lsp
             }
         }
 
-#ifdef VST_USE_RUNLOOP_IFACE
+    #ifdef VST_USE_RUNLOOP_IFACE
         Steinberg::Linux::IRunLoop *Controller::acquire_run_loop()
         {
             Steinberg::Linux::IRunLoop *run_loop = safe_query_iface<Steinberg::Linux::IRunLoop>(pHostContext);
@@ -1740,7 +1816,7 @@ namespace lsp
 
             return pFactory->acquire_run_loop();
         }
-#endif /* VST_USE_RUNLOOP_IFACE */
+    #endif /* VST_USE_RUNLOOP_IFACE */
 
         void Controller::send_kvt_state()
         {

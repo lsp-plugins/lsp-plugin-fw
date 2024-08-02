@@ -2,6 +2,17 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.25 ===
+* Better work with plugin window size.
+* Plugins now can be built without the ui if we omit the 'ui' feature in
+  build configuration.
+* Added support of string ports.
+* Improved build tools: UI resources are now built-in only for libraries that
+  need them.
+* Several fixes for VST3 wrapper.
+* Added INSTALL_FEATURES option.
+* Updated module versions in dependencies.
+
 === 1.0.24 ===
 * Updated module versions in dependencies.
 

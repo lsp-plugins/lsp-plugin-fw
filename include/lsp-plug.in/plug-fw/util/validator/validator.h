@@ -46,6 +46,7 @@ namespace lsp
             lltl::pphash<char, meta::plugin_t>      vst2_ids;
             lltl::pphash<char, meta::plugin_t>      vst3_ids;
             lltl::pphash<char, meta::plugin_t>      clap_ids;
+            lltl::pphash<char, meta::plugin_t>      gst_ids;
             lltl::pphash<uint32_t, meta::plugin_t>  ladspa_ids;
             lltl::pphash<char, meta::plugin_t>      ladspa_labels;
             lltl::parray<meta::person_t>            developers;
@@ -103,6 +104,13 @@ namespace lsp
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta);
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
         } /* namespace clap */
+
+        namespace gst
+        {
+            void validate_package(context_t *ctx, const meta::package_t *pkg);
+            void validate_plugin(context_t *ctx, const meta::plugin_t *meta);
+            void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port);
+        } /* namespace gst */
 
         void validate_package(context_t *ctx, const meta::package_t *pkg);
         void validate_plugin(context_t *ctx, const meta::plugin_t *meta);

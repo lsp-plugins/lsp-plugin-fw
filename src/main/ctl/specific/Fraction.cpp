@@ -226,18 +226,14 @@ namespace lsp
             if (fr == NULL)
                 return;
 
-            if ((port == pDen) || (port == NULL))
+            if ((port == pDen) && (pDen != NULL))
             {
-                if (pDen != NULL)
-                {
-                    nDenom      = pDen->value();
-                    lsp_trace("nDenom = %d", int(nDenom));
-                }
+                nDenom      = pDen->value();
+                lsp_trace("nDenom = %d", int(nDenom));
             }
-            if ((port == pPort) || (port == NULL))
+            if ((port == pPort) && (pPort != NULL))
             {
-                if (pPort != NULL)
-                    fSig        = lsp_limit(pPort->value(), 0.0f, fMaxSig);
+                fSig        = lsp_limit(pPort->value(), 0.0f, fMaxSig);
             }
 
             tk::ListBoxItem *sel = fr->den_items()->get(nDenom - 1);
@@ -288,7 +284,7 @@ namespace lsp
             tk::WidgetList<tk::ListBoxItem> *nl = fr->num_items();
 
             // Add missing list items
-            ssize_t num_max = fMaxSig * nDenom;
+            ssize_t num_max = fMaxSig * nDenom + 0.5f;
             for (ssize_t i = nl->size(); i <= num_max; ++i)
                 add_list_item(nl, i, NULL);
 

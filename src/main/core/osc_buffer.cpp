@@ -56,7 +56,7 @@ namespace lsp
             osc_buffer_t *res   = reinterpret_cast<osc_buffer_t *>(ptr);
             ptr                += align_size(sizeof(osc_buffer_t), DEFAULT_ALIGN);
 
-            res->nSize          = 0;
+            atomic_store(&res->nSize, 0);
             res->nCapacity      = capacity;
             res->nHead          = 0;
             res->nTail          = 0;
@@ -88,7 +88,7 @@ namespace lsp
                 return STATUS_BAD_ARGUMENTS;
 
             // Ensure that there is enough space in buffer
-            size_t oldsize  = nSize;
+            size_t oldsize  = atomic_load(&nSize);
             size_t newsize  = oldsize + size + sizeof(uint32_t);
             if (newsize > nCapacity)
                 return (oldsize == 0) ? STATUS_TOO_BIG : STATUS_OVERFLOW;
@@ -115,7 +115,7 @@ namespace lsp
                 nTail          -= nCapacity;
 
             // Update the size
-            nSize           = newsize;
+            atomic_store(&nSize, newsize);
             return STATUS_OK;
         }
 
@@ -143,7 +143,7 @@ namespace lsp
 
         void osc_buffer_t::clear()
         {
-            nSize   = 0;
+            atomic_store(&nSize, 0);
             nHead   = 0;
             nTail   = 0;
         }
@@ -284,7 +284,7 @@ namespace lsp
                 return STATUS_BAD_ARGUMENTS;
 
             // There is enough space in the buffer?
-            size_t bufsz    = nSize;
+            size_t bufsz    = atomic_load(&nSize);
             if (bufsz < sizeof(uint32_t))
                 return STATUS_NO_DATA;
 
@@ -327,7 +327,7 @@ namespace lsp
 
         size_t osc_buffer_t::skip()
         {
-            size_t bufsz    = nSize;
+            size_t bufsz    = atomic_load(&nSize);
             if (bufsz < sizeof(uint32_t))
                 return 0;
 

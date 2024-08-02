@@ -53,7 +53,7 @@ namespace lsp
             status_t res = STATUS_OK;
 
             // Force position sync at startup
-            nPosition   = pWrapper->nPosition - 1;
+            nPosition   = atomic_load(&pWrapper->nPosition) - 1;
             const meta::plugin_t *meta = pUI->metadata();
             if (pUI->metadata() == NULL)
                 return STATUS_BAD_STATE;
@@ -197,7 +197,7 @@ namespace lsp
 
         void UIWrapper::dump_state_request()
         {
-            return pWrapper->dump_plugin_state();
+            atomic_add(&pWrapper->nDumpReq, 1);
         }
 
         void UIWrapper::main_iteration()
@@ -266,6 +266,10 @@ namespace lsp
 
                 case meta::R_PATH:
                     jup     = new jack::UIPathPort(jp);
+                    break;
+
+                case meta::R_STRING:
+                    jup     = new jack::UIStringPort(jp);
                     break;
 
                 case meta::R_CONTROL:
@@ -385,7 +389,7 @@ namespace lsp
             dsp::start(&ctx);
 
             // Check that position has been updated and sync it's state
-            atomic_t pos    = pWrapper->nPosition;
+            atomic_t pos    = atomic_load(&pWrapper->nPosition);
             if (nPosition != pos)
             {
                 position_updated(pWrapper->position());

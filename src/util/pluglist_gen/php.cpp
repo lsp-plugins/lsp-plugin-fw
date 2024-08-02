@@ -123,40 +123,50 @@ namespace lsp
             fprintf(out, "\t\t\t'acronym' => \"%s\",\n", php_escape(buf, m->acronym));
 
             // Emit different plugin format identifiers
-            if (m->ladspa_id > 0)
+            char *gst_uid = meta::make_gst_canonical_name(m->uids.gst);
+            lsp_finally {
+                if (gst_uid != NULL)
+                    free(gst_uid);
+            };
+
+            if (m->uids.ladspa_id > 0)
             {
-                fprintf(out, "\t\t\t'ladspa_uid' => '%ld',\n", long(m->ladspa_id));
-                fprintf(out, "\t\t\t'ladspa_label' => \"%s\",\n", php_escape(buf, m->ladspa_lbl));
+                fprintf(out, "\t\t\t'ladspa_uid' => '%ld',\n", long(m->uids.ladspa_id));
+                fprintf(out, "\t\t\t'ladspa_label' => \"%s\",\n", php_escape(buf, m->uids.ladspa_lbl));
             }
             else
             {
                 fprintf(out, "\t\t\t'ladspa_uid' => null,\n");
                 fprintf(out, "\t\t\t'ladspa_label' => null,\n");
             }
-            if (m->lv2_uri != NULL)
-                fprintf(out, "\t\t\t'lv2_uri' => \"%s\",\n", php_escape(buf, m->lv2_uri));
+            if (m->uids.lv2 != NULL)
+                fprintf(out, "\t\t\t'lv2_uri' => \"%s\",\n", php_escape(buf, m->uids.lv2));
             else
                 fprintf(out, "\t\t\t'lv2_uri' => null,\n");
-            if (m->lv2ui_uri != NULL)
-                fprintf(out, "\t\t\t'lv2ui_uri' => \"%s\",\n", php_escape(buf, m->lv2ui_uri));
+            if (m->uids.lv2ui != NULL)
+                fprintf(out, "\t\t\t'lv2ui_uri' => \"%s\",\n", php_escape(buf, m->uids.lv2ui));
             else
                 fprintf(out, "\t\t\t'lv2ui_uri' => null,\n");
-            if (m->vst2_uid != NULL)
-                fprintf(out, "\t\t\t'vst2_uid' => \"%s\",\n", php_escape(buf, m->vst2_uid));
+            if (m->uids.vst2 != NULL)
+                fprintf(out, "\t\t\t'vst2_uid' => \"%s\",\n", php_escape(buf, m->uids.vst2));
             else
                 fprintf(out, "\t\t\t'vst2_uid' => null,\n");
-            if ((vst3_uid = meta::uid_meta_to_vst3(vst3_buf, m->vst3_uid)) != NULL)
+            if ((vst3_uid = meta::uid_meta_to_vst3(vst3_buf, m->uids.vst3)) != NULL)
                 fprintf(out, "\t\t\t'vst3_uid' => \"%s\",\n", php_escape(buf, vst3_uid));
             else
                 fprintf(out, "\t\t\t'vst3_uid' => null,\n");
-            if ((vst3_uid = meta::uid_meta_to_vst3(vst3_buf, m->vst3ui_uid)) != NULL)
+            if ((vst3_uid = meta::uid_meta_to_vst3(vst3_buf, m->uids.vst3ui)) != NULL)
                 fprintf(out, "\t\t\t'vst3ui_uid' => \"%s\",\n", php_escape(buf, vst3_uid));
             else
                 fprintf(out, "\t\t\t'vst3ui_uid' => null,\n");
-            if (m->clap_uid != NULL)
-                fprintf(out, "\t\t\t'clap_uid' => \"%s\",\n", php_escape(buf, m->clap_uid));
+            if (m->uids.clap != NULL)
+                fprintf(out, "\t\t\t'clap_uid' => \"%s\",\n", php_escape(buf, m->uids.clap));
             else
                 fprintf(out, "\t\t\t'clap_uid' => null,\n");
+            if (m->uids.gst != NULL)
+                fprintf(out, "\t\t\t'gst_uid' => \"%s\",\n", php_escape(buf, gst_uid));
+            else
+                fprintf(out, "\t\t\t'gst_uid' => null,\n");
 
             fprintf(out, "\t\t\t'jack' => true,\n");
             fprintf(out, "\t\t\t'groups' => ");

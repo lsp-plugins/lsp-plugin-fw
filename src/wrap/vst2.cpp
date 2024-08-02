@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 дек. 2021 г.
@@ -21,19 +21,22 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/vst2/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/impl/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/vst2/impl/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/debug.h>
-#include <lsp-plug.in/ws/keycodes.h>
 
-#ifdef USE_LIBX11
-    #include <lsp-plug.in/ws/x11/decode.h>
-#endif /* USE_LIBX11 */
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/vst2/ui_wrapper.h>
+    #include <lsp-plug.in/plug-fw/wrap/vst2/impl/ui_wrapper.h>
+    #include <lsp-plug.in/ws/keycodes.h>
+
+    #ifdef USE_LIBX11
+        #include <lsp-plug.in/ws/x11/decode.h>
+    #endif /* USE_LIBX11 */
+#endif /* WITH_UI_FEATURE */
 
 #define VST2_LOG_FILE   "lsp-vst2-aeffect.log"
 
@@ -45,6 +48,7 @@ namespace lsp
         static const VstInt32 VST2_MAGIC_stCa        = CCONST('s', 't', 'C', 'a');
         static const VstInt32 VST2_MAGIC_FUID        = CCONST('F', 'U', 'I', 'D');
 
+    #ifdef WITH_UI_FEATURE
         typedef struct key_code_t
         {
             uint8_t     vst;
@@ -168,6 +172,7 @@ namespace lsp
 
             return v;
         }
+    #endif /* WITH_UI_FEATURE */
 
         void finalize(AEffect *e)
         {
@@ -627,7 +632,7 @@ namespace lsp
                     break;
                 }
 
-            #ifndef LSP_NO_VST_UI
+            #ifdef WITH_UI_FEATURE
                 case effEditOpen: // Run editor
                 {
                     UIWrapper *ui = w->ui_wrapper();
@@ -648,6 +653,7 @@ namespace lsp
                 case effEditClose: // Close editor
                 {
                     UIWrapper *ui = w->ui_wrapper();
+                    lsp_trace("effEditClose ui=%p", ui);
                     if (ui == NULL)
                         break;
 
@@ -694,7 +700,7 @@ namespace lsp
                     v = process_key_event(uiw, opcode, index, value);
                     break;
                 }
-            #endif /* LSP_NO_VST_UI */
+            #endif /* WITH_UI_FEATURE */
 
                 case effSetProgram:
                 case effGetProgram:
@@ -744,12 +750,12 @@ namespace lsp
                         char FUID[40];
                         const meta::plugin_t *m = w->metadata();
 
-                        if ((m != NULL) && (m->vst3_uid != NULL))
+                        if ((m != NULL) && (m->uids.vst3 != NULL))
                         {
                             const char *plugin_name = (m->vst2_name != NULL) ? m->vst2_name : m->name;
-                            if (meta::uid_vst2_to_vst3(FUID, m->vst2_uid, plugin_name) != NULL)
+                            if (meta::uid_vst2_to_vst3(FUID, m->uids.vst2, plugin_name) != NULL)
                             {
-                                lsp_trace("Reporting compatibility of VST 2.x plugin uid='%s' with VST3.x plugin uuid='%s'", m->vst2_uid, FUID);
+                                lsp_trace("Reporting compatibility of VST 2.x plugin uid='%s' with VST3.x plugin uuid='%s'", m->uids.vst2, FUID);
                                 if (meta::uid_vst3_to_tuid(reinterpret_cast<char *>(ptr), FUID))
                                     v   = 1;
                             }
@@ -934,16 +940,16 @@ namespace lsp
                     if (plug_meta == NULL)
                         break;
                     if ((plug_meta->uid == NULL) ||
-                        (plug_meta->vst2_uid == NULL))
+                        (plug_meta->uids.vst2 == NULL))
                         continue;
 
                     // Check plugin identifier
-                    if (!strcmp(plug_meta->vst2_uid, uid))
+                    if (!strcmp(plug_meta->uids.vst2, uid))
                     {
                         // Instantiate the plugin and return
                         if ((plugin = f->create(plug_meta)) == NULL)
                         {
-                            lsp_error("Plugin instantiation error: '%s' ('%s')", plug_meta->uid, plug_meta->vst2_uid);
+                            lsp_error("Plugin instantiation error: '%s' ('%s')", plug_meta->uid, plug_meta->uids.vst2);
                             return NULL;
                         }
                     }
@@ -996,14 +1002,16 @@ namespace lsp
                     e->initialDelay                     = 0;
                     e->object                           = wrapper;
                     e->user                             = NULL;
-                    e->uniqueID                         = vst2::cconst(meta->vst2_uid);
+                    e->uniqueID                         = vst2::cconst(meta->uids.vst2);
                     e->version                          = vst2::version(meta->version);
                     e->processReplacing                 = vst2::process_replacing;
                     e->processDoubleReplacing           = NULL; // Currently no double-replacing
 
                     // Additional flags
+                #ifdef WITH_UI_FEATURE
                     if (meta->ui_resource != NULL)
                         e->flags                        |= effFlagsHasEditor; // Has custom UI
+                #endif /* WITH_UI_FEATURE */
 
                     status_t res = wrapper->init();
                     if (res == STATUS_OK)

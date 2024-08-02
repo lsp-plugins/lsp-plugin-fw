@@ -41,7 +41,7 @@ namespace lsp
 
             private:
                 ipc::IExecutor             *pExecutor;
-                volatile atomic_t           nActiveTasks;
+                atomic_t                    nActiveTasks;
 
             public:
                 Executor(ipc::IExecutor *executor);

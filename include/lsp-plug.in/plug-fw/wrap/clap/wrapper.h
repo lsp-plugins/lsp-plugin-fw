@@ -33,15 +33,25 @@
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/ports.h>
-#include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
+
+    namespace lsp
+    {
+        namespace clap
+        {
+            class UIWrapper;
+        } /* namespace clap */
+    } /* namespace lsp */
+
+#endif /* WITH_UI_FEATURE */
 
 namespace lsp
 {
     namespace clap
     {
-        class UIWrapper;
-
         /**
          * CLAP plugin wrapper interface
          */
@@ -61,11 +71,6 @@ namespace lsp
             protected:
                 const clap_host_t              *pHost;              // Host interface
                 const meta::package_t          *pPackage;           // Package metadata
-                const meta::plugin_t           *pUIMetadata;        // UI metadata
-                void                           *pUIFactory;         // UI factory
-                clap::UIWrapper                *pUIWrapper;         // UI wrapper
-                uatomic_t                       nUIReq;             // UI change request
-                uatomic_t                       nUIResp;            // UI change response
                 clap::HostExtensions           *pExt;               // CLAP Extensions
                 ipc::IExecutor                 *pExecutor;          // Executor service
                 ssize_t                         nLatency;           // The actual plugin latency
@@ -73,12 +78,21 @@ namespace lsp
                 uatomic_t                       nDumpReq;           // State dump request counter
                 uatomic_t                       nDumpResp;          // State dump response counter
 
+            #ifdef WITH_UI_FEATURE
+                const meta::plugin_t           *pUIMetadata;        // UI metadata
+                void                           *pUIFactory;         // UI factory
+                clap::UIWrapper                *pUIWrapper;         // UI wrapper
+                uatomic_t                       nUIReq;             // UI change request
+                uatomic_t                       nUIResp;            // UI change response
+            #endif /* WITH_UI_FEATURE */
+
                 lltl::parray<audio_group_t>     vAudioIn;           // Input audio ports
                 lltl::parray<audio_group_t>     vAudioOut;          // Output audio ports
                 lltl::parray<ParameterPort>     vParamPorts;        // List of parameters sorted by clap_id
                 lltl::parray<MidiInputPort>     vMidiIn;            // Midi input ports
                 lltl::parray<MidiOutputPort>    vMidiOut;           // Midi output ports
                 lltl::parray<clap::Port>        vAllPorts;          // List of all available ports
+                lltl::parray<clap::StringPort>  vStringPorts;       // List of string ports
                 lltl::parray<clap::Port>        vSortedPorts;       // List of ports sorted by metadata identifier
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
@@ -105,13 +119,17 @@ namespace lsp
                 static void     destroy_value(core::kvt_param_t *p);
 
             protected:
-                void            lookup_ui_factory();
                 void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 status_t        create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta);
                 status_t        generate_audio_port_groups(const meta::plugin_t *meta);
                 clap::ParameterPort  *find_param(clap_id param_id);
                 size_t          prepare_block(size_t *ev_index, size_t offset, const clap_process_t *process);
                 void            generate_output_events(size_t offset, const clap_process_t *process);
+
+        #ifdef WITH_UI_FEATURE
+            protected:
+                void            lookup_ui_factory();
+        #endif /* WITH_UI_FEATURE */
 
             public:
                 explicit Wrapper(
@@ -184,12 +202,17 @@ namespace lsp
                 clap::Port                     *find_by_id(const char *id);
                 inline core::SamplePlayer      *sample_player();
                 void                            request_state_dump();
+                inline HostExtensions          *extensions();
+
+        #ifdef WITH_UI_FEATURE
+            public:
+                // UI-related functions
                 inline UIWrapper               *ui_wrapper();
                 UIWrapper                      *create_ui();
                 void                            destroy_ui();
-                inline HostExtensions          *extensions();
                 bool                            ui_provided();
                 void                            ui_visibility_changed();
+        #endif /* WITH_UI_FEATURE */
         };
     } /* namespace clap */
 } /* namespace lsp */

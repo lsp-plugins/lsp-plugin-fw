@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 нояб. 2021 г.
@@ -46,10 +46,10 @@ namespace lsp
                     nID         = -1;
                     urid        = (meta != NULL) ? pExt->map_port(meta->id) : -1;
                 }
-
-                virtual ~UIPort()
-                {
-                }
+                UIPort(const UIPort &) = delete;
+                UIPort(UIPort &&) = delete;
+                UIPort & operator = (const UIPort &) = delete;
+                UIPort & operator = (UIPort &&) = delete;
 
             public:
                 virtual void notify(const void *buffer, size_t protocol, size_t size)
@@ -86,17 +86,18 @@ namespace lsp
                     }
                 }
 
-                virtual ~UIPortGroup()
-                {
-                }
+                UIPortGroup(const UIPortGroup &) = delete;
+                UIPortGroup(UIPortGroup &&) = delete;
+                UIPortGroup & operator = (const UIPortGroup &) = delete;
+                UIPortGroup & operator = (UIPortGroup &&) = delete;
 
             public:
-                virtual float value()
+                virtual float value() override
                 {
                     return nCurrRow;
                 }
 
-                virtual void set_value(float value)
+                virtual void set_value(float value) override
                 {
                     size_t new_value = meta::limit_value(pMetadata, value);
                     if ((new_value >= 0) && (new_value < nRows) && (new_value != nCurrRow))
@@ -107,20 +108,20 @@ namespace lsp
                     }
                 }
 
-                virtual void serialize()
+                virtual void serialize() override
                 {
                     // Serialize and reset pending flag
                     pExt->forge_int(nCurrRow);
                 }
 
-                virtual void deserialize(const void *data)
+                virtual void deserialize(const void *data) override
                 {
                     const LV2_Atom_Int *atom = reinterpret_cast<const LV2_Atom_Int *>(data);
                     if ((atom->body >= 0) && (atom->body < int32_t(nRows)))
                         nCurrRow        = atom->body;
                 }
 
-                virtual LV2_URID get_type_urid() const
+                virtual LV2_URID get_type_urid() const override
                 {
                     return pExt->forge.Int;
                 }
@@ -150,12 +151,25 @@ namespace lsp
                     }
                     bForce      = port != NULL;
                 }
-                virtual ~UIFloatPort() { fValue  =   pMetadata->start; };
+
+                UIFloatPort(const UIFloatPort &) = delete;
+                UIFloatPort(UIFloatPort &&) = delete;
+
+                virtual ~UIFloatPort() override
+                {
+                    fValue  =   pMetadata->start;
+                }
+
+                UIFloatPort & operator = (const UIFloatPort &) = delete;
+                UIFloatPort & operator = (UIFloatPort &&) = delete;
 
             public:
-                virtual float value() { return fValue; }
+                virtual float value() override
+                {
+                    return fValue;
+                }
 
-                virtual void set_value(float value)
+                virtual void set_value(float value) override
                 {
                     fValue      = meta::limit_value(pMetadata, value);
                     if (nID >= 0)
@@ -171,26 +185,29 @@ namespace lsp
                     }
                 }
 
-                virtual LV2_URID        get_type_urid() const   { return pExt->forge.Float; };
+                virtual LV2_URID        get_type_urid() const override
+                {
+                    return pExt->forge.Float;
+                }
 
-                virtual void serialize()
+                virtual void serialize() override
                 {
                     pExt->forge_float(fValue);
                 };
 
-                virtual void deserialize(const void *data)
+                virtual void deserialize(const void *data) override
                 {
                     const LV2_Atom_Float *atom = reinterpret_cast<const LV2_Atom_Float *>(data);
                     fValue      = meta::limit_value(pMetadata, atom->body);
                 }
 
-                virtual void notify(const void *buffer, size_t protocol, size_t size)
+                virtual void notify(const void *buffer, size_t protocol, size_t size) override
                 {
                     if (size == sizeof(float))
                         fValue = meta::limit_value(pMetadata, *(reinterpret_cast<const float *>(buffer)));
                 }
 
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     if ((pPort == NULL) || (nID >= 0))
                         return false;
@@ -217,10 +234,13 @@ namespace lsp
                 {
                 }
 
-                virtual ~UIBypassPort() { };
+                UIBypassPort(const UIBypassPort &) = delete;
+                UIBypassPort(UIBypassPort &&) = delete;
+                UIBypassPort & operator = (const UIBypassPort &) = delete;
+                UIBypassPort & operator = (UIBypassPort &&) = delete;
 
             public:
-                virtual void set_value(float value)
+                virtual void set_value(float value) override
                 {
                     fValue      = meta::limit_value(pMetadata, value);
                     if (nID >= 0)
@@ -237,18 +257,18 @@ namespace lsp
                     }
                 }
 
-                virtual void serialize()
+                virtual void serialize() override
                 {
                     pExt->forge_float(pMetadata->max - fValue);
                 };
 
-                virtual void deserialize(const void *data)
+                virtual void deserialize(const void *data) override
                 {
                     const LV2_Atom_Float *atom = reinterpret_cast<const LV2_Atom_Float *>(data);
                     fValue      = meta::limit_value(pMetadata, pMetadata->max - atom->body);
                 }
 
-                virtual void notify(const void *buffer, size_t protocol, size_t size)
+                virtual void notify(const void *buffer, size_t protocol, size_t size) override
                 {
                     if (size == sizeof(float))
                         fValue = meta::limit_value(pMetadata, pMetadata->max - *(reinterpret_cast<const float *>(buffer)));
@@ -261,10 +281,14 @@ namespace lsp
             public:
                 explicit UIPeakPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *port) :
                     UIFloatPort(meta, ext, port) {}
-                virtual ~UIPeakPort() {};
+
+                UIPeakPort(const UIPeakPort &) = delete;
+                UIPeakPort(UIPeakPort &&) = delete;
+                UIPeakPort & operator = (const UIPeakPort &) = delete;
+                UIPeakPort & operator = (UIPeakPort &&) = delete;
 
             public:
-                virtual void notify(const void *buffer, size_t protocol, size_t size)
+                virtual void notify(const void *buffer, size_t protocol, size_t size) override
                 {
                     if (size == sizeof(LV2UI_Peak_Data))
                     {
@@ -303,14 +327,18 @@ namespace lsp
                     }
                 }
 
-                virtual ~UIMeshPort()
-                {
-                }
+                UIMeshPort(const UIMeshPort &) = delete;
+                UIMeshPort(UIMeshPort &&) = delete;
+                UIMeshPort & operator = (const UIMeshPort &) = delete;
+                UIMeshPort & operator = (UIMeshPort &&) = delete;
 
             public:
-                virtual LV2_URID        get_type_urid() const   { return pExt->uridMeshType; };
+                virtual LV2_URID        get_type_urid() const override
+                {
+                    return pExt->uridMeshType;
+                }
 
-                virtual void deserialize(const void *data)
+                virtual void deserialize(const void *data) override
                 {
                     const LV2_Atom_Object* obj = reinterpret_cast<const LV2_Atom_Object *>(data);
 
@@ -383,7 +411,7 @@ namespace lsp
                     bParsed                 = true;
                 }
 
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     if (!bParsed)
                         return NULL;
@@ -391,7 +419,7 @@ namespace lsp
                     return sMesh.pMesh;
                 }
 
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     if (pPort == NULL)
                         return false;
@@ -435,11 +463,17 @@ namespace lsp
                     }
                 }
 
-                virtual ~UIStreamPort()
+                UIStreamPort(const UIStreamPort &) = delete;
+                UIStreamPort(UIStreamPort &&) = delete;
+
+                virtual ~UIStreamPort() override
                 {
                     plug::stream_t::destroy(pStream);
                     pStream         = NULL;
                 };
+
+                UIStreamPort & operator = (const UIStreamPort &) = delete;
+                UIStreamPort & operator = (UIStreamPort &&) = delete;
 
             protected:
                 void deserialize_frame(LV2_Atom_Object *frame)
@@ -508,9 +542,12 @@ namespace lsp
                 }
 
             public:
-                virtual LV2_URID        get_type_urid() const   { return pExt->uridStreamType; };
+                virtual LV2_URID        get_type_urid() const override
+                {
+                    return pExt->uridStreamType;
+                }
 
-                virtual void deserialize(const void *data)
+                virtual void deserialize(const void *data) override
                 {
                     const LV2_Atom_Object* obj = reinterpret_cast<const LV2_Atom_Object *>(data);
 //                    lsp_trace("id = %s", pMetadata->id);
@@ -552,12 +589,12 @@ namespace lsp
                     }
                 }
 
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return pStream;
                 }
 
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     // Check if there is data for syncing
                     if (pPort == NULL)
@@ -592,14 +629,18 @@ namespace lsp
                     }
                 }
 
-                virtual ~UIFrameBufferPort()
-                {
-                }
+                UIFrameBufferPort(const UIFrameBufferPort &) = delete;
+                UIFrameBufferPort(UIFrameBufferPort &&) = delete;
+                UIFrameBufferPort & operator = (const UIFrameBufferPort &) = delete;
+                UIFrameBufferPort & operator = (UIFrameBufferPort &&) = delete;
 
             public:
-                virtual LV2_URID        get_type_urid() const   { return pExt->uridMeshType; };
+                virtual LV2_URID        get_type_urid() const override
+                {
+                    return pExt->uridMeshType;
+                }
 
-                virtual void deserialize(const void *data)
+                virtual void deserialize(const void *data) override
                 {
                     const LV2_Atom_Object* obj = reinterpret_cast<const LV2_Atom_Object *>(data);
 
@@ -717,12 +758,12 @@ namespace lsp
                     sFB.seek(first_row);
                 }
 
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return &sFB;
                 }
 
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     // Check if there is data for viewing
                     if (pPort == NULL)
@@ -758,12 +799,13 @@ namespace lsp
                     }
                 }
 
-                virtual ~UIPathPort()
-                {
-                };
+                UIPathPort(const UIPathPort &) = delete;
+                UIPathPort(UIPathPort &&) = delete;
+                UIPathPort & operator = (const UIPathPort &) = delete;
+                UIPathPort & operator = (UIPathPort &&) = delete;
 
             public:
-                virtual void deserialize(const void *data)
+                virtual void deserialize(const void *data) override
                 {
                     // Read path value
                     const LV2_Atom *atom = reinterpret_cast<const LV2_Atom *>(data);
@@ -783,9 +825,12 @@ namespace lsp
                     }
                 }
 
-                virtual LV2_URID        get_type_urid() const   { return pExt->uridPathType; };
+                virtual LV2_URID        get_type_urid() const override
+                {
+                    return pExt->uridPathType;
+                }
 
-                virtual void serialize()
+                virtual void serialize() override
                 {
                     lsp_trace("mapPath = %p, path = %s", pExt->mapPath, sPath);
                     if ((pExt->mapPath != NULL) && (::strstr(sPath, LSP_BUILTIN_PREFIX) != sPath))
@@ -804,7 +849,7 @@ namespace lsp
                         pExt->forge_path(sPath);
                 }
 
-                virtual void write(const void* buffer, size_t size, size_t flags)
+                virtual void write(const void* buffer, size_t size, size_t flags) override
                 {
                     lv2_set_string(sPath, PATH_MAX, reinterpret_cast<const char *>(buffer), size);
 
@@ -815,12 +860,12 @@ namespace lsp
                     pExt->ui_write_patch(this);
                 }
 
-                virtual void write(const void* buffer, size_t size)
+                virtual void write(const void* buffer, size_t size) override
                 {
                     write(buffer, size, 0);
                 }
 
-                virtual bool sync()
+                virtual bool sync() override
                 {
                     if (!pPort->tx_pending())
                         return false;
@@ -836,14 +881,123 @@ namespace lsp
                     return true;
                 }
 
-                virtual void *buffer()
+                virtual void *buffer() override
                 {
                     return sPath;
                 }
 
-                virtual void set_default()
+                virtual void set_default() override
                 {
                     write("", 0, plug::PF_PRESET_IMPORT);
+                }
+        };
+
+        class UIStringPort: public UIPort
+        {
+            protected:
+                plug::string_t     *pValue;
+                char               *pData;
+                uint32_t            nCapacity;
+                uint32_t            nSerial;
+
+            public:
+                explicit UIStringPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *xport):
+                    UIPort(meta, ext)
+                {
+                    lv2::StringPort *sp     = (xport != NULL) ? static_cast<lv2::StringPort *>(xport) : NULL;
+                    if (xport != NULL)
+                    {
+                        pValue                  = sp->data();
+                        nCapacity               = pValue->max_bytes();
+                        nSerial                 = pValue->serial() - 1;
+                    }
+                    else
+                    {
+                        pValue                  = NULL;
+                        nCapacity               = size_t(meta->max) * 4;
+                    }
+
+                    // Allocate buffer to store value
+                    pData                   = reinterpret_cast<char *>(malloc(nCapacity + 1));
+                    if (pData != NULL)
+                        pData[0]                = '\0';
+
+                    lsp_trace("id=%s, ext=%p, xport=%p", meta->id, ext, xport);
+                    if (sp != NULL)
+                        lsp_trace("Connected direct string port id=%s", sp->metadata()->id);
+                }
+
+                UIStringPort(const UIStringPort &) = delete;
+                UIStringPort(UIStringPort &&) = delete;
+
+                virtual ~UIStringPort() override
+                {
+                    pValue                  = NULL;
+                    if (pData != NULL)
+                    {
+                        free(pData);
+                        pData                   = NULL;
+                    }
+                }
+
+                UIStringPort & operator = (const UIStringPort &) = delete;
+                UIStringPort & operator = (UIStringPort &&) = delete;
+
+            public:
+                virtual void deserialize(const void *data) override
+                {
+                    // Read path value
+                    const LV2_Atom *atom = reinterpret_cast<const LV2_Atom *>(data);
+                    plug::utf8_strncpy(pData, nCapacity, reinterpret_cast<const char *>(atom + 1), atom->size);
+
+                    lsp_trace("id=%s, value=%s", pMetadata->id, pData);
+                }
+
+                virtual LV2_URID        get_type_urid() const override
+                {
+                    return pExt->forge.String;
+                }
+
+                virtual void serialize() override
+                {
+                    pExt->forge_string(pData);
+                }
+
+                virtual void write(const void* buffer, size_t size, size_t flags) override
+                {
+                    plug::utf8_strncpy(pData, nCapacity, buffer, size);
+
+                    // Try to perform direct access to the port using LV2:Instance interface
+                    lsp_trace(
+                        "writing patch event id=%s, value=%s (%d)",
+                        pMetadata->id, static_cast<const char *>(buffer), int(size));
+                    pExt->ui_write_patch(this);
+                }
+
+                virtual void write(const void* buffer, size_t size) override
+                {
+                    write(buffer, size, 0);
+                }
+
+                virtual bool sync() override
+                {
+                    if (pValue == NULL)
+                        return false;
+
+                    return pValue->fetch(&nSerial, pData, nCapacity + 1);
+                }
+
+                virtual void *buffer() override
+                {
+                    return pData;
+                }
+
+                virtual void set_default() override
+                {
+                    const meta::port_t *meta = metadata();
+                    const char *text = (meta != NULL) ? meta->value : "";
+
+                    write(text, strlen(text), plug::PF_PRESET_IMPORT);
                 }
         };
     } /* namespace lv2 */

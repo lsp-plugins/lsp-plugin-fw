@@ -890,18 +890,29 @@ namespace lsp
                     int(LSP_MODULE_VERSION_MINOR(meta->version)),
                     int(LSP_MODULE_VERSION_MICRO(meta->version))
                 );
+
+            char *gst_uid = meta::make_gst_canonical_name(meta->uids.gst);
+            lsp_finally {
+                if (gst_uid != NULL)
+                    free(gst_uid);
+            };
+
             if (meta->uid != NULL)
-                c->fmt_append_utf8   ("  UID:                 %s\n", meta->uid);
-            if (meta->lv2_uri != NULL)
-                c->fmt_append_utf8   ("  LV2 URI:             %s\n", meta->lv2_uri);
-            if (meta->vst2_uid != NULL)
-                c->fmt_append_utf8   ("  VST 2.x identifier:  %s\n", meta->vst2_uid);
-            if (meta->vst3_uid != NULL)
-                c->fmt_append_utf8   ("  VST 3.x identifier:  %s\n", meta::uid_meta_to_vst3(vst3_uid, meta->vst3_uid));
-            if (meta->ladspa_id > 0)
-                c->fmt_append_utf8   ("  LADSPA identifier:   %d\n", meta->ladspa_id);
-            if (meta->ladspa_lbl != NULL)
-                c->fmt_append_utf8   ("  LADSPA label:        %s\n", meta->ladspa_lbl);
+                c->fmt_append_utf8   ("  UID:                     %s\n", meta->uid);
+            if (meta->uids.clap != NULL)
+                c->fmt_append_utf8   ("  CLAP URI:                %s\n", meta->uids.clap);
+            if (gst_uid != NULL)
+                c->fmt_append_utf8   ("  GStreamer identifier:    %s\n", gst_uid);
+            if (meta->uids.ladspa_id > 0)
+                c->fmt_append_utf8   ("  LADSPA identifier:       %d\n", meta->uids.ladspa_id);
+            if (meta->uids.ladspa_lbl != NULL)
+                c->fmt_append_utf8   ("  LADSPA label:            %s\n", meta->uids.ladspa_lbl);
+            if (meta->uids.lv2 != NULL)
+                c->fmt_append_utf8   ("  LV2 URI:                 %s\n", meta->uids.lv2);
+            if (meta->uids.vst2 != NULL)
+                c->fmt_append_utf8   ("  VST 2.x identifier:      %s\n", meta->uids.vst2);
+            if (meta->uids.vst3 != NULL)
+                c->fmt_append_utf8   ("  VST 3.x identifier:      %s\n", meta::uid_meta_to_vst3(vst3_uid, meta->uids.vst3));
             c->append           ('\n');
             c->fmt_append_utf8  ("(C) %s\n", pkg->full_name);
             c->fmt_append_utf8  ("  %s\n", pkg->site);
@@ -1677,8 +1688,8 @@ namespace lsp
 
                     lsp_trace("  param = %s, value = %s", param->name.get_utf8(), param->v.str);
 
-                    const char *value = param->v.str;
-                    size_t len      = ::strlen(value);
+                    const char *value   = param->v.str;
+                    size_t len          = ::strlen(value);
                     io::Path path;
 
                     if (core::parse_relative_path(&path, base, value, len))
@@ -1688,6 +1699,20 @@ namespace lsp
                         len     = strlen(value);
                     }
 
+                    port->write(value, len, flags);
+                    break;
+                }
+                case meta::R_STRING:
+                {
+                    // Check type of argument
+                    if (!param->is_string())
+                        return false;
+
+                    lsp_trace("  param = %s, value = %s", param->name.get_utf8(), param->v.str);
+
+                    // Submit string to the port
+                    const char *value   = param->v.str;
+                    const size_t len    = ::strlen(value);
                     port->write(value, len, flags);
                     break;
                 }
@@ -2004,6 +2029,11 @@ namespace lsp
         }
 
         bool IWrapper::accept_window_size(tk::Window *wnd, size_t width, size_t height)
+        {
+            return true;
+        }
+
+        bool IWrapper::window_resized(tk::Window *wnd, size_t width, size_t height)
         {
             return true;
         }

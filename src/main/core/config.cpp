@@ -191,6 +191,22 @@ namespace lsp
 
                     break;
                 }
+                case meta::R_STRING:
+                {
+                    // Write comment
+                    LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [string]", meta->name), STATUS_NO_MEM);
+                    if (comment.length() > 0)
+                    {
+                        LSP_STATUS_ASSERT(s->write_comment(&comment));
+                    }
+
+                    // Write string
+                    flags |= config::SF_QUOTED;
+                    const char *string  = static_cast<const char *>(data);
+                    LSP_STATUS_ASSERT(s->write_string(meta->id, string, flags));
+
+                    break;
+                }
                 default:
                     return STATUS_BAD_TYPE;
             }

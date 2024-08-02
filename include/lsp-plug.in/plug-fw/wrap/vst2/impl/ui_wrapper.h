@@ -98,6 +98,11 @@ namespace lsp
                     vup = new vst2::UIPathPort(port, vp);
                     break;
 
+                case meta::R_STRING:
+                    lsp_trace("creating string port %s", port->id);
+                    vup = new vst2::UIStringPort(port, vp);
+                    break;
+
                 case meta::R_CONTROL:
                 case meta::R_METER:
                 case meta::R_BYPASS:
@@ -627,7 +632,7 @@ namespace lsp
 
         UIWrapper *UIWrapper::create(vst2::Wrapper *wrapper, void *root_widget)
         {
-            const char *vst2_uid = wrapper->metadata()->vst2_uid;
+            const char *vst2_uid = wrapper->metadata()->uids.vst2;
 
             // Lookup plugin identifier among all registered plugin factories
             for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
@@ -640,7 +645,7 @@ namespace lsp
                         break;
 
                     // Check plugin identifier
-                    if (!::strcmp(meta->vst2_uid, vst2_uid))
+                    if (!::strcmp(meta->uids.vst2, vst2_uid))
                     {
                         // Instantiate the plugin UI and return
                         ui::Module *ui = f->create(meta);

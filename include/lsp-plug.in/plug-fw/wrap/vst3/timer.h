@@ -39,7 +39,7 @@ namespace lsp
         class PlatformTimer: public Steinberg::Linux::ITimerHandler
         {
             private:
-                volatile uatomic_t                      nRefCounter;
+                uatomic_t                               nRefCounter;
                 IUISync                                *pHandler;
 
             public:

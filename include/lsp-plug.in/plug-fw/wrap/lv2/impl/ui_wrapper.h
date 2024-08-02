@@ -330,11 +330,43 @@ namespace lsp
             }
 
             // Resize UI and show
+            ws::rectangle_t rect, new_rect;
+            root->get_screen_rectangle(&rect);
             root->get_padded_size_limits(&sr);
-            pExt->resize_ui(sr.nMinWidth, sr.nMinHeight);
+            tk::SizeConstraints::apply(&new_rect, &rect, &sr);
+
+//            lsp_trace("rect={%d, %d}, sr={%d, %d, %d, %d, %d, %d}, new_rect={%d, %d}",
+//                int(rect.nWidth), int(rect.nHeight),
+//                int(sr.nMinWidth), int(sr.nMinHeight), int(sr.nMaxWidth), int(sr.nMaxHeight), int(sr.nPreWidth), int(sr.nPreHeight),
+//                int(new_rect.nWidth), int(new_rect.nHeight));
+
+            if ((new_rect.nWidth != rect.nWidth) || (new_rect.nHeight != rect.nHeight))
+            {
+//                lsp_trace("resize window to: {x=%d, y=%d, w=%d, h=%d}",
+//                    int(new_rect.nLeft), int(new_rect.nTop), int(new_rect.nWidth), int(new_rect.nHeight));
+                root->resize_window(new_rect.nWidth, new_rect.nHeight);
+            }
+
+//            if ((new_rect.nWidth != rect.nWidth) || (new_rect.nHeight != rect.nHeight))
+//                pExt->resize_ui(new_rect.nWidth, new_rect.nHeight);
+
             root->show();
 
             return STATUS_OK;
+        }
+
+        bool UIWrapper::window_resized(tk::Window *wnd, size_t width, size_t height)
+        {
+            tk::Window *root = (pUI != NULL) ? window() : NULL;
+            if (root == NULL)
+                return false;
+
+            if (wnd == root)
+            {
+//                lsp_trace("Window resized to w=%d, h=%d", int(width), int(height));
+                pExt->resize_ui(width, height);
+            }
+            return true;
         }
 
         lv2::UIPort *UIWrapper::create_port(const meta::port_t *p, const char *postfix)
@@ -393,6 +425,13 @@ namespace lsp
                         result = new lv2::UIPort(p, pExt); // Stub port
                     lsp_trace("Added path port id=%", p->id);
                     break;
+                case meta::R_STRING:
+                    if (pExt->atom_supported())
+                        result = new lv2::UIStringPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
+                    else
+                        result = new lv2::UIPort(p, pExt); // Stub port
+                    lsp_trace("Added string port id=%", p->id);
+                    break;
                 case meta::R_MESH:
                     if (pExt->atom_supported())
                     {
@@ -428,6 +467,7 @@ namespace lsp
                     char postfix_buf[MAX_PARAM_ID_BYTES];
                     lv2::UIPortGroup *pg    = new lv2::UIPortGroup(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
                     vPorts.add(pg);
+                    lsp_trace("Added port_set port id=%", pg->metadata()->id);
 
                     // Add nested ports
                     for (size_t row=0; row<pg->rows(); ++row)
@@ -455,7 +495,6 @@ namespace lsp
                         }
                     }
 
-                    lsp_trace("Added port set port id=%", p->id);
                     break;
                 }
 
@@ -737,6 +776,7 @@ namespace lsp
             }
             else
             {
+                lsp_trace("Received object");
                 lsp_trace("obj->body.otype = %d (%s)", int(obj->body.otype), pExt->unmap_urid(obj->body.otype));
                 lsp_trace("obj->body.id = %d (%s)", int(obj->body.id), pExt->unmap_urid(obj->body.id));
             }
@@ -760,7 +800,7 @@ namespace lsp
 
                 // Check that event is an object
                 const LV2_Atom* atom = reinterpret_cast<const LV2_Atom*>(buf);
-                lsp_trace("atom.type = %d (%s)", int(atom->type), pExt->unmap_urid(atom->type));
+//                lsp_trace("atom.type = %d (%s)", int(atom->type), pExt->unmap_urid(atom->type));
 
                 if ((atom->type == pExt->uridObject) || (atom->type == pExt->uridBlank))
                     receive_atom(reinterpret_cast<const LV2_Atom_Object *>(atom));

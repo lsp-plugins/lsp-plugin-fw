@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 июл. 2021 г.
@@ -33,6 +33,8 @@ namespace lsp
 {
     namespace ctl
     {
+        class LedChannel;
+
         /**
          * Led Meter widget controller
          */
@@ -42,21 +44,29 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::LCString       sEstText;
-                ctl::Color          sColor;
+                ctl::LCString               sEstText;
+                ctl::Color                  sColor;
+                lltl::parray<LedChannel>    vChildren;
 
             public:
                 explicit LedMeter(ui::IWrapper *wrapper, tk::LedMeter *widget);
+                LedMeter(const LedMeter &) = delete;
+                LedMeter(LedMeter &&) = delete;
                 virtual ~LedMeter() override;
+
+                LedMeter & operator = (const LedMeter &) = delete;
+                LedMeter & operator = (LedMeter &&) = delete;
 
                 virtual status_t    init() override;
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
                 virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child) override;
-        };
-    } // namespace ctl
-} // namespace lsp
 
+            public:
+                void                cleanup_header();
+        };
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_LEDMETER_H_ */

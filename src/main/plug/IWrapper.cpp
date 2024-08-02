@@ -183,13 +183,20 @@ namespace lsp
 
                 // Write plugin identifiers
                 char vst3_uid[40];
+                char *gst_uid = meta::make_gst_canonical_name(meta->uids.gst);
+                lsp_finally {
+                    if (gst_uid != NULL)
+                        free(gst_uid);
+                };
 
-                v.write("lv2_uri", meta->lv2_uri);
-                v.write("vst2_id", meta->vst2_uid);
-                v.write("vst3_id", meta::uid_meta_to_vst3(vst3_uid, meta->vst3_uid));
-                v.write("ladspa_id", meta->ladspa_id);
-                v.write("ladspa_label", meta->ladspa_lbl);
-                v.write("clap_id", meta->clap_uid);
+                v.write("uid", meta->uid);
+                v.write("clap_id", meta->uids.clap);
+                v.write("gst_id", gst_uid);
+                v.write("ladspa_id", meta->uids.ladspa_id);
+                v.write("ladspa_label", meta->uids.ladspa_lbl);
+                v.write("lv2_uri", meta->uids.lv2);
+                v.write("vst2_id", meta->uids.vst2);
+                v.write("vst3_id", meta::uid_meta_to_vst3(vst3_uid, meta->uids.vst3));
 
                 // Dump object contents
                 v.write("this", pPlugin);

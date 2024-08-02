@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 нояб. 2021 г.
@@ -76,12 +76,12 @@ namespace lsp
                     if (plug_meta == NULL)
                         break;
                     if ((plug_meta->uid == NULL) ||
-                        (plug_meta->lv2_uri == NULL) ||
-                        (plug_meta->lv2ui_uri == NULL))
+                        (plug_meta->uids.lv2 == NULL) ||
+                        (plug_meta->uids.lv2ui == NULL))
                         continue;
 
                     // Check plugin identifier
-                    if (!(::strcmp(plug_meta->lv2_uri, plugin_uri) || ::strcmp(plug_meta->lv2ui_uri, descriptor->URI)))
+                    if (!(::strcmp(plug_meta->uids.lv2, plugin_uri) || ::strcmp(plug_meta->uids.lv2ui, descriptor->URI)))
                     {
                         // Instantiate the plugin UI and return
                         if ((ui = f->create(plug_meta)) != NULL)
@@ -106,7 +106,7 @@ namespace lsp
             {
                 // Create LV2 extension handler
                 lv2::Extensions *ext = new lv2::Extensions(features,
-                        ui->metadata()->lv2_uri, LSP_LV2_TYPES_URI, LSP_LV2_KVT_URI,
+                        ui->metadata()->uids.lv2, LSP_LV2_TYPES_URI, LSP_LV2_KVT_URI,
                         controller, write_function);
                 if (ext != NULL)
                 {
@@ -250,19 +250,19 @@ namespace lsp
                         break;
 
                     // Skip plugins not compatible with LV2
-                    if ((meta->lv2_uri == NULL) || (meta->lv2ui_uri == NULL))
+                    if ((meta->uids.lv2 == NULL) || (meta->uids.lv2ui == NULL))
                         continue;
 
                     // Allocate new descriptor
                     LV2UI_Descriptor *d     = result.add();
                     if (d == NULL)
                     {
-                        lsp_warn("Error allocating LV2 descriptor for plugin %s", meta->lv2_uri);
+                        lsp_warn("Error allocating LV2 UI descriptor for plugin %s", meta->uids.lv2);
                         continue;
                     }
 
                     // Initialize descriptor
-                    d->URI                  = meta->lv2ui_uri;
+                    d->URI                  = meta->uids.lv2ui;
                     d->instantiate          = ui_instantiate;
                     d->cleanup              = ui_cleanup;
                     d->port_event           = ui_port_event;

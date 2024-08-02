@@ -77,21 +77,11 @@ namespace lsp
                  */
                 virtual void set_default();
 
-                /** Get port buffer, may be NULL if buffer write is not required
-                 *
+                /**
+                 * Get port buffer, may be NULL if buffer write is not required or this data
+                 * type is not supported by plugin format
                  */
                 virtual void *buffer();
-
-                /** Pre-process port state before processor execution
-                 * @param samples number of estimated samples to process
-                 * @return true if port value has been externally modified
-                 */
-                virtual bool pre_process(size_t samples);
-
-                /** Post-process port state after processor execution
-                 * @param samples number of samples processed by plugin
-                 */
-                virtual void post_process(size_t samples);
 
             public:
                 /**
@@ -101,8 +91,8 @@ namespace lsp
                 inline const meta::port_t *metadata() const { return pMetadata; };
 
                 /**
-                 * Get port identifier
-                 * @return port identifier
+                 * Get unique port identifier
+                 * @return unique port identifier
                  */
                 inline const char *id() const               { return (pMetadata != NULL) ? pMetadata->id : NULL; }
 

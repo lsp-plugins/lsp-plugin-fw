@@ -29,13 +29,15 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/debug.h>
-#include <lsp-plug.in/plug-fw/wrap/clap/impl/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/impl/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
+    #include <lsp-plug.in/plug-fw/wrap/clap/impl/ui_wrapper.h>
+#endif /* WITH_UI_FEATURE */
 
 #define CLAP_LOG_FILE           "lsp-clap.log"
 
@@ -267,6 +269,7 @@ namespace lsp
             .get = get_tail
         };
 
+    #ifdef WITH_UI_FEATURE
         //---------------------------------------------------------------------
         // UI extension
         bool CLAP_ABI ui_is_api_supported(const clap_plugin_t *plugin, const char *api, bool is_floating)
@@ -440,6 +443,7 @@ namespace lsp
             .show = ui_show,
             .hide = ui_hide
         };
+    #endif /* WITH_UI_FEATURE */
 
         //---------------------------------------------------------------------
         // Plugin instance related stuff
@@ -568,8 +572,11 @@ namespace lsp
                 return &note_ports_extension;
             if (!strcmp(id, CLAP_EXT_TAIL))
                 return &tail_extension;
+
+        #ifdef WITH_UI_FEATURE
             if ((!strcmp(id, CLAP_EXT_GUI)) && (w->ui_provided()))
                 return &ui_extension;
+        #endif /* WITH_UI_FEATURE */
 
             return w->get_extension(id);
         }
@@ -720,16 +727,16 @@ namespace lsp
             {
                 for (size_t i=0; ; ++i)
                 {
-                    // Skip plugins not compatible with LV2
+                    // Skip plugins not compatible with CLAP
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if ((meta == NULL) || (meta->lv2_uri == NULL))
+                    if ((meta == NULL) || (meta->uids.clap == NULL))
                         break;
 
                     // Allocate new descriptor
                     clap_plugin_descriptor_t *d = result.add();
                     if (d == NULL)
                     {
-                        lsp_warn("Error allocating LV2 descriptor for plugin %s", meta->lv2_uri);
+                        lsp_warn("Error allocating CLAP descriptor for plugin %s", meta->uids.clap);
                         continue;
                     }
 
@@ -738,7 +745,7 @@ namespace lsp
                     bzero(d, sizeof(*d));
 
                     d->clap_version     = CLAP_VERSION;
-                    d->id               = meta->clap_uid;
+                    d->id               = meta->uids.clap;
                     d->name             = meta->description;
                     d->vendor           = NULL;
                     d->url              = NULL;
@@ -858,7 +865,7 @@ namespace lsp
                     if (meta == NULL)
                         break;
 
-                    if (!strcmp(meta->clap_uid, plugin_id))
+                    if (!strcmp(meta->uids.clap, plugin_id))
                     {
                         // Create module
                         plug::Module *plugin = f->create(meta);

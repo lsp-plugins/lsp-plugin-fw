@@ -63,6 +63,7 @@ namespace lsp
                 case R_AUDIO_IN:
                 case R_CONTROL:
                 case R_PATH:
+                case R_STRING:
                 case R_MIDI_IN:
                 case R_PORT_SET:
                 case R_OSC_IN:
@@ -165,6 +166,11 @@ namespace lsp
             return (p != NULL) && (p->role == R_PATH);
         }
 
+        static inline bool is_string_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_STRING);
+        }
+
         static inline bool is_mesh_port(const port_t *p)
         {
             return (p != NULL) && (p->role == R_MESH);
@@ -183,6 +189,34 @@ namespace lsp
         static inline bool is_optional_port(const port_t *p)
         {
             return (p != NULL) && (p->flags & F_OPTIONAL);
+        }
+
+        static inline size_t port_count(const meta::port_group_t *g)
+        {
+            size_t count = 0;
+            for (const meta::port_group_item_t *i = g->items; (i != NULL) && (i->id != NULL); ++i)
+                ++count;
+            return count;
+        }
+
+        static inline bool is_out_group(const port_group_t *g)
+        {
+            return g->flags & PGF_OUT;
+        }
+
+        static inline bool is_in_group(const port_group_t *g)
+        {
+            return !(g->flags & PGF_OUT);
+        }
+
+        static inline bool is_main_group(const port_group_t *g)
+        {
+            return g->flags & PGF_MAIN;
+        }
+
+        static inline bool is_sidechain_group(const port_group_t *g)
+        {
+            return g->flags & PGF_SIDECHAIN;
         }
 
         /**
@@ -522,6 +556,15 @@ namespace lsp
          * @return pointer to value stored in vst3_uid or NULL on error
          */
         char           *uid_meta_to_vst3(char *vst3_uid, const char *meta_uid);
+
+        /**
+         * Convert identifier to canonical GStreamer identifier
+         *
+         * @param gst_uid GStreamer identifier
+         * @return pointer to allocated string (should be free()'d after use)
+         *         or NULL if no memory is available or NULL identifier was passed
+         */
+        char           *make_gst_canonical_name(const char *id);
 
         /**
          * Return plugin format name by the format specifier

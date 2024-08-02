@@ -54,12 +54,12 @@ namespace lsp
             public Steinberg::IPlugViewContentScaleSupport
         {
             protected:
-                volatile uatomic_t                  nRefCounter;            // Reference counter
+                uatomic_t                           nRefCounter;            // Reference counter
                 vst3::Controller                   *pController;            // Controller
                 Steinberg::IPlugFrame              *pPlugFrame;             // Plugin frame
                 float                               fScalingFactor;         // Scaling factor
-                volatile uatomic_t                  nPlayPositionReq;
-                volatile uatomic_t                  nPlayPositionResp;
+                uatomic_t                           nPlayPositionReq;
+                uatomic_t                           nPlayPositionResp;
 
                 lltl::parray<vst3::UIPort>          vSync;                  // Synchronization ports
 

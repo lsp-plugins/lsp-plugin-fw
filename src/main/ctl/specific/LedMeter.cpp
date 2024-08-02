@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 июл. 2021 г.
@@ -96,6 +96,8 @@ namespace lsp
                 set_param(lm->stereo_groups(), "sgroups", name, value);
                 set_param(lm->text_visible(), "text.visible", name, value);
                 set_param(lm->text_visible(), "tvisible", name, value);
+                set_param(lm->header_visible(), "header.visible", name, value);
+                set_param(lm->header_visible(), "hvisible", name, value);
                 set_param(lm->min_channel_width(), "channel_width.min", name, value);
                 set_param(lm->min_channel_width(), "cwidth.min", name, value);
             }
@@ -113,10 +115,27 @@ namespace lsp
             if (lm == NULL)
                 return STATUS_BAD_STATE;
 
+            LedChannel *lc = ctl_cast<LedChannel>(child);
+            if (lc != NULL)
+            {
+                vChildren.add(lc);
+                lc->set_parent(this);
+            }
+
             return lm->items()->add(lmc);
         }
 
-    } // namespace ctl
-} // namespace lsp
+        void LedMeter::cleanup_header()
+        {
+            for (size_t i=0, n = vChildren.size(); i<n; ++i)
+            {
+                LedChannel *lc = vChildren.uget(i);
+                if (lc != NULL)
+                    lc->cleanup_header();
+            }
+        }
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

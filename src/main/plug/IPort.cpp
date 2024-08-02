@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins
  * Created on: 22 окт. 2015 г.
@@ -58,13 +58,5 @@ namespace lsp
             return NULL;
         }
 
-        bool IPort::pre_process(size_t samples)
-        {
-            return false;
-        }
-    
-        void IPort::post_process(size_t samples)
-        {
-        }
-    }
+    } /* namespace plug */
 } /* namespace lsp */

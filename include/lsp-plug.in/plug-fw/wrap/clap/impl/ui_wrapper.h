@@ -294,6 +294,11 @@ namespace lsp
                     cup = new clap::UIPathPort(cp);
                     break;
 
+                case meta::R_STRING:
+                    lsp_trace("creating string port %s", port->id);
+                    cup = new clap::UIStringPort(cp);
+                    break;
+
                 case meta::R_CONTROL:
                 case meta::R_METER:
                 case meta::R_BYPASS:

@@ -51,11 +51,12 @@ namespace lsp
             ui::IWrapper(ui, loader)
         {
             lsp_trace("this=%p", this);
-            nRefCounter         = 1;
+
+            atomic_store(&nRefCounter, 1);
             pController         = safe_acquire(controller);
             pPlugFrame          = NULL;
             fScalingFactor      = -1.0f;
-            nPlayPositionReq    = 0;
+            atomic_store(&nPlayPositionReq, 0);
             nPlayPositionResp   = 0;
 
         #ifdef VST_USE_RUNLOOP_IFACE
@@ -128,6 +129,11 @@ namespace lsp
 
                 case meta::R_PATH:
                     lsp_trace("creating path port %s", port->id);
+                    vup     = new vst3::UIPort(p);
+                    break;
+
+                case meta::R_STRING:
+                    lsp_trace("creating string port %s", port->id);
                     vup     = new vst3::UIPort(p);
                     break;
 
@@ -411,7 +417,7 @@ namespace lsp
             sync_with_dsp();
 
             // Synchronize play position
-            uatomic_t play_req = nPlayPositionReq;
+            uatomic_t play_req = atomic_load(&nPlayPositionReq);
             if (play_req != nPlayPositionResp)
             {
                 lltl::parray<ui::IPlayListener> listeners;

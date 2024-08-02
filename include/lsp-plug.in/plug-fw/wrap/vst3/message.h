@@ -53,7 +53,7 @@ namespace lsp
                 } item_t;
 
             protected:
-                volatile uatomic_t          nRefCounter;    // Reference counter
+                uatomic_t                   nRefCounter;    // Reference counter
                 Steinberg::char8           *sMessageId;
                 lltl::pphash<char, item_t>  vItems;
 

@@ -120,6 +120,7 @@ namespace lsp
                 virtual void                    dump_state_request() override;
                 virtual status_t                play_file(const char *file, wsize_t position, bool release) override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual bool                    window_resized(tk::Window *wnd, size_t width, size_t height) override;
         };
     } /* namespace lv2 */
 } /* namespace lsp */

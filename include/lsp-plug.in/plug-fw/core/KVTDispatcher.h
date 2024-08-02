@@ -40,8 +40,8 @@ namespace lsp
                 KVTStorage         *pKVT;
                 ipc::Mutex         *pKVTMutex;
                 uint8_t            *pPacket;
-                volatile atomic_t   nClients;
-                volatile atomic_t   nTxRequest;
+                atomic_t            nClients;
+                atomic_t            nTxRequest;
 
             protected:
                 size_t              receive_changes();

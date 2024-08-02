@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 мая 2016 г.
@@ -45,9 +45,12 @@
 #include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/impl/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/impl/ui_wrapper.h>
+
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/jack/ui_wrapper.h>
+    #include <lsp-plug.in/plug-fw/wrap/jack/impl/ui_wrapper.h>
+#endif /* WITH_UI_FEATURE */
 
 #ifdef PLATFORM_POSIX
     #include <signal.h>
@@ -69,16 +72,17 @@ namespace lsp
     {
         typedef struct wrapper_t
         {
-            size_t              nSync;              // Synchronization request
-            bool                bNotify;            // Notify all ports
             resource::ILoader  *pLoader;            // Resource loader
             plug::Module       *pPlugin;            // Plugin
-            ui::Module         *pUI;                // Plugin UI
             jack::Wrapper      *pWrapper;           // Plugin wrapper
-            jack::UIWrapper    *pUIWrapper;         // Plugin UI wrapper
             ws::timestamp_t     nLastReconnect;     // Last connection time
+        #ifdef WITH_UI_FEATURE
+            ui::Module         *pUI;                // Plugin UI
+            jack::UIWrapper    *pUIWrapper;         // Plugin UI wrapper
             ws::timestamp_t     nLastIconSync;      // Last icon synchronization time
+        #endif /* WITH_UI_FEATURE */
             const lltl::darray<connection_t> *pRouting;  // Routing
+            bool                bNotify;            // Notify all ports
             volatile bool       bInterrupt;         // Interrupt signal received
         } wrapper_t;
 
@@ -435,6 +439,7 @@ namespace lsp
             return STATUS_BAD_ARGUMENTS;
         }
 
+    #ifdef WITH_UI_FEATURE
         status_t create_ui(wrapper_t *w, const char *id)
         {
             // Lookup plugin identifier among all registered plugin factories
@@ -464,6 +469,7 @@ namespace lsp
             fprintf(stderr, "Not found UI for plugin: %s, will continue in headless mode\n", id);
             return STATUS_OK;
         }
+    #endif /* WITH_UI_FEATURE */
 
         #if defined(PLATFORM_WINDOWS)
             static BOOL WINAPI ctrlc_handler(DWORD dwCtrlType)
@@ -489,6 +495,7 @@ namespace lsp
             if (w->pWrapper != NULL)
                 w->pWrapper->disconnect();
 
+        #ifdef WITH_UI_FEATURE
             // Destroy plugin UI
             if (w->pUI != NULL)
             {
@@ -505,6 +512,7 @@ namespace lsp
                 delete w->pUIWrapper;
                 w->pUIWrapper   = NULL;
             }
+        #endif /* WITH_UI_FEATURE */
 
             // Destroy plugin
             if (w->pPlugin != NULL)
@@ -584,6 +592,30 @@ namespace lsp
             return STATUS_OK;
         }
 
+        static void load_configuration_file(wrapper_t *w, const char *cfg_file)
+        {
+            status_t res;
+
+        #ifdef WITH_UI_FEATURE
+            if (w->pUIWrapper != NULL)
+            {
+                if ((res = w->pUIWrapper->import_settings(cfg_file, false)) != STATUS_OK)
+                    fprintf(stderr, "Error loading configuration file: '%s': %s\n", cfg_file, get_status(res));
+
+                return;
+            }
+        #endif /* WITH_UI_FEATURE */
+
+            if (w->pWrapper != NULL)
+            {
+                if ((res = w->pWrapper->import_settings(cfg_file)) != STATUS_OK)
+                    fprintf(stderr, "Error loading configuration file: '%s': %s\n", cfg_file, get_status(res));
+                return;
+            }
+
+            fprintf(stderr, "Error loading configuration file: '%s': no accessible wrapper\n", cfg_file);
+        }
+
         static status_t init_wrapper(wrapper_t *w, const cmdline_t &cmdline)
         {
             status_t res;
@@ -601,22 +633,24 @@ namespace lsp
             if ((res = create_plugin(w, cmdline.plugin_id)) != STATUS_OK)
                 return res;
 
+        #ifdef WITH_UI_FEATURE
             // Need to instantiate plugin UI?
             if (!cmdline.headless)
             {
                 if ((res = create_ui(w, cmdline.plugin_id)) != STATUS_OK)
                     return res;
             }
+        #endif /* WITH_UI_FEATURE */
 
-            #if defined(PLATFORM_WINDOWS)
-                // Handle the Ctrl-C event from console
-                SetConsoleCtrlHandler(ctrlc_handler, TRUE);
-            #elif defined(PLATFORM_POSIX)
-                // Ignore SIGPIPE signal since JACK can suddenly lose socket connection
-                signal(SIGPIPE, SIG_IGN);
-                // Handle the Ctrl-C event from console
-                signal(SIGINT, sigint_handler);
-            #endif
+        #if defined(PLATFORM_WINDOWS)
+            // Handle the Ctrl-C event from console
+            SetConsoleCtrlHandler(ctrlc_handler, TRUE);
+        #elif defined(PLATFORM_POSIX)
+            // Ignore SIGPIPE signal since JACK can suddenly lose socket connection
+            signal(SIGPIPE, SIG_IGN);
+            // Handle the Ctrl-C event from console
+            signal(SIGINT, sigint_handler);
+        #endif
 
             // Initialize plugin wrapper
             w->pRouting     = &cmdline.routing;
@@ -627,6 +661,7 @@ namespace lsp
             if ((res = w->pWrapper->init()) != STATUS_OK)
                 return res;
 
+        #ifdef WITH_UI_FEATURE
             // Initialize UI wrapper
             if (w->pUI != NULL)
             {
@@ -643,23 +678,11 @@ namespace lsp
                 tk::Widget * wnd = w->pUI->root();
                 wnd->show();
             }
+        #endif /* WITH_UI_FEATURE */
 
             // Load configuration (if specified in parameters)
             if (cmdline.cfg_file != NULL)
-            {
-                if (w->pUIWrapper != NULL)
-                {
-                    if ((res = w->pUIWrapper->import_settings(cmdline.cfg_file, false)) != STATUS_OK)
-                        fprintf(stderr, "Error loading configuration file: '%s': %s\n", cmdline.cfg_file, get_status(res));
-                }
-                else if (w->pWrapper != NULL)
-                {
-                    if ((res = w->pWrapper->import_settings(cmdline.cfg_file)) != STATUS_OK)
-                        fprintf(stderr, "Error loading configuration file: '%s': %s\n", cmdline.cfg_file, get_status(res));
-                }
-                else
-                    fprintf(stderr, "Error loading configuration file: '%s': no accessible wrapper\n", cmdline.cfg_file);
-            }
+                load_configuration_file(w, cmdline.cfg_file);
 
             return STATUS_OK;
         }
@@ -671,7 +694,9 @@ namespace lsp
 
             wrapper_t *w            = static_cast<wrapper_t *>(arg);
             jack::Wrapper *jw       = w->pWrapper;
+        #ifdef WITH_UI_FEATURE
             jack::UIWrapper *uw     = w->pUIWrapper;
+        #endif /* WITH_UI_FEATURE */
 
             // If connection to JACK was lost - notify
             if (jw->connection_lost())
@@ -679,8 +704,10 @@ namespace lsp
                 // Disconnect wrapper and remember last connection time
                 fprintf(stderr, "Connection to JACK has been lost\n");
                 jw->disconnect();
+            #ifdef WITH_UI_FEATURE
                 if (uw != NULL)
                     uw->connection_lost();
+            #endif /* WITH_UI_FEATURE */
                 w->nLastReconnect       = ctime;
             }
 
@@ -700,16 +727,16 @@ namespace lsp
                         }
 
                         printf("Successfully connected to JACK\n");
-                        w->nSync        = 0;
                         w->bNotify      = true;
                     }
                     w->nLastReconnect   = ctime;
                 }
             }
 
-            // If we are connected - do usual stuff
+            // If we are connected - do usual stuff with UI
             if (jw->connected())
             {
+            #ifdef WITH_UI_FEATURE
                 // Sync state (transfer DSP to UI)
                 if (uw != NULL)
                 {
@@ -728,9 +755,26 @@ namespace lsp
                         w->nLastIconSync = ctime;
                     }
                 }
+            #endif /* WITH_UI_FEATURE */
             }
 
             return STATUS_OK;
+        }
+
+        static void wait_for_events(wrapper_t *w, wssize_t delay)
+        {
+            if (delay <= 0)
+                return;
+
+        #ifdef WITH_UI_FEATURE
+            if (w->pUIWrapper)
+            {
+                w->pUIWrapper->display()->wait_events(delay);
+                return;
+            }
+        #endif /* WITH_UI_FEATURE */
+
+            system::sleep_msec(delay);
         }
 
         status_t plugin_main(wrapper_t *w)
@@ -738,14 +782,10 @@ namespace lsp
             status_t res            = STATUS_OK;
             ws::timestamp_t period  = 40; // 40 ms period (25 frames per second)
 
-            system::time_t  ctime;
-            ws::timestamp_t ts1, ts2;
-
             // Initialize wrapper structure and set-up signal handlers
             while (!w->bInterrupt)
             {
-                system::get_time(&ctime);
-                ts1     = ws::timestamp_t(ctime.seconds) * 1000 + ctime.nanos / 1000000;
+                const system::time_millis_t ts1 = system::get_time_millis();
 
                 // Synchronize with JACK
                 if ((res = sync_state(ts1, ts1, w)) != STATUS_OK)
@@ -754,6 +794,7 @@ namespace lsp
                     return res;
                 }
 
+            #ifdef WITH_UI_FEATURE
                 // Perform main event loop for the UI
                 if (w->pUIWrapper != NULL)
                 {
@@ -766,19 +807,12 @@ namespace lsp
 
                     dsp::finish(&ctx);
                 }
+            #endif /* WITH_UI_FEATURE */
 
                 // Perform a small sleep before new iteration
-                system::get_time(&ctime);
-                ts2     = ws::timestamp_t(ctime.seconds) * 1000 + ctime.nanos / 1000000;
-
-                wssize_t delay   = lsp_max(ts1 + period - ts2, period);
-                if (delay > 0)
-                {
-                    if (!w->pUIWrapper)
-                        system::sleep_msec(delay);
-                    else
-                        w->pUIWrapper->display()->wait_events(delay);
-                }
+                const system::time_millis_t ts2 = system::get_time_millis();
+                const wssize_t delay    = lsp_max(ts1 + period - ts2, period);
+                wait_for_events(w, delay);
             }
 
             fprintf(stderr, "\nPlugin execution interrupted\n");
@@ -851,15 +885,17 @@ extern "C"
 
         // Initialize wrapper with empty data
         jack::wrapper_t *w      = &jack::wrapper;
-        w->nSync                = 0;
-        w->bNotify              = true;
         w->pLoader              = NULL;
         w->pPlugin              = NULL;
-        w->pUI                  = NULL;
         w->pWrapper             = NULL;
-        w->pUIWrapper           = NULL;
-        w->bInterrupt           = false;
         w->nLastReconnect       = 0;
+    #ifdef WITH_UI_FEATURE
+        w->pUI                  = NULL;
+        w->pUIWrapper           = NULL;
+        w->nLastIconSync        = 0;
+    #endif /* WITH_UI_FEATURE */
+        w->bNotify              = true;
+        w->bInterrupt           = false;
 
         // Initialize plugin wrapper
         res = jack::init_wrapper(w, cmdline);

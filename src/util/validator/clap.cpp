@@ -188,7 +188,9 @@ namespace lsp
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
                 // Validate CLAP identifier
-                if (meta->clap_uid == NULL)
+                const meta::plugin_fmt_uids_t *uids = &meta->uids;
+
+                if (uids->clap == NULL)
                 {
                     if (meta->clap_features != NULL)
                         validation_error(ctx, "Plugin uid='%s' has no CLAP identifier but provides CLAP features", meta->uid);
@@ -196,11 +198,11 @@ namespace lsp
                 }
 
                 // Check conflicts
-                const meta::plugin_t *clash = ctx->clap_ids.get(meta->clap_uid);
+                const meta::plugin_t *clash = ctx->clap_ids.get(uids->clap);
                 if (clash != NULL)
                     validation_error(ctx, "Plugin uid='%s' clashes plugin uid='%s': duplicate CLAP identifier '%s'",
-                        meta->uid, clash->uid, meta->clap_uid);
-                else if (!ctx->clap_ids.create(meta->clap_uid, const_cast<meta::plugin_t *>(meta)))
+                        meta->uid, clash->uid, uids->clap);
+                else if (!ctx->clap_ids.create(uids->clap, const_cast<meta::plugin_t *>(meta)))
                     allocation_error(ctx);
 
                 // Validate features

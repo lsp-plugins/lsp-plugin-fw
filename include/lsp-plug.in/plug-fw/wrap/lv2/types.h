@@ -159,6 +159,7 @@ namespace lsp
             virtual void init()
             {
                 atomic_init(nRequest);
+                nChanges    = 0;
                 nState      = S_EMPTY;
                 nFlags      = 0;
                 bRequest    = false;

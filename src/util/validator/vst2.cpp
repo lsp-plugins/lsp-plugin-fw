@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 янв. 2023 г.
@@ -43,11 +43,13 @@ namespace lsp
             void validate_plugin(context_t *ctx, const meta::plugin_t *meta)
             {
                 // Validate VST 2.x identifier
-                if (meta->vst2_uid == NULL)
+                const meta::plugin_fmt_uids_t *uids = &meta->uids;
+
+                if (uids->vst2 == NULL)
                     return;
-                if (strlen(meta->vst2_uid) != 4)
+                if (strlen(uids->vst2) != 4)
                     validation_error(ctx, "Plugin uid='%s' has invalid VST 2.x identifier '%s', should be 4 characters",
-                        meta->uid, meta->vst2_uid);
+                        meta->uid, uids->vst2);
 
                 // Validate VST 2.x plugin name
                 const char *plugin_name = (meta->vst2_name != NULL) ? meta->vst2_name : meta->name;
@@ -57,11 +59,11 @@ namespace lsp
                         meta->uid, meta->vst2_name, int(name_len), int(kVstMaxEffectNameLen-1));
 
                 // Check conflicts
-                const meta::plugin_t *clash = ctx->vst2_ids.get(meta->vst2_uid);
+                const meta::plugin_t *clash = ctx->vst2_ids.get(uids->vst2);
                 if (clash != NULL)
                     validation_error(ctx, "Plugin uid='%s' clashes plugin uid='%s': duplicate VST 2.x identifier '%s'",
-                        meta->uid, clash->uid, meta->vst2_uid);
-                else if (!ctx->vst2_ids.create(meta->vst2_uid, const_cast<meta::plugin_t *>(meta)))
+                        meta->uid, clash->uid, uids->vst2);
+                else if (!ctx->vst2_ids.create(uids->vst2, const_cast<meta::plugin_t *>(meta)))
                     allocation_error(ctx);
 
                 // Validate version
