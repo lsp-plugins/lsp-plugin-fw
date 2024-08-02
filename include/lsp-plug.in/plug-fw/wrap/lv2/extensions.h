@@ -648,7 +648,12 @@ namespace lsp
                 inline void resize_ui(ssize_t width, ssize_t height)
                 {
                     if (ui_resize != NULL)
+                    {
+                        lsp_trace("ui_resize->ui_resize(ui_resize->handle, %d, %d)", int(width), int(height));
                         ui_resize->ui_resize(ui_resize->handle, width, height);
+                    }
+                    else
+                        lsp_trace("ui_resize == NULL");
                 }
 
                 inline LV2_URID map_uri(const char *fmt...) const

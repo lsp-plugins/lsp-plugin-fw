@@ -442,6 +442,14 @@ namespace lsp
                 virtual bool                    accept_window_size(tk::Window *wnd, size_t width, size_t height);
 
                 /**
+                 * Notify that window has been resized by user
+                 * @param width the requested window width
+                 * @param height the requested window height
+                 * @return true if the window was resized by user
+                 */
+                virtual bool                    window_resized(tk::Window *wnd, size_t width, size_t height);
+
+                /**
                  * Get the plugin format
                  * @return plugin format
                  */

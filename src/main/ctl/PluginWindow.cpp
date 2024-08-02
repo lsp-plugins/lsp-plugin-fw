@@ -2632,17 +2632,26 @@ namespace lsp
                     return STATUS_OK;
 
                 ws::size_limit_t sr;
+                ws::rectangle_t ws;
                 ws::rectangle_t xr  = _this->sWndScale.sSize;
-                ssize_t width       = xr.nWidth  + ev->nLeft - _this->sWndScale.nMouseX;
-                ssize_t height      = xr.nHeight + ev->nTop  - _this->sWndScale.nMouseY;
+                xr.nWidth          += ev->nLeft - _this->sWndScale.nMouseX;
+                xr.nHeight         += ev->nTop - _this->sWndScale.nMouseY;
 
+                _this->wWidget->get_padded_rectangle(&ws);
                 _this->wWidget->get_padded_size_limits(&sr);
                 tk::SizeConstraints::apply(&xr, &sr);
 
-                if ((width != xr.nWidth) || (height != xr.nHeight))
+//                lsp_trace("ws.size={%d, %d}, xr.size={%d, %d}",
+//                    int(ws.nWidth), int(ws.nHeight),
+//                    int(xr.nWidth), int(xr.nHeight));
+
+                if ((ws.nWidth != xr.nWidth) || (ws.nHeight != xr.nHeight))
                 {
-                    if (_this->pWrapper->accept_window_size(wnd, width, height))
-                        wnd->resize_window(width, height);
+                    if (_this->pWrapper->accept_window_size(wnd, xr.nWidth, xr.nHeight))
+                    {
+                        _this->pWrapper->window_resized(wnd, xr.nWidth, xr.nHeight);
+                        wnd->resize_window(xr.nWidth, xr.nHeight);
+                    }
                 }
             }
 

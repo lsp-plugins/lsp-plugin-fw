@@ -330,11 +330,43 @@ namespace lsp
             }
 
             // Resize UI and show
+            ws::rectangle_t rect, new_rect;
+            root->get_screen_rectangle(&rect);
             root->get_padded_size_limits(&sr);
-            pExt->resize_ui(sr.nMinWidth, sr.nMinHeight);
+            tk::SizeConstraints::apply(&new_rect, &rect, &sr);
+
+//            lsp_trace("rect={%d, %d}, sr={%d, %d, %d, %d, %d, %d}, new_rect={%d, %d}",
+//                int(rect.nWidth), int(rect.nHeight),
+//                int(sr.nMinWidth), int(sr.nMinHeight), int(sr.nMaxWidth), int(sr.nMaxHeight), int(sr.nPreWidth), int(sr.nPreHeight),
+//                int(new_rect.nWidth), int(new_rect.nHeight));
+
+            if ((new_rect.nWidth != rect.nWidth) || (new_rect.nHeight != rect.nHeight))
+            {
+//                lsp_trace("resize window to: {x=%d, y=%d, w=%d, h=%d}",
+//                    int(new_rect.nLeft), int(new_rect.nTop), int(new_rect.nWidth), int(new_rect.nHeight));
+                root->resize_window(new_rect.nWidth, new_rect.nHeight);
+            }
+
+//            if ((new_rect.nWidth != rect.nWidth) || (new_rect.nHeight != rect.nHeight))
+//                pExt->resize_ui(new_rect.nWidth, new_rect.nHeight);
+
             root->show();
 
             return STATUS_OK;
+        }
+
+        bool UIWrapper::window_resized(tk::Window *wnd, size_t width, size_t height)
+        {
+            tk::Window *root = (pUI != NULL) ? window() : NULL;
+            if (root == NULL)
+                return false;
+
+            if (wnd == root)
+            {
+//                lsp_trace("Window resized to w=%d, h=%d", int(width), int(height));
+                pExt->resize_ui(width, height);
+            }
+            return true;
         }
 
         lv2::UIPort *UIWrapper::create_port(const meta::port_t *p, const char *postfix)

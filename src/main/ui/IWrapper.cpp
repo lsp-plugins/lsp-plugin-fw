@@ -2033,6 +2033,11 @@ namespace lsp
             return true;
         }
 
+        bool IWrapper::window_resized(tk::Window *wnd, size_t width, size_t height)
+        {
+            return true;
+        }
+
         meta::plugin_format_t IWrapper::plugin_format() const
         {
             return meta::PLUGIN_UNKNOWN;
