@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.26 ===
+
+
 === 1.0.25 ===
 * Better work with plugin window size.
 * Plugins now can be built without the ui if we omit the 'ui' feature in
