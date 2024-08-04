@@ -31,7 +31,6 @@
 // UI configuration ports
 #define UI_CONFIG_PORT_PREFIX               "_ui_"
 #define UI_KVT_PORT_PREFIX                  "_kvt_"
-#define UI_MOUNT_STUD_PORT_ID               "mount_stud"
 #define UI_LAST_VERSION_PORT_ID             "last_version"
 #define UI_DLG_DEFAULT_PATH_ID              "dlg_default_path"
 #define UI_DLG_DEFAULT_FTYPE_ID             "dlg_default_ftype"
@@ -67,6 +66,7 @@
 #define UI_GRAPH_DOT_INVERT_VSCROLL_ID      "invert_graph_dot_vscroll"
 #define UI_ZOOMABLE_SPECTRUM_GRAPH_ID       "zoomable_spectrum_graph"
 #define UI_FILTER_POINT_THICK_ID            "filter_point_thickness"
+#define UI_DOCUMENTATION_PATH_ID            "documentation_path"
 
 #define MSTUD_PORT                          UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                        UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -104,6 +104,7 @@
 #define UI_GRAPH_DOT_INVERT_VSCROLL_PORT    UI_CONFIG_PORT_PREFIX UI_GRAPH_DOT_INVERT_VSCROLL_ID
 #define UI_ZOOMABLE_SPECTRUM_GRAPH_PORT     UI_CONFIG_PORT_PREFIX UI_ZOOMABLE_SPECTRUM_GRAPH_ID
 #define UI_FILTER_POINT_THICK_PORT          UI_CONFIG_PORT_PREFIX UI_FILTER_POINT_THICK_ID
+#define UI_DOCUMENTATION_PORT               UI_CONFIG_PORT_PREFIX UI_DOCUMENTATION_PATH_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                      "main_menu"

@@ -56,7 +56,6 @@ namespace lsp
 
         static const meta::port_t config_metadata[] =
         {
-            SWITCH(UI_MOUNT_STUD_PORT_ID, "Visibility of mount studs in the UI", 1.0f),
             PATH(UI_LAST_VERSION_PORT_ID, "Last version of the product installed"),
             PATH(UI_DLG_SAMPLE_PATH_ID, "Dialog path for selecting sample files"),
             INT_CONTROL_RANGE(UI_DLG_SAMPLE_FTYPE_ID, "Dialog file type for selecting sample files", U_NONE, 0, 100, 0, 1),
@@ -92,6 +91,7 @@ namespace lsp
             SWITCH(UI_GRAPH_DOT_INVERT_VSCROLL_ID, "Invert mouse vertical scroll behaviour for graph dot widget", 0.0f),
             SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Enables the automatic scaling mode of the frequency graph", 1.0f),
             COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", 1.0f, filter_point_thickness_modes),
+            PATH(UI_DOCUMENTATION_PATH_ID, "Path to the local documentation installation"),
             PORTS_END
         };
 

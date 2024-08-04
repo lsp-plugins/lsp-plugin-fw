@@ -3,7 +3,8 @@
 *******************************************************************************
 
 === 1.0.26 ===
-
+* Added documentation_path parameter in user configuration file which allows to
+  configure the path to the offline documentation installation.
 
 === 1.0.25 ===
 * Better work with plugin window size.
