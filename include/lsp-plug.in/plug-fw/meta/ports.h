@@ -141,6 +141,16 @@
 #define OPT_STRING(id, label, length)           { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER | F_OPTIONAL, 0, length, 0, 0, NULL, NULL, "" }
 #define OPT_STRING_DFL(id, label, length, text) { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER | F_OPTIONAL, 0, length, 0, 0, NULL, NULL, text }
 
+#define SEND_NAME(id, label)                    { id, label, U_NONE, R_SEND_NAME, F_LOWER | F_UPPER, 0, MAX_SHM_SEGMENT_NAME_BYTES, 0, 0, NULL, NULL, "" }
+#define OPT_SEND_NAME(id, label)                { id, label, U_NONE, R_SEND_NAME, F_LOWER | F_UPPER | F_OPTIONAL, 0, MAX_SHM_SEGMENT_NAME_BYTES, 0, 0, NULL, NULL, "" }
+#define RETURN_NAME(id, label)                  { id, label, U_NONE, R_RETURN_NAME, F_LOWER | F_UPPER, 0, MAX_SHM_SEGMENT_NAME_BYTES, 0, 0, NULL, NULL, "" }
+#define OPT_RETURN_NAME(id, label)              { id, label, U_NONE, R_RETURN_NAME, F_LOWER | F_UPPER | F_OPTIONAL, 0, MAX_SHM_SEGMENT_NAME_BYTES, 0, 0, NULL, NULL, "" }
+
+#define AUDIO_SEND(id, label, index, group) \
+    { id, label, U_NONE, R_AUDIO_SEND, 0, 0, 0, index, 0, NULL, NULL, group     }
+#define AUDIO_RETURN(id, label, index, group) \
+    { id, label, U_NONE, R_AUDIO_RETURN, 0, 0, 0, index, 0, NULL, NULL, group   }
+
 #define PORTS_END   \
     { NULL, NULL }
 

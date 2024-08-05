@@ -107,6 +107,26 @@ namespace lsp
             return (p != NULL) && (p->role == R_AUDIO_OUT);
         }
 
+        static inline bool is_audio_send_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_AUDIO_SEND);
+        }
+
+        static inline bool is_audio_return_port(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_AUDIO_RETURN);
+        }
+
+        static inline bool is_send_name(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_SEND_NAME);
+        }
+
+        static inline bool is_return_name(const port_t *p)
+        {
+            return (p != NULL) && (p->role == R_RETURN_NAME);
+        }
+
         static inline bool is_midi_port(const port_t *p)
         {
             if (p == NULL)

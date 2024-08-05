@@ -229,8 +229,11 @@ namespace lsp
                     float *buf  = reinterpret_cast<float *>(::realloc(pSanitized, sizeof(float) * size));
                     if (buf == NULL)
                     {
-                        ::free(pSanitized);
-                        pSanitized = NULL;
+                        if (pSanitized != NULL)
+                        {
+                            ::free(pSanitized);
+                            pSanitized = NULL;
+                        }
                         return;
                     }
 
@@ -365,6 +368,93 @@ namespace lsp
                         dsp::sanitize1(reinterpret_cast<float *>(pDataBuffer), samples);
 
                     pBuffer     = NULL;
+                }
+        };
+
+        class AudioBufferPort: public Port
+        {
+            private:
+                uint32_t        nBufSize;           // Size of sanitized buffer in samples
+                bool            bActive;            // Activity flag
+                bool            bClean;             // Port is clean
+                float          *pBuffer;            // Buffer data
+
+            public:
+                explicit AudioBufferPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
+                {
+                    nBufSize    = 0;
+                    bActive     = false;
+                    bClean      = false;
+                    pBuffer     = NULL;
+                }
+
+                AudioBufferPort(const DataPort &) = delete;
+                AudioBufferPort(DataPort &&) = delete;
+
+                virtual ~AudioBufferPort() override
+                {
+                    if (pBuffer != NULL)
+                    {
+                        nBufSize    = 0;
+                        free(pBuffer);
+                    }
+                    bActive     = false;
+                };
+
+                AudioBufferPort & operator = (const AudioBufferPort &) = delete;
+                AudioBufferPort & operator = (AudioBufferPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return (bActive) ? pBuffer : NULL;
+                }
+
+            public:
+                inline bool active() const
+                {
+                    return bActive;
+                }
+
+                void set_active(bool active)
+                {
+                    bActive     = active;
+                }
+
+                void cleanup()
+                {
+                    if ((bClean) || (pBuffer == NULL))
+                        return;
+
+                    dsp::fill_zero(pBuffer, nBufSize);
+                    bClean      = true;
+                }
+
+                void set_dirty()
+                {
+                    bClean      = false;
+                }
+
+                void set_buffer_size(size_t size)
+                {
+                    // Buffer size has changed?
+                    if (nBufSize == size)
+                        return;
+
+                    float *buf  = reinterpret_cast<float *>(::realloc(pBuffer, sizeof(float) * size));
+                    if (buf == NULL)
+                    {
+                        if (pBuffer != NULL)
+                        {
+                            ::free(pBuffer);
+                            pBuffer = NULL;
+                        }
+                        return;
+                    }
+
+                    nBufSize    = size;
+                    pBuffer     = buf;
+                    dsp::fill_zero(pBuffer, nBufSize);
                 }
         };
 

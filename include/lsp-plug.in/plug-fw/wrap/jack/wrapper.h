@@ -27,6 +27,9 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
+#include <lsp-plug.in/plug-fw/core/AudioSend.h>
+#include <lsp-plug.in/plug-fw/core/AudioReturn.h>
+#include <lsp-plug.in/plug-fw/core/Catalog.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 
@@ -46,6 +49,8 @@ namespace lsp
     {
         class Port;
         class DataPort;
+        class AudioBufferPort;
+        class StringPort;
 
         /**
          * Wrapper for the plugin module
@@ -53,9 +58,6 @@ namespace lsp
         class Wrapper: public plug::IWrapper
         {
             private:
-                Wrapper(const Wrapper &);
-                Wrapper & operator = (const Wrapper &);
-
                 friend class    UIWrapper;
 
             protected:
@@ -67,6 +69,24 @@ namespace lsp
                     S_CONN_LOST,
                     S_DISCONNECTED
                 };
+
+                typedef struct audio_send_t
+                {
+                    const char                 *sID;
+                    size_t                      nChannels;
+                    core::AudioSend            *pSend;
+                    jack::StringPort           *pName;
+                    jack::AudioBufferPort      *vChannels[];
+                } audio_send_t;
+
+                typedef struct audio_return_t
+                {
+                    const char                 *sID;
+                    size_t                      nChannels;
+                    core::AudioReturn          *pReturn;
+                    jack::StringPort           *pName;
+                    jack::AudioBufferPort      *vChannels[];
+                } audio_return_t;
 
             private:
                 jack_client_t                  *pClient;            // JACK connection client
@@ -87,10 +107,15 @@ namespace lsp
 
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
 
+                lltl::parray<audio_send_t>      vSends;             // List of sends
+                lltl::parray<audio_return_t>    vReturns;           // List of returns
+                core::Catalog                  *pCatalog;           // Catalog
+
                 lltl::parray<jack::Port>        vAllPorts;          // All ports
                 lltl::parray<jack::Port>        vParams;            // All input parameters
                 lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
                 lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
+                lltl::parray<jack::AudioBufferPort> vAudioBuffers;  // Audio buffers
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
                 meta::package_t                *pPackage;           // Package descriptor
@@ -104,6 +129,11 @@ namespace lsp
                 status_t        import_settings(config::PullParser *parser);
                 status_t        import_settings_work(config::PullParser *parser);
 
+                void            create_shm_send(jack::StringPort *sp);
+                void            create_shm_return(jack::StringPort *sp);
+                void            destroy_shm_send(audio_send_t *item);
+                void            destroy_shm_return(audio_return_t *item);
+
             protected:
                 static int      process(jack_nframes_t nframes, void *arg);
                 static int      sync_buffer_size(jack_nframes_t nframes, void *arg);
@@ -115,7 +145,12 @@ namespace lsp
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader);
+                Wrapper(const Wrapper &) = delete;
+                Wrapper(Wrapper &&) = delete;
                 virtual ~Wrapper() override;
+
+                Wrapper & operator = (const Wrapper &) = delete;
+                Wrapper & operator = (Wrapper &&) = delete;
 
                 status_t                            init();
                 void                                destroy();

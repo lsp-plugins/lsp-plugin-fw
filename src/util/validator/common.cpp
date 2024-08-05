@@ -447,23 +447,19 @@ namespace lsp
                     }
 
                     // Check that port type and direction matches the port group
-                    if (!meta::is_audio_port(p))
-                    {
-                        validation_error(ctx, "The role of port '%s' of group '%s' should be R_AUDIO for plugin uid='%s'",
-                            item->id, pg->id, meta->uid);
-                    }
                     if (meta::is_out_group(pg))
                     {
-                        if (!meta::is_out_port(p))
+                        if (!meta::is_audio_out_port(p))
                         {
-                            validation_error(ctx, "The port '%s' of output group '%s' should also be an output port for plugin uid='%s'",
+                            validation_error(ctx, "The port '%s' of output group '%s' should also be an R_AUDIO_OUT port for plugin uid='%s'",
                                 item->id, pg->id, meta->uid);
                         }
                     }
-                    else if (!meta::is_in_port(p))
+                    else
                     {
-                        validation_error(ctx, "The port '%s' of input group '%s' should also be an input port for plugin uid='%s'",
-                            item->id, pg->id, meta->uid);
+                        if (!meta::is_audio_in_port(p))
+                            validation_error(ctx, "The port '%s' of input group '%s' should also be an R_AUDIO_IN port for plugin uid='%s'",
+                                item->id, pg->id, meta->uid);
                     }
 
                     // Check for ambiguity of port roles within the group

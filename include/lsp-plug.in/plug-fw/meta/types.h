@@ -125,6 +125,10 @@ namespace lsp
             R_PORT_SET,             // Set of ports
             R_OSC_IN,               // OSC input events
             R_OSC_OUT,              // OSC output events
+            R_AUDIO_SEND,           // Shared memory send
+            R_AUDIO_RETURN,         // Shared memory return
+            R_SEND_NAME,            // Name of the send
+            R_RETURN_NAME,          // Name of the return
             R_BYPASS,               // Bypass
             R_STREAM                // Stream
         };
@@ -278,7 +282,8 @@ namespace lsp
             E_OSC                   = 1 << 2,   // Supports OSC protocol messaging
             E_KVT_SYNC              = 1 << 3,   // KVT synchronization required
             E_DUMP_STATE            = 1 << 4,   // Support of internal state dump
-            E_FILE_PREVIEW          = 1 << 5,   // Support of internal state dump
+            E_FILE_PREVIEW          = 1 << 5,   // Support of file listen preview
+            E_SHM_TRACKING          = 1 << 6,   // Support of shared memory segments enumeration and tracking
         };
 
         enum port_group_type_t

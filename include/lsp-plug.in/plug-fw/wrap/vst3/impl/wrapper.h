@@ -406,20 +406,14 @@ namespace lsp
                 if (port == NULL)
                     continue;
 
-                if (meta::is_audio_port(port))
-                {
-                    if (meta::is_in_port(port))
-                        ins.add(p);
-                    else
-                        outs.add(p);
-                }
-                else if (meta::is_midi_port(port))
-                {
-                    if (meta::is_in_port(port))
-                        midi_ins.add(p);
-                    else
-                        midi_outs.add(p);
-                }
+                if (meta::is_audio_in_port(port))
+                    ins.add(p);
+                else if (meta::is_audio_out_port(port))
+                    outs.add(p);
+                else if (meta::is_midi_in_port(port))
+                    midi_ins.add(p);
+                else if (meta::is_midi_out_port(port))
+                    midi_outs.add(p);
             }
 
             // Create audio busses based on the information about port groups

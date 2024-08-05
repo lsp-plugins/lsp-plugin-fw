@@ -49,6 +49,8 @@ namespace lsp
 
             pSamplePlayer   = NULL;
 
+            pCatalog        = NULL;
+
             pPackage        = NULL;
         }
 
@@ -61,6 +63,7 @@ namespace lsp
             nQueryDrawResp  = 0;
             nDumpResp       = 0;
             pSamplePlayer   = NULL;
+            pCatalog        = NULL;
         }
 
         static ssize_t cmp_port_identifiers(const jack::Port *pa, const jack::Port *pb)
@@ -105,6 +108,20 @@ namespace lsp
             lltl::parray<plug::IPort> plugin_ports;
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(&plugin_ports, port, NULL);
+
+            // Create shared memory sends
+            for (size_t i=0, n=vParams.size(); i < n; ++i)
+            {
+                jack::Port *p = vParams.uget(i);
+                const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
+                if (meta == NULL)
+                    continue;
+
+                if (meta::is_send_name(meta))
+                    create_shm_send(static_cast<jack::StringPort *>(p));
+                else if (meta::is_return_name(meta))
+                    create_shm_return(static_cast<jack::StringPort *>(p));
+            }
 
             // Generate list of sorted ports by identifier
             if (!vSortedPorts.add(vAllPorts))
@@ -260,6 +277,14 @@ namespace lsp
 
                 dp->connect();
                 dp->set_buffer_size(buf_size);
+            }
+
+            for (size_t i=0, n=vAudioBuffers.size(); i<n; ++i)
+            {
+                jack::AudioBufferPort *ap = vAudioBuffers.uget(i);
+                if (ap == NULL)
+                    continue;
+                ap->set_buffer_size(buf_size);
             }
 
             // Set plugin sample rate and call for settings update
@@ -524,6 +549,15 @@ namespace lsp
                     break;
                 }
 
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
+                {
+                    jack::AudioBufferPort *jap = new jack::AudioBufferPort(port, this);
+                    vAudioBuffers.add(jap);
+                    jp      = jap;
+                    break;
+                }
+
                 case meta::R_OSC_IN:
                 case meta::R_OSC_OUT:
                     jp      = new jack::OscPort(port, this);
@@ -535,6 +569,8 @@ namespace lsp
                     break;
 
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     jp      = new jack::StringPort(port, this);
                     vParams.add(jp);
                     break;
@@ -607,6 +643,132 @@ namespace lsp
                 vAllPorts.add(jp);
                 plugin_ports->add(jp);
             }
+        }
+
+        void Wrapper::create_shm_send(jack::StringPort *sp)
+        {
+            const meta::port_t *port = sp->metadata();
+            size_t max_index = 0;
+            const size_t count = vAudioBuffers.size();
+            lltl::parray<AudioBufferPort> items;
+
+            // Fill list of ports
+            for (size_t i=0; i < count; ++i)
+            {
+                AudioBufferPort *ap = vAudioBuffers.uget(i);
+                const meta::port_t *meta = (ap != NULL) ? ap->metadata() : NULL;
+                if (!meta::is_audio_send_port(meta))
+                    continue;
+
+                if ((meta->value == NULL) || (strcmp(meta->value, port->id) != 0))
+                    continue;
+
+                items.add(ap);
+                max_index = lsp_max(max_index, size_t(meta->start));
+            }
+
+            // Create item
+            const size_t to_alloc   = sizeof(audio_send_t) + sizeof(AudioBufferPort *) * (max_index + 1);
+            audio_send_t *item      = reinterpret_cast<audio_send_t *>(malloc(to_alloc));
+            lsp_finally { destroy_shm_send(item); };
+
+            item->sID               = port->id;
+            item->nChannels         = max_index + 1;
+            item->pSend             = new core::AudioSend();
+            if (item->pSend == NULL)
+                return;
+
+            item->pName             = sp;
+            for (size_t i=0; i <= max_index; ++i)
+                item->vChannels[i]      = NULL;
+
+            for (size_t i=0, n=items.size(); i<n; ++i)
+            {
+                AudioBufferPort *ap     = items.uget(i);
+                const meta::port_t *meta = ap->metadata();
+                const size_t index      = size_t(meta->start);
+                item->vChannels[index]  = ap;
+            }
+
+            // Add send
+            if (vSends.add(item))
+                item                    = NULL;
+        }
+
+        void Wrapper::create_shm_return(jack::StringPort *sp)
+        {
+            const meta::port_t *port = sp->metadata();
+            size_t max_index = 0;
+            const size_t count = vAudioBuffers.size();
+            lltl::parray<AudioBufferPort> items;
+
+            // Fill list of ports
+            for (size_t i=0; i < count; ++i)
+            {
+                AudioBufferPort *ap = vAudioBuffers.uget(i);
+                const meta::port_t *meta = (ap != NULL) ? ap->metadata() : NULL;
+                if (!meta::is_audio_return_port(meta))
+                    continue;
+
+                if ((meta->value == NULL) || (strcmp(meta->value, port->id) != 0))
+                    continue;
+
+                items.add(ap);
+                max_index = lsp_max(max_index, size_t(meta->start));
+            }
+
+            // Create item
+            const size_t to_alloc   = sizeof(audio_return_t) + sizeof(AudioBufferPort *) * (max_index + 1);
+            audio_return_t *item    = reinterpret_cast<audio_return_t *>(malloc(to_alloc));
+            lsp_finally { destroy_shm_return(item); };
+
+            item->sID               = port->id;
+            item->nChannels         = max_index + 1;
+            item->pReturn           = new core::AudioReturn();
+            if (item->pReturn == NULL)
+                return;
+
+            item->pName             = sp;
+            for (size_t i=0; i <= max_index; ++i)
+                item->vChannels[i]      = NULL;
+
+            for (size_t i=0, n=items.size(); i<n; ++i)
+            {
+                AudioBufferPort *ap     = items.uget(i);
+                const meta::port_t *meta = ap->metadata();
+                const size_t index      = size_t(meta->start);
+                item->vChannels[index]  = ap;
+            }
+
+            // Add send
+            if (vReturns.add(item))
+                item                    = NULL;
+        }
+
+        void Wrapper::destroy_shm_send(audio_send_t *item)
+        {
+            if (item == NULL)
+                return;
+
+            if (item->pSend != NULL)
+            {
+                delete item->pSend;
+                item->pSend     = NULL;
+            }
+            free(item);
+        }
+
+        void Wrapper::destroy_shm_return(audio_return_t *item)
+        {
+            if (item == NULL)
+                return;
+
+            if (item->pReturn != NULL)
+            {
+                delete item->pReturn;
+                item->pReturn   = NULL;
+            }
+            free(item);
         }
 
         const meta::package_t *Wrapper::package() const
@@ -1064,6 +1226,8 @@ namespace lsp
                     break;
                 }
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                 {
                     // Check type of argument
                     if (!param->is_string())

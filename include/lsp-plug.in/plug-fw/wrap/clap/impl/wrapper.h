@@ -407,13 +407,13 @@ namespace lsp
             {
                 plug::IPort *p = vAllPorts.uget(i);
                 const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
-                if ((meta != NULL) && (meta::is_audio_port(meta)))
-                {
-                    if (meta::is_in_port(meta))
-                        ins.add(p);
-                    else
-                        outs.add(p);
-                }
+                if (meta == NULL)
+                    continue;
+
+                if (meta::is_audio_in_port(meta))
+                    ins.add(p);
+                else if (meta::is_audio_out_port(meta))
+                    outs.add(p);
             }
 
             // Try to create ports using port groups

@@ -33,6 +33,7 @@
 #define TEMP_ABS_ZERO                       LSP_DSP_UNITS_TEMP_ABS_ZERO
 #define SPEC_FREQ_MIN                       LSP_DSP_UNITS_SPEC_FREQ_MIN
 #define SPEC_FREQ_MAX                       LSP_DSP_UNITS_SPEC_FREQ_MAX
+#define MAX_SHM_SEGMENT_NAME_BYTES          0x40
 
 // Other constants
 #define MAX_SAMPLE_RATE                     384000              /* Maximum supported sample rate [samples / s]      */

@@ -839,7 +839,7 @@ namespace lsp
 
                 size_t p_prop = 0;
 
-                if ((meta::is_audio_port(p)) && (sidechain_ports.contains(p->id)))
+                if ((meta::is_audio_in_port(p)) && (sidechain_ports.contains(p->id)))
                 {
                     emit_header(out, p_prop, "\t\tlv2:portProperty");
                     emit_option(out, p_prop, true, "lv2:connectionOptional");
