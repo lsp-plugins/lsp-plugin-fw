@@ -43,7 +43,7 @@ namespace lsp
                 // Ensure that catalog is opened
                 if (!sCatalog.opened())
                 {
-                    status_t res    = sCatalog.open("lsp-catalog.shm", 8192);
+                    status_t res    = sCatalog.open("lsp-catalog", 8192);
                     if (res != STATUS_OK)
                     {
                         ipc::Thread::sleep(100);

@@ -704,7 +704,7 @@ namespace lsp
 
             // Initialize plugin wrapper
             pRouting        = &sCmdLine.routing;
-            pWrapper        = new jack::Wrapper(pPlugin, pLoader);
+            pWrapper        = new jack::Wrapper(pFactory, pPlugin, pLoader);
             if (pWrapper == NULL)
                 return STATUS_NO_MEM;
 

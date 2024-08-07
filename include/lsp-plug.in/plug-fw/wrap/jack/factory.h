@@ -28,6 +28,7 @@
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/plug-fw/core/Catalog.h>
+#include <lsp-plug.in/plug-fw/core/CatalogManager.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
 #ifdef WITH_UI_FEATURE
@@ -41,13 +42,8 @@ namespace lsp
         class Factory
         {
             private:
-                uatomic_t           nReferences;        // Number of references
-
-                // Catalog management
-                core::Catalog      *pCatalog;           // Catalog
-                size_t              nCatalogRefs;       // Number of catalog references
-                ipc::Mutex          sCatalogMutex;      // Catalog mutex
-                ipc::Thread         sCatalogThread;     // Catalog thread
+                uatomic_t               nReferences;        // Number of references
+                core::CatalogManager    sCatalogManager;    // Catalog management
 
             public:
                 Factory();
@@ -68,7 +64,7 @@ namespace lsp
             #endif /* WITH_UI_FEATURE */
 
                 core::Catalog      *acquire_catalog();
-                void                release_catalog();
+                void                release_catalog(core::Catalog *catalog);
         };
 
     } /* namespace jack */

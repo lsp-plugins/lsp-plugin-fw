@@ -34,9 +34,6 @@ namespace lsp
         Factory::Factory()
         {
             nReferences     = 1;
-
-            pCatalog        = NULL;
-            nCatalogRefs    = 0;
         }
 
         Factory::~Factory()
@@ -127,12 +124,12 @@ namespace lsp
 
         core::Catalog *Factory::acquire_catalog()
         {
-            // TODO
-            return NULL;
+            return sCatalogManager.acquire();
         }
 
-        void Factory::release_catalog()
+        void Factory::release_catalog(core::Catalog *catalog)
         {
+            sCatalogManager.release(catalog);
         }
     } /* namespace jack */
 } /* namespace lsp */

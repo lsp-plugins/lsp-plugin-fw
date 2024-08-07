@@ -31,8 +31,9 @@ namespace lsp
 {
     namespace jack
     {
-        Wrapper::Wrapper(plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
+        Wrapper::Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
         {
+            pFactory        = factory;
             pClient         = NULL;
             nState          = S_CREATED;
             bUpdateSettings = true;
@@ -121,6 +122,30 @@ namespace lsp
                     create_shm_send(static_cast<jack::StringPort *>(p));
                 else if (meta::is_return_name(meta))
                     create_shm_return(static_cast<jack::StringPort *>(p));
+            }
+            if ((vSends.size() + vReturns.size()) > 0)
+            {
+                pCatalog    = pFactory->acquire_catalog();
+                if (pCatalog != NULL)
+                {
+                    for (size_t i=0, n=vSends.size(); i<n; ++i)
+                    {
+                        audio_send_t *as = vSends.uget(i);
+                        if ((as == NULL) || (as->pSend == NULL))
+                            continue;
+                        if (as->pSend->attach(pCatalog) == STATUS_OK)
+                            lsp_trace("Attached send id=%s to shared memory catalog", as->sID);
+                    }
+
+                    for (size_t i=0, n=vReturns.size(); i<n; ++i)
+                    {
+                        audio_return_t *ar = vReturns.uget(i);
+                        if ((ar == NULL) || (ar->pReturn == NULL))
+                            continue;
+                        if (ar->pReturn->attach(pCatalog) == STATUS_OK)
+                            lsp_trace("Attached return id=%s to shared memory catalog", ar->sID);
+                    }
+                }
             }
 
             // Generate list of sorted ports by identifier
@@ -480,6 +505,38 @@ namespace lsp
                 pSamplePlayer = NULL;
             }
 
+            // Destroy sends
+            for (size_t i=0, n=vSends.size(); i<n; ++i)
+            {
+                audio_send_t *as = vSends.uget(i);
+                if (as == NULL)
+                    continue;
+
+                lsp_trace("Destroying send id=%s", as->sID);
+                destroy_shm_send(as);
+            }
+            vSends.flush();
+
+            // Destroy returns
+            for (size_t i=0, n=vReturns.size(); i<n; ++i)
+            {
+                audio_return_t *ar = vReturns.uget(i);
+                if (ar == NULL)
+                    continue;
+
+                lsp_trace("Destroying return id=%s", ar->sID);
+                destroy_shm_return(ar);
+            }
+            vReturns.flush();
+
+            // Release catalog
+            if (pCatalog != NULL)
+            {
+                lsp_trace("Releaseing shared memory catalog");
+                pFactory->release_catalog(pCatalog);
+                pCatalog = NULL;
+            }
+
             // Destroy ports
             for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
             {
@@ -692,7 +749,10 @@ namespace lsp
 
             // Add send
             if (vSends.add(item))
+            {
+                lsp_trace("Created send id=%s", item->sID);
                 item                    = NULL;
+            }
         }
 
         void Wrapper::create_shm_return(jack::StringPort *sp)
@@ -742,7 +802,10 @@ namespace lsp
 
             // Add send
             if (vReturns.add(item))
+            {
+                lsp_trace("Created return id=%s", item->sID);
                 item                    = NULL;
+            }
         }
 
         void Wrapper::destroy_shm_send(audio_send_t *item)
@@ -752,6 +815,7 @@ namespace lsp
 
             if (item->pSend != NULL)
             {
+                item->pSend->detach();
                 delete item->pSend;
                 item->pSend     = NULL;
             }
@@ -765,6 +829,7 @@ namespace lsp
 
             if (item->pReturn != NULL)
             {
+                item->pReturn->detach();
                 delete item->pReturn;
                 item->pReturn   = NULL;
             }

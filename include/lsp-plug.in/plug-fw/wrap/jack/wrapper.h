@@ -32,6 +32,7 @@
 #include <lsp-plug.in/plug-fw/core/Catalog.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/wrap/jack/factory.h>
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/string.h>
@@ -51,6 +52,7 @@ namespace lsp
         class DataPort;
         class AudioBufferPort;
         class StringPort;
+        class Factory;
 
         /**
          * Wrapper for the plugin module
@@ -89,6 +91,7 @@ namespace lsp
                 } audio_return_t;
 
             private:
+                jack::Factory                  *pFactory;           // Factory for shared resources
                 jack_client_t                  *pClient;            // JACK connection client
                 state_t                         nState;             // Connection state to JACK server
                 bool                            bUpdateSettings;    // Plugin settings are required to be updated
@@ -144,7 +147,7 @@ namespace lsp
                 static bool     set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
-                explicit Wrapper(plug::Module *plugin, resource::ILoader *loader);
+                explicit Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader);
                 Wrapper(const Wrapper &) = delete;
                 Wrapper(Wrapper &&) = delete;
                 virtual ~Wrapper() override;
