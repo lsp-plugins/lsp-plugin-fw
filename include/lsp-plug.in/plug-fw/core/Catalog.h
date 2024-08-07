@@ -53,6 +53,7 @@ namespace lsp
                 lltl::parray<ICatalogClient>  vClients;
 
             protected:
+                bool                open_catalog();
                 status_t            attach_client(ICatalogClient *client);
                 status_t            detach_client(ICatalogClient *client);
                 bool                process_events();

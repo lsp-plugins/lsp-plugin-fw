@@ -36,6 +36,19 @@ namespace lsp
         {
         }
 
+        bool Catalog::open_catalog()
+        {
+            LSPString catalog_name;
+            status_t res    = system::get_user_login(&catalog_name);
+            if (res != STATUS_OK)
+                return false;
+
+            if (!catalog_name.prepend_ascii("lsp-catalog-"))
+                return false;
+
+            return sCatalog.open(&catalog_name, 8192) == STATUS_OK;
+        }
+
         status_t Catalog::run()
         {
             while (!ipc::Thread::is_cancelled())
@@ -43,12 +56,8 @@ namespace lsp
                 // Ensure that catalog is opened
                 if (!sCatalog.opened())
                 {
-                    status_t res    = sCatalog.open("lsp-catalog", 8192);
-                    if (res != STATUS_OK)
-                    {
+                    if (!open_catalog())
                         ipc::Thread::sleep(100);
-                        continue;
-                    }
                 }
 
                 // Process change requests
