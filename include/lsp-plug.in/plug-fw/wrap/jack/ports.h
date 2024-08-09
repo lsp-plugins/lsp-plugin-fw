@@ -410,6 +410,32 @@ namespace lsp
                     return (bActive) ? pBuffer : NULL;
                 }
 
+                virtual float value() override
+                {
+                    return bClean ? 1.0f : 0.0f;
+                }
+
+                virtual void set_default() override
+                {
+                    set_value(0.0f);
+                }
+
+                virtual void set_value(float value) override
+                {
+                    bool clean = value >= 0.5f;
+                    if (clean)
+                    {
+                        // Apply cleanup if needed
+                        if ((bClean) || (pBuffer == NULL))
+                            return;
+
+                        dsp::fill_zero(pBuffer, nBufSize);
+                        bClean      = true;
+                    }
+                    else
+                        bClean      = clean;
+                }
+
             public:
                 inline bool active() const
                 {
@@ -419,20 +445,6 @@ namespace lsp
                 void set_active(bool active)
                 {
                     bActive     = active;
-                }
-
-                void cleanup()
-                {
-                    if ((bClean) || (pBuffer == NULL))
-                        return;
-
-                    dsp::fill_zero(pBuffer, nBufSize);
-                    bClean      = true;
-                }
-
-                void set_dirty()
-                {
-                    bClean      = false;
                 }
 
                 void set_buffer_size(size_t size)

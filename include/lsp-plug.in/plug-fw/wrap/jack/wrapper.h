@@ -27,11 +27,9 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
-#include <lsp-plug.in/plug-fw/core/AudioSend.h>
-#include <lsp-plug.in/plug-fw/core/AudioReturn.h>
-#include <lsp-plug.in/plug-fw/core/Catalog.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/factory.h>
 
 #include <lsp-plug.in/common/debug.h>
@@ -76,8 +74,10 @@ namespace lsp
                 {
                     const char                 *sID;
                     size_t                      nChannels;
+                    bool                        bPublish;
                     core::AudioSend            *pSend;
                     jack::StringPort           *pName;
+                    char                        sLastName[MAX_SHM_SEGMENT_NAME_BYTES];
                     jack::AudioBufferPort      *vChannels[];
                 } audio_send_t;
 
@@ -109,10 +109,7 @@ namespace lsp
                 uatomic_t                       nDumpResp;          // Dump state to file response
 
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
-
-                lltl::parray<audio_send_t>      vSends;             // List of sends
-                lltl::parray<audio_return_t>    vReturns;           // List of returns
-                core::Catalog                  *pCatalog;           // Catalog
+                core::ShmClient                *pShmClient;         // Shared memory client
 
                 lltl::parray<jack::Port>        vAllPorts;          // All ports
                 lltl::parray<jack::Port>        vParams;            // All input parameters
@@ -131,11 +128,6 @@ namespace lsp
 
                 status_t        import_settings(config::PullParser *parser);
                 status_t        import_settings_work(config::PullParser *parser);
-
-                void            create_shm_send(jack::StringPort *sp);
-                void            create_shm_return(jack::StringPort *sp);
-                void            destroy_shm_send(audio_send_t *item);
-                void            destroy_shm_return(audio_return_t *item);
 
             protected:
                 static int      process(jack_nframes_t nframes, void *arg);

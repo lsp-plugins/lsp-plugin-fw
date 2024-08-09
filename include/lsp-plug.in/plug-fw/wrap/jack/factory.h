@@ -29,6 +29,7 @@
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/plug-fw/core/Catalog.h>
 #include <lsp-plug.in/plug-fw/core/CatalogManager.h>
+#include <lsp-plug.in/plug-fw/core/ICatalogFactory.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
 #ifdef WITH_UI_FEATURE
@@ -39,7 +40,7 @@ namespace lsp
 {
     namespace jack
     {
-        class Factory
+        class Factory: public core::ICatalogFactory
         {
             private:
                 uatomic_t               nReferences;        // Number of references
@@ -49,22 +50,24 @@ namespace lsp
                 Factory();
                 Factory(const Factory &) = delete;
                 Factory(Factory &&) = delete;
+                virtual ~Factory() override;
+
                 Factory & operator = (const Factory &) = delete;
                 Factory & operator = (Factory &&) = delete;
-                ~Factory();
 
             public:
-                size_t              acquire();
-                size_t              release();
+                size_t                  acquire();
+                size_t                  release();
+
+            public: // core::ICatalogFactory
+                virtual core::Catalog  *acquire_catalog() override;
+                virtual void            release_catalog(core::Catalog *catalog) override;
 
             public:
-                status_t create_plugin(plug::Module **module, const char *id);
+                status_t                create_plugin(plug::Module **module, const char *id);
             #ifdef WITH_UI_FEATURE
-                status_t create_ui(ui::Module **ui, const char *id);
+                status_t                create_ui(ui::Module **ui, const char *id);
             #endif /* WITH_UI_FEATURE */
-
-                core::Catalog      *acquire_catalog();
-                void                release_catalog(core::Catalog *catalog);
         };
 
     } /* namespace jack */
