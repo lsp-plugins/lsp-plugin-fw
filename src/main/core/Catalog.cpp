@@ -110,9 +110,6 @@ namespace lsp
         {
             size_t count = 0;
 
-            if (!sCatalog.sync())
-                return count;
-
             // Lock the state
             if (!sMutex.lock())
                 return count;
@@ -128,7 +125,7 @@ namespace lsp
                     continue;
 
                 // Call the client to update
-                const uint32_t response     = c->sUpdate.nRequest;
+                const uint32_t response     = atomic_load(&c->sUpdate.nRequest);
                 if (response == c->sUpdate.nResponse)
                     continue;
                 ++count;
@@ -160,14 +157,14 @@ namespace lsp
                     continue;
 
                 // Do not call apply if update is pending
-                if (c->sUpdate.nRequest != c->sUpdate.nResponse)
+                if (atomic_load(&c->sUpdate.nRequest) != c->sUpdate.nResponse)
                 {
                     ++count;
                     continue;
                 }
 
                 // Call the client to apply changes
-                const uint32_t response = c->sApply.nRequest;
+                const uint32_t response = atomic_load(&c->sApply.nRequest);
                 if (response == c->sApply.nResponse)
                     continue;
                 ++count;
@@ -204,6 +201,14 @@ namespace lsp
                 // Add client to the list of clients
                 if (!vClients.add(client))
                     return STATUS_NO_MEM;
+
+                // Force the client to update
+                client->request_update();
+                const uint32_t response     = atomic_load(&client->sUpdate.nRequest);
+
+                // Commit only if update was successful
+                if (client->update(&sCatalog))
+                    client->sUpdate.nResponse   = response;
             }
 
             // Check that we have a dispatcher tread running

@@ -127,7 +127,7 @@ namespace lsp
             }
 
             // Create shared memory sends
-            if (vAudioBuffers.size() > 0)
+            if ((vAudioBuffers.size() > 0) || (meta->extensions & meta::E_SHM_TRACKING))
             {
                 lsp_trace("Creating shared memory client");
                 pShmClient          = new core::ShmClient();

@@ -20,13 +20,35 @@
  */
 
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/io/OutMemoryStream.h>
 #include <lsp-plug.in/plug-fw/core/ShmClient.h>
+#include <lsp-plug.in/plug-fw/core/ShmState.h>
 
 namespace lsp
 {
     namespace core
     {
-        ShmClient::ShmClient()
+        //---------------------------------------------------------------------
+        ShmClient::Listener::Listener(ShmClient *client)
+        {
+            pClient     = client;
+        }
+
+        ShmClient::Listener::~Listener()
+        {
+            pClient     = NULL;
+        }
+
+        bool ShmClient::Listener::update(dspu::Catalog *catalog)
+        {
+            if (pClient != NULL)
+                return pClient->update_catalog(catalog);
+            return true;
+        }
+
+        //---------------------------------------------------------------------
+        ShmClient::ShmClient():
+            sState(shm_state_deleter)
         {
             pFactory        = NULL;
             pCatalog        = NULL;
@@ -212,6 +234,11 @@ namespace lsp
             }
         }
 
+        void ShmClient::shm_state_deleter(ShmState *state)
+        {
+            delete state;
+        }
+
         void ShmClient::init(core::ICatalogFactory *factory, plug::IPort **ports, size_t count)
         {
             pFactory = factory;
@@ -245,29 +272,26 @@ namespace lsp
             }
 
             // Attach sends and returns to catalog
-            if ((vSends.size() + vReturns.size()) > 0)
+            pCatalog    = pFactory->acquire_catalog();
+            if (pCatalog == NULL)
+                return;
+
+            for (size_t i=0, n=vSends.size(); i<n; ++i)
             {
-                pCatalog    = pFactory->acquire_catalog();
-                if (pCatalog == NULL)
-                    return;
+                send_t *s   = vSends.uget(i);
+                if ((s == NULL) || (s->pSend == NULL))
+                    continue;
+                if (s->pSend->attach(pCatalog) == STATUS_OK)
+                    lsp_trace("Attached send id=%s to shared memory catalog", s->sID);
+            }
 
-                for (size_t i=0, n=vSends.size(); i<n; ++i)
-                {
-                    send_t *s   = vSends.uget(i);
-                    if ((s == NULL) || (s->pSend == NULL))
-                        continue;
-                    if (s->pSend->attach(pCatalog) == STATUS_OK)
-                        lsp_trace("Attached send id=%s to shared memory catalog", s->sID);
-                }
-
-                for (size_t i=0, n=vReturns.size(); i<n; ++i)
-                {
-                    return_t *r = vReturns.uget(i);
-                    if ((r == NULL) || (r->pReturn == NULL))
-                        continue;
-                    if (r->pReturn->attach(pCatalog) == STATUS_OK)
-                        lsp_trace("Attached return id=%s to shared memory catalog", r->sID);
-                }
+            for (size_t i=0, n=vReturns.size(); i<n; ++i)
+            {
+                return_t *r = vReturns.uget(i);
+                if ((r == NULL) || (r->pReturn == NULL))
+                    continue;
+                if (r->pReturn->attach(pCatalog) == STATUS_OK)
+                    lsp_trace("Attached return id=%s to shared memory catalog", r->sID);
             }
         }
 
@@ -393,6 +417,86 @@ namespace lsp
                 if ((r != NULL) && (r->pReturn != NULL))
                     r->pReturn->end();
             }
+        }
+
+        bool ShmClient::update_catalog(dspu::Catalog *catalog)
+        {
+            lltl::parray<dspu::Catalog::Record> records;
+            status_t res = catalog->enumerate(&records);
+            if (res != STATUS_OK)
+                return false;
+
+            // Create records
+            lltl::darray<ShmRecord> shm_items;
+            io::OutMemoryStream os;
+            for (size_t i=0, n=records.size(); i<n; ++i)
+            {
+                const dspu::Catalog::Record *src = records.uget(i);
+                if (src == NULL)
+                    continue;
+
+                const char *id = src->id.get_utf8();
+                if (id == NULL)
+                    return false;
+
+                const char *name = src->name.get_utf8();
+                if (name == NULL)
+                    return false;
+
+                // Emit string records
+                const ptrdiff_t id_offset = os.position();
+                if (!os.write(id, strlen(id) + 1))
+                    return false;
+
+                const ptrdiff_t name_offset = os.position();
+                if (!os.write(name, strlen(name) + 1))
+                    return false;
+
+                // Create record
+                ShmRecord *dst = shm_items.add();
+                if (dst == NULL)
+                    return false;
+
+                dst->id             = reinterpret_cast<const char *>(id_offset);
+                dst->name           = reinterpret_cast<const char *>(name_offset);
+                dst->index          = src->index;
+                dst->magic          = src->magic;
+            }
+
+            // Complete the data structures and patch pointers
+            char *strings       = reinterpret_cast<char *>(os.release());
+            size_t count        = shm_items.size();
+            ShmRecord *items    = shm_items.release();
+
+            for (size_t i=0; i<count; ++i)
+            {
+                ShmRecord *dst      = &items[i];
+                dst->id             = strings + reinterpret_cast<ptrdiff_t>(dst->id);
+                dst->name           = strings + reinterpret_cast<ptrdiff_t>(dst->name);
+            }
+
+            // Create shared memory state
+            ShmState *state     = new ShmState(items, strings, count);
+            if (state == NULL)
+            {
+                free(items);
+                free(strings);
+                return false;
+            }
+
+            // Submit shared state
+            sState.push(state);
+            return true;
+        }
+
+        bool ShmClient::state_updated()
+        {
+            return sState.pending();
+        }
+
+        const ShmState *ShmClient::state()
+        {
+            return sState.get();
         }
 
     } /* namespace core */
