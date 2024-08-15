@@ -43,6 +43,7 @@ namespace lsp
                     ST_INACTIVE,        // Inactive, no I/O is performing
                     ST_UPDATING,        // The update is in progress
                     ST_ACTIVE,          // The send is active and available for transferring data
+                    ST_OVERRIDDEN,      // The send has been overridden by another one
                 };
 
                 typedef dspu::Catalog::Record   Record;
@@ -150,6 +151,12 @@ namespace lsp
                  * @return true if send is active and available for data transfer
                  */
                 bool                    active() const;
+
+                /**
+                 * Check that send has been overridden, RT safe
+                 * @return true if send has been overridden by another send
+                 */
+                bool                    overridden() const;
 
                 /**
                  * Get name of the stream, RT safe

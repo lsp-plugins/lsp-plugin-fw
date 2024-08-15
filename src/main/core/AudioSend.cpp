@@ -228,6 +228,11 @@ namespace lsp
             return atomic_load(&enStatus) == ST_ACTIVE;
         }
 
+        bool AudioSend::overridden() const
+        {
+            return atomic_load(&enStatus) == ST_OVERRIDDEN;
+        }
+
         const char *AudioSend::name() const
         {
             stream_t *st = sStream.current();
@@ -310,7 +315,7 @@ namespace lsp
                 return false;
 
             // Transfer state
-            atomic_store(&enStatus, ST_ACTIVE);
+            atomic_store(&enStatus, (st->pStream == NULL) ? ST_ACTIVE : ST_INACTIVE);
             sStream.push(st);
 
             return true;
@@ -332,7 +337,7 @@ namespace lsp
                 return false;
 
             // Transfer new state
-            atomic_store(&enStatus, ST_INACTIVE);
+            atomic_store(&enStatus, ST_OVERRIDDEN);
             sStream.push(st);
             return true;
         }

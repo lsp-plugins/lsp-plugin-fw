@@ -133,7 +133,7 @@ namespace lsp
                 pShmClient          = new core::ShmClient();
                 if (pShmClient == NULL)
                     return STATUS_NO_MEM;
-                pShmClient->init(pFactory, plugin_ports.array(), plugin_ports.size());
+                pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
             }
 
             // Update state, mark initialized

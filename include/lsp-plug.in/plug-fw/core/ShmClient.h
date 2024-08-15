@@ -49,10 +49,12 @@ namespace lsp
                 {
                     const char                 *sID;                // ID of the parameter
                     uint32_t                    nChannels;          // Number of channels
+                    bool                        bActive;            // Active flag
                     bool                        bPublish;           // Flag that forces to re-publish data
                     core::AudioSend            *pSend;              // Audio send
                     plug::IPort                *pName;              // Port that holds send name
                     char                        sLastName[MAX_SHM_SEGMENT_NAME_BYTES]; // Last name used by send
+                    float                       fLastSerial;        // Last serial version
                     plug::IPort                *vChannels[];        // List of ports associated with channels
                 } send_t;
 
@@ -60,8 +62,12 @@ namespace lsp
                 {
                     const char                 *sID;                // ID of the parameter
                     uint32_t                    nChannels;          // Number of channels
+                    bool                        bActive;            // Active flag
+                    bool                        bConnect;           // Flag that forces to estimate connection
                     core::AudioReturn          *pReturn;            // Audio return
                     plug::IPort                *pName;              // Port that holds return name
+                    char                        sLastName[MAX_SHM_SEGMENT_NAME_BYTES]; // Last name used by send
+                    float                       fLastSerial;        // Last serial version
                     plug::IPort                *vChannels[];        // List of ports associated with channels
                 } return_t;
 
@@ -79,6 +85,7 @@ namespace lsp
                 };
 
             private:
+                plug::IWrapper                 *pWrapper;           // Wrapper
                 core::ICatalogFactory          *pFactory;           // Catalog factory
                 core::Catalog                  *pCatalog;           // Catalog
                 lltl::parray<send_t>            vSends;             // List of sends
@@ -92,6 +99,8 @@ namespace lsp
                 static void     bind_channels(plug::IPort **channels, const char *id, lltl::parray<plug::IPort> *ports);
                 static void     scan_ports(lltl::parray<plug::IPort> *dst, meta::role_t role, plug::IPort **ports, size_t count);
                 static void     shm_state_deleter(ShmState *state);
+                static bool     connection_updated(send_t *s);
+                static bool     connection_updated(return_t *r);
 
                 void            create_send(plug::IPort *p, lltl::parray<plug::IPort> *sends);
                 void            create_return(plug::IPort *p, lltl::parray<plug::IPort> *returns);
@@ -107,7 +116,7 @@ namespace lsp
                 ShmClient & operator = (ShmClient &&) = delete;
                 ~ShmClient();
 
-                void            init(core::ICatalogFactory *factory, plug::IPort **ports, size_t count);
+                void            init(plug::IWrapper *wrapper, core::ICatalogFactory *factory, plug::IPort **ports, size_t count);
                 void            destroy();
 
             public:

@@ -50,6 +50,7 @@ namespace lsp
         ShmClient::ShmClient():
             sState(shm_state_deleter)
         {
+            pWrapper        = NULL;
             pFactory        = NULL;
             pCatalog        = NULL;
             nSampleRate     = 0;
@@ -168,9 +169,11 @@ namespace lsp
 
             item->sID               = port->id;
             item->nChannels         = channels;
+            item->bActive           = false;
             item->bPublish          = true;
             item->pSend             = new core::AudioSend();
             item->sLastName[0]      = '\0';
+            item->fLastSerial       = -1;
             if (item->pSend == NULL)
                 return;
 
@@ -203,7 +206,11 @@ namespace lsp
 
             item->sID               = port->id;
             item->nChannels         = channels;
+            item->bActive           = false;
+            item->bConnect          = true;
             item->pReturn           = new core::AudioReturn();
+            item->sLastName[0]      = '\0';
+            item->fLastSerial       = -1;
             if (item->pReturn == NULL)
                 return;
 
@@ -239,8 +246,9 @@ namespace lsp
             delete state;
         }
 
-        void ShmClient::init(core::ICatalogFactory *factory, plug::IPort **ports, size_t count)
+        void ShmClient::init(plug::IWrapper *wrapper, core::ICatalogFactory *factory, plug::IPort **ports, size_t count)
         {
+            pWrapper = wrapper;
             pFactory = factory;
 
             lltl::parray<plug::IPort> items;
@@ -325,9 +333,71 @@ namespace lsp
             }
         }
 
+        bool ShmClient::connection_updated(send_t *s)
+        {
+            const float serial = s->pName->value();
+            const char *new_name = s->pName->buffer<char>();
+            size_t new_len      = strlen(new_name) + 1;
+            if (new_len > MAX_SHM_SEGMENT_NAME_BYTES)
+            {
+                new_name            = "";
+                new_len             = 0;
+            }
+
+            if ((s->fLastSerial == serial) && (memcmp(new_name, s->sLastName, new_len) == 0))
+                return false;
+
+            s->fLastSerial      = serial;
+            memcpy(s->sLastName, new_name, new_len);
+
+            return true;
+        }
+
+        bool ShmClient::connection_updated(return_t *r)
+        {
+            const float serial = r->pName->value();
+            const char *new_name = r->pName->buffer<char>();
+            size_t new_len      = strlen(new_name) + 1;
+            if (new_len > MAX_SHM_SEGMENT_NAME_BYTES)
+            {
+                new_name            = "";
+                new_len             = 0;
+            }
+
+            if ((r->fLastSerial == serial) && (memcmp(new_name, r->sLastName, new_len) == 0))
+                return false;
+
+            r->fLastSerial      = serial;
+            memcpy(r->sLastName, new_name, new_len);
+
+            return true;
+        }
+
         void ShmClient::update_settings()
         {
-            // TODO
+            // Check that send settings have been updated
+            for (size_t i=0, n=vSends.size(); i<n; ++i)
+            {
+                send_t *s       = vSends.uget(i);
+                if ((s == NULL) || (s->pName == NULL))
+                    continue;
+
+                // Check that send name has changed
+                if (connection_updated(s))
+                    s->bPublish     = true;
+            }
+
+            // Check that return settings have been updated
+            for (size_t i=0, n=vReturns.size(); i<n; ++i)
+            {
+                return_t *r     = vReturns.uget(i);
+                if ((r == NULL) || (r->pName == NULL))
+                    continue;
+
+                // Check that send name has changed
+                if (connection_updated(r))
+                    r->bConnect     = true;
+            }
         }
 
         void ShmClient::begin(size_t samples)
@@ -337,14 +407,45 @@ namespace lsp
             {
                 send_t *s       = vSends.uget(i);
                 if ((s != NULL) && (s->pSend != NULL))
-                    s->pSend->begin(samples);
+                {
+                    // Publish if publish is pending
+                    if (s->bPublish)
+                    {
+                        s->pSend->publish(s->sLastName, s->nChannels, nBufferSize * 8);
+                        s->bPublish = false;
+                    }
+
+                    // Check that send is overridden by another send
+                    if (s->pSend->overridden())
+                    {
+                        s->pName->set_default();        // Tell the UI to reset the state
+                        pWrapper->state_changed();
+                    }
+
+                    // Check send activity
+                    s->bActive = s->pSend->active();
+                    if (s->bActive)
+                        s->pSend->begin(samples);
+                }
             }
 
             for (size_t i=0, n=vReturns.size(); i<n; ++i)
             {
                 return_t *r     = vReturns.uget(i);
                 if ((r != NULL) && (r->pReturn != NULL))
-                    r->pReturn->begin(samples);
+                {
+                    // Connect if connection is pending
+                    if (r->bConnect)
+                    {
+                        r->pReturn->connect(r->sLastName);
+                        r->bConnect = false;
+                    }
+
+                    // Check activity of the return
+                    r->bActive = r->pReturn->active();
+                    if (r->bActive)
+                        r->pReturn->begin(samples);
+                }
             }
         }
 
@@ -357,7 +458,7 @@ namespace lsp
                 if (r == NULL)
                     continue;
 
-                const bool active = r->pReturn->active();
+                const bool active = r->bActive;
                 for (size_t j=0; j<r->nChannels; ++j)
                 {
                     plug::IPort *p = r->vChannels[j];
@@ -368,10 +469,9 @@ namespace lsp
                     {
                         float *buffer = static_cast<float *>(p->buffer());
                         if (buffer != NULL)
-                        {
                             r->pReturn->read_sanitized(j, buffer, samples);
-                            p->set_value(0.0f); // Reset cleanup flag
-                        }
+
+                        p->set_value(0.0f); // Reset cleanup flag
                     }
                     else
                         p->set_value(1.0f);   // Request cleanup
@@ -385,7 +485,7 @@ namespace lsp
             for (size_t i=0, n=vSends.size(); i<n; ++i)
             {
                 send_t *s       = vSends.uget(i);
-                if ((s == NULL) || (!s->pSend->active()))
+                if ((s == NULL) || (!s->bActive))
                     continue;
 
                 for (size_t j=0; j<s->nChannels; ++j)
@@ -407,15 +507,21 @@ namespace lsp
             for (size_t i=0, n=vSends.size(); i<n; ++i)
             {
                 send_t *s       = vSends.uget(i);
-                if ((s != NULL) && (s->pSend != NULL))
+                if ((s != NULL) && (s->pSend != NULL) && (s->bActive))
+                {
                     s->pSend->end();
+                    s->bActive  = false;
+                }
             }
 
             for (size_t i=0, n=vReturns.size(); i<n; ++i)
             {
                 return_t *r     = vReturns.uget(i);
-                if ((r != NULL) && (r->pReturn != NULL))
+                if ((r != NULL) && (r->pReturn != NULL) && (r->bActive))
+                {
                     r->pReturn->end();
+                    r->bActive  = false;
+                }
             }
         }
 

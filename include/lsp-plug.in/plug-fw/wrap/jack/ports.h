@@ -799,11 +799,15 @@ namespace lsp
         {
             private:
                 plug::string_t     *pValue;
+                uint32_t            nUISerial;      // Actual serial number for UI
+                uint32_t            nUIPending;     // Pending serial number for UI
 
             public:
                 explicit StringPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
                 {
                     pValue          = plug::string_t::allocate(size_t(meta->max));
+                    nUISerial       = 0;
+                    atomic_store(&nUIPending, 0);
                 }
                 StringPort(const StringPort &) = delete;
                 StringPort(StringPort &&) = delete;
@@ -831,10 +835,31 @@ namespace lsp
                     return (pValue != NULL) ? pValue->sync() : false;
                 }
 
+                virtual float value() override
+                {
+                    return (pValue != NULL) ? (pValue->nSerial & 0x3fffff) : 0.0f;
+                }
+
+                virtual void set_default() override
+                {
+                    pValue->sData[0] = '\0';
+                    atomic_add(&nUIPending, 1);
+                }
+
             public:
                 plug::string_t *data()
                 {
                     return pValue;
+                }
+
+                bool check_reset_pending()
+                {
+                    const uint32_t request = atomic_load(&nUIPending);
+                    if (request == nUISerial)
+                        return false;
+
+                    nUISerial = request;
+                    return true;
                 }
         };
 
