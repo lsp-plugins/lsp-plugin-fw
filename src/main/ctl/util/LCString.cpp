@@ -186,6 +186,11 @@ namespace lsp
             return true;
         }
 
+        expr::Parameters *LCString::params()
+        {
+            return (pProp != NULL) ? pProp->params() : NULL;
+        }
+
         void LCString::update_text(ui::IPort *port)
         {
             // Evaluated value

@@ -191,6 +191,22 @@ namespace lsp
             return (p != NULL) && (p->role == R_STRING);
         }
 
+        static inline bool is_string_holding_port(const port_t *p)
+        {
+            if (p == NULL)
+                return false;
+            switch (p->role)
+            {
+                case R_STRING:
+                case R_SEND_NAME:
+                case R_RETURN_NAME:
+                    return true;
+                default:
+                    break;
+            }
+            return false;
+        }
+
         static inline bool is_mesh_port(const port_t *p)
         {
             return (p != NULL) && (p->role == R_MESH);
