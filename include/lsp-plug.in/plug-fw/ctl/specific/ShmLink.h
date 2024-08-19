@@ -49,14 +49,13 @@ namespace lsp
                         static const tk::w_class_t      metadata;
 
                     protected:
-                        ShmLink    *pLink;
-//                        tk::Box     sBox;
-//                        tk::Edit    sSearch;
-//                        tk::Button  sConnect;
-//                        tk::ListBox sConnections;
+                        ShmLink        *pLink;
+                        ui::IWrapper   *pWrapper;
+                        ctl::Registry   sControllers;
+                        tk::Registry    sWidgets;
 
                     public:
-                        explicit PopupWindow(ShmLink *link, tk::Display *dpy);
+                        explicit PopupWindow(ShmLink *link, ui::IWrapper *wrapper, tk::Display *dpy);
                         virtual ~PopupWindow() override;
 
                         virtual status_t    init() override;
@@ -93,6 +92,7 @@ namespace lsp
                 void                sync_state();
                 void                show_selector();
                 PopupWindow        *create_popup_window();
+                void                init_popup_window();
 
             public:
                 explicit ShmLink(ui::IWrapper *wrapper, tk::Button *widget);

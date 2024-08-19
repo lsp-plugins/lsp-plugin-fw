@@ -19,10 +19,19 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/plug-fw/meta/func.h>
+
+#include <private/ui/xml/RootNode.h>
+#include <private/ui/xml/Handler.h>
+
+#define SHMLINK_STYLE_CONNECTED     "ShmLink::Connected"
+#define SHMLINK_STYLE_NOT_CONNECTED "ShmLink::NotConnected"
 
 namespace lsp
 {
+    //---------------------------------------------------------------------
     namespace ctl
     {
         //---------------------------------------------------------------------
@@ -53,12 +62,13 @@ namespace lsp
         CTL_FACTORY_IMPL_END(ShmLink)
 
         //-----------------------------------------------------------------
-        const tk::w_class_t ShmLink::PopupWindow::metadata      = { "ShmLink::PopupWindow", &PopupWindow::metadata };
+        const tk::w_class_t ShmLink::PopupWindow::metadata      = { "ShmLink::PopupWindow", &tk::PopupWindow::metadata };
 
-        ShmLink::PopupWindow::PopupWindow(ShmLink *link, tk::Display *dpy):
+        ShmLink::PopupWindow::PopupWindow(ShmLink *link, ui::IWrapper *wrapper, tk::Display *dpy):
             tk::PopupWindow(dpy)
         {
             pClass          = &metadata;
+            pWrapper        = wrapper;
 
             pLink           = link;
         }
@@ -75,11 +85,31 @@ namespace lsp
             if (res != STATUS_OK)
                 return res;
 
+            // Create controller
+            ctl::Window *wc = new ctl::Window(pWrapper, this);
+            if (wc == NULL)
+                return STATUS_NO_MEM;
+            sControllers.add(wc);
+            wc->init();
+
+            ui::UIContext uctx(pWrapper, wc->controllers(), wc->widgets());
+            if ((res = uctx.init()) != STATUS_OK)
+                return res;
+
+            // Parse the XML document
+            ui::xml::RootNode root(&uctx, "window", wc);
+            ui::xml::Handler handler(pWrapper->resources());
+            if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/shmlink.xml", &root)) != STATUS_OK)
+                return res;
+
             return STATUS_OK;
         }
 
         void ShmLink::PopupWindow::destroy()
         {
+            sControllers.destroy();
+            sWidgets.destroy();
+
             tk::PopupWindow::destroy();
         }
 
@@ -145,6 +175,9 @@ namespace lsp
                 sHoleColor.init(pWrapper, btn->hole_color());
 
                 sEditable.init(pWrapper, btn->editable());
+
+                // Set style
+                inject_style(btn, SHMLINK_STYLE_NOT_CONNECTED);
 
                 // Bind slots
                 btn->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
@@ -226,6 +259,27 @@ namespace lsp
 
         void ShmLink::sync_state()
         {
+            tk::Button *btn = tk::widget_cast<tk::Button>(wWidget);
+            if (btn == NULL)
+                return;
+
+            revoke_style(btn, SHMLINK_STYLE_CONNECTED);
+            revoke_style(btn, SHMLINK_STYLE_NOT_CONNECTED);
+
+            const char *lc_key = "labels.link.not_connected";
+            const char *btn_style = SHMLINK_STYLE_NOT_CONNECTED;
+            btn->text()->params()->clear();
+
+            if ((pPort != NULL) && (meta::is_string_holding_port(pPort->metadata())))
+            {
+                const char *name = pPort->buffer<char>();
+                btn->text()->params()->add_cstring("value", name);
+                lc_key      = "labels.link.connected";
+                btn_style   = SHMLINK_STYLE_CONNECTED;
+            }
+
+            btn->text()->set(lc_key);
+            inject_style(btn, btn_style);
         }
 
         ShmLink::PopupWindow *ShmLink::create_popup_window()
@@ -233,8 +287,30 @@ namespace lsp
             if (wPopup != NULL)
                 return wPopup;
 
-            // TODO
+            // Create window
+            PopupWindow *w = new PopupWindow(this, pWrapper, wWidget->display());
+            if (w == NULL)
+                return NULL;
+            lsp_finally {
+                if (w != NULL)
+                {
+                    w->destroy();
+                    delete w;
+                }
+            };
+
+            status_t res = w->init();
+            if (res != STATUS_OK)
+                return NULL;
+
+            lsp_trace("Created shmlink popup window ptr=%p", static_cast<tk::Widget *>(w));
+            wPopup = release_ptr(w);
+
             return wPopup;
+        }
+
+        void ShmLink::init_popup_window()
+        {
         }
 
         void ShmLink::show_selector()
@@ -246,6 +322,8 @@ namespace lsp
             if (popup == NULL)
                 return;
 
+            init_popup_window();
+
             // Show the window and take focus
             ws::rectangle_t r;
             wWidget->get_padded_screen_rectangle(&r);
@@ -253,6 +331,7 @@ namespace lsp
             popup->trigger_widget()->set(wWidget);
             popup->set_tether(popup_tether, sizeof(popup_tether)/sizeof(tk::tether_t));
             popup->show(wWidget);
+            popup->take_focus();
             popup->grab_events(ws::GRAB_DROPDOWN);
         }
 
