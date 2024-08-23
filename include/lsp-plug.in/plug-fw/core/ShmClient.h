@@ -88,6 +88,7 @@ namespace lsp
                 plug::IWrapper                 *pWrapper;           // Wrapper
                 core::ICatalogFactory          *pFactory;           // Catalog factory
                 core::Catalog                  *pCatalog;           // Catalog
+                Listener                       *pListener;          // Catalog listener
                 lltl::parray<send_t>            vSends;             // List of sends
                 lltl::parray<return_t>          vReturns;           // List of returns
                 lltl::state<ShmState>           sState;             // Shared memory state

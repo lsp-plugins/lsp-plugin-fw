@@ -1217,6 +1217,11 @@ namespace lsp
             return meta::PLUGIN_JACK;
         }
 
+        const core::ShmState *Wrapper::shm_state()
+        {
+            return (pShmClient != NULL) ? pShmClient->state() : NULL;
+        }
+
     } /* namespace jack */
 } /* namespace lsp */
 

@@ -2043,6 +2043,11 @@ namespace lsp
             return meta::PLUGIN_UNKNOWN;
         }
 
+        const core::ShmState *IWrapper::shm_state()
+        {
+            return NULL;
+        }
+
     } /* namespace ui */
 } /* namespace lsp */
 

@@ -53,6 +53,7 @@ namespace lsp
             pWrapper        = NULL;
             pFactory        = NULL;
             pCatalog        = NULL;
+            pListener       = NULL;
             nSampleRate     = 0;
             nBufferSize     = 0;
         }
@@ -98,6 +99,14 @@ namespace lsp
 
         void ShmClient::destroy()
         {
+            // Destroy listener
+            if (pListener != NULL)
+            {
+                pListener->detach();
+                delete pListener;
+                pListener = NULL;
+            }
+
             // Destroy sends
             for (size_t i=0, n=vSends.size(); i<n; ++i)
                 destroy_send(vSends.uget(i));
@@ -300,6 +309,20 @@ namespace lsp
                     continue;
                 if (r->pReturn->attach(pCatalog) == STATUS_OK)
                     lsp_trace("Attached return id=%s to shared memory catalog", r->sID);
+            }
+
+            // Attach listener to catalog
+            const meta::plugin_t *plug = wrapper->metadata();
+            if ((vSends.size() > 0) ||
+                (vReturns.size() > 0) ||
+                ((plug != NULL) && (plug->extensions & meta::E_SHM_TRACKING)))
+            {
+                pListener = new Listener(this);
+                if (pListener != NULL)
+                {
+                    if (pListener->attach(pCatalog) == STATUS_OK)
+                        lsp_trace("Attached catalog listener to shared memory catalog");
+                }
             }
         }
 

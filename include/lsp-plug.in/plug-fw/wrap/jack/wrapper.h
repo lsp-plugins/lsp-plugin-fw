@@ -159,6 +159,7 @@ namespace lsp
                 virtual const meta::package_t      *package() const override;
                 virtual void                        request_settings_update() override;
                 virtual meta::plugin_format_t       plugin_format() const override;
+                virtual const core::ShmState       *shm_state() override;
 
             public:
                 inline jack_client_t               *client();

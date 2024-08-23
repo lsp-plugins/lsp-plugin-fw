@@ -31,7 +31,6 @@
 
 namespace lsp
 {
-    //---------------------------------------------------------------------
     namespace ctl
     {
         //---------------------------------------------------------------------
@@ -62,23 +61,36 @@ namespace lsp
         CTL_FACTORY_IMPL_END(ShmLink)
 
         //-----------------------------------------------------------------
-        const tk::w_class_t ShmLink::PopupWindow::metadata      = { "ShmLink::PopupWindow", &tk::PopupWindow::metadata };
+        const tk::tether_t ShmLink::popup_tether[] =
+        {
+            { tk::TF_LEFT | tk::TF_BOTTOM | tk::TF_HORIZONTAL,      1.0f,  1.0f    },
+            { tk::TF_LEFT | tk::TF_TOP | tk::TF_HORIZONTAL,         1.0f, -1.0f    },
+            { tk::TF_RIGHT | tk::TF_BOTTOM | tk::TF_HORIZONTAL,    -1.0f,  1.0f    },
+            { tk::TF_RIGHT | tk::TF_TOP | tk::TF_HORIZONTAL,       -1.0f, -1.0f    },
+        };
 
-        ShmLink::PopupWindow::PopupWindow(ShmLink *link, ui::IWrapper *wrapper, tk::Display *dpy):
+        const tk::w_class_t ShmLink::Selector::metadata      = { "ShmLink::Selector", &tk::PopupWindow::metadata };
+
+        ShmLink::Selector::Selector(ShmLink *link, ui::IWrapper *wrapper, tk::Display *dpy):
             tk::PopupWindow(dpy)
         {
             pClass          = &metadata;
             pWrapper        = wrapper;
 
             pLink           = link;
+
+            wName           = NULL;
+            wConnections    = NULL;
+            wConnect        = NULL;
+            wDisconnect     = NULL;
         }
 
-        ShmLink::PopupWindow::~PopupWindow()
+        ShmLink::Selector::~Selector()
         {
             pLink           = NULL;
         }
 
-        status_t ShmLink::PopupWindow::init()
+        status_t ShmLink::Selector::init()
         {
             // Initialize components
             status_t res = tk::PopupWindow::init();
@@ -92,7 +104,7 @@ namespace lsp
             sControllers.add(wc);
             wc->init();
 
-            ui::UIContext uctx(pWrapper, wc->controllers(), wc->widgets());
+            ui::UIContext uctx(pWrapper, &sControllers, &sWidgets);
             if ((res = uctx.init()) != STATUS_OK)
                 return res;
 
@@ -102,10 +114,25 @@ namespace lsp
             if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/shmlink.xml", &root)) != STATUS_OK)
                 return res;
 
+            // Bind widgets
+            wName           = sWidgets.get<tk::Edit>("name");
+            wConnections    = sWidgets.get<tk::ListBox>("connections");
+            wConnect        = sWidgets.get<tk::Button>("connect");
+            wDisconnect     = sWidgets.get<tk::Button>("disconnect");
+
+            if (wName != NULL)
+                wName->slots()->bind(tk::SLOT_CHANGE, slot_filter_change, this);
+            if (wConnections != NULL)
+                wConnections->slots()->bind(tk::SLOT_CHANGE, slot_connections_change, this);
+            if (wConnect != NULL)
+                wConnect->slots()->bind(tk::SLOT_CHANGE, slot_connect, this);
+            if (wDisconnect != NULL)
+                wDisconnect->slots()->bind(tk::SLOT_CHANGE, slot_disconnect, this);
+
             return STATUS_OK;
         }
 
-        void ShmLink::PopupWindow::destroy()
+        void ShmLink::Selector::destroy()
         {
             sControllers.destroy();
             sWidgets.destroy();
@@ -113,16 +140,230 @@ namespace lsp
             tk::PopupWindow::destroy();
         }
 
+        void ShmLink::Selector::show(tk::Widget *actor)
+        {
+            // Apply filter
+            if (wName != NULL)
+                wName->text()->clear();
+            apply_filter();
+
+            // Show the window and take focus
+            ws::rectangle_t r;
+            actor->get_padded_screen_rectangle(&r);
+            trigger_area()->set(&r);
+            trigger_widget()->set(actor);
+            set_tether(popup_tether, sizeof(popup_tether)/sizeof(tk::tether_t));
+            tk::PopupWindow::show(actor);
+            take_focus();
+//            grab_events(ws::GRAB_DROPDOWN);
+        }
+
+        ssize_t ShmLink::Selector::compare_strings(const LSPString *a, const LSPString *b)
+        {
+            ssize_t res = a->compare_to_nocase(b);
+            return (res != 0) ? res : a->compare_to(b);
+        }
+
+        void ShmLink::Selector::apply_filter()
+        {
+            status_t res;
+            LSPString filter, tmp, name;
+
+            // Apply widget visibility
+            if (wName != NULL)
+            {
+                wName->text()->format(&filter);
+                filter.toupper();
+            }
+
+            if (wDisconnect != NULL)
+                wDisconnect->visibility()->set(filter.length() <= 0);
+            if (wConnect != NULL)
+                wConnect->visibility()->set(filter.length() > 0);
+
+            // Get actual name of filter
+            ui::IPort *port = (pLink != NULL) ? pLink->pPort : NULL;
+            if ((port != NULL) && (meta::is_string_holding_port(port->metadata())))
+            {
+                const char *conn_name = port->buffer<char>();
+                if (conn_name != NULL)
+                    name.set_utf8(conn_name);
+            }
+
+            // Fill list of connections
+            if (wConnections != NULL)
+            {
+                // Form the list of items that match the filter
+                lltl::parray<LSPString> list;
+                lsp_finally {
+                    for (size_t i=0, n=list.size(); i<n; ++i)
+                    {
+                        LSPString *s    = list.uget(i);
+                        if (s != NULL)
+                            delete s;
+                    }
+                };
+
+                const core::ShmState *state = pWrapper->shm_state();
+                if (state != NULL)
+                {
+                    for (size_t i=0, n=state->size(); i<n; ++i)
+                    {
+                        const core::ShmRecord *item = state->get(i);
+                        if (!tmp.set_utf8(item->name))
+                            return;
+
+                        if (tmp.index_of_nocase(&filter) < 0)
+                            continue;
+
+                        LSPString *s = tmp.clone();
+                        if (s == NULL)
+                            return;
+                        if (!list.add(s))
+                        {
+                            delete s;
+                            return;
+                        }
+                    }
+
+                    // Sort the list
+                    list.qsort(compare_strings);
+                }
+
+                // Fill the widget
+                wConnections->items()->clear();
+
+                for (size_t i=0, n=list.size(); i<n; ++i)
+                {
+                    LSPString *conn = list.uget(i);
+                    if (conn == NULL)
+                        return;
+
+                    // Create item
+                    tk::ListBoxItem *li = new tk::ListBoxItem(wConnections->display());
+                    if (li == NULL)
+                        return;
+                    lsp_finally {
+                        if (li != NULL)
+                        {
+                            li->destroy();
+                            delete li;
+                        }
+                    };
+                    if ((res = li->init()) != STATUS_OK)
+                        return;
+
+                    if ((res = wConnections->items()->madd(li)) != STATUS_OK)
+                        return;
+
+                    // Set text and update style
+                    li->text()->set_raw(conn);
+                    if (conn->equals(&name))
+                        inject_style(li, "ShmLink::ListBoxItem::connected");
+
+                    li  = NULL;
+                }
+            }
+        }
+
+        void ShmLink::Selector::connect_by_list()
+        {
+            if (wConnections == NULL)
+                return;
+            if (wConnections->selected()->size() < 1)
+                return;
+
+            lsp_finally { hide(); };
+
+            ui::IPort *port = (pLink != NULL) ? pLink->pPort : NULL;
+            if (port == NULL)
+                return;
+
+            tk::ListBoxItem *item = wConnections->selected()->any();
+            if (item == NULL)
+                return;
+
+            LSPString name;
+            if (item->text()->format(&name) != STATUS_OK)
+                return;
+
+            const char *c_name = name.get_utf8();
+            if (c_name == NULL)
+                return;
+
+            port->write(c_name, strlen(c_name));
+            port->notify_all(ui::PORT_NONE);
+        }
+
+        void ShmLink::Selector::connect_by_filter()
+        {
+            lsp_finally { hide(); };
+
+            if (wName == NULL)
+                return;
+
+            ui::IPort *port = (pLink != NULL) ? pLink->pPort : NULL;
+            if (port == NULL)
+                return;
+
+            LSPString name;
+            if (wName->text()->format(&name) != STATUS_OK)
+                return;
+
+            const char *c_name = name.get_utf8();
+            if (c_name == NULL)
+                return;
+
+            port->write(c_name, strlen(c_name));
+            port->notify_all(ui::PORT_NONE);
+        }
+
+        void ShmLink::Selector::disconnect()
+        {
+            lsp_finally { hide(); };
+
+            ui::IPort *port = (pLink != NULL) ? pLink->pPort : NULL;
+            if (port == NULL)
+                return;
+
+            port->set_default();
+            port->notify_all(ui::PORT_NONE);
+        }
+
+        status_t ShmLink::Selector::slot_filter_change(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::ShmLink::Selector *_this   = static_cast<ctl::ShmLink::Selector *>(ptr);
+            if (_this != NULL)
+                _this->apply_filter();
+            return STATUS_OK;
+        }
+
+        status_t ShmLink::Selector::slot_connections_change(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::ShmLink::Selector *_this   = static_cast<ctl::ShmLink::Selector *>(ptr);
+            if (_this != NULL)
+                _this->connect_by_list();
+            return STATUS_OK;
+        }
+
+        status_t ShmLink::Selector::slot_connect(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::ShmLink::Selector *_this   = static_cast<ctl::ShmLink::Selector *>(ptr);
+            if (_this != NULL)
+                _this->connect_by_filter();
+            return STATUS_OK;
+        }
+
+        status_t ShmLink::Selector::slot_disconnect(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::ShmLink::Selector *_this   = static_cast<ctl::ShmLink::Selector *>(ptr);
+            if (_this != NULL)
+                _this->disconnect();
+            return STATUS_OK;
+        }
+
         //-----------------------------------------------------------------
         const ctl_class_t ShmLink::metadata     = { "ShmLink", &Widget::metadata };
-
-        const tk::tether_t ShmLink::popup_tether[] =
-        {
-            { tk::TF_LEFT | tk::TF_BOTTOM | tk::TF_HORIZONTAL,      1.0f,  1.0f    },
-            { tk::TF_LEFT | tk::TF_TOP | tk::TF_HORIZONTAL,         1.0f, -1.0f    },
-            { tk::TF_RIGHT | tk::TF_BOTTOM | tk::TF_HORIZONTAL,    -1.0f,  1.0f    },
-            { tk::TF_RIGHT | tk::TF_TOP | tk::TF_HORIZONTAL,       -1.0f, -1.0f    },
-        };
 
         ShmLink::ShmLink(ui::IWrapper *wrapper, tk::Button *widget): Widget(wrapper, widget)
         {
@@ -282,13 +523,13 @@ namespace lsp
             inject_style(btn, btn_style);
         }
 
-        ShmLink::PopupWindow *ShmLink::create_popup_window()
+        ShmLink::Selector *ShmLink::create_selector()
         {
             if (wPopup != NULL)
                 return wPopup;
 
             // Create window
-            PopupWindow *w = new PopupWindow(this, pWrapper, wWidget->display());
+            Selector *w = new Selector(this, pWrapper, wWidget->display());
             if (w == NULL)
                 return NULL;
             lsp_finally {
@@ -309,30 +550,14 @@ namespace lsp
             return wPopup;
         }
 
-        void ShmLink::init_popup_window()
-        {
-        }
-
         void ShmLink::show_selector()
         {
             if (wWidget == NULL)
                 return;
 
-            PopupWindow *popup      = create_popup_window();
-            if (popup == NULL)
-                return;
-
-            init_popup_window();
-
-            // Show the window and take focus
-            ws::rectangle_t r;
-            wWidget->get_padded_screen_rectangle(&r);
-            popup->trigger_area()->set(&r);
-            popup->trigger_widget()->set(wWidget);
-            popup->set_tether(popup_tether, sizeof(popup_tether)/sizeof(tk::tether_t));
-            popup->show(wWidget);
-            popup->take_focus();
-            popup->grab_events(ws::GRAB_DROPDOWN);
+            Selector *popup      = create_selector();
+            if (popup != NULL)
+                popup->show(wWidget);
         }
 
         status_t ShmLink::slot_change(tk::Widget *sender, void *ptr, void *data)

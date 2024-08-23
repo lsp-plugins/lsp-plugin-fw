@@ -43,7 +43,7 @@ namespace lsp
                 static const tk::tether_t   popup_tether[];
 
             protected:
-                class PopupWindow: public tk::PopupWindow
+                class Selector: public tk::PopupWindow
                 {
                     private:
                         static const tk::w_class_t      metadata;
@@ -54,12 +54,33 @@ namespace lsp
                         ctl::Registry   sControllers;
                         tk::Registry    sWidgets;
 
+                        tk::Edit       *wName;
+                        tk::ListBox    *wConnections;
+                        tk::Button     *wConnect;
+                        tk::Button     *wDisconnect;
+
+                    protected:
+                        static status_t     slot_filter_change(tk::Widget *sender, void *ptr, void *data);
+                        static status_t     slot_connections_change(tk::Widget *sender, void *ptr, void *data);
+                        static status_t     slot_connect(tk::Widget *sender, void *ptr, void *data);
+                        static status_t     slot_disconnect(tk::Widget *sender, void *ptr, void *data);
+
+                    protected:
+                        static ssize_t      compare_strings(const LSPString *a, const LSPString *b);
+
+                    private:
+                        void                apply_filter();
+                        void                connect_by_list();
+                        void                connect_by_filter();
+                        void                disconnect();
+
                     public:
-                        explicit PopupWindow(ShmLink *link, ui::IWrapper *wrapper, tk::Display *dpy);
-                        virtual ~PopupWindow() override;
+                        explicit Selector(ShmLink *link, ui::IWrapper *wrapper, tk::Display *dpy);
+                        virtual ~Selector() override;
 
                         virtual status_t    init() override;
                         virtual void        destroy() override;
+                        virtual void        show(tk::Widget *actor) override;
                 };
 
             protected:
@@ -82,7 +103,7 @@ namespace lsp
                 ctl::Boolean        sEditable;
                 ctl::Boolean        sHover;
 
-                PopupWindow        *wPopup;
+                Selector           *wPopup;
 
             protected:
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
@@ -91,8 +112,7 @@ namespace lsp
                 void                do_destroy();
                 void                sync_state();
                 void                show_selector();
-                PopupWindow        *create_popup_window();
-                void                init_popup_window();
+                Selector           *create_selector();
 
             public:
                 explicit ShmLink(ui::IWrapper *wrapper, tk::Button *widget);

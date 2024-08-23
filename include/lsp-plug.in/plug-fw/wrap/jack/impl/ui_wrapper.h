@@ -552,6 +552,12 @@ namespace lsp
 
             return res;
         }
+
+        const core::ShmState *UIWrapper::shm_state()
+        {
+            return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
+        }
+
     } /* namespace jack */
 } /* namespace lsp */
 

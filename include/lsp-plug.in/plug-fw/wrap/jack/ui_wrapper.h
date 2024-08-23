@@ -76,7 +76,7 @@ namespace lsp
                 static status_t                     slot_ui_hide(tk::Widget *sender, void *ptr, void *data);
                 static status_t                     slot_ui_show(tk::Widget *sender, void *ptr, void *data);
 
-            public:
+            public: // ui::IWrapper
                 virtual core::KVTStorage           *kvt_lock() override;
                 virtual core::KVTStorage           *kvt_trylock() override;
                 virtual bool                        kvt_release() override;
@@ -87,6 +87,7 @@ namespace lsp
                 virtual meta::plugin_format_t       plugin_format() const override;
                 virtual status_t                    export_settings(config::Serializer *s, const io::Path *basedir = NULL) override;
                 virtual status_t                    import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir = NULL) override;
+                virtual const core::ShmState       *shm_state() override;
 
                 using ui::IWrapper::export_settings;
                 using ui::IWrapper::import_settings;
