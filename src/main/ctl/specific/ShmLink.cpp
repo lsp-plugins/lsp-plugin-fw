@@ -123,11 +123,11 @@ namespace lsp
             if (wName != NULL)
                 wName->slots()->bind(tk::SLOT_CHANGE, slot_filter_change, this);
             if (wConnections != NULL)
-                wConnections->slots()->bind(tk::SLOT_CHANGE, slot_connections_change, this);
+                wConnections->slots()->bind(tk::SLOT_SUBMIT, slot_connections_submit, this);
             if (wConnect != NULL)
-                wConnect->slots()->bind(tk::SLOT_CHANGE, slot_connect, this);
+                wConnect->slots()->bind(tk::SLOT_SUBMIT, slot_connect, this);
             if (wDisconnect != NULL)
-                wDisconnect->slots()->bind(tk::SLOT_CHANGE, slot_disconnect, this);
+                wDisconnect->slots()->bind(tk::SLOT_SUBMIT, slot_disconnect, this);
 
             return STATUS_OK;
         }
@@ -338,7 +338,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t ShmLink::Selector::slot_connections_change(tk::Widget *sender, void *ptr, void *data)
+        status_t ShmLink::Selector::slot_connections_submit(tk::Widget *sender, void *ptr, void *data)
         {
             ctl::ShmLink::Selector *_this   = static_cast<ctl::ShmLink::Selector *>(ptr);
             if (_this != NULL)
@@ -504,22 +504,31 @@ namespace lsp
             if (btn == NULL)
                 return;
 
+            const meta::port_t *port = (pPort != NULL) ? pPort->metadata() : NULL;
+
             revoke_style(btn, SHMLINK_STYLE_CONNECTED);
             revoke_style(btn, SHMLINK_STYLE_NOT_CONNECTED);
 
-            const char *lc_key = "labels.link.not_connected";
+            const char *lc_key = (meta::is_send_name(port)) ?
+                "labels.link.send.not_connected" :
+                "labels.link.return.not_connected";
             const char *btn_style = SHMLINK_STYLE_NOT_CONNECTED;
             btn->text()->params()->clear();
 
             if ((pPort != NULL) && (meta::is_string_holding_port(pPort->metadata())))
             {
                 const char *name = pPort->buffer<char>();
-                btn->text()->params()->add_cstring("value", name);
-                lc_key      = "labels.link.connected";
-                btn_style   = SHMLINK_STYLE_CONNECTED;
+                if ((name != NULL) && (strlen(name) > 0))
+                {
+                    btn->text()->params()->add_cstring("value", name);
+                    lc_key      = (meta::is_send_name(port)) ?
+                        "labels.link.send.connected" :
+                        "labels.link.return.connected";
+                    btn_style   = SHMLINK_STYLE_CONNECTED;
+                }
             }
 
-            btn->text()->set(lc_key);
+            btn->text()->set_key(lc_key);
             inject_style(btn, btn_style);
         }
 

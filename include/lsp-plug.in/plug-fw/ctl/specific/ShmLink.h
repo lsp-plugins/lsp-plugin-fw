@@ -61,7 +61,7 @@ namespace lsp
 
                     protected:
                         static status_t     slot_filter_change(tk::Widget *sender, void *ptr, void *data);
-                        static status_t     slot_connections_change(tk::Widget *sender, void *ptr, void *data);
+                        static status_t     slot_connections_submit(tk::Widget *sender, void *ptr, void *data);
                         static status_t     slot_connect(tk::Widget *sender, void *ptr, void *data);
                         static status_t     slot_disconnect(tk::Widget *sender, void *ptr, void *data);
 
