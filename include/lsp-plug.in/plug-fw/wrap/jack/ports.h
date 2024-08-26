@@ -32,6 +32,7 @@
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/dsp/dsp.h>
 
+#include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
@@ -374,32 +375,15 @@ namespace lsp
         class AudioBufferPort: public Port
         {
             private:
-                uint32_t        nBufSize;           // Size of sanitized buffer in samples
-                bool            bActive;            // Activity flag
-                bool            bClean;             // Port is clean
-                float          *pBuffer;            // Buffer data
+                core::AudioBuffer   sBuffer;
 
             public:
                 explicit AudioBufferPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
                 {
-                    nBufSize    = 0;
-                    bActive     = false;
-                    bClean      = false;
-                    pBuffer     = NULL;
                 }
 
                 AudioBufferPort(const DataPort &) = delete;
                 AudioBufferPort(DataPort &&) = delete;
-
-                virtual ~AudioBufferPort() override
-                {
-                    if (pBuffer != NULL)
-                    {
-                        nBufSize    = 0;
-                        free(pBuffer);
-                    }
-                    bActive     = false;
-                };
 
                 AudioBufferPort & operator = (const AudioBufferPort &) = delete;
                 AudioBufferPort & operator = (AudioBufferPort &&) = delete;
@@ -407,66 +391,13 @@ namespace lsp
             public:
                 virtual void *buffer() override
                 {
-                    return (bActive) ? pBuffer : NULL;
-                }
-
-                virtual float value() override
-                {
-                    return bClean ? 1.0f : 0.0f;
-                }
-
-                virtual void set_default() override
-                {
-                    set_value(0.0f);
-                }
-
-                virtual void set_value(float value) override
-                {
-                    bool clean = value >= 0.5f;
-                    if (clean)
-                    {
-                        // Apply cleanup if needed
-                        if ((bClean) || (pBuffer == NULL))
-                            return;
-
-                        dsp::fill_zero(pBuffer, nBufSize);
-                        bClean      = true;
-                    }
-                    else
-                        bClean      = clean;
+                    return &sBuffer;
                 }
 
             public:
-                inline bool active() const
-                {
-                    return bActive;
-                }
-
-                void set_active(bool active)
-                {
-                    bActive     = active;
-                }
-
                 void set_buffer_size(size_t size)
                 {
-                    // Buffer size has changed?
-                    if (nBufSize == size)
-                        return;
-
-                    float *buf  = reinterpret_cast<float *>(::realloc(pBuffer, sizeof(float) * size));
-                    if (buf == NULL)
-                    {
-                        if (pBuffer != NULL)
-                        {
-                            ::free(pBuffer);
-                            pBuffer = NULL;
-                        }
-                        return;
-                    }
-
-                    nBufSize    = size;
-                    pBuffer     = buf;
-                    dsp::fill_zero(pBuffer, nBufSize);
+                    sBuffer.set_size(size);
                 }
         };
 

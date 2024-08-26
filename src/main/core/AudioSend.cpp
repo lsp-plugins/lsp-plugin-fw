@@ -265,7 +265,10 @@ namespace lsp
             pStream         = sStream.get();
             bProcessing     = true;
 
-            return STATUS_OK;
+            if (pStream == NULL)
+                return STATUS_OK;
+
+            return pStream->pStream->begin(block_size);
         }
 
         status_t AudioSend::write(size_t channel, const float *src, size_t samples)
@@ -315,7 +318,7 @@ namespace lsp
                 return false;
 
             // Transfer state
-            atomic_store(&enStatus, (st->pStream == NULL) ? ST_ACTIVE : ST_INACTIVE);
+            atomic_store(&enStatus, (st->pStream != NULL) ? ST_ACTIVE : ST_INACTIVE);
             sStream.push(st);
 
             return true;

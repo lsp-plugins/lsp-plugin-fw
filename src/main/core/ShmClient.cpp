@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/io/OutMemoryStream.h>
+#include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/core/ShmState.h>
 
@@ -434,7 +435,7 @@ namespace lsp
                     // Publish if publish is pending
                     if (s->bPublish)
                     {
-                        s->pSend->publish(s->sLastName, s->nChannels, nBufferSize * 8);
+                        s->pSend->publish(s->sLastName, s->nChannels, nBufferSize * 16);
                         s->bPublish = false;
                     }
 
@@ -447,6 +448,13 @@ namespace lsp
 
                     // Check send activity
                     s->bActive = s->pSend->active();
+                    for (size_t j=0, m=s->nChannels; j<m; ++j)
+                    {
+                        core::AudioBuffer *ab = s->vChannels[j]->buffer<core::AudioBuffer>();
+                        if (ab != NULL)
+                            ab->set_active(s->bActive);
+                    }
+
                     if (s->bActive)
                         s->pSend->begin(samples);
                 }
@@ -466,6 +474,16 @@ namespace lsp
 
                     // Check activity of the return
                     r->bActive = r->pReturn->active();
+                    for (size_t j=0, m=r->nChannels; j<m; ++j)
+                    {
+                        plug::IPort *p = r->vChannels[j];
+                        if (p == NULL)
+                            continue;
+
+                        core::AudioBuffer *ab = p->buffer<core::AudioBuffer>();
+                        ab->set_active(r->bActive);
+                    }
+
                     if (r->bActive)
                         r->pReturn->begin(samples);
                 }
@@ -488,16 +506,20 @@ namespace lsp
                     if (p == NULL)
                         continue;
 
+                    core::AudioBuffer *ab = p->buffer<core::AudioBuffer>();
+                    if (ab == NULL)
+                        continue;
+
                     if (active)
                     {
-                        float *buffer = static_cast<float *>(p->buffer());
+                        float *buffer = ab->data();
                         if (buffer != NULL)
                             r->pReturn->read_sanitized(j, buffer, samples);
 
-                        p->set_value(0.0f); // Reset cleanup flag
+                        ab->set_dirty();    // Reset clean flag
                     }
                     else
-                        p->set_value(1.0f);   // Request cleanup
+                        ab->set_clean();    // Request cleanup
                 }
             }
         }
@@ -517,7 +539,11 @@ namespace lsp
                     if (p == NULL)
                         continue;
 
-                    const float *buffer = static_cast<float *>(p->buffer());
+                    core::AudioBuffer *ab = p->buffer<core::AudioBuffer>();
+                    if (ab == NULL)
+                        continue;
+
+                    const float *buffer = ab->data();
                     if (buffer != NULL)
                         s->pSend->write_sanitized(j, buffer, samples);
                 }
