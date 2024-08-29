@@ -78,6 +78,7 @@ namespace lsp
                     public: // core::ICatalogClient
                         virtual bool            update(dspu::Catalog * catalog) override;
                         virtual bool            apply(dspu::Catalog * catalog) override;
+                        virtual void            keep_alive(dspu::Catalog *catalog) override;
                 };
 
 
@@ -100,6 +101,7 @@ namespace lsp
             private:
                 bool                    update(dspu::Catalog *catalog);
                 bool                    apply(dspu::Catalog *catalog);
+                void                    keep_alive(dspu::Catalog *catalog);
 
             public:
                 AudioSend();

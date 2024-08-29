@@ -472,6 +472,9 @@ namespace lsp
                         r->bConnect = false;
                     }
 
+                    // Always do processing, this will update activity of the return
+                    r->pReturn->begin(samples);
+
                     // Check activity of the return
                     r->bActive = r->pReturn->active();
                     for (size_t j=0, m=r->nChannels; j<m; ++j)
@@ -483,9 +486,6 @@ namespace lsp
                         core::AudioBuffer *ab = p->buffer<core::AudioBuffer>();
                         ab->set_active(r->bActive);
                     }
-
-                    if (r->bActive)
-                        r->pReturn->begin(samples);
                 }
             }
         }
@@ -566,11 +566,9 @@ namespace lsp
             for (size_t i=0, n=vReturns.size(); i<n; ++i)
             {
                 return_t *r     = vReturns.uget(i);
-                if ((r != NULL) && (r->pReturn != NULL) && (r->bActive))
-                {
+                if ((r != NULL) && (r->pReturn != NULL))
                     r->pReturn->end();
-                    r->bActive  = false;
-                }
+                r->bActive  = false;
             }
         }
 

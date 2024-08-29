@@ -63,6 +63,9 @@ namespace lsp
                 // Process change requests
                 if (!process_events())
                 {
+                    // Perform garbage collection
+                    sCatalog.gc();
+
                     // Perform short sleep
                     ipc::Thread::sleep(50);
                 }
@@ -77,9 +80,16 @@ namespace lsp
 
         bool Catalog::process_events()
         {
+            // Synchronize catalog state with clients
             sync_catalog();
 
+            // Make all clients possible to perform keep-alive
+            process_keep_alive();
+
+            // Update clients
             size_t processed = process_update();
+
+            // Apply changes to clients
             processed += process_apply();
 
             return processed > 0;
@@ -103,6 +113,24 @@ namespace lsp
                 ICatalogClient *c = it.get();
                 if (c != NULL)
                     atomic_add(&c->sUpdate.nRequest, 1);
+            }
+        }
+
+        void Catalog::process_keep_alive()
+        {
+            // Lock the state
+            if (!sMutex.lock())
+                return;
+            lsp_finally {
+                sMutex.unlock();
+            };
+
+            // Iterate over the clients and try to update them
+            for (lltl::iterator<ICatalogClient> it = vClients.values(); it; ++it)
+            {
+                ICatalogClient *c = it.get();
+                if (c != NULL)
+                    c->keep_alive(&sCatalog);
             }
         }
 

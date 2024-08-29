@@ -60,6 +60,7 @@ namespace lsp
                 void                sync_catalog();
                 size_t              process_apply();
                 size_t              process_update();
+                void                process_keep_alive();
 
             public:
                 explicit Catalog();

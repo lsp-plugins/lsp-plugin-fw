@@ -98,6 +98,10 @@ namespace lsp
             return true;
         }
 
+        void ICatalogClient::keep_alive(dspu::Catalog *catalog)
+        {
+        }
+
         bool ICatalogClient::attached() const
         {
             return pCatalog != NULL;
