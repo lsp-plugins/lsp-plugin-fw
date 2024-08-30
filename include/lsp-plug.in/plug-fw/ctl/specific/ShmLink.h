@@ -109,6 +109,9 @@ namespace lsp
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
 
             protected:
+                static const char  *valid_name(const LSPString *s);
+
+            protected:
                 void                do_destroy();
                 void                sync_state();
                 void                show_selector();

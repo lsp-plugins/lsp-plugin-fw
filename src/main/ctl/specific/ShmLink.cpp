@@ -29,6 +29,11 @@
 #define SHMLINK_STYLE_CONNECTED     "ShmLink::Connected"
 #define SHMLINK_STYLE_NOT_CONNECTED "ShmLink::NotConnected"
 
+#define SHMLINK_FILTER_VALID        "ShmLink::Filter::ValidInput"
+#define SHMLINK_FILTER_INVALID      "ShmLink::Filter::InvalidInput"
+
+#define SHMLINK_ITEM_CONNECTED      "ShmLink::ListBoxItem::Connected"
+
 namespace lsp
 {
     namespace ctl
@@ -164,6 +169,20 @@ namespace lsp
             return (res != 0) ? res : a->compare_to(b);
         }
 
+        const char *ShmLink::valid_name(const LSPString *s)
+        {
+            if (s == NULL)
+                return NULL;
+
+            const char *utf8 = s->get_utf8();
+            if (utf8 == NULL)
+                return NULL;
+            if (strlen(utf8) >= MAX_SHM_SEGMENT_NAME_BYTES)
+                return NULL;
+
+            return utf8;
+        }
+
         void ShmLink::Selector::apply_filter()
         {
             status_t res;
@@ -173,7 +192,11 @@ namespace lsp
             if (wName != NULL)
             {
                 wName->text()->format(&filter);
-                filter.toupper();
+
+                // Update style depending on the length of the filter
+                revoke_style(wName, SHMLINK_FILTER_VALID);
+                revoke_style(wName, SHMLINK_FILTER_INVALID);
+                inject_style(wName, (valid_name(&filter) != NULL) ? SHMLINK_FILTER_VALID : SHMLINK_FILTER_INVALID);
             }
 
             if (wDisconnect != NULL)
@@ -259,7 +282,7 @@ namespace lsp
                     // Set text and update style
                     li->text()->set_raw(conn);
                     if (conn->equals(&name))
-                        inject_style(li, "ShmLink::ListBoxItem::connected");
+                        inject_style(li, SHMLINK_ITEM_CONNECTED);
 
                     li  = NULL;
                 }
@@ -287,9 +310,9 @@ namespace lsp
             if (item->text()->format(&name) != STATUS_OK)
                 return;
 
-            const char *c_name = name.get_utf8();
+            const char *c_name = valid_name(&name);
             if (c_name == NULL)
-                return;
+                c_name = "";
 
             port->write(c_name, strlen(c_name));
             port->notify_all(ui::PORT_NONE);
@@ -310,9 +333,9 @@ namespace lsp
             if (wName->text()->format(&name) != STATUS_OK)
                 return;
 
-            const char *c_name = name.get_utf8();
+            const char *c_name = valid_name(&name);
             if (c_name == NULL)
-                return;
+                c_name = "";
 
             port->write(c_name, strlen(c_name));
             port->notify_all(ui::PORT_NONE);
