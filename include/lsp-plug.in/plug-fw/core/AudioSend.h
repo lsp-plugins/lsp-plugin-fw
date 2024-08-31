@@ -161,6 +161,12 @@ namespace lsp
                 bool                    overridden() const;
 
                 /**
+                 * Transfers the send from overridden state to inactive state
+                 * @return true if state has been changed successfully
+                 */
+                bool                    deactivate();
+
+                /**
                  * Get name of the stream, RT safe
                  * @return name of the stream or NULL if send is inactive
                  */

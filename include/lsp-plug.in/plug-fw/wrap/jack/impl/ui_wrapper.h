@@ -274,6 +274,7 @@ namespace lsp
                 case meta::R_SEND_NAME:
                 case meta::R_RETURN_NAME:
                     jup     = new jack::UIStringPort(jp);
+                    vSyncPorts.add(jup);
                     break;
 
                 case meta::R_CONTROL:

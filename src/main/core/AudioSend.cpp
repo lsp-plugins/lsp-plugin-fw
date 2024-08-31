@@ -240,6 +240,15 @@ namespace lsp
             return atomic_load(&enStatus) == ST_OVERRIDDEN;
         }
 
+        bool AudioSend::deactivate()
+        {
+            uatomic_t status = atomic_load(&enStatus);
+            if (status != ST_OVERRIDDEN)
+                return false;
+
+            return atomic_cas(&enStatus, ST_OVERRIDDEN, ST_INACTIVE);
+        }
+
         const char *AudioSend::name() const
         {
             stream_t *st = sStream.current();

@@ -442,8 +442,11 @@ namespace lsp
                     // Check that send is overridden by another send
                     if (s->pSend->overridden())
                     {
-                        s->pName->set_default();        // Tell the UI to reset the state
-                        pWrapper->state_changed();
+                        if (s->pSend->deactivate())
+                        {
+                            s->pName->set_default();        // Tell the UI to reset the state
+                            pWrapper->state_changed();
+                        }
                     }
 
                     // Check send activity
