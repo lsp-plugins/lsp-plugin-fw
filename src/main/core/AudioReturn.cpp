@@ -386,7 +386,10 @@ namespace lsp
             {
                 st                  = new stream_t;
                 if (st == NULL)
+                {
+                    atomic_store(&enStatus, ST_INACTIVE);
                     return false;
+                }
 
                 st->pStream         = NULL;
                 st->nStreamCounter  = 0;
@@ -409,6 +412,18 @@ namespace lsp
             const uatomic_t status =
                 (st->pStream != NULL) ? ST_ACTIVE :
                 (st->nStallCounter > 0) ? ST_STALLED : ST_INACTIVE;
+
+        #ifdef LSP_TRACE
+            if (status == ST_ACTIVE)
+                lsp_trace("Connected to active stream '%s' channels=%d, length=%d at index=%d, version=%d, shm_id=%s",
+                    st->sParams.sName, int(st->pStream->channels()), int(st->pStream->length()),
+                    int(sRecord.index), int(sRecord.version), sRecord.id.get_utf8());
+            else if (status == ST_STALLED)
+                lsp_trace("Stream '%s' stalled", st->sParams.sName);
+            else if (status == ST_INACTIVE)
+                lsp_trace("Stream '%s' inactive", st->sParams.sName);
+        #endif /* LSP_TRACE */
+
             atomic_store(&enStatus, status);
             sStream.push(st);
 

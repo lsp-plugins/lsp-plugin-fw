@@ -171,7 +171,7 @@ namespace lsp
                 return NULL;
 
             // Commit record and return
-            lsp_trace("Published audio stream name=%s, channels=%d, length=%d as index=%d, version=%d, shm_id=%s",
+            lsp_trace("Published audio stream '%s' channels=%d, length=%d at index=%d, version=%d, shm_id=%s",
                 params->sName, int(params->nChannels), int(params->nLength),
                 int(record->index), int(record->version), record->id.get_utf8());
 
@@ -325,6 +325,9 @@ namespace lsp
                 return false;
 
             // Transfer state
+            if (st == NULL)
+                lsp_trace("Disabled publishing of stream");
+
             atomic_store(&enStatus, (st->pStream != NULL) ? ST_ACTIVE : ST_INACTIVE);
             sStream.push(st);
 
@@ -347,6 +350,7 @@ namespace lsp
                 return false;
 
             // Transfer new state
+            lsp_trace("Stream has been overridden by another publisher");
             atomic_store(&enStatus, ST_OVERRIDDEN);
             sStream.push(st);
             return true;

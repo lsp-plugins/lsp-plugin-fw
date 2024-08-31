@@ -43,6 +43,7 @@ namespace lsp
             switch (p->role)
             {
                 case R_AUDIO_OUT:
+                case R_AUDIO_SEND:
                 case R_METER:
                 case R_MESH:
                 case R_FBUFFER:
@@ -61,9 +62,12 @@ namespace lsp
             switch (p->role)
             {
                 case R_AUDIO_IN:
+                case R_AUDIO_RETURN:
                 case R_CONTROL:
                 case R_PATH:
                 case R_STRING:
+                case R_SEND_NAME:
+                case R_RETURN_NAME:
                 case R_MIDI_IN:
                 case R_PORT_SET:
                 case R_OSC_IN:
@@ -105,6 +109,13 @@ namespace lsp
         static inline bool is_audio_out_port(const port_t *p)
         {
             return (p != NULL) && (p->role == R_AUDIO_OUT);
+        }
+
+        static inline bool is_audio_buffer_port(const port_t *p)
+        {
+            if (p == NULL)
+                return false;
+            return (p->role == R_AUDIO_SEND) || (p->role == R_AUDIO_RETURN);
         }
 
         static inline bool is_audio_send_port(const port_t *p)

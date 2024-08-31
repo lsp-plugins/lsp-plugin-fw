@@ -882,10 +882,10 @@ namespace lsp
             c->append_ascii     (config_separator);
             c->append           ('\n');
             c->append_utf8      ("This file contains configuration of the audio plugin.\n");
-            c->fmt_append_utf8  ("  Package:             %s (%s)\n", pkg->artifact, pkg->artifact_name);
-            c->fmt_append_utf8  ("  Package version:     %s\n", pkv.get_utf8());
-            c->fmt_append_utf8  ("  Plugin name:         %s (%s)\n", meta->name, meta->description);
-            c->fmt_append_utf8  ("  Plugin version:      %d.%d.%d\n",
+            c->fmt_append_utf8  ("  Package:                 %s (%s)\n", pkg->artifact, pkg->artifact_name);
+            c->fmt_append_utf8  ("  Package version:         %s\n", pkv.get_utf8());
+            c->fmt_append_utf8  ("  Plugin name:             %s (%s)\n", meta->name, meta->description);
+            c->fmt_append_utf8  ("  Plugin version:          %d.%d.%d\n",
                     int(LSP_MODULE_VERSION_MAJOR(meta->version)),
                     int(LSP_MODULE_VERSION_MINOR(meta->version)),
                     int(LSP_MODULE_VERSION_MICRO(meta->version))
@@ -952,7 +952,7 @@ namespace lsp
                 const meta::port_t *meta = p->metadata();
                 if (meta == NULL)
                     continue;
-                if (meta::is_out_port(meta))
+                if (!meta::is_in_port(meta))
                     continue;
                 if (!strcmp(meta->id, UI_LAST_VERSION_PORT_ID))
                     continue;
@@ -1702,6 +1702,8 @@ namespace lsp
                     port->write(value, len, flags);
                     break;
                 }
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                 case meta::R_STRING:
                 {
                     // Check type of argument
