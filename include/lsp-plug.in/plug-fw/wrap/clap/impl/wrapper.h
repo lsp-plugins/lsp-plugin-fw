@@ -35,12 +35,14 @@ namespace lsp
     {
         Wrapper::Wrapper(
             plug::Module *module,
+            clap::Factory *factory,
             const meta::package_t *package,
             resource::ILoader *loader,
             const clap_host_t *host):
             IWrapper(module, loader)
         {
             pHost               = host;
+            pFactory            = factory;
             pPackage            = package;
             pExt                = NULL;
             pExecutor           = NULL;
@@ -62,11 +64,20 @@ namespace lsp
             bUpdateSettings     = true;
             bStateManage        = false;
             pSamplePlayer       = NULL;
+
+            if (pFactory != NULL)
+                pFactory->acquire();
         }
 
         Wrapper::~Wrapper()
         {
             destroy();
+
+            if (pFactory != NULL)
+            {
+                pFactory->release();
+                pFactory            = NULL;
+            }
         }
 
         void Wrapper::destroy()

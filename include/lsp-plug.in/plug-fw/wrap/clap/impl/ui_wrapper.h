@@ -507,7 +507,7 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
 
             UIWrapper *this_    = static_cast<UIWrapper *>(ptr);
             tk::Window *wnd     = this_->window();
@@ -525,13 +525,13 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             return STATUS_OK;
         }
 
         status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
 
             UIWrapper *this_    = static_cast<UIWrapper *>(ptr);
             tk::Window *wnd     = this_->window();
@@ -546,7 +546,7 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_close(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             UIWrapper *this_ = static_cast<UIWrapper *>(ptr);
             if (this_->pExt != NULL)
                 this_->pExt->gui->closed(this_->pExt->host, false);

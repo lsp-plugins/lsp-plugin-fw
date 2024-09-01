@@ -52,6 +52,8 @@ namespace lsp
 {
     namespace clap
     {
+        class Factory;
+
         /**
          * CLAP plugin wrapper interface
          */
@@ -70,6 +72,7 @@ namespace lsp
 
             protected:
                 const clap_host_t              *pHost;              // Host interface
+                clap::Factory                  *pFactory;           // CLAP plugin factory
                 const meta::package_t          *pPackage;           // Package metadata
                 clap::HostExtensions           *pExt;               // CLAP Extensions
                 ipc::IExecutor                 *pExecutor;          // Executor service
@@ -134,6 +137,7 @@ namespace lsp
             public:
                 explicit Wrapper(
                     plug::Module *module,
+                    clap::Factory *factory,
                     const meta::package_t *package,
                     resource::ILoader *loader,
                     const clap_host_t *host);
