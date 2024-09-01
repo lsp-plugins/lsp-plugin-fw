@@ -69,7 +69,7 @@ namespace lsp
                         AudioSend              *pSend;
 
                     public:
-                        Client(AudioSend *send);
+                        explicit Client(AudioSend *send);
                         virtual ~Client() override;
 
                     public:

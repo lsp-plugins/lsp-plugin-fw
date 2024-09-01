@@ -382,8 +382,8 @@ namespace lsp
                 {
                 }
 
-                AudioBufferPort(const DataPort &) = delete;
-                AudioBufferPort(DataPort &&) = delete;
+                AudioBufferPort(const AudioBufferPort &) = delete;
+                AudioBufferPort(AudioBufferPort &&) = delete;
 
                 AudioBufferPort & operator = (const AudioBufferPort &) = delete;
                 AudioBufferPort & operator = (AudioBufferPort &&) = delete;

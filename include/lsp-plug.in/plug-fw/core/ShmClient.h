@@ -77,7 +77,7 @@ namespace lsp
                         ShmClient              *pClient;
 
                     public:
-                        Listener(ShmClient *client);
+                        explicit Listener(ShmClient *client);
                         virtual ~Listener() override;
 
                     public:

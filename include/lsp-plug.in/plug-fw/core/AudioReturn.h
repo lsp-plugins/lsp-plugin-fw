@@ -69,7 +69,7 @@ namespace lsp
                         AudioReturn        *pReturn;
 
                     public:
-                        Client(AudioReturn *rtrn);
+                        explicit Client(AudioReturn *rtrn);
                         virtual ~Client() override;
 
                     public:
