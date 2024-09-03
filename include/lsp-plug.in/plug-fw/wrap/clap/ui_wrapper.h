@@ -103,6 +103,7 @@ namespace lsp
                 virtual void                    main_iteration() override;
                 virtual bool                    accept_window_size(tk::Window *wnd, size_t width, size_t height) override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
 
             public: // CLAP API
                 bool                            set_scale(double scale);

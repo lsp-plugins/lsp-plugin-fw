@@ -72,6 +72,16 @@ namespace lsp
             return ref_count;
         }
 
+        core::Catalog *Factory::acquire_catalog()
+        {
+            return sCatalogManager.acquire();
+        }
+
+        void Factory::release_catalog(core::Catalog *catalog)
+        {
+            sCatalogManager.release(catalog);
+        }
+
         ssize_t Factory::cmp_descriptors(const clap_plugin_descriptor_t *d1, const clap_plugin_descriptor_t *d2)
         {
             return strcmp(d1->id, d2->id);

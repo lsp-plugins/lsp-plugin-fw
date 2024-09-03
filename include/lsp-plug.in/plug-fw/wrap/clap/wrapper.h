@@ -29,6 +29,7 @@
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/helpers.h>
@@ -80,6 +81,8 @@ namespace lsp
                 ssize_t                         nTailSize;          // Tail size
                 uatomic_t                       nDumpReq;           // State dump request counter
                 uatomic_t                       nDumpResp;          // State dump response counter
+                uatomic_t                       nStateReq;          // Current version of the state
+                uatomic_t                       nStateResp;         // Last reported version of the state
 
             #ifdef WITH_UI_FEATURE
                 const meta::plugin_t           *pUIMetadata;        // UI metadata
@@ -91,6 +94,7 @@ namespace lsp
 
                 lltl::parray<audio_group_t>     vAudioIn;           // Input audio ports
                 lltl::parray<audio_group_t>     vAudioOut;          // Output audio ports
+                lltl::parray<clap::AudioBufferPort> vAudioBuffers;  // Audio sends and returns
                 lltl::parray<ParameterPort>     vParamPorts;        // List of parameters sorted by clap_id
                 lltl::parray<MidiInputPort>     vMidiIn;            // Midi input ports
                 lltl::parray<MidiOutputPort>    vMidiOut;           // Midi output ports
@@ -106,6 +110,7 @@ namespace lsp
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
                 bool                            bStateManage;       // State management barrier
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
+                core::ShmClient                *pShmClient;         // Shared memory client
 
             protected:
                 static audio_group_t *alloc_audio_group(size_t ports);
@@ -200,6 +205,7 @@ namespace lsp
                 virtual void                    state_changed() override;
                 virtual void                    request_settings_update() override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
 
             public:
                 // Miscellaneous functions

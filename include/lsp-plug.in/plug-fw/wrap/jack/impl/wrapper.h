@@ -126,7 +126,7 @@ namespace lsp
                 pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
             }
 
-            // Create shared memory sends
+            // Create shared memory client
             if ((vAudioBuffers.size() > 0) || (meta->extensions & meta::E_SHM_TRACKING))
             {
                 lsp_trace("Creating shared memory client");

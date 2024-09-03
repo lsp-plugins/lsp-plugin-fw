@@ -257,6 +257,18 @@ namespace lsp
                     cup = new clap::UIPort(port, cp);
                     break;
 
+                case meta::R_AUDIO_SEND:
+                    // Stub port
+                    lsp_trace("creating stub audio send port %s", port->id);
+                    cup = new clap::UIPort(port, cp);
+                    break;
+
+                case meta::R_AUDIO_RETURN:
+                    // Stub port
+                    lsp_trace("creating stub audio return port %s", port->id);
+                    cup = new clap::UIPort(port, cp);
+                    break;
+
                 case meta::R_MIDI_IN:
                 case meta::R_MIDI_OUT:
                     // Stub port
@@ -296,6 +308,16 @@ namespace lsp
 
                 case meta::R_STRING:
                     lsp_trace("creating string port %s", port->id);
+                    cup = new clap::UIStringPort(cp);
+                    break;
+
+                case meta::R_SEND_NAME:
+                    lsp_trace("creating send name port %s", port->id);
+                    cup = new clap::UIStringPort(cp);
+                    break;
+
+                case meta::R_RETURN_NAME:
+                    lsp_trace("creating return name port %s", port->id);
                     cup = new clap::UIStringPort(cp);
                     break;
 
@@ -503,6 +525,11 @@ namespace lsp
         meta::plugin_format_t UIWrapper::plugin_format() const
         {
             return meta::PLUGIN_CLAP;
+        }
+
+        const core::ShmState *UIWrapper::shm_state()
+        {
+            return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
         }
 
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)

@@ -419,7 +419,17 @@ namespace lsp
             public:
                 virtual bool sync() override
                 {
-                    return pValue->fetch(&nSerial, pData, pValue->max_bytes() + 1);
+                    bool res = pValue->fetch(&nSerial, pData, pValue->max_bytes() + 1);
+                    clap::StringPort *sp    = static_cast<clap::StringPort *>(pPort);
+
+                    if (sp->check_reset_pending())
+                    {
+                        const size_t size = strlen(pMetadata->value);
+                        const size_t count = lsp_min(size, pValue->nCapacity);
+                        plug::utf8_strncpy(pData, count, pMetadata->value, size);
+                    }
+
+                    return res;
                 }
 
                 virtual void *buffer() override

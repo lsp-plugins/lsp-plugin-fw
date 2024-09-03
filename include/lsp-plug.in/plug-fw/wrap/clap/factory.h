@@ -28,6 +28,8 @@
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/plug-fw/core/CatalogManager.h>
+#include <lsp-plug.in/plug-fw/core/ICatalogFactory.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 
@@ -39,13 +41,14 @@ namespace lsp
     {
         class Wrapper;
 
-        class Factory
+        class Factory: public core::ICatalogFactory
         {
             private:
                 atomic_t                    nReferences;
                 lltl::darray<clap_plugin_descriptor_t> vDescriptors;
                 resource::ILoader          *pLoader;
                 meta::package_t            *pManifest;
+                core::CatalogManager        sCatalogManager;    // Catalog management
 
             private:
                 static ssize_t              cmp_descriptors(const clap_plugin_descriptor_t *d1, const clap_plugin_descriptor_t *d2);
@@ -61,10 +64,14 @@ namespace lsp
                 Factory();
                 Factory(const Factory &) = delete;
                 Factory(Factory &&) = delete;
-                ~Factory();
+                virtual ~Factory() override;
 
                 Factory & operator = (const Factory &) = delete;
                 Factory & operator = (Factory &&) = delete;
+
+            public: // core::ICatalogFactory
+                virtual core::Catalog      *acquire_catalog() override;
+                virtual void                release_catalog(core::Catalog *catalog) override;
 
             public:
                 size_t                      acquire();

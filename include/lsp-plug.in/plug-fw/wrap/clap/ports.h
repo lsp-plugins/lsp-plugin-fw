@@ -29,6 +29,7 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -187,6 +188,36 @@ namespace lsp
                     pBind       = NULL;
                     nBufSize    = 0;
                     nOffset     = 0;
+                }
+        };
+
+        class AudioBufferPort: public Port
+        {
+            private:
+                core::AudioBuffer   sBuffer;
+
+            public:
+                explicit AudioBufferPort(const meta::port_t *meta) : Port(meta)
+                {
+                }
+
+                AudioBufferPort(const AudioBufferPort &) = delete;
+                AudioBufferPort(AudioBufferPort &&) = delete;
+
+                AudioBufferPort & operator = (const AudioBufferPort &) = delete;
+                AudioBufferPort & operator = (AudioBufferPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return &sBuffer;
+                }
+
+            public:
+                bool activate(size_t min_frames_count, size_t max_frames_count)
+                {
+                    sBuffer.set_size(max_frames_count);
+                    return true;
                 }
         };
 
@@ -688,12 +719,16 @@ namespace lsp
         {
             private:
                 plug::string_t     *pValue;
+                uint32_t            nUISerial;      // Actual serial number for UI
+                uint32_t            nUIPending;     // Pending serial number for UI
 
             public:
                 explicit StringPort(const meta::port_t *meta):
                     Port(meta)
                 {
                     pValue          = plug::string_t::allocate(size_t(meta->max));
+                    nUISerial       = 0;
+                    atomic_store(&nUIPending, 0);
                 }
                 StringPort(const StringPort &) = delete;
                 StringPort(StringPort &&) = delete;
@@ -765,6 +800,12 @@ namespace lsp
                     return true;
                 }
 
+                virtual void set_default() override
+                {
+                    strcpy(pValue->sData, pMetadata->value);
+                    atomic_add(&nUIPending, 1);
+                }
+
             public:
                 plug::string_t *data()
                 {
@@ -779,6 +820,16 @@ namespace lsp
                 bool is_state() const
                 {
                     return (pValue != NULL) ? pValue->is_state() : false;
+                }
+
+                bool check_reset_pending()
+                {
+                    const uint32_t request = atomic_load(&nUIPending);
+                    if (request == nUISerial)
+                        return false;
+
+                    nUISerial = request;
+                    return true;
                 }
         };
 

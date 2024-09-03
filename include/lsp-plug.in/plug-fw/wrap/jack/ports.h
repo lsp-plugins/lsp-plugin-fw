@@ -773,7 +773,7 @@ namespace lsp
 
                 virtual void set_default() override
                 {
-                    pValue->sData[0] = '\0';
+                    strcpy(pValue->sData, pMetadata->value);
                     atomic_add(&nUIPending, 1);
                 }
 
