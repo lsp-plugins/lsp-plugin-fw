@@ -133,6 +133,16 @@ namespace lsp
             return ref_count;
         }
 
+        core::Catalog *Factory::acquire_catalog()
+        {
+            return sCatalogManager.acquire();
+        }
+
+        void Factory::release_catalog(core::Catalog *catalog)
+        {
+            sCatalogManager.release(catalog);
+        }
+
         ipc::IExecutor *Factory::acquire_executor()
         {
             lsp_trace("this=%p", this);

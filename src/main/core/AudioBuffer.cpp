@@ -60,6 +60,7 @@ namespace lsp
             nBufSize    = size;
             pBuffer     = buf;
             dsp::fill_zero(pBuffer, nBufSize);
+            bClean      = true;
         }
     } /* namespace core */
 } /* namespace lsp */

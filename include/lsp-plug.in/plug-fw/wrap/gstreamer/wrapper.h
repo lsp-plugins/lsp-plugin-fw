@@ -26,6 +26,7 @@
 
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/ports.h>
@@ -70,10 +71,12 @@ namespace lsp
                 lltl::parray<meta::port_t>          vGenMetadata;       // Generated metadata
                 lltl::parray<gst::AudioPort>        vSink;              // All available audio inputs
                 lltl::parray<gst::AudioPort>        vSource;            // All available audio outputs
+                lltl::parray<gst::AudioBufferPort>  vAudioBuffers;      // Audio sends and returns
 
                 core::KVTStorage                    sKVT;               // Key-value tree
                 ipc::Mutex                          sKVTMutex;          // Key-value tree lock mutex
                 core::SamplePlayer                 *pSamplePlayer;      // Sample player
+                core::ShmClient                    *pShmClient;         // Shared memory client
 
             protected:
                 plug::IPort                        *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
@@ -116,6 +119,7 @@ namespace lsp
                 virtual core::KVTStorage           *kvt_lock() override;
                 virtual core::KVTStorage           *kvt_trylock() override;
                 virtual bool                        kvt_release() override;
+                virtual const core::ShmState       *shm_state() override;
 
             public: // gst::IWrapper interface
                 virtual void                        setup(const GstAudioInfo * info) override;

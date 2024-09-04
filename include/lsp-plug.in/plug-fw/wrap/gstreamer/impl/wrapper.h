@@ -68,6 +68,7 @@ namespace lsp
             bInterleaved        = false;
 
             pSamplePlayer       = NULL;
+            pShmClient          = NULL;
         }
 
         Wrapper::~Wrapper()
@@ -95,6 +96,15 @@ namespace lsp
                 pSamplePlayer = NULL;
             }
 
+            // Destroy shared memory client
+            if (pShmClient != NULL)
+            {
+                lsp_trace("Destroying shared memory client");
+                pShmClient->destroy();
+                delete pShmClient;
+                pShmClient      = NULL;
+            }
+
             // Now we are able to destroy the plugin
             if (pPlugin != NULL)
             {
@@ -115,6 +125,7 @@ namespace lsp
             vParameters.flush();
             vMeters.flush();
             vPortMapping.flush();
+            vAudioBuffers.flush();
 
             // Cleanup generated metadata
             for (size_t i=0; i<vGenMetadata.size(); ++i)
@@ -278,6 +289,16 @@ namespace lsp
                 pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
             }
 
+            // Create shared memory sends
+            if ((vAudioBuffers.size() > 0) || (meta->extensions & meta::E_SHM_TRACKING))
+            {
+                lsp_trace("Creating shared memory client");
+                pShmClient          = new core::ShmClient();
+                if (pShmClient == NULL)
+                    return STATUS_NO_MEM;
+                pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
+            }
+
             // Initialize plugin
             pPlugin->init(this, plugin_ports.array());
 
@@ -308,6 +329,26 @@ namespace lsp
                     plugin_ports->add(p);
 
                     lsp_trace("audio_out id=%s", result->metadata()->id);
+                    break;
+                }
+                case meta::R_AUDIO_SEND:
+                {
+                    gst::AudioBufferPort *p = new gst::AudioBufferPort(port);
+                    result = p;
+                    vAudioBuffers.add(p);
+                    plugin_ports->add(p);
+
+                    lsp_trace("audio_send id=%s", result->metadata()->id);
+                    break;
+                }
+                case meta::R_AUDIO_RETURN:
+                {
+                    gst::AudioBufferPort *p = new gst::AudioBufferPort(port);
+                    result = p;
+                    vAudioBuffers.add(p);
+                    plugin_ports->add(p);
+
+                    lsp_trace("audio_return id=%s", result->metadata()->id);
                     break;
                 }
                 case meta::R_MIDI_IN:
@@ -374,6 +415,28 @@ namespace lsp
                     plugin_ports->add(p);
 
                     lsp_trace("string id=%s, index=%d", result->metadata()->id, int(vPortMapping.size() - 1));
+                    break;
+                }
+
+                case meta::R_SEND_NAME:
+                {
+                    gst::StringPort *p = new gst::StringPort(port);
+                    result = p;
+                    vPortMapping.add(p);
+                    plugin_ports->add(p);
+
+                    lsp_trace("send_name id=%s, index=%d", result->metadata()->id, int(vPortMapping.size() - 1));
+                    break;
+                }
+
+                case meta::R_RETURN_NAME:
+                {
+                    gst::StringPort *p = new gst::StringPort(port);
+                    result = p;
+                    vPortMapping.add(p);
+                    plugin_ports->add(p);
+
+                    lsp_trace("return_name id=%s, index=%d", result->metadata()->id, int(vPortMapping.size() - 1));
                     break;
                 }
 
@@ -697,6 +760,10 @@ namespace lsp
                 pPlugin->set_sample_rate(nSampleRate);
                 bUpdateSampleRate   = false;
                 bUpdateSettings     = true;
+
+                // Update shared memory client
+                if (pShmClient != NULL)
+                    pShmClient->set_sample_rate(nSampleRate);
             }
 
             // Set sample rate for sample player
@@ -897,7 +964,16 @@ namespace lsp
                 {
                     lsp_trace("updating settings");
                     bUpdateSettings         = false;
+                    if (pShmClient != NULL)
+                        pShmClient->update_settings();
                     pPlugin->update_settings();
+                }
+
+                // Prepare shared memory buffers
+                if (pShmClient != NULL)
+                {
+                    pShmClient->begin(to_do);
+                    pShmClient->pre_process(to_do);
                 }
 
                 // Process input buffers
@@ -962,6 +1038,13 @@ namespace lsp
                     }
                 }
 
+                // Process shared memory buffers
+                if (pShmClient != NULL)
+                {
+                    pShmClient->post_process(to_do);
+                    pShmClient->end();
+                }
+
                 // Update pointer
                 offset                 += to_do;
             }
@@ -976,6 +1059,11 @@ namespace lsp
                 nLatency = latency;
                 report_latency();
             }
+        }
+
+        const core::ShmState *Wrapper::shm_state()
+        {
+            return (pShmClient != NULL) ? pShmClient->state() : NULL;
         }
 
     } /* namespace gst */

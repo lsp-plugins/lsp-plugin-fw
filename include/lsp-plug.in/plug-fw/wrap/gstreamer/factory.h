@@ -27,6 +27,8 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/core/CatalogManager.h>
+#include <lsp-plug.in/plug-fw/core/ICatalogFactory.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -44,7 +46,7 @@ namespace lsp
         /**
          * GStreamer plugin factory
          */
-        class Factory: public gst::IFactory
+        class Factory: public gst::IFactory, public core::ICatalogFactory
         {
             private:
                 typedef struct enumeration_t
@@ -56,12 +58,13 @@ namespace lsp
                 } enumeration_t;
 
             private:
-                resource::ILoader      *pLoader;        // Resource loader
-                meta::package_t        *pPackage;       // Package manifest
-                uatomic_t               nReferences;    // Number of references
-                ipc::Mutex              sMutex;         // Mutex for managing factory state
-                size_t                  nRefExecutor;   // Number of executor references
-                ipc::IExecutor         *pExecutor;      // Executor service
+                resource::ILoader      *pLoader;            // Resource loader
+                meta::package_t        *pPackage;           // Package manifest
+                uatomic_t               nReferences;        // Number of references
+                ipc::Mutex              sMutex;             // Mutex for managing factory state
+                size_t                  nRefExecutor;       // Number of executor references
+                ipc::IExecutor         *pExecutor;          // Executor service
+                core::CatalogManager    sCatalogManager;    // Catalog management
 
             private:
                 static const meta::plugin_t *find_plugin(const char *id);
@@ -76,7 +79,7 @@ namespace lsp
                 Factory();
                 Factory(const Factory &) = delete;
                 Factory(Factory &&) = delete;
-                virtual ~Factory();
+                virtual ~Factory() override;
 
                 Factory & operator = (const Factory &) = delete;
                 Factory & operator = (Factory &&) = delete;
@@ -87,6 +90,10 @@ namespace lsp
                 virtual status_t        init() override;
                 virtual void            init_class(GstAudioFilterClass *klass, const char *plugin_id) override;
                 virtual gst::IWrapper  *instantiate(const char *plugin_id, GstAudioFilter *filter) override;
+
+            public: // core::ICatalogFactory
+                virtual core::Catalog  *acquire_catalog() override;
+                virtual void            release_catalog(core::Catalog *catalog) override;
 
             public: // Reference counting
                 atomic_t                acquire();
