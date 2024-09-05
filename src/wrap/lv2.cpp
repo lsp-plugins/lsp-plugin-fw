@@ -25,7 +25,9 @@
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/impl/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/impl/wrapper.h>
 
 #define LV2_LOG_FILE            "lsp-lv2.log"
@@ -39,6 +41,7 @@ namespace lsp
         // of undetermined order of initialization of static objects which may
         // cause undefined behaviour when reading the list of plugin factories
         // which can be not fully initialized.
+        static lv2::Factory *plugin_factory = NULL;
         static lltl::darray<LV2_Descriptor> descriptors;
         static lsp::singletone_t library;
 
@@ -82,6 +85,11 @@ namespace lsp
             const LV2_Feature *const *     features)
         {
             lsp_trace("%p: instantiate descriptor->URI=%s", descriptor, descriptor->URI);
+            if (plugin_factory == NULL)
+            {
+                lsp_error("No LV2 plugin factory");
+                return NULL;
+            }
 
             // Check sample rate
             if (sample_rate > MAX_SAMPLE_RATE)
@@ -95,85 +103,56 @@ namespace lsp
 
             // Lookup plugin identifier among all registered plugin factories
             plug::Module *plugin = NULL;
-            const meta::plugin_t *meta = NULL;
-
-            for (plug::Factory *f = plug::Factory::root(); (plugin == NULL) && (f != NULL); f = f->next())
+            status_t res = plugin_factory->create_plugin(&plugin, descriptor->URI);
+            if (res != STATUS_OK)
             {
-                for (size_t i=0; plugin == NULL; ++i)
-                {
-                    // Enumerate next element
-                    if ((meta = f->enumerate(i)) == NULL)
-                        break;
-                    if ((meta->uid == NULL) ||
-                        (meta->uids.lv2 == NULL))
-                        continue;
-
-                    // Check plugin identifier
-                    if (!::strcmp(meta->uids.lv2, descriptor->URI))
-                    {
-                        // Instantiate the plugin and return
-                        if ((plugin = f->create(meta)) == NULL)
-                        {
-                            lsp_error("Plugin instantiation error: %s", meta->uids.lv2);
-                            return NULL;
-                        }
-                        else
-                        {
-                            lsp_trace("%p: Instantiated plugin with URI=%s", descriptor, meta->uids.lv2);
-                        }
-                    }
-                }
-            }
-
-            // No plugin has been found?
-            if (plugin == NULL)
-            {
-                lsp_error("Unknown plugin identifier: %s\n", descriptor->URI);
+                lsp_error("Could not create plugin with identifier: %s\n", descriptor->URI);
                 return NULL;
             }
 
+            const meta::plugin_t *meta = plugin->metadata();
             lsp_trace("%p: descriptor_uri=%s, uri=%s, sample_rate=%f", descriptor, descriptor->URI, meta->uids.lv2, sample_rate);
 
-            // Create resource loader
-            resource::ILoader *loader = core::create_resource_loader();
-            if (loader != NULL)
+            // Create LV2 extension handler
+            lv2::Extensions *ext = new lv2::Extensions(
+                features,
+                meta->uids.lv2, LSP_LV2_TYPES_URI, LSP_LV2_KVT_URI,
+                NULL, NULL);
+            if (ext == NULL)
             {
-                // Create LV2 extension handler
-                lv2::Extensions *ext = new lv2::Extensions(features,
-                        meta->uids.lv2, LSP_LV2_TYPES_URI, LSP_LV2_KVT_URI,
-                        NULL, NULL);
-                if (ext != NULL)
-                {
-                    // Create LV2 plugin wrapper
-                    lv2::Wrapper *wrapper  = new lv2::Wrapper(plugin, loader, ext);
-                    if (wrapper != NULL)
-                    {
-                        // Initialize LV2 plugin wrapper
-                        status_t res = wrapper->init(sample_rate);
-                        if (res != STATUS_OK)
-                        {
-                            lsp_error("Error initializing plugin wrapper, code: %d", int(res));
-
-                            wrapper->destroy(); // The ext, loader and plugin will be destroyed here
-                            delete wrapper;
-                            wrapper = NULL;
-                        }
-
-                        return reinterpret_cast<LV2_Handle>(wrapper);
-                    }
-                    else
-                        lsp_error("Error allocating plugin wrapper");
-                    delete ext;
-                }
-                else
-                    fprintf(stderr, "No resource loader available");
-                delete loader;
+                fprintf(stderr, "Could not initialize LV2 extensions");
+                return NULL;
             }
-            else
-                fprintf(stderr, "No resource loader available");
-            delete plugin;
+            lsp_finally {
+                if (ext != NULL)
+                    delete ext;
+            };
 
-            return static_cast<LV2_Handle>(NULL);
+            // Create LV2 plugin wrapper
+            lv2::Wrapper *wrapper  = new lv2::Wrapper(plugin, plugin_factory, ext);
+            if (wrapper == NULL)
+            {
+                lsp_error("Error allocating plugin wrapper");
+                return NULL;
+            }
+            ext = NULL; // Will be released by lv2::Wrapper in destructor
+            lsp_finally {
+                if (wrapper != NULL)
+                {
+                    wrapper->destroy();
+                    delete wrapper;
+                }
+            };
+
+            // Initialize LV2 plugin wrapper
+            res = wrapper->init(sample_rate);
+            if (res != STATUS_OK)
+            {
+                lsp_error("Error initializing plugin wrapper, code: %d", int(res));
+                return NULL;
+            }
+
+            return reinterpret_cast<LV2_Handle>(release_ptr(wrapper));
         }
 
         void run(LV2_Handle instance, uint32_t sample_count)
@@ -318,6 +297,15 @@ namespace lsp
             if (library.initialized())
                 return;
 
+            // Create factory
+            lv2::Factory *factory = new lv2::Factory();
+            if (factory == NULL)
+                return;
+            lsp_finally {
+                if (factory != NULL)
+                    delete factory;
+            };
+
             // Generate descriptors
             lltl::darray<LV2_Descriptor> result;
             lsp_finally { result.flush(); };
@@ -367,6 +355,7 @@ namespace lsp
 
             // Commit the generated list to the global descriptor list
             lsp_singletone_init(library) {
+                lsp::swap(plugin_factory, factory);
                 result.swap(descriptors);
             };
         };
@@ -375,6 +364,11 @@ namespace lsp
         {
             lsp_trace("dropping %d descriptors", int(descriptors.size()));
             descriptors.flush();
+            if (plugin_factory != NULL)
+            {
+                plugin_factory->release();
+                plugin_factory  = NULL;
+            }
         };
 
         //---------------------------------------------------------------------

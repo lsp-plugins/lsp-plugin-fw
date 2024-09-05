@@ -36,14 +36,12 @@ namespace lsp
         Wrapper::Wrapper(
             plug::Module *module,
             clap::Factory *factory,
-            const meta::package_t *package,
-            resource::ILoader *loader,
             const clap_host_t *host):
-            IWrapper(module, loader)
+            IWrapper(module, factory->resources())
         {
             pHost               = host;
             pFactory            = factory;
-            pPackage            = package;
+            pPackage            = factory->manifest();
             pExt                = NULL;
             pExecutor           = NULL;
 
@@ -146,13 +144,6 @@ namespace lsp
                 meta::drop_port_metadata(p);
             }
             vGenMetadata.flush();
-
-            // Destroy the loader
-            if (pLoader != NULL)
-            {
-                delete pLoader;
-                pLoader         = NULL;
-            }
 
             // Destroy the extension
             if (pExt != NULL)

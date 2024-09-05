@@ -143,8 +143,6 @@ namespace lsp
                 explicit Wrapper(
                     plug::Module *module,
                     clap::Factory *factory,
-                    const meta::package_t *package,
-                    resource::ILoader *loader,
                     const clap_host_t *host);
                 virtual ~Wrapper() override;
 

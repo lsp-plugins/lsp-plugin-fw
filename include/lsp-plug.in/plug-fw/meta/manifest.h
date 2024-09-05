@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 мая 2021 г.
@@ -27,6 +27,7 @@
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/io/IInSequence.h>
 #include <lsp-plug.in/io/IInStream.h>
+#include <lsp-plug.in/resource/ILoader.h>
 
 namespace lsp
 {
@@ -38,9 +39,11 @@ namespace lsp
         status_t load_manifest(meta::package_t **pkg, io::IInStream *is, const char *charset=NULL);
         status_t load_manifest(meta::package_t **pkg, io::IInSequence *is);
 
+        status_t load_manifest(meta::package_t **pkg, resource::ILoader *loader);
+
         void free_manifest(meta::package_t *pkg);
-    }
-}
+    } /* namespace meta */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_META_MANIFEST_H_ */

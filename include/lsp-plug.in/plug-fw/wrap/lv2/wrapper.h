@@ -39,6 +39,8 @@ namespace lsp
 {
     namespace lv2
     {
+        class Factory;
+
         /**
          * LV2 format plugin wrapper
          */
@@ -87,7 +89,8 @@ namespace lsp
                 lltl::parray<lv2::AudioPort>    vAudioPorts;
                 lltl::parray<meta::port_t>      vGenMetadata;   // Generated metadata
 
-                lv2::Extensions        *pExt;
+                lv2::Factory           *pFactory;       // LV2 plugin factory
+                lv2::Extensions        *pExt;           // LV2 plugin extensions
                 ipc::IExecutor         *pExecutor;      // Executor service
                 void                   *pAtomIn;        // Atom input port
                 void                   *pAtomOut;       // Atom output port
@@ -149,7 +152,7 @@ namespace lsp
                 static ssize_t                  compare_ports_by_urid(const lv2::Port *a, const lv2::Port *b);
 
             public:
-                explicit Wrapper(plug::Module *plugin, resource::ILoader *loader, lv2::Extensions *ext);
+                explicit Wrapper(plug::Module *plugin, lv2::Factory *factory, lv2::Extensions *ext);
                 virtual ~Wrapper() override;
 
                 status_t                        init(float srate);

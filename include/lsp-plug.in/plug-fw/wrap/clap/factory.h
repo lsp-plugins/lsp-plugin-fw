@@ -52,7 +52,6 @@ namespace lsp
 
             private:
                 static ssize_t              cmp_descriptors(const clap_plugin_descriptor_t *d1, const clap_plugin_descriptor_t *d2);
-                static meta::package_t     *load_manifest(resource::ILoader *loader);
                 static const char * const  *make_feature_list(const meta::plugin_t *meta);
                 static void                 drop_descriptor(clap_plugin_descriptor_t *d);
 

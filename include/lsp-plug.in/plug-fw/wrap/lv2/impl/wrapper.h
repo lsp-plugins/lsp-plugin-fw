@@ -27,6 +27,7 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/factory.h>
 
 #define LSP_LEGACY_KVT_URI          LSP_LV2_BASE_URI "ui/lv2"
 
@@ -56,11 +57,12 @@ namespace lsp
             return ssize_t(a->get_urid()) - ssize_t(b->get_urid());
         }
 
-        Wrapper::Wrapper(plug::Module *plugin, resource::ILoader *loader, lv2::Extensions *ext):
-            plug::IWrapper(plugin, loader),
+        Wrapper::Wrapper(plug::Module *plugin, lv2::Factory *factory, lv2::Extensions *ext):
+            plug::IWrapper(plugin, factory->resources()),
             sKVTListener(this)
         {
             pPlugin         = plugin;
+            pFactory        = factory;
             pExt            = ext;
             pExecutor       = NULL;
             pAtomIn         = NULL;
@@ -91,6 +93,8 @@ namespace lsp
             pSamplePlayer   = NULL;
             nPlayPosition   = 0;
             nPlayLength     = 0;
+
+            pFactory->acquire();
         }
 
         Wrapper::~Wrapper()
@@ -117,6 +121,12 @@ namespace lsp
 
             pKVTDispatcher  = NULL;
             pSamplePlayer   = NULL;
+
+            if (pFactory != NULL)
+            {
+                pFactory->release();
+                pFactory        = NULL;
+            }
         }
 
         lv2::Port *Wrapper::port_by_urid(LV2_URID urid)
@@ -320,13 +330,6 @@ namespace lsp
             {
                 delete pExt;
                 pExt        = NULL;
-            }
-
-            // Drop loader
-            if (pLoader != NULL)
-            {
-                delete pLoader;
-                pLoader     = NULL;
             }
         }
 

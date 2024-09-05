@@ -57,7 +57,7 @@ namespace lsp
             clap::Factory *factory;
         };
 
-        static factory_t *plugin_factory;
+        static factory_t *plugin_factory = NULL;
         static lsp::singletone_t library;
 
         //---------------------------------------------------------------------

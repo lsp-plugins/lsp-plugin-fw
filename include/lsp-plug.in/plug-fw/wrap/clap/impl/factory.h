@@ -87,30 +87,6 @@ namespace lsp
             return strcmp(d1->id, d2->id);
         }
 
-        meta::package_t *Factory::load_manifest(resource::ILoader *loader)
-        {
-            status_t res;
-            if (loader == NULL)
-                return NULL;
-
-            io::IInStream *is = loader->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
-            if (is == NULL)
-                return NULL;
-            lsp_finally {
-                is->close();
-                delete is;
-            };
-
-            meta::package_t *manifest = NULL;
-            if ((res = meta::load_manifest(&manifest, is)) != STATUS_OK)
-            {
-                lsp_warn("Error loading manifest file, error=%d", int(res));
-                return NULL;
-            }
-
-            return manifest;
-        }
-
         const char * const *Factory::make_feature_list(const meta::plugin_t *meta)
         {
             // Estimate the overall number of CLAP features
@@ -183,20 +159,20 @@ namespace lsp
         void Factory::generate_descriptors()
         {
             // Obtain the resource loader
-            lsp_trace("Obtaining resource loader...");
             pLoader = core::create_resource_loader();
             if (pLoader == NULL)
+            {
+                lsp_error("No resource loader was found");
                 return;
+            }
 
             // Obtain the manifest
-            lsp_trace("Obtaining manifest...");
-            meta::package_t *manifest = load_manifest(pLoader);
-            lsp_finally {
-                if (manifest != NULL)
-                    meta::free_manifest(manifest);
-            };
-            if (manifest == NULL)
-                lsp_trace("No manifest file found");
+            status_t res = meta::load_manifest(&pManifest, pLoader);
+            if (res != STATUS_OK)
+            {
+                lsp_error("No manifest was found");
+                return;
+            }
 
             // Generate descriptors
             lltl::darray<clap_plugin_descriptor_t> result;
@@ -242,14 +218,11 @@ namespace lsp
                         int(LSP_MODULE_VERSION_MICRO(meta->version))) >= 0)
                         d->version          = tmp;
 
-                    if (manifest != NULL)
-                    {
-                        if (asprintf(&tmp, "%s CLAP", manifest->brand) >= 0)
-                            d->vendor           = tmp;
-                        d->url              = manifest->site;
-                        if (asprintf(&tmp, "%s/doc/%s/html/plugins/%s.html", manifest->site, "lsp-plugins", meta->uid) >= 0)
-                            d->manual_url       = tmp;
-                    }
+                    if (asprintf(&tmp, "%s CLAP", pManifest->brand) >= 0)
+                        d->vendor           = tmp;
+                    d->url              = pManifest->site;
+                    if (asprintf(&tmp, "%s/?page=manuals&section=%s", pManifest->site, meta->uid) >= 0)
+                        d->manual_url       = tmp;
                 }
             }
 
@@ -267,7 +240,6 @@ namespace lsp
 
             // Commit the generated objects to the global variables
             vDescriptors.swap(result);
-            pManifest = release_ptr(manifest);
         }
 
         void Factory::drop_descriptor(clap_plugin_descriptor_t *d)
@@ -344,7 +316,7 @@ namespace lsp
                         };
 
                         // Create the wrapper
-                        clap::Wrapper *wrapper    = new clap::Wrapper(plugin, const_cast<Factory *>(this), pManifest, pLoader, host);
+                        clap::Wrapper *wrapper    = new clap::Wrapper(plugin, const_cast<Factory *>(this), host);
                         if (wrapper == NULL)
                         {
                             lsp_warn("Error creating wrapper");
