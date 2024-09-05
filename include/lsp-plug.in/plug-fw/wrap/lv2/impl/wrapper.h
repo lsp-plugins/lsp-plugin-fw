@@ -88,12 +88,13 @@ namespace lsp
             atomic_store(&nStateMode, SM_LOADING);
             atomic_store(&nDumpReq, 0);
             nDumpResp       = 0;
-            pPackage        = NULL;
             pKVTDispatcher  = NULL;
 
             pSamplePlayer   = NULL;
             nPlayPosition   = 0;
             nPlayLength     = 0;
+
+            pShmClient      = NULL;
 
             pFactory->acquire();
         }
@@ -118,7 +119,6 @@ namespace lsp
             sSurface.width  = 0;
             sSurface.height = 0;
             sSurface.stride = 0;
-            pPackage        = NULL;
 
             pKVTDispatcher  = NULL;
             pSamplePlayer   = NULL;
@@ -171,25 +171,6 @@ namespace lsp
 
             // Get plugin metadata
             const meta::plugin_t *m  = pPlugin->metadata();
-            status_t res;
-
-            // Load package information
-            io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
-            if (is == NULL)
-            {
-                lsp_error("No manifest.json found in resources");
-                return STATUS_BAD_STATE;
-            }
-
-            res = meta::load_manifest(&pPackage, is);
-            is->close();
-            delete is;
-
-            if (res != STATUS_OK)
-            {
-                lsp_error("Error while reading manifest file");
-                return res;
-            }
 
             // Create ports
             lsp_trace("Creaing ports");
@@ -231,6 +212,17 @@ namespace lsp
                 pSamplePlayer->set_sample_rate(srate);
             }
 
+            // Create shared memory sends
+            if ((vAudioBuffers.size() > 0) || (m->extensions & meta::E_SHM_TRACKING))
+            {
+                lsp_trace("Creating shared memory client");
+                pShmClient          = new core::ShmClient();
+                if (pShmClient == NULL)
+                    return STATUS_NO_MEM;
+                pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
+                pShmClient->set_sample_rate(fSampleRate);
+            }
+
             // Update refresh rate
             nSyncSamples        = srate / pExt->ui_refresh_rate();
             nClients            = 0;
@@ -251,6 +243,14 @@ namespace lsp
                 pSamplePlayer->destroy();
                 delete pSamplePlayer;
                 pSamplePlayer = NULL;
+            }
+
+            // Destroy shared memory client
+            if (pShmClient != NULL)
+            {
+                pShmClient->destroy();
+                delete pShmClient;
+                pShmClient = NULL;
             }
 
             // Stop KVT dispatcher
@@ -300,13 +300,6 @@ namespace lsp
             {
                 lsp_trace("destroy generated port metadata %p", vGenMetadata[i]);
                 drop_port_metadata(vGenMetadata[i]);
-            }
-
-            // Destroy manifest
-            if (pPackage != NULL)
-            {
-                meta::free_manifest(pPackage);
-                pPackage        = NULL;
             }
 
             vAllPorts.flush();
@@ -461,18 +454,28 @@ namespace lsp
                     break;
 
                 case meta::R_AUDIO_SEND:
-                    result = new lv2::AudioBufferPort(p, pExt);
-                    vPluginPorts.add(result);
-                    plugin_ports->add(result);
+                {
+                    lv2::AudioBufferPort *ap = new lv2::AudioBufferPort(p, pExt);
+                    vPluginPorts.add(ap);
+                    vAudioBuffers.add(ap);
+                    plugin_ports->add(ap);
+                    result = ap;
+
                     lsp_trace("Added audio send port id=%s", result->metadata()->id);
                     break;
+                }
 
                 case meta::R_AUDIO_RETURN:
-                    result = new lv2::AudioBufferPort(p, pExt);
-                    vPluginPorts.add(result);
-                    plugin_ports->add(result);
+                {
+                    lv2::AudioBufferPort *ap = new lv2::AudioBufferPort(p, pExt);
+                    vPluginPorts.add(ap);
+                    vAudioBuffers.add(ap);
+                    plugin_ports->add(ap);
+                    result = ap;
+
                     lsp_trace("Added audio return port id=%s", result->metadata()->id);
                     break;
+                }
 
                 case meta::R_CONTROL:
                 case meta::R_METER:
@@ -647,6 +650,12 @@ namespace lsp
             {
                 size_t to_process = lsp_min(samples - off, pExt->nMaxBlockLength);
 
+                if (pShmClient != NULL)
+                {
+                    pShmClient->begin(to_process);
+                    pShmClient->pre_process(to_process);
+                }
+
                 // Sanitize input data
                 for (size_t i=0; i<n_audio_ports; ++i)
                 {
@@ -664,6 +673,12 @@ namespace lsp
                     lv2::AudioPort *port = vAudioPorts.uget(i);
                     if (port != NULL)
                         port->sanitize_after(off, to_process);
+                }
+
+                if (pShmClient != NULL)
+                {
+                    pShmClient->post_process(to_process);
+                    pShmClient->end();
                 }
 
                 off += to_process;
@@ -2210,7 +2225,7 @@ namespace lsp
 
         const meta::package_t *Wrapper::package() const
         {
-            return pPackage;
+            return pFactory->manifest();
         }
 
         meta::plugin_format_t Wrapper::plugin_format() const
@@ -2234,6 +2249,11 @@ namespace lsp
         void Wrapper::request_settings_update()
         {
             bUpdateSettings     = true;
+        }
+
+        const core::ShmState *Wrapper::shm_state()
+        {
+            return (pShmClient != NULL) ? pShmClient->state() : NULL;
         }
 
     } /* namespace lv2 */

@@ -30,6 +30,7 @@
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/executor.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ports.h>
@@ -88,6 +89,7 @@ namespace lsp
                 lltl::parray<lv2::Port>         vOscPorts;
                 lltl::parray<lv2::AudioPort>    vAudioPorts;
                 lltl::parray<lv2::StringPort>   vStringPorts;
+                lltl::parray<lv2::AudioBufferPort> vAudioBuffers;
                 lltl::parray<meta::port_t>      vGenMetadata;   // Generated metadata
 
                 lv2::Factory           *pFactory;       // LV2 plugin factory
@@ -110,7 +112,6 @@ namespace lsp
                 uatomic_t               nStateMode;     // State change flag
                 uatomic_t               nDumpReq;
                 uatomic_t               nDumpResp;
-                meta::package_t        *pPackage;
 
                 core::KVTStorage        sKVT;
                 LV2KVTListener          sKVTListener;
@@ -120,6 +121,8 @@ namespace lsp
                 core::SamplePlayer     *pSamplePlayer;      // Sample player
                 wssize_t                nPlayPosition;      // Sample playback position
                 wssize_t                nPlayLength;        // Sample playback length
+
+                core::ShmClient        *pShmClient;         // Shared memory client
 
                 LV2_Inline_Display_Image_Surface sSurface;  // Canvas surface
 
@@ -214,6 +217,7 @@ namespace lsp
                 virtual void                    query_display_draw() override;
                 virtual void                    request_settings_update() override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
         };
     } /* namespace lv2 */
 } /* namespace lsp */

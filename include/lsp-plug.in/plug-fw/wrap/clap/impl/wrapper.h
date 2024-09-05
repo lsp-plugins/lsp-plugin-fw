@@ -686,7 +686,6 @@ namespace lsp
                 pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
             }
 
-
             return STATUS_OK;
         }
 
