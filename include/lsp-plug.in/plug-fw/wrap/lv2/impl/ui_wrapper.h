@@ -391,6 +391,15 @@ namespace lsp
                         lsp_trace("Added external audio port id=%s, external_id=%d", p->id, int(result->get_id()));
                     }
                     break;
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
+                    // Stub port
+                    result = new lv2::UIPort(p, pExt);
+                    lsp_trace("Added %s port id=%s, external_id=%d",
+                        (meta::is_audio_send_port(p)) ? "audio send" : "audio return",
+                        p->id, int(result->get_id()));
+                    break;
+
                 case meta::R_CONTROL:
                     result = new lv2::UIFloatPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
                     if (postfix == NULL)
@@ -426,11 +435,20 @@ namespace lsp
                     lsp_trace("Added path port id=%", p->id);
                     break;
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     if (pExt->atom_supported())
                         result = new lv2::UIStringPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
                     else
                         result = new lv2::UIPort(p, pExt); // Stub port
-                    lsp_trace("Added string port id=%", p->id);
+                #ifdef LSP_TRACE
+                    if (meta::is_send_name(p))
+                        lsp_trace("Added send name port id=%", p->id);
+                    else if (meta::is_return_name(p))
+                        lsp_trace("Added return name port id=%", p->id);
+                    else
+                        lsp_trace("Added string port id=%", p->id);
+                #endif /* LSP_TRACE */
                     break;
                 case meta::R_MESH:
                     if (pExt->atom_supported())

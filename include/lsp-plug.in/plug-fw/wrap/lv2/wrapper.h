@@ -87,6 +87,7 @@ namespace lsp
                 lltl::parray<lv2::Port>         vMidiPorts;
                 lltl::parray<lv2::Port>         vOscPorts;
                 lltl::parray<lv2::AudioPort>    vAudioPorts;
+                lltl::parray<lv2::StringPort>   vStringPorts;
                 lltl::parray<meta::port_t>      vGenMetadata;   // Generated metadata
 
                 lv2::Factory           *pFactory;       // LV2 plugin factory

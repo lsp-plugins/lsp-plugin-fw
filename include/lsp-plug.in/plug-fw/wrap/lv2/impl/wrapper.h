@@ -26,6 +26,7 @@
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/factory.h>
 
@@ -390,13 +391,26 @@ namespace lsp
                     break;
 
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     if (pExt->atom_supported())
-                        result      = new lv2::StringPort(p, pExt);
+                    {
+                        lv2::StringPort *sp     = new lv2::StringPort(p, pExt);
+                        vStringPorts.add(sp);
+                        result      = sp;
+                    }
                     else
                         result      = new lv2::Port(p, pExt, false);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
-                    lsp_trace("Added string port id=%s", result->metadata()->id);
+                #ifdef LSP_TRACE
+                    if (meta::is_send_name(p))
+                        lsp_trace("Added send name port id=%s", result->metadata()->id);
+                    else if (meta::is_return_name(p))
+                        lsp_trace("Added return name port id=%s", result->metadata()->id);
+                    else
+                        lsp_trace("Added string port id=%s", result->metadata()->id);
+                #endif /* LSP_TRACE */
                     break;
 
                 case meta::R_MIDI_IN:
@@ -445,6 +459,21 @@ namespace lsp
                     else
                         lsp_trace("Added audio port id=%s", result->metadata()->id);
                     break;
+
+                case meta::R_AUDIO_SEND:
+                    result = new lv2::AudioBufferPort(p, pExt);
+                    vPluginPorts.add(result);
+                    plugin_ports->add(result);
+                    lsp_trace("Added audio send port id=%s", result->metadata()->id);
+                    break;
+
+                case meta::R_AUDIO_RETURN:
+                    result = new lv2::AudioBufferPort(p, pExt);
+                    vPluginPorts.add(result);
+                    plugin_ports->add(result);
+                    lsp_trace("Added audio return port id=%s", result->metadata()->id);
+                    break;
+
                 case meta::R_CONTROL:
                 case meta::R_METER:
                     if (meta::is_out_port(p))
@@ -1131,6 +1160,8 @@ namespace lsp
                     case meta::R_FBUFFER:
                         continue;
                     case meta::R_STRING:
+                    case meta::R_SEND_NAME:
+                    case meta::R_RETURN_NAME:
                     case meta::R_PATH:
                         if (p->tx_pending()) // Tranmission request pending?
                             break;

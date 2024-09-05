@@ -26,6 +26,7 @@
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
@@ -240,6 +241,30 @@ namespace lsp
 
                     // Clear the buffer pointer
                     pBuffer    = NULL;
+                }
+        };
+
+        class AudioBufferPort: public Port
+        {
+            private:
+                core::AudioBuffer   sBuffer;
+
+            public:
+                explicit AudioBufferPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext, false)
+                {
+                    sBuffer.set_size(ext->nMaxBlockLength);
+                }
+
+                AudioBufferPort(const AudioBufferPort &) = delete;
+                AudioBufferPort(AudioBufferPort &&) = delete;
+
+                AudioBufferPort & operator = (const AudioBufferPort &) = delete;
+                AudioBufferPort & operator = (AudioBufferPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return &sBuffer;
                 }
         };
 
@@ -1003,6 +1028,8 @@ namespace lsp
             protected:
                 plug::string_t     *pValue;
                 uint32_t            nSerial;
+                uint32_t            nUIPending;
+                uint32_t            nUIActual;
 
                 inline void set_string(const char *string, size_t len, size_t flags)
                 {
@@ -1015,6 +1042,8 @@ namespace lsp
                 {
                     pValue          = plug::string_t::allocate(size_t(meta->max));
                     nSerial         = pValue->serial();
+                    atomic_store(&nUIPending, 0);
+                    nUIActual       = 0;
                 }
                 StringPort(const StringPort &) = delete;
                 StringPort(StringPort &&) = delete;
@@ -1082,7 +1111,7 @@ namespace lsp
                         return false;
 
                     if (pValue != NULL)
-                        pValue->submit(reinterpret_cast<const char *>(atom + 1), atom->size, flags & plug::PF_STATE_RESTORE);
+                        pValue->set(reinterpret_cast<const char *>(atom + 1), atom->size, flags & plug::PF_STATE_RESTORE);
                     return true;
                 }
 
@@ -1094,6 +1123,12 @@ namespace lsp
                 virtual bool pre_process() override
                 {
                     return (pValue != NULL) ? pValue->sync() : false;
+                }
+
+                virtual void set_default()
+                {
+                    strcpy(pValue->sData, pMetadata->value);
+                    pValue->touch();
                 }
 
             public:
