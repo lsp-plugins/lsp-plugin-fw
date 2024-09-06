@@ -100,6 +100,7 @@ namespace lsp
                 float                  *pLatency;       // Latency output port
                 size_t                  nPatchReqs;     // Number of patch requests
                 size_t                  nStateReqs;     // Number of state requests
+                size_t                  nShmReqs;       // Number of SHM state requests
                 ssize_t                 nSyncTime;      // Synchronization time
                 ssize_t                 nSyncSamples;   // Synchronization counter
                 ssize_t                 nClients;       // Number of clients
@@ -141,6 +142,7 @@ namespace lsp
                 void                            transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req);
                 void                            transmit_time_position_to_clients();
                 void                            transmit_play_position_to_clients();
+                void                            transmit_shm_state_to_clients();
                 void                            transmit_midi_events(lv2::Port *p);
                 void                            transmit_osc_events(lv2::Port *p);
                 void                            transmit_kvt_events();

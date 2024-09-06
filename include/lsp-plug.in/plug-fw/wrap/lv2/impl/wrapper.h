@@ -71,6 +71,7 @@ namespace lsp
             pLatency        = NULL;
             nPatchReqs      = 0;
             nStateReqs      = 0;
+            nShmReqs        = 0;
             nSyncTime       = 0;
             nSyncSamples    = 0;
             nClients        = 0;
@@ -684,6 +685,10 @@ namespace lsp
                 off += to_process;
             }
 
+            // Increment number of state requests
+            if ((pShmClient != NULL) && (pShmClient->state_updated()))
+                nShmReqs ++;
+
             // Transmit atoms (if possible)
             transmit_atoms(samples);
             clear_midi_ports();
@@ -961,6 +966,7 @@ namespace lsp
                 {
                     nClients    ++;
                     nStateReqs  ++;
+                    nShmReqs    ++;
                     lsp_trace("UI has connected, current number of clients=%d", int(nClients));
                     if (pKVTDispatcher != NULL)
                         pKVTDispatcher->connect_client();
@@ -1146,6 +1152,51 @@ namespace lsp
             // Commit new position
             nPlayPosition       = position;
             nPlayLength         = length;
+        }
+
+        void Wrapper::transmit_shm_state_to_clients()
+        {
+            if ((pShmClient == NULL) || (nShmReqs <= 0) || (nClients <= 0))
+                return;
+            const core::ShmState *state   = pShmClient->state();
+            if (state == NULL)
+                return;
+
+            nShmReqs = 0;
+
+            LV2_Atom_Forge_Frame    frame, tuple, obj;
+
+            pExt->forge_frame_time(0); // Event header
+            pExt->forge_object(&frame, pExt->uridShmState, pExt->uridPlayPositionType);
+
+            pExt->forge_key(pExt->uridShmStateItems);
+            pExt->forge_tuple(&tuple);
+
+            for (size_t i=0, n=state->size(); i<n; ++i)
+            {
+                const core::ShmRecord *item = state->get(i);
+                if (item == NULL)
+                    continue;
+
+                pExt->forge_object(&obj, pExt->uridBlank, pExt->uridShmRecordType);
+
+                pExt->forge_key(pExt->uridShmRecordName);
+                pExt->forge_string(item->name);
+
+                pExt->forge_key(pExt->uridShmRecordId);
+                pExt->forge_string(item->id);
+
+                pExt->forge_key(pExt->uridShmRecordIndex);
+                pExt->forge_int(item->index);
+
+                pExt->forge_key(pExt->uridShmRecordMagic);
+                pExt->forge_int(item->magic);
+
+                pExt->forge_pop(&obj);
+            }
+
+            pExt->forge_pop(&tuple);
+            pExt->forge_pop(&frame);
         }
 
         void Wrapper::transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req)
@@ -1416,6 +1467,7 @@ namespace lsp
             // Forge sequence header
             LV2_Atom_Forge_Frame    seq;
             pExt->forge_sequence_head(&seq, 0);
+            lsp_finally { pExt->forge_pop(&seq); };
 
             // Transmit state change atom if state has been changed
             if (change_state_atomic(SM_CHANGED, SM_REPORTED))
@@ -1456,9 +1508,7 @@ namespace lsp
             }
 
             transmit_play_position_to_clients();
-
-            // Complete sequence
-            pExt->forge_pop(&seq);
+            transmit_shm_state_to_clients();
         }
 
         void Wrapper::transmit_osc_events(lv2::Port *p)
