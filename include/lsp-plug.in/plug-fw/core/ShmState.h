@@ -41,7 +41,7 @@ namespace lsp
         class ShmState
         {
             private:
-                friend class ShmClient;
+                friend class ShmStateBuilder;
 
             private:
                 ShmRecord                  *vItems;

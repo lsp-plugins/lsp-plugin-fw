@@ -24,6 +24,7 @@
 #include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/core/ShmState.h>
+#include <lsp-plug.in/plug-fw/core/ShmStateBuilder.h>
 
 namespace lsp
 {
@@ -583,62 +584,21 @@ namespace lsp
                 return false;
 
             // Create records
-            lltl::darray<ShmRecord> shm_items;
-            io::OutMemoryStream os;
+            ShmStateBuilder bld;
             for (size_t i=0, n=records.size(); i<n; ++i)
             {
                 const dspu::Catalog::Record *src = records.uget(i);
                 if (src == NULL)
                     continue;
 
-                const char *id = src->id.get_utf8();
-                if (id == NULL)
+                if ((res = bld.append(src->name, src->id, src->index, src->magic)) != STATUS_OK)
                     return false;
-
-                const char *name = src->name.get_utf8();
-                if (name == NULL)
-                    return false;
-
-                // Emit string records
-                const ptrdiff_t id_offset = os.position();
-                if (!os.write(id, strlen(id) + 1))
-                    return false;
-
-                const ptrdiff_t name_offset = os.position();
-                if (!os.write(name, strlen(name) + 1))
-                    return false;
-
-                // Create record
-                ShmRecord *dst = shm_items.add();
-                if (dst == NULL)
-                    return false;
-
-                dst->id             = reinterpret_cast<const char *>(id_offset);
-                dst->name           = reinterpret_cast<const char *>(name_offset);
-                dst->index          = src->index;
-                dst->magic          = src->magic;
-            }
-
-            // Complete the data structures and patch pointers
-            char *strings       = reinterpret_cast<char *>(os.release());
-            size_t count        = shm_items.size();
-            ShmRecord *items    = shm_items.release();
-
-            for (size_t i=0; i<count; ++i)
-            {
-                ShmRecord *dst      = &items[i];
-                dst->id             = strings + reinterpret_cast<ptrdiff_t>(dst->id);
-                dst->name           = strings + reinterpret_cast<ptrdiff_t>(dst->name);
             }
 
             // Create shared memory state
-            ShmState *state     = new ShmState(items, strings, count);
+            ShmState *state     = bld.build();
             if (state == NULL)
-            {
-                free(items);
-                free(strings);
                 return false;
-            }
 
             // Submit shared state
             sState.push(state);
