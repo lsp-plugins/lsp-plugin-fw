@@ -142,7 +142,7 @@ namespace lsp
 
             // Create shared memory state
             ShmState *state     = new ShmState(items, strings, count);
-            if (state == NULL)
+            if (state != NULL)
             {
                 items           = NULL;
                 strings         = NULL;
