@@ -43,12 +43,13 @@ namespace lsp
     {
         Wrapper::Wrapper(
             plug::Module *plugin,
-            resource::ILoader *loader,
+            vst2::Factory *factory,
             AEffect *effect,
             audioMasterCallback callback)
-            : plug::IWrapper(plugin, loader)
+            : plug::IWrapper(plugin, factory->resources())
         {
             pEffect         = effect;
+            pFactory        = factory;
             pMaster         = callback;
             pExecutor       = NULL;
             bUpdateSettings = true;
@@ -66,7 +67,8 @@ namespace lsp
 
             pBypass         = NULL;
             pSamplePlayer   = NULL;
-            pPackage        = NULL;
+
+            pFactory->acquire();
         }
 
         Wrapper::~Wrapper()
@@ -74,7 +76,12 @@ namespace lsp
             pPlugin         = NULL;
             pEffect         = NULL;
             pMaster         = NULL;
-            pPackage        = NULL;
+
+            if (pFactory != NULL)
+            {
+                pFactory->release();
+                pFactory        = NULL;
+            }
         }
 
         static ssize_t cmp_port_identifiers(const vst2::Port *pa, const vst2::Port *pb)
@@ -88,26 +95,6 @@ namespace lsp
         {
             AEffect *e                      = pEffect;
             const meta::plugin_t *m         = pPlugin->metadata();
-
-            status_t res;
-
-            // Load package information
-            io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
-            if (is == NULL)
-            {
-                lsp_error("No manifest.json found in resources");
-                return STATUS_BAD_STATE;
-            }
-
-            res = meta::load_manifest(&pPackage, is);
-            is->close();
-            delete is;
-
-            if (res != STATUS_OK)
-            {
-                lsp_error("Error while reading manifest file");
-                return res;
-            }
 
             // Create ports
             lsp_trace("Creating ports for %s - %s", m->name, m->description);
@@ -215,13 +202,6 @@ namespace lsp
                 drop_port_metadata(p);
             }
             vGenMetadata.flush();
-
-            // Destroy manifest
-            if (pPackage != NULL)
-            {
-                meta::free_manifest(pPackage);
-                pPackage        = NULL;
-            }
 
             // Delete the loader
             if (pLoader != NULL)
@@ -1378,7 +1358,7 @@ namespace lsp
 
         const meta::package_t *Wrapper::package() const
         {
-            return pPackage;
+            return pFactory->manifest();
         }
 
         meta::plugin_format_t Wrapper::plugin_format() const

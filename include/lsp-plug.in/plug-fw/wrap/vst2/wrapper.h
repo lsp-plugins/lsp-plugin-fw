@@ -31,6 +31,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst2/chunk.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/ports.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/factory.h>
 
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/parray.h>
@@ -48,6 +49,7 @@ namespace lsp
 
             private:
                 AEffect                            *pEffect;
+                vst2::Factory                      *pFactory;
                 audioMasterCallback                 pMaster;
                 ipc::IExecutor                     *pExecutor;
                 vst2::chunk_t                       sChunk;
@@ -65,7 +67,6 @@ namespace lsp
                 uatomic_t                           nDumpResp;
                 vst2::Port                         *pBypass;
                 core::SamplePlayer                 *pSamplePlayer;  // Sample player
-                meta::package_t                    *pPackage;
 
                 lltl::parray<vst2::AudioPort>       vAudioPorts;    // List of audio ports
                 lltl::parray<vst2::MidiInputPort>   vMidiIn;        // Input MIDI ports
@@ -95,7 +96,7 @@ namespace lsp
             public:
                 Wrapper(
                     plug::Module *plugin,
-                    resource::ILoader *loader,
+                    vst2::Factory *factory,
                     AEffect *effect,
                     audioMasterCallback callback
                 );

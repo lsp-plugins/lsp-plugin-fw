@@ -291,7 +291,7 @@ namespace lsp
             return strcmp(d1->URI, d2->URI);
         }
 
-        void gen_descriptors()
+        static void gen_descriptors()
         {
             // Check that data already has been initialized
             if (library.initialized())
@@ -360,7 +360,7 @@ namespace lsp
             };
         };
 
-        void drop_descriptors()
+        static void drop_descriptors()
         {
             lsp_trace("dropping %d descriptors", int(descriptors.size()));
             descriptors.flush();
