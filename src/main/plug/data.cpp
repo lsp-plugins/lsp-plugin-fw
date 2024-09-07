@@ -166,7 +166,7 @@ namespace lsp
 
         uint32_t string_t::submit(const LSPString *str, bool state)
         {
-            // Obtain a valid UTF-8 string limite by nCapacity characters
+            // Obtain a valid UTF-8 string limit by nCapacity characters
             size_t len = lsp_min(str->length(), nCapacity);
             const char *src = str->get_utf8(0, len);
             if (src == NULL)
@@ -230,7 +230,8 @@ namespace lsp
                 return false;
             lsp_finally { atomic_unlock(nLock); };
 
-            if (atomic_load(&nSerial) == nRequest)
+            uint32_t serial = atomic_load(&nSerial);
+            if (serial == nRequest)
                 return false;
 
             // Copy contents and update state
@@ -257,7 +258,7 @@ namespace lsp
 
         void string_t::touch()
         {
-            const uint32_t serial = (atomic_load(&nSerial) + 0x100) & (~uint32_t(1));
+            const uint32_t serial = (atomic_load(&nSerial) + 2) & (~uint32_t(1));
             atomic_store(&nSerial, serial);
         }
 

@@ -67,6 +67,7 @@ namespace lsp
 
             pBypass         = NULL;
             pSamplePlayer   = NULL;
+            pShmClient      = NULL;
 
             pFactory->acquire();
         }
@@ -145,6 +146,16 @@ namespace lsp
                 pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
             }
 
+            // Create shared memory sends and returns
+            if ((vAudioBuffers.size() > 0) || (m->extensions & meta::E_SHM_TRACKING))
+            {
+                lsp_trace("Creating shared memory client");
+                pShmClient          = new core::ShmClient();
+                if (pShmClient == NULL)
+                    return STATUS_NO_MEM;
+                pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
+            }
+
             return STATUS_OK;
         }
 
@@ -166,6 +177,14 @@ namespace lsp
                 pSamplePlayer->destroy();
                 delete pSamplePlayer;
                 pSamplePlayer = NULL;
+            }
+
+            // Destroy shared memory client
+            if (pShmClient != NULL)
+            {
+                pShmClient->destroy();
+                delete pShmClient;
+                pShmClient = NULL;
             }
 
             // Shutdown and delete executor if exists
@@ -212,6 +231,7 @@ namespace lsp
 
             // Clear all port lists
             vAudioPorts.flush();
+            vAudioBuffers.flush();
             vExtParams.flush();
             vParams.flush();
 
@@ -279,12 +299,34 @@ namespace lsp
                     vParams.add(static_cast<vst2::StringPort *>(vp));
                     break;
 
+                case meta::R_SEND_NAME:
+                    lsp_trace("creating send name port %s", port->id);
+                    vp  = new vst2::StringPort(port, pEffect, pMaster);
+                    plugin_ports->add(vp);
+                    vParams.add(static_cast<vst2::StringPort *>(vp));
+                    break;
+
+                case meta::R_RETURN_NAME:
+                    lsp_trace("creating return name port %s", port->id);
+                    vp  = new vst2::StringPort(port, pEffect, pMaster);
+                    plugin_ports->add(vp);
+                    vParams.add(static_cast<vst2::StringPort *>(vp));
+                    break;
+
                 case meta::R_AUDIO_IN:
                 case meta::R_AUDIO_OUT:
                     lsp_trace("creating audio port %s", port->id);
                     vp = new vst2::AudioPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     vAudioPorts.add(static_cast<vst2::AudioPort *>(vp));
+                    break;
+
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
+                    lsp_trace("creating audio buffer port %s", port->id);
+                    vp = new vst2::AudioBufferPort(port, pEffect, pMaster);
+                    plugin_ports->add(vp);
+                    vAudioBuffers.add(static_cast<vst2::AudioBufferPort *>(vp));
                     break;
 
                 case meta::R_CONTROL:
@@ -371,6 +413,8 @@ namespace lsp
             pPlugin->set_sample_rate(sr);
             if (pSamplePlayer != NULL)
                 pSamplePlayer->set_sample_rate(sr);
+            if (pShmClient != NULL)
+                pShmClient->set_sample_rate(sr);
             bUpdateSettings = true;
         }
 
@@ -378,10 +422,18 @@ namespace lsp
         {
             lsp_trace("Block size for audio processing: %d", int(size));
 
-            // Sync buffer size to all input ports
+            // Sync buffer size to all audio ports
             for (size_t i=0, n=vAudioPorts.size(); i<n; ++i)
             {
                 vst2::AudioPort *p = vAudioPorts.uget(i);
+                if (p != NULL)
+                    p->set_block_size(size);
+            }
+
+            // Sync buffer size to all send/return ports
+            for (size_t i=0, n=vAudioBuffers.size(); i<n; ++i)
+            {
+                vst2::AudioBufferPort *p = vAudioBuffers.uget(i);
                 if (p != NULL)
                     p->set_block_size(size);
             }
@@ -557,6 +609,8 @@ namespace lsp
             {
                 lsp_trace("updating settings");
                 pPlugin->update_settings();
+                if (pShmClient != NULL)
+                    pShmClient->update_settings();
                 bUpdateSettings     = false;
             }
 
@@ -568,12 +622,24 @@ namespace lsp
                 nDumpResp           = dump_req;
             }
 
+            if (pShmClient != NULL)
+            {
+                pShmClient->begin(samples);
+                pShmClient->pre_process(samples);
+            }
+
             // Process samples
             pPlugin->process(samples);
 
             // Launch the sample player
             if (pSamplePlayer != NULL)
                 pSamplePlayer->process(samples);
+
+            if (pShmClient != NULL)
+            {
+                pShmClient->post_process(samples);
+                pShmClient->end();
+            }
 
             // Sanitize output audio data
             for (size_t i=0, n=vAudioPorts.size(); i<n; ++i)
@@ -1369,6 +1435,11 @@ namespace lsp
         core::SamplePlayer *Wrapper::sample_player()
         {
             return pSamplePlayer;
+        }
+
+        const core::ShmState *Wrapper::shm_state()
+        {
+            return (pShmClient != NULL) ? pShmClient->state() : NULL;
         }
 
         void Wrapper::request_settings_update()

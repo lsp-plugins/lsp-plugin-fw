@@ -23,6 +23,7 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_VST2_PORTS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
@@ -315,6 +316,35 @@ namespace lsp
                     nBufSize    = size;
                     pSanitized  = buf;
                     dsp::fill_zero(pSanitized, nBufSize);
+                }
+        };
+
+        class AudioBufferPort: public Port
+        {
+            private:
+                core::AudioBuffer   sBuffer;
+
+            public:
+                explicit AudioBufferPort(const meta::port_t *meta, AEffect *effect, audioMasterCallback callback):
+                    Port(meta, effect, callback)
+                {
+                }
+
+                AudioBufferPort(const AudioBufferPort &) = delete;
+                AudioBufferPort(AudioBufferPort &&) = delete;
+
+                AudioBufferPort & operator = (const AudioBufferPort &) = delete;
+                AudioBufferPort & operator = (AudioBufferPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return &sBuffer;
+                }
+
+                void set_block_size(size_t size)
+                {
+                    sBuffer.set_size(size);
                 }
         };
 
@@ -1074,6 +1104,12 @@ namespace lsp
                     if ((!pValue->is_state()) && (hCallback != NULL) && (pEffect != NULL))
                         hCallback(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
                     return true;
+                }
+
+                virtual void set_default() override
+                {
+                    strcpy(pValue->sData, pMetadata->value);
+                    pValue->touch();
                 }
 
             public:

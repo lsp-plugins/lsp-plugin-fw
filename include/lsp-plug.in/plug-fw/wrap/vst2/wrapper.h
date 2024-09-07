@@ -26,6 +26,7 @@
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/chunk.h>
@@ -67,8 +68,10 @@ namespace lsp
                 uatomic_t                           nDumpResp;
                 vst2::Port                         *pBypass;
                 core::SamplePlayer                 *pSamplePlayer;  // Sample player
+                core::ShmClient                    *pShmClient;     // Shared memory client
 
                 lltl::parray<vst2::AudioPort>       vAudioPorts;    // List of audio ports
+                lltl::parray<vst2::AudioBufferPort> vAudioBuffers;  // Audio buffer ports
                 lltl::parray<vst2::MidiInputPort>   vMidiIn;        // Input MIDI ports
                 lltl::parray<vst2::MidiOutputPort>  vMidiOut;       // Output MIDI ports
                 lltl::parray<vst2::ParameterPort>   vExtParams;     // List of controllable external parameters
@@ -145,6 +148,7 @@ namespace lsp
                 virtual void                    request_settings_update() override;
                 virtual void                    state_changed() override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
         };
     } /* namespace vst2 */
 } /* namespace lsp */
