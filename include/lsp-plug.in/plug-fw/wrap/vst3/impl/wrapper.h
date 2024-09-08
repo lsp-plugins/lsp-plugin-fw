@@ -78,6 +78,7 @@ namespace lsp
             pEventsIn           = NULL;
             pEventsOut          = NULL;
             pSamplePlayer       = NULL;
+            pShmClient          = NULL;
             nPlayPosition       = 0;
             nPlayLength         = 0;
             sUIPosition         = sPosition;
@@ -646,6 +647,14 @@ namespace lsp
                     cp                      = new vst3::AudioPort(port);
                     break;
 
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
+                    // Audio ports will be organized into groups after instantiation of all ports
+                    lsp_trace("Creating audio %s port id=%s", (meta::is_audio_send_port(port) ? "send" : "return"),  port->id);
+                    cp                      = new vst3::AudioBufferPort(port);
+                    vAudioBuffers.add(static_cast<vst3::AudioBufferPort *>(cp));
+                    break;
+
                 case meta::R_OSC_IN:
                 case meta::R_OSC_OUT:
                     lsp_trace("Creating OSC port id=%s", port->id);
@@ -663,10 +672,13 @@ namespace lsp
                 }
 
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                 {
                     lsp_trace("Creating string port id=%s", port->id);
                     vst3::StringPort *p     = new vst3::StringPort(port);
                     vParamMapping.create(port->id, p);
+                    vStrings.add(p);
                     vAllParams.add(p);
                     cp                      = p;
                     break;
@@ -884,6 +896,16 @@ namespace lsp
                 pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
             }
 
+            // Create shared memory sends and returns
+            if ((vAudioBuffers.size() > 0) || (meta->extensions & meta::E_SHM_TRACKING))
+            {
+                lsp_trace("Creating shared memory client");
+                pShmClient          = new core::ShmClient();
+                if (pShmClient == NULL)
+                    return STATUS_NO_MEM;
+                pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
+            }
+
             lsp_trace("Successful initialization this=%p", this);
 
             return Steinberg::kResultOk;
@@ -909,6 +931,14 @@ namespace lsp
                 pSamplePlayer->destroy();
                 delete pSamplePlayer;
                 pSamplePlayer = NULL;
+            }
+
+            // Destroy shared memory client
+            if (pShmClient != NULL)
+            {
+                pShmClient->destroy();
+                delete pShmClient;
+                pShmClient = NULL;
             }
 
             // Destroy plugin
@@ -1744,6 +1774,8 @@ namespace lsp
             pPlugin->set_sample_rate(sample_rate);
             if (pSamplePlayer != NULL)
                 pSamplePlayer->set_sample_rate(sample_rate);
+            if (pShmClient != NULL)
+                pShmClient->set_sample_rate(sample_rate);
 
             // Adjust block size for input and output audio ports
             nMaxSamplesPerBlock     = setup.maxSamplesPerBlock;
@@ -1763,6 +1795,14 @@ namespace lsp
                     continue;
                 for (size_t i=0; i<bus->nPorts; ++i)
                     bus->vPorts[i]->setup(setup.maxSamplesPerBlock);
+            }
+
+            for (lltl::iterator<vst3::AudioBufferPort> it = vAudioBuffers.values(); it; ++it)
+            {
+                vst3::AudioBufferPort *port = it.get();
+                if (port == NULL)
+                    continue;
+                port->setup(setup.maxSamplesPerBlock);
             }
 
             return Steinberg::kResultOk;
@@ -2556,10 +2596,17 @@ namespace lsp
             if (data.processContext != NULL)
                 sync_position(data.processContext);
 
+            if (pShmClient != NULL)
+            {
+                pShmClient->begin(data.numSamples);
+                pShmClient->pre_process(data.numSamples);
+            }
+
             for (int32_t frame=0; frame < data.numSamples; )
             {
                 // Prepare event block
                 size_t block_size = prepare_block(frame, &data);
+
 //                lsp_trace("block size=%d", int(block_size));
 
                 // Update the settings for the plugin
@@ -2567,6 +2614,8 @@ namespace lsp
                 {
                     lsp_trace("Updating settings");
                     pPlugin->update_settings();
+                    if (pShmClient != NULL)
+                        pShmClient->update_settings();
                     bUpdateSettings     = false;
                 }
 
@@ -2604,6 +2653,12 @@ namespace lsp
 
             // Process output events
             process_output_events(data.outputEvents);
+
+            if (pShmClient != NULL)
+            {
+                pShmClient->post_process(data.numSamples);
+                pShmClient->end();
+            }
 
             // Dump state if requested
             const uatomic_t dump_req    = nDumpReq;
@@ -2680,6 +2735,11 @@ namespace lsp
         meta::plugin_format_t Wrapper::plugin_format() const
         {
             return meta::PLUGIN_VST3;
+        }
+
+        const core::ShmState *Wrapper::shm_state()
+        {
+            return (pShmClient != NULL) ? pShmClient->state() : NULL;
         }
 
         void Wrapper::receive_raw_osc_event(osc::parse_frame_t *frame)
@@ -3377,6 +3437,104 @@ namespace lsp
             pPeerConnection->notify(msg);
         }
 
+        void Wrapper::transmit_strings()
+        {
+            for (size_t i=0, n=vStrings.size(); i<n; ++i)
+            {
+                vst3::StringPort *sp = vStrings.uget(i);
+                if ((sp == NULL) || (!sp->check_reset_pending()))
+                    continue;
+
+                const meta::port_t *meta = sp->metadata();
+
+                lsp_trace("port reset: id=%s, value='%s'", sp->id(), meta->value);
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize the message
+                msg->setMessageID(vst3::ID_MSG_STRING);
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                // Write port identifier
+                if (!sTxNotifyBuf.set_string(list, "id", sp->id()))
+                    return;
+                // Write endianess
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                    return;
+                // Write port identifier
+                if (!sTxNotifyBuf.set_string(list, "value", meta->value))
+                    return;
+
+                // Finally, we're ready to send message
+                pPeerConnection->notify(msg);
+            }
+        }
+
+        void Wrapper::transmit_shm_state()
+        {
+            if (pShmClient == NULL)
+                return;
+            if (!pShmClient->state_updated())
+                return;
+
+            const core::ShmState *state = pShmClient->state();
+            if (state == NULL)
+                return;
+            const size_t count = state->size();
+
+            // Allocate new message
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
+            if (msg == NULL)
+                return;
+            lsp_finally { safe_release(msg); };
+
+            // Initialize the message
+            msg->setMessageID(vst3::ID_MSG_SHM_STATE);
+            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+            // Write endianess
+            if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                return;
+            // Write endianess
+            if (list->setInt("size", count) != Steinberg::kResultOk)
+                return;
+
+            Steinberg::char8 key[32];
+            for (size_t i=0; i<count; ++i)
+            {
+                const core::ShmRecord *rec = state->get(i);
+                if (rec == NULL)
+                    continue;
+
+                // Write identifier of the record
+                snprintf(key, sizeof(key), "id[%d]", int(i));
+                if (!sTxNotifyBuf.set_string(list, key, rec->id))
+                    continue;
+
+                // Write name of the record
+                snprintf(key, sizeof(key), "name[%d]", int(i));
+                if (!sTxNotifyBuf.set_string(list, key, rec->name))
+                    continue;
+
+                // Write index
+                snprintf(key, sizeof(key), "index[%d]", int(i));
+                if (list->setInt(key, rec->index) != Steinberg::kResultOk)
+                    continue;
+
+                // Write magic
+                snprintf(key, sizeof(key), "magic[%d]", int(i));
+                if (list->setInt(key, rec->magic) != Steinberg::kResultOk)
+                    continue;
+            }
+
+            // Finally, we're ready to send message
+            pPeerConnection->notify(msg);
+        }
+
         void Wrapper::sync_data()
         {
             // We have nothing to do if we can not allocate messages nor notify peer
@@ -3401,6 +3559,8 @@ namespace lsp
                 transmit_frame_buffers();
                 transmit_streams();
                 transmit_play_position();
+                transmit_strings();
+                transmit_shm_state();
             }
         }
 
