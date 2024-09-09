@@ -826,7 +826,7 @@ namespace lsp
                             continue;
 
                         const LV2_Atom_Object * oitem = reinterpret_cast<const LV2_Atom_Object *>(item);
-                        if (oitem->body.otype != pExt->uridShmStateType)
+                        if (oitem->body.otype != pExt->uridShmRecordType)
                             continue;
 
                         // Read single ShmRecord
@@ -858,13 +858,14 @@ namespace lsp
                         if ((id != NULL) && (name != NULL))
                             bld.append(name, id, index, magic);
                     }
+                }
 
-                    // Submit new ShmState
-                    core::ShmState *state = bld.build();
-                    if (state == NULL)
-                        continue;
-
+                // Submit new ShmState
+                core::ShmState *state = bld.build();
+                if (state != NULL)
+                {
                     sShmState.push(state);
+                    lsp_trace("Submitted new shm_state");
                 }
             }
             else

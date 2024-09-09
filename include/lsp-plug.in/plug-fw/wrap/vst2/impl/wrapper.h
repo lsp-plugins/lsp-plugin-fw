@@ -437,6 +437,9 @@ namespace lsp
                 if (p != NULL)
                     p->set_block_size(size);
             }
+
+            if (pShmClient != NULL)
+                pShmClient->set_buffer_size(size);
         }
 
         void Wrapper::mains_changed(VstIntPtr value)

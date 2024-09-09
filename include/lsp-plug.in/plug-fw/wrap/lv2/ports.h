@@ -121,6 +121,11 @@ namespace lsp
                 virtual bool tx_pending()                   { return false;     }
 
                 /**
+                 * Reset transfer pending
+                 */
+                virtual void reset_tx_pending()             { }
+
+                /**
                  * Callback: UI has connected to backend
                  */
                 virtual void ui_connected()                 { }
@@ -986,7 +991,6 @@ namespace lsp
                 virtual void serialize() override
                 {
                     pExt->forge_path(sPath.path());
-                    reset_tx_pending();
                 }
 
                 virtual bool deserialize(const void *data, size_t flags) override
@@ -1009,17 +1013,17 @@ namespace lsp
                     return sPath.pending();
                 }
 
+                virtual void reset_tx_pending() override
+                {
+                    lsp_trace("reset_tx_pending");
+                    nLastChange     = sPath.nChanges;
+                }
+
             public:
                 void tx_request()
                 {
                     lsp_trace("tx_request");
                     atomic_add(&sPath.nChanges, 1);
-                }
-
-                void reset_tx_pending()
-                {
-                    lsp_trace("reset_tx_pending");
-                    nLastChange     = sPath.nChanges;
                 }
         };
 
@@ -1061,6 +1065,11 @@ namespace lsp
                 StringPort & operator = (StringPort &&) = delete;
 
             public:
+                virtual float value() override
+                {
+                    return (pValue != NULL) ? (pValue->nSerial & 0x3fffff) : 0.0f;
+                }
+
                 virtual void *buffer() override
                 {
                     return (pValue != NULL) ? pValue->sData : NULL;
@@ -1068,7 +1077,7 @@ namespace lsp
 
                 virtual bool tx_pending() override
                 {
-                    return pValue->serial() != nSerial;
+                    return atomic_load(&nUIPending) != nUIActual;
                 }
 
                 virtual void save() override
@@ -1122,13 +1131,24 @@ namespace lsp
 
                 virtual bool pre_process() override
                 {
-                    return (pValue != NULL) ? pValue->sync() : false;
+                    if (pValue == NULL)
+                        return false;
+                    if (!pValue->sync())
+                        return false;
+
+                    lsp_trace("port id=%s synchronized to value %s", id(), pValue->sData);
+                    return true;
                 }
 
                 virtual void set_default()
                 {
                     strcpy(pValue->sData, pMetadata->value);
-                    pValue->touch();
+                    atomic_add(&nUIPending, 1);
+                }
+
+                virtual void reset_tx_pending() override
+                {
+                    nUIActual   = atomic_load(&nUIPending);
                 }
 
             public:

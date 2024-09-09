@@ -111,6 +111,7 @@ namespace lsp
                 virtual float                       ui_scaling_factor(float scaling) override;
                 virtual void                        main_iteration() override;
                 virtual meta::plugin_format_t       plugin_format() const override;
+                virtual const core::ShmState       *shm_state() override;
 
             public: // vst3::IUISync
                 virtual void                        sync_ui() override;

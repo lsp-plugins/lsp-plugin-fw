@@ -746,6 +746,11 @@ namespace lsp
                 StringPort & operator = (StringPort &&) = delete;
 
             public:
+                virtual float value() override
+                {
+                    return (pValue != NULL) ? (pValue->nSerial & 0x3fffff) : 0.0f;
+                }
+
                 virtual void *buffer() override
                 {
                     return (pValue != NULL) ? pValue->sData : NULL;

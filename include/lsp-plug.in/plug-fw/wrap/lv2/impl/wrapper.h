@@ -222,6 +222,7 @@ namespace lsp
                     return STATUS_NO_MEM;
                 pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
                 pShmClient->set_sample_rate(fSampleRate);
+                pShmClient->set_buffer_size(pExt->nMaxBlockLength);
             }
 
             // Update refresh rate
@@ -634,6 +635,8 @@ namespace lsp
             if (bUpdateSettings)
             {
                 pPlugin->update_settings();
+                if (pShmClient != NULL)
+                    pShmClient->update_settings();
                 bUpdateSettings     = false;
             }
 
@@ -897,7 +900,6 @@ namespace lsp
                         lv2::Port *p    = port_by_urid(key->body);
                         if ((p != NULL) && (p->get_type_urid() == value->type))
                         {
-                            lsp_trace("forwarding patch message to port %s", p->metadata()->id);
                             if (p->deserialize(value, 0)) // No flags for simple PATCH message
                             {
                                 // Change state if it is a virtual port
@@ -1158,16 +1160,21 @@ namespace lsp
         {
             if ((pShmClient == NULL) || (nShmReqs <= 0) || (nClients <= 0))
                 return;
+            if (!pShmClient->state_updated())
+                return;
+
             const core::ShmState *state   = pShmClient->state();
             if (state == NULL)
                 return;
+
+            lsp_trace("Transmitting shared memory state...");
 
             nShmReqs = 0;
 
             LV2_Atom_Forge_Frame    frame, tuple, obj;
 
             pExt->forge_frame_time(0); // Event header
-            pExt->forge_object(&frame, pExt->uridShmState, pExt->uridPlayPositionType);
+            pExt->forge_object(&frame, pExt->uridShmState, pExt->uridShmStateType);
 
             pExt->forge_key(pExt->uridShmStateItems);
             pExt->forge_tuple(&tuple);
@@ -1197,6 +1204,8 @@ namespace lsp
 
             pExt->forge_pop(&tuple);
             pExt->forge_pop(&frame);
+
+            lsp_trace("Transmitted shared memory state of %d records", int(state->size()));
         }
 
         void Wrapper::transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req)
@@ -1258,6 +1267,9 @@ namespace lsp
                 pExt->forge_key(pExt->uridPatchValue);
                 p->serialize();
                 pExt->forge_pop(&frame);
+
+                // Reset pending transfer flag
+                p->reset_tx_pending();
             }
 
             // Serialize meshes (it's own primitive MESH)

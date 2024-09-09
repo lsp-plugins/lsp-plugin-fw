@@ -65,6 +65,7 @@
 
 #define RECONNECT_INTERVAL          1000u   /* 1 second     */
 #define ICON_SYNC_INTERVAL          200u    /* 5 FPS        */
+#define JACK_LOG_FILE               "lsp-jack-lib.log"
 
 namespace lsp
 {
@@ -76,11 +77,6 @@ namespace lsp
 
         static Factory *get_plugin_factory()
         {
-            // Initialize debug
-            #ifndef LSP_IDE_DEBUG
-                IF_DEBUG( debug::redirect(VST3_LOG_FILE); );
-            #endif /* LSP_IDE_DEBUG */
-
             if (!library.initialized())
             {
                 // Initialize DSP
@@ -924,7 +920,7 @@ extern "C"
     status_t JACK_CREATE_PLUGIN_LOOP(lsp::IPluginLoop **loop, const char *plugin_id, int argc, const char **argv)
     {
     #ifndef LSP_IDE_DEBUG
-        IF_DEBUG( lsp::debug::redirect("lsp-jack-lib.log"); );
+        IF_DEBUG( lsp::debug::redirect(JACK_LOG_FILE); );
     #endif /* LSP_IDE_DEBUG */
 
         // Initialize DSP

@@ -732,7 +732,10 @@ namespace lsp
 
             // Activate audio buffers
             if (pShmClient != NULL)
+            {
                 pShmClient->set_sample_rate(sample_rate);
+                pShmClient->set_buffer_size(max_frames_count);
+            }
             for (size_t i=0, n=vAudioBuffers.size(); i<n; ++i)
             {
                 clap::AudioBufferPort *p = vAudioBuffers.uget(i);

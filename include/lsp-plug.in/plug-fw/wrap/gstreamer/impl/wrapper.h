@@ -297,6 +297,7 @@ namespace lsp
                 if (pShmClient == NULL)
                     return STATUS_NO_MEM;
                 pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
+                pShmClient->set_buffer_size(MAX_BLOCK_LENGTH);
             }
 
             // Initialize plugin

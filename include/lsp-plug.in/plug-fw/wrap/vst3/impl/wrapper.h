@@ -649,11 +649,14 @@ namespace lsp
 
                 case meta::R_AUDIO_SEND:
                 case meta::R_AUDIO_RETURN:
+                {
                     // Audio ports will be organized into groups after instantiation of all ports
                     lsp_trace("Creating audio %s port id=%s", (meta::is_audio_send_port(port) ? "send" : "return"),  port->id);
-                    cp                      = new vst3::AudioBufferPort(port);
-                    vAudioBuffers.add(static_cast<vst3::AudioBufferPort *>(cp));
+                    vst3::AudioBufferPort *p = new vst3::AudioBufferPort(port);
+                    vAudioBuffers.add(p);
+                    cp                      = p;
                     break;
+                }
 
                 case meta::R_OSC_IN:
                 case meta::R_OSC_OUT:
@@ -897,6 +900,8 @@ namespace lsp
             }
 
             // Create shared memory sends and returns
+            lsp_trace("Number of audio buffers: %d", int(vAudioBuffers.size()));
+
             if ((vAudioBuffers.size() > 0) || (meta->extensions & meta::E_SHM_TRACKING))
             {
                 lsp_trace("Creating shared memory client");
@@ -1319,7 +1324,7 @@ namespace lsp
                         return res;
                     }
                 }
-                else if (meta::is_string_port(meta))
+                else if (meta::is_string_holding_port(meta))
                 {
                     const char *str = p->buffer<char>();
                     if (str == NULL)
@@ -1452,7 +1457,7 @@ namespace lsp
                             lsp_trace("  %s = %s", meta->id, name);
                             xp->submit(name, strlen(name), plug::PF_STATE_RESTORE);
                         }
-                        else if (meta::is_string_port(meta))
+                        else if (meta::is_string_holding_port(meta))
                         {
                             vst3::StringPort *sp    = static_cast<vst3::StringPort *>(p);
                             plug::string_t *xs      = sp->data();
@@ -1775,7 +1780,10 @@ namespace lsp
             if (pSamplePlayer != NULL)
                 pSamplePlayer->set_sample_rate(sample_rate);
             if (pShmClient != NULL)
+            {
                 pShmClient->set_sample_rate(sample_rate);
+                pShmClient->set_buffer_size(setup.maxSamplesPerBlock);
+            }
 
             // Adjust block size for input and output audio ports
             nMaxSamplesPerBlock     = setup.maxSamplesPerBlock;
@@ -2573,14 +2581,15 @@ namespace lsp
                 vst3::Port *p = vAllParams.uget(i);
                 if (p == NULL)
                     continue;
-                sync_flags_t state = p->sync();
-                if (state == SYNC_CHANGED)
+
+                const sync_flags_t state = p->sync();
+                if (state != SYNC_NONE)
                 {
                     lsp_trace("port changed: %s=%f", p->id(), p->value());
                     bUpdateSettings     = true;
+                    if (state == SYNC_CHANGED)
+                        state_dirty         = true;
                 }
-                else if (state == SYNC_STATE)
-                    state_dirty         = true;
             }
             if (state_dirty)
                 state_changed();
@@ -2857,7 +2866,7 @@ namespace lsp
 
                 // Find string port
                 vst3::Port *p = vParamMapping.get(id);
-                if ((p == NULL) || (!meta::is_string_port(p->metadata())))
+                if ((p == NULL) || (!meta::is_string_holding_port(p->metadata())))
                 {
                     lsp_warn("Invalid string port specified: %s", id);
                     return Steinberg::kResultFalse;
@@ -3533,6 +3542,7 @@ namespace lsp
 
             // Finally, we're ready to send message
             pPeerConnection->notify(msg);
+            lsp_trace("Submitted shm_state message");
         }
 
         void Wrapper::sync_data()

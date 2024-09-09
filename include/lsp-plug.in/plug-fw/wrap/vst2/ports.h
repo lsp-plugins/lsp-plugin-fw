@@ -1015,12 +1015,16 @@ namespace lsp
         {
             private:
                 plug::string_t     *pValue;
+                uatomic_t           nUIRequest;
+                uatomic_t           nUIResponse;
 
             public:
                 explicit StringPort(const meta::port_t *meta, AEffect *effect, audioMasterCallback callback):
                     Port(meta, effect, callback)
                 {
                     pValue          = plug::string_t::allocate(size_t(meta->max));
+                    atomic_store(&nUIRequest, 0);
+                    nUIResponse     = 0;
                 }
 
                 StringPort(const StringPort &) = delete;
@@ -1039,6 +1043,11 @@ namespace lsp
                 StringPort & operator = (StringPort &&) = delete;
 
             public:
+                virtual float value() override
+                {
+                    return (pValue != NULL) ? (pValue->nSerial & 0x3fffff) : 0.0f;
+                }
+
                 virtual void *buffer() override
                 {
                     return (pValue != NULL) ? pValue->sData : NULL;
@@ -1109,13 +1118,23 @@ namespace lsp
                 virtual void set_default() override
                 {
                     strcpy(pValue->sData, pMetadata->value);
-                    pValue->touch();
+                    atomic_add(&nUIRequest, 1);
                 }
 
             public:
                 plug::string_t *data()
                 {
                     return pValue;
+                }
+
+                inline bool reset_pending()
+                {
+                    uatomic_t request = atomic_load(&nUIRequest);
+                    if (request == nUIResponse)
+                        return false;
+
+                    nUIResponse = request;
+                    return true;
                 }
         };
 

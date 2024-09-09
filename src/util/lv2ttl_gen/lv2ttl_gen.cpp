@@ -426,9 +426,13 @@ namespace lsp
                     case meta::R_FBUFFER:
                     case meta::R_PATH:
                     case meta::R_STRING:
+                    case meta::R_SEND_NAME:
+                    case meta::R_RETURN_NAME:
                     case meta::R_PORT_SET:
                     case meta::R_MIDI_IN:
                     case meta::R_MIDI_OUT:
+                    case meta::R_AUDIO_SEND:
+                    case meta::R_AUDIO_RETURN:
                     case meta::R_OSC_IN:
                     case meta::R_OSC_OUT:
                         continue;
@@ -530,6 +534,8 @@ namespace lsp
                         result     |= REQ_PATH_MASK | REQ_INSTANCE;
                         break;
                     case meta::R_STRING:
+                    case meta::R_SEND_NAME:
+                    case meta::R_RETURN_NAME:
                         result     |= REQ_STRING_MASK | REQ_INSTANCE;
                         break;
                     case meta::R_MESH:
@@ -683,6 +689,8 @@ namespace lsp
                         break;
                     }
                     case meta::R_STRING:
+                    case meta::R_SEND_NAME:
+                    case meta::R_RETURN_NAME:
                     {
                         if (requirements & REQ_PATCH)
                         {
@@ -753,6 +761,8 @@ namespace lsp
                     {
                         case meta::R_PATH:
                         case meta::R_STRING:
+                        case meta::R_SEND_NAME:
+                        case meta::R_RETURN_NAME:
                             count++;
                             if (first == NULL)
                                 first = p;
@@ -774,6 +784,8 @@ namespace lsp
                             {
                                 case meta::R_PATH:
                                 case meta::R_STRING:
+                                case meta::R_SEND_NAME:
+                                case meta::R_RETURN_NAME:
                                 {
                                     fprintf(out, "\t\t%s:%s", LV2TTL_PORTS_PREFIX, p->id);
                                     if (--count)
@@ -801,6 +813,10 @@ namespace lsp
                     case meta::R_FBUFFER:
                     case meta::R_PATH:
                     case meta::R_STRING:
+                    case meta::R_SEND_NAME:
+                    case meta::R_RETURN_NAME:
+                    case meta::R_AUDIO_SEND:
+                    case meta::R_AUDIO_RETURN:
                     case meta::R_PORT_SET:
                     case meta::R_MIDI_IN:
                     case meta::R_MIDI_OUT:

@@ -595,9 +595,14 @@ namespace lsp
                 StringPort & operator = (StringPort &&) = delete;
 
             public:
+                virtual float value() override
+                {
+                    return (pValue != NULL) ? (pValue->nSerial & 0x3fffff) : 0.0f;
+                }
+
                 virtual void *buffer() override
                 {
-                    return pValue->sData;
+                    return (pValue != NULL) ? pValue->sData : NULL;
                 }
 
                 virtual sync_flags_t sync() override
@@ -607,7 +612,7 @@ namespace lsp
                     if (!pValue->sync())
                         return SYNC_NONE;
 
-                    return (pValue->is_state()) ? SYNC_CHANGED : SYNC_STATE;
+                    return (pValue->is_state()) ? SYNC_STATE : SYNC_CHANGED;
                 }
 
                 virtual void set_default() override

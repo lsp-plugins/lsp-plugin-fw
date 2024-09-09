@@ -1738,6 +1738,11 @@ namespace lsp
             pPeerConnection->notify(msg);
         }
 
+        const core::ShmState *Controller::shm_state()
+        {
+            return sShmState.get();
+        }
+
         const meta::package_t *Controller::package() const
         {
             return pPackage;

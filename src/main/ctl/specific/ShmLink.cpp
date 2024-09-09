@@ -323,19 +323,30 @@ namespace lsp
             lsp_finally { hide(); };
 
             if (wName == NULL)
+            {
+                lsp_trace("wName == NULL");
                 return;
+            }
 
             ui::IPort *port = (pLink != NULL) ? pLink->pPort : NULL;
             if (port == NULL)
+            {
+                lsp_trace("port == NULL");
                 return;
+            }
 
             LSPString name;
             if (wName->text()->format(&name) != STATUS_OK)
+            {
+                lsp_trace("!format()");
                 return;
+            }
 
             const char *c_name = valid_name(&name);
             if (c_name == NULL)
                 c_name = "";
+
+            lsp_trace("write value '%s' to port id=%s", c_name, port->id());
 
             port->write(c_name, strlen(c_name));
             port->notify_all(ui::PORT_NONE);
