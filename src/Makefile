@@ -1038,8 +1038,6 @@ INSTALL_TARGETS             = $(foreach feature,$(INSTALL_FEATURES),install_$(fe
 UNINSTALL_TARGETS           = $(foreach feature,$(INSTALL_FEATURES),uninstall_$(feature))
 PACKAGE_TARGETS             = $(foreach feature,$(call intersection,$(ENABLED_FEATURES),$(ALLOWED_PACKAGE_TARGETS)),package_$(feature))
 
-$(info BUILD_TARGETS = $(BUILD_TARGETS))
-
 #------------------------------------------------------------------------------
 # Functional variables
 CXX_FILE                    = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.o,%.cpp, $(@))
