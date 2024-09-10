@@ -1140,7 +1140,7 @@ namespace lsp
                     return true;
                 }
 
-                virtual void set_default()
+                virtual void set_default() override
                 {
                     strcpy(pValue->sData, pMetadata->value);
                     atomic_add(&nUIPending, 1);
