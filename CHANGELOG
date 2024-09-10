@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.26 ===
+* Added support of audio send and audio return by the engine.
 * Added documentation_path parameter in user configuration file which allows to
   configure the path to the offline documentation installation.
 
