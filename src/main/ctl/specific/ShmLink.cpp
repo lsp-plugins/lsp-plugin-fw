@@ -416,10 +416,10 @@ namespace lsp
                 return STATUS_BAD_ARGUMENTS;
 
             // Do the action
-            return self->on_key_up(sender, ev);
+            return self->process_key_up(sender, ev);
         }
 
-        status_t ShmLink::Selector::on_key_up(tk::Widget *sender, const ws::event_t *ev)
+        status_t ShmLink::Selector::process_key_up(tk::Widget *sender, const ws::event_t *ev)
         {
             const ws::code_t key = tk::KeyboardHandler::translate_keypad(ev->nCode);
             if (key == ws::WSK_RETURN)

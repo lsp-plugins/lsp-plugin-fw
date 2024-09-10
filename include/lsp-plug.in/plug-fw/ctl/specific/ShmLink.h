@@ -70,7 +70,7 @@ namespace lsp
                         static ssize_t      compare_strings(const LSPString *a, const LSPString *b);
 
                     private:
-                        status_t            on_key_up(tk::Widget *sender, const ws::event_t *ev);
+                        status_t            process_key_up(tk::Widget *sender, const ws::event_t *ev);
 
                     private:
                         void                apply_filter();
