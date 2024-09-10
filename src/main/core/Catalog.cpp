@@ -291,6 +291,10 @@ namespace lsp
             {
                 pThread->cancel();
                 pThread->join();
+
+                // Destroy the thread object
+                delete pThread;
+                pThread     = NULL;
             }
 
             return STATUS_OK;

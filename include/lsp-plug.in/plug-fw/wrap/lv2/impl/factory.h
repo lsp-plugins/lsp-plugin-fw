@@ -37,6 +37,8 @@ namespace lsp
         Factory::Factory()
         {
             nReferences     = 1;
+            pLoader         = NULL;
+            pPackage        = NULL;
 
             // Obtain the resource loader
             lsp_trace("Obtaining resource loader...");
@@ -53,6 +55,17 @@ namespace lsp
 
         Factory::~Factory()
         {
+            if (pPackage != NULL)
+            {
+                meta::free_manifest(pPackage);
+                pPackage    = NULL;
+            }
+
+            if (pLoader != NULL)
+            {
+                delete pLoader;
+                pLoader     = NULL;
+            }
         }
 
         size_t Factory::acquire()
