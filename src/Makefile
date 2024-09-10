@@ -1031,12 +1031,14 @@ BIN_EXTRA_FILES             = $(foreach dep, $(BIN_EXTRA_SHARED) $(BIN_EXTRA_PLU
   $(wildcard $($(dep)_PATH)/*LICENSE*) \
 )
 
-ALLOWED_BUILD_TARGETS       = clap doc gst jack ladspa lv2 test vst2 vst3 xdg
+ALLOWED_BUILD_TARGETS       = clap doc gst jack ladspa lv2 test vst2 vst3 xdg meta validate
 ALLOWED_PACKAGE_TARGETS     = clap doc gst jack ladspa lv2 vst2 vst3
 BUILD_TARGETS               = $(call intersection,$(foreach feature,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(feature)),$(ALLOWED_BUILD_TARGETS))
 INSTALL_TARGETS             = $(foreach feature,$(INSTALL_FEATURES),install_$(feature))
 UNINSTALL_TARGETS           = $(foreach feature,$(INSTALL_FEATURES),uninstall_$(feature))
 PACKAGE_TARGETS             = $(foreach feature,$(call intersection,$(ENABLED_FEATURES),$(ALLOWED_PACKAGE_TARGETS)),package_$(feature))
+
+$(info BUILD_TARGETS = $(BUILD_TARGETS))
 
 #------------------------------------------------------------------------------
 # Functional variables
@@ -1322,7 +1324,7 @@ resources: $(HOST_UTL_REPOSITORY)
 	echo "  $(HOST_UTL_REPOSITORY)"
 	$(HOST_UTL_REPOSITORY) -o "$(HOST_UTL_RES_PATH)" $(LSP_PLUGIN_FW_OBJ_VARS) -m "$(ROOTDIR)/res/manifest.json" "$(ROOTDIR)" "$(call pathconv,$(ROOTDIR))/modules/*"
 
-all: $(BUILD_TARGETS) validate
+all: $(BUILD_TARGETS)
 
 clap: $(ARTIFACT_LIB_CLAP) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
 
