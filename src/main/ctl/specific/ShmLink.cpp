@@ -126,13 +126,25 @@ namespace lsp
             wDisconnect     = sWidgets.get<tk::Button>("disconnect");
 
             if (wName != NULL)
+            {
                 wName->slots()->bind(tk::SLOT_CHANGE, slot_filter_change, this);
+                wName->slots()->bind(tk::SLOT_KEY_UP, slot_key_up, this);
+            }
             if (wConnections != NULL)
+            {
                 wConnections->slots()->bind(tk::SLOT_SUBMIT, slot_connections_submit, this);
+                wConnections->slots()->bind(tk::SLOT_KEY_UP, slot_key_up, this);
+            }
             if (wConnect != NULL)
+            {
                 wConnect->slots()->bind(tk::SLOT_SUBMIT, slot_connect, this);
+                wConnect->slots()->bind(tk::SLOT_KEY_UP, slot_key_up, this);
+            }
             if (wDisconnect != NULL)
+            {
                 wDisconnect->slots()->bind(tk::SLOT_SUBMIT, slot_disconnect, this);
+                wDisconnect->slots()->bind(tk::SLOT_KEY_UP, slot_key_up, this);
+            }
 
             return STATUS_OK;
         }
@@ -160,7 +172,9 @@ namespace lsp
             set_tether(popup_tether, sizeof(popup_tether)/sizeof(tk::tether_t));
             tk::PopupWindow::show(actor);
             take_focus();
-//            grab_events(ws::GRAB_DROPDOWN);
+            if (wName != NULL)
+                wName->take_focus();
+            grab_events(ws::GRAB_DROPDOWN);
         }
 
         ssize_t ShmLink::Selector::compare_strings(const LSPString *a, const LSPString *b)
@@ -314,6 +328,8 @@ namespace lsp
             if (c_name == NULL)
                 c_name = "";
 
+            lsp_trace("write value '%s' to port id=%s", c_name, port->id());
+
             port->write(c_name, strlen(c_name));
             port->notify_all(ui::PORT_NONE);
         }
@@ -323,24 +339,15 @@ namespace lsp
             lsp_finally { hide(); };
 
             if (wName == NULL)
-            {
-                lsp_trace("wName == NULL");
                 return;
-            }
 
             ui::IPort *port = (pLink != NULL) ? pLink->pPort : NULL;
             if (port == NULL)
-            {
-                lsp_trace("port == NULL");
                 return;
-            }
 
             LSPString name;
             if (wName->text()->format(&name) != STATUS_OK)
-            {
-                lsp_trace("!format()");
                 return;
-            }
 
             const char *c_name = valid_name(&name);
             if (c_name == NULL)
@@ -393,6 +400,40 @@ namespace lsp
             ctl::ShmLink::Selector *_this   = static_cast<ctl::ShmLink::Selector *>(ptr);
             if (_this != NULL)
                 _this->disconnect();
+            return STATUS_OK;
+        }
+
+        status_t ShmLink::Selector::slot_key_up(tk::Widget *sender, void *ptr, void *data)
+        {
+            // Get control pointer
+            Selector *self = static_cast<Selector *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            // Should be keyboard event
+            ws::event_t *ev = reinterpret_cast<ws::event_t *>(data);
+            if ((ev == NULL) || (ev->nType != ws::UIE_KEY_UP))
+                return STATUS_BAD_ARGUMENTS;
+
+            // Do the action
+            return self->on_key_up(sender, ev);
+        }
+
+        status_t ShmLink::Selector::on_key_up(tk::Widget *sender, const ws::event_t *ev)
+        {
+            const ws::code_t key = tk::KeyboardHandler::translate_keypad(ev->nCode);
+            if (key == ws::WSK_RETURN)
+            {
+                hide();
+
+                if ((wName != NULL) && (!wName->text()->is_empty()))
+                    connect_by_filter();
+                else
+                    disconnect();
+            }
+            else if (key == ws::WSK_ESCAPE)
+                hide();
+
             return STATUS_OK;
         }
 

@@ -64,9 +64,13 @@ namespace lsp
                         static status_t     slot_connections_submit(tk::Widget *sender, void *ptr, void *data);
                         static status_t     slot_connect(tk::Widget *sender, void *ptr, void *data);
                         static status_t     slot_disconnect(tk::Widget *sender, void *ptr, void *data);
+                        static status_t     slot_key_up(tk::Widget *sender, void *ptr, void *data);
 
                     protected:
                         static ssize_t      compare_strings(const LSPString *a, const LSPString *b);
+
+                    private:
+                        status_t            on_key_up(tk::Widget *sender, const ws::event_t *ev);
 
                     private:
                         void                apply_filter();

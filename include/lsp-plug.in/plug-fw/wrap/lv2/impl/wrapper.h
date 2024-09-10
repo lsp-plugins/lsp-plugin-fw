@@ -1160,8 +1160,6 @@ namespace lsp
         {
             if ((pShmClient == NULL) || (nShmReqs <= 0) || (nClients <= 0))
                 return;
-            if (!pShmClient->state_updated())
-                return;
 
             const core::ShmState *state   = pShmClient->state();
             if (state == NULL)

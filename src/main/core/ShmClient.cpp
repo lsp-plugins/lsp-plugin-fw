@@ -583,6 +583,8 @@ namespace lsp
             if (res != STATUS_OK)
                 return false;
 
+            lsp_trace("Updating state of the Catalog");
+
             // Create records
             ShmStateBuilder bld;
             for (size_t i=0, n=records.size(); i<n; ++i)
@@ -602,6 +604,8 @@ namespace lsp
 
             // Submit shared state
             sState.push(state);
+            lsp_trace("State of the Catalog has been updated");
+
             return true;
         }
 
