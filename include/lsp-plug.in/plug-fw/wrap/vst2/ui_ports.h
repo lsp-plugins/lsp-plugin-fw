@@ -421,7 +421,17 @@ namespace lsp
 
                 virtual bool sync() override
                 {
-                    return pValue->fetch(&nSerial, pData, pValue->max_bytes() + 1);
+                    if (pValue->fetch(&nSerial, pData, pValue->max_bytes() + 1))
+                        return true;
+
+                    if (pPort == NULL)
+                        return false;
+                    vst2::StringPort *sp    = static_cast<vst2::StringPort *>(pPort);
+                    if (!sp->reset_pending())
+                        return false;
+
+                    set_default();
+                    return true;
                 }
 
                 virtual void write(const void *buffer, size_t size) override

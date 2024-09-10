@@ -30,6 +30,7 @@
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/executor.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ports.h>
@@ -39,6 +40,8 @@ namespace lsp
 {
     namespace lv2
     {
+        class Factory;
+
         /**
          * LV2 format plugin wrapper
          */
@@ -85,15 +88,19 @@ namespace lsp
                 lltl::parray<lv2::Port>         vMidiPorts;
                 lltl::parray<lv2::Port>         vOscPorts;
                 lltl::parray<lv2::AudioPort>    vAudioPorts;
+                lltl::parray<lv2::StringPort>   vStringPorts;
+                lltl::parray<lv2::AudioBufferPort> vAudioBuffers;
                 lltl::parray<meta::port_t>      vGenMetadata;   // Generated metadata
 
-                lv2::Extensions        *pExt;
+                lv2::Factory           *pFactory;       // LV2 plugin factory
+                lv2::Extensions        *pExt;           // LV2 plugin extensions
                 ipc::IExecutor         *pExecutor;      // Executor service
                 void                   *pAtomIn;        // Atom input port
                 void                   *pAtomOut;       // Atom output port
                 float                  *pLatency;       // Latency output port
                 size_t                  nPatchReqs;     // Number of patch requests
                 size_t                  nStateReqs;     // Number of state requests
+                size_t                  nShmReqs;       // Number of SHM state requests
                 ssize_t                 nSyncTime;      // Synchronization time
                 ssize_t                 nSyncSamples;   // Synchronization counter
                 ssize_t                 nClients;       // Number of clients
@@ -106,7 +113,6 @@ namespace lsp
                 uatomic_t               nStateMode;     // State change flag
                 uatomic_t               nDumpReq;
                 uatomic_t               nDumpResp;
-                meta::package_t        *pPackage;
 
                 core::KVTStorage        sKVT;
                 LV2KVTListener          sKVTListener;
@@ -116,6 +122,8 @@ namespace lsp
                 core::SamplePlayer     *pSamplePlayer;      // Sample player
                 wssize_t                nPlayPosition;      // Sample playback position
                 wssize_t                nPlayLength;        // Sample playback length
+
+                core::ShmClient        *pShmClient;         // Shared memory client
 
                 LV2_Inline_Display_Image_Surface sSurface;  // Canvas surface
 
@@ -134,6 +142,7 @@ namespace lsp
                 void                            transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req);
                 void                            transmit_time_position_to_clients();
                 void                            transmit_play_position_to_clients();
+                void                            transmit_shm_state_to_clients();
                 void                            transmit_midi_events(lv2::Port *p);
                 void                            transmit_osc_events(lv2::Port *p);
                 void                            transmit_kvt_events();
@@ -149,7 +158,7 @@ namespace lsp
                 static ssize_t                  compare_ports_by_urid(const lv2::Port *a, const lv2::Port *b);
 
             public:
-                explicit Wrapper(plug::Module *plugin, resource::ILoader *loader, lv2::Extensions *ext);
+                explicit Wrapper(plug::Module *plugin, lv2::Factory *factory, lv2::Extensions *ext);
                 virtual ~Wrapper() override;
 
                 status_t                        init(float srate);
@@ -210,6 +219,7 @@ namespace lsp
                 virtual void                    query_display_draw() override;
                 virtual void                    request_settings_update() override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
         };
     } /* namespace lv2 */
 } /* namespace lsp */

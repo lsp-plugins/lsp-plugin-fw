@@ -35,13 +35,13 @@ namespace lsp
     {
         Wrapper::Wrapper(
             plug::Module *module,
-            const meta::package_t *package,
-            resource::ILoader *loader,
+            clap::Factory *factory,
             const clap_host_t *host):
-            IWrapper(module, loader)
+            IWrapper(module, factory->resources())
         {
             pHost               = host;
-            pPackage            = package;
+            pFactory            = factory;
+            pPackage            = factory->manifest();
             pExt                = NULL;
             pExecutor           = NULL;
 
@@ -57,16 +57,28 @@ namespace lsp
             nTailSize           = 0;
             nDumpReq            = 0;
             nDumpResp           = 0;
+            nStateReq           = 0;
+            nStateResp          = 0;
 
             bLatencyChanged     = false;
             bUpdateSettings     = true;
             bStateManage        = false;
             pSamplePlayer       = NULL;
+            pShmClient          = NULL;
+
+            if (pFactory != NULL)
+                pFactory->acquire();
         }
 
         Wrapper::~Wrapper()
         {
             destroy();
+
+            if (pFactory != NULL)
+            {
+                pFactory->release();
+                pFactory            = NULL;
+            }
         }
 
         void Wrapper::destroy()
@@ -87,6 +99,15 @@ namespace lsp
                 pSamplePlayer = NULL;
             }
 
+            // Release catalog
+            if (pShmClient != NULL)
+            {
+                lsp_trace("Destroying shared memory client");
+                pShmClient->destroy();
+                delete pShmClient;
+                pShmClient      = NULL;
+            }
+
             // Destroy plugin
             if (pPlugin != NULL)
             {
@@ -98,9 +119,9 @@ namespace lsp
             // Destroy audio groups
             for (size_t i=0, n=vAudioIn.size(); i<n; ++i)
                 destroy_audio_group(vAudioIn.uget(i));
+            vAudioIn.flush();
             for (size_t i=0, n=vAudioOut.size(); i<n; ++i)
                 destroy_audio_group(vAudioOut.uget(i));
-            vAudioIn.flush();
             vAudioOut.flush();
 
             // Destroy all ports
@@ -111,6 +132,7 @@ namespace lsp
             }
             vAllPorts.flush();
             vSortedPorts.flush();
+            vAudioBuffers.flush();
             vMidiIn.flush();
             vMidiOut.flush();
 
@@ -122,13 +144,6 @@ namespace lsp
                 meta::drop_port_metadata(p);
             }
             vGenMetadata.flush();
-
-            // Destroy the loader
-            if (pLoader != NULL)
-            {
-                delete pLoader;
-                pLoader         = NULL;
-            }
 
             // Destroy the extension
             if (pExt != NULL)
@@ -198,6 +213,24 @@ namespace lsp
                     lsp_trace("audio_out id=%s", port->id);
                     break;
 
+                case meta::R_AUDIO_SEND:
+                {
+                    clap::AudioBufferPort *ab = new clap::AudioBufferPort(port);
+                    vAudioBuffers.add(ab);
+                    cp = ab;
+                    lsp_trace("audio_send id=%s", port->id);
+                    break;
+                }
+
+                case meta::R_AUDIO_RETURN:
+                {
+                    clap::AudioBufferPort *ab = new clap::AudioBufferPort(port);
+                    vAudioBuffers.add(ab);
+                    cp = ab;
+                    lsp_trace("audio_return id=%s", port->id);
+                    break;
+                }
+
                 case meta::R_OSC_IN:
                     cp = new clap::OscPort(port);
                     lsp_trace("osc_in id=%s", port->id);
@@ -220,6 +253,26 @@ namespace lsp
                     cp                      = sp;
 
                     lsp_trace("string id=%s", port->id);
+                    break;
+                }
+
+                case meta::R_SEND_NAME:
+                {
+                    clap::StringPort *sp    = new clap::StringPort(port);
+                    vStringPorts.add(sp);
+                    cp                      = sp;
+
+                    lsp_trace("send_name id=%s", port->id);
+                    break;
+                }
+
+                case meta::R_RETURN_NAME:
+                {
+                    clap::StringPort *sp    = new clap::StringPort(port);
+                    vStringPorts.add(sp);
+                    cp                      = sp;
+
+                    lsp_trace("return_name id=%s", port->id);
                     break;
                 }
 
@@ -407,13 +460,13 @@ namespace lsp
             {
                 plug::IPort *p = vAllPorts.uget(i);
                 const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
-                if ((meta != NULL) && (meta::is_audio_port(meta)))
-                {
-                    if (meta::is_in_port(meta))
-                        ins.add(p);
-                    else
-                        outs.add(p);
-                }
+                if (meta == NULL)
+                    continue;
+
+                if (meta::is_audio_in_port(meta))
+                    ins.add(p);
+                else if (meta::is_audio_out_port(meta))
+                    outs.add(p);
             }
 
             // Try to create ports using port groups
@@ -623,6 +676,16 @@ namespace lsp
                 pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
             }
 
+            // Create shared memory sends
+            if ((vAudioBuffers.size() > 0) || (meta->extensions & meta::E_SHM_TRACKING))
+            {
+                lsp_trace("Creating shared memory client");
+                pShmClient          = new core::ShmClient();
+                if (pShmClient == NULL)
+                    return STATUS_NO_MEM;
+                pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
+            }
+
             return STATUS_OK;
         }
 
@@ -665,6 +728,19 @@ namespace lsp
                     lsp_trace("activating output port id=%s", g->vPorts[j]->metadata()->id);
                     g->vPorts[j]->activate(min_frames_count, max_frames_count);
                 }
+            }
+
+            // Activate audio buffers
+            if (pShmClient != NULL)
+            {
+                pShmClient->set_sample_rate(sample_rate);
+                pShmClient->set_buffer_size(max_frames_count);
+            }
+            for (size_t i=0, n=vAudioBuffers.size(); i<n; ++i)
+            {
+                clap::AudioBufferPort *p = vAudioBuffers.uget(i);
+                if (p != NULL)
+                    p->activate(min_frames_count, max_frames_count);
             }
 
             // Call plugin for activation
@@ -1024,6 +1100,12 @@ namespace lsp
                 nDumpResp           = dump_req;
             }
 
+            if (pShmClient != NULL)
+            {
+                pShmClient->begin(process->frames_count);
+                pShmClient->pre_process(process->frames_count);
+            }
+
             // CLAP may deliver change of input parameters in the input events.
             // We need to split these events into the set of ranges and process
             // each range independently
@@ -1046,6 +1128,8 @@ namespace lsp
                 if (bUpdateSettings)
                 {
                     lsp_trace("Updating settings");
+                    if (pShmClient != NULL)
+                        pShmClient->update_settings();
                     pPlugin->update_settings();
                     bUpdateSettings     = false;
                 }
@@ -1064,6 +1148,12 @@ namespace lsp
 
                 // Update the processing offset
                 offset     += block_size;
+            }
+
+            if (pShmClient != NULL)
+            {
+                pShmClient->post_process(process->frames_count);
+                pShmClient->end();
             }
 
             // Unbind audio ports
@@ -1119,6 +1209,18 @@ namespace lsp
                 // [main thread]
                 if (bLatencyChanged)
                     pHost->request_restart(pHost);
+            }
+
+            uint32_t state_req = atomic_load(&nStateReq);
+            if (state_req != nStateResp)
+            {
+                // From CLAP documentation:
+                // Tell the host that the plugin state has changed and should be saved again.
+                // If a parameter value changes, then it is implicit that the state is dirty.
+                // [main-thread]
+                if (pExt->state != NULL)
+                    pExt->state->mark_dirty(pHost);
+                nStateResp = state_req;
             }
         }
 
@@ -2042,8 +2144,7 @@ namespace lsp
             if (bStateManage)
                 return;
 
-            if (pExt->state != NULL)
-                pExt->state->mark_dirty(pHost);
+            atomic_add(&nStateReq, 1);
         }
 
         void Wrapper::request_state_dump()
@@ -2059,6 +2160,11 @@ namespace lsp
         meta::plugin_format_t Wrapper::plugin_format() const
         {
             return meta::PLUGIN_CLAP;
+        }
+
+        const core::ShmState *Wrapper::shm_state()
+        {
+            return (pShmClient != NULL) ? pShmClient->state() : NULL;
         }
 
     } /* namespace clap */

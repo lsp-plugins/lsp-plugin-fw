@@ -29,6 +29,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/plug/data.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/core/ShmState.h>
 #include <lsp-plug.in/ipc/IExecutor.h>
 #include <lsp-plug.in/resource/ILoader.h>
 #include <lsp-plug.in/resource/PrefixLoader.h>
@@ -143,6 +144,15 @@ namespace lsp
                  * @return plugin format
                  */
                 virtual meta::plugin_format_t   plugin_format() const;
+
+                /**
+                 * Get the actual shared memory state (list of connections).
+                 * Note that multiple calls may change the result pointer and
+                 * invalidate the previously returned pointer.
+                 *
+                 * @return pointer to actual shared memory state or NULL
+                 */
+                virtual const core::ShmState   *shm_state();
         };
     } /* namespace plug */
 } /* namespace lsp */

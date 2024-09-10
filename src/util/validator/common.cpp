@@ -41,7 +41,8 @@ namespace lsp
             meta::E_OSC |
             meta::E_KVT_SYNC |
             meta::E_DUMP_STATE |
-            meta::E_FILE_PREVIEW;
+            meta::E_FILE_PREVIEW |
+            meta::E_SHM_TRACKING;
 
         static const char *decode_plugin_class(int type)
         {
@@ -175,6 +176,8 @@ namespace lsp
             {
                 case meta::R_AUDIO_IN:
                 case meta::R_AUDIO_OUT:
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
                 case meta::R_CONTROL:
                 case meta::R_METER:
                 case meta::R_MESH:
@@ -185,6 +188,20 @@ namespace lsp
                     if (port->value == NULL)
                     {
                         validation_error(ctx, "The default string value should be specified for plugin uid='%s', STRING port='%s'",
+                            meta->uid, port->id);
+                    }
+                    break;
+                case meta::R_SEND_NAME:
+                    if (port->value == NULL)
+                    {
+                        validation_error(ctx, "The default string value should be specified for plugin uid='%s', SEND_NAME port='%s'",
+                            meta->uid, port->id);
+                    }
+                    break;
+                case meta::R_RETURN_NAME:
+                    if (port->value == NULL)
+                    {
+                        validation_error(ctx, "The default string value should be specified for plugin uid='%s', RETURN_NAME port='%s'",
                             meta->uid, port->id);
                     }
                     break;
@@ -346,6 +363,130 @@ namespace lsp
                 validate_ports(ctx, meta, port, NULL);
         }
 
+        void validate_send_return(context_t *ctx, const meta::plugin_t *meta)
+        {
+            typedef struct group_t
+            {
+                const meta::port_t *desc;
+                lltl::parray<meta::port_t> items;
+            } group_t;
+
+            lltl::pphash<char, group_t> groups;
+            lsp_finally {
+                for (lltl::iterator<group_t> it = groups.values(); it; ++it)
+                    delete it.get();
+            };
+
+            // Pass 1: fill all information about send/return groups
+            for (const meta::port_t *p = meta->ports; (p != NULL) && (p->id != NULL); ++p)
+            {
+                if ((meta::is_send_name(p)) || (meta::is_return_name(p)))
+                {
+                    group_t **res = groups.create(p->id);
+                    if (res == NULL)
+                    {
+                        validation_error(ctx, "Failed to create send/return id='%s' for plugin uid=%s", p->id, meta->uid);
+                        continue;
+                    }
+
+                    group_t *group = new group_t;
+                    if (group == NULL)
+                    {
+                        validation_error(ctx, "Failed to allocate memory for send/return id='%s' for plugin uid=%s", p->id, meta->uid);
+                        continue;
+                    }
+
+                    group->desc = p;
+                    *res        = group;
+                }
+            }
+
+            // Pass 2: fill all information about sends and returns
+            for (const meta::port_t *p = meta->ports; (p != NULL) && (p->id != NULL); ++p)
+            {
+                if ((meta::is_audio_send_port(p)) || (meta::is_audio_return_port(p)))
+                {
+                    const char *type = (meta::is_audio_send_port(p)) ? "Send" : "Return";
+
+                    // Ensure that mapping to the group is specified
+                    if ((p->value == NULL) || (strlen(p->value) <= 0))
+                    {
+                        validation_error(ctx, "%s id='%s' has no group specified for plugin uid=%s", type, p->id, meta->uid);
+                        continue;
+                    }
+
+                    // Ensture that group exists
+                    group_t *group = groups.get(p->value);
+                    if (group == NULL)
+                    {
+                        validation_error(ctx, "%s id='%s' is set to belong to send/return group '%s' but group '%s' does not exist for plugin uid=%s",
+                            type, p->id, p->value, p->value, meta->uid);
+                        continue;
+                    }
+
+                    // Check that group type matches the member type
+                    if ((meta::is_audio_send_port(p)) && (!meta::is_send_name(group->desc)))
+                    {
+                        validation_error(ctx, "%s id='%s' is set to belong to return group '%s' but group '%s' accepts only ports of type 'AUDIO_RETURN' for plugin uid=%s",
+                            type, p->id, p->value, p->value, meta->uid);
+                    }
+                    else if ((meta::is_audio_return_port(p)) && (!meta::is_return_name(group->desc)))
+                    {
+                        validation_error(ctx, "%s id='%s' is set to belong to send group '%s' but group '%s' accepts only ports of type 'AUDIO_SEND' for plugin uid=%s",
+                            type, p->id, p->value, p->value, meta->uid);
+                    }
+
+                    // Check that proper index has been specified
+                    ssize_t index = p->start;
+                    if ((index < 0) || (index > 0x100))
+                    {
+                        validation_error(ctx, "%s id='%s' has invalid group index %d for plugin uid=%s",
+                            type, p->id, int(index), meta->uid);
+                        continue;
+                    }
+
+                    while (group->items.size() <= size_t(index))
+                        group->items.append(static_cast<meta::port_t *>(NULL));
+
+                    const meta::port_t *xport = group->items.uget(index);
+                    if (xport != NULL)
+                    {
+                        validation_error(ctx, "%s id='%s' conflicts with port id='%s': has duplicate group index %d for group id='%s', plugin uid=%s",
+                            type, p->id, xport->id, int(index), group->desc->id, meta->uid);
+                        continue;
+                    }
+                    group->items.set(index, const_cast<meta::port_t *>(p));
+                }
+            }
+
+            // Pass 3: validate groups for empty elements
+            for (lltl::iterator<group_t> it = groups.values(); it; ++it)
+            {
+                group_t *group = it.get();
+                if (group == NULL)
+                    continue;
+
+                const char *type = (meta::is_send_name(group->desc)) ? "Send group" : "Return group";
+
+                if (group->items.size() <= 0)
+                {
+                    validation_error(ctx, "%s id='%s' has no nested audio send/return items for plugin uid=%s",
+                        type, group->desc->id, meta->uid);
+                    continue;
+                }
+
+                for (size_t i=0, n=group->items.size(); i<n; ++i)
+                {
+                    const meta::port_t *p = group->items.uget(i);
+                    if (p == NULL)
+                    {
+                        validation_error(ctx, "%s id='%s' has missing send/return item with index %d for plugin uid=%s",
+                            type, group->desc->id, int(i), meta->uid);
+                    }
+                }
+            }
+        }
+
         const meta::port_group_t *find_port_group(const meta::plugin_t *meta, const char *uid)
         {
             for (const meta::port_group_t *pg = meta->port_groups; pg->id != NULL; ++pg)
@@ -447,23 +588,19 @@ namespace lsp
                     }
 
                     // Check that port type and direction matches the port group
-                    if (!meta::is_audio_port(p))
-                    {
-                        validation_error(ctx, "The role of port '%s' of group '%s' should be R_AUDIO for plugin uid='%s'",
-                            item->id, pg->id, meta->uid);
-                    }
                     if (meta::is_out_group(pg))
                     {
-                        if (!meta::is_out_port(p))
+                        if (!meta::is_audio_out_port(p))
                         {
-                            validation_error(ctx, "The port '%s' of output group '%s' should also be an output port for plugin uid='%s'",
+                            validation_error(ctx, "The port '%s' of output group '%s' should also be an R_AUDIO_OUT port for plugin uid='%s'",
                                 item->id, pg->id, meta->uid);
                         }
                     }
-                    else if (!meta::is_in_port(p))
+                    else
                     {
-                        validation_error(ctx, "The port '%s' of input group '%s' should also be an input port for plugin uid='%s'",
-                            item->id, pg->id, meta->uid);
+                        if (!meta::is_audio_in_port(p))
+                            validation_error(ctx, "The port '%s' of input group '%s' should also be an R_AUDIO_IN port for plugin uid='%s'",
+                                item->id, pg->id, meta->uid);
                     }
 
                     // Check for ambiguity of port roles within the group
@@ -626,6 +763,7 @@ namespace lsp
 
             // Validate ports
             validate_ports(ctx, meta);
+            validate_send_return(ctx, meta);
 
             // Validate the UI
             validate_ui(ctx, meta);

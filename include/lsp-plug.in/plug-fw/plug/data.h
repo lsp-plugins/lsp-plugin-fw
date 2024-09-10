@@ -528,7 +528,7 @@ namespace lsp
             /**
              * Submit string contents. If string length is larger than allowed capacity, it is truncated.
              * This method introduces atomic locks and should never be called from real-time thread.
-             * @param str UTF-8 string to submit
+             * @param buffer UTF-8 string to submit
              * @param size size of data in bytes
              * @param state indicates that value has been restored from state
              * @return serial number associated with this change
@@ -543,6 +543,25 @@ namespace lsp
              * @return serial number associated with this change
              */
             uint32_t            submit(const LSPString *str, bool state);
+
+            /**
+             * Set string contents. If string length is larger than allowed capacity, it is truncated.
+             * This method does the same to submit() but without locking.
+             * @param str UTF-8 string to submit
+             * @param state indicates that value has been restored from state
+             * @return serial number associated with this change
+             */
+            uint32_t            set(const char *str, bool state);
+
+            /**
+             * Set string contents. If string length is larger than allowed capacity, it is truncated.
+             * This method does the same to submit() but without locking.
+             * @param buffer UTF-8 string to submit
+             * @param size size of data in bytes
+             * @param state indicates that value has been restored from state
+             * @return serial number associated with this change
+             */
+            uint32_t            set(const void *buffer, size_t size, bool state);
 
             /**
              * Read current contents of the string to passed buffer if serial value differs to the passed one,
@@ -580,6 +599,11 @@ namespace lsp
              * @return actual serial number
              */
             uint32_t            serial() const;
+
+            /**
+             * Increment serial number as internal value has been changed
+             */
+            void                touch();
 
             /**
              * Allocate string parameter

@@ -1031,7 +1031,7 @@ BIN_EXTRA_FILES             = $(foreach dep, $(BIN_EXTRA_SHARED) $(BIN_EXTRA_PLU
   $(wildcard $($(dep)_PATH)/*LICENSE*) \
 )
 
-ALLOWED_BUILD_TARGETS       = clap doc gst jack ladspa lv2 test vst2 vst3 xdg
+ALLOWED_BUILD_TARGETS       = clap doc gst jack ladspa lv2 test vst2 vst3 xdg meta validate
 ALLOWED_PACKAGE_TARGETS     = clap doc gst jack ladspa lv2 vst2 vst3
 BUILD_TARGETS               = $(call intersection,$(foreach feature,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(feature)),$(ALLOWED_BUILD_TARGETS))
 INSTALL_TARGETS             = $(foreach feature,$(INSTALL_FEATURES),install_$(feature))

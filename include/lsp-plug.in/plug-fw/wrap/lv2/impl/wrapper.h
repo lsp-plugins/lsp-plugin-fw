@@ -26,7 +26,9 @@
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
+#include <lsp-plug.in/plug-fw/wrap/lv2/factory.h>
 
 #define LSP_LEGACY_KVT_URI          LSP_LV2_BASE_URI "ui/lv2"
 
@@ -56,11 +58,12 @@ namespace lsp
             return ssize_t(a->get_urid()) - ssize_t(b->get_urid());
         }
 
-        Wrapper::Wrapper(plug::Module *plugin, resource::ILoader *loader, lv2::Extensions *ext):
-            plug::IWrapper(plugin, loader),
+        Wrapper::Wrapper(plug::Module *plugin, lv2::Factory *factory, lv2::Extensions *ext):
+            plug::IWrapper(plugin, factory->resources()),
             sKVTListener(this)
         {
             pPlugin         = plugin;
+            pFactory        = factory;
             pExt            = ext;
             pExecutor       = NULL;
             pAtomIn         = NULL;
@@ -68,6 +71,7 @@ namespace lsp
             pLatency        = NULL;
             nPatchReqs      = 0;
             nStateReqs      = 0;
+            nShmReqs        = 0;
             nSyncTime       = 0;
             nSyncSamples    = 0;
             nClients        = 0;
@@ -85,12 +89,15 @@ namespace lsp
             atomic_store(&nStateMode, SM_LOADING);
             atomic_store(&nDumpReq, 0);
             nDumpResp       = 0;
-            pPackage        = NULL;
             pKVTDispatcher  = NULL;
 
             pSamplePlayer   = NULL;
             nPlayPosition   = 0;
             nPlayLength     = 0;
+
+            pShmClient      = NULL;
+
+            pFactory->acquire();
         }
 
         Wrapper::~Wrapper()
@@ -113,10 +120,15 @@ namespace lsp
             sSurface.width  = 0;
             sSurface.height = 0;
             sSurface.stride = 0;
-            pPackage        = NULL;
 
             pKVTDispatcher  = NULL;
             pSamplePlayer   = NULL;
+
+            if (pFactory != NULL)
+            {
+                pFactory->release();
+                pFactory        = NULL;
+            }
         }
 
         lv2::Port *Wrapper::port_by_urid(LV2_URID urid)
@@ -160,25 +172,6 @@ namespace lsp
 
             // Get plugin metadata
             const meta::plugin_t *m  = pPlugin->metadata();
-            status_t res;
-
-            // Load package information
-            io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
-            if (is == NULL)
-            {
-                lsp_error("No manifest.json found in resources");
-                return STATUS_BAD_STATE;
-            }
-
-            res = meta::load_manifest(&pPackage, is);
-            is->close();
-            delete is;
-
-            if (res != STATUS_OK)
-            {
-                lsp_error("Error while reading manifest file");
-                return res;
-            }
 
             // Create ports
             lsp_trace("Creaing ports");
@@ -220,6 +213,18 @@ namespace lsp
                 pSamplePlayer->set_sample_rate(srate);
             }
 
+            // Create shared memory sends
+            if ((vAudioBuffers.size() > 0) || (m->extensions & meta::E_SHM_TRACKING))
+            {
+                lsp_trace("Creating shared memory client");
+                pShmClient          = new core::ShmClient();
+                if (pShmClient == NULL)
+                    return STATUS_NO_MEM;
+                pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
+                pShmClient->set_sample_rate(fSampleRate);
+                pShmClient->set_buffer_size(pExt->nMaxBlockLength);
+            }
+
             // Update refresh rate
             nSyncSamples        = srate / pExt->ui_refresh_rate();
             nClients            = 0;
@@ -240,6 +245,14 @@ namespace lsp
                 pSamplePlayer->destroy();
                 delete pSamplePlayer;
                 pSamplePlayer = NULL;
+            }
+
+            // Destroy shared memory client
+            if (pShmClient != NULL)
+            {
+                pShmClient->destroy();
+                delete pShmClient;
+                pShmClient = NULL;
             }
 
             // Stop KVT dispatcher
@@ -291,13 +304,6 @@ namespace lsp
                 drop_port_metadata(vGenMetadata[i]);
             }
 
-            // Destroy manifest
-            if (pPackage != NULL)
-            {
-                meta::free_manifest(pPackage);
-                pPackage        = NULL;
-            }
-
             vAllPorts.flush();
             vExtPorts.flush();
             vMeshPorts.flush();
@@ -320,13 +326,6 @@ namespace lsp
             {
                 delete pExt;
                 pExt        = NULL;
-            }
-
-            // Drop loader
-            if (pLoader != NULL)
-            {
-                delete pLoader;
-                pLoader     = NULL;
             }
         }
 
@@ -387,13 +386,26 @@ namespace lsp
                     break;
 
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     if (pExt->atom_supported())
-                        result      = new lv2::StringPort(p, pExt);
+                    {
+                        lv2::StringPort *sp     = new lv2::StringPort(p, pExt);
+                        vStringPorts.add(sp);
+                        result      = sp;
+                    }
                     else
                         result      = new lv2::Port(p, pExt, false);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
-                    lsp_trace("Added string port id=%s", result->metadata()->id);
+                #ifdef LSP_TRACE
+                    if (meta::is_send_name(p))
+                        lsp_trace("Added send name port id=%s", result->metadata()->id);
+                    else if (meta::is_return_name(p))
+                        lsp_trace("Added return name port id=%s", result->metadata()->id);
+                    else
+                        lsp_trace("Added string port id=%s", result->metadata()->id);
+                #endif /* LSP_TRACE */
                     break;
 
                 case meta::R_MIDI_IN:
@@ -442,6 +454,31 @@ namespace lsp
                     else
                         lsp_trace("Added audio port id=%s", result->metadata()->id);
                     break;
+
+                case meta::R_AUDIO_SEND:
+                {
+                    lv2::AudioBufferPort *ap = new lv2::AudioBufferPort(p, pExt);
+                    vPluginPorts.add(ap);
+                    vAudioBuffers.add(ap);
+                    plugin_ports->add(ap);
+                    result = ap;
+
+                    lsp_trace("Added audio send port id=%s", result->metadata()->id);
+                    break;
+                }
+
+                case meta::R_AUDIO_RETURN:
+                {
+                    lv2::AudioBufferPort *ap = new lv2::AudioBufferPort(p, pExt);
+                    vPluginPorts.add(ap);
+                    vAudioBuffers.add(ap);
+                    plugin_ports->add(ap);
+                    result = ap;
+
+                    lsp_trace("Added audio return port id=%s", result->metadata()->id);
+                    break;
+                }
+
                 case meta::R_CONTROL:
                 case meta::R_METER:
                     if (meta::is_out_port(p))
@@ -598,6 +635,8 @@ namespace lsp
             if (bUpdateSettings)
             {
                 pPlugin->update_settings();
+                if (pShmClient != NULL)
+                    pShmClient->update_settings();
                 bUpdateSettings     = false;
             }
 
@@ -614,6 +653,12 @@ namespace lsp
             for (size_t off=0; off < samples; )
             {
                 size_t to_process = lsp_min(samples - off, pExt->nMaxBlockLength);
+
+                if (pShmClient != NULL)
+                {
+                    pShmClient->begin(to_process);
+                    pShmClient->pre_process(to_process);
+                }
 
                 // Sanitize input data
                 for (size_t i=0; i<n_audio_ports; ++i)
@@ -634,8 +679,18 @@ namespace lsp
                         port->sanitize_after(off, to_process);
                 }
 
+                if (pShmClient != NULL)
+                {
+                    pShmClient->post_process(to_process);
+                    pShmClient->end();
+                }
+
                 off += to_process;
             }
+
+            // Increment number of state requests
+            if ((pShmClient != NULL) && (pShmClient->state_updated()))
+                nShmReqs ++;
 
             // Transmit atoms (if possible)
             transmit_atoms(samples);
@@ -845,7 +900,6 @@ namespace lsp
                         lv2::Port *p    = port_by_urid(key->body);
                         if ((p != NULL) && (p->get_type_urid() == value->type))
                         {
-                            lsp_trace("forwarding patch message to port %s", p->metadata()->id);
                             if (p->deserialize(value, 0)) // No flags for simple PATCH message
                             {
                                 // Change state if it is a virtual port
@@ -914,6 +968,7 @@ namespace lsp
                 {
                     nClients    ++;
                     nStateReqs  ++;
+                    nShmReqs    ++;
                     lsp_trace("UI has connected, current number of clients=%d", int(nClients));
                     if (pKVTDispatcher != NULL)
                         pKVTDispatcher->connect_client();
@@ -1101,6 +1156,56 @@ namespace lsp
             nPlayLength         = length;
         }
 
+        void Wrapper::transmit_shm_state_to_clients()
+        {
+            if ((pShmClient == NULL) || (nShmReqs <= 0) || (nClients <= 0))
+                return;
+
+            const core::ShmState *state   = pShmClient->state();
+            if (state == NULL)
+                return;
+
+            lsp_trace("Transmitting shared memory state...");
+
+            nShmReqs = 0;
+
+            LV2_Atom_Forge_Frame    frame, tuple, obj;
+
+            pExt->forge_frame_time(0); // Event header
+            pExt->forge_object(&frame, pExt->uridShmState, pExt->uridShmStateType);
+
+            pExt->forge_key(pExt->uridShmStateItems);
+            pExt->forge_tuple(&tuple);
+
+            for (size_t i=0, n=state->size(); i<n; ++i)
+            {
+                const core::ShmRecord *item = state->get(i);
+                if (item == NULL)
+                    continue;
+
+                pExt->forge_object(&obj, pExt->uridBlank, pExt->uridShmRecordType);
+
+                pExt->forge_key(pExt->uridShmRecordName);
+                pExt->forge_string(item->name);
+
+                pExt->forge_key(pExt->uridShmRecordId);
+                pExt->forge_string(item->id);
+
+                pExt->forge_key(pExt->uridShmRecordIndex);
+                pExt->forge_int(item->index);
+
+                pExt->forge_key(pExt->uridShmRecordMagic);
+                pExt->forge_int(item->magic);
+
+                pExt->forge_pop(&obj);
+            }
+
+            pExt->forge_pop(&tuple);
+            pExt->forge_pop(&frame);
+
+            lsp_trace("Transmitted shared memory state of %d records", int(state->size()));
+        }
+
         void Wrapper::transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req)
         {
             // Serialize time/position of plugin
@@ -1128,6 +1233,8 @@ namespace lsp
                     case meta::R_FBUFFER:
                         continue;
                     case meta::R_STRING:
+                    case meta::R_SEND_NAME:
+                    case meta::R_RETURN_NAME:
                     case meta::R_PATH:
                         if (p->tx_pending()) // Tranmission request pending?
                             break;
@@ -1158,6 +1265,9 @@ namespace lsp
                 pExt->forge_key(pExt->uridPatchValue);
                 p->serialize();
                 pExt->forge_pop(&frame);
+
+                // Reset pending transfer flag
+                p->reset_tx_pending();
             }
 
             // Serialize meshes (it's own primitive MESH)
@@ -1367,6 +1477,7 @@ namespace lsp
             // Forge sequence header
             LV2_Atom_Forge_Frame    seq;
             pExt->forge_sequence_head(&seq, 0);
+            lsp_finally { pExt->forge_pop(&seq); };
 
             // Transmit state change atom if state has been changed
             if (change_state_atomic(SM_CHANGED, SM_REPORTED))
@@ -1407,9 +1518,7 @@ namespace lsp
             }
 
             transmit_play_position_to_clients();
-
-            // Complete sequence
-            pExt->forge_pop(&seq);
+            transmit_shm_state_to_clients();
         }
 
         void Wrapper::transmit_osc_events(lv2::Port *p)
@@ -2176,7 +2285,7 @@ namespace lsp
 
         const meta::package_t *Wrapper::package() const
         {
-            return pPackage;
+            return pFactory->manifest();
         }
 
         meta::plugin_format_t Wrapper::plugin_format() const
@@ -2200,6 +2309,11 @@ namespace lsp
         void Wrapper::request_settings_update()
         {
             bUpdateSettings     = true;
+        }
+
+        const core::ShmState *Wrapper::shm_state()
+        {
+            return (pShmClient != NULL) ? pShmClient->state() : NULL;
         }
 
     } /* namespace lv2 */

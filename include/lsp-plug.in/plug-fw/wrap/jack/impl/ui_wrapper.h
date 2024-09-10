@@ -234,6 +234,8 @@ namespace lsp
             {
                 case meta::R_AUDIO_IN:
                 case meta::R_AUDIO_OUT:
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
                     // Stub port
                     jup     = new jack::UIPort(jp);
                     break;
@@ -269,7 +271,10 @@ namespace lsp
                     break;
 
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     jup     = new jack::UIStringPort(jp);
+                    vSyncPorts.add(jup);
                     break;
 
                 case meta::R_CONTROL:
@@ -548,6 +553,12 @@ namespace lsp
 
             return res;
         }
+
+        const core::ShmState *UIWrapper::shm_state()
+        {
+            return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
+        }
+
     } /* namespace jack */
 } /* namespace lsp */
 

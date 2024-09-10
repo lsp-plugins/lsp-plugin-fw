@@ -26,11 +26,13 @@
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/chunk.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/ports.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/factory.h>
 
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/parray.h>
@@ -48,6 +50,7 @@ namespace lsp
 
             private:
                 AEffect                            *pEffect;
+                vst2::Factory                      *pFactory;
                 audioMasterCallback                 pMaster;
                 ipc::IExecutor                     *pExecutor;
                 vst2::chunk_t                       sChunk;
@@ -65,9 +68,10 @@ namespace lsp
                 uatomic_t                           nDumpResp;
                 vst2::Port                         *pBypass;
                 core::SamplePlayer                 *pSamplePlayer;  // Sample player
-                meta::package_t                    *pPackage;
+                core::ShmClient                    *pShmClient;     // Shared memory client
 
                 lltl::parray<vst2::AudioPort>       vAudioPorts;    // List of audio ports
+                lltl::parray<vst2::AudioBufferPort> vAudioBuffers;  // Audio buffer ports
                 lltl::parray<vst2::MidiInputPort>   vMidiIn;        // Input MIDI ports
                 lltl::parray<vst2::MidiOutputPort>  vMidiOut;       // Output MIDI ports
                 lltl::parray<vst2::ParameterPort>   vExtParams;     // List of controllable external parameters
@@ -95,7 +99,7 @@ namespace lsp
             public:
                 Wrapper(
                     plug::Module *plugin,
-                    resource::ILoader *loader,
+                    vst2::Factory *factory,
                     AEffect *effect,
                     audioMasterCallback callback
                 );
@@ -144,6 +148,7 @@ namespace lsp
                 virtual void                    request_settings_update() override;
                 virtual void                    state_changed() override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
         };
     } /* namespace vst2 */
 } /* namespace lsp */

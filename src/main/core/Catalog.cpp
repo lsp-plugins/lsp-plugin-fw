@@ -36,6 +36,19 @@ namespace lsp
         {
         }
 
+        bool Catalog::open_catalog()
+        {
+            LSPString catalog_name;
+            status_t res    = system::get_user_login(&catalog_name);
+            if (res != STATUS_OK)
+                return false;
+
+            if (!catalog_name.prepend_ascii("lsp-catalog-"))
+                return false;
+
+            return sCatalog.open(&catalog_name, 8192) == STATUS_OK;
+        }
+
         status_t Catalog::run()
         {
             while (!ipc::Thread::is_cancelled())
@@ -43,17 +56,16 @@ namespace lsp
                 // Ensure that catalog is opened
                 if (!sCatalog.opened())
                 {
-                    status_t res    = sCatalog.open("lsp-catalog.shm", 8192);
-                    if (res != STATUS_OK)
-                    {
+                    if (!open_catalog())
                         ipc::Thread::sleep(100);
-                        continue;
-                    }
                 }
 
                 // Process change requests
                 if (!process_events())
                 {
+                    // Perform garbage collection
+                    sCatalog.gc();
+
                     // Perform short sleep
                     ipc::Thread::sleep(50);
                 }
@@ -68,9 +80,16 @@ namespace lsp
 
         bool Catalog::process_events()
         {
+            // Synchronize catalog state with clients
             sync_catalog();
 
+            // Make all clients possible to perform keep-alive
+            process_keep_alive();
+
+            // Update clients
             size_t processed = process_update();
+
+            // Apply changes to clients
             processed += process_apply();
 
             return processed > 0;
@@ -97,12 +116,27 @@ namespace lsp
             }
         }
 
+        void Catalog::process_keep_alive()
+        {
+            // Lock the state
+            if (!sMutex.lock())
+                return;
+            lsp_finally {
+                sMutex.unlock();
+            };
+
+            // Iterate over the clients and try to update them
+            for (lltl::iterator<ICatalogClient> it = vClients.values(); it; ++it)
+            {
+                ICatalogClient *c = it.get();
+                if (c != NULL)
+                    c->keep_alive(&sCatalog);
+            }
+        }
+
         size_t Catalog::process_update()
         {
             size_t count = 0;
-
-            if (!sCatalog.sync())
-                return count;
 
             // Lock the state
             if (!sMutex.lock())
@@ -119,7 +153,7 @@ namespace lsp
                     continue;
 
                 // Call the client to update
-                const uint32_t response     = c->sUpdate.nRequest;
+                const uint32_t response     = atomic_load(&c->sUpdate.nRequest);
                 if (response == c->sUpdate.nResponse)
                     continue;
                 ++count;
@@ -151,14 +185,14 @@ namespace lsp
                     continue;
 
                 // Do not call apply if update is pending
-                if (c->sUpdate.nRequest != c->sUpdate.nResponse)
+                if (atomic_load(&c->sUpdate.nRequest) != c->sUpdate.nResponse)
                 {
                     ++count;
                     continue;
                 }
 
                 // Call the client to apply changes
-                const uint32_t response = c->sApply.nRequest;
+                const uint32_t response = atomic_load(&c->sApply.nRequest);
                 if (response == c->sApply.nResponse)
                     continue;
                 ++count;
@@ -195,6 +229,14 @@ namespace lsp
                 // Add client to the list of clients
                 if (!vClients.add(client))
                     return STATUS_NO_MEM;
+
+                // Force the client to update
+                client->request_update();
+                const uint32_t response     = atomic_load(&client->sUpdate.nRequest);
+
+                // Commit only if update was successful
+                if (client->update(&sCatalog))
+                    client->sUpdate.nResponse   = response;
             }
 
             // Check that we have a dispatcher tread running

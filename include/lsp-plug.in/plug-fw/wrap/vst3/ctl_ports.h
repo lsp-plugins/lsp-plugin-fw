@@ -374,8 +374,8 @@ namespace lsp
                     }
                 }
 
-                CtlStringPort(const CtlPathPort &) = delete;
-                CtlStringPort(CtlPathPort &&) = delete;
+                CtlStringPort(const CtlStringPort &) = delete;
+                CtlStringPort(CtlStringPort &&) = delete;
 
                 CtlStringPort & operator = (const CtlStringPort &) = delete;
                 CtlStringPort & operator = (CtlStringPort &&) = delete;

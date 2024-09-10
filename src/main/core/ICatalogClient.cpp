@@ -67,6 +67,8 @@ namespace lsp
                 sUpdate.nResponse           = upd_response;
                 sApply.nResponse            = apl_response;
             }
+            else
+                pCatalog                    = catalog;
 
             return res;
         }
@@ -96,9 +98,13 @@ namespace lsp
             return true;
         }
 
+        void ICatalogClient::keep_alive(dspu::Catalog *catalog)
+        {
+        }
+
         bool ICatalogClient::attached() const
         {
-            return pCatalog     != NULL;
+            return pCatalog != NULL;
         }
 
     } /* namespace core */

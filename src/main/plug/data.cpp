@@ -149,15 +149,9 @@ namespace lsp
             // Acquire lock
             while (!atomic_trylock(nLock))
                 ipc::Thread::yield();
-            lsp_finally {
-                atomic_unlock(nLock);
-            };
+            lsp_finally { atomic_unlock(nLock); };
 
-            // Update string
-            utf8_strncpy(sPending, nCapacity, str);
-            const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
-            nRequest        = serial;
-            return serial;
+            return set(str, state);
         }
 
         uint32_t string_t::submit(const void *buffer, size_t size, bool state)
@@ -165,20 +159,14 @@ namespace lsp
             // Acquire lock
             while (!atomic_trylock(nLock))
                 ipc::Thread::yield();
-            lsp_finally {
-                atomic_unlock(nLock);
-            };
+            lsp_finally { atomic_unlock(nLock); };
 
-            // Update string
-            utf8_strncpy(sPending, nCapacity, buffer, size);
-            const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
-            nRequest        = serial;
-            return serial;
+            return set(buffer, size, state);
         }
 
         uint32_t string_t::submit(const LSPString *str, bool state)
         {
-            // Obtain a valid UTF-8 string limite by nCapacity characters
+            // Obtain a valid UTF-8 string limit by nCapacity characters
             size_t len = lsp_min(str->length(), nCapacity);
             const char *src = str->get_utf8(0, len);
             if (src == NULL)
@@ -197,9 +185,28 @@ namespace lsp
             return serial;
         }
 
+        uint32_t string_t::set(const char *str, bool state)
+        {
+            // Update string
+            utf8_strncpy(sPending, nCapacity, str);
+            const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
+            nRequest        = serial;
+            return serial;
+        }
+
+        uint32_t string_t::set(const void *buffer, size_t size, bool state)
+        {
+            // Update string
+            utf8_strncpy(sPending, nCapacity, buffer, size);
+            const uint32_t serial = ((nRequest + 2) & (~uint32_t(1))) | (state ? 1 : 0);
+            nRequest        = serial;
+            return serial;
+        }
+
         bool string_t::fetch(uint32_t *serial, char *dst, size_t size)
         {
-            if (nSerial == *serial)
+            const uint32_t s = atomic_load(&nSerial);
+            if (s == *serial)
                 return false;
 
             // Acquire lock
@@ -212,7 +219,7 @@ namespace lsp
             // Copy data
             strncpy(dst, sData, size);
             sData[size-1] = '\0';
-            *serial = nSerial;
+            *serial = s;
 
             return true;
         }
@@ -223,19 +230,20 @@ namespace lsp
                 return false;
             lsp_finally { atomic_unlock(nLock); };
 
-            if (nSerial == nRequest)
+            uint32_t serial = atomic_load(&nSerial);
+            if (serial == nRequest)
                 return false;
 
             // Copy contents and update state
             strcpy(sData, sPending);
-            nSerial     = nRequest;
+            atomic_store(&nSerial, nRequest);
 
             return true;
         }
 
         bool string_t::is_state() const
         {
-            return nSerial & 1;
+            return atomic_load(&nSerial) & 1;
         }
 
         size_t string_t::max_bytes() const
@@ -245,7 +253,13 @@ namespace lsp
 
         uint32_t string_t::serial() const
         {
-            return nSerial;
+            return atomic_load(&nSerial);
+        }
+
+        void string_t::touch()
+        {
+            const uint32_t serial = (atomic_load(&nSerial) + 2) & (~uint32_t(1));
+            atomic_store(&nSerial, serial);
         }
 
         string_t *string_t::allocate(size_t max_length)

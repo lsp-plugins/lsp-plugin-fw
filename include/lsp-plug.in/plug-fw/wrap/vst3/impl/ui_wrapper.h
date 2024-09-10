@@ -108,6 +108,16 @@ namespace lsp
                     vup     = new vst3::UIPort(p);
                     break;
 
+                case meta::R_AUDIO_SEND:
+                    lsp_trace("creating audio send port %s", port->id);
+                    vup     = new vst3::UIPort(p);
+                    break;
+
+                case meta::R_AUDIO_RETURN:
+                    lsp_trace("creating audio return port %s", port->id);
+                    vup     = new vst3::UIPort(p);
+                    break;
+
                 case meta::R_MESH:
                     lsp_trace("creating mesh port %s", port->id);
                     vup     = new vst3::UIPort(p);
@@ -133,6 +143,8 @@ namespace lsp
                     break;
 
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     lsp_trace("creating string port %s", port->id);
                     vup     = new vst3::UIPort(p);
                     break;
@@ -835,6 +847,11 @@ namespace lsp
                 self->main_iteration();
 
             return STATUS_OK;
+        }
+
+        const core::ShmState *UIWrapper::shm_state()
+        {
+            return pController->shm_state();
         }
 
     } /* namespace vst3 */

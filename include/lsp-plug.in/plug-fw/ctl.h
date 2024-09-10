@@ -105,6 +105,7 @@
     #include <lsp-plug.in/plug-fw/ctl/specific/LedChannel.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedMeter.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/MidiNote.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/ShmLink.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/TempoTap.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/ThreadComboBox.h>
 

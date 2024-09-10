@@ -214,6 +214,15 @@ namespace lsp
                 LV2_URID                uridPlayPositionPosition;
                 LV2_URID                uridPlayPositionLength;
 
+                LV2_URID                uridShmState;
+                LV2_URID                uridShmStateType;
+                LV2_URID                uridShmStateItems;
+                LV2_URID                uridShmRecordType;
+                LV2_URID                uridShmRecordId;
+                LV2_URID                uridShmRecordName;
+                LV2_URID                uridShmRecordIndex;
+                LV2_URID                uridShmRecordMagic;
+
             public:
                 inline Extensions(
                     const LV2_Feature* const* feat,
@@ -391,6 +400,15 @@ namespace lsp
                     uridPlayPositionType        = map_type("PlayPosition");
                     uridPlayPositionPosition    = map_field("PlayPosition", "position");
                     uridPlayPositionLength      = map_field("PlayPosition", "length");
+
+                    uridShmState                = map_primitive("shm_state");
+                    uridShmStateType            = map_type("ShmState");
+                    uridShmStateItems           = map_field("ShmState", "items");
+                    uridShmRecordType           = map_type("ShmRecord");
+                    uridShmRecordId             = map_field("ShmRecord", "id");
+                    uridShmRecordName           = map_field("ShmRecord", "name");
+                    uridShmRecordIndex          = map_field("ShmRecord", "index");
+                    uridShmRecordMagic          = map_field("ShmRecord", "magic");
 
                     // Decode passed options if they are present
                     if (opts != NULL)
@@ -589,6 +607,11 @@ namespace lsp
                 {
                     size_t len = ::strlen(str);
                     return lv2_atom_forge_typed_string(&forge, forge.String, str, len);
+                }
+
+                inline LV2_Atom_Forge_Ref forge_tuple(LV2_Atom_Forge_Frame *frame)
+                {
+                    return lv2_atom_forge_tuple(&forge, frame);
                 }
 
                 inline void forge_pop(LV2_Atom_Forge_Frame* frame)

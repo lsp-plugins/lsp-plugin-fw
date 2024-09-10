@@ -533,6 +533,17 @@ namespace lsp
                     plug::utf8_strncpy(pData, pValue->nCapacity, text);
                     write(pData, strlen(pData), plug::PF_PRESET_IMPORT);
                 }
+
+                virtual bool sync() override
+                {
+                    jack::StringPort *sp    = static_cast<jack::StringPort *>(pPort);
+                    if ((sp != NULL) && (sp->check_reset_pending()))
+                    {
+                        write("", 0, 0);
+                        return true;
+                    }
+                    return false;
+                }
         };
 
     } /* namespace jack */

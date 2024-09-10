@@ -85,6 +85,7 @@ namespace lsp
                 virtual const meta::package_t  *package() const override;
                 virtual status_t                play_file(const char *file, wsize_t position, bool release) override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
 
             public:
                 bool                            show_ui();
