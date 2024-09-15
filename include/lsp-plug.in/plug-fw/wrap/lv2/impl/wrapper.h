@@ -71,7 +71,6 @@ namespace lsp
             pLatency        = NULL;
             nPatchReqs      = 0;
             nStateReqs      = 0;
-            nShmReqs        = 0;
             nSyncTime       = 0;
             nSyncSamples    = 0;
             nClients        = 0;
@@ -89,6 +88,7 @@ namespace lsp
             atomic_store(&nStateMode, SM_LOADING);
             atomic_store(&nDumpReq, 0);
             nDumpResp       = 0;
+            atomic_store(&nShmReqs, 0);
             pKVTDispatcher  = NULL;
 
             pSamplePlayer   = NULL;
@@ -690,7 +690,7 @@ namespace lsp
 
             // Increment number of state requests
             if ((pShmClient != NULL) && (pShmClient->state_updated()))
-                nShmReqs ++;
+                atomic_add(&nShmReqs, 1);
 
             // Transmit atoms (if possible)
             transmit_atoms(samples);
@@ -966,9 +966,9 @@ namespace lsp
             {
                 if (obj->body.id == pExt->uridConnectUI)
                 {
-                    nClients    ++;
-                    nStateReqs  ++;
-                    nShmReqs    ++;
+                    ++nClients;
+                    ++nStateReqs;
+                    atomic_add(&nShmReqs, 1);
                     lsp_trace("UI has connected, current number of clients=%d", int(nClients));
                     if (pKVTDispatcher != NULL)
                         pKVTDispatcher->connect_client();
@@ -1158,7 +1158,11 @@ namespace lsp
 
         void Wrapper::transmit_shm_state_to_clients()
         {
-            if ((pShmClient == NULL) || (nShmReqs <= 0) || (nClients <= 0))
+            if ((pShmClient == NULL) || ((nClients + nDirectClients) <= 0))
+                return;
+
+            ssize_t count = atomic_load(&nShmReqs);
+            if (count <= 0)
                 return;
 
             const core::ShmState *state   = pShmClient->state();
@@ -1167,7 +1171,7 @@ namespace lsp
 
             lsp_trace("Transmitting shared memory state...");
 
-            nShmReqs = 0;
+            atomic_add(&nShmReqs, -count);
 
             LV2_Atom_Forge_Frame    frame, tuple, obj;
 
@@ -2189,7 +2193,8 @@ namespace lsp
         void Wrapper::connect_direct_ui()
         {
             // Increment number of clients
-            nDirectClients++;
+            ++nDirectClients;
+            atomic_add(&nShmReqs, 1);
             if (pKVTDispatcher != NULL)
                 pKVTDispatcher->connect_client();
         }

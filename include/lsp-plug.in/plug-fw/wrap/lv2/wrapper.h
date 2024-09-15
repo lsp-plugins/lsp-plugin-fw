@@ -100,7 +100,6 @@ namespace lsp
                 float                  *pLatency;       // Latency output port
                 size_t                  nPatchReqs;     // Number of patch requests
                 size_t                  nStateReqs;     // Number of state requests
-                size_t                  nShmReqs;       // Number of SHM state requests
                 ssize_t                 nSyncTime;      // Synchronization time
                 ssize_t                 nSyncSamples;   // Synchronization counter
                 ssize_t                 nClients;       // Number of clients
@@ -113,6 +112,7 @@ namespace lsp
                 uatomic_t               nStateMode;     // State change flag
                 uatomic_t               nDumpReq;
                 uatomic_t               nDumpResp;
+                atomic_t                nShmReqs;       // Number of SHM state requests
 
                 core::KVTStorage        sKVT;
                 LV2KVTListener          sKVTListener;
