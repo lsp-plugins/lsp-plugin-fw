@@ -58,6 +58,7 @@ namespace lsp
             fScalingFactor      = -1.0f;
             atomic_store(&nPlayPositionReq, 0);
             nPlayPositionResp   = 0;
+            bSizing             = false;
 
         #ifdef VST_USE_RUNLOOP_IFACE
             pRunLoop            = NULL;
@@ -686,8 +687,18 @@ namespace lsp
 
             lsp_trace("RESIZE TO this=%p, newSize={left=%d, top=%d, right=%d, bottom=%d}",
                 this, int(newSize->left), int(newSize->top), int(newSize->right), int(newSize->bottom));
-            wWindow->position()->set(newSize->left, newSize->top);
-            wWindow->size()->set(newSize->right - newSize->left, newSize->bottom - newSize->top);
+
+            ws::rectangle_t r;
+            wWindow->get_padded_rectangle(&r);
+            if ((r.nWidth != (newSize->right - newSize->left)) ||
+                (r.nHeight != (newSize->bottom - newSize->top)))
+            {
+                wWindow->native()->set_geometry(
+                    newSize->left,
+                    newSize->top,
+                    newSize->right - newSize->left,
+                    newSize->bottom - newSize->top);
+            }
 
             return Steinberg::kResultTrue;
         }
@@ -753,11 +764,11 @@ namespace lsp
             // Update the rect if it was constrained
             if ((dr.nWidth != sr.nWidth) || (dr.nHeight != sr.nHeight))
             {
-                lsp_trace("this=%p, applied={left=%d, top=%d, right=%d, bottom=%d}",
-                    this, int(rect->left), int(rect->top), int(rect->right), int(rect->bottom));
-
                 rect->right  = rect->left + dr.nWidth;
                 rect->bottom = rect->top  + dr.nHeight;
+
+                lsp_trace("this=%p, applied={left=%d, top=%d, right=%d, bottom=%d}",
+                    this, int(rect->left), int(rect->top), int(rect->right), int(rect->bottom));
             }
 
             return Steinberg::kResultOk;
@@ -799,9 +810,14 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
-
             UIWrapper *self     = static_cast<UIWrapper *>(ptr);
+            if (self->bSizing)
+                return STATUS_OK;
+
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
+            self->bSizing       = true;
+            lsp_finally { self->bSizing = false; };
+
             tk::Window *wnd     = self->window();
             if ((wnd == NULL) || (!wnd->visibility()->get()))
             {

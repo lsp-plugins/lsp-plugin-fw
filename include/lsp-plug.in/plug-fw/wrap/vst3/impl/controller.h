@@ -745,7 +745,7 @@ namespace lsp
                 }
 
                 // Update state of the mesh and notify
-                lsp_trace("Committed mesh data buffers=%d, items=%d", int(buffers), int(items));
+//                lsp_trace("Committed mesh data buffers=%d, items=%d", int(buffers), int(items));
                 mesh->data(buffers, items);
                 port->mark_changed();
             }

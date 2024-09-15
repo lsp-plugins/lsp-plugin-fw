@@ -60,6 +60,7 @@ namespace lsp
                 float                               fScalingFactor;         // Scaling factor
                 uatomic_t                           nPlayPositionReq;
                 uatomic_t                           nPlayPositionResp;
+                bool                                bSizing;                // Sizing flag to prevent infinite recursion
 
                 lltl::parray<vst3::UIPort>          vSync;                  // Synchronization ports
 
