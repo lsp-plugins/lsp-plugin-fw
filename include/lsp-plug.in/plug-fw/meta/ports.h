@@ -155,6 +155,38 @@
 #define OPT_AUDIO_RETURN(id, label, index, group) \
     { id, label, U_NONE, R_AUDIO_RETURN, F_OPTIONAL, 0, 0, index, 0, NULL, NULL, group  }
 
+#define SEND_MONO(id, channel, comment) \
+    SEND_NAME(id, comment), \
+    AUDIO_SEND(channel, comment " input", 0, id)
+#define RETURN_MONO(id, channel, comment) \
+    RETURN_NAME(id, comment), \
+    AUDIO_RETURN(channel, comment " input", 0, id)
+
+#define SEND_STEREO(id, channel, comment) \
+    SEND_NAME(id, comment), \
+    AUDIO_SEND(channel "l", comment " input Left", 0, id), \
+    AUDIO_SEND(channel "r", comment " input Right", 1, id)
+#define RETURN_STEREO(id, channel, comment) \
+    RETURN_NAME(id, comment), \
+    AUDIO_RETURN(channel "l", comment " input Left", 0, id), \
+    AUDIO_RETURN(channel "r", comment " input Right", 1, id)
+
+#define OPT_SEND_MONO(id, channel, comment) \
+    OPT_SEND_NAME(id, comment), \
+    OPT_AUDIO_SEND(channel, comment " input", 0, id)
+#define OPT_RETURN_MONO(id, channel, comment) \
+    OPT_RETURN_NAME(id, comment), \
+    OPT_AUDIO_RETURN(channel, comment " input", 0, id)
+
+#define OPT_SEND_STEREO(id, channel, comment) \
+    OPT_SEND_NAME(id, comment), \
+    OPT_AUDIO_SEND(channel "l", comment " input Left", 0, id), \
+    OPT_AUDIO_SEND(channel "r", comment " input Right", 1, id)
+#define OPT_RETURN_STEREO(id, channel, comment) \
+    OPT_RETURN_NAME(id, comment), \
+    OPT_AUDIO_RETURN(channel "l", comment " input Left", 0, id), \
+    OPT_AUDIO_RETURN(channel "r", comment " input Right", 1, id)
+
 #define PORTS_END   \
     { NULL, NULL }
 
