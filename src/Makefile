@@ -1091,7 +1091,7 @@ $(SRC_DEPS) $(PLUG_DEPS):
 	$(MAKE) -C "$($(@)_PATH)" compile VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" NO_DEPENDENCIES="1" DEMO_TEST="0"
 
 $(HOST_SRC_DEPS) $(HOST_PLUG_DEPS):
-	echo "make host $(@) [$($(@)_NAME)]"
+	echo "make host [$($(@)_NAME)]"
 	mkdir -p "$($(@)_BIN)"
 	$(MAKE) -C "$($(@)_PATH)" compile VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" NO_DEPENDENCIES="1" DEMO_TEST="0" BUILD_HOST=1
 
