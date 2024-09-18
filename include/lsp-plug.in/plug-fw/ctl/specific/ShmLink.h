@@ -103,6 +103,7 @@ namespace lsp
                 ctl::Color          sTextDownHoverColor;
                 ctl::Color          sBorderDownHoverColor;
                 ctl::Color          sHoleColor;
+                size_t              nMaxNameLength;
 
                 ctl::Boolean        sEditable;
                 ctl::Boolean        sHover;
@@ -113,7 +114,9 @@ namespace lsp
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
 
             protected:
+                static bool         is_valid_ending_char(lsp_wchar_t c);
                 static const char  *valid_name(const LSPString *s);
+                void                shorten_name(LSPString *dst, const char *name);
 
             protected:
                 void                do_destroy();

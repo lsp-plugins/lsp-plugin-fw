@@ -26,13 +26,15 @@
 #include <private/ui/xml/RootNode.h>
 #include <private/ui/xml/Handler.h>
 
-#define SHMLINK_STYLE_CONNECTED     "ShmLink::Connected"
-#define SHMLINK_STYLE_NOT_CONNECTED "ShmLink::NotConnected"
+#define SHMLINK_STYLE_CONNECTED             "ShmLink::Connected"
+#define SHMLINK_STYLE_CONNECTED_SEND        "ShmLink::Connected::Send"
+#define SHMLINK_STYLE_CONNECTED_RETURN      "ShmLink::Connected::Return"
+#define SHMLINK_STYLE_NOT_CONNECTED         "ShmLink::NotConnected"
 
-#define SHMLINK_FILTER_VALID        "ShmLink::Filter::ValidInput"
-#define SHMLINK_FILTER_INVALID      "ShmLink::Filter::InvalidInput"
+#define SHMLINK_FILTER_VALID                "ShmLink::Filter::ValidInput"
+#define SHMLINK_FILTER_INVALID              "ShmLink::Filter::InvalidInput"
 
-#define SHMLINK_ITEM_CONNECTED      "ShmLink::ListBoxItem::Connected"
+#define SHMLINK_ITEM_CONNECTED              "ShmLink::ListBoxItem::Connected"
 
 namespace lsp
 {
@@ -174,7 +176,7 @@ namespace lsp
             take_focus();
             if (wName != NULL)
                 wName->take_focus();
-            grab_events(ws::GRAB_DROPDOWN);
+//            grab_events(ws::GRAB_DROPDOWN);
         }
 
         ssize_t ShmLink::Selector::compare_strings(const LSPString *a, const LSPString *b)
@@ -183,11 +185,39 @@ namespace lsp
             return (res != 0) ? res : a->compare_to(b);
         }
 
+        bool ShmLink::is_valid_ending_char(lsp_wchar_t c)
+        {
+            switch (c)
+            {
+                case ' ':
+                case '\t':
+                case '\n':
+                case '\r':
+                    return false;
+            };
+
+            return true;
+        }
+
         const char *ShmLink::valid_name(const LSPString *s)
         {
             if (s == NULL)
                 return NULL;
 
+            // Validate length
+            const size_t length = s->length();
+            if (length <= 0)
+                return "";
+            else if (length > MAX_SHM_SEGMENT_NAME_CHARS)
+                return NULL;
+
+            // Validate not containing spaces
+            if (!is_valid_ending_char(s->first()))
+                return NULL;
+            if (!is_valid_ending_char(s->last()))
+                return NULL;
+
+            // Validate size in bytes
             const char *utf8 = s->get_utf8();
             if (utf8 == NULL)
                 return NULL;
@@ -195,6 +225,29 @@ namespace lsp
                 return NULL;
 
             return utf8;
+        }
+
+        void ShmLink::shorten_name(LSPString *dst, const char *name)
+        {
+            dst->set_utf8(name);
+            const size_t length = dst->length();
+            const size_t max_length = lsp_max(nMaxNameLength, 2u);
+            if (length <= max_length)
+                return;
+
+            size_t prefix = lsp_max((max_length * 3) / 4, 1u);
+            size_t suffix = max_length - prefix;
+
+            // Subtract one character for '...'
+            if (suffix > 2)
+                --suffix;
+            else if (prefix > 2)
+                --prefix;
+            else
+                return;
+
+            dst->set(prefix, 0x2026);
+            dst->remove(prefix + 1, dst->length() - suffix);
         }
 
         void ShmLink::Selector::apply_filter()
@@ -446,6 +499,8 @@ namespace lsp
 
             pPort           = NULL;
             wPopup          = NULL;
+
+            nMaxNameLength  = 12;
         }
 
         ShmLink::~ShmLink()
@@ -538,6 +593,9 @@ namespace lsp
                 sEditable.set("editable", name, value);
                 sHover.set("hover", name, value);
 
+                set_value(&nMaxNameLength, "value.max_length", name, value);
+                set_value(&nMaxNameLength, "value.maxlen", name, value);
+
                 set_font(btn->font(), "font", name, value);
                 set_constraints(btn->constraints(), name, value);
                 set_param(btn->led(), "led", name, value);
@@ -581,7 +639,11 @@ namespace lsp
 
             const meta::port_t *port = (pPort != NULL) ? pPort->metadata() : NULL;
 
+            LSPString tmp;
+
             revoke_style(btn, SHMLINK_STYLE_CONNECTED);
+            revoke_style(btn, SHMLINK_STYLE_CONNECTED_SEND);
+            revoke_style(btn, SHMLINK_STYLE_CONNECTED_RETURN);
             revoke_style(btn, SHMLINK_STYLE_NOT_CONNECTED);
 
             const char *lc_key = (meta::is_send_name(port)) ?
@@ -595,16 +657,44 @@ namespace lsp
                 const char *name = pPort->buffer<char>();
                 if ((name != NULL) && (strlen(name) > 0))
                 {
-                    btn->text()->params()->add_cstring("value", name);
-                    lc_key      = (meta::is_send_name(port)) ?
-                        "labels.link.send.connected" :
-                        "labels.link.return.connected";
-                    btn_style   = SHMLINK_STYLE_CONNECTED;
+                    shorten_name(&tmp, name);
+
+                    btn->text()->params()->add_string("value", &tmp);
+
+                    // Set style depending on the type of metadata
+                    if (meta::is_send_name(port))
+                    {
+                        lc_key      = "labels.link.send.connected";
+                        btn_style   = SHMLINK_STYLE_CONNECTED_SEND;
+                    }
+                    else if (meta::is_return_name(port))
+                    {
+                        lc_key      = "labels.link.return.connected";
+                        btn_style   = SHMLINK_STYLE_CONNECTED_RETURN;
+                    }
+                    else
+                    {
+                        lc_key      = "labels.link.other.connected";
+                        btn_style   = SHMLINK_STYLE_CONNECTED;
+                    }
                 }
             }
 
             btn->text()->set_key(lc_key);
             inject_style(btn, btn_style);
+
+            // Update widget size estimations
+            btn->clear_text_estimations();
+            tk::String *est = btn->add_text_estimation();
+            if (est != NULL)
+            {
+                tmp.clear();
+                for (size_t i=0, n=lsp_max(nMaxNameLength, 2u); i<n; ++i)
+                    tmp.append('W');
+
+                est->set_key("labels.link.send.connected");
+                est->params()->add_string("value", &tmp);
+            }
         }
 
         ShmLink::Selector *ShmLink::create_selector()
