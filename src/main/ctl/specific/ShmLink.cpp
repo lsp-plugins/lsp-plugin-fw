@@ -176,7 +176,7 @@ namespace lsp
             take_focus();
             if (wName != NULL)
                 wName->take_focus();
-//            grab_events(ws::GRAB_DROPDOWN);
+            grab_events(ws::GRAB_DROPDOWN);
         }
 
         ssize_t ShmLink::Selector::compare_strings(const LSPString *a, const LSPString *b)
