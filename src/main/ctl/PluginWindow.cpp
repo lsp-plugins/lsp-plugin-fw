@@ -2344,6 +2344,7 @@ namespace lsp
                 return STATUS_NO_MEM;
             widgets()->add(w);
             w->init();
+            w->actions()->set_actions(ws::WA_DIALOG | ws::WA_RESIZE | ws::WA_CLOSE);
 
             lsp_trace("Registered window ptr=%p, path=%s", static_cast<tk::Widget *>(w), path);
 
