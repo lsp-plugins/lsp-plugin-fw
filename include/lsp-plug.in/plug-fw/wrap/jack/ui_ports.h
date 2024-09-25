@@ -64,38 +64,6 @@ namespace lsp
                 virtual void resync()       { };
         };
 
-        class UIPortGroup: public UIPort
-        {
-            private:
-                jack::PortGroup        *pPG;
-
-            public:
-                explicit UIPortGroup(jack::PortGroup *port) : UIPort(port)
-                {
-                    pPG                 = port;
-                }
-
-                UIPortGroup(const UIPortGroup &) = delete;
-                UIPortGroup(UIPortGroup &&) = delete;
-                UIPortGroup & operator = (const UIPortGroup &) = delete;
-                UIPortGroup & operator = (UIPortGroup &&) = delete;
-
-            public:
-                virtual float value() override
-                {
-                    return pPort->value();
-                }
-
-                virtual void set_value(float value) override
-                {
-                    pPort->commit_value(value);
-                }
-
-            public:
-                inline size_t rows() const  { return pPG->rows(); }
-                inline size_t cols() const  { return pPG->cols(); }
-        };
-
         class UIControlPort: public UIPort
         {
             protected:
@@ -138,6 +106,27 @@ namespace lsp
                         pPort->commit_value(fValue);
                     }
                 }
+        };
+
+        class UIPortGroup: public UIControlPort
+        {
+            private:
+                jack::PortGroup        *pPG;
+
+            public:
+                explicit UIPortGroup(jack::PortGroup *port) : UIControlPort(port)
+                {
+                    pPG                 = port;
+                }
+
+                UIPortGroup(const UIPortGroup &) = delete;
+                UIPortGroup(UIPortGroup &&) = delete;
+                UIPortGroup & operator = (const UIPortGroup &) = delete;
+                UIPortGroup & operator = (UIPortGroup &&) = delete;
+
+            public:
+                inline size_t rows() const  { return pPG->rows(); }
+                inline size_t cols() const  { return pPG->cols(); }
         };
 
         class UIMeterPort: public UIPort
