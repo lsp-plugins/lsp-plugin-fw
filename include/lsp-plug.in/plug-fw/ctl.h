@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -44,6 +44,7 @@
     #include <lsp-plug.in/plug-fw/ctl/util/Layout.h>
     #include <lsp-plug.in/plug-fw/ctl/util/TextLayout.h>
     #include <lsp-plug.in/plug-fw/ctl/util/IChildSync.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/DirController.h>
 
     // Widget controllers
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
@@ -99,8 +100,9 @@
     #include <lsp-plug.in/plug-fw/ctl/3d/Capture3D.h>
     #include <lsp-plug.in/plug-fw/ctl/3d/Model3D.h>
 
-    #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/AudioFolder.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioNavigator.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/FileButton.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/Fraction.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedChannel.h>

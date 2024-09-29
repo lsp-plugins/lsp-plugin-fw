@@ -55,16 +55,12 @@ namespace lsp
 
             protected:
                 static action_t     parse_action(const char *action);
-                static void         drop_paths(lltl::parray<LSPString> *files);
-                static ssize_t      file_cmp_function(const LSPString *a, const LSPString *b);
-                static ssize_t      index_of(lltl::parray<LSPString> *files, const LSPString *name);
 
             protected:
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                sync_state();
-                bool                sync_file_list(bool force);
                 void                set_activity(bool active);
                 void                update_styles();
                 void                apply_action();
@@ -85,14 +81,9 @@ namespace lsp
                 ctl::Padding                sTextPad;
                 ctl::LCString               sText;
 
-                bool                        bActive;
+                bool                        bActive;        // Navigator is active
                 action_t                    enAction;       // Actual action
-                ssize_t                     nFileIndex;     // Current file index in the list
-                system::time_millis_t       nLastRefresh;   // Last refresh time of file list
-                system::time_millis_t       nRefreshPeriod; // Refresh period
-                LSPString                   sFileExt;       // Current file extension
-                io::Path                    sDirectory;     // Current directory
-                lltl::parray<LSPString>     vFiles;         // List of directory files
+                ctl::DirController          sDirController; // Directory controller
 
             public:
                 explicit AudioNavigator(ui::IWrapper *wrapper, tk::Button *widget);
@@ -104,7 +95,6 @@ namespace lsp
                 AudioNavigator & operator = (AudioNavigator &&) = delete;
 
                 virtual status_t    init() override;
-                virtual void        destroy() override;
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;

@@ -68,12 +68,8 @@ namespace lsp
             pClass          = &metadata;
 
             pPort           = NULL;
-
             bActive         = false;
             enAction        = A_NEXT;
-            nFileIndex      = -1;
-            nLastRefresh    = 0;
-            nRefreshPeriod  = 3 * 1000; // 3 seconds
         }
 
         AudioNavigator::~AudioNavigator()
@@ -104,13 +100,6 @@ namespace lsp
             }
 
             return STATUS_OK;
-        }
-
-        void AudioNavigator::destroy()
-        {
-            drop_paths(&vFiles);
-
-            ctl::Widget::destroy();
         }
 
         AudioNavigator::action_t AudioNavigator::parse_action(const char *action)
@@ -190,8 +179,8 @@ namespace lsp
 
                 if (!strcmp(name, "action"))
                     enAction        = parse_action(value);
-                set_value(&nRefreshPeriod, "period", name, value);
-                set_value(&nRefreshPeriod, "refresh_period", name, value);
+
+                sDirController.set(name, value);
             }
 
             Widget::set(ctx, name, value);
@@ -216,113 +205,6 @@ namespace lsp
             inject_style(wWidget, (bActive) ? ANAV_STYLE_ACTIVE : ANAV_STYLE_INACTIVE);
         }
 
-        void AudioNavigator::drop_paths(lltl::parray<LSPString> *files)
-        {
-            if (files == NULL)
-                return;
-
-            for (lltl::iterator<LSPString> it = files->values(); it; ++it)
-            {
-                LSPString *s = it.get();
-                if (s != NULL)
-                    delete s;
-            }
-            files->flush();
-        }
-
-        ssize_t AudioNavigator::file_cmp_function(const LSPString *a, const LSPString *b)
-        {
-        #ifdef PLATFORM_WINDOWS
-            return a->compare_to_nocase(b);
-        #else
-            return a->compare_to(b);
-        #endif /* PLATFORM_WINDOWS */
-        }
-
-        ssize_t AudioNavigator::index_of(lltl::parray<LSPString> *files, const LSPString *name)
-        {
-            ssize_t first=0, last = files->size() - 1;
-
-            // Binary search in sorted array
-            while (first <= last)
-            {
-                const ssize_t center = (first + last) >> 1;
-                const LSPString *value = files->uget(center);
-                if (value == NULL)
-                    return -1;
-
-                const ssize_t cmp_result = file_cmp_function(name, value);
-                if (cmp_result < 0)
-                    last    = center - 1;
-                else if (cmp_result > 0)
-                    first   = center + 1;
-                else
-                    return center;
-            }
-
-            // Record was not found
-            return -1;
-        }
-
-        bool AudioNavigator::sync_file_list(bool force)
-        {
-            const system::time_millis_t time = system::get_time_millis();
-            if (time >= (nLastRefresh + nRefreshPeriod))
-                force       = true;
-
-            if (!force)
-                return false;
-            lsp_finally { nLastRefresh = time; };
-
-            // Prepare list to receive files
-            lltl::parray<LSPString> files;
-            lsp_finally { drop_paths(&files); };
-
-            // Open directory for reading
-            io::Dir dir;
-            status_t res = dir.open(&sDirectory);
-            if (res != STATUS_OK)
-            {
-                vFiles.swap(&files);
-                return true;
-            }
-            lsp_finally { dir.close(); };
-
-            // Read directory contents
-            LSPString tmp;
-            while ((res = dir.read(&tmp)) == STATUS_OK)
-            {
-                // Check that file extension matches
-                if (!tmp.ends_with_nocase(&sFileExt))
-                    continue;
-
-                // Add item to list
-                LSPString *item = tmp.clone();
-                if (item == NULL)
-                {
-                    res     = STATUS_NO_MEM;
-                    break;
-                }
-                if (!files.add(item))
-                {
-                    delete item;
-                    res     = STATUS_NO_MEM;
-                    break;
-                }
-            }
-
-            // Verify read status
-            if (res == STATUS_EOF)
-            {
-                files.qsort(file_cmp_function);
-                vFiles.swap(&files);
-            }
-            else
-                vFiles.clear();
-
-            return true;
-        }
-
         void AudioNavigator::sync_state()
         {
             // Check action type
@@ -339,50 +221,16 @@ namespace lsp
             if ((path == NULL) || (strlen(path) == 0))
                 return set_activity(false);
 
-            // Get file parameters
-            io::Path full_name;
-            if (full_name.set(path) != STATUS_OK)
-                return set_activity(false);
-            io::Path directory;
-            if (full_name.get_parent(&directory) != STATUS_OK)
-                return set_activity(false);
-            LSPString name, ext;
-            if (full_name.get_ext(&ext) != STATUS_OK)
-                return set_activity(false);
-            if (full_name.get_last(&name) != STATUS_OK)
-                return set_activity(false);
-            if (!ext.prepend('.'))
-                return set_activity(false);
-
-            bool force_sync = false;
-            if (!sFileExt.equals_nocase(&ext))
-            {
-                sFileExt.swap(&ext);
-                force_sync  = true;
-            }
-            if (!sDirectory.equals(&directory))
-            {
-                sDirectory.swap(&directory);
-                force_sync  = true;
-            }
-
-            ssize_t file_index = (!force_sync) ? index_of(&vFiles, &name) : -1;
-            if (file_index < 0)
-                force_sync  = true;
-
-            // Synchronize file list
-            if (sync_file_list(force_sync))
-                file_index = index_of(&vFiles, &name);
-
-            // Update selected file index
-            nFileIndex      = file_index;
-            set_activity(true);
+            // Apply changes to the controller
+            sDirController.set_current_file(path);
+            set_activity(sDirController.valid());
         }
 
         void AudioNavigator::end(ui::UIContext *ctx)
         {
             update_styles();
             sync_state();
+            Widget::end(ctx);
         }
 
         void AudioNavigator::apply_action()
@@ -390,29 +238,29 @@ namespace lsp
             if ((!bActive) || (pPort == NULL))
                 return;
 
-            ssize_t new_index       = nFileIndex;
-            const ssize_t files     = vFiles.size();
+            ssize_t new_index       = sDirController.file_index();
+            const ssize_t files     = sDirController.num_files();
             switch (enAction)
             {
                 case A_FIRST:
                     new_index       = 0;
                     break;
                 case A_LAST:
-                    new_index       = vFiles.size() - 1;
+                    new_index       = files - 1;
                     break;
                 case A_NEXT:
-                    new_index       = (lsp_max(nFileIndex, 0) + 1) % files;
+                    new_index       = (lsp_max(new_index, 0) + 1) % files;
                     break;
                 case A_PREVIOUS:
-                    new_index       = (lsp_max(nFileIndex, 0) - 1) % files;
+                    new_index       = (lsp_max(new_index, 0) - 1) % files;
                     if (new_index < 0)
                         new_index      += files;
                     break;
                 case A_FAST_FORWARD:
-                    new_index       = (lsp_max(nFileIndex, 0) + 10) % files;
+                    new_index       = (lsp_max(new_index, 0) + 10) % files;
                     break;
                 case A_FAST_BACKWARD:
-                    new_index       = (lsp_max(nFileIndex, 0) - 10) % files;
+                    new_index       = (lsp_max(new_index, 0) - 10) % files;
                     if (new_index < 0)
                         new_index      += files;
                     break;
@@ -423,18 +271,17 @@ namespace lsp
             }
 
             // Ensure that file index has changed
-            if (new_index == nFileIndex)
+            if (new_index == sDirController.file_index())
                 return;
 
             io::Path file;
-            if (file.set(&sDirectory, vFiles.uget(new_index)) != STATUS_OK)
+            if (file.set(sDirController.directory(), sDirController.files()->uget(new_index)) != STATUS_OK)
                 return;
             const char *buf = file.as_utf8();
             if (buf == NULL)
                 return;
 
             // Apply changes
-            nFileIndex      = new_index;
             pPort->write(buf, strlen(buf));
             pPort->notify_all(ui::PORT_USER_EDIT);
         }

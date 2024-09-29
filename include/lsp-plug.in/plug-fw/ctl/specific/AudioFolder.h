@@ -3,7 +3,7 @@
  *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 31 мар. 2024 г.
+ * Created on: 29 сент. 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -20,8 +20,8 @@
  */
 
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_LISTBOX_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_LISTBOX_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_AUDIOFOLDER_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_AUDIOFOLDER_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -35,31 +35,47 @@ namespace lsp
     namespace ctl
     {
         /**
-         * ListBox controller
+         * AudioFolder controller
          */
-        class ListBox: public Widget
+        class AudioFolder: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
+                ui::IPort          *pPort;
+
                 ctl::Enum           sHScroll;
                 ctl::Enum           sVScroll;
 
-            public:
-                explicit ListBox(ui::IWrapper *wrapper, tk::ListBox *widget);
-                ListBox(const ListBox &) = delete;
-                ListBox(ListBox &&) = delete;
-                virtual ~ListBox() override;
+                bool                bActive;        // Navigator is active
+                ctl::DirController  sDirController; // Directory controller
 
-                ListBox & operator = (const ListBox &) = delete;
-                ListBox & operator = (ListBox &&) = delete;
+            protected:
+                static status_t     slot_submit(tk::Widget *sender, void *ptr, void *data);
+
+            protected:
+                void                sync_state();
+                void                set_activity(bool active);
+                void                update_styles();
+                void                apply_action();
+                bool                sync_list();
+
+            public:
+                explicit AudioFolder(ui::IWrapper *wrapper, tk::ListBox *widget);
+                AudioFolder(const AudioFolder &) = delete;
+                AudioFolder(AudioFolder &&) = delete;
+                virtual ~AudioFolder() override;
+
+                AudioFolder & operator = (const AudioFolder &) = delete;
+                AudioFolder & operator = (AudioFolder &&) = delete;
 
                 virtual status_t    init() override;
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
                 virtual void        end(ui::UIContext *ctx) override;
+                virtual void        notify(ui::IPort *port, size_t flags) override;
         };
 
     } /* namespace ctl */
@@ -67,4 +83,4 @@ namespace lsp
 
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_LISTBOX_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_AUDIOFOLDER_H_ */
