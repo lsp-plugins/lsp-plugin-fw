@@ -33,7 +33,7 @@ namespace lsp
     namespace ctl
     {
         //---------------------------------------------------------------------
-        CTL_FACTORY_IMPL_START(ShmLink)
+        CTL_FACTORY_IMPL_START(AudioNavigator)
             status_t res;
 
             if (!name->equals_ascii("anavigator"))
@@ -57,7 +57,7 @@ namespace lsp
 
             *ctl = wc;
             return STATUS_OK;
-        CTL_FACTORY_IMPL_END(ShmLink)
+        CTL_FACTORY_IMPL_END(AudioNavigator)
 
         //---------------------------------------------------------------------
         const ctl_class_t AudioNavigator::metadata = { "AudioNavigator", &Widget::metadata };
