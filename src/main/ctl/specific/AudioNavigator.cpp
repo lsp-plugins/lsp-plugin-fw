@@ -275,9 +275,9 @@ namespace lsp
                 case A_RANDOM:
                     new_index       = rand() % files;
                     break;
-
                 case A_CLEAR:
                     new_index       = -1;
+                    break;
 
                 case A_NONE:
                 default:
