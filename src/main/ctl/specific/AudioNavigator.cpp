@@ -131,6 +131,14 @@ namespace lsp
                 (!strcasecmp(action, "rew")) ||
                 (!strcasecmp(action, "roll_backward")))
                 return A_FAST_BACKWARD;
+            if ((!strcasecmp(action, "rand")) ||
+                (!strcasecmp(action, "random")))
+                return A_RANDOM;
+            if ((!strcasecmp(action, "clear")) ||
+                (!strcasecmp(action, "cancel")) ||
+                (!strcasecmp(action, "reset")) ||
+                (!strcasecmp(action, "unset")))
+                return A_CLEAR;
 
             return A_NONE;
         }
@@ -264,6 +272,12 @@ namespace lsp
                     if (new_index < 0)
                         new_index      += files;
                     break;
+                case A_RANDOM:
+                    new_index       = rand() % files;
+                    break;
+
+                case A_CLEAR:
+                    new_index       = -1;
 
                 case A_NONE:
                 default:
@@ -274,15 +288,20 @@ namespace lsp
             if (new_index == sDirController.file_index())
                 return;
 
-            io::Path file;
-            if (file.set(sDirController.directory(), sDirController.files()->uget(new_index)) != STATUS_OK)
-                return;
-            const char *buf = file.as_utf8();
-            if (buf == NULL)
-                return;
-
             // Apply changes
-            pPort->write(buf, strlen(buf));
+            if (new_index >= 0)
+            {
+                io::Path file;
+                if (file.set(sDirController.directory(), sDirController.files()->uget(new_index)) != STATUS_OK)
+                    return;
+                const char *buf = file.as_utf8();
+                if (buf == NULL)
+                    return;
+
+                pPort->write(buf, strlen(buf));
+            }
+            else
+                pPort->write("", 0);
             pPort->notify_all(ui::PORT_USER_EDIT);
         }
 

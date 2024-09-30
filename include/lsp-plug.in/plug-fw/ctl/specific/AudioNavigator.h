@@ -50,7 +50,9 @@ namespace lsp
                     A_NEXT,
                     A_PREVIOUS,
                     A_FAST_FORWARD,
-                    A_FAST_BACKWARD
+                    A_FAST_BACKWARD,
+                    A_RANDOM,
+                    A_CLEAR
                 };
 
             protected:
