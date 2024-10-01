@@ -205,6 +205,12 @@ namespace lsp
             bool valid      = false;
             bool updated    = false;
             lsp_finally {
+                if (!valid)
+                {
+                    sDirectory.clear();
+                    sFileExt.clear();
+                    nFileIndex      = -1;
+                }
                 bValid          = valid;
             };
 

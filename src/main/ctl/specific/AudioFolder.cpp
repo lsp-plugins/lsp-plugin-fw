@@ -181,7 +181,10 @@ namespace lsp
             // Obtain current file name
             const char *path = pPort->buffer<const char>();
             if ((path == NULL) || (strlen(path) == 0))
+            {
+                sDirController.set_current_file("");
                 return set_activity(false);
+            }
 
             // Apply changes to the controller
             const bool updated  = sDirController.set_current_file(path);
