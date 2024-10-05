@@ -9,6 +9,7 @@
 * Fixed port group value synchronization for JACK wrapper.
 * Added documentation_path parameter in user configuration file which allows to
   configure the path to the offline documentation installation.
+* Updated module versions in dependencies.
 
 === 1.0.25 ===
 * Better work with plugin window size.
