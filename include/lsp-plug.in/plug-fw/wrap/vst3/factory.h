@@ -33,6 +33,8 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/ptrset.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/core/CatalogManager.h>
+#include <lsp-plug.in/plug-fw/core/ICatalogFactory.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 
 #include <steinberg/vst3.h>
@@ -53,7 +55,8 @@ namespace lsp
         class PluginFactory:
             public Steinberg::IPluginFactory3,
             public Steinberg::IPluginCompatibility,
-            public ipc::IRunnable
+            public ipc::IRunnable,
+            public core::ICatalogFactory
         {
             protected:
                 uatomic_t                               nRefCounter;    // Reference counter
@@ -66,6 +69,7 @@ namespace lsp
                 meta::package_t                        *pPackage;       // Package manifest
                 volatile IDataSync                     *pActiveSync;    // Active data sync
                 lltl::ptrset<IDataSync>                 vDataSync;      // List of objects for synchronization
+                core::CatalogManager                    sCatalogManager;// Catalog management
 
                 Steinberg::PFactoryInfo                 sFactoryInfo;
                 lltl::darray<Steinberg::PClassInfo>     vClassInfo;
@@ -108,6 +112,10 @@ namespace lsp
 
             public: // ipc::IRunnable
                 virtual status_t                        run() override;
+
+            public: // core::ICatalogFactory
+                virtual core::Catalog                  *acquire_catalog() override;
+                virtual void                            release_catalog(core::Catalog *catalog) override;
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult PLUGIN_API   queryInterface(const Steinberg::TUID _iid, void **obj) override;

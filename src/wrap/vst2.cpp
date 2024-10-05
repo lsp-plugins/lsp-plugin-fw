@@ -20,13 +20,17 @@
  */
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/plug-fw/wrap/vst2/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/vst2/impl/wrapper.h>
+
+#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/common/singletone.h>
+#include <lsp-plug.in/common/static.h>
+#include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
-
-#include <lsp-plug.in/common/types.h>
-#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/impl/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/impl/wrapper.h>
 
 #ifdef WITH_UI_FEATURE
     #include <lsp-plug.in/plug-fw/wrap/vst2/ui_wrapper.h>
@@ -44,6 +48,51 @@ namespace lsp
 {
     namespace vst2
     {
+        //---------------------------------------------------------------------
+        // List of LV2 descriptors. The list is generated at first demand because
+        // of undetermined order of initialization of static objects which may
+        // cause undefined behaviour when reading the list of plugin factories
+        // which can be not fully initialized.
+        static vst2::Factory *plugin_factory = NULL;
+        static lsp::singletone_t library;
+
+        static vst2::Factory *get_factory()
+        {
+            // Check that data already has been initialized
+            if (library.initialized())
+                return plugin_factory;
+
+            // Create factory
+            vst2::Factory *factory = new vst2::Factory();
+            if (factory == NULL)
+                return NULL;
+            lsp_finally {
+                if (factory != NULL)
+                    delete factory;
+            };
+
+            // Commit the generated state to the global state
+            lsp_singletone_init(library) {
+                lsp::swap(plugin_factory, factory);
+            };
+
+            return plugin_factory;
+        }
+
+        static void drop_factory()
+        {
+            if (plugin_factory != NULL)
+            {
+                plugin_factory->release();
+                plugin_factory  = NULL;
+            }
+        };
+
+        //---------------------------------------------------------------------
+        // Static finalizer for the list of descriptors at library finalization
+        static StaticFinalizer finalizer(drop_factory);
+
+        //---------------------------------------------------------------------
         static const VstInt32 VST2_MAGIC_stCA        = CCONST('s', 't', 'C', 'A');
         static const VstInt32 VST2_MAGIC_stCa        = CCONST('s', 't', 'C', 'a');
         static const VstInt32 VST2_MAGIC_FUID        = CCONST('F', 'U', 'I', 'D');
@@ -176,9 +225,10 @@ namespace lsp
 
         void finalize(AEffect *e)
         {
-            lsp_trace("effect=%p", e);
             if (e == NULL)
                 return;
+
+            lsp_trace("effect=%p", e);
 
             // Get VST object
             vst2::Wrapper *w     = reinterpret_cast<vst2::Wrapper *>(e->object);
@@ -925,43 +975,28 @@ namespace lsp
         #endif /* LSP_IDE_DEBUG */
             lsp_trace("uid=%s, callback=%p", uid, callback);
 
+            vst2::Factory *factory = get_factory();
+            if (factory == NULL)
+                return NULL;
+
             // Initialize DSP
             dsp::init();
 
             // Lookup plugin identifier among all registered plugin factories
             plug::Module *plugin = NULL;
-
-            for (plug::Factory *f = plug::Factory::root(); (plugin == NULL) && (f != NULL); f = f->next())
+            status_t res = factory->create_plugin(&plugin, uid);
+            if (res != STATUS_OK)
             {
-                for (size_t i=0; plugin == NULL; ++i)
-                {
-                    // Enumerate next element
-                    const meta::plugin_t *plug_meta = f->enumerate(i);
-                    if (plug_meta == NULL)
-                        break;
-                    if ((plug_meta->uid == NULL) ||
-                        (plug_meta->uids.vst2 == NULL))
-                        continue;
-
-                    // Check plugin identifier
-                    if (!strcmp(plug_meta->uids.vst2, uid))
-                    {
-                        // Instantiate the plugin and return
-                        if ((plugin = f->create(plug_meta)) == NULL)
-                        {
-                            lsp_error("Plugin instantiation error: '%s' ('%s')", plug_meta->uid, plug_meta->uids.vst2);
-                            return NULL;
-                        }
-                    }
-                }
-            }
-
-            // Check that plugin instance is available
-            if (plugin == NULL)
-            {
-                lsp_error("Unknown plugin identifier: '%s'", uid);
+                lsp_error("Error instantiating plugin: '%s', code=%d", uid, int(res));
                 return NULL;
             }
+            lsp_finally {
+                if (plugin != NULL)
+                {
+                    plugin->destroy();
+                    delete plugin;
+                }
+            };
 
             const meta::plugin_t *meta = plugin->metadata();
             lsp_trace("Instantiated plugin %s - %s", meta->name, meta->description);
@@ -969,71 +1004,52 @@ namespace lsp
             // Create effect descriptor
             AEffect *e                  = new AEffect;
             if (e == NULL)
+                return NULL;
+            ::bzero(e, sizeof(AEffect));
+            lsp_finally {
+                if (e != NULL)
+                    vst2::finalize(e);
+            };
+
+            // Create wrapper
+            vst2::Wrapper *wrapper  = new vst2::Wrapper(plugin, factory, e, callback);
+            if (wrapper == NULL)
+                return NULL;
+            plugin          = NULL;     // Will be destroyed by wrapper
+
+            // Fill effect with values depending on metadata
+            e->magic                            = kEffectMagic;
+            e->dispatcher                       = vst2::dispatcher;
+            e->process                          = vst2::process;
+            e->setParameter                     = vst2::set_parameter;
+            e->getParameter                     = vst2::get_parameter;
+            e->numPrograms                      = 0;
+            e->numParams                        = 0;
+            e->numInputs                        = 0;
+            e->numOutputs                       = 0;
+            e->flags                            = effFlagsCanReplacing;
+            e->initialDelay                     = 0;
+            e->object                           = wrapper;
+            e->user                             = NULL;
+            e->uniqueID                         = vst2::cconst(meta->uids.vst2);
+            e->version                          = vst2::version(meta->version);
+            e->processReplacing                 = vst2::process_replacing;
+            e->processDoubleReplacing           = NULL; // Currently no double-replacing
+
+            // Additional flags
+        #ifdef WITH_UI_FEATURE
+            if (meta->ui_resource != NULL)
+                e->flags                        |= effFlagsHasEditor; // Has custom UI
+        #endif /* WITH_UI_FEATURE */
+
+            res = wrapper->init();
+            if (res != STATUS_OK)
             {
-                delete plugin;
+                lsp_error("Error initializing plugin wrapper, code: %d", int(res));
                 return NULL;
             }
 
-            // Create resource loader
-            resource::ILoader *loader = core::create_resource_loader();
-            if (loader != NULL)
-            {
-                vst2::Wrapper *wrapper  = new vst2::Wrapper(plugin, loader, e, callback);
-                if (wrapper != NULL)
-                {
-                    // These objects will be automatically destroyed by the wrapper->destroy()
-                    plugin = NULL;
-                    loader = NULL;
-
-                    // Initialize effect structure
-                    ::bzero(e, sizeof(AEffect));
-
-                    // Fill effect with values depending on metadata
-                    e->magic                            = kEffectMagic;
-                    e->dispatcher                       = vst2::dispatcher;
-                    e->process                          = vst2::process;
-                    e->setParameter                     = vst2::set_parameter;
-                    e->getParameter                     = vst2::get_parameter;
-                    e->numPrograms                      = 0;
-                    e->numParams                        = 0;
-                    e->numInputs                        = 0;
-                    e->numOutputs                       = 0;
-                    e->flags                            = effFlagsCanReplacing;
-                    e->initialDelay                     = 0;
-                    e->object                           = wrapper;
-                    e->user                             = NULL;
-                    e->uniqueID                         = vst2::cconst(meta->uids.vst2);
-                    e->version                          = vst2::version(meta->version);
-                    e->processReplacing                 = vst2::process_replacing;
-                    e->processDoubleReplacing           = NULL; // Currently no double-replacing
-
-                    // Additional flags
-                #ifdef WITH_UI_FEATURE
-                    if (meta->ui_resource != NULL)
-                        e->flags                        |= effFlagsHasEditor; // Has custom UI
-                #endif /* WITH_UI_FEATURE */
-
-                    status_t res = wrapper->init();
-                    if (res == STATUS_OK)
-                        return e;
-
-                    lsp_error("Error initializing plugin wrapper, code: %d", int(res));
-                }
-                else
-                    lsp_error("Error allocating plugin wrapper");
-
-                if (loader != NULL)
-                    delete loader;
-            }
-            else
-                lsp_error("No resource loader available");
-
-            if (plugin != NULL)
-                delete plugin;
-            vst2::finalize(e);
-
-            // Plugin could not be instantiated
-            return NULL;
+            return release_ptr(e);
         }
 
     } /* namespace vst2 */

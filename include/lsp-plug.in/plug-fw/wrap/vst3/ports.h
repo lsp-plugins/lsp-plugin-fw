@@ -26,6 +26,7 @@
 
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -192,6 +193,35 @@ namespace lsp
                 inline void advance(size_t samples)
                 {
                     nOffset    += samples;
+                }
+        };
+
+        class AudioBufferPort: public Port
+        {
+            private:
+                core::AudioBuffer   sBuffer;
+
+            public:
+                explicit AudioBufferPort(const meta::port_t *meta):
+                    Port(meta)
+                {
+                }
+
+                AudioBufferPort(const AudioBufferPort &) = delete;
+                AudioBufferPort(AudioBufferPort &&) = delete;
+
+                AudioBufferPort & operator = (const AudioBufferPort &) = delete;
+                AudioBufferPort & operator = (AudioBufferPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return &sBuffer;
+                }
+
+                void setup(size_t max_frames_count)
+                {
+                    sBuffer.set_size(max_frames_count);
                 }
         };
 
@@ -537,12 +567,16 @@ namespace lsp
         {
             private:
                 plug::string_t     *pValue;
+                uatomic_t           nUIReq;
+                uatomic_t           nUIResp;
 
             public:
                 explicit StringPort(const meta::port_t *meta):
                     Port(meta)
                 {
                     pValue          = plug::string_t::allocate(size_t(meta->max));
+                    atomic_store(&nUIReq, 0);
+                    nUIResp         = 0;
                 }
 
                 StringPort(const StringPort &) = delete;
@@ -561,9 +595,14 @@ namespace lsp
                 StringPort & operator = (StringPort &&) = delete;
 
             public:
+                virtual float value() override
+                {
+                    return (pValue != NULL) ? (pValue->nSerial & 0x3fffff) : 0.0f;
+                }
+
                 virtual void *buffer() override
                 {
-                    return pValue->sData;
+                    return (pValue != NULL) ? pValue->sData : NULL;
                 }
 
                 virtual sync_flags_t sync() override
@@ -573,13 +612,29 @@ namespace lsp
                     if (!pValue->sync())
                         return SYNC_NONE;
 
-                    return (pValue->is_state()) ? SYNC_CHANGED : SYNC_STATE;
+                    return (pValue->is_state()) ? SYNC_STATE : SYNC_CHANGED;
+                }
+
+                virtual void set_default() override
+                {
+                    strcpy(pValue->sData, pMetadata->value);
+                    atomic_add(&nUIReq, 1);
                 }
 
             public:
                 plug::string_t *data()
                 {
                     return pValue;
+                }
+
+                bool check_reset_pending()
+                {
+                    uatomic_t ui_req = atomic_load(&nUIReq);
+                    if (ui_req == nUIResp)
+                        return false;
+
+                    nUIResp = ui_req;
+                    return true;
                 }
         };
 

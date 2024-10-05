@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 29 янв. 2021 г.
@@ -203,8 +203,16 @@ MTEST_BEGIN("", standalone)
         }
 
         // Call the main function
-        int result = JACK_MAIN_FUNCTION(cfg.plugin_id, cfg.args.size(), const_cast<const char **>(cfg.args.array()));
-        MTEST_ASSERT(result == 0);
+        lsp::IPluginLoop *loop = NULL;
+        status_t result = JACK_CREATE_PLUGIN_LOOP(
+            &loop,
+            cfg.plugin_id,
+            cfg.args.size(),
+            const_cast<const char **>(cfg.args.array()));
+        MTEST_ASSERT(result == STATUS_OK);
+
+        MTEST_ASSERT(loop->run() == STATUS_OK);
+        delete loop;
     }
 
 MTEST_END

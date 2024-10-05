@@ -69,6 +69,13 @@ namespace lsp
                     vup = new vst2::UIPort(port, vp);
                     break;
 
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
+                    // Stub port
+                    lsp_trace("creating stub audio buffer port %s", port->id);
+                    vup = new vst2::UIPort(port, vp);
+                    break;
+
                 case meta::R_MESH:
                     lsp_trace("creating mesh port %s", port->id);
                     vup = new vst2::UIMeshPort(port, vp);
@@ -100,6 +107,16 @@ namespace lsp
 
                 case meta::R_STRING:
                     lsp_trace("creating string port %s", port->id);
+                    vup = new vst2::UIStringPort(port, vp);
+                    break;
+
+                case meta::R_SEND_NAME:
+                    lsp_trace("creating send name port %s", port->id);
+                    vup = new vst2::UIStringPort(port, vp);
+                    break;
+
+                case meta::R_RETURN_NAME:
+                    lsp_trace("creating return name port %s", port->id);
                     vup = new vst2::UIStringPort(port, vp);
                     break;
 
@@ -684,6 +701,11 @@ namespace lsp
                 p->play_sample(file, position, release);
             }
             return STATUS_OK;
+        }
+
+        const core::ShmState *UIWrapper::shm_state()
+        {
+            return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
         }
     } /* namespace vst2 */
 } /* namespace lsp */

@@ -26,6 +26,7 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/state.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/protocol/osc.h>
@@ -85,6 +86,7 @@ namespace lsp
             #endif /* WITH_UI_FEATURE */
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
+                lltl::state<core::ShmState>         sShmState;              // Shared memory state
                 vst3::string_buf                    sRxNotifyBuf;           // Notify buffer on receive
                 vst3::string_buf                    sTxNotifyBuf;           // Notify buffer on receive
                 core::KVTStorage                    sKVT;                   // KVT storage
@@ -110,6 +112,7 @@ namespace lsp
             protected:
                 static ssize_t                      compare_param_ports(const vst3::CtlParamPort *a, const vst3::CtlParamPort *b);
                 static ssize_t                      compare_ports_by_id(const vst3::CtlPort *a, const vst3::CtlPort *b);
+                static void                         shm_state_deleter(core::ShmState *state);
 
             public:
                 explicit Controller(PluginFactory *factory, resource::ILoader *loader, const meta::package_t *package, const meta::plugin_t *meta);
@@ -135,6 +138,7 @@ namespace lsp
                 status_t                            play_file(const char *file, wsize_t position, bool release);
                 vst3::CtlPort                      *port_by_id(const char *id);
                 void                                dump_state_request();
+                const core::ShmState               *shm_state();
 
         #ifdef WITH_UI_FEATURE
             public: // UI-related stuff

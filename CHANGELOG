@@ -2,6 +2,15 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.26 ===
+* Added support of audio send and audio return by the engine.
+* Implemented AudioNavigator controller.
+* Implemented AuidoFolder controller.
+* Fixed port group value synchronization for JACK wrapper.
+* Added documentation_path parameter in user configuration file which allows to
+  configure the path to the offline documentation installation.
+* Updated module versions in dependencies.
+
 === 1.0.25 ===
 * Better work with plugin window size.
 * Plugins now can be built without the ui if we omit the 'ui' feature in

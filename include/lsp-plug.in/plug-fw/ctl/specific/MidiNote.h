@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 30 июл. 2021 г.
@@ -49,6 +49,9 @@ namespace lsp
                 {
                     private:
                         friend class ctl::MidiNote;
+
+                    private:
+                        static const tk::w_class_t      metadata;
 
                     protected:
                         MidiNote   *pLabel;
@@ -99,6 +102,7 @@ namespace lsp
                 virtual ~MidiNote() override;
 
                 virtual status_t    init() override;
+                virtual void        destroy() override;
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;

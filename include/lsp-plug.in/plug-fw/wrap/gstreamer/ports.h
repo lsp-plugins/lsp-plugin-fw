@@ -27,6 +27,7 @@
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/types.h>
 #include <lsp-plug.in/stdlib/math.h>
 
@@ -162,6 +163,30 @@ namespace lsp
                 virtual void *buffer() override
                 {
                     return &sSlice;                     // Return time-sliced data instead of the whole buffer
+                }
+        };
+
+        class AudioBufferPort: public plug::IPort
+        {
+            private:
+                core::AudioBuffer   sBuffer;
+
+            public:
+                explicit AudioBufferPort(const meta::port_t *meta) : plug::IPort(meta)
+                {
+                    sBuffer.set_size(MAX_BLOCK_LENGTH);
+                }
+
+                AudioBufferPort(const AudioBufferPort &) = delete;
+                AudioBufferPort(AudioBufferPort &&) = delete;
+
+                AudioBufferPort & operator = (const AudioBufferPort &) = delete;
+                AudioBufferPort & operator = (AudioBufferPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return &sBuffer;
                 }
         };
 
@@ -350,6 +375,11 @@ namespace lsp
                 virtual void *buffer() override
                 {
                     return pData;
+                }
+
+                virtual void set_default() override
+                {
+                    strcpy(pData, pMetadata->value);
                 }
 
             public:

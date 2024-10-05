@@ -398,6 +398,8 @@ namespace lsp
 
             ui::IPort *oldp = *port;
             ui::IPort *newp = pWrapper->port(value);
+            if (oldp == newp)
+                return true;
 
             if (oldp != NULL)
                 oldp->unbind(this);

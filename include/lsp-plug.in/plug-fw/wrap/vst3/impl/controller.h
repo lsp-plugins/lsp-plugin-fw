@@ -34,6 +34,8 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
+#include <lsp-plug.in/plug-fw/core/ShmStateBuilder.h>
+#include <lsp-plug.in/plug-fw/core/ShmState.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/controller.h>
@@ -55,7 +57,8 @@ namespace lsp
             PluginFactory *factory,
             resource::ILoader *loader,
             const meta::package_t *package,
-            const meta::plugin_t *meta)
+            const meta::plugin_t *meta):
+            sShmState(shm_state_deleter)
         {
             lsp_trace("this=%p", this);
 
@@ -112,6 +115,13 @@ namespace lsp
                     vup = new vst3::CtlPort(port);
                     break;
 
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
+                    // Stub port
+                    lsp_trace("creating stub audio buffer port %s", port->id);
+                    vup = new vst3::CtlPort(port);
+                    break;
+
                 case meta::R_MIDI_IN:
                     lsp_trace("creating stub input MIDI port %s", port->id);
                     vup = new vst3::CtlPort(port);
@@ -148,6 +158,8 @@ namespace lsp
                     break;
 
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     lsp_trace("creating string port %s", port->id);
                     vup = new vst3::CtlStringPort(port, this);
                     break;
@@ -253,6 +265,11 @@ namespace lsp
                 return 1;
 
             return strcmp(pa->id, pb->id);
+        }
+
+        void Controller::shm_state_deleter(core::ShmState *state)
+        {
+            delete state;
         }
 
         status_t Controller::init()
@@ -728,7 +745,7 @@ namespace lsp
                 }
 
                 // Update state of the mesh and notify
-                lsp_trace("Committed mesh data buffers=%d, items=%d", int(buffers), int(items));
+//                lsp_trace("Committed mesh data buffers=%d, items=%d", int(buffers), int(items));
                 mesh->data(buffers, items);
                 port->mark_changed();
             }
@@ -901,6 +918,95 @@ namespace lsp
                 }
                 port->mark_changed();
             }
+            else if (!strcmp(message_id, ID_MSG_STRING))
+            {
+                // Get endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Get port identifier
+                const char *param_id = sRxNotifyBuf.get_string(atts, "id", byte_order);
+                if (param_id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Find string port
+                // Get port and validate it's type
+                vst3::CtlPort *port    = port_by_id(param_id);
+                if (port == NULL)
+                    return Steinberg::kResultFalse;
+                const meta::port_t *meta = port->metadata();
+                if ((meta == NULL) || (!meta::is_string_holding_port(meta)))
+                    return Steinberg::kResultFalse;
+
+                // Get the string data
+                const char *in_str = sRxNotifyBuf.get_string(atts, "value", byte_order);
+                if (in_str == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Submit string data
+                lsp_trace("string %s = %s", meta->id, in_str);
+                port->write(in_str, strlen(in_str));
+                port->mark_changed();
+            }
+            else if (!strcmp(message_id, ID_MSG_SHM_STATE))
+            {
+                // Get endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Read number of frames
+                Steinberg::int64 size = 0;
+                if (atts->getInt("size", size) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (size < 0)
+                    return Steinberg::kResultFalse;
+
+                LSPString id, name;
+                core::ShmStateBuilder bld;
+
+                for (size_t i=0, n=size; i<n; ++i)
+                {
+                    // Read record index
+                    Steinberg::int64 index = 0;
+                    snprintf(key, sizeof(key), "index[%d]", int(i));
+                    if (atts->getInt(key, index) != Steinberg::kResultOk)
+                        return Steinberg::kResultFalse;
+
+                    // Read record magic
+                    Steinberg::int64 magic = 0;
+                    snprintf(key, sizeof(key), "magic[%d]", int(i));
+                    if (atts->getInt(key, magic) != Steinberg::kResultOk)
+                        return Steinberg::kResultFalse;
+
+                    // Read record identifier
+                    snprintf(key, sizeof(key), "id[%d]", int(i));
+                    const char *id_str = sRxNotifyBuf.get_string(atts, key, byte_order);
+                    if (id_str == NULL)
+                        return Steinberg::kResultFalse;
+                    if (!id.set_utf8(id_str))
+                        return Steinberg::kResultFalse;
+
+                    // Read record name
+                    snprintf(key, sizeof(key), "name[%d]", int(i));
+                    const char *name_str = sRxNotifyBuf.get_string(atts, key, byte_order);
+                    if (name_str == NULL)
+                        return Steinberg::kResultFalse;
+                    if (!name.set_utf8(name_str))
+                        return Steinberg::kResultFalse;
+
+                    // Add record to builder
+                    if (bld.append(name, id, index, magic) != STATUS_OK)
+                        return Steinberg::kResultFalse;
+                }
+
+                // Push new state
+                core::ShmState *state = bld.build();
+                if (state != NULL)
+                {
+                    sShmState.push(state);
+                    lsp_trace("Pushed new shared memory state");
+                }
+            }
             else if (!strcmp(message_id, ID_MSG_KVT))
             {
                 lsp_trace("Received message id=%s", message_id);
@@ -1057,7 +1163,7 @@ namespace lsp
                             pp->commit_value(name);
                             pp->mark_changed();
                         }
-                        else if (meta::is_string_port(meta))
+                        else if (meta::is_string_holding_port(meta))
                         {
                             vst3::CtlStringPort *sp     = static_cast<vst3::CtlStringPort *>(p);
 
@@ -1632,6 +1738,11 @@ namespace lsp
             pPeerConnection->notify(msg);
         }
 
+        const core::ShmState *Controller::shm_state()
+        {
+            return sShmState.get();
+        }
+
         const meta::package_t *Controller::package() const
         {
             return pPackage;
@@ -1726,7 +1837,7 @@ namespace lsp
                 // Finally, we're ready to send message
                 pPeerConnection->notify(msg);
             }
-            else if (meta::is_string_port(meta))
+            else if (meta::is_string_holding_port(meta))
             {
                 const char *str = port->buffer<char>();
                 lsp_trace("port write: id=%s, value='%s'", port->id(), str);

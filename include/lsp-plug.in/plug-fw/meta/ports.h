@@ -131,7 +131,7 @@
 #define METER_OUT_GAIN(id, label, max) \
     { id, label, U_GAIN_AMP, R_METER, F_LOG | F_UPPER | F_LOWER, 0, max, 0.0f, 0, NULL, NULL, NULL }
 #define LUFS_METER(id, label, max) \
-    { id, label, U_LUFS, R_METER, F_UPPER | F_LOWER, -72.0f, max, 0.0f, 0, NULL, NULL, NULL }
+    { id, label, U_LUFS, R_METER, F_UPPER | F_LOWER, -72.0f, max, -72.0f, 0, NULL, NULL, NULL }
 #define METER_GAIN10(id, label)  METER_GAIN(id, label, 10.0f)
 #define METER_GAIN20(id, label)  METER_GAIN(id, label, 20.0f)
 #define METER_PERCENT(id, label)  { id, label, U_PERCENT, R_METER, F_UPPER | F_LOWER, 0.0f, 100.0f, 0.0f, 0.1f, NULL, NULL, NULL }
@@ -140,6 +140,52 @@
 #define STRING_DFL(id, label, length, text)     { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER, 0, length, 0, 0, NULL, NULL, text }
 #define OPT_STRING(id, label, length)           { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER | F_OPTIONAL, 0, length, 0, 0, NULL, NULL, "" }
 #define OPT_STRING_DFL(id, label, length, text) { id, label, U_NONE, R_STRING, F_LOWER | F_UPPER | F_OPTIONAL, 0, length, 0, 0, NULL, NULL, text }
+
+#define SEND_NAME(id, label)                    { id, label, U_NONE, R_SEND_NAME, F_LOWER | F_UPPER, 0, MAX_SHM_SEGMENT_NAME_BYTES, 0, 0, NULL, NULL, "" }
+#define OPT_SEND_NAME(id, label)                { id, label, U_NONE, R_SEND_NAME, F_LOWER | F_UPPER | F_OPTIONAL, 0, MAX_SHM_SEGMENT_NAME_BYTES, 0, 0, NULL, NULL, "" }
+#define RETURN_NAME(id, label)                  { id, label, U_NONE, R_RETURN_NAME, F_LOWER | F_UPPER, 0, MAX_SHM_SEGMENT_NAME_BYTES, 0, 0, NULL, NULL, "" }
+#define OPT_RETURN_NAME(id, label)              { id, label, U_NONE, R_RETURN_NAME, F_LOWER | F_UPPER | F_OPTIONAL, 0, MAX_SHM_SEGMENT_NAME_BYTES, 0, 0, NULL, NULL, "" }
+
+#define AUDIO_SEND(id, label, index, group) \
+    { id, label, U_NONE, R_AUDIO_SEND, 0, 0, 0, index, 0, NULL, NULL, group             }
+#define OPT_AUDIO_SEND(id, label, index, group) \
+    { id, label, U_NONE, R_AUDIO_SEND, F_OPTIONAL, 0, 0, index, 0, NULL, NULL, group    }
+#define AUDIO_RETURN(id, label, index, group) \
+    { id, label, U_NONE, R_AUDIO_RETURN, 0, 0, 0, index, 0, NULL, NULL, group           }
+#define OPT_AUDIO_RETURN(id, label, index, group) \
+    { id, label, U_NONE, R_AUDIO_RETURN, F_OPTIONAL, 0, 0, index, 0, NULL, NULL, group  }
+
+#define SEND_MONO(id, channel, comment) \
+    SEND_NAME(id, comment), \
+    AUDIO_SEND(channel, comment " input", 0, id)
+#define RETURN_MONO(id, channel, comment) \
+    RETURN_NAME(id, comment), \
+    AUDIO_RETURN(channel, comment " input", 0, id)
+
+#define SEND_STEREO(id, channel, comment) \
+    SEND_NAME(id, comment), \
+    AUDIO_SEND(channel "l", comment " input Left", 0, id), \
+    AUDIO_SEND(channel "r", comment " input Right", 1, id)
+#define RETURN_STEREO(id, channel, comment) \
+    RETURN_NAME(id, comment), \
+    AUDIO_RETURN(channel "l", comment " input Left", 0, id), \
+    AUDIO_RETURN(channel "r", comment " input Right", 1, id)
+
+#define OPT_SEND_MONO(id, channel, comment) \
+    OPT_SEND_NAME(id, comment), \
+    OPT_AUDIO_SEND(channel, comment " input", 0, id)
+#define OPT_RETURN_MONO(id, channel, comment) \
+    OPT_RETURN_NAME(id, comment), \
+    OPT_AUDIO_RETURN(channel, comment " input", 0, id)
+
+#define OPT_SEND_STEREO(id, channel, comment) \
+    OPT_SEND_NAME(id, comment), \
+    OPT_AUDIO_SEND(channel "l", comment " input Left", 0, id), \
+    OPT_AUDIO_SEND(channel "r", comment " input Right", 1, id)
+#define OPT_RETURN_STEREO(id, channel, comment) \
+    OPT_RETURN_NAME(id, comment), \
+    OPT_AUDIO_RETURN(channel "l", comment " input Left", 0, id), \
+    OPT_AUDIO_RETURN(channel "r", comment " input Right", 1, id)
 
 #define PORTS_END   \
     { NULL, NULL }

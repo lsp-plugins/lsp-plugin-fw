@@ -47,10 +47,6 @@ namespace lsp
          */
         class Wrapper: public plug::IWrapper
         {
-            private:
-                Wrapper(const Wrapper &);
-                Wrapper & operator = (const Wrapper &);
-
             protected:
                 lltl::parray<ladspa::Port>          vAllPorts;          // All created ports
                 lltl::parray<ladspa::AudioPort>     vAudioIn;           // Input audio ports
@@ -72,7 +68,12 @@ namespace lsp
 
             public:
                 explicit Wrapper(plug::Module *plugin, resource::ILoader *loader);
+                Wrapper(const Wrapper &) = delete;
+                Wrapper(Wrapper &&) = delete;
                 virtual ~Wrapper() override;
+
+                Wrapper & operator = (const Wrapper &) = delete;
+                Wrapper & operator = (Wrapper &&) = delete;
 
                 status_t                            init(unsigned long sr);
                 void                                destroy();

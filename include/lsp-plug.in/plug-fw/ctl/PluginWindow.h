@@ -280,11 +280,13 @@ namespace lsp
                 void                sync_filter_point_thickness();
                 void                sync_enum_menu(enum_menu_t *menu, ui::IPort *port);
                 void                apply_user_paths_settings();
+                void                read_path_param(LSPString *value, const char *port_id);
                 void                read_path_param(tk::String *value, const char *port_id);
                 void                read_bool_param(tk::Boolean *value, const char *port_id);
                 void                commit_path_param(tk::String *value, const char *port_id);
                 void                commit_bool_param(tk::Boolean *value, const char *port_id);
                 void                bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler);
+                bool                open_manual_file(const char *fmt...);
 
                 status_t            init_context(ui::UIContext *ctx);
 
@@ -310,6 +312,7 @@ namespace lsp
             public:
                 status_t            show_about_window();
                 status_t            show_plugin_manual();
+                status_t            show_ui_manual();
                 void                host_scaling_changed();
 
             public:

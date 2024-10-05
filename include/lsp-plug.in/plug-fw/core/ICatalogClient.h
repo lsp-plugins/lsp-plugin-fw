@@ -115,6 +115,12 @@ namespace lsp
                  * @return true if apply has successfully passed, false if apply call should be retried after a while
                  */
                 virtual bool            apply(dspu::Catalog * catalog);
+
+                /**
+                 * Make possible to client to mark some records still being used in catalog
+                 * @param catalog the catalog that can be modified
+                 */
+                virtual void            keep_alive(dspu::Catalog *catalog);
         };
 
     } /* namespace core */

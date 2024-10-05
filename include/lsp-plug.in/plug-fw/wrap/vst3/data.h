@@ -54,6 +54,7 @@ namespace lsp
         constexpr const char *ID_MSG_METERS                 = "Meters";
         constexpr const char *ID_MSG_PATH                   = "Path";
         constexpr const char *ID_MSG_STRING                 = "String";
+        constexpr const char *ID_MSG_SHM_STATE              = "ShmState";
         constexpr const char *ID_MSG_MESH                   = "Mesh";
         constexpr const char *ID_MSG_FRAMEBUFFER            = "FrameBuffer";
         constexpr const char *ID_MSG_STREAM                 = "Stream";

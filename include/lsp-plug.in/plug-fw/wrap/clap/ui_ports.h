@@ -419,7 +419,20 @@ namespace lsp
             public:
                 virtual bool sync() override
                 {
-                    return pValue->fetch(&nSerial, pData, pValue->max_bytes() + 1);
+                    if (pValue->fetch(&nSerial, pData, pValue->max_bytes() + 1))
+                        return true;
+
+                    clap::StringPort *sp    = static_cast<clap::StringPort *>(pPort);
+                    if (!sp->check_reset_pending())
+                        return false;
+
+                    lsp_trace("Applying pending reset for port id=%s", id());
+
+                    const size_t size = strlen(pMetadata->value);
+                    const size_t count = lsp_min(size, pValue->nCapacity);
+                    plug::utf8_strncpy(pData, count, pMetadata->value, size);
+
+                    return true;
                 }
 
                 virtual void *buffer() override
@@ -440,6 +453,8 @@ namespace lsp
                     const size_t count = lsp_min(size, pValue->nCapacity);
                     plug::utf8_strncpy(pData, count, buffer, size);
                     nSerial = pValue->submit(buffer, size, flags & plug::PF_STATE_RESTORE);
+                    lsp_trace("Submitted id=%s, count=%d, buffer=%s, size=%d, value=%s",
+                        id(), int(count), buffer, int(size), pData);
                 }
 
                 virtual void set_default() override

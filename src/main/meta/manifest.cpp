@@ -20,10 +20,13 @@
  */
 
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+
+#include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/fmt/json/dom.h>
 #include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/io/InSequence.h>
-#include <lsp-plug.in/fmt/json/dom.h>
-#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/plug-fw/const.h>
 #include <errno.h>
 
 namespace lsp
@@ -247,6 +250,36 @@ namespace lsp
                 *pkg            = p;
 
             return res;
+        }
+
+        status_t load_manifest(meta::package_t **pkg, resource::ILoader *loader)
+        {
+            status_t res;
+            if (loader == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            io::IInStream *is = loader->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
+            if (is == NULL)
+                return STATUS_NOT_FOUND;
+            lsp_finally {
+                is->close();
+                delete is;
+            };
+
+            meta::package_t *manifest = NULL;
+            if ((res = meta::load_manifest(&manifest, is)) != STATUS_OK)
+            {
+                lsp_warn("Error loading manifest file, error=%d", int(res));
+                return res;
+            }
+            lsp_finally {
+                free_manifest(manifest);
+            };
+
+            if (pkg != NULL)
+                *pkg        = release_ptr(manifest);
+
+            return STATUS_OK;
         }
 
         void free_manifest(meta::package_t *pkg)

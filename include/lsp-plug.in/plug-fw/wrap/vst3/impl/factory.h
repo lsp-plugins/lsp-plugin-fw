@@ -774,6 +774,16 @@ namespace lsp
             return STATUS_OK;
         }
 
+        core::Catalog *PluginFactory::acquire_catalog()
+        {
+            return sCatalogManager.acquire();
+        }
+
+        void PluginFactory::release_catalog(core::Catalog *catalog)
+        {
+            sCatalogManager.release(catalog);
+        }
+
     #ifdef VST_USE_RUNLOOP_IFACE
         Steinberg::Linux::IRunLoop *PluginFactory::acquire_run_loop()
         {

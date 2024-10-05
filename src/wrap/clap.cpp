@@ -29,8 +29,10 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/debug.h>
-#include <lsp-plug.in/plug-fw/wrap/clap/impl/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/impl/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/clap/impl/wrapper.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -50,8 +52,12 @@ namespace lsp
         // of undetermined order of initialization of static objects which may
         // cause undefined behaviour when reading the list of plugin factories
         // which can be not fully initialized.
-        static lltl::darray<clap_plugin_descriptor_t> descriptors;
-        static meta::package_t *package_manifest = NULL;
+        struct factory_t: public clap_plugin_factory_t
+        {
+            clap::Factory *factory;
+        };
+
+        static factory_t *plugin_factory = NULL;
         static lsp::singletone_t library;
 
         //---------------------------------------------------------------------
@@ -595,239 +601,18 @@ namespace lsp
 
         //---------------------------------------------------------------------
         // Factory-related stuff
-        static meta::package_t *load_manifest(resource::ILoader *loader)
-        {
-            status_t res;
-            if (loader == NULL)
-                return NULL;
-
-            io::IInStream *is = loader->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
-            if (is == NULL)
-                return NULL;
-            lsp_finally {
-                is->close();
-                delete is;
-            };
-
-            meta::package_t *manifest = NULL;
-            if ((res = meta::load_manifest(&manifest, is)) != STATUS_OK)
-            {
-                lsp_warn("Error loading manifest file, error=%d", int(res));
-                return NULL;
-            }
-
-            return manifest;
-        }
-
-        static ssize_t cmp_descriptors(const clap_plugin_descriptor_t *d1, const clap_plugin_descriptor_t *d2)
-        {
-            return strcmp(d1->id, d2->id);
-        }
-
-        static const char * const *make_feature_list(const meta::plugin_t *meta)
-        {
-            // Estimate the overall number of CLAP features
-            size_t count = 0;
-            for (const int *f=meta->clap_features; *f >= 0; ++f)
-                if (*f < meta::CF_TOTAL)
-                    ++count;
-
-            // Allocate the array of the corresponding size;
-            const char **list = static_cast<const char **>(malloc(sizeof(const char *) * (count + 1)));
-            if (list == NULL)
-                return NULL;
-
-            // Fill the list with CLAP features
-            count = 0;
-            for (const int *f=meta->clap_features; *f >= 0; ++f)
-            {
-                const char *cf = NULL;
-                switch (*f)
-                {
-                    case meta::CF_INSTRUMENT:       cf = CLAP_PLUGIN_FEATURE_INSTRUMENT; break;
-                    case meta::CF_AUDIO_EFFECT:     cf = CLAP_PLUGIN_FEATURE_AUDIO_EFFECT; break;
-                    case meta::CF_NOTE_EFFECT:      cf = CLAP_PLUGIN_FEATURE_NOTE_EFFECT; break;
-                    case meta::CF_ANALYZER:         cf = CLAP_PLUGIN_FEATURE_ANALYZER; break;
-                    case meta::CF_SYNTHESIZER:      cf = CLAP_PLUGIN_FEATURE_SYNTHESIZER; break;
-                    case meta::CF_SAMPLER:          cf = CLAP_PLUGIN_FEATURE_SAMPLER; break;
-                    case meta::CF_DRUM:             cf = CLAP_PLUGIN_FEATURE_DRUM; break;
-                    case meta::CF_DRUM_MACHINE:     cf = CLAP_PLUGIN_FEATURE_DRUM_MACHINE; break;
-                    case meta::CF_FILTER:           cf = CLAP_PLUGIN_FEATURE_FILTER; break;
-                    case meta::CF_PHASER:           cf = CLAP_PLUGIN_FEATURE_PHASER; break;
-                    case meta::CF_EQUALIZER:        cf = CLAP_PLUGIN_FEATURE_EQUALIZER; break;
-                    case meta::CF_DEESSER:          cf = CLAP_PLUGIN_FEATURE_DEESSER; break;
-                    case meta::CF_PHASE_VOCODER:    cf = CLAP_PLUGIN_FEATURE_PHASE_VOCODER; break;
-                    case meta::CF_GRANULAR:         cf = CLAP_PLUGIN_FEATURE_GRANULAR; break;
-                    case meta::CF_FREQUENCY_SHIFTER:cf = CLAP_PLUGIN_FEATURE_FREQUENCY_SHIFTER; break;
-                    case meta::CF_PITCH_SHIFTER:    cf = CLAP_PLUGIN_FEATURE_PITCH_SHIFTER; break;
-                    case meta::CF_DISTORTION:       cf = CLAP_PLUGIN_FEATURE_DISTORTION; break;
-                    case meta::CF_TRANSIENT_SHAPER: cf = CLAP_PLUGIN_FEATURE_TRANSIENT_SHAPER; break;
-                    case meta::CF_COMPRESSOR:       cf = CLAP_PLUGIN_FEATURE_COMPRESSOR; break;
-                    case meta::CF_LIMITER:          cf = CLAP_PLUGIN_FEATURE_LIMITER; break;
-                    case meta::CF_FLANGER:          cf = CLAP_PLUGIN_FEATURE_FLANGER; break;
-                    case meta::CF_CHORUS:           cf = CLAP_PLUGIN_FEATURE_CHORUS; break;
-                    case meta::CF_DELAY:            cf = CLAP_PLUGIN_FEATURE_DELAY; break;
-                    case meta::CF_REVERB:           cf = CLAP_PLUGIN_FEATURE_REVERB; break;
-                    case meta::CF_TREMOLO:          cf = CLAP_PLUGIN_FEATURE_TREMOLO; break;
-                    case meta::CF_GLITCH:           cf = CLAP_PLUGIN_FEATURE_GLITCH; break;
-                    case meta::CF_UTILITY:          cf = CLAP_PLUGIN_FEATURE_UTILITY; break;
-                    case meta::CF_PITCH_CORRECTION: cf = CLAP_PLUGIN_FEATURE_PITCH_CORRECTION; break;
-                    case meta::CF_RESTORATION:      cf = CLAP_PLUGIN_FEATURE_RESTORATION; break;
-                    case meta::CF_MULTI_EFFECTS:    cf = CLAP_PLUGIN_FEATURE_MULTI_EFFECTS; break;
-                    case meta::CF_MIXING:           cf = CLAP_PLUGIN_FEATURE_MIXING; break;
-                    case meta::CF_MASTERING:        cf = CLAP_PLUGIN_FEATURE_MASTERING; break;
-                    case meta::CF_MONO:             cf = CLAP_PLUGIN_FEATURE_MONO; break;
-                    case meta::CF_STEREO:           cf = CLAP_PLUGIN_FEATURE_STEREO; break;
-                    case meta::CF_SURROUND:         cf = CLAP_PLUGIN_FEATURE_SURROUND; break;
-                    case meta::CF_AMBISONIC:        cf = CLAP_PLUGIN_FEATURE_AMBISONIC; break;
-                    default:
-                        break;
-                }
-                if (cf != NULL)
-                    list[count++] = cf;
-            }
-
-            // Add NULL terminator
-            list[count]     = NULL;
-
-            return list;
-        }
-
-        static void gen_descriptors()
-        {
-            // Check that data already has been initialized
-            if (library.initialized())
-                return;
-
-            // Obtain the resource loader
-            lsp_trace("Obtaining resource loader...");
-            resource::ILoader *loader = core::create_resource_loader();
-            lsp_finally {
-                if (loader != NULL)
-                    delete loader;
-            };
-
-            // Obtain the manifest
-            lsp_trace("Obtaining manifest...");
-            meta::package_t *manifest = load_manifest(loader);
-            lsp_finally {
-                if (manifest != NULL)
-                    meta::free_manifest(manifest);
-            };
-            if (manifest == NULL)
-                lsp_trace("No manifest file found");
-
-            // Generate descriptors
-            lltl::darray<clap_plugin_descriptor_t> result;
-            lsp_finally { result.flush(); };
-
-            lsp_trace("generating descriptors...");
-
-            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
-            {
-                for (size_t i=0; ; ++i)
-                {
-                    // Skip plugins not compatible with CLAP
-                    const meta::plugin_t *meta = f->enumerate(i);
-                    if ((meta == NULL) || (meta->uids.clap == NULL))
-                        break;
-
-                    // Allocate new descriptor
-                    clap_plugin_descriptor_t *d = result.add();
-                    if (d == NULL)
-                    {
-                        lsp_warn("Error allocating CLAP descriptor for plugin %s", meta->uids.clap);
-                        continue;
-                    }
-
-                    // Initialize descriptor
-                    char *tmp;
-                    bzero(d, sizeof(*d));
-
-                    d->clap_version     = CLAP_VERSION;
-                    d->id               = meta->uids.clap;
-                    d->name             = meta->description;
-                    d->vendor           = NULL;
-                    d->url              = NULL;
-                    d->manual_url       = NULL;
-                    d->support_url      = NULL;
-                    d->version          = NULL;
-                    d->description      = (meta->bundle != NULL) ? meta->bundle->description : NULL;
-                    d->features         = make_feature_list(meta);
-
-                    if (asprintf(&tmp, "%d.%d.%d",
-                        int(LSP_MODULE_VERSION_MAJOR(meta->version)),
-                        int(LSP_MODULE_VERSION_MINOR(meta->version)),
-                        int(LSP_MODULE_VERSION_MICRO(meta->version))) >= 0)
-                        d->version          = tmp;
-
-                    if (manifest != NULL)
-                    {
-                        if (asprintf(&tmp, "%s CLAP", manifest->brand) >= 0)
-                            d->vendor           = tmp;
-                        d->url              = manifest->site;
-                        if (asprintf(&tmp, "%s/doc/%s/html/plugins/%s.html", manifest->site, "lsp-plugins", meta->uid) >= 0)
-                            d->manual_url       = tmp;
-                    }
-                }
-            }
-
-            // Sort descriptors
-            result.qsort(cmp_descriptors);
-
-        #ifdef LSP_TRACE
-            lsp_trace("generated %d descriptors:", int(result.size()));
-            for (size_t i=0, n=result.size(); i<n; ++i)
-            {
-                clap_plugin_descriptor_t *d = result.uget(i);
-                lsp_trace("[%4d] %p: %s", int(i), d, d->id);
-            }
-        #endif /* LSP_TRACE */
-
-            // Commit the generated objects to the global variables
-            lsp_singletone_init(library) {
-                descriptors.swap(result);
-                lsp::swap(package_manifest, manifest);
-            };
-        }
-
-        static void drop_descriptor(clap_plugin_descriptor_t *d)
-        {
-            if (d == NULL)
-                return;
-
-            if (d->version != NULL)
-                free(const_cast<char *>(d->version));
-            if (d->vendor != NULL)
-                free(const_cast<char *>(d->vendor));
-            if (d->manual_url != NULL)
-                free(const_cast<char *>(d->manual_url));
-            if (d->features != NULL)
-                free(const_cast<char **>(d->features));
-
-            d->version          = NULL;
-            d->vendor           = NULL;
-            d->manual_url       = NULL;
-        }
-
-        static void drop_descriptors()
-        {
-            lsp_trace("dropping %d descriptors", int(descriptors.size()));
-            for (size_t i=0, n=descriptors.size(); i<n; ++i)
-                drop_descriptor(descriptors.uget(i));
-            descriptors.flush();
-        }
-
         static uint32_t get_plugin_count(const clap_plugin_factory_t *factory)
         {
-            return descriptors.size();
+            const factory_t *f = static_cast<const factory_t *>(factory);
+            return (f->factory != NULL) ? f->factory->descriptors_count() : 0;
         }
 
         static const clap_plugin_descriptor_t *get_plugin_descriptor(
             const clap_plugin_factory_t *factory,
             uint32_t index)
         {
-            return descriptors.get(index);
+            const factory_t *f = static_cast<const factory_t *>(factory);
+            return (f->factory != NULL) ? f->factory->descriptor(index) : 0;
         }
 
         static const clap_plugin_t *create_plugin(
@@ -838,11 +623,15 @@ namespace lsp
             if (!clap_version_is_compatible(host->clap_version))
                 return NULL;
 
+            const factory_t *f = static_cast<const factory_t *>(factory);
+            if (f->factory == NULL)
+                return NULL;
+
             // Find the corresponding CLAP plugin descriptor
             const clap_plugin_descriptor_t *descriptor = NULL;
-            for (size_t i=0, n=descriptors.size(); i<n; ++i)
+            for (size_t i=0, n=f->factory->descriptors_count(); i<n; ++i)
             {
-                const clap_plugin_descriptor_t *d   = descriptors.uget(i);
+                const clap_plugin_descriptor_t *d   = f->factory->descriptor(i);
                 if ((d != NULL) && (!strcmp(d->id, plugin_id)))
                 {
                     descriptor = d;
@@ -851,127 +640,116 @@ namespace lsp
             }
             if (descriptor == NULL)
             {
-                lsp_warn("Invalid CLAP descriptor: %s", plugin_id);
+                lsp_warn("Invalid CLAP plugin identifier: %s", plugin_id);
                 return NULL;
             }
 
-            // Find the plugin by it's identifier in the list of plugin factories
-            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+            // Create plugin wrapper
+            clap::Wrapper *wrapper  = f->factory->instantiate(host, descriptor);
+            if (wrapper == NULL)
             {
-                for (size_t i=0; ; ++i)
-                {
-                    // Find the corresponding CLAP plugin
-                    const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
-                        break;
-
-                    if (!strcmp(meta->uids.clap, plugin_id))
-                    {
-                        // Create module
-                        plug::Module *plugin = f->create(meta);
-                        if (plugin == NULL)
-                        {
-                            lsp_warn("Failed instantiation of CLAP plugin %s", plugin_id);
-                            return NULL;
-                        }
-                        lsp_finally {
-                            if (plugin != NULL)
-                                delete plugin;
-                        };
-
-                        // Create the resource loader
-                        resource::ILoader *loader = core::create_resource_loader();
-                        lsp_finally {
-                            if (loader != NULL)
-                                delete loader;
-                        };
-                        lsp_trace("created resource loader %p for plugin %p", loader, plugin);
-
-                        // Create the wrapper
-                        Wrapper *wrapper    = new Wrapper(plugin, package_manifest, loader, host);
-                        if (wrapper == NULL)
-                        {
-                            lsp_warn("Error creating wrapper");
-                            return NULL;
-                        }
-                        loader              = NULL;
-
-                        lsp_finally {
-                            if (wrapper != NULL)
-                            {
-                                wrapper->destroy();
-                                delete wrapper;
-                            }
-                        };
-                        plugin              = NULL;
-
-                        // Allocate the plugin handle and fill it
-                        clap_plugin_t *h   = static_cast<clap_plugin_t *>(malloc(sizeof(clap_plugin_t)));
-                        if (h == NULL)
-                            return NULL;
-                        bzero(h, sizeof(*h));
-
-                        // Fill-in the plugin data and return
-                        h->desc             = descriptor;
-                        h->plugin_data      = wrapper;
-                        h->init             = init;
-                        h->destroy          = destroy;
-                        h->activate         = activate;
-                        h->deactivate       = deactivate;
-                        h->start_processing = start_processing;
-                        h->stop_processing  = stop_processing;
-                        h->reset            = reset;
-                        h->process          = process;
-                        h->get_extension    = get_extension;
-                        h->on_main_thread   = on_main_thread;
-
-                        // Prevent wrapper of being deleted
-                        wrapper             = NULL;
-
-                        return h;
-                    }
-                }
+                lsp_error("Failed instantiation of CLAP plugin: %s", plugin_id);
+                return NULL;
             }
+            lsp_finally {
+                if (wrapper != NULL)
+                {
+                    wrapper->destroy();
+                    delete wrapper;
+                }
+            };
 
-            lsp_warn("Invalid CLAP plugin identifier: %s", plugin_id);
-            return NULL;
+
+            // Allocate the plugin handle and fill it
+            clap_plugin_t *h   = static_cast<clap_plugin_t *>(malloc(sizeof(clap_plugin_t)));
+            if (h == NULL)
+                return NULL;
+            bzero(h, sizeof(*h));
+
+            // Fill-in the plugin data and return
+            h->desc             = descriptor;
+            h->plugin_data      = release_ptr(wrapper);
+            h->init             = init;
+            h->destroy          = destroy;
+            h->activate         = activate;
+            h->deactivate       = deactivate;
+            h->start_processing = start_processing;
+            h->stop_processing  = stop_processing;
+            h->reset            = reset;
+            h->process          = process;
+            h->get_extension    = get_extension;
+            h->on_main_thread   = on_main_thread;
+
+            return h;
         }
-
-
-        static const clap_plugin_factory_t plugin_factory =
-        {
-           .get_plugin_count        = get_plugin_count,
-           .get_plugin_descriptor   = get_plugin_descriptor,
-           .create_plugin           = create_plugin,
-        };
 
         //---------------------------------------------------------------------
         // Library-related stuff
+        static void destroy_factory(factory_t * &factory)
+        {
+            if (factory != NULL)
+            {
+                if (factory->factory != NULL)
+                {
+                    factory->factory->release();
+                    factory->factory     = NULL;
+                }
+                free(factory);
+                factory     = NULL;
+            }
+        }
+
         static bool init_library(const char *plugin_path)
         {
         #ifndef LSP_IDE_DEBUG
             IF_DEBUG( lsp::debug::redirect(CLAP_LOG_FILE); );
         #endif /* LSP_IDE_DEBUG */
 
+            // Check that data already has been initialized
+            if (library.initialized())
+                return true;
+
             dsp::init();
-            gen_descriptors();
+
+            factory_t *factory = static_cast<factory_t *>(malloc(sizeof(factory_t)));
+            if (factory == NULL)
+                return false;
+
+            lsp_finally {
+                destroy_factory(factory);
+            };
+
+            factory->get_plugin_count       = get_plugin_count;
+            factory->get_plugin_descriptor  = get_plugin_descriptor;
+            factory->create_plugin          = create_plugin;
+            factory->factory                = new Factory();
+
+            if (factory->factory == NULL)
+                return false;
+
+            lsp_trace("Created plugin factory %p wrapped by interface %p", factory->factory, factory);
+
+            // Commit the generated objects to the global variables
+            lsp_singletone_init(library) {
+                lsp::swap(plugin_factory, factory);
+            };
+
             return true;
         }
 
         static void destroy_library(void)
         {
-            drop_descriptors();
-            if (package_manifest != NULL)
-            {
-                meta::free_manifest(package_manifest);
-                package_manifest = NULL;
-            }
+            lsp_trace("Destroying plugin factory interface %p", plugin_factory);
+            destroy_factory(plugin_factory);
         }
 
         const void *get_factory(const char *factory_id)
         {
             if (!strcmp(factory_id, CLAP_PLUGIN_FACTORY_ID))
-                return &plugin_factory;
+            {
+                lsp_trace("Returning plugin factory interface %p", plugin_factory);
+                return plugin_factory;
+            }
             return NULL;
         }
 

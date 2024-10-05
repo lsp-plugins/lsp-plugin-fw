@@ -1783,34 +1783,9 @@ namespace lsp
 
         status_t PluginWindow::slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data)
         {
-            io::Path path;
-            LSPString spath;
-            status_t res;
-
-            // Try to open local documentation
-            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
-            {
-                path.fmt("%s/doc/%s/html/constrols.html", *prefix, "lsp-plugins");
-                lsp_trace("Checking path: %s", path.as_utf8());
-
-                if (path.exists())
-                {
-                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
-                    {
-                        if ((res = system::follow_url(&spath)) == STATUS_OK)
-                            return res;
-                    }
-                }
-            }
-
-            // Follow the online documentation
-            if (spath.fmt_utf8("%s?page=manuals&section=controls", "https://lsp-plug.in/"))
-            {
-                if ((res = system::follow_url(&spath)) == STATUS_OK)
-                    return res;
-            }
-
-            return STATUS_NOT_FOUND;
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            self->show_ui_manual();
+            return STATUS_OK;
         }
 
         status_t PluginWindow::slot_show_about(tk::Widget *sender, void *ptr, void *data)
@@ -2124,6 +2099,15 @@ namespace lsp
             value->set_raw((path != NULL) ? path : "");
         }
 
+        void PluginWindow::read_path_param(LSPString *value, const char *port_id)
+        {
+            ui::IPort *p = pWrapper->port(port_id);
+            const char *path = NULL;
+            if ((p != NULL) && (meta::is_path_port(p->metadata())))
+                path = p->buffer<const char>();
+            value->set_utf8((path != NULL) ? path : "");
+        }
+
         void PluginWindow::read_bool_param(tk::Boolean *value, const char *port_id)
         {
             ui::IPort *p = pWrapper->port(port_id);
@@ -2259,6 +2243,33 @@ namespace lsp
             return STATUS_OK;
         }
 
+        bool PluginWindow::open_manual_file(const char *fmt...)
+        {
+            va_list vl;
+            va_start(vl, fmt);
+            lsp_finally{ va_end(vl); };
+
+            // Form the path
+            io::Path path;
+            LSPString spath;
+            ssize_t res = path.vfmt(fmt, vl);
+            if (res <= 0)
+                return false;
+
+            if (path.is_empty())
+                return false;
+
+            lsp_trace("Checking path: %s", path.as_utf8());
+
+            if (!path.exists())
+                return false;
+
+            if (!spath.fmt_utf8("file://%s", path.as_utf8()))
+                return false;
+
+            return system::follow_url(&spath) == STATUS_OK;
+        }
+
         status_t PluginWindow::show_plugin_manual()
         {
             const meta::plugin_t *meta = pWrapper->ui()->metadata();
@@ -2267,26 +2278,54 @@ namespace lsp
             LSPString spath;
             status_t res;
 
+            // Check that documentation path is present
+            read_path_param(&spath, UI_DOCUMENTATION_PORT);
+            if (!spath.is_empty())
+            {
+                if (open_manual_file("%s/html/plugins/%s.html", spath.get_utf8(), meta->uid))
+                    return STATUS_OK;
+            }
+
             // Try to open local documentation
             for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
             {
-                path.fmt("%s/doc/%s/html/plugins/%s.html",
-                    *prefix, "lsp-plugins", meta->uid);
-
-                lsp_trace("Checking path: %s", path.as_utf8());
-
-                if (path.exists())
-                {
-                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
-                    {
-                        if ((res = system::follow_url(&spath)) == STATUS_OK)
-                            return res;
-                    }
-                }
+                if (open_manual_file("%s/doc/%s/html/plugins/%s.html", *prefix, "lsp-plugins", meta->uid))
+                    return STATUS_OK;
             }
 
             // Follow the online documentation
             if (spath.fmt_utf8("%s?page=manuals&section=%s", "https://lsp-plug.in/", meta->uid))
+            {
+                if ((res = system::follow_url(&spath)) == STATUS_OK)
+                    return res;
+            }
+
+            return STATUS_NOT_FOUND;
+        }
+
+        status_t PluginWindow::show_ui_manual()
+        {
+            io::Path path;
+            LSPString spath;
+            status_t res;
+
+            // Check that documentation path is present
+            read_path_param(&spath, UI_DOCUMENTATION_PORT);
+            if (!spath.is_empty())
+            {
+                if (open_manual_file("%s/html/controls.html", spath.get_utf8()))
+                    return STATUS_OK;
+            }
+
+            // Try to open local documentation
+            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
+            {
+                if (open_manual_file("%s/doc/%s/html/controls.html", *prefix, "lsp-plugins"))
+                    return STATUS_OK;
+            }
+
+            // Follow the online documentation
+            if (spath.fmt_utf8("%s?page=manuals&section=controls", "https://lsp-plug.in/"))
             {
                 if ((res = system::follow_url(&spath)) == STATUS_OK)
                     return res;
@@ -2305,6 +2344,7 @@ namespace lsp
                 return STATUS_NO_MEM;
             widgets()->add(w);
             w->init();
+            w->actions()->set_actions(ws::WA_DIALOG | ws::WA_RESIZE | ws::WA_CLOSE);
 
             lsp_trace("Registered window ptr=%p, path=%s", static_cast<tk::Widget *>(w), path);
 

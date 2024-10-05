@@ -50,6 +50,13 @@ namespace lsp
             return (pSend != NULL) ? pSend->apply(catalog) : ICatalogClient::apply(catalog);
         }
 
+        void AudioSend::Client::keep_alive(dspu::Catalog *catalog)
+        {
+            ICatalogClient::keep_alive(catalog);
+            if (pSend != NULL)
+                pSend->keep_alive(catalog);
+        }
+
         void AudioSend::Client::apply_settings()
         {
             ICatalogClient::request_apply();
@@ -164,7 +171,7 @@ namespace lsp
                 return NULL;
 
             // Commit record and return
-            lsp_trace("Published audio stream name=%s, channels=%d, length=%d as index=%d, version=%d, shm_id=%s",
+            lsp_trace("Published audio stream '%s' channels=%d, length=%d at index=%d, version=%d, shm_id=%s",
                 params->sName, int(params->nChannels), int(params->nLength),
                 int(record->index), int(record->version), record->id.get_utf8());
 
@@ -228,6 +235,20 @@ namespace lsp
             return atomic_load(&enStatus) == ST_ACTIVE;
         }
 
+        bool AudioSend::overridden() const
+        {
+            return atomic_load(&enStatus) == ST_OVERRIDDEN;
+        }
+
+        bool AudioSend::deactivate()
+        {
+            uatomic_t status = atomic_load(&enStatus);
+            if (status != ST_OVERRIDDEN)
+                return false;
+
+            return atomic_cas(&enStatus, ST_OVERRIDDEN, ST_INACTIVE);
+        }
+
         const char *AudioSend::name() const
         {
             stream_t *st = sStream.current();
@@ -260,7 +281,10 @@ namespace lsp
             pStream         = sStream.get();
             bProcessing     = true;
 
-            return STATUS_OK;
+            if ((pStream == NULL) || (pStream->pStream == NULL))
+                return STATUS_OK;
+
+            return pStream->pStream->begin(block_size);
         }
 
         status_t AudioSend::write(size_t channel, const float *src, size_t samples)
@@ -310,7 +334,10 @@ namespace lsp
                 return false;
 
             // Transfer state
-            atomic_store(&enStatus, ST_ACTIVE);
+            if (st == NULL)
+                lsp_trace("Disabled publishing of stream");
+
+            atomic_store(&enStatus, (st->pStream != NULL) ? ST_ACTIVE : ST_INACTIVE);
             sStream.push(st);
 
             return true;
@@ -332,9 +359,16 @@ namespace lsp
                 return false;
 
             // Transfer new state
-            atomic_store(&enStatus, ST_INACTIVE);
+            lsp_trace("Stream has been overridden by another publisher");
+            atomic_store(&enStatus, ST_OVERRIDDEN);
             sStream.push(st);
             return true;
+        }
+
+        void AudioSend::keep_alive(dspu::Catalog *catalog)
+        {
+            if (!sRecord.id.is_empty())
+                catalog->keep_alive(&sRecord.name);
         }
 
     } /* namespace core */

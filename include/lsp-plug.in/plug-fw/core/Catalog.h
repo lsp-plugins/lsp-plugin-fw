@@ -53,12 +53,14 @@ namespace lsp
                 lltl::parray<ICatalogClient>  vClients;
 
             protected:
+                bool                open_catalog();
                 status_t            attach_client(ICatalogClient *client);
                 status_t            detach_client(ICatalogClient *client);
                 bool                process_events();
                 void                sync_catalog();
                 size_t              process_apply();
                 size_t              process_update();
+                void                process_keep_alive();
 
             public:
                 explicit Catalog();

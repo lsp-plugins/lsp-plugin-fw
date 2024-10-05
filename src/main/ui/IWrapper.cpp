@@ -56,7 +56,6 @@ namespace lsp
 
         static const meta::port_t config_metadata[] =
         {
-            SWITCH(UI_MOUNT_STUD_PORT_ID, "Visibility of mount studs in the UI", 1.0f),
             PATH(UI_LAST_VERSION_PORT_ID, "Last version of the product installed"),
             PATH(UI_DLG_SAMPLE_PATH_ID, "Dialog path for selecting sample files"),
             INT_CONTROL_RANGE(UI_DLG_SAMPLE_FTYPE_ID, "Dialog file type for selecting sample files", U_NONE, 0, 100, 0, 1),
@@ -92,6 +91,7 @@ namespace lsp
             SWITCH(UI_GRAPH_DOT_INVERT_VSCROLL_ID, "Invert mouse vertical scroll behaviour for graph dot widget", 0.0f),
             SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Enables the automatic scaling mode of the frequency graph", 1.0f),
             COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", 1.0f, filter_point_thickness_modes),
+            PATH(UI_DOCUMENTATION_PATH_ID, "Path to the local documentation installation"),
             PORTS_END
         };
 
@@ -882,10 +882,10 @@ namespace lsp
             c->append_ascii     (config_separator);
             c->append           ('\n');
             c->append_utf8      ("This file contains configuration of the audio plugin.\n");
-            c->fmt_append_utf8  ("  Package:             %s (%s)\n", pkg->artifact, pkg->artifact_name);
-            c->fmt_append_utf8  ("  Package version:     %s\n", pkv.get_utf8());
-            c->fmt_append_utf8  ("  Plugin name:         %s (%s)\n", meta->name, meta->description);
-            c->fmt_append_utf8  ("  Plugin version:      %d.%d.%d\n",
+            c->fmt_append_utf8  ("  Package:                 %s (%s)\n", pkg->artifact, pkg->artifact_name);
+            c->fmt_append_utf8  ("  Package version:         %s\n", pkv.get_utf8());
+            c->fmt_append_utf8  ("  Plugin name:             %s (%s)\n", meta->name, meta->description);
+            c->fmt_append_utf8  ("  Plugin version:          %d.%d.%d\n",
                     int(LSP_MODULE_VERSION_MAJOR(meta->version)),
                     int(LSP_MODULE_VERSION_MINOR(meta->version)),
                     int(LSP_MODULE_VERSION_MICRO(meta->version))
@@ -952,7 +952,7 @@ namespace lsp
                 const meta::port_t *meta = p->metadata();
                 if (meta == NULL)
                     continue;
-                if (meta::is_out_port(meta))
+                if (!meta::is_in_port(meta))
                     continue;
                 if (!strcmp(meta->id, UI_LAST_VERSION_PORT_ID))
                     continue;
@@ -1702,6 +1702,8 @@ namespace lsp
                     port->write(value, len, flags);
                     break;
                 }
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                 case meta::R_STRING:
                 {
                     // Check type of argument
@@ -2041,6 +2043,11 @@ namespace lsp
         meta::plugin_format_t IWrapper::plugin_format() const
         {
             return meta::PLUGIN_UNKNOWN;
+        }
+
+        const core::ShmState *IWrapper::shm_state()
+        {
+            return NULL;
         }
 
     } /* namespace ui */

@@ -3,7 +3,7 @@
  *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 24 нояб. 2020 г.
+ * Created on: 24 нояб. 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -33,11 +33,12 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/lltl/ptrset.h>
-#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/io/IOutSequence.h>
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/expr/Variables.h>
 
+#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/core/ShmState.h>
 #include <lsp-plug.in/plug-fw/ui/IPort.h>
 #include <lsp-plug.in/plug-fw/ui/Module.h>
 #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
@@ -454,6 +455,15 @@ namespace lsp
                  * @return plugin format
                  */
                 virtual meta::plugin_format_t   plugin_format() const;
+
+                /**
+                 * Get the actual shared memory state (list of connections).
+                 * Note that multiple calls may change the result pointer and
+                 * invalidate the previously returned pointer.
+                 *
+                 * @return pointer to actual shared memory state or NULL
+                 */
+                virtual const core::ShmState   *shm_state();
         };
 
     } /* namespace ui */

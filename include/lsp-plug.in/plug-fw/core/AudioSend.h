@@ -43,6 +43,7 @@ namespace lsp
                     ST_INACTIVE,        // Inactive, no I/O is performing
                     ST_UPDATING,        // The update is in progress
                     ST_ACTIVE,          // The send is active and available for transferring data
+                    ST_OVERRIDDEN,      // The send has been overridden by another one
                 };
 
                 typedef dspu::Catalog::Record   Record;
@@ -68,7 +69,7 @@ namespace lsp
                         AudioSend              *pSend;
 
                     public:
-                        Client(AudioSend *send);
+                        explicit Client(AudioSend *send);
                         virtual ~Client() override;
 
                     public:
@@ -77,6 +78,7 @@ namespace lsp
                     public: // core::ICatalogClient
                         virtual bool            update(dspu::Catalog * catalog) override;
                         virtual bool            apply(dspu::Catalog * catalog) override;
+                        virtual void            keep_alive(dspu::Catalog *catalog) override;
                 };
 
 
@@ -99,6 +101,7 @@ namespace lsp
             private:
                 bool                    update(dspu::Catalog *catalog);
                 bool                    apply(dspu::Catalog *catalog);
+                void                    keep_alive(dspu::Catalog *catalog);
 
             public:
                 AudioSend();
@@ -150,6 +153,18 @@ namespace lsp
                  * @return true if send is active and available for data transfer
                  */
                 bool                    active() const;
+
+                /**
+                 * Check that send has been overridden, RT safe
+                 * @return true if send has been overridden by another send
+                 */
+                bool                    overridden() const;
+
+                /**
+                 * Transfers the send from overridden state to inactive state
+                 * @return true if state has been changed successfully
+                 */
+                bool                    deactivate();
 
                 /**
                  * Get name of the stream, RT safe

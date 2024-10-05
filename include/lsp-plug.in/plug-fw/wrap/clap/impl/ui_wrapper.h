@@ -257,6 +257,18 @@ namespace lsp
                     cup = new clap::UIPort(port, cp);
                     break;
 
+                case meta::R_AUDIO_SEND:
+                    // Stub port
+                    lsp_trace("creating stub audio send port %s", port->id);
+                    cup = new clap::UIPort(port, cp);
+                    break;
+
+                case meta::R_AUDIO_RETURN:
+                    // Stub port
+                    lsp_trace("creating stub audio return port %s", port->id);
+                    cup = new clap::UIPort(port, cp);
+                    break;
+
                 case meta::R_MIDI_IN:
                 case meta::R_MIDI_OUT:
                     // Stub port
@@ -296,6 +308,16 @@ namespace lsp
 
                 case meta::R_STRING:
                     lsp_trace("creating string port %s", port->id);
+                    cup = new clap::UIStringPort(cp);
+                    break;
+
+                case meta::R_SEND_NAME:
+                    lsp_trace("creating send name port %s", port->id);
+                    cup = new clap::UIStringPort(cp);
+                    break;
+
+                case meta::R_RETURN_NAME:
+                    lsp_trace("creating return name port %s", port->id);
                     cup = new clap::UIStringPort(cp);
                     break;
 
@@ -505,9 +527,14 @@ namespace lsp
             return meta::PLUGIN_CLAP;
         }
 
+        const core::ShmState *UIWrapper::shm_state()
+        {
+            return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
+        }
+
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
 
             UIWrapper *this_    = static_cast<UIWrapper *>(ptr);
             tk::Window *wnd     = this_->window();
@@ -525,13 +552,13 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             return STATUS_OK;
         }
 
         status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
 
             UIWrapper *this_    = static_cast<UIWrapper *>(ptr);
             tk::Window *wnd     = this_->window();
@@ -546,7 +573,7 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_close(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = p%", sender, ptr, data);
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             UIWrapper *this_ = static_cast<UIWrapper *>(ptr);
             if (this_->pExt != NULL)
                 this_->pExt->gui->closed(this_->pExt->host, false);

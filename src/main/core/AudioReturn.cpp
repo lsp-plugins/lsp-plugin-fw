@@ -53,6 +53,13 @@ namespace lsp
             return (pReturn != NULL) ? pReturn->apply(catalog) : ICatalogClient::apply(catalog);
         }
 
+        void AudioReturn::Client::keep_alive(dspu::Catalog *catalog)
+        {
+            ICatalogClient::keep_alive(catalog);
+            if (pReturn != NULL)
+                pReturn->keep_alive(catalog);
+        }
+
         void AudioReturn::Client::apply_settings()
         {
             ICatalogClient::request_apply();
@@ -259,7 +266,7 @@ namespace lsp
             bProcessing     = true;
 
             // Check for stalled state
-            if (pStream->pStream != NULL)
+            if ((pStream != NULL) && (pStream->pStream != NULL))
             {
                 const uint32_t counter  = pStream->pStream->counter();
                 if (counter != pStream->nStreamCounter)
@@ -273,9 +280,11 @@ namespace lsp
                     if (pStream->nStallCounter >= STALLED_THRESHOLD)
                         atomic_store(&enStatus, ST_STALLED);
                 }
+
+                return pStream->pStream->begin(block_size);
             }
 
-            return STATUS_OK;
+            return STATUS_OK;;
         }
 
         status_t AudioReturn::read(size_t channel, float *dst, size_t samples)
@@ -309,11 +318,12 @@ namespace lsp
             if (!bProcessing)
                 return STATUS_BAD_STATE;
 
+            bProcessing = false;
+
             if (pStream == NULL)
                 return STATUS_OK;
 
             status_t res = (pStream->pStream != NULL) ? pStream->pStream->end() : STATUS_OK;
-            bProcessing = false;
             pStream     = NULL;
 
             return res;
@@ -326,7 +336,7 @@ namespace lsp
                 return true;
 
             // Get record
-            status_t res = catalog->get(&sRecord, params->sName);
+            status_t res = catalog->get_or_reserve(&sRecord, params->sName, CATALOG_ID_STREAM);
 
             // Create audio stream
             stream_t *st;
@@ -376,23 +386,56 @@ namespace lsp
             {
                 st                  = new stream_t;
                 if (st == NULL)
+                {
+                    atomic_store(&enStatus, ST_INACTIVE);
                     return false;
+                }
 
                 st->pStream         = NULL;
                 st->nStreamCounter  = 0;
                 st->nStallCounter   = (strlen(sSetup.sName)) > 0 ? STALLED_THRESHOLD : 0;
             }
             else
-                st = create_stream(&sRecord, catalog, &sSetup);
+            {
+                st = create_stream(&tmp, catalog, &sSetup);
+                if (st != NULL)
+                {
+                    sRecord.index       = tmp.index;
+                    sRecord.magic       = tmp.magic;
+                    sRecord.version     = tmp.version;
+                    sRecord.name.swap(&tmp.name);
+                    sRecord.id.swap(&tmp.id);
+                }
+            }
 
             // Transfer state
             const uatomic_t status =
                 (st->pStream != NULL) ? ST_ACTIVE :
                 (st->nStallCounter > 0) ? ST_STALLED : ST_INACTIVE;
+
+        #ifdef LSP_TRACE
+            if (status == ST_ACTIVE)
+                lsp_trace("Connected to active stream '%s' channels=%d, length=%d at index=%d, version=%d, shm_id=%s",
+                    st->sParams.sName, int(st->pStream->channels()), int(st->pStream->length()),
+                    int(sRecord.index), int(sRecord.version), sRecord.id.get_utf8());
+            else if (status == ST_STALLED)
+                lsp_trace("Stream '%s' stalled", st->sParams.sName);
+            else if (status == ST_INACTIVE)
+                lsp_trace("Stream '%s' inactive", st->sParams.sName);
+        #endif /* LSP_TRACE */
+
             atomic_store(&enStatus, status);
             sStream.push(st);
 
             return true;
+        }
+
+        void AudioReturn::keep_alive(dspu::Catalog *catalog)
+        {
+            if (!sRecord.id.is_empty())
+                catalog->keep_alive(&sRecord.name);
+            else if (strlen(sSetup.sName) > 0)
+                catalog->keep_alive(sSetup.sName);
         }
 
     } /* namespace core */
