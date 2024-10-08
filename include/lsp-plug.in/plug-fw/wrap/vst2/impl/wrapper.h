@@ -222,13 +222,6 @@ namespace lsp
             }
             vGenMetadata.flush();
 
-            // Delete the loader
-            if (pLoader != NULL)
-            {
-                delete pLoader;
-                pLoader = NULL;
-            }
-
             // Clear all port lists
             vAudioPorts.flush();
             vAudioBuffers.flush();
