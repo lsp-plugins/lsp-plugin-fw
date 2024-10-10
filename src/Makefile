@@ -60,10 +60,9 @@ INTERNAL_FEATURES           =
 ifeq ($(TEST),1)
   INTERNAL_FEATURES            += test
 endif
-ENABLED_FEATURES           := $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
+ENABLED_FEATURES           := $(call intersection,$(BUILD_FEATURES),$(ALLOWED_FEATURES))
 ifdef INSTALL_FEATURES
-  TMP_INSTALL_FEATURES       := $(call intersection,$(call intersection,$(INSTALL_FEATURES),$(ENABLED_FEATURES)),$(ALLOWED_INSTALL_FEATURES))
-  override INSTALL_FEATURES   = $(TMP_INSTALL_FEATURES)
+  INSTALL_FEATURES           := $(call intersection,$(call intersection,$(FEATURES),$(ENABLED_FEATURES)),$(ALLOWED_INSTALL_FEATURES))
 else
   INSTALL_FEATURES           := $(call intersection,$(ENABLED_FEATURES),$(ALLOWED_INSTALL_FEATURES))
 endif
