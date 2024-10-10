@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.27 ===
+* Fixed window sizing for CLAP plugin format.
 * Fixed unneeded resource object deletion and use-after-free in VST plugin wrapper.
 
 === 1.0.26 ===

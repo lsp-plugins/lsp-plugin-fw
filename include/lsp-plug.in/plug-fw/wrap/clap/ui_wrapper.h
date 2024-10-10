@@ -58,6 +58,7 @@ namespace lsp
                 bool                            bUIInitialized; // UI initialized flag
                 bool                            bRequestProcess;// Request the process() call flag
                 bool                            bUIActive;      // UI is active flag
+                bool                            bRealizeActive; // Realize is active
 
             #ifdef LSP_CLAP_OWN_EVENT_LOOP
                 ipc::Thread                    *pUIThread;      // Thread that performs the UI event loop
