@@ -61,7 +61,7 @@ ifeq ($(TEST),1)
   INTERNAL_FEATURES            += test
 endif
 ENABLED_FEATURES           := $(call intersection,$(BUILD_FEATURES),$(ALLOWED_FEATURES))
-ifdef INSTALL_FEATURES
+ifdef FEATURES
   INSTALL_FEATURES           := $(call intersection,$(call intersection,$(FEATURES),$(ENABLED_FEATURES)),$(ALLOWED_INSTALL_FEATURES))
 else
   INSTALL_FEATURES           := $(call intersection,$(ENABLED_FEATURES),$(ALLOWED_INSTALL_FEATURES))
