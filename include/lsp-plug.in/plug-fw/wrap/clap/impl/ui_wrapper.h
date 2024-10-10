@@ -564,9 +564,11 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
         {
+        #ifdef LSP_TRACE
             lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             const ws::rectangle_t *r = static_cast<ws::rectangle_t *>(data);
             lsp_trace("realized.w = %d, realized.h = %d", int(r->nWidth), int(r->nHeight));
+        #endif /* LSP_TRACE */
 
             UIWrapper *self     = static_cast<UIWrapper *>(ptr);
             if (self->bRealizeActive)
