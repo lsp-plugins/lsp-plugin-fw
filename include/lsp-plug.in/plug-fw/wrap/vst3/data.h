@@ -63,8 +63,8 @@ namespace lsp
         constexpr const char *ID_MSG_DEACTIVATE_UI          = "UIDeactivate";
         constexpr const char *ID_MSG_PLAY_SAMPLE            = "PlaySample";
 
-        constexpr const Steinberg::Vst::ParamID MIDI_MAPPING_PARAM_BASE = 0x80000000;
-        constexpr const Steinberg::Vst::ParamID PARAM_ID_MODULO         = 0x7fffffff;
+        constexpr const Steinberg::Vst::ParamID MIDI_MAPPING_PARAM_BASE = 0x40000000;
+        constexpr const Steinberg::Vst::ParamID PARAM_ID_MODULO         = 0x3fffffff;
 
         constexpr const float MIDI_FLOAT_TO_BYTE            = 127.0f;
         constexpr const float MIDI_FLOAT_TO_BEND            = 16383.0f;
