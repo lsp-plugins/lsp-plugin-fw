@@ -695,13 +695,6 @@ $(HOST)UTL_PLUGLIST_GEN_OBJS      = \
   $($(HOST)UTL_PLUGLIST_GEN_OBJ) \
   $($(HOST)UTL_PLUGLIST_GEN_MAIN_OBJ)
 
-$(info $(HOST)UTL_RESPACK_DEPS = $($(HOST)UTL_RESPACK_DEPS))
-$(info $(HOST)UTL_REPOSITORY_DEPS = $($(HOST)UTL_REPOSITORY_DEPS))
-$(info SRC_DEPS = $(SRC_DEPS))
-$(info HOST_SRC_DEPS = $(HOST_SRC_DEPS))
-$(info PLUG_DEPS = $(PLUG_DEPS))
-$(info HOST_PLUG_DEPS = $(HOST_PLUG_DEPS))
-
 #------------------------------------------------------------------------------
 # Plugins
 OBJ_PLUG_META               = $(foreach dep, $(PLUG_DEPS), $($(dep)_OBJ_META))
