@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.28 ===
+
+
 === 1.0.27 ===
 * Updated VST3 SDK to 3.7.12, may be breaking changes related to parameter identifiers as
   Steinberg has twice reduced the set of valid paremeter identifiers.
