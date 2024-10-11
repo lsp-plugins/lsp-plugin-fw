@@ -730,7 +730,7 @@ namespace lsp
             ws::rectangle_t r;
             wnd->get_padded_screen_rectangle(&r);
 
-            if ((r.nWidth != width) && (r.nHeight != height))
+            if ((r.nWidth != ssize_t(width)) && (r.nHeight != ssize_t(height)))
             {
                 lsp_trace("width = {%d, %d}, height = {%d, %d}, call for resize",
                     int(r.nWidth), int(width), int(r.nHeight), int(height));
