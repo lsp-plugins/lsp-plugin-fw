@@ -558,6 +558,8 @@ namespace lsp
                         is_instrument   = true;
                         break;
                     case meta::CF_DRUM:
+                        code = Steinberg::Vst::PlugType::kFxDrums;
+                        break;
                     case meta::CF_DRUM_MACHINE:
                         code = Steinberg::Vst::PlugType::kInstrumentDrum;
                         is_instrument   = true;
