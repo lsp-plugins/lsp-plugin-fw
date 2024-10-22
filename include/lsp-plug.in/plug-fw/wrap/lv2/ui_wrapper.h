@@ -36,7 +36,6 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/sink.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 
-
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/state.h>

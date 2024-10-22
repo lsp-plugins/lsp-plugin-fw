@@ -30,6 +30,7 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/impl/ui_wrapper.h>
 
 #ifndef LSP_IDE_DEBUG
+    #include <lsp-plug.in/plug-fw/wrap/lv2/impl/factory.h>
     #include <lsp-plug.in/plug-fw/wrap/lv2/impl/wrapper.h>
 #endif /* LSP_IDE_DEBUG */
 
