@@ -550,6 +550,8 @@ namespace lsp
 
                 if (nLatency != latency)
                 {
+                    lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
+
                     nLatency    = latency;
                     pComponentHandler->restartComponent(Steinberg::Vst::RestartFlags::kLatencyChanged);
                 }

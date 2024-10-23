@@ -63,7 +63,7 @@ namespace lsp
                 uatomic_t                           nUIResp;        // UI change response
             #endif /* WITH_UI_FEATURE */
 
-                float                               fLatency;
+                uint32_t                            nLatency;
                 uatomic_t                           nDumpReq;
                 uatomic_t                           nDumpResp;
                 vst2::Port                         *pBypass;

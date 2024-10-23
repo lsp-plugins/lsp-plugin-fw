@@ -349,7 +349,17 @@ namespace lsp
 
             // Write latency
             if (pLatency != NULL)
-                *pLatency       = pPlugin->latency();
+            {
+                const size_t latency = pPlugin->latency();
+
+            #ifdef LSP_TRACE
+                const size_t host_latency = *pLatency;
+                if (host_latency != latency)
+                    lsp_trace("Plugin latency changed from %d to %d", int(host_latency), int(latency));
+            #endif /* LSP_TRACE */
+
+                *pLatency   = latency;
+            }
 
             // Move the position
             size_t spb          = sNewPosition.sampleRate / sNewPosition.beatsPerMinute; // samples per beat

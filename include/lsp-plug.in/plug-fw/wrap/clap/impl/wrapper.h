@@ -1176,10 +1176,15 @@ namespace lsp
             // If the plugin is activated, call host->request_restart()
             // [main thread]
             ssize_t latency = pPlugin->latency();
-            if ((latency != nLatency) && (!bLatencyChanged))
+            if (latency != nLatency)
             {
-                bLatencyChanged       = true;
-                pHost->request_callback(pHost);
+                lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
+
+                if (!bLatencyChanged)
+                {
+                    bLatencyChanged       = true;
+                    pHost->request_callback(pHost);
+                }
             }
 
             // Report the size of the plugin's tail.
@@ -1227,6 +1232,8 @@ namespace lsp
         size_t Wrapper::latency()
         {
             size_t latency      = pPlugin->latency();
+            lsp_trace("Reporting latency %d to host", int(latency));
+
             nLatency            = latency;
             bLatencyChanged     = false;
             return latency;

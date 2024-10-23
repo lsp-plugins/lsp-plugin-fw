@@ -77,8 +77,8 @@ namespace lsp
                 const meta::package_t          *pPackage;           // Package metadata
                 clap::HostExtensions           *pExt;               // CLAP Extensions
                 ipc::IExecutor                 *pExecutor;          // Executor service
-                ssize_t                         nLatency;           // The actual plugin latency
-                ssize_t                         nTailSize;          // Tail size
+                int32_t                         nLatency;           // The actual plugin latency
+                int32_t                         nTailSize;          // Tail size
                 uatomic_t                       nDumpReq;           // State dump request counter
                 uatomic_t                       nDumpResp;          // State dump response counter
                 uatomic_t                       nStateReq;          // Current version of the state

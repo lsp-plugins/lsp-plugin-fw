@@ -61,7 +61,7 @@ namespace lsp
             nUIResp         = 0;
         #endif /* WITH_UI_FEATURE */
 
-            fLatency        = 0.0f;
+            nLatency        = 0;
             nDumpReq        = 0;
             nDumpResp       = 0;
 
@@ -654,11 +654,13 @@ namespace lsp
             }
 
             // Report latency
-            float latency           = pPlugin->latency();
-            if (fLatency != latency)
+            size_t latency      = pPlugin->latency();
+            if (nLatency != latency)
             {
+                lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
+
                 pEffect->initialDelay   = latency;
-                fLatency                = latency;
+                nLatency                = latency;
                 if (pMaster)
                 {
                     lsp_trace("Reporting latency = %d samples to the host", int(latency));
