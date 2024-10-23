@@ -243,6 +243,12 @@ namespace lsp
                         // Copy data to request
                         ::memcpy(sRequest, path, count);
                         sRequest[count]     = '\0';
+                        if (flags & plug::PF_STATE_RESTORE)
+                        {
+                            ::memcpy(sPath, path, count);
+                            sPath[count]        = '\0';
+                        }
+
                         sFlags              = flags;
                         bRequest            = true; // Mark request pending
 

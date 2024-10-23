@@ -210,6 +210,13 @@ namespace lsp
                 const size_t count  = lsp_min(len, size_t(MAX_PATH_LEN - 1));
                 ::memcpy(sQPath, path, count);
                 sQPath[count]       = '\0';
+
+                if (flags & plug::PF_STATE_RESTORE)
+                {
+                    ::memcpy(sPath, path, count);
+                    sPath[count]        = '\0';
+                }
+
                 nPathFlags          = flags;
                 nFlags             |= F_QPATH;
             }
