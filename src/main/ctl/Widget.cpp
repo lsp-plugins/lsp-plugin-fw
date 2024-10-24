@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/common/debug.h>
 
 namespace lsp
 {
@@ -297,7 +298,8 @@ namespace lsp
             if (strcmp(name, param))
                 return false;
 
-            expr->parse(value);
+            if (!expr->parse(value))
+                lsp_warn("Failed to parse expression for attribute '%s': %s", name, value);
             return true;
         }
 
