@@ -48,6 +48,7 @@ namespace lsp
 
                 atomic_t                        nPosition;          // Position counter
                 tk::Label                      *pJackStatus;        // Jack status
+                tk::Widget                     *pJackIndicatorPanel;// Jack indicator panel
                 bool                            bJackConnected;     // Jack is connected
 
                 lltl::parray<jack::UIPort>      vSyncPorts;         // Ports for synchronization
@@ -71,6 +72,9 @@ namespace lsp
                 void                                ui_activated();
                 void                                ui_deactivated();
                 void                                set_connection_status(bool connected);
+
+            protected:
+                virtual void                        visual_schema_reloaded(const tk::StyleSheet *sheet) override;
 
             protected:
                 static status_t                     slot_ui_hide(tk::Widget *sender, void *ptr, void *data);

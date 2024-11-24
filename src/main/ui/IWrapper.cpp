@@ -1631,6 +1631,10 @@ namespace lsp
                 pUI->position_updated(pos);
         }
 
+        void IWrapper::visual_schema_reloaded(const tk::StyleSheet *sheet)
+        {
+        }
+
         bool IWrapper::set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base)
         {
             // Get metadata
@@ -1824,6 +1828,7 @@ namespace lsp
                         listener->reloaded(sheet);
                 }
             }
+            visual_schema_reloaded(sheet);
 
             return res;
         }
