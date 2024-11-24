@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 мая 2021 г.
@@ -441,19 +441,16 @@ namespace lsp
             size_t k_flags = 0;
 
             if (sMin.depends(port))
-                k_flags    |= KF_MIN;
+                k_flags    |= KF_MIN | KF_VALUE;
             if (sMax.depends(port))
-                k_flags    |= KF_MAX;
+                k_flags    |= KF_MAX | KF_VALUE;
             if (sMeterMin.depends(port))
                 k_flags    |= KF_METER_MIN;
             if (sMeterMax.depends(port))
                 k_flags    |= KF_METER_MAX;
 
-            if (pPort != NULL)
-            {
-                if (port == pPort)
-                    k_flags    |= KF_VALUE;
-            }
+            if ((pPort != NULL) && (port == pPort))
+                k_flags    |= KF_VALUE;
 
             if (k_flags)
                 commit_value(k_flags);
