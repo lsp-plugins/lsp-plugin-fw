@@ -465,32 +465,34 @@ namespace lsp
                 LSPString prefix;
                 for (size_t i=0, n=lsp_min(size_t(LBL_COUNT), tk::AudioSample::LABELS); i<n; ++i)
                 {
-                    prefix.fmt_ascii("%s.visibility", label_names[i]);
+                    const char *label_name = label_names[i];
+
+                    prefix.fmt_ascii("%s.visibility", label_name);
                     sLabelVisibility[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d.visibility", int(i));
+                    prefix.fmt_ascii("label.%s.visibility", label_name);
                     sLabelVisibility[i].set(prefix.get_ascii(), name, value);
 
-                    prefix.fmt_ascii("%s.text.color", label_names[i]);
+                    prefix.fmt_ascii("%s.text.color", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%s.tcolor", label_names[i]);
+                    prefix.fmt_ascii("%s.tcolor", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d.text.color", int(i));
+                    prefix.fmt_ascii("label.%s.text.color", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d.tcolor", int(i));
+                    prefix.fmt_ascii("label.%s.tcolor", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
 
-                    prefix.fmt_ascii("%s", label_names[i]);
+                    prefix.fmt_ascii("%s", label_name);
                     set_layout(as->label_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d", int(i));
+                    prefix.fmt_ascii("label.%s", label_name);
                     set_layout(as->label_layout(i), prefix.get_ascii(), name, value);
 
-                    prefix.fmt_ascii("%s.text.layout", label_names[i]);
+                    prefix.fmt_ascii("%s.text.layout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%s.tlayout", label_names[i]);
+                    prefix.fmt_ascii("%s.tlayout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%d.text.layout", int(i));
+                    prefix.fmt_ascii("%s.text.layout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%d.tlayout", int(i));
+                    prefix.fmt_ascii("%s.tlayout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
                 }
 
