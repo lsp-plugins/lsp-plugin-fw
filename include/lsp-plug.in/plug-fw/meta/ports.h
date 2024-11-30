@@ -160,12 +160,12 @@
     AUDIO_SEND(channel, comment " input", 0, id)
 #define RETURN_MONO(id, channel, comment) \
     RETURN_NAME(id, comment), \
-    AUDIO_RETURN(channel, comment " input", 0, id)
+    AUDIO_RETURN(channel, comment " output", 0, id)
 
 #define SEND_STEREO(id, channel, comment) \
     SEND_NAME(id, comment), \
-    AUDIO_SEND(channel "l", comment " input Left", 0, id), \
-    AUDIO_SEND(channel "r", comment " input Right", 1, id)
+    AUDIO_SEND(channel "l", comment " output Left", 0, id), \
+    AUDIO_SEND(channel "r", comment " output Right", 1, id)
 #define RETURN_STEREO(id, channel, comment) \
     RETURN_NAME(id, comment), \
     AUDIO_RETURN(channel "l", comment " input Left", 0, id), \
