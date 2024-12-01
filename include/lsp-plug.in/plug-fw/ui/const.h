@@ -67,6 +67,7 @@
 #define UI_ZOOMABLE_SPECTRUM_GRAPH_ID       "zoomable_spectrum_graph"
 #define UI_FILTER_POINT_THICK_ID            "filter_point_thickness"
 #define UI_DOCUMENTATION_PATH_ID            "documentation_path"
+#define UI_FILELIST_NAVIGAION_AUTOLOAD_ID   "file_list_navigation_autoload"
 
 #define MSTUD_PORT                          UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                        UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -105,6 +106,7 @@
 #define UI_ZOOMABLE_SPECTRUM_GRAPH_PORT     UI_CONFIG_PORT_PREFIX UI_ZOOMABLE_SPECTRUM_GRAPH_ID
 #define UI_FILTER_POINT_THICK_PORT          UI_CONFIG_PORT_PREFIX UI_FILTER_POINT_THICK_ID
 #define UI_DOCUMENTATION_PORT               UI_CONFIG_PORT_PREFIX UI_DOCUMENTATION_PATH_ID
+#define UI_FILELIST_NAVIGAION_AUTOLOAD_PORT UI_CONFIG_PORT_PREFIX UI_FILELIST_NAVIGAION_AUTOLOAD_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                      "main_menu"

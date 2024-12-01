@@ -391,6 +391,23 @@ namespace lsp
             return true;
         }
 
+        bool Widget::link_port(ui::IPort **port, const char *id)
+        {
+            ui::IPort *oldp = *port;
+            ui::IPort *newp = pWrapper->port(id);
+            if (oldp == newp)
+                return true;
+
+            if (oldp != NULL)
+                oldp->unbind(this);
+            if (newp != NULL)
+                newp->bind(this);
+
+            *port           = newp;
+
+            return true;
+        }
+
         bool Widget::bind_port(ui::IPort **port, const char *param, const char *name, const char *value)
         {
             if (strcmp(param, name))

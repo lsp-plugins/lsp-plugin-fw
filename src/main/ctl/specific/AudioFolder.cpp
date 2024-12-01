@@ -67,6 +67,7 @@ namespace lsp
             pClass          = &metadata;
 
             pPort           = NULL;
+            pAutoload       = NULL;
             bActive         = false;
         }
 
@@ -86,7 +87,10 @@ namespace lsp
 
                 // Bind slots
                 lbox->slots()->bind(tk::SLOT_SUBMIT, slot_submit, this);
+                lbox->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
             }
+
+            link_port(&pAutoload, UI_FILELIST_NAVIGAION_AUTOLOAD_PORT);
 
             return STATUS_OK;
         }
@@ -97,6 +101,7 @@ namespace lsp
             if (lbox != NULL)
             {
                 bind_port(&pPort, "id", name, value);
+                bind_port(&pAutoload, "autoload_id", name, value);
 
                 set_param(lbox->border_size(), "border.size", name, value);
                 set_param(lbox->border_size(), "bsize", name, value);
@@ -279,7 +284,21 @@ namespace lsp
         status_t AudioFolder::slot_submit(tk::Widget *sender, void *ptr, void *data)
         {
             ctl::AudioFolder *self      = static_cast<ctl::AudioFolder *>(ptr);
-            if (self != NULL)
+            if (self == NULL)
+                return STATUS_OK;
+
+            if ((self->pAutoload == NULL) || (self->pAutoload->value() < 0.5f))
+                self->apply_action();
+            return STATUS_OK;
+        }
+
+        status_t AudioFolder::slot_change(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::AudioFolder *self      = static_cast<ctl::AudioFolder *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            if ((self->pAutoload != NULL) && (self->pAutoload->value() >= 0.5f))
                 self->apply_action();
             return STATUS_OK;
         }
