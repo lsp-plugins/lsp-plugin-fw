@@ -657,9 +657,13 @@ namespace lsp
                 const char *name = pPort->buffer<char>();
                 if ((name != NULL) && (strlen(name) > 0))
                 {
-                    shorten_name(&tmp, name);
-
-                    btn->text()->params()->add_string("value", &tmp);
+                    if (!btn->text_clip()->get())
+                    {
+                        shorten_name(&tmp, name);
+                        btn->text()->params()->add_string("value", &tmp);
+                    }
+                    else
+                        btn->text()->params()->add_cstring("value", name);
 
                     // Set style depending on the type of metadata
                     if (meta::is_send_name(port))
