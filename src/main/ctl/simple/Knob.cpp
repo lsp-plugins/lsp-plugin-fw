@@ -332,7 +332,7 @@ namespace lsp
 
             if (meta::is_gain_unit(p->unit)) // Gain
             {
-                double base     = (p->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
+                float base      = (p->unit == meta::U_GAIN_AMP) ? 20.0 / M_LN10 : 10.0 / M_LN10;
 
                 min             = (p->flags & meta::F_LOWER) ? p->min : 0.0f;
                 max             = (p->flags & meta::F_UPPER) ? p->max : GAIN_AMP_P_12_DB;
@@ -340,15 +340,15 @@ namespace lsp
                 mtr_min         = (sMeterMin.valid()) ? sMeterMin.evaluate_float() : min;
                 mtr_max         = (sMeterMax.valid()) ? sMeterMax.evaluate_float() : min;
 
-                step            = base * log((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f) * 0.1f;
-                double thresh   = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
+                step            = base * logf((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f) * 0.1f;
+                float thresh    = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
 
-                min             = (fabs(min)   < thresh)    ? (base * log(thresh) - step) : (base * log(min));
-                max             = (fabs(max)   < thresh)    ? (base * log(thresh) - step) : (base * log(max));
-                double db_dfl   = (fabs(dfl)   < thresh)    ? (base * log(thresh) - step) : (base * log(dfl));
-                value           = (fabs(value) < thresh)    ? (base * log(thresh) - step) : (base * log(value));
-                mtr_min         = (fabs(mtr_min) < thresh)  ? (base * log(thresh) - step) : (base * log(mtr_min));
-                mtr_max         = (fabs(mtr_max) < thresh)  ? (base * log(thresh) - step) : (base * log(mtr_max));
+                min             = (fabsf(min)   < thresh)       ? (base * logf(thresh) - step) : (base * logf(min));
+                max             = (fabsf(max)   < thresh)       ? (base * logf(thresh) - step) : (base * logf(max));
+                float db_dfl    = (fabsf(dfl)   < thresh)       ? (base * logf(thresh) - step) : (base * logf(dfl));
+                value           = (fabsf(value) < thresh)       ? (base * logf(thresh) - step) : (base * logf(value));
+                mtr_min         = (fabsf(mtr_min) < thresh)     ? (base * logf(thresh) - step) : (base * logf(mtr_min));
+                mtr_max         = (fabsf(mtr_max) < thresh)     ? (base * logf(thresh) - step) : (base * logf(mtr_max));
 
                 balance         = lsp_xlimit(db_dfl, min, max);
                 value           = lsp_xlimit(value, min, max);
@@ -356,7 +356,7 @@ namespace lsp
                 mtr_max         = lsp_xlimit(mtr_max, min, max);
 
                 step           *= 10.0f;
-                fDefaultValue   = base * log(p->start);
+                fDefaultValue   = base * logf(p->start);
             }
             else if (meta::is_discrete_unit(p->unit)) // Integer type
             {
@@ -385,19 +385,19 @@ namespace lsp
                 float xmtr_max  = (sMeterMax.valid()) ? sMeterMax.evaluate_float() : xmin;
                 float thresh    = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
 
-                step            = log((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f);
-                min             = (fabs(xmin) < thresh)     ? log(thresh) - step : log(xmin);
-                max             = (fabs(xmax) < thresh)     ? log(thresh) - step : log(xmax);
-                float dfl       = (fabs(xdfl) < thresh)     ? log(thresh) - step : log(xdfl);
-                value           = (fabs(value) < thresh)    ? log(thresh) - step : log(value);
-                mtr_min         = (fabs(xmtr_min) < thresh) ? log(thresh) - step : log(xmtr_min);
-                mtr_max         = (fabs(xmtr_max) < thresh) ? log(thresh) - step : log(xmtr_max);
+                step            = logf((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f);
+                min             = (fabsf(xmin) < thresh)        ? logf(thresh) - step : logf(xmin);
+                max             = (fabsf(xmax) < thresh)        ? logf(thresh) - step : logf(xmax);
+                float dfl       = (fabsf(xdfl) < thresh)        ? logf(thresh) - step : logf(xdfl);
+                value           = (fabsf(value) < thresh)       ? logf(thresh) - step : logf(value);
+                mtr_min         = (fabsf(xmtr_min) < thresh)    ? logf(thresh) - step : logf(xmtr_min);
+                mtr_max         = (fabsf(xmtr_max) < thresh)    ? logf(thresh) - step : logf(xmtr_max);
 
                 balance         = lsp_xlimit(dfl, min, max);
                 value           = lsp_xlimit(value, min, max);
 
                 step           *= 10.0f;
-                fDefaultValue   = log(p->start);
+                fDefaultValue   = logf(p->start);
             }
             else // Float and other values, non-logarithmic
             {
