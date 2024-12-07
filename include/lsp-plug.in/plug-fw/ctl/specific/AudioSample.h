@@ -42,6 +42,9 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                static const size_t CHANNEL_PERIOD  = 8;
+
+            protected:
                 enum labels_t
                 {
                     LBL_FILE_NAME,
@@ -98,6 +101,8 @@ namespace lsp
                 lltl::parray<file_format_t>     vFormats;
                 lltl::parray<tk::MenuItem>      vMenuItems;
                 lltl::pphash<char, ui::IPort>   vClipboardBind;
+
+                LSPString           vChannelStyles[CHANNEL_PERIOD];
 
                 ctl::Integer        sWaveBorder;
                 ctl::Integer        sFadeInBorder;

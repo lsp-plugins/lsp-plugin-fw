@@ -32,6 +32,23 @@ namespace lsp
                 widget->style()->inject_parent(style);
         }
 
+        void inject_style(tk::Widget *widget, const LSPString *style_name)
+        {
+            if (style_name == NULL)
+                return;
+
+            tk::Style *style = widget->display()->schema()->get(style_name);
+            if (style != NULL)
+                widget->style()->inject_parent(style);
+        }
+
+        void inject_style(tk::Widget *widget, const LSPString &style_name)
+        {
+            tk::Style *style = widget->display()->schema()->get(&style_name);
+            if (style != NULL)
+                widget->style()->inject_parent(style);
+        }
+
         void add_parent_style(tk::Widget *widget, const char *style_name)
         {
             tk::Style *style = widget->display()->schema()->get(style_name);
@@ -39,9 +56,43 @@ namespace lsp
                 widget->style()->add_parent(style);
         }
 
+        void add_parent_style(tk::Widget *widget, const LSPString *style_name)
+        {
+            if (style_name == NULL)
+                return;
+
+            tk::Style *style = widget->display()->schema()->get(style_name);
+            if (style != NULL)
+                widget->style()->add_parent(style);
+        }
+
+        void add_parent_style(tk::Widget *widget, const LSPString &style_name)
+        {
+            tk::Style *style = widget->display()->schema()->get(&style_name);
+            if (style != NULL)
+                widget->style()->add_parent(style);
+        }
+
         void revoke_style(tk::Widget *widget, const char *style_name)
         {
             tk::Style *style = widget->display()->schema()->get(style_name);
+            if (style != NULL)
+                widget->style()->remove_parent(style);
+        }
+
+        void revoke_style(tk::Widget *widget, const LSPString *style_name)
+        {
+            if (style_name == NULL)
+                return;
+
+            tk::Style *style = widget->display()->schema()->get(style_name);
+            if (style != NULL)
+                widget->style()->remove_parent(style);
+        }
+
+        void revoke_style(tk::Widget *widget, const LSPString &style_name)
+        {
+            tk::Style *style = widget->display()->schema()->get(&style_name);
             if (style != NULL)
                 widget->style()->remove_parent(style);
         }

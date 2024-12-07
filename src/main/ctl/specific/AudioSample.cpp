@@ -247,6 +247,9 @@ namespace lsp
                 return STATUS_NO_MEM;
             pDragInSink->acquire();
 
+            for (size_t i=0; i<CHANNEL_PERIOD; ++i)
+                vChannelStyles[i].fmt_ascii("AudioSample::Channel%d", int(i + 1));
+
             tk::AudioSample *as = tk::widget_cast<tk::AudioSample>(wWidget);
             if (as != NULL)
             {
@@ -462,7 +465,20 @@ namespace lsp
                 set_font(as->label_font(), "label.font", name, value);
                 set_layout(as->label_layout(0), "", name, value);
 
+                // Update channel style
                 LSPString prefix;
+
+                for (size_t i=0; i<CHANNEL_PERIOD; ++i)
+                {
+                    prefix.fmt_ascii("channel%d.style", int(i+1));
+                    if (prefix.equals_ascii(name))
+                        vChannelStyles[i].set_ascii(value);
+
+                    prefix.fmt_ascii("ch%d.style", int(i));
+                    if (prefix.equals_ascii(name))
+                        vChannelStyles[i].set_ascii(value);
+                }
+
                 for (size_t i=0, n=lsp_min(size_t(LBL_COUNT), tk::AudioSample::LABELS); i<n; ++i)
                 {
                     const char *label_name = label_names[i];
@@ -820,9 +836,7 @@ namespace lsp
                 ac->samples()->set(mesh->pvData[src_idx], samples);
 
                 // Inject style
-                LSPString style;
-                style.fmt_ascii("AudioSample::Channel%d", int(src_idx % 8) + 1);
-                inject_style(ac, style.get_ascii());
+                inject_style(ac, &vChannelStyles[src_idx % CHANNEL_PERIOD]);
 
                 // Add audio channel as managed and increment counter
                 as->channels()->madd(ac);

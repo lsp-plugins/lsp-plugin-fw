@@ -5,6 +5,7 @@
 === 1.0.28 ===
 * Fixed LV2 plugin factory link regression.
 * Fixed possible file/sample name loss on deactivated plugin for all modern formats.
+* Added possibility to specify custom styles for channels in AudioSample controller.
 * Added TabGroup widget support.
 
 === 1.0.27 ===
