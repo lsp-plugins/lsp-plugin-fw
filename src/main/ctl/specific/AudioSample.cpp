@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 июл. 2021 г.
@@ -264,6 +264,7 @@ namespace lsp
                 sLabelRadius.init(pWrapper, as->label_radius());
                 sBorder.init(pWrapper, as->border_size());
                 sBorderRadius.init(pWrapper, as->border_radius());
+                sMaxAmplitude.init(pWrapper, as->max_amplitude());
                 sActive.init(pWrapper, as->active());
                 sStereoGroups.init(pWrapper, as->stereo_groups());
 
@@ -444,6 +445,8 @@ namespace lsp
                 sLabelRadius.set("label.radius", name, value);
                 sBorder.set("border.size", name, value);
                 sBorderRadius.set("border.radius", name, value);
+                sMaxAmplitude.set("amplitude.max", name, value);
+                sMaxAmplitude.set("amp.max", name, value);
 
                 sMainText.set("text.main", name, value);
 
@@ -515,6 +518,7 @@ namespace lsp
                 sLabelRadius.init(pWrapper, as->label_radius());
                 sBorder.init(pWrapper, as->border_size());
                 sBorderRadius.init(pWrapper, as->border_radius());
+                sMaxAmplitude.init(pWrapper, as->max_amplitude());
 
                 sColor.set("color", name, value);
                 sBorderColor.set("border.color", name, value);

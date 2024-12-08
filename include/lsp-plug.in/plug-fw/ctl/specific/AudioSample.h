@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 июл. 2021 г.
@@ -115,6 +115,7 @@ namespace lsp
                 ctl::Integer        sLabelRadius;
                 ctl::Integer        sBorder;
                 ctl::Integer        sBorderRadius;
+                ctl::Float          sMaxAmplitude;
                 ctl::Boolean        sActive;
                 ctl::Boolean        sStereoGroups;
                 ctl::Boolean        sLabelVisibility[tk::AudioSample::LABELS];
