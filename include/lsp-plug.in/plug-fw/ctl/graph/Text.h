@@ -51,6 +51,9 @@ namespace lsp
 
                 ctl::Float              sHValue;
                 ctl::Float              sVValue;
+                ctl::Boolean            sBg;
+                ctl::Integer            sBgRadius;
+                ctl::Padding            sIPadding;
                 ctl::LCString           sText;
 
             protected:
