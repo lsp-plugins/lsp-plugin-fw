@@ -209,7 +209,7 @@ MTEST_BEGIN("", standalone)
             cfg.plugin_id,
             cfg.args.size(),
             const_cast<const char **>(cfg.args.array()));
-        MTEST_ASSERT(result == STATUS_OK);
+        MTEST_ASSERT_MSG(result == STATUS_OK, "Failed with result=%d", int(result));
 
         MTEST_ASSERT(loop->run() == STATUS_OK);
         delete loop;
