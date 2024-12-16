@@ -11,6 +11,7 @@
 * Added maximum amplitude property to AudioChannel and AudioSample.
 * Fixed VST3 integer parameter setup.
 * Added TabGroup widget support.
+* Updated module versions in dependencies.
 
 === 1.0.27 ===
 * Updated VST3 SDK to 3.7.12, may be breaking changes related to parameter identifiers as
