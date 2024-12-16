@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.29 ===
+
+
 === 1.0.28 ===
 * Fixed LV2 plugin factory link regression.
 * Fixed possible file/sample name loss on deactivated plugin for all modern formats.
