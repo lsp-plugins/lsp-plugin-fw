@@ -75,6 +75,7 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/Cell.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/MultiLabel.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/TabControl.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/TabGroup.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/ListBox.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/ListBoxItem.h>
 

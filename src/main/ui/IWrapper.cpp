@@ -92,6 +92,7 @@ namespace lsp
             SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Enables the automatic scaling mode of the frequency graph", 1.0f),
             COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", 1.0f, filter_point_thickness_modes),
             PATH(UI_DOCUMENTATION_PATH_ID, "Path to the local documentation installation"),
+            SWITCH(UI_FILELIST_NAVIGAION_AUTOLOAD_ID, "Automatically load files when navigating over file list", 0.0f),
             PORTS_END
         };
 
@@ -1631,6 +1632,10 @@ namespace lsp
                 pUI->position_updated(pos);
         }
 
+        void IWrapper::visual_schema_reloaded(const tk::StyleSheet *sheet)
+        {
+        }
+
         bool IWrapper::set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base)
         {
             // Get metadata
@@ -1824,6 +1829,7 @@ namespace lsp
                         listener->reloaded(sheet);
                 }
             }
+            visual_schema_reloaded(sheet);
 
             return res;
         }

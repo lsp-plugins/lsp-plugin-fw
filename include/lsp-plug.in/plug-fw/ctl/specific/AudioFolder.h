@@ -44,6 +44,7 @@ namespace lsp
 
             protected:
                 ui::IPort          *pPort;
+                ui::IPort          *pAutoload;
 
                 ctl::Enum           sHScroll;
                 ctl::Enum           sVScroll;
@@ -53,6 +54,7 @@ namespace lsp
 
             protected:
                 static status_t     slot_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                sync_state();

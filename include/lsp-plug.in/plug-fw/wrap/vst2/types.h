@@ -179,8 +179,15 @@ namespace lsp
                 {
                     // Write DSP request
                     ::memcpy(sDspRequest, path, count);
-                    nXFlagsReq          = flags;
                     sDspRequest[count]  = '\0';
+
+                    if (flags & plug::PF_STATE_RESTORE)
+                    {
+                        ::memcpy(sPath, path, count);
+                        sPath[count]        = '\0';
+                    }
+
+                    nXFlagsReq          = flags;
                     atomic_add(&nDspSerial, 1);
                 }
             }

@@ -107,6 +107,7 @@ namespace lsp
             protected:
                 void                do_destroy();
                 bool                bind_port(ui::IPort **port, const char *param, const char *name, const char *value);
+                bool                link_port(ui::IPort **port, const char *id);
 
                 virtual void        property_changed(tk::Property *prop);
 

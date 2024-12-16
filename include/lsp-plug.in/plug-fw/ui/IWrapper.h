@@ -138,6 +138,9 @@ namespace lsp
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
                 void            position_updated(const plug::position_t *pos);
 
+            protected:
+                virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
+
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
                 IWrapper(const IWrapper &) = delete;

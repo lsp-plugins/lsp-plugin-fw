@@ -37,6 +37,15 @@ namespace lsp
         void inject_style(tk::Widget *widget, const char *style_name);
         void revoke_style(tk::Widget *widget, const char *style_name);
         void add_parent_style(tk::Widget *widget, const char *style_name);
+
+        void inject_style(tk::Widget *widget, const LSPString *style_name);
+        void revoke_style(tk::Widget *widget, const LSPString *style_name);
+        void add_parent_style(tk::Widget *widget, const LSPString *style_name);
+
+        void inject_style(tk::Widget *widget, const LSPString &style_name);
+        void revoke_style(tk::Widget *widget, const LSPString &style_name);
+        void add_parent_style(tk::Widget *widget, const LSPString &style_name);
+
         bool assign_styles(tk::Widget *widget, const char *style_list, bool remove_parents);
     } /* namespace ctl */
 } /* namespace lsp */

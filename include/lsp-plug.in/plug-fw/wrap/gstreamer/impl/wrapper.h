@@ -1057,6 +1057,8 @@ namespace lsp
             ssize_t latency = pPlugin->latency();
             if (latency != nLatency)
             {
+                lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
+
                 nLatency = latency;
                 report_latency();
             }

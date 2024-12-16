@@ -416,8 +416,10 @@ namespace lsp
             ssize_t latency = pPlugin->latency();
             if (latency != nLatency)
             {
-                jack_recompute_total_latencies(pClient);
+                lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
+
                 nLatency = latency;
+                jack_recompute_total_latencies(pClient);
             }
 
             // Post-process data ports

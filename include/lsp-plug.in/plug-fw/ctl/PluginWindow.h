@@ -137,6 +137,7 @@ namespace lsp
                 tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
                 tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
                 tk::MenuItem               *wZoomableSpectrum;          // Automatic scaling mode of the frequency graph
+                tk::MenuItem               *wFilelistAutoload;          // Automatically load files on navigating list
                 tk::Menu                   *wFilterPointThickness;      // Filter point thickness submenu
                 tk::Timer                   wGreetingTimer;             // Greeting window timer
 
@@ -156,6 +157,7 @@ namespace lsp
                 ui::IPort                  *pInvertVScroll;
                 ui::IPort                  *pInvertGraphDotVScroll;
                 ui::IPort                  *pZoomableSpectrum;
+                ui::IPort                  *pFilelistAutoload;
 
                 ConfigSink                 *pConfigSink;    // Configuration sink
 
@@ -231,6 +233,7 @@ namespace lsp
                 static status_t slot_invert_vscroll_changed(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_invert_graph_dot_vscroll_changed(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_zoomable_spectrum_changed(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_filelist_autoload_changed(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_submit_enum_menu_item(tk::Widget *sender, void *ptr, void *data);
 
@@ -277,6 +280,7 @@ namespace lsp
                 void                sync_override_hydrogen();
                 void                sync_invert_vscroll(ui::IPort *port);
                 void                sync_zoomable_spectrum();
+                void                sync_filelist_autoload();
                 void                sync_filter_point_thickness();
                 void                sync_enum_menu(enum_menu_t *menu, ui::IPort *port);
                 void                apply_user_paths_settings();

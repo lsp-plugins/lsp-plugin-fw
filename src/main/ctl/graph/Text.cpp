@@ -83,6 +83,9 @@ namespace lsp
                 sText.init(pWrapper, gt->text());
                 sLayout.init(pWrapper, gt->layout());
                 sTextLayout.init(pWrapper, gt->text_layout());
+                sBg.init(pWrapper, gt->bg());
+                sBgRadius.init(pWrapper, gt->bg_radius());
+                sIPadding.init(pWrapper, gt->ipadding());
             }
 
             BIND_PORT(pWrapper, pLangPort, LANGUAGE_PORT);
@@ -100,6 +103,12 @@ namespace lsp
                 sColor.set("color", name, value);
                 sLayout.set(name, value);
                 sTextLayout.set(name, value);
+
+                sBg.set("bg", name, value);
+                sBg.set("background", name, value);
+                sBgRadius.set("bg.radius", name, value);
+                sBgRadius.set("background.radius", name, value);
+                sIPadding.set("ipadding", name, value);
 
                 sHValue.set("hval", name, value);
                 sHValue.set("xval", name, value);

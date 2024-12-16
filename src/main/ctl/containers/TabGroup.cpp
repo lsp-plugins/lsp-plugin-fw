@@ -3,7 +3,7 @@
  *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 14 нояб. 2022 г.
+ * Created on: 4 дек. 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -28,13 +28,13 @@ namespace lsp
     namespace ctl
     {
         //---------------------------------------------------------------------
-        CTL_FACTORY_IMPL_START(TabControl)
+        CTL_FACTORY_IMPL_START(TabGroup)
             status_t res;
 
-            if (!name->equals_ascii("tabs"))
+            if (!name->equals_ascii("tgroup"))
                 return STATUS_NOT_FOUND;
 
-            tk::TabControl *w = new tk::TabControl(context->display());
+            tk::TabGroup *w = new tk::TabGroup(context->display());
             if (w == NULL)
                 return STATUS_NO_MEM;
             if ((res = context->widgets()->add(w)) != STATUS_OK)
@@ -46,18 +46,18 @@ namespace lsp
             if ((res = w->init()) != STATUS_OK)
                 return res;
 
-            ctl::TabControl *wc  = new ctl::TabControl(context->wrapper(), w);
+            ctl::TabGroup *wc  = new ctl::TabGroup(context->wrapper(), w);
             if (wc == NULL)
                 return STATUS_NO_MEM;
 
             *ctl = wc;
             return STATUS_OK;
-        CTL_FACTORY_IMPL_END(TabControl)
+        CTL_FACTORY_IMPL_END(TabGroup)
 
         //-----------------------------------------------------------------
-        const ctl_class_t TabControl::metadata  = { "TabControl", &Widget::metadata };
+        const ctl_class_t TabGroup::metadata  = { "TabGroup", &Widget::metadata };
 
-        TabControl::TabControl(ui::IWrapper *wrapper, tk::TabControl *tc): ctl::Widget(wrapper, tc)
+        TabGroup::TabGroup(ui::IWrapper *wrapper, tk::TabGroup *cgroup): ctl::Widget(wrapper, cgroup)
         {
             pClass          = &metadata;
 
@@ -65,46 +65,47 @@ namespace lsp
             fMin            = 0.0f;
             fMax            = 0.0f;
             fStep           = 0.0f;
+            nActive         = -1;
         }
 
-        TabControl::~TabControl()
+        TabGroup::~TabGroup()
         {
         }
 
-        status_t TabControl::init()
+        status_t TabGroup::init()
         {
             LSP_STATUS_ASSERT(Widget::init());
 
-            tk::TabControl *tc = tk::widget_cast<tk::TabControl>(wWidget);
-            if (tc != NULL)
+            tk::TabGroup *tg = tk::widget_cast<tk::TabGroup>(wWidget);
+            if (tg != NULL)
             {
                 // Bind slots
-                tc->slots()->bind(tk::SLOT_SUBMIT, slot_submit, this);
+                tg->slots()->bind(tk::SLOT_SUBMIT, slot_tab_submit, this);
 
-                sBorderColor.init(pWrapper, tc->border_color());
-                sHeadingColor.init(pWrapper, tc->heading_color());
-                sHeadingSpacingColor.init(pWrapper, tc->heading_spacing_color());
-                sHeadingGapColor.init(pWrapper, tc->heading_gap_color());
-                sBorderSize.init(pWrapper, tc->border_size());
-                sBorderRadius.init(pWrapper, tc->border_radius());
-                sTabSpacing.init(pWrapper, tc->tab_spacing());
-                sHeadingSpacing.init(pWrapper, tc->heading_spacing());
-                sHeadingGap.init(pWrapper, tc->heading_gap());
-                sHeadingGapBrightness.init(pWrapper, tc->heading_gap_brightness());
-                sEmbedding.init(pWrapper, tc->embedding());
-                sTabJoint.init(pWrapper, tc->tab_joint());
-                sHeadingFill.init(pWrapper, tc->heading_fill());
-                sHeadingSpacingFill.init(pWrapper, tc->heading_spacing_fill());
+                sBorderColor.init(pWrapper, tg->border_color());
+                sHeadingColor.init(pWrapper, tg->heading_color());
+                sHeadingSpacingColor.init(pWrapper, tg->heading_spacing_color());
+                sHeadingGapColor.init(pWrapper, tg->heading_gap_color());
+                sBorderSize.init(pWrapper, tg->border_size());
+                sBorderRadius.init(pWrapper, tg->border_radius());
+                sTabSpacing.init(pWrapper, tg->tab_spacing());
+                sHeadingSpacing.init(pWrapper, tg->heading_spacing());
+                sHeadingGap.init(pWrapper, tg->heading_gap());
+                sHeadingGapBrightness.init(pWrapper, tg->heading_gap_brightness());
+                sEmbedding.init(pWrapper, tg->embedding());
+                sTabJoint.init(pWrapper, tg->tab_joint());
+                sHeadingFill.init(pWrapper, tg->heading_fill());
+                sHeadingSpacingFill.init(pWrapper, tg->heading_spacing_fill());
                 sActive.init(pWrapper, this);
             }
 
             return STATUS_OK;
         }
 
-        void TabControl::set(ui::UIContext *ctx, const char *name, const char *value)
+        void TabGroup::set(ui::UIContext *ctx, const char *name, const char *value)
         {
-            tk::TabControl *tc = tk::widget_cast<tk::TabControl>(wWidget);
-            if (tc != NULL)
+            tk::TabGroup *tg = tk::widget_cast<tk::TabGroup>(wWidget);
+            if (tg != NULL)
             {
                 bind_port(&pPort, "id", name, value);
                 set_expr(&sActive, "active", name, value);
@@ -136,63 +137,22 @@ namespace lsp
                 sHeadingSpacingFill.set("heading.spacing.fill", name, value);
                 sHeadingSpacingFill.set("hspacing.fill", name, value);
 
-                set_constraints(tc->constraints(), name, value);
-                set_layout(tc->heading(), "heading", name, value);
-                set_layout(tc->heading(), "head", name, value);
+                set_constraints(tg->constraints(), name, value);
+                set_layout(tg->heading(), "heading", name, value);
+                set_layout(tg->heading(), "head", name, value);
             }
 
             return Widget::set(ctx, name, value);
         }
 
-        tk::Tab *TabControl::create_new_tab(tk::Widget *child, tk::Registry *registry)
+        status_t TabGroup::add(ui::UIContext *ctx, ctl::Widget *child)
         {
-            // We need to create tab wrapper
-            tk::Tab *t      = new tk::Tab(wWidget->display());
-            if (t == NULL)
-                return NULL;
-            lsp_finally {
-                if (t != NULL)
-                {
-                    t->destroy();
-                    delete t;
-                }
-            };
-
-            if (t->init() != STATUS_OK)
-                return NULL;
-            if ((child != NULL) && (t->add(child) != STATUS_OK))
-                return NULL;
-            if ((registry != NULL) && (registry->add(t) != STATUS_OK))
-                return NULL;
-
-            return lsp::release(t);
+            tk::TabGroup *tg = tk::widget_cast<tk::TabGroup>(wWidget);
+            return (tg != NULL) ? tg->widgets()->add(child->widget()) : STATUS_OK;
         }
 
-        status_t TabControl::add(ui::UIContext *ctx, ctl::Widget *child)
+        void TabGroup::end(ui::UIContext *ctx)
         {
-            tk::TabControl *tc = tk::widget_cast<tk::TabControl>(wWidget);
-            if (tc == NULL)
-                return STATUS_OK;
-
-            // Cast passed widget to tab
-            tk::Tab *tab = tk::widget_cast<tk::Tab>(child->widget());
-            if (tab == NULL)
-            {
-                // We need to create tab wrapper
-                if ((tab = create_new_tab(child->widget(), ctx->widgets())) == NULL)
-                    return STATUS_NO_MEM;
-            }
-
-            // Register tab in the tab list
-            if (!vTabs.add(tab))
-                return STATUS_NO_MEM;
-
-            return tc->add(tab);
-        }
-
-        void TabControl::end(ui::UIContext *ctx)
-        {
-            // Process widgets, create tab widgets if necessary
             if (pPort != NULL)
                 sync_metadata(pPort);
 
@@ -202,7 +162,7 @@ namespace lsp
             Widget::end(ctx);
         }
 
-        void TabControl::notify(ui::IPort *port, size_t flags)
+        void TabGroup::notify(ui::IPort *port, size_t flags)
         {
             if (port == NULL)
                 return;
@@ -214,40 +174,40 @@ namespace lsp
 
             if (pPort == port)
             {
-                tk::TabControl *tc = tk::widget_cast<tk::TabControl>(wWidget);
-                if (tc != NULL)
+                tk::TabGroup *tg = tk::widget_cast<tk::TabGroup>(wWidget);
+                if (tg != NULL)
                 {
-                    ssize_t index   = (pPort->value() - fMin) / fStep;
+                    ssize_t index = (pPort->value() - fMin) / fStep;
 
-                    tk::Tab *tab    = tc->widgets()->get(index);
-                    tc->selected()->set(tab);
+                    tk::TabItem *ti = tg->items()->get(index);
+                    tg->selected()->set(ti);
                 }
             }
         }
 
-        void TabControl::select_active_widget()
+        void TabGroup::select_active_widget()
         {
-            tk::TabControl *tc = tk::widget_cast<tk::TabControl>(wWidget);
-            if (tc == NULL)
+            tk::TabGroup *tg = tk::widget_cast<tk::TabGroup>(wWidget);
+            if (tg == NULL)
                 return;
 
             ssize_t index = (sActive.valid()) ? sActive.evaluate_int() : -1;
-            tk::Tab *tab  = (index >= 0) ? tc->widgets()->get(index) : NULL;
-            tc->selected()->set(tab);
+            tk::Widget *w = (index >= 0) ? tg->widgets()->get(index) : NULL;
+            tg->active()->set(w);
         }
 
-        status_t TabControl::slot_submit(tk::Widget *sender, void *ptr, void *data)
+        status_t TabGroup::slot_tab_submit(tk::Widget *sender, void *ptr, void *data)
         {
-            TabControl *_this   = static_cast<TabControl *>(ptr);
-            if (_this != NULL)
-                _this->submit_value();
+            TabGroup *self   = static_cast<TabGroup *>(ptr);
+            if (self != NULL)
+                self->submit_value();
             return STATUS_OK;
         }
 
-        void TabControl::sync_metadata(ui::IPort *port)
+        void TabGroup::sync_metadata(ui::IPort *port)
         {
-            tk::TabControl *tc = tk::widget_cast<tk::TabControl>(wWidget);
-            if (tc == NULL)
+            tk::TabGroup *tg = tk::widget_cast<tk::TabGroup>(wWidget);
+            if (tg == NULL)
                 return;
 
             if (port != pPort)
@@ -264,50 +224,46 @@ namespace lsp
                 ssize_t value   = pPort->value();
                 size_t i        = 0;
 
-                tk::WidgetList<tk::Tab> *lst = tc->widgets();
+                tk::WidgetList<tk::TabItem> *lst = tg->items();
                 lst->clear();
 
                 LSPString lck;
-                tk::Tab *tab;
+                tk::TabItem *ti;
 
                 for (const meta::port_item_t *item = p->items; (item != NULL) && (item->text != NULL); ++item, ++i)
                 {
-                    tab = vTabs.get(i);
-                    if (tab == NULL)
-                    {
-                        if ((tab = create_new_tab(NULL, NULL)) == NULL)
-                            return;
-                        lst->madd(tab);
-                    }
-                    else
-                        lst->add(tab);
+                    ti  = new tk::TabItem(wWidget->display());
+                    if (ti == NULL)
+                        return;
+                    ti->init();
 
                     ssize_t key     = fMin + fStep * i;
                     if (item->lc_key != NULL)
                     {
                         lck.set_ascii("lists.");
                         lck.append_ascii(item->lc_key);
-                        tab->text()->set(&lck);
+                        ti->text()->set(&lck);
                     }
                     else
-                        tab->text()->set_raw(item->text);
+                        ti->text()->set_raw(item->text);
+                    lst->madd(ti);
 
                     if (key == value)
-                        tc->selected()->set(tab);
+                        tg->selected()->set(ti);
                 }
             }
         }
 
-        void TabControl::submit_value()
+        void TabGroup::submit_value()
         {
             if (pPort == NULL)
                 return;
 
-            tk::TabControl *tc = tk::widget_cast<tk::TabControl>(wWidget);
-            if (tc == NULL)
+            tk::TabGroup *tg = tk::widget_cast<tk::TabGroup>(wWidget);
+            if (tg == NULL)
                 return;
 
-            ssize_t index = tc->widgets()->index_of(tc->selected()->get());
+            ssize_t index = tg->items()->index_of(tg->selected()->get());
 
             float value = fMin + fStep * index;
             lsp_trace("index = %d, value=%f", int(index), value);
@@ -318,3 +274,6 @@ namespace lsp
 
     } /* namespace ctl */
 } /* namespace lsp */
+
+
+

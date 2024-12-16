@@ -108,6 +108,7 @@ namespace lsp
             wInvertVScroll              = NULL;
             wInvertGraphDotVScroll      = NULL;
             wZoomableSpectrum           = NULL;
+            wFilelistAutoload           = NULL;
 
             pPVersion                   = NULL;
             pPBypass                    = NULL;
@@ -125,6 +126,7 @@ namespace lsp
             pInvertVScroll              = NULL;
             pInvertGraphDotVScroll      = NULL;
             pZoomableSpectrum           = NULL;
+            pFilelistAutoload           = NULL;
 
             init_enum_menu(&sFilterPointThickness);
 
@@ -294,6 +296,7 @@ namespace lsp
             BIND_PORT(pWrapper, pInvertVScroll, UI_INVERT_VSCROLL_PORT);
             BIND_PORT(pWrapper, pInvertGraphDotVScroll, UI_GRAPH_DOT_INVERT_VSCROLL_PORT);
             BIND_PORT(pWrapper, pZoomableSpectrum, UI_ZOOMABLE_SPECTRUM_GRAPH_PORT);
+            BIND_PORT(pWrapper, pFilelistAutoload, UI_FILELIST_NAVIGAION_AUTOLOAD_PORT);
             BIND_PORT(pWrapper, sFilterPointThickness.pPort, UI_FILTER_POINT_THICK_PORT);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
@@ -975,6 +978,14 @@ namespace lsp
                 wZoomableSpectrum->slots()->bind(tk::SLOT_SUBMIT, slot_zoomable_spectrum_changed, this);
             }
             
+            // Auto scale spectrum
+            if ((wFilelistAutoload = create_menu_item(menu)) != NULL)
+            {
+                wFilelistAutoload->type()->set_check();
+                wFilelistAutoload->text()->set("actions.ui_behavior.file_list_navigation_autoload");
+                wFilelistAutoload->slots()->bind(tk::SLOT_SUBMIT, slot_filelist_autoload_changed, this);
+            }
+
             // Thickness of the enum menu item
             wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
 
@@ -1384,6 +1395,18 @@ namespace lsp
                 wZoomableSpectrum->checked()->set(zoomable);
         }
 
+        void PluginWindow::sync_filelist_autoload()
+        {
+            tk::Display *dpy    = wWidget->display();
+            if (dpy == NULL)
+                return;
+
+            bool zoomable  = (pFilelistAutoload != NULL) ? pFilelistAutoload->value() >= 0.5f : false;
+
+            if (wFilelistAutoload != NULL)
+                wFilelistAutoload->checked()->set(zoomable);
+        }
+
         void PluginWindow::sync_enum_menu(enum_menu_t *menu, ui::IPort *port)
         {
             if ((port == NULL) || (port != menu->pPort))
@@ -1535,6 +1558,8 @@ namespace lsp
                 notify(pInvertGraphDotVScroll, ui::PORT_NONE);
             if (pZoomableSpectrum != NULL)
                 notify(pZoomableSpectrum, ui::PORT_NONE);
+            if (pFilelistAutoload != NULL)
+                notify(pFilelistAutoload, ui::PORT_NONE);
             if (sFilterPointThickness.pPort != NULL)
                 notify(sFilterPointThickness.pPort, ui::PORT_NONE);
 
@@ -1562,6 +1587,8 @@ namespace lsp
                 sync_invert_vscroll(port);
             if (port == pZoomableSpectrum)
                 sync_zoomable_spectrum();
+            if (port == pFilelistAutoload)
+                sync_filelist_autoload();
 
             sync_enum_menu(&sFilterPointThickness, port);
         }
@@ -2534,6 +2561,8 @@ namespace lsp
                     _this->pInvertGraphDotVScroll->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pZoomableSpectrum != NULL)
                     _this->pZoomableSpectrum->notify_all(ui::PORT_USER_EDIT);
+                if (_this->pFilelistAutoload != NULL)
+                    _this->pFilelistAutoload->notify_all(ui::PORT_USER_EDIT);
                 if (_this->sFilterPointThickness.pPort != NULL)
                     _this->sFilterPointThickness.pPort->notify_all(ui::PORT_USER_EDIT);
             }
@@ -2820,6 +2849,24 @@ namespace lsp
             bool checked = _this->wZoomableSpectrum->checked()->get();
             _this->pZoomableSpectrum->set_value((checked) ? 1.0f : 0.0f);
             _this->pZoomableSpectrum->notify_all(ui::PORT_USER_EDIT);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_filelist_autoload_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+            if (_this->pFilelistAutoload == NULL)
+                return STATUS_OK;
+            if (_this->wFilelistAutoload == NULL)
+                return STATUS_OK;
+
+            _this->wFilelistAutoload->checked()->toggle();
+            bool checked = _this->wFilelistAutoload->checked()->get();
+            _this->pFilelistAutoload->set_value((checked) ? 1.0f : 0.0f);
+            _this->pFilelistAutoload->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }

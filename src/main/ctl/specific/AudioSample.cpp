@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 июл. 2021 г.
@@ -247,6 +247,9 @@ namespace lsp
                 return STATUS_NO_MEM;
             pDragInSink->acquire();
 
+            for (size_t i=0; i<CHANNEL_PERIOD; ++i)
+                vChannelStyles[i].fmt_ascii("AudioSample::Channel%d", int(i + 1));
+
             tk::AudioSample *as = tk::widget_cast<tk::AudioSample>(wWidget);
             if (as != NULL)
             {
@@ -261,6 +264,7 @@ namespace lsp
                 sLabelRadius.init(pWrapper, as->label_radius());
                 sBorder.init(pWrapper, as->border_size());
                 sBorderRadius.init(pWrapper, as->border_radius());
+                sMaxAmplitude.init(pWrapper, as->max_amplitude());
                 sActive.init(pWrapper, as->active());
                 sStereoGroups.init(pWrapper, as->stereo_groups());
 
@@ -441,6 +445,8 @@ namespace lsp
                 sLabelRadius.set("label.radius", name, value);
                 sBorder.set("border.size", name, value);
                 sBorderRadius.set("border.radius", name, value);
+                sMaxAmplitude.set("amplitude.max", name, value);
+                sMaxAmplitude.set("amp.max", name, value);
 
                 sMainText.set("text.main", name, value);
 
@@ -462,41 +468,57 @@ namespace lsp
                 set_font(as->label_font(), "label.font", name, value);
                 set_layout(as->label_layout(0), "", name, value);
 
+                // Update channel style
                 LSPString prefix;
+
+                for (size_t i=0; i<CHANNEL_PERIOD; ++i)
+                {
+                    prefix.fmt_ascii("channel%d.style", int(i+1));
+                    if (prefix.equals_ascii(name))
+                        vChannelStyles[i].set_ascii(value);
+
+                    prefix.fmt_ascii("ch%d.style", int(i));
+                    if (prefix.equals_ascii(name))
+                        vChannelStyles[i].set_ascii(value);
+                }
+
                 for (size_t i=0, n=lsp_min(size_t(LBL_COUNT), tk::AudioSample::LABELS); i<n; ++i)
                 {
-                    prefix.fmt_ascii("%s.visibility", label_names[i]);
+                    const char *label_name = label_names[i];
+
+                    prefix.fmt_ascii("%s.visibility", label_name);
                     sLabelVisibility[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d.visibility", int(i));
+                    prefix.fmt_ascii("label.%s.visibility", label_name);
                     sLabelVisibility[i].set(prefix.get_ascii(), name, value);
 
-                    prefix.fmt_ascii("%s.text.color", label_names[i]);
+                    prefix.fmt_ascii("%s.text.color", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%s.tcolor", label_names[i]);
+                    prefix.fmt_ascii("%s.tcolor", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d.text.color", int(i));
+                    prefix.fmt_ascii("label.%s.text.color", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d.tcolor", int(i));
+                    prefix.fmt_ascii("label.%s.tcolor", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
 
-                    prefix.fmt_ascii("%s", label_names[i]);
+                    prefix.fmt_ascii("%s", label_name);
                     set_layout(as->label_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d", int(i));
+                    prefix.fmt_ascii("label.%s", label_name);
                     set_layout(as->label_layout(i), prefix.get_ascii(), name, value);
 
-                    prefix.fmt_ascii("%s.text.layout", label_names[i]);
+                    prefix.fmt_ascii("%s.text.layout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%s.tlayout", label_names[i]);
+                    prefix.fmt_ascii("%s.tlayout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%d.text.layout", int(i));
+                    prefix.fmt_ascii("%s.text.layout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%d.tlayout", int(i));
+                    prefix.fmt_ascii("%s.tlayout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
                 }
 
                 sLabelRadius.init(pWrapper, as->label_radius());
                 sBorder.init(pWrapper, as->border_size());
                 sBorderRadius.init(pWrapper, as->border_radius());
+                sMaxAmplitude.init(pWrapper, as->max_amplitude());
 
                 sColor.set("color", name, value);
                 sBorderColor.set("border.color", name, value);
@@ -818,9 +840,7 @@ namespace lsp
                 ac->samples()->set(mesh->pvData[src_idx], samples);
 
                 // Inject style
-                LSPString style;
-                style.fmt_ascii("AudioSample::Channel%d", int(src_idx % 8) + 1);
-                inject_style(ac, style.get_ascii());
+                inject_style(ac, &vChannelStyles[src_idx % CHANNEL_PERIOD]);
 
                 // Add audio channel as managed and increment counter
                 as->channels()->madd(ac);

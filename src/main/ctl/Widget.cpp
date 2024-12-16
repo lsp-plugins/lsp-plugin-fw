@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/common/debug.h>
 
 namespace lsp
 {
@@ -297,7 +298,8 @@ namespace lsp
             if (strcmp(name, param))
                 return false;
 
-            expr->parse(value);
+            if (!expr->parse(value))
+                lsp_warn("Failed to parse expression for attribute '%s': %s", name, value);
             return true;
         }
 
@@ -386,6 +388,23 @@ namespace lsp
                 return false;
 
             v->set_utf8(value);
+            return true;
+        }
+
+        bool Widget::link_port(ui::IPort **port, const char *id)
+        {
+            ui::IPort *oldp = *port;
+            ui::IPort *newp = pWrapper->port(id);
+            if (oldp == newp)
+                return true;
+
+            if (oldp != NULL)
+                oldp->unbind(this);
+            if (newp != NULL)
+                newp->bind(this);
+
+            *port           = newp;
+
             return true;
         }
 

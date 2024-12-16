@@ -3,7 +3,7 @@
  *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 14 нояб. 2022 г.
+ * Created on: 4 дек. 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_TABCONTROL_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_TABCONTROL_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_TABGROUP_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_TABGROUP_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,48 +34,46 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Tab control
+         * Tab group
          */
-        class TabControl: public Widget
+        class TabGroup: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ui::IPort                  *pPort;
-                float                       fMin;
-                float                       fMax;
-                float                       fStep;
+                ui::IPort              *pPort;
+                float                   fMin;
+                float                   fMax;
+                float                   fStep;
+                ssize_t                 nActive;
 
-                ctl::Color                  sBorderColor;
-                ctl::Color                  sHeadingColor;
-                ctl::Color                  sHeadingSpacingColor;
-                ctl::Color                  sHeadingGapColor;
-                ctl::Integer                sBorderSize;
-                ctl::Integer                sBorderRadius;
-                ctl::Integer                sTabSpacing;
-                ctl::Integer                sHeadingSpacing;
-                ctl::Integer                sHeadingGap;
-                ctl::Float                  sHeadingGapBrightness;
-                ctl::Embedding              sEmbedding;
-                ctl::Boolean                sTabJoint;
-                ctl::Boolean                sHeadingFill;
-                ctl::Boolean                sHeadingSpacingFill;
-                ctl::Expression             sActive;
-
-                lltl::parray<tk::Tab>       vTabs;
+                ctl::Color              sBorderColor;
+                ctl::Color              sHeadingColor;
+                ctl::Color              sHeadingSpacingColor;
+                ctl::Color              sHeadingGapColor;
+                ctl::Integer            sBorderSize;
+                ctl::Integer            sBorderRadius;
+                ctl::Integer            sTabSpacing;
+                ctl::Integer            sHeadingSpacing;
+                ctl::Integer            sHeadingGap;
+                ctl::Float              sHeadingGapBrightness;
+                ctl::Embedding          sEmbedding;
+                ctl::Boolean            sTabJoint;
+                ctl::Boolean            sHeadingFill;
+                ctl::Boolean            sHeadingSpacingFill;
+                ctl::Expression         sActive;
 
             protected:
-                static status_t         slot_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t         slot_tab_submit(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                    submit_value();
                 void                    select_active_widget();
-                tk::Tab                *create_new_tab(tk::Widget *child, tk::Registry *registry);
 
             public:
-                explicit                TabControl(ui::IWrapper *wrapper, tk::TabControl *tc);
-                virtual                ~TabControl() override;
+                explicit                TabGroup(ui::IWrapper *wrapper, tk::TabGroup *cgroup);
+                virtual                ~TabGroup();
 
                 virtual status_t        init() override;
 
@@ -90,5 +88,4 @@ namespace lsp
     } /* namespace ctl */
 } /* namespace lsp */
 
-
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_TABCONTROL_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_CONTAINERS_TABGROUP_H_ */
