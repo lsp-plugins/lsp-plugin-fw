@@ -9,6 +9,7 @@
 * Updated Fader and Knob controllers for better performance.
 * Added possibility to draw background around tk::GraphText widget.
 * Added maximum amplitude property to AudioChannel and AudioSample.
+* Fixed VST3 integer parameter setup.
 * Added TabGroup widget support.
 
 === 1.0.27 ===
