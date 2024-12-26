@@ -546,6 +546,51 @@ namespace lsp
 //                npos.sampleRate, npos.speed, npos.numerator, npos.denominator, npos.beatsPerMinute, npos.ticksPerBeat, npos.tick);
         }
 
+        bool Wrapper::check_parameters_updated()
+        {
+            for (size_t i=0, n=vParams.size(); i<n; ++i)
+            {
+                // Pre-process data in port
+                vst2::Port *port = vParams.uget(i);
+                if ((port != NULL) && (port->changed()))
+                {
+                    lsp_trace("port changed: %s", port->metadata()->id);
+                    bUpdateSettings = true;
+                }
+            }
+
+            return bUpdateSettings;
+        }
+
+        void Wrapper::apply_settings_update()
+        {
+            if (!bUpdateSettings)
+                return;
+
+            bUpdateSettings     = false;
+            lsp_trace("updating settings");
+            pPlugin->update_settings();
+            if (pShmClient != NULL)
+                pShmClient->update_settings();
+        }
+
+        void Wrapper::report_latency()
+        {
+            size_t latency      = pPlugin->latency();
+            if (nLatency == latency)
+                return;
+
+            lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
+
+            pEffect->initialDelay   = latency;
+            nLatency                = latency;
+            if (pMaster)
+            {
+                lsp_trace("Reporting latency = %d samples to the host", int(latency));
+                pMaster(pEffect, audioMasterIOChanged, 0, 0, 0, 0);
+            }
+        }
+
         void Wrapper::run(float** inputs, float** outputs, size_t samples)
         {
             // DO NOTHING if sample_rate is not set (fill output buffers with zeros)
@@ -589,16 +634,8 @@ namespace lsp
             }
 
             // Process ALL parameter ports for changes
-            for (size_t i=0, n=vParams.size(); i<n; ++i)
-            {
-                // Pre-process data in port
-                vst2::Port *port = vParams.uget(i);
-                if ((port != NULL) && (port->changed()))
-                {
-                    lsp_trace("port changed: %s", port->metadata()->id);
-                    bUpdateSettings = true;
-                }
-            }
+            if (check_parameters_updated())
+                apply_settings_update();
 
             // Check that input parameters have changed
             if (bUpdateSettings)
@@ -654,19 +691,7 @@ namespace lsp
             }
 
             // Report latency
-            size_t latency      = pPlugin->latency();
-            if (nLatency != latency)
-            {
-                lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
-
-                pEffect->initialDelay   = latency;
-                nLatency                = latency;
-                if (pMaster)
-                {
-                    lsp_trace("Reporting latency = %d samples to the host", int(latency));
-                    pMaster(pEffect, audioMasterIOChanged, 0, 0, 0, 0);
-                }
-            }
+            report_latency();
         }
 
         void Wrapper::process_events(const VstEvents *e)
@@ -1109,6 +1134,14 @@ namespace lsp
 
             // Notify the plugin that state has been loaded
             pPlugin->state_loaded();
+
+            // Update settings: workaround for some hosts like Renoise that do not call process() for plugins
+            // after their instantiation.
+            if (check_parameters_updated())
+            {
+                apply_settings_update();
+                report_latency();
+            }
         }
 
         void Wrapper::deserialize_new_chunk_format(const uint8_t *data, size_t bytes)

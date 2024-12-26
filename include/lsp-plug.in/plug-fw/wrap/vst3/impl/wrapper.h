@@ -1544,7 +1544,14 @@ namespace lsp
 
             // Notify the plugin that the state has been loaded
             if (res == STATUS_OK)
+            {
                 pPlugin->state_loaded();
+
+                // Update settings: workaround for some hosts like Renoise that do not call process() for plugins
+                // after their instantiation.
+                if (check_parameters_updated())
+                    apply_settings_update();
+            }
 
             return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
         }
@@ -2537,6 +2544,42 @@ namespace lsp
             }
         }
 
+        bool Wrapper::check_parameters_updated()
+        {
+            bool state_dirty = false;
+            for (size_t i=0, n=vAllParams.size(); i<n; ++i)
+            {
+                vst3::Port *p = vAllParams.uget(i);
+                if (p == NULL)
+                    continue;
+
+                const sync_flags_t state = p->sync();
+                if (state != SYNC_NONE)
+                {
+                    lsp_trace("port changed: %s=%f", p->id(), p->value());
+                    bUpdateSettings     = true;
+                    if (state == SYNC_CHANGED)
+                        state_dirty         = true;
+                }
+            }
+            if (state_dirty)
+                state_changed();
+
+            return bUpdateSettings;
+        }
+
+        void Wrapper::apply_settings_update()
+        {
+            if (!bUpdateSettings)
+                return;
+            bUpdateSettings     = false;
+
+            lsp_trace("Updating settings");
+            pPlugin->update_settings();
+            if (pShmClient != NULL)
+                pShmClient->update_settings();
+        }
+
         Steinberg::tresult PLUGIN_API Wrapper::process(Steinberg::Vst::ProcessData & data)
         {
             dsp::context_t ctx;
@@ -2575,24 +2618,7 @@ namespace lsp
             }
 
             // Trigger settings update if any of input parameters has changed
-            bool state_dirty = false;
-            for (size_t i=0, n=vAllParams.size(); i<n; ++i)
-            {
-                vst3::Port *p = vAllParams.uget(i);
-                if (p == NULL)
-                    continue;
-
-                const sync_flags_t state = p->sync();
-                if (state != SYNC_NONE)
-                {
-                    lsp_trace("port changed: %s=%f", p->id(), p->value());
-                    bUpdateSettings     = true;
-                    if (state == SYNC_CHANGED)
-                        state_dirty         = true;
-                }
-            }
-            if (state_dirty)
-                state_changed();
+            check_parameters_updated();
 
             // Reset meters
             for (size_t i=0, n=vMeters.size(); i<n; ++i)
@@ -2619,14 +2645,7 @@ namespace lsp
 //                lsp_trace("block size=%d", int(block_size));
 
                 // Update the settings for the plugin
-                if (bUpdateSettings)
-                {
-                    lsp_trace("Updating settings");
-                    pPlugin->update_settings();
-                    if (pShmClient != NULL)
-                        pShmClient->update_settings();
-                    bUpdateSettings     = false;
-                }
+                apply_settings_update();
 
                 // Call the plugin for processing
                 if (block_size > 0)
