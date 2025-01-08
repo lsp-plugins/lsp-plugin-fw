@@ -509,11 +509,7 @@ namespace lsp
 
             // Disable drag-in for the 'save' widget
             if (_this->bSave)
-            {
-                dpy->reject_drag();
-                lsp_trace("Rejected drag");
                 return STATUS_OK;
-            }
 
             // Process the drag request
             ws::rectangle_t r;
@@ -525,11 +521,6 @@ namespace lsp
             {
                 dpy->accept_drag(_this->pDragInSink, ws::DRAG_COPY, &r);
                 lsp_trace("Accepted drag");
-            }
-            else
-            {
-                dpy->reject_drag();
-                lsp_trace("Rejected drag");
             }
 
             return STATUS_OK;
