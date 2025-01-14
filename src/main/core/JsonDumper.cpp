@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -166,44 +166,54 @@ namespace lsp
             sOut.write_bool(value);
         }
 
-        void JsonDumper::write(uint8_t value)
+        void JsonDumper::write(unsigned char value)
         {
-            sOut.write_int(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(int8_t value)
+        void JsonDumper::write(signed char value)
         {
-            sOut.write_int(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(uint16_t value)
+        void JsonDumper::write(unsigned short value)
         {
-            sOut.write_int(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(int16_t value)
+        void JsonDumper::write(signed short value)
         {
-            sOut.write_int(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(uint32_t value)
+        void JsonDumper::write(unsigned int value)
         {
-            sOut.write_int(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(int32_t value)
+        void JsonDumper::write(signed int value)
         {
-            sOut.write_int(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(uint64_t value)
+        void JsonDumper::write(unsigned long value)
         {
-            sOut.write_int(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(int64_t value)
+        void JsonDumper::write(signed long value)
         {
-            sOut.write_int(value);
+            sOut.write_int(fixed_int(value));
+        }
+
+        void JsonDumper::write(unsigned long long value)
+        {
+            sOut.write_int(fixed_int(value));
+        }
+
+        void JsonDumper::write(signed long long value)
+        {
+            sOut.write_int(fixed_int(value));
         }
 
         void JsonDumper::write(float value)
@@ -231,55 +241,67 @@ namespace lsp
         void JsonDumper::write(const char *name, bool value)
         {
             sOut.write_property(name);
-            write(value);
+            sOut.write_bool(value);
         }
 
-        void JsonDumper::write(const char *name, uint8_t value)
+        void JsonDumper::write(const char *name, unsigned char value)
         {
             sOut.write_property(name);
-            write(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(const char *name, int8_t value)
+        void JsonDumper::write(const char *name, signed char value)
         {
             sOut.write_property(name);
-            write(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(const char *name, uint16_t value)
+        void JsonDumper::write(const char *name, unsigned short value)
         {
             sOut.write_property(name);
-            write(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(const char *name, int16_t value)
+        void JsonDumper::write(const char *name, signed short value)
         {
             sOut.write_property(name);
-            write(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(const char *name, uint32_t value)
+        void JsonDumper::write(const char *name, unsigned int value)
         {
             sOut.write_property(name);
-            write(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(const char *name, int32_t value)
+        void JsonDumper::write(const char *name, signed int value)
         {
             sOut.write_property(name);
-            write(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(const char *name, uint64_t value)
+        void JsonDumper::write(const char *name, unsigned long value)
         {
             sOut.write_property(name);
-            write(value);
+            sOut.write_int(fixed_int(value));
         }
 
-        void JsonDumper::write(const char *name, int64_t value)
+        void JsonDumper::write(const char *name, signed long value)
         {
             sOut.write_property(name);
-            write(value);
+            sOut.write_int(fixed_int(value));
+        }
+
+        void JsonDumper::write(const char *name, unsigned long long value)
+        {
+            sOut.write_property(name);
+            sOut.write_int(fixed_int(value));
+        }
+
+        void JsonDumper::write(const char *name, signed long long value)
+        {
+            sOut.write_property(name);
+            sOut.write_int(fixed_int(value));
         }
 
         void JsonDumper::write(const char *name, float value)
@@ -322,7 +344,7 @@ namespace lsp
             end_array();
         }
 
-        void JsonDumper::writev(const uint8_t *value, size_t count)
+        void JsonDumper::writev(const unsigned char *value, size_t count)
         {
             if (value == NULL)
             {
@@ -332,11 +354,11 @@ namespace lsp
 
             begin_array(value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const int8_t *value, size_t count)
+        void JsonDumper::writev(const signed char *value, size_t count)
         {
             if (value == NULL)
             {
@@ -346,11 +368,11 @@ namespace lsp
 
             begin_array(value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const uint16_t *value, size_t count)
+        void JsonDumper::writev(const unsigned short *value, size_t count)
         {
             if (value == NULL)
             {
@@ -360,11 +382,11 @@ namespace lsp
 
             begin_array(value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const int16_t *value, size_t count)
+        void JsonDumper::writev(const signed short *value, size_t count)
         {
             if (value == NULL)
             {
@@ -374,11 +396,11 @@ namespace lsp
 
             begin_array(value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const uint32_t *value, size_t count)
+        void JsonDumper::writev(const unsigned int *value, size_t count)
         {
             if (value == NULL)
             {
@@ -388,11 +410,11 @@ namespace lsp
 
             begin_array(value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const int32_t *value, size_t count)
+        void JsonDumper::writev(const signed int *value, size_t count)
         {
             if (value == NULL)
             {
@@ -402,11 +424,11 @@ namespace lsp
 
             begin_array(value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const uint64_t *value, size_t count)
+        void JsonDumper::writev(const unsigned long *value, size_t count)
         {
             if (value == NULL)
             {
@@ -416,11 +438,11 @@ namespace lsp
 
             begin_array(value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const int64_t *value, size_t count)
+        void JsonDumper::writev(const signed long *value, size_t count)
         {
             if (value == NULL)
             {
@@ -430,7 +452,35 @@ namespace lsp
 
             begin_array(value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
+            end_array();
+        }
+
+        void JsonDumper::writev(const unsigned long long *value, size_t count)
+        {
+            if (value == NULL)
+            {
+                write(value);
+                return;
+            }
+
+            begin_array(value, count);
+            for (size_t i=0; i<count; ++i)
+                sOut.write_int(fixed_int(value[i]));
+            end_array();
+        }
+
+        void JsonDumper::writev(const signed long long *value, size_t count)
+        {
+            if (value == NULL)
+            {
+                write(value);
+                return;
+            }
+
+            begin_array(value, count);
+            for (size_t i=0; i<count; ++i)
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
@@ -488,7 +538,7 @@ namespace lsp
             end_array();
         }
 
-        void JsonDumper::writev(const char *name, const uint8_t *value, size_t count)
+        void JsonDumper::writev(const char *name, const unsigned char *value, size_t count)
         {
             if (value == NULL)
             {
@@ -497,11 +547,11 @@ namespace lsp
             }
             begin_array(name, value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const char *name, const int8_t *value, size_t count)
+        void JsonDumper::writev(const char *name, const signed char *value, size_t count)
         {
             if (value == NULL)
             {
@@ -510,11 +560,11 @@ namespace lsp
             }
             begin_array(name, value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const char *name, const uint16_t *value, size_t count)
+        void JsonDumper::writev(const char *name, const unsigned short *value, size_t count)
         {
             if (value == NULL)
             {
@@ -523,11 +573,11 @@ namespace lsp
             }
             begin_array(name, value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const char *name, const int16_t *value, size_t count)
+        void JsonDumper::writev(const char *name, const signed short *value, size_t count)
         {
             if (value == NULL)
             {
@@ -536,11 +586,11 @@ namespace lsp
             }
             begin_array(name, value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const char *name, const uint32_t *value, size_t count)
+        void JsonDumper::writev(const char *name, const unsigned int *value, size_t count)
         {
             if (value == NULL)
             {
@@ -549,11 +599,11 @@ namespace lsp
             }
             begin_array(name, value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const char *name, const int32_t *value, size_t count)
+        void JsonDumper::writev(const char *name, const signed int *value, size_t count)
         {
             if (value == NULL)
             {
@@ -562,11 +612,11 @@ namespace lsp
             }
             begin_array(name, value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const char *name, const uint64_t *value, size_t count)
+        void JsonDumper::writev(const char *name, const unsigned long *value, size_t count)
         {
             if (value == NULL)
             {
@@ -575,11 +625,11 @@ namespace lsp
             }
             begin_array(name, value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
-        void JsonDumper::writev(const char *name, const int64_t *value, size_t count)
+        void JsonDumper::writev(const char *name, const signed long *value, size_t count)
         {
             if (value == NULL)
             {
@@ -588,7 +638,33 @@ namespace lsp
             }
             begin_array(name, value, count);
             for (size_t i=0; i<count; ++i)
-                write(value[i]);
+                sOut.write_int(fixed_int(value[i]));
+            end_array();
+        }
+
+        void JsonDumper::writev(const char *name, const unsigned long long *value, size_t count)
+        {
+            if (value == NULL)
+            {
+                write(name, value);
+                return;
+            }
+            begin_array(name, value, count);
+            for (size_t i=0; i<count; ++i)
+                sOut.write_int(fixed_int(value[i]));
+            end_array();
+        }
+
+        void JsonDumper::writev(const char *name, const signed long long *value, size_t count)
+        {
+            if (value == NULL)
+            {
+                write(name, value);
+                return;
+            }
+            begin_array(name, value, count);
+            for (size_t i=0; i<count; ++i)
+                sOut.write_int(fixed_int(value[i]));
             end_array();
         }
 
@@ -617,6 +693,7 @@ namespace lsp
                 write(value[i]);
             end_array();
         }
-    }
-}
+
+    } /* namespace core */
+} /* namespace lsp */
 
