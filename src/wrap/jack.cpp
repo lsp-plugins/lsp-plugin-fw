@@ -608,6 +608,9 @@ namespace lsp
                 pFactory->release();
                 pFactory        = NULL;
             }
+
+            // Destroy command line
+            destroy_cmdline(&sCmdLine);
         }
 
         status_t PluginLoop::init(const char *plugin_id, int argc, const char **argv)
