@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2024 г.
@@ -121,14 +121,20 @@ namespace lsp
                 status_t        load_global_config(config::PullParser *parser);
                 status_t        init_global_constants(const tk::StyleSheet *sheet);
                 status_t        apply_visual_schema(const tk::StyleSheet *sheet);
-                status_t        export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *relative);
+                status_t        export_ports(
+                    config::Serializer *s,
+                    lltl::pphash<LSPString, config::param_t> *parameters,
+                    lltl::parray<IPort> *ports,
+                    const io::Path *relative);
+                bool            update_parameters(lltl::pphash<LSPString, config::param_t> *parameters, ui::IPort *port);
                 status_t        export_kvt(config::Serializer *s, core::KVTStorage *kvt, const io::Path *relative);
-                status_t        export_bundle_versions(config::Serializer *s, const lltl::pphash<LSPString, LSPString> *versions);
+                status_t        export_parameters(config::Serializer *s, lltl::pphash<LSPString, config::param_t> *parameters);
 
-                status_t        save_global_config(io::IOutSequence *os, const lltl::pphash<LSPString, LSPString> *versions);
-                status_t        read_bundle_versions(const io::Path *file, lltl::pphash<LSPString, LSPString> *versions);
-                static void     drop_bundle_versions(lltl::pphash<LSPString, LSPString> *versions);
+                status_t        save_global_config(io::IOutSequence *os, lltl::pphash<LSPString, config::param_t> *parameters);
+                status_t        read_parameters(const io::Path *file, lltl::pphash<LSPString, config::param_t> *params);
+                static void     drop_parameters(lltl::pphash<LSPString, config::param_t> *params);
                 void            get_bundle_version_key(LSPString *key);
+                void            get_bundle_scaling_key(LSPString *key);
 
                 void            notify_play_position(wssize_t position, wssize_t length);
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -79,8 +79,9 @@ namespace lsp
             PATH(UI_LANGUAGE_PORT_ID, "Selected language identifier for the UI interface"),
             SWITCH(UI_REL_PATHS_PORT_ID, "Use relative paths when exporting configuration file", 0.0f),
             KNOB(UI_SCALING_PORT_ID, "Manual UI scaling factor", U_PERCENT, 25.0f, 400.0f, 100.0f, 1.0f),
-            SWITCH(UI_SCALING_HOST_ID, "Prefer host-reported UI scale factor", 1.0f),
-            KNOB(UI_FONT_SCALING_PORT_ID, "Manual UI font scaling factor", U_PERCENT, 50.0f, 200.0f, 100.0f, 1.0f),
+            SWITCH(UI_SCALING_HOST_PORT_ID, "Prefer host-reported UI scale factor", 1.0f),
+            KNOB(UI_FONT_SCALING_PORT_ID, "Manual UI font scaling factor", U_PERCENT, 50.0f, 400.0f, 100.0f, 1.0f),
+            KNOB(UI_BUNDLE_SCALING_PORT_ID, "Manual Bundle UI scaling factor", U_PERCENT, 0.0f, 400.0f, 0.0f, 1.0f),
             PATH(UI_VISUAL_SCHEMA_FILE_ID, "Current visual schema file used by the UI"),
             SWITCH(UI_PREVIEW_AUTO_PLAY_ID, "Enable automatic playback of the audio file in the file preview part of the file open dialog", 0.0f),
             SWITCH(UI_ENABLE_KNOB_SCALE_ACTIONS_ID, "Enable knob scale mouse actions", 1.0f),
@@ -833,7 +834,7 @@ namespace lsp
                 return res;
 
             // Export regular ports
-            if ((res = export_ports(s, &vPorts, basedir)) != STATUS_OK)
+            if ((res = export_ports(s, NULL, &vPorts, basedir)) != STATUS_OK)
                 return res;
 
             // Export KVT data
@@ -936,12 +937,80 @@ namespace lsp
             c->append_ascii     (config_separator);
         }
 
-        status_t IWrapper::export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *basedir)
+        bool IWrapper::update_parameters(lltl::pphash<LSPString, config::param_t> *parameters, ui::IPort *port)
+        {
+            if (parameters == NULL)
+                return false;
+
+            const meta::port_t *meta = port->metadata();
+            if (meta == NULL)
+                return false;
+
+            // Version port
+            LSPString key;
+            if (!strcmp(meta->id, UI_LAST_VERSION_PORT_ID))
+            {
+                if (!meta::is_path_port(meta))
+                    return false;
+
+                // Get key and value
+                get_bundle_version_key(&key);
+                const char *value = static_cast<const char *>(port->buffer());
+                if (value == NULL)
+                    return false;
+
+                // Update parameter
+                config::param_t *p = new config::param_t();
+                if (p == NULL)
+                    return false;
+                lsp_finally {
+                    if (p != NULL)
+                        delete p;
+                };
+                if (!p->set_string(value))
+                    return false;
+
+                // Replace value
+                return parameters->put(&key, p, &p);
+            }
+
+            // Bundle scaling port
+            if (!strcmp(meta->id, UI_BUNDLE_SCALING_PORT_ID))
+            {
+                if (!meta::is_control_port(meta))
+                    return false;
+
+                // Get key and value
+                get_bundle_scaling_key(&key);
+                const float value = port->value();
+
+                // Update parameter
+                config::param_t *p = new config::param_t();
+                if (p == NULL)
+                    return false;
+                lsp_finally {
+                    if (p != NULL)
+                        delete p;
+                };
+                p->set_float(value);
+
+                // Replace value
+                return parameters->put(&key, p, &p);
+            }
+
+            return false;
+        }
+
+        status_t IWrapper::export_ports(
+            config::Serializer *s,
+            lltl::pphash<LSPString, config::param_t> *parameters,
+            lltl::parray<IPort> *ports,
+            const io::Path *basedir)
         {
             status_t res;
             float buf;
             const void *data;
-            LSPString name, value, comment;
+            LSPString key;
 
             // Write port data
             for (size_t i=0, n=ports->size(); i<n; ++i)
@@ -955,7 +1024,8 @@ namespace lsp
                     continue;
                 if (!meta::is_in_port(meta))
                     continue;
-                if (!strcmp(meta->id, UI_LAST_VERSION_PORT_ID))
+
+                if (update_parameters(parameters, p))
                     continue;
 
                 switch (meta->role)
@@ -973,9 +1043,6 @@ namespace lsp
                 }
 
                 // Format the port value
-                comment.clear();
-                name.clear();
-                value.clear();
                 res     = core::serialize_port_value(s, meta, data, basedir, 0);
                 if (res != STATUS_BAD_TYPE)
                 {
@@ -983,6 +1050,16 @@ namespace lsp
                         return res;
                     if ((res = s->writeln()) != STATUS_OK)
                         return res;
+                }
+
+                // Remove serialized port from configuration
+                if (!key.set_ascii(meta->id))
+                    return STATUS_NO_MEM;
+                config::param_t *param = NULL;
+                if (parameters->remove(&key, &param))
+                {
+                    if (param != NULL)
+                        delete param;
                 }
             }
 
@@ -1080,58 +1157,49 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::export_bundle_versions(config::Serializer *s, const lltl::pphash<LSPString, LSPString> *versions)
+        status_t IWrapper::export_parameters(config::Serializer *s, lltl::pphash<LSPString, config::param_t> *parameters)
         {
-            // Perform export, replace the bundle version by the actual version parameter
             status_t res;
-            lltl::parray<LSPString> kv;
-            if (!versions->keys(&kv))
-                return STATUS_NO_MEM;
-
-            // Get the actual version of the bundle
-            LSPString version_key, version_value;
-            get_bundle_version_key(&version_key);
-
-            lsp_trace("bundle version key=%s", version_key.get_native());
-
-            for (size_t i=0, n=vConfigPorts.size(); i<n; ++i)
-            {
-                ui::IPort *port = vConfigPorts.get(i);
-                if (port == NULL)
-                    continue;
-                const meta::port_t *meta = port->metadata();
-                if ((meta == NULL) || (meta->role != meta::R_PATH) ||
-                    (meta->id == NULL) || (strcmp(meta->id, UI_LAST_VERSION_PORT_ID) != 0))
-                    continue;
-                const char *value = static_cast<const char *>(port->buffer());
-                if (value != NULL)
-                    version_value.set_utf8(value);
-                break;
-            }
-            lsp_trace("bundle version value=%s", version_value.get_native());
-
-            // Add the version to the list if it is missing
-            if (!versions->contains(&version_key))
-            {
-                if (!kv.add(&version_key))
-                    return STATUS_NO_MEM;
-            }
-
             // Export all available bundle versions
-            for (size_t i=0, n=kv.size(); i<n; ++i)
+            for (lltl::iterator<lltl::pair<LSPString, config::param_t>> it = parameters->items(); it; ++it)
             {
-                const LSPString *name = kv.uget(i);
-                if (name == NULL)
-                    return STATUS_UNKNOWN_ERR;
+                const LSPString *key = it->key;
+                const config::param_t *p = it->value;
+                switch (p->type())
+                {
+                    case config::SF_TYPE_I32:
+                        res     = s->write_i32(key, p->v.i32, p->flags);
+                        break;
+                    case config::SF_TYPE_U32:
+                        res     = s->write_u32(key, p->v.u32, p->flags);
+                        break;
+                    case config::SF_TYPE_I64:
+                        res     = s->write_i64(key, p->v.i64, p->flags);
+                        break;
+                    case config::SF_TYPE_U64:
+                        res     = s->write_u64(key, p->v.u64, p->flags);
+                        break;
+                    case config::SF_TYPE_F32:
+                        res     = s->write_f32(key, p->v.f32, p->flags);
+                        break;
+                    case config::SF_TYPE_F64:
+                        res     = s->write_f64(key, p->v.f64, p->flags);
+                        break;
+                    case config::SF_TYPE_BOOL:
+                        res     = s->write_bool(key, p->v.bval, p->flags);
+                        break;
+                    case config::SF_TYPE_STR:
+                        res     = s->write_string(key, p->v.str, p->flags);
+                        break;
+                    case config::SF_TYPE_BLOB:
+                        res     = s->write_blob(key, &p->v.blob, p->flags);
+                        break;
+                    default:
+                        res     = STATUS_UNKNOWN_ERR;
+                        break;
+                }
 
-                const LSPString *value = (!version_key.equals(name)) ? versions->get(name) : &version_value;
-                if (value == NULL)
-                    return STATUS_UNKNOWN_ERR;
-
-                lsp_trace("Export version: %s=%s", name->get_native(), value->get_native());
-
-                // The bundle version should be replaced by the actual one in the output configuration
-                if ((res = s->write_string(name, value, config::SF_QUOTED)) != STATUS_OK)
+                if (res != STATUS_OK)
                     return res;
             }
 
@@ -1413,14 +1481,35 @@ namespace lsp
             key->swap(&version_key);
         }
 
+        void IWrapper::get_bundle_scaling_key(LSPString *key)
+        {
+            LSPString scaling_key;
+
+            const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
+            const meta::bundle_t *bundle = (meta != NULL) ? meta->bundle : NULL;
+            const char *bundle_uid = (bundle != NULL) ? bundle->uid : NULL;
+
+            if (bundle->uid != NULL)
+            {
+                scaling_key.set_utf8(bundle_uid);
+                scaling_key.replace_all('-', '_');
+                scaling_key.append_ascii("_ui_scaling");
+            }
+            else
+                scaling_key.set_ascii(UI_BUNDLE_SCALING_PORT_ID);
+
+            key->swap(&scaling_key);
+        }
+
         status_t IWrapper::load_global_config(config::PullParser *parser)
         {
             status_t res;
             config::param_t param;
-            LSPString version_key;
+            LSPString version_key, scaling_key;
 
             // Get the proper name of the version parameter
             get_bundle_version_key(&version_key);
+            get_bundle_scaling_key(&scaling_key);
 
             // Lock config update
             nFlags |= F_CONFIG_LOCK;
@@ -1430,14 +1519,22 @@ namespace lsp
                 // Skip raw last version parameter from legacy configuration files
                 if (param.name.equals_ascii(UI_LAST_VERSION_PORT_ID))
                     continue;
+                if (param.name.equals_ascii(UI_BUNDLE_SCALING_PORT_ID))
+                    continue;
 
-                const char *param_name = (version_key.equals(&param.name)) ?
-                    UI_LAST_VERSION_PORT_ID : param.name.get_utf8();
+                // Determine parameter name
+                const char *param_name =
+                    (version_key.equals(&param.name)) ? UI_LAST_VERSION_PORT_ID :
+                    (scaling_key.equals(&param.name)) ? UI_BUNDLE_SCALING_PORT_ID :
+                    param.name.get_utf8();
+
+                // Apply configuration if we found matching port
                 for (size_t i=0, n=vConfigPorts.size(); i<n; ++i)
                 {
                     ui::IPort *p = vConfigPorts.uget(i);
                     if (p == NULL)
                         continue;
+
                     const meta::port_t *meta = p->metadata();
                     if ((meta != NULL) && (strcmp(param_name, meta->id) == 0))
                     {
@@ -1454,77 +1551,59 @@ namespace lsp
             return (res == STATUS_EOF) ? STATUS_OK : res;
         }
 
-        void IWrapper::drop_bundle_versions(lltl::pphash<LSPString, LSPString> *versions)
+        void IWrapper::drop_parameters(lltl::pphash<LSPString, config::param_t> *versions)
         {
-            lltl::parray<LSPString> vv;
+            lltl::parray<config::param_t> vv;
             versions->values(&vv);
             versions->clear();
 
             for (size_t i=0, n=vv.size(); i<n; ++i)
             {
-                LSPString *s = vv.uget(i);
-                if (s != NULL)
-                    delete s;
+                config::param_t *value = vv.uget(i);
+                if (value != NULL)
+                    delete value;
             }
         }
 
-        status_t IWrapper::read_bundle_versions(const io::Path *file, lltl::pphash<LSPString, LSPString> *versions)
+        status_t IWrapper::read_parameters(const io::Path *file, lltl::pphash<LSPString, config::param_t> *params)
         {
             config::PullParser parser;
             config::param_t param;
             status_t res;
-            lltl::pphash<LSPString, LSPString> tmp;
-            LSPString *str = NULL;
+            lltl::pphash<LSPString, config::param_t> tmp;
+            lsp_finally { drop_parameters(&tmp); };
 
             if ((res = parser.open(file)) != STATUS_OK)
                 return res;
+            lsp_finally { parser.close(); };
 
             // Lock config update
             nFlags |= F_CONFIG_LOCK;
 
             while ((res = parser.next(&param)) == STATUS_OK)
             {
-                if ((param.is_string()) &&
-                    (param.name.ends_with_ascii("_version")))
-                {
-                    // Add new value to hash
-                    if ((str = new LSPString()) == NULL)
-                    {
-                        drop_bundle_versions(&tmp);
-                        parser.close();
-                        return STATUS_NO_MEM;
-                    }
-                    if (!str->set_utf8(param.v.str))
-                    {
-                        delete str;
-                        drop_bundle_versions(&tmp);
-                        parser.close();
-                        return STATUS_NO_MEM;
-                    }
+                // Add new value to hash
+                config::param_t *value = new config::param_t();
+                if (value == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally { delete value; };
+                if (!value->copy(&param))
+                    return STATUS_NO_MEM;
 
-                    // Put data to the mapping
-                    bool success = tmp.put(&param.name, str, &str);
-                    if (str != NULL)
-                    {
-                        lsp_warn("Duplicate entry in configuration file, assuming parameter %s being %s",
-                            param.name.get_utf8(), param.v.str);
-                        delete str;
-                    }
-                    if (!success)
-                    {
-                        drop_bundle_versions(&tmp);
-                        parser.close();
-                        return STATUS_NO_MEM;
-                    }
-                }
+                // Put data to the mapping
+                if (!tmp.put(&param.name, value, &value))
+                    return STATUS_NO_MEM;
+                if (value != NULL)
+                    lsp_warn("Duplicate entry '%s' in configuration file", param.name.get_utf8());
             }
+            if (res != STATUS_EOF)
+                return res;
 
             // Unlock config update
             nFlags &= ~F_CONFIG_LOCK;
 
             // Commit changes
-            versions->swap(&tmp);
-            drop_bundle_versions(&tmp);
+            params->swap(&tmp);
 
             return STATUS_OK;
         }
@@ -1555,13 +1634,14 @@ namespace lsp
             io::OutSequence o;
 
             // Obtain actual versions of all modules
-            lltl::pphash<LSPString, LSPString> versions;
-            read_bundle_versions(file, &versions);
-            lsp_finally { drop_bundle_versions(&versions); };
+            lltl::pphash<LSPString, config::param_t> parameters;
+            status_t res = read_parameters(file, &parameters);
+            if (res != STATUS_OK)
+                return res;
+            lsp_finally { drop_parameters(&parameters); };
 
             // Write new file
-            status_t res = os.open(file, io::File::FM_WRITE_NEW);
-            if (res != STATUS_OK)
+            if ((res = os.open(file, io::File::FM_WRITE_NEW)) != STATUS_OK)
                 return res;
 
             // Wrap
@@ -1572,13 +1652,13 @@ namespace lsp
             }
 
             // Export settings
-            res = save_global_config(&o, &versions);
+            res = save_global_config(&o, &parameters);
             status_t res2 = o.close();
 
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::save_global_config(io::IOutSequence *os, const lltl::pphash<LSPString, LSPString> *versions)
+        status_t IWrapper::save_global_config(io::IOutSequence *os, lltl::pphash<LSPString, config::param_t> *parameters)
         {
             // Create configuration serializer
             config::Serializer s;
@@ -1595,14 +1675,14 @@ namespace lsp
                 return res;
 
             // Export regular ports
-            if ((res = export_ports(&s, &vConfigPorts, NULL)) != STATUS_OK)
+            if ((res = export_ports(&s, parameters, &vConfigPorts, NULL)) != STATUS_OK)
                 return res;
 
             // Export bundle versions
             res = s.write_comment(config_separator);
             if (res == STATUS_OK)
                 res = s.write_comment("Recently used versions of bundles");
-            if ((res = export_bundle_versions(&s, versions)) != STATUS_OK)
+            if ((res = export_parameters(&s, parameters)) != STATUS_OK)
                 return res;
             if ((res = s.writeln()) != STATUS_OK)
                 return res;

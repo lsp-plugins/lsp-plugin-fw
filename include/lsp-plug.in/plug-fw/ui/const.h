@@ -54,8 +54,9 @@
 #define UI_LANGUAGE_PORT_ID                 "language"
 #define UI_REL_PATHS_PORT_ID                "use_relative_paths"
 #define UI_SCALING_PORT_ID                  "ui_scaling"
-#define UI_SCALING_HOST_ID                  "ui_scaling_host"
+#define UI_SCALING_HOST_PORT_ID             "ui_scaling_host"
 #define UI_FONT_SCALING_PORT_ID             "font_scaling"
+#define UI_BUNDLE_SCALING_PORT_ID           "ui_bundle_scaling"
 #define UI_VISUAL_SCHEMA_FILE_ID            "visual_schema_file"
 #define UI_PREVIEW_AUTO_PLAY_ID             "preview_auto_play"
 #define UI_ENABLE_KNOB_SCALE_ACTIONS_ID     "enable_knob_scale_actions"
@@ -93,8 +94,9 @@
 #define LANGUAGE_PORT                       UI_CONFIG_PORT_PREFIX UI_LANGUAGE_PORT_ID
 #define REL_PATHS_PORT                      UI_CONFIG_PORT_PREFIX UI_REL_PATHS_PORT_ID
 #define UI_SCALING_PORT                     UI_CONFIG_PORT_PREFIX UI_SCALING_PORT_ID
-#define UI_SCALING_HOST                     UI_CONFIG_PORT_PREFIX UI_SCALING_HOST_ID
+#define UI_SCALING_HOST_PORT                UI_CONFIG_PORT_PREFIX UI_SCALING_HOST_PORT_ID
 #define UI_FONT_SCALING_PORT                UI_CONFIG_PORT_PREFIX UI_FONT_SCALING_PORT_ID
+#define UI_BUNDLE_SCALING_PORT              UI_CONFIG_PORT_PREFIX UI_BUNDLE_SCALING_PORT_ID
 #define UI_VISUAL_SCHEMA_PORT               UI_CONFIG_PORT_PREFIX UI_VISUAL_SCHEMA_FILE_ID
 #define UI_PREVIEW_AUTO_PLAY_PORT           UI_CONFIG_PORT_PREFIX UI_PREVIEW_AUTO_PLAY_ID
 #define UI_ENABLE_KNOB_SCALE_ACTIONS_PORT   UI_CONFIG_PORT_PREFIX UI_ENABLE_KNOB_SCALE_ACTIONS_ID
