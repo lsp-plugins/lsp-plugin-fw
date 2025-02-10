@@ -6,6 +6,7 @@
 * Added workaround for Renoise host related to latency reporting by VST2 and VST3 plugins
   on state load.
 * Added possibility to use custom scaling for each plugin bundle.
+* Removed ctl::Switch controller as outdated.
 
 === 1.0.28 ===
 * Fixed LV2 plugin factory link regression.

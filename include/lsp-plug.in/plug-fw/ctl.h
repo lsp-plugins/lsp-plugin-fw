@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -60,7 +60,6 @@
     #include <lsp-plug.in/plug-fw/ctl/simple/Knob.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Button.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Led.h>
-    #include <lsp-plug.in/plug-fw/ctl/simple/Switch.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Indicator.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Separator.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Hyperlink.h>
