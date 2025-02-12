@@ -1053,13 +1053,16 @@ namespace lsp
                 }
 
                 // Remove serialized port from configuration
-                if (!key.set_ascii(meta->id))
-                    return STATUS_NO_MEM;
-                config::param_t *param = NULL;
-                if (parameters->remove(&key, &param))
+                if (parameters != NULL)
                 {
-                    if (param != NULL)
-                        delete param;
+                    if (!key.set_ascii(meta->id))
+                        return STATUS_NO_MEM;
+                    config::param_t *param = NULL;
+                    if (parameters->remove(&key, &param))
+                    {
+                        if (param != NULL)
+                            delete param;
+                    }
                 }
             }
 
