@@ -7,6 +7,9 @@
   on state load.
 * Added possibility to use custom scaling for each plugin bundle.
 * Removed ctl::Switch controller as outdated.
+* Added activity option for controllers:
+  * ctl::Button;
+  * ctl::CheckBox.
 
 === 1.0.28 ===
 * Fixed LV2 plugin factory link regression.

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 9 мая 2021 г.
@@ -59,9 +59,23 @@ namespace lsp
                 ctl::Color          sDownHoverColor;
                 ctl::Color          sTextDownHoverColor;
                 ctl::Color          sBorderDownHoverColor;
+                ctl::Color          sInactiveColor;
+                ctl::Color          sInactiveTextColor;
+                ctl::Color          sInactiveBorderColor;
+                ctl::Color          sInactiveHoverColor;
+                ctl::Color          sInactiveTextHoverColor;
+                ctl::Color          sInactiveBorderHoverColor;
+                ctl::Color          sInactiveDownColor;
+                ctl::Color          sInactiveTextDownColor;
+                ctl::Color          sInactiveBorderDownColor;
+                ctl::Color          sInactiveDownHoverColor;
+                ctl::Color          sInactiveTextDownHoverColor;
+                ctl::Color          sInactiveBorderDownHoverColor;
+
                 ctl::Color          sHoleColor;
 
                 ctl::Boolean        sEditable;
+                ctl::Boolean        sActivity;
                 ctl::Boolean        sHover;
                 ctl::Padding        sTextPad;
                 ctl::LCString       sText;
@@ -75,7 +89,11 @@ namespace lsp
 
             public:
                 explicit Button(ui::IWrapper *wrapper, tk::Button *widget);
+                Button(const Button &) = delete;
+                Button(Button &&) = delete;
                 virtual ~Button() override;
+                Button & operator = (const Button &) = delete;
+                Button & operator = (Button &&) = delete;
 
                 virtual status_t    init() override;
 
