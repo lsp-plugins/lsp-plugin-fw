@@ -61,7 +61,7 @@ namespace lsp
         CTL_FACTORY_IMPL_END(MidiNote);
 
         //-----------------------------------------------------------------
-        const tk::w_class_t MidiNote::PopupWindow::metadata     = { "MidiNote::PopupWindow", &PopupWindow::metadata };
+        const tk::w_class_t MidiNote::PopupWindow::metadata     = { "MidiNote::PopupWindow", &tk::PopupWindow::metadata };
 
         MidiNote::PopupWindow::PopupWindow(MidiNote *label, tk::Display *dpy):
             tk::PopupWindow(dpy),
