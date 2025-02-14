@@ -9,7 +9,8 @@
 * Removed ctl::Switch controller as outdated.
 * Added activity option for controllers:
   * ctl::Button;
-  * ctl::CheckBox.
+  * ctl::CheckBox;
+  * ctl::Edit.
 
 === 1.0.28 ===
 * Fixed LV2 plugin factory link regression.

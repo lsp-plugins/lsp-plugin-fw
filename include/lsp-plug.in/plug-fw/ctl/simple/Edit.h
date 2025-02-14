@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 15 апр. 2022 г.
@@ -47,6 +47,8 @@ namespace lsp
                 ssize_t             nInputDelay;
 
                 ctl::LCString       sEmptyText;
+                ctl::Boolean        sActivity;
+
                 ctl::Color          sColor;
                 ctl::Color          sBorderColor;
                 ctl::Color          sBorderGapColor;
@@ -54,6 +56,13 @@ namespace lsp
                 ctl::Color          sTextColor;
                 ctl::Color          sEmptyTextColor;
                 ctl::Color          sTextSelectedColor;
+                ctl::Color          sInactiveColor;
+                ctl::Color          sInactiveBorderColor;
+                ctl::Color          sInactiveBorderGapColor;
+                ctl::Color          sInactiveCursorColor;
+                ctl::Color          sInactiveTextColor;
+                ctl::Color          sInactiveEmptyTextColor;
+                ctl::Color          sInactiveTextSelectedColor;
 
                 ctl::Integer        sBorderSize;
                 ctl::Integer        sBorderGapSize;
@@ -72,7 +81,11 @@ namespace lsp
 
             public:
                 explicit Edit(ui::IWrapper *wrapper, tk::Edit *widget);
+                Edit(const Edit &) = delete;
+                Edit(Edit &&) = delete;
                 virtual ~Edit() override;
+                Edit & operator = (const Edit &) = delete;
+                Edit & operator = (Edit &&) = delete;
 
                 virtual status_t    init() override;
                 virtual void        destroy() override;
