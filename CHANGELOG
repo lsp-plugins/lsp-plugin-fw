@@ -14,6 +14,7 @@
   * ctl::Edit;
   * ctl::Fader;
   * ctl::FileButton;
+  * ctl::Fraction;
   * ctl::Indicator;
   * ctl::Knob;
   * ctl::Led;
