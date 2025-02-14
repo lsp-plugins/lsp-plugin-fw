@@ -13,6 +13,7 @@
   * ctl::ComboBox;
   * ctl::Edit;
   * ctl::Fader;
+  * ctl::FileButton;
   * ctl::Indicator;
   * ctl::Knob;
   * ctl::Led;
