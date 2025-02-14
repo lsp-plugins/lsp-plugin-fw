@@ -15,7 +15,8 @@
   * ctl::Indicator;
   * ctl::Knob;
   * ctl::Led;
-  * ctl::MidiNote.
+  * ctl::MidiNote;
+  * ctl::ProgressBar.
 
 === 1.0.28 ===
 * Fixed LV2 plugin factory link regression.
