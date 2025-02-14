@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 мая 2021 г.
@@ -88,12 +88,22 @@ namespace lsp
                 sColor.init(pWrapper, knob->color());
                 sScaleColor.init(pWrapper, knob->scale_color());
                 sBalanceColor.init(pWrapper, knob->balance_color());
-                sHoleColor.init(pWrapper, knob->hole_color());
                 sTipColor.init(pWrapper, knob->tip_color());
                 sBalanceTipColor.init(pWrapper, knob->balance_tip_color());
                 sMeterColor.init(pWrapper, knob->meter_color());
+
+                sInactiveColor.init(pWrapper, knob->inactive_color());
+                sInactiveScaleColor.init(pWrapper, knob->inactive_scale_color());
+                sInactiveBalanceColor.init(pWrapper, knob->inactive_balance_color());
+                sInactiveTipColor.init(pWrapper, knob->inactive_tip_color());
+                sInactiveBalanceTipColor.init(pWrapper, knob->inactive_balance_tip_color());
+                sInactiveMeterColor.init(pWrapper, knob->inactive_meter_color());
+
+                sHoleColor.init(pWrapper, knob->hole_color());
+
                 sMeterVisible.init(pWrapper, knob->meter_active());
                 sEditable.init(pWrapper, knob->editable());
+                sActivity.init(pWrapper, knob->editable());
 
                 sMin.init(pWrapper, this);
                 sMax.init(pWrapper, this);
@@ -126,14 +136,27 @@ namespace lsp
                 sScaleColor.set("scale.color", name, value);
                 sBalanceColor.set("bcolor", name, value);
                 sBalanceColor.set("balance.color", name, value);
-                sHoleColor.set("hcolor", name, value);
-                sHoleColor.set("hole.color", name, value);
                 sTipColor.set("tcolor", name, value);
                 sTipColor.set("tip.color", name, value);
                 sBalanceTipColor.set("btcolor", name, value);
                 sBalanceTipColor.set("balance.tip.color", name, value);
                 sMeterColor.set("meter.color", name, value);
                 sMeterColor.set("mcolor", name, value);
+
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveScaleColor.set("inactive.scolor", name, value);
+                sInactiveScaleColor.set("inactive.scale.color", name, value);
+                sInactiveBalanceColor.set("inactive.bcolor", name, value);
+                sInactiveBalanceColor.set("inactive.balance.color", name, value);
+                sInactiveTipColor.set("inactive.tcolor", name, value);
+                sInactiveTipColor.set("inactive.tip.color", name, value);
+                sInactiveBalanceTipColor.set("inactive.btcolor", name, value);
+                sInactiveBalanceTipColor.set("inactive.balance.tip.color", name, value);
+                sInactiveMeterColor.set("inactive.meter.color", name, value);
+                sInactiveMeterColor.set("inactive.mcolor", name, value);
+
+                sHoleColor.set("hcolor", name, value);
+                sHoleColor.set("hole.color", name, value);
 
                 set_expr(&sMeterMin, "meter.min", name, value);
                 set_expr(&sMeterMin, "mmin", name, value);
@@ -145,6 +168,8 @@ namespace lsp
                 sMeterVisible.set("mvisibility", name, value);
 
                 sEditable.set("editable", name, value);
+                sActivity.set("activity", name, value);
+                sActivity.set("active", name, value);
 
                 if (!strcmp(name, "min"))
                 {

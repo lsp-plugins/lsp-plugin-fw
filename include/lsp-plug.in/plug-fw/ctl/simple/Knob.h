@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 мая 2021 г.
@@ -64,12 +64,22 @@ namespace lsp
                 ctl::Color          sColor;
                 ctl::Color          sScaleColor;
                 ctl::Color          sBalanceColor;
-                ctl::Color          sHoleColor;
                 ctl::Color          sTipColor;
                 ctl::Color          sBalanceTipColor;
                 ctl::Color          sMeterColor;
+
+                ctl::Color          sInactiveColor;
+                ctl::Color          sInactiveScaleColor;
+                ctl::Color          sInactiveBalanceColor;
+                ctl::Color          sInactiveTipColor;
+                ctl::Color          sInactiveBalanceTipColor;
+                ctl::Color          sInactiveMeterColor;
+
+                ctl::Color          sHoleColor;
+
                 ctl::Boolean        sMeterVisible;
                 ctl::Boolean        sEditable;
+                ctl::Boolean        sActivity;
 
                 ctl::Expression     sMin;
                 ctl::Expression     sMax;
@@ -100,7 +110,11 @@ namespace lsp
 
             public:
                 explicit Knob(ui::IWrapper *wrapper, tk::Knob *widget);
+                Knob(const Knob &) = delete;
+                Knob(Knob &&) = delete;
                 virtual ~Knob() override;
+                Knob & operator = (const Knob &) = delete;
+                Knob & operator = (Knob &&) = delete;
 
                 virtual status_t    init() override;
 
