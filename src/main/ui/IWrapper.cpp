@@ -1298,20 +1298,7 @@ namespace lsp
 
             // Reset all ports to default values
             if (!(flags & IMPORT_FLAG_PATCH))
-            {
-                for (size_t i=0, n=vPorts.size(); i<n; ++i)
-                {
-                    ui::IPort *p = vPorts.uget(i);
-                    if (p == NULL)
-                        continue;
-
-                    p->set_default();
-                    p->notify_all(ui::PORT_NONE);
-                }
-
-                if (pUI != NULL)
-                    pUI->reset_settings();
-            }
+                reset_settings();
 
             while ((res = parser->next(&param)) == STATUS_OK)
             {
