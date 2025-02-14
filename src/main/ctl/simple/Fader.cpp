@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 июл. 2021 г.
@@ -89,6 +89,14 @@ namespace lsp
                 sScaleBorderColor.init(pWrapper, fdr->scale_border_color());
                 sBalanceColor.init(pWrapper, fdr->balance_color());
 
+                sInactiveBtnColor.init(pWrapper, fdr->inactive_button_color());
+                sInactiveBtnBorderColor.init(pWrapper, fdr->inactive_button_border_color());
+                sInactiveScaleColor.init(pWrapper, fdr->inactive_scale_color());
+                sInactiveScaleBorderColor.init(pWrapper, fdr->inactive_scale_border_color());
+                sInactiveBalanceColor.init(pWrapper, fdr->inactive_balance_color());
+
+                sActivity.init(pWrapper, fdr->active());
+
                 sMin.init(pWrapper, this);
                 sMax.init(pWrapper, this);
 
@@ -112,14 +120,27 @@ namespace lsp
                 sBtnColor.set("btncolor", name, value);
                 sBtnBorderColor.set("button.border.color", name, value);
                 sBtnBorderColor.set("btnborder.color", name, value);
-
                 sScaleColor.set("scale.color", name, value);
                 sScaleColor.set("scolor", name, value);
                 sScaleBorderColor.set("scale.border.color", name, value);
                 sScaleBorderColor.set("sborder.color", name, value);
-
                 sBalanceColor.set("balance.color", name, value);
                 sBalanceColor.set("bcolor", name, value);
+
+                sInactiveBtnColor.set("inactive.color", name, value);
+                sInactiveBtnColor.set("inactive.button.color", name, value);
+                sInactiveBtnColor.set("inactive.btncolor", name, value);
+                sInactiveBtnBorderColor.set("inactive.button.border.color", name, value);
+                sInactiveBtnBorderColor.set("inactive.btnborder.color", name, value);
+                sInactiveScaleColor.set("inactive.scale.color", name, value);
+                sInactiveScaleColor.set("inactive.scolor", name, value);
+                sInactiveScaleBorderColor.set("inactive.scale.border.color", name, value);
+                sInactiveScaleBorderColor.set("inactive.sborder.color", name, value);
+                sInactiveBalanceColor.set("inactive.balance.color", name, value);
+                sInactiveBalanceColor.set("inactive.bcolor", name, value);
+
+                sActivity.set("activity", name, value);
+                sActivity.set("active", name, value);
 
                 if (!strcmp(name, "min"))
                 {

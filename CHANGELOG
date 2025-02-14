@@ -10,7 +10,8 @@
 * Added activity option for controllers:
   * ctl::Button;
   * ctl::CheckBox;
-  * ctl::Edit.
+  * ctl::Edit;
+  * ctl::Fader.
 
 === 1.0.28 ===
 * Fixed LV2 plugin factory link regression.
