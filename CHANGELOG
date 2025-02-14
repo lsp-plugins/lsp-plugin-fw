@@ -11,7 +11,9 @@
   * ctl::Button;
   * ctl::CheckBox;
   * ctl::Edit;
-  * ctl::Fader.
+  * ctl::Fader;
+  * ctl::MidiNote;
+  * ctl::Indicator.
 
 === 1.0.28 ===
 * Fixed LV2 plugin factory link regression.
