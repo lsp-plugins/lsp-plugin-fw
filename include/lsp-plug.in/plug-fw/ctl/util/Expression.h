@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 апр. 2021 г.
@@ -62,6 +62,7 @@ namespace lsp
                 explicit Expression();
                 Expression(const Expression &) = delete;
                 Expression(Expression &&) = delete;
+                virtual ~Expression() override;
 
                 Expression & operator = (const Expression &) = delete;
                 Expression & operator = (Expression &&) = delete;
@@ -72,6 +73,9 @@ namespace lsp
                 float           evaluate_float(float dfl = 0.0f);
                 ssize_t         evaluate_int(ssize_t dfl = 0);
                 bool            evaluate_bool(bool dfl = false);
+                status_t        evaluate_string(LSPString *result);
+                status_t        evaluate_string(LSPString *result, const LSPString *dfl);
+                status_t        evaluate_string(LSPString *result, const char *dfl);
 
                 float           evaluate();
                 float           evaluate(size_t idx);
