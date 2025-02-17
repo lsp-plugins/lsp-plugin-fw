@@ -23,7 +23,6 @@
 #define PRIVATE_UI_XML_ALIASNODE_H_
 
 #include <private/ui/xml/Node.h>
-#include <private/ui/xml/PlaybackNode.h>
 
 namespace lsp
 {
@@ -32,23 +31,24 @@ namespace lsp
         namespace xml
         {
             /**
-             * The ui:for node which adds possibility to implement loops in the UI
+             * The ui:alias node which allows to define port aliases
              */
             class AliasNode: public Node
             {
-                private:
-                    AliasNode &operator = (const AliasNode &);
-                    AliasNode(const AliasNode &);
-
                 public:
                     explicit AliasNode(UIContext *ctx, Node *parent);
+                    AliasNode(const AliasNode &) = delete;
+                    AliasNode(AliasNode &&) = delete;
+                    AliasNode &operator = (const AliasNode &) = delete;
+                    AliasNode &operator = (AliasNode &&) = delete;
 
                 public:
-                    virtual status_t    enter(const LSPString * const *atts);
+                    virtual status_t    enter(const LSPString * const *atts) override;
             };
-        }
-    }
-}
+
+        } /* namespace xml */
+    } /* namespace ui */
+} /* namespace lsp */
 
 
 

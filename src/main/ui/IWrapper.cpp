@@ -177,6 +177,19 @@ namespace lsp
             }
             aliases.flush();
 
+            // Clear all evaluated ports
+            lltl::parray<ui::IPort> evaluated;
+            vEvaluated.values(&evaluated);
+            vEvaluated.flush();
+
+            for (size_t i=0, n=evaluated.size(); i<n; ++i)
+            {
+                ui::IPort *port = evaluated.uget(i);
+                if (port != NULL)
+                    delete port;
+            }
+            evaluated.flush();
+
             // Clear sorted ports
             vSortedPorts.flush();
 
@@ -392,6 +405,11 @@ namespace lsp
             }
             id = key.get_utf8(); // Finally, translate alias value back into port identifier
 
+            // Check for evaluated ports
+            ui::IPort *port = vEvaluated.get(&key);
+            if (port != NULL)
+                return port;
+
             // Check that port name contains index
             if (strchr(id, '[') != NULL)
             {
@@ -560,6 +578,34 @@ namespace lsp
                 return STATUS_NO_MEM;
 
             if (!vAliases.create(id, cname))
+                return STATUS_ALREADY_EXISTS;
+
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::add_evaluated_port(const char *id, ui::EvaluatedPort *port)
+        {
+            if ((id == NULL) || (port== NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            LSPString pid;
+            if (!pid.set_utf8(id))
+                return STATUS_NO_MEM;
+
+            return register_evaluated_port(&pid, port);
+        }
+
+        status_t IWrapper::add_evaluated_port(const LSPString *id, ui::EvaluatedPort *port)
+        {
+            if ((id == NULL) || (port== NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            return register_evaluated_port(id, port);
+        }
+
+        status_t IWrapper::register_evaluated_port(const LSPString *id, ui::IPort *port)
+        {
+            if (!vEvaluated.create(id, port))
                 return STATUS_ALREADY_EXISTS;
 
             return STATUS_OK;

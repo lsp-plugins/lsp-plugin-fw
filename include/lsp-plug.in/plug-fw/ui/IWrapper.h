@@ -59,6 +59,7 @@ namespace lsp
         class Module;
         class ISchemaListener;
         class IPlayListener;
+        class EvaluatedPort;
 
         enum import_flags_t
         {
@@ -105,6 +106,7 @@ namespace lsp
                 lltl::parray<ui::ValuePort>     vTimePorts;         // Time-related ports
                 lltl::parray<ui::IPort>         vCustomPorts;       // Custom-defined ports
                 lltl::pphash<LSPString, LSPString> vAliases;        // Port aliases
+                lltl::pphash<LSPString, ui::IPort> vEvaluated;      // Evaluated ports
                 lltl::parray<IKVTListener>      vKvtListeners;      // KVT listeners
                 lltl::ptrset<ISchemaListener>   vSchemaListeners;   // Schema change listeners
                 lltl::parray<IPlayListener>     vPlayListeners;     // List of playback listeners
@@ -114,6 +116,7 @@ namespace lsp
                 size_t          rebuild_sorted_ports();
                 void            global_config_changed(IPort *src);
                 status_t        create_alias(const LSPString *id, const LSPString *name);
+                status_t        register_evaluated_port(const LSPString *id, ui::IPort *port);
                 status_t        build_ui(const char *path, void *handle = NULL, ssize_t screen = -1);
                 void            build_config_header(LSPString *c);
                 void            build_global_config_header(LSPString *c);
@@ -237,6 +240,15 @@ namespace lsp
                 status_t                        set_port_alias(const LSPString *alias, const char *id);
                 status_t                        set_port_alias(const char *alias, const LSPString *id);
                 status_t                        set_port_alias(const LSPString *alias, const LSPString *id);
+
+                /**
+                 * Add evaluated port
+                 * @param id port identifier
+                 * @param port port pointer
+                 * @return status of operation
+                 */
+                status_t                        add_evaluated_port(const char *id, ui::EvaluatedPort *port);
+                status_t                        add_evaluated_port(const LSPString *id, ui::EvaluatedPort *port);
 
                 /**
                  * Get UI scaling factor (100.0 means no extra scaling applied)

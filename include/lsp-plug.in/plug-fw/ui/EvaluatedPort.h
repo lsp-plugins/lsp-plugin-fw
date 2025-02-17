@@ -64,8 +64,6 @@ namespace lsp
 
             public:
                 virtual const char *id() const override;
-
-            public:
                 virtual void        write(const void *buffer, size_t size) override;
                 virtual void       *buffer() override;
                 virtual float       value() override;
