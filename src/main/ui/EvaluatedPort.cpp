@@ -110,7 +110,6 @@ namespace lsp
         status_t EvaluatedPort::compile(const char *expression)
         {
             // Create expression if needed
-            status_t res;
             if (pExpression == NULL)
             {
                 pExpression         = new ctl::Expression();
@@ -120,8 +119,8 @@ namespace lsp
             }
 
             // Parse result
-            if ((res = pExpression->parse(expression)) != STATUS_OK)
-                return res;
+            if (!pExpression->parse(expression))
+                return STATUS_INVALID_VALUE;
 
             evaluate();
             return STATUS_OK;
@@ -130,7 +129,6 @@ namespace lsp
         status_t EvaluatedPort::compile(const LSPString *expression)
         {
             // Create expression if needed
-            status_t res;
             if (pExpression == NULL)
             {
                 pExpression         = new ctl::Expression();
@@ -140,8 +138,8 @@ namespace lsp
             }
 
             // Parse result
-            if ((res = pExpression->parse(expression)) != STATUS_OK)
-                return res;
+            if (!pExpression->parse(expression))
+                return STATUS_INVALID_VALUE;
 
             evaluate();
             return STATUS_OK;
