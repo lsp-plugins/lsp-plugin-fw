@@ -6,6 +6,7 @@
 * Added workaround for Renoise host related to latency reporting by VST2 and VST3 plugins
   on state load.
 * Added possibility to use custom scaling for each plugin bundle.
+* Added highlighting of active item in AudioFolder controller.
 * Removed ctl::Switch controller as outdated.
 * Fixed unnecessary output parameter cleanup when importing configuration.
 * Fixed regression in VST3 parameter setup.
