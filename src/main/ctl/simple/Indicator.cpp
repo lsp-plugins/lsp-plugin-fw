@@ -63,7 +63,7 @@ namespace lsp
             if (w == NULL)
                 return;
 
-            tk::atom_t atom = w->display()->atom_id("modern");
+            tk::atom_t atom = w->display()->atom_id("type");
             if (property == atom)
             {
                 pIndicator->parse_format();
@@ -111,7 +111,7 @@ namespace lsp
 
                 parse_format();
 
-                ind->style()->bind_bool("modern", &sListener);
+                ind->style()->bind_bool("type", &sListener);
             }
 
             return STATUS_OK;
@@ -138,7 +138,7 @@ namespace lsp
 
                 if (set_value(&sFormat, "format", name, value))
                     parse_format();
-                if (set_param(ind->modern(), "modern", name, value))
+                if (set_param(ind->type(), "type", name, value))
                     parse_format();
 
                 set_param(ind->spacing(), "spacing", name, value);
@@ -216,8 +216,8 @@ namespace lsp
 
             const char *format = sFormat.get_ascii();
 
-            tk::Indicator *ind = tk::widget_cast<tk::Indicator>(wWidget);
-            bool modern     = (ind != NULL) ? ind->modern()->get() : false;
+            tk::Indicator *ind  = tk::widget_cast<tk::Indicator>(wWidget);
+            const bool segment  = (ind != NULL) ? (ind->type()->get() == tk::INDICATOR_SEGMENT) : false;
 
             // Get predicates
             char *p         = const_cast<char *>(format);
@@ -267,7 +267,7 @@ namespace lsp
                 if (*p == '.')
                 {
                     nFlags     |= IF_DOT;
-                    if (modern)
+                    if (!segment)
                         nDigits     ++;
                 }
                 else if (*p != ',')
@@ -311,7 +311,7 @@ namespace lsp
                         item->type      = c;
                         item->digits    = 0;
                         item->precision = 0;
-                        if (modern)
+                        if (!segment)
                             nDigits        += 1;
                         break;
                     }
@@ -518,9 +518,9 @@ namespace lsp
             }
 
             tk::Indicator *ind  = tk::widget_cast<tk::Indicator>(wWidget);
-            bool modern         = (ind != NULL) ? ind->modern()->get() : false;
+            const bool segment = (ind != NULL) ? (ind->type()->get() == tk::INDICATOR_SEGMENT) : false;
             ssize_t digits      = nDigits;
-            if ((nFlags & IF_DOT) && (modern))
+            if ((nFlags & IF_DOT) && (!segment))
                 --digits;
 
             // FLOAT FORMAT: {s1}{pad}{s2}{zero}{int_p}{dot}{frac_p}

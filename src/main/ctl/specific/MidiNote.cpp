@@ -226,7 +226,7 @@ namespace lsp
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
 
-                set_param(ind->modern(), "modern", name, value);
+                set_param(ind->type(), "type", name, value);
 
                 set_param(ind->spacing(), "spacing", name, value);
                 set_param(ind->dark_text(), "text.dark", name, value);
