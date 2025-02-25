@@ -103,13 +103,9 @@ namespace lsp
             wExport                     = NULL;
             wImport                     = NULL;
             wPreferHost                 = NULL;
-            wKnobScaleEnable            = NULL;
-            wOverrideHydrogen           = NULL;
             wRelPaths                   = NULL;
             wInvertVScroll              = NULL;
             wInvertGraphDotVScroll      = NULL;
-            wZoomableSpectrum           = NULL;
-            wFilelistAutoload           = NULL;
 
             pPVersion                   = NULL;
             pPBypass                    = NULL;
@@ -123,12 +119,8 @@ namespace lsp
             pUIBundleScaling            = NULL;
             pUIFontScaling              = NULL;
             pVisualSchema               = NULL;
-            pKnobScaleEnable            = NULL;
-            pOverrideHydrogen           = NULL;
             pInvertVScroll              = NULL;
             pInvertGraphDotVScroll      = NULL;
-            pZoomableSpectrum           = NULL;
-            pFilelistAutoload           = NULL;
 
             init_enum_menu(&sFilterPointThickness);
 
@@ -303,12 +295,8 @@ namespace lsp
             BIND_PORT(pWrapper, pUIBundleScaling, UI_BUNDLE_SCALING_PORT);
             BIND_PORT(pWrapper, pUIFontScaling, UI_FONT_SCALING_PORT);
             BIND_PORT(pWrapper, pVisualSchema, UI_VISUAL_SCHEMA_PORT);
-            BIND_PORT(pWrapper, pKnobScaleEnable, UI_ENABLE_KNOB_SCALE_ACTIONS_PORT);
-            BIND_PORT(pWrapper, pOverrideHydrogen, UI_OVERRIDE_HYDROGEN_KITS_PORT);
             BIND_PORT(pWrapper, pInvertVScroll, UI_INVERT_VSCROLL_PORT);
             BIND_PORT(pWrapper, pInvertGraphDotVScroll, UI_GRAPH_DOT_INVERT_VSCROLL_PORT);
-            BIND_PORT(pWrapper, pZoomableSpectrum, UI_ZOOMABLE_SPECTRUM_GRAPH_PORT);
-            BIND_PORT(pWrapper, pFilelistAutoload, UI_FILELIST_NAVIGAION_AUTOLOAD_PORT);
             BIND_PORT(pWrapper, sFilterPointThickness.pPort, UI_FILTER_POINT_THICK_PORT);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
@@ -1004,19 +992,15 @@ namespace lsp
             item->menu()->set(menu);
 
             // Create menu items
-            if ((wKnobScaleEnable = create_menu_item(menu)) != NULL)
-            {
-                wKnobScaleEnable->type()->set_check();
-                wKnobScaleEnable->text()->set("actions.ui_behavior.ediable_knob_scale");
-                wKnobScaleEnable->slots()->bind(tk::SLOT_SUBMIT, slot_enable_slot_scale_changed, this);
-            }
+            LSP_STATUS_ASSERT(
+                add_ui_flag( menu,
+                    UI_ENABLE_KNOB_SCALE_ACTIONS_PORT,
+                    "actions.ui_behavior.ediable_knob_scale"));
 
-            if ((wOverrideHydrogen = create_menu_item(menu)) != NULL)
-            {
-                wOverrideHydrogen->type()->set_check();
-                wOverrideHydrogen->text()->set("actions.ui_behavior.override_hydrogen_kits");
-                wOverrideHydrogen->slots()->bind(tk::SLOT_SUBMIT, slot_override_hydrogen_kits_changed, this);
-            }
+            LSP_STATUS_ASSERT(
+                add_ui_flag( menu,
+                    UI_OVERRIDE_HYDROGEN_KITS_PORT,
+                    "actions.ui_behavior.override_hydrogen_kits"));
 
             // Vertical scroll inversion
             if ((wInvertVScroll = create_menu_item(menu)) != NULL)
@@ -1033,24 +1017,48 @@ namespace lsp
                 wInvertGraphDotVScroll->slots()->bind(tk::SLOT_SUBMIT, slot_invert_graph_dot_vscroll_changed, this);
             }
 
-            // Auto scale spectrum
-            if ((wZoomableSpectrum = create_menu_item(menu)) != NULL)
-            {
-                wZoomableSpectrum->type()->set_check();
-                wZoomableSpectrum->text()->set("actions.ui_behavior.enable_zoomable_spectrum");
-                wZoomableSpectrum->slots()->bind(tk::SLOT_SUBMIT, slot_zoomable_spectrum_changed, this);
-            }
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_ZOOMABLE_SPECTRUM_GRAPH_PORT,
+                    "actions.ui_behavior.enable_zoomable_spectrum"));
             
-            // Auto scale spectrum
-            if ((wFilelistAutoload = create_menu_item(menu)) != NULL)
-            {
-                wFilelistAutoload->type()->set_check();
-                wFilelistAutoload->text()->set("actions.ui_behavior.file_list_navigation_autoload");
-                wFilelistAutoload->slots()->bind(tk::SLOT_SUBMIT, slot_filelist_autoload_changed, this);
-            }
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_FILELIST_NAVIGAION_AUTOLOAD_PORT,
+                    "actions.ui_behavior.file_list_navigation_autoload"));
+
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_TAKE_INST_NAME_FROM_FILE_PORT,
+                    "actions.ui_behavior.take_instrument_name_from_file"));
 
             // Thickness of the enum menu item
             wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::add_ui_flag(tk::Menu *menu, const char *port_id, const char *key)
+        {
+            ui::IPort *port = pWrapper->port(port_id);
+            if (port == NULL)
+                return STATUS_OK;
+            port->bind(this);
+
+            tk::MenuItem *item = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+
+            item->type()->set_check();
+            item->text()->set(key);
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_ui_behaviour_flag_changed, this);
+
+            ui_flag_t *flag = vBoolFlags.add();
+            if (flag == NULL)
+                return STATUS_NO_MEM;
+
+            flag->pPort     = port;
+            flag->wItem     = item;
 
             return STATUS_OK;
         }
@@ -1460,28 +1468,32 @@ namespace lsp
                 gdot_style->set_bool("mouse.vscroll.invert", invert_gdot);
         }
 
-        void PluginWindow::sync_zoomable_spectrum()
+        void PluginWindow::sync_ui_behaviour_flags(ui::IPort *port)
         {
-            tk::Display *dpy    = wWidget->display();
-            if (dpy == NULL)
-                return;
+            for (size_t i=0, n=vBoolFlags.size(); i<n; ++i)
+            {
+                ui_flag_t *flag = vBoolFlags.uget(i);
+                if ((flag == NULL) || (flag->wItem == NULL) || (flag->pPort == NULL))
+                    continue;
 
-            bool zoomable  = (pZoomableSpectrum != NULL) ? pZoomableSpectrum->value() >= 0.5f : false;
-
-            if (wZoomableSpectrum != NULL)
-                wZoomableSpectrum->checked()->set(zoomable);
+                if ((port == NULL) || (port == flag->pPort))
+                {
+                    const bool checked = flag->pPort->value() >= 0.5f;
+                    flag->wItem->checked()->set(checked);
+                }
+            }
         }
 
-        void PluginWindow::sync_filelist_autoload()
+        void PluginWindow::notify_ui_behaviour_flags(size_t flags)
         {
-            tk::Display *dpy    = wWidget->display();
-            if (dpy == NULL)
-                return;
+            for (size_t i=0, n=vBoolFlags.size(); i<n; ++i)
+            {
+                ui_flag_t *flag = vBoolFlags.uget(i);
+                if ((flag == NULL) || (flag->pPort == NULL))
+                    continue;
 
-            bool zoomable  = (pFilelistAutoload != NULL) ? pFilelistAutoload->value() >= 0.5f : false;
-
-            if (wFilelistAutoload != NULL)
-                wFilelistAutoload->checked()->set(zoomable);
+                flag->pPort->notify_all(flags);
+            }
         }
 
         void PluginWindow::sync_enum_menu(enum_menu_t *menu, ui::IPort *port)
@@ -1538,22 +1550,6 @@ namespace lsp
                     xsel->item->checked()->set(checked);
                 }
             }
-        }
-
-        void PluginWindow::sync_knob_scale_enabled()
-        {
-            // Update the knob scale
-            bool knob_enable    = (pKnobScaleEnable != NULL) ? pKnobScaleEnable->value() >= 0.5f : true;
-            if (wKnobScaleEnable != NULL)
-                wKnobScaleEnable->checked()->set(knob_enable);
-        }
-
-        void PluginWindow::sync_override_hydrogen()
-        {
-            // Update the knob scale
-            bool set_override   = (pOverrideHydrogen != NULL) ? pOverrideHydrogen->value() >= 0.5f : true;
-            if (wOverrideHydrogen != NULL)
-                wOverrideHydrogen->checked()->set(set_override);
         }
 
         void PluginWindow::begin(ui::UIContext *ctx)
@@ -1628,20 +1624,14 @@ namespace lsp
                 notify(pUIScaling, ui::PORT_NONE);
             if (pUIFontScaling != NULL)
                 notify(pUIFontScaling, ui::PORT_NONE);
-            if (pKnobScaleEnable != NULL)
-                notify(pKnobScaleEnable, ui::PORT_NONE);
-            if (pOverrideHydrogen != NULL)
-                notify(pOverrideHydrogen, ui::PORT_NONE);
             if (pInvertVScroll != NULL)
                 notify(pInvertVScroll, ui::PORT_NONE);
             if (pInvertGraphDotVScroll != NULL)
                 notify(pInvertGraphDotVScroll, ui::PORT_NONE);
-            if (pZoomableSpectrum != NULL)
-                notify(pZoomableSpectrum, ui::PORT_NONE);
-            if (pFilelistAutoload != NULL)
-                notify(pFilelistAutoload, ui::PORT_NONE);
             if (sFilterPointThickness.pPort != NULL)
                 notify(sFilterPointThickness.pPort, ui::PORT_NONE);
+
+            notify_ui_behaviour_flags(ui::PORT_NONE);
 
             // Call for parent class method
             Window::end(ctx);
@@ -1659,17 +1649,10 @@ namespace lsp
                 sync_font_scaling();
             if (port == pVisualSchema)
                 sync_visual_schemas();
-            if (port == pKnobScaleEnable)
-                sync_knob_scale_enabled();
-            if (port == pOverrideHydrogen)
-                sync_override_hydrogen();
             if ((port == pInvertVScroll) || (port == pInvertGraphDotVScroll))
                 sync_invert_vscroll(port);
-            if (port == pZoomableSpectrum)
-                sync_zoomable_spectrum();
-            if (port == pFilelistAutoload)
-                sync_filelist_autoload();
 
+            sync_ui_behaviour_flags(port);
             sync_enum_menu(&sFilterPointThickness, port);
         }
 
@@ -2713,18 +2696,14 @@ namespace lsp
                     _this->pUIScaling->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pLanguage != NULL)
                     _this->pLanguage->notify_all(ui::PORT_USER_EDIT);
-                if (_this->pKnobScaleEnable != NULL)
-                    _this->pKnobScaleEnable->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pInvertVScroll != NULL)
                     _this->pInvertVScroll->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pInvertGraphDotVScroll != NULL)
                     _this->pInvertGraphDotVScroll->notify_all(ui::PORT_USER_EDIT);
-                if (_this->pZoomableSpectrum != NULL)
-                    _this->pZoomableSpectrum->notify_all(ui::PORT_USER_EDIT);
-                if (_this->pFilelistAutoload != NULL)
-                    _this->pFilelistAutoload->notify_all(ui::PORT_USER_EDIT);
                 if (_this->sFilterPointThickness.pPort != NULL)
                     _this->sFilterPointThickness.pPort->notify_all(ui::PORT_USER_EDIT);
+
+                _this->notify_ui_behaviour_flags(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;
@@ -2923,42 +2902,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::slot_enable_slot_scale_changed(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_OK;
-            if (_this->pKnobScaleEnable == NULL)
-                return STATUS_OK;
-            if (_this->wKnobScaleEnable == NULL)
-                return STATUS_OK;
-
-            _this->wKnobScaleEnable->checked()->toggle();
-            bool checked = _this->wKnobScaleEnable->checked()->get();
-            _this->pKnobScaleEnable->set_value((checked) ? 1.0f : 0.0f);
-            _this->pKnobScaleEnable->notify_all(ui::PORT_USER_EDIT);
-
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_override_hydrogen_kits_changed(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_OK;
-            if (_this->pOverrideHydrogen == NULL)
-                return STATUS_OK;
-            if (_this->wOverrideHydrogen == NULL)
-                return STATUS_OK;
-
-            _this->wOverrideHydrogen->checked()->toggle();
-            bool checked = _this->wOverrideHydrogen->checked()->get();
-            _this->pOverrideHydrogen->set_value((checked) ? 1.0f : 0.0f);
-            _this->pOverrideHydrogen->notify_all(ui::PORT_USER_EDIT);
-
-            return STATUS_OK;
-        }
-
         status_t PluginWindow::slot_invert_vscroll_changed(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this = static_cast<PluginWindow *>(ptr);
@@ -2995,38 +2938,27 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::slot_zoomable_spectrum_changed(tk::Widget *sender, void *ptr, void *data)
+        status_t PluginWindow::slot_ui_behaviour_flag_changed(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_OK;
-            if (_this->pZoomableSpectrum == NULL)
-                return STATUS_OK;
-            if (_this->wZoomableSpectrum == NULL)
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
                 return STATUS_OK;
 
-            _this->wZoomableSpectrum->checked()->toggle();
-            bool checked = _this->wZoomableSpectrum->checked()->get();
-            _this->pZoomableSpectrum->set_value((checked) ? 1.0f : 0.0f);
-            _this->pZoomableSpectrum->notify_all(ui::PORT_USER_EDIT);
+            // Apply changes
+            for (size_t i=0, n=self->vBoolFlags.size(); i<n; ++i)
+            {
+                ui_flag_t *flag = self->vBoolFlags.uget(i);
+                if ((flag == NULL) || (flag->wItem != sender) || (flag->pPort == NULL))
+                    continue;
 
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_filelist_autoload_changed(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_OK;
-            if (_this->pFilelistAutoload == NULL)
-                return STATUS_OK;
-            if (_this->wFilelistAutoload == NULL)
-                return STATUS_OK;
-
-            _this->wFilelistAutoload->checked()->toggle();
-            bool checked = _this->wFilelistAutoload->checked()->get();
-            _this->pFilelistAutoload->set_value((checked) ? 1.0f : 0.0f);
-            _this->pFilelistAutoload->notify_all(ui::PORT_USER_EDIT);
+                if (flag->wItem == sender)
+                {
+                    flag->wItem->checked()->toggle();
+                    const bool checked = flag->wItem->checked()->get();
+                    flag->pPort->set_value((checked) ? 1.0f : 0.0f);
+                    flag->pPort->notify_all(ui::PORT_USER_EDIT);
+                }
+            }
 
             return STATUS_OK;
         }

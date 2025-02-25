@@ -94,6 +94,7 @@ namespace lsp
             COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", 1.0f, filter_point_thickness_modes),
             PATH(UI_DOCUMENTATION_PATH_ID, "Path to the local documentation installation"),
             SWITCH(UI_FILELIST_NAVIGAION_AUTOLOAD_ID, "Automatically load files when navigating over file list", 0.0f),
+            SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", 0.0f),
             PORTS_END
         };
 

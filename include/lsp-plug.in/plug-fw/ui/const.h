@@ -69,6 +69,7 @@
 #define UI_FILTER_POINT_THICK_ID            "filter_point_thickness"
 #define UI_DOCUMENTATION_PATH_ID            "documentation_path"
 #define UI_FILELIST_NAVIGAION_AUTOLOAD_ID   "file_list_navigation_autoload"
+#define UI_TAKE_INST_NAME_FROM_FILE_ID      "take_instrument_name_from_file"
 
 #define MSTUD_PORT                          UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                        UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -109,6 +110,7 @@
 #define UI_FILTER_POINT_THICK_PORT          UI_CONFIG_PORT_PREFIX UI_FILTER_POINT_THICK_ID
 #define UI_DOCUMENTATION_PORT               UI_CONFIG_PORT_PREFIX UI_DOCUMENTATION_PATH_ID
 #define UI_FILELIST_NAVIGAION_AUTOLOAD_PORT UI_CONFIG_PORT_PREFIX UI_FILELIST_NAVIGAION_AUTOLOAD_ID
+#define UI_TAKE_INST_NAME_FROM_FILE_PORT    UI_CONFIG_PORT_PREFIX UI_TAKE_INST_NAME_FROM_FILE_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                      "main_menu"
