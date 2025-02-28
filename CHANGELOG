@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.30 ===
+
+
 === 1.0.29 ===
 * Added workaround for Renoise host related to latency reporting by VST2 and VST3 plugins
   on state load.
