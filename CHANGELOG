@@ -23,6 +23,7 @@
   * ctl::Led;
   * ctl::MidiNote;
   * ctl::ProgressBar.
+* Updated module versions in dependencies.
 
 === 1.0.28 ===
 * Fixed LV2 plugin factory link regression.
