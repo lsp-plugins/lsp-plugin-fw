@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 30 июл. 2021 г.
@@ -79,7 +79,10 @@ namespace lsp
 
                 ctl::Color              sColor;
                 ctl::Color              sTextColor;
+                ctl::Color              sInactiveColor;
+                ctl::Color              sInactiveTextColor;
 
+                ctl::Boolean            sActivity;
                 ctl::Padding            sIPadding;
 
             protected:
@@ -99,7 +102,11 @@ namespace lsp
 
             public:
                 explicit MidiNote(ui::IWrapper *wrapper, tk::Indicator *widget);
+                MidiNote(const MidiNote &) = delete;
+                MidiNote(MidiNote &&) = delete;
                 virtual ~MidiNote() override;
+                MidiNote & operator = (const MidiNote &) = delete;
+                MidiNote & operator = (MidiNote &&) = delete;
 
                 virtual status_t    init() override;
                 virtual void        destroy() override;

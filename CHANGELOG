@@ -2,6 +2,29 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.29 ===
+* Added workaround for Renoise host related to latency reporting by VST2 and VST3 plugins
+  on state load.
+* Added possibility to use custom scaling for each plugin bundle.
+* Added highlighting of active item in AudioFolder controller.
+* Removed ctl::Switch controller as outdated.
+* Fixed unnecessary output parameter cleanup when importing configuration.
+* Fixed regression in VST3 parameter setup.
+* Added activity option for controllers:
+  * ctl::Button;
+  * ctl::CheckBox;
+  * ctl::ComboBox;
+  * ctl::Edit;
+  * ctl::Fader;
+  * ctl::FileButton;
+  * ctl::Fraction;
+  * ctl::Indicator;
+  * ctl::Knob;
+  * ctl::Led;
+  * ctl::MidiNote;
+  * ctl::ProgressBar.
+* Updated module versions in dependencies.
+
 === 1.0.28 ===
 * Fixed LV2 plugin factory link regression.
 * Fixed possible file/sample name loss on deactivated plugin for all modern formats.

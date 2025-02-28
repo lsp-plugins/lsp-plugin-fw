@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 2 окт. 2021 г.
@@ -87,10 +87,14 @@ namespace lsp
                 sAngle.init(pWrapper, fr->angle());
                 sTextPad.init(pWrapper, fr->text_pad());
                 sThick.init(pWrapper, fr->thickness());
+                sActivity.init(pWrapper, fr->active());
 
                 sColor.init(pWrapper, fr->color());
                 sNumColor.init(pWrapper, fr->num_color());
                 sDenColor.init(pWrapper, fr->den_color());
+                sInactiveColor.init(pWrapper, fr->inactive_color());
+                sInactiveNumColor.init(pWrapper, fr->inactive_num_color());
+                sInactiveDenColor.init(pWrapper, fr->inactive_den_color());
 
                 // Bind slots
                 fr->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
@@ -116,12 +120,27 @@ namespace lsp
                 set_value(&fMaxSig, "max", name, value);
 
                 // Set complicated properties
+                sAngle.set("angle", name, value);
+                sTextPad.set("text.pad", name, value);
+                sTextPad.set("tpad", name, value);
+                sThick.set("thickness", name, value);
+                sThick.set("thick", name, value);
+                sActivity.set("activity", name, value);
+                sActivity.set("active", name, value);
+
                 sColor.set("color", name, value);
                 sNumColor.set("numerator.color", name, value);
                 sNumColor.set("num.color", name, value);
                 sDenColor.set("denominator.color", name, value);
                 sDenColor.set("denom.color", name, value);
                 sDenColor.set("den.color", name, value);
+
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveNumColor.set("inactive.numerator.color", name, value);
+                sInactiveNumColor.set("inactive.num.color", name, value);
+                sInactiveDenColor.set("inactive.denominator.color", name, value);
+                sInactiveDenColor.set("inactive.denom.color", name, value);
+                sInactiveDenColor.set("inactive.den.color", name, value);
             }
 
             return Widget::set(ctx, name, value);

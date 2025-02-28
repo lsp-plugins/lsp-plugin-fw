@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 28 нояб. 2021 г.
@@ -839,7 +839,10 @@ namespace lsp
                 osc::dump_packet(msg_start, msg_size);
 
                 if (::strstr(msg_addr, "/KVT/") == msg_addr)
-                    pKVTDispatcher->submit(msg_start, msg_size);
+                {
+                    if (pKVTDispatcher != NULL)
+                        pKVTDispatcher->submit(msg_start, msg_size);
+                }
                 else
                 {
                     for (size_t i=0, n=vOscPorts.size(); i<n; ++i)
@@ -1414,9 +1417,12 @@ namespace lsp
 
         void Wrapper::transmit_kvt_events()
         {
-            LV2_Atom atom;
+            if (pKVTDispatcher == NULL)
+                return;
 
+            LV2_Atom atom;
             size_t size;
+
             while (true)
             {
                 status_t res = pKVTDispatcher->fetch(pOscPacket, &size, OSC_PACKET_MAX);
@@ -1524,9 +1530,7 @@ namespace lsp
             // Transmit different data to clients
             if (nClients > 0)
             {
-                if (pKVTDispatcher != NULL)
-                    transmit_kvt_events();
-
+                transmit_kvt_events();
                 transmit_time_position_to_clients();
                 transmit_port_data_to_clients(sync_req, patch_req, state_req);
             }

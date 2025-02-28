@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 мая 2021 г.
@@ -76,13 +76,16 @@ namespace lsp
 
                     public:
                         inline PropListener(Indicator *ind)     { pIndicator = ind; }
-                        virtual void notify(tk::atom_t property);
+                        virtual void notify(tk::atom_t property) override;
                 };
 
             protected:
                 ctl::Color              sColor;
                 ctl::Color              sTextColor;
+                ctl::Color              sInactiveColor;
+                ctl::Color              sInactiveTextColor;
 
+                ctl::Boolean            sActivity;
                 ctl::Padding            sIPadding;
                 LSPString               sFormat;
                 PropListener            sListener;
@@ -107,7 +110,11 @@ namespace lsp
 
             public:
                 explicit Indicator(ui::IWrapper *wrapper, tk::Indicator *widget);
+                Indicator(const Indicator &) = delete;
+                Indicator(Indicator &&) = delete;
                 virtual ~Indicator() override;
+                Indicator & operator = (const Indicator &) = delete;
+                Indicator & operator = (Indicator &&) = delete;
 
                 virtual status_t    init() override;
 
@@ -116,7 +123,7 @@ namespace lsp
                 virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        end(ui::UIContext *ctx) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_INDICATOR_H_ */

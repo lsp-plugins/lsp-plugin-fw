@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 сент. 2021 г.
@@ -189,6 +189,7 @@ namespace lsp
                 sProgress.init(pWrapper, this);
                 sTextPadding.init(pWrapper, fb->text_padding());
                 sGradient.init(pWrapper, fb->gradient());
+                sActivity.init(pWrapper, fb->active());
                 sBorderSize.init(pWrapper, fb->border_size());
                 sBorderPressedSize.init(pWrapper, fb->border_pressed_size());
 
@@ -200,6 +201,15 @@ namespace lsp
                 sInvLineColor.init(pWrapper, fb->inv_line_color());
                 sTextColor.init(pWrapper, fb->text_color());
                 sInvTextColor.init(pWrapper, fb->inv_text_color());
+
+                sInactiveColor.init(pWrapper, fb->inactive_color());
+                sInactiveInvColor.init(pWrapper, fb->inactive_inv_color());
+                sInactiveBorderColor.init(pWrapper, fb->inactive_border_color());
+                sInactiveInvBorderColor.init(pWrapper, fb->inactive_inv_border_color());
+                sInactiveLineColor.init(pWrapper, fb->inactive_line_color());
+                sInactiveInvLineColor.init(pWrapper, fb->inactive_inv_line_color());
+                sInactiveTextColor.init(pWrapper, fb->inactive_text_color());
+                sInactiveInvTextColor.init(pWrapper, fb->inactive_inv_text_color());
 
                 // By default use 'all' file formats
                 parse_file_formats(&vFormats, "all");
@@ -240,6 +250,8 @@ namespace lsp
                 sTextPadding.set("text.pad", name, value);
                 sTextPadding.set("tpad", name, value);
                 sGradient.set("gradient", name, value);
+                sActivity.set("activity", name, value);
+                sActivity.set("active", name, value);
                 sBorderSize.set("border.size", name, value);
                 sBorderSize.set("bsize", name, value);
                 sBorderPressedSize.set("border.pressed.size", name, value);
@@ -260,6 +272,22 @@ namespace lsp
                 sTextColor.set("tcolor", name, value);
                 sInvTextColor.set("text.inv.color", name, value);
                 sInvTextColor.set("itcolor", name, value);
+
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveInvColor.set("inactive.inv.color", name, value);
+                sInactiveInvColor.set("inactive.icolor", name, value);
+                sInactiveBorderColor.set("inactive.border.color", name, value);
+                sInactiveBorderColor.set("inactive.bcolor", name, value);
+                sInactiveInvBorderColor.set("inactive.border.inv.color", name, value);
+                sInactiveInvBorderColor.set("inactive.ibcolor", name, value);
+                sInactiveLineColor.set("inactive.line.color", name, value);
+                sInactiveLineColor.set("inactive.lcolor", name, value);
+                sInactiveInvLineColor.set("inactive.line.inv.color", name, value);
+                sInactiveInvLineColor.set("inactive.ilcolor", name, value);
+                sInactiveTextColor.set("inactive.text.color", name, value);
+                sInactiveTextColor.set("inactive.tcolor", name, value);
+                sInactiveInvTextColor.set("inactive.text.inv.color", name, value);
+                sInactiveInvTextColor.set("inactive.itcolor", name, value);
 
                 set_constraints(fb->constraints(), name, value);
                 set_text_layout(fb->text_layout(), "text.layout", name, value);
@@ -509,11 +537,7 @@ namespace lsp
 
             // Disable drag-in for the 'save' widget
             if (_this->bSave)
-            {
-                dpy->reject_drag();
-                lsp_trace("Rejected drag");
                 return STATUS_OK;
-            }
 
             // Process the drag request
             ws::rectangle_t r;
@@ -525,11 +549,6 @@ namespace lsp
             {
                 dpy->accept_drag(_this->pDragInSink, ws::DRAG_COPY, &r);
                 lsp_trace("Accepted drag");
-            }
-            else
-            {
-                dpy->reject_drag();
-                lsp_trace("Rejected drag");
             }
 
             return STATUS_OK;

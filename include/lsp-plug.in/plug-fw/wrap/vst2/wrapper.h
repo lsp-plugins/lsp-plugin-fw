@@ -95,6 +95,9 @@ namespace lsp
                 void                        deserialize_new_chunk_format(const uint8_t *data, size_t bytes);
                 void                        sync_position();
                 status_t                    serialize_port_data();
+                bool                        check_parameters_updated();
+                void                        apply_settings_update();
+                void                        report_latency();
 
             public:
                 Wrapper(

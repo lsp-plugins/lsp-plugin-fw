@@ -676,7 +676,7 @@ $(HOST)UTL_RESPACK_OBJS           = \
   $($(HOST)UTL_COMMON_OBJ) \
   $($(HOST)UTL_RESPACK_OBJ) \
   $($(HOST)UTL_RESPACK_MAIN_OBJ)
-
+  
 $(HOST)UTL_PLUGLIST_GEN           = $($(HOST)UTL_BIN_PATH)/pluglist_gen$(EXECUTABLE_EXT)
 $(HOST)UTL_PLUGLIST_GEN_OBJ       = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/pluglist_gen, *.cpp))
 $(HOST)UTL_PLUGLIST_GEN_MAIN_OBJ  = $($(HOST)LSP_PLUGIN_FW_BIN)/util/pluglist_gen.o

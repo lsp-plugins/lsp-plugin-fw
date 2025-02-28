@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 окт. 2021 г.
@@ -44,14 +44,23 @@ namespace lsp
             protected:
                 ui::IPort          *pPort;
 
-                ctl::LCString       sText;
-                ctl::Boolean        sShowText;
+                ctl::Color          sColor;
+                ctl::Color          sInvColor;
                 ctl::Color          sBorderColor;
                 ctl::Color          sBorderGapColor;
-                ctl::Color          sColor;
                 ctl::Color          sTextColor;
-                ctl::Color          sInvColor;
                 ctl::Color          sInvTextColor;
+
+                ctl::Color          sInactiveColor;
+                ctl::Color          sInactiveInvColor;
+                ctl::Color          sInactiveBorderColor;
+                ctl::Color          sInactiveBorderGapColor;
+                ctl::Color          sInactiveTextColor;
+                ctl::Color          sInactiveInvTextColor;
+
+                ctl::LCString       sText;
+                ctl::Boolean        sShowText;
+                ctl::Boolean        sActivity;
                 ctl::Integer        sBorderSize;
                 ctl::Integer        sBorderGapSize;
                 ctl::Integer        sBorderRadius;
@@ -65,7 +74,11 @@ namespace lsp
 
             public:
                 explicit ProgressBar(ui::IWrapper *wrapper, tk::ProgressBar *widget);
+                ProgressBar(const ProgressBar &) = delete;
+                ProgressBar(ProgressBar &&) = delete;
                 virtual ~ProgressBar() override;
+                ProgressBar & operator = (const ProgressBar &) = delete;
+                ProgressBar & operator = (ProgressBar &&) = delete;
 
                 virtual status_t    init() override;
 

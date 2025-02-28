@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 29 сент. 2024 г.
@@ -27,6 +27,7 @@
 
 #define AFOLDER_STYLE_ACTIVE            "AudioFolder::Active"
 #define AFOLDER_STYLE_INACTIVE          "AudioFolder::Inactive"
+#define AFOLDER_ITEM_ACTIVE             "AudioFolder::ListBoxItem::Active"
 
 namespace lsp
 {
@@ -68,6 +69,8 @@ namespace lsp
 
             pPort           = NULL;
             pAutoload       = NULL;
+            wActive         = NULL;
+
             bActive         = false;
         }
 
@@ -143,6 +146,7 @@ namespace lsp
 
             // Fill list box with items
             items->clear();
+            wActive     = NULL;
 
             for (lltl::iterator<LSPString> it = files->values(); it; ++it)
             {
@@ -202,6 +206,10 @@ namespace lsp
             }
 
             set_activity(true);
+
+            // Deactivate all selected items
+            if (wActive != NULL)
+                revoke_style(wActive, AFOLDER_ITEM_ACTIVE);
             lbox->selected()->clear();
 
             // Update selected item
@@ -212,6 +220,8 @@ namespace lsp
             tk::ListBoxItem *item = lbox->items()->get(file_index);
             if (item != NULL)
             {
+                inject_style(item, AFOLDER_ITEM_ACTIVE);
+                wActive = item;
                 lbox->selected()->add(item);
                 lbox->scroll_to(file_index);
             }
@@ -227,7 +237,10 @@ namespace lsp
             {
                 tk::ListBox *lbox = tk::widget_cast<tk::ListBox>(wWidget);
                 if (lbox != NULL)
+                {
                     lbox->items()->clear();
+                    wActive     = NULL;
+                }
             }
             update_styles();
         }

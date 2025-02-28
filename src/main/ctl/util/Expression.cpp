@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 апр. 2021 г.
@@ -30,6 +30,11 @@ namespace lsp
             pListener   = NULL;
         }
 
+        Expression::~Expression()
+        {
+            pListener   = NULL;
+        }
+
         void Expression::init(ui::IWrapper *wrapper, ui::IPortListener *listener)
         {
             Property::init(wrapper);
@@ -46,57 +51,129 @@ namespace lsp
         {
             expr::value_t value;
             expr::init_value(&value);
+            lsp_finally { expr::destroy_value(&value); };
 
             status_t res = evaluate(&value);
             if (res != STATUS_OK)
-            {
-                expr::destroy_value(&value);
                 return dfl;
-            }
 
-            float fval;
             expr::cast_float(&value);
-            fval = (value.type == expr::VT_FLOAT) ? value.v_float : dfl;
-            expr::destroy_value(&value);
-            return fval;
+
+            return (value.type == expr::VT_FLOAT) ? value.v_float : dfl;
         }
 
         ssize_t Expression::evaluate_int(ssize_t dfl)
         {
             expr::value_t value;
             expr::init_value(&value);
+            lsp_finally { expr::destroy_value(&value); };
 
             status_t res = evaluate(&value);
             if (res != STATUS_OK)
-            {
-                expr::destroy_value(&value);
                 return dfl;
-            }
 
-            ssize_t ival;
             expr::cast_int(&value);
-            ival = (value.type == expr::VT_INT) ? value.v_int : dfl;
-            expr::destroy_value(&value);
-            return ival;
+
+            return (value.type == expr::VT_INT) ? value.v_int : dfl;
         }
 
         bool Expression::evaluate_bool(bool dfl)
         {
             expr::value_t value;
             expr::init_value(&value);
+            lsp_finally { expr::destroy_value(&value); };
+
+            status_t res = evaluate(&value);
+            if (res != STATUS_OK)
+                return dfl;
+
+            expr::cast_bool(&value);
+
+            return (value.type == expr::VT_BOOL) ? value.v_bool : dfl;
+        }
+
+        status_t Expression::evaluate_string(LSPString *result)
+        {
+            if (result == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            expr::value_t value;
+            expr::init_value(&value);
+            lsp_finally { expr::destroy_value(&value); };
 
             status_t res = evaluate(&value);
             if (res != STATUS_OK)
             {
-                expr::destroy_value(&value);
-                return dfl;
+                result->clear();
+                return res;
             }
 
-            bool bval;
-            expr::cast_bool(&value);
-            bval = (value.type == expr::VT_BOOL) ? value.v_bool : dfl;
-            expr::destroy_value(&value);
-            return bval;
+            res = expr::cast_string(&value);
+            if ((res != STATUS_OK) || (value.type != expr::VT_STRING))
+            {
+                result->clear();
+                return res;
+            }
+
+            return (result->set(value.v_str)) ? STATUS_OK : STATUS_NO_MEM;
+        }
+
+        status_t Expression::evaluate_string(LSPString *result, const LSPString *dfl)
+        {
+            if (dfl == NULL)
+                return evaluate_string(result);
+
+            if ((result == NULL) || (dfl == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            expr::value_t value;
+            expr::init_value(&value);
+            lsp_finally { expr::destroy_value(&value); };
+
+            status_t res = evaluate(&value);
+            if (res != STATUS_OK)
+            {
+                result->set(dfl);
+                return res;
+            }
+
+            res = expr::cast_string(&value);
+            if ((res != STATUS_OK) || (value.type != expr::VT_STRING))
+            {
+                result->set(dfl);
+                return res;
+            }
+
+            return (result->set(value.v_str)) ? STATUS_OK : STATUS_NO_MEM;
+        }
+
+        status_t Expression::evaluate_string(LSPString *result, const char *dfl)
+        {
+            if (dfl == NULL)
+                return evaluate_string(result);
+
+            if ((result == NULL) || (dfl == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            expr::value_t value;
+            expr::init_value(&value);
+            lsp_finally { expr::destroy_value(&value); };
+
+            status_t res = evaluate(&value);
+            if (res != STATUS_OK)
+            {
+                result->set_utf8(dfl);
+                return res;
+            }
+
+            res = expr::cast_string(&value);
+            if ((res != STATUS_OK) || (value.type != expr::VT_STRING))
+            {
+                result->set_utf8(dfl);
+                return res;
+            }
+
+            return (result->set(value.v_str)) ? STATUS_OK : STATUS_NO_MEM;
         }
 
         float Expression::evaluate()
@@ -157,6 +234,6 @@ namespace lsp
             return fval;
         }
 
-    } /* namespace tk */
+    } /* namespace ctl */
 } /* namespace lsp */
 

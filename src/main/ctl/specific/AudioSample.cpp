@@ -1160,11 +1160,6 @@ namespace lsp
                 dpy->accept_drag(_this->pDragInSink, ws::DRAG_COPY, &r);
                 lsp_trace("Accepted drag");
             }
-            else
-            {
-                dpy->reject_drag();
-                lsp_trace("Rejected drag");
-            }
 
             return STATUS_OK;
         }

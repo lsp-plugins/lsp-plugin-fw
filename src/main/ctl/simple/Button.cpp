@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 9 мая 2021 г.
@@ -90,9 +90,24 @@ namespace lsp
                 sDownHoverColor.init(pWrapper, btn->down_hover_color());
                 sTextDownHoverColor.init(pWrapper, btn->text_down_hover_color());
                 sBorderDownHoverColor.init(pWrapper, btn->border_down_hover_color());
+
+                sInactiveColor.init(pWrapper, btn->inactive_color());
+                sInactiveTextColor.init(pWrapper, btn->inactive_text_color());
+                sInactiveBorderColor.init(pWrapper, btn->inactive_border_color());
+                sInactiveHoverColor.init(pWrapper, btn->inactive_hover_color());
+                sInactiveTextHoverColor.init(pWrapper, btn->inactive_text_hover_color());
+                sInactiveBorderHoverColor.init(pWrapper, btn->inactive_border_hover_color());
+                sInactiveDownColor.init(pWrapper, btn->inactive_down_color());
+                sInactiveTextDownColor.init(pWrapper, btn->inactive_text_down_color());
+                sInactiveBorderDownColor.init(pWrapper, btn->inactive_border_down_color());
+                sInactiveDownHoverColor.init(pWrapper, btn->inactive_down_hover_color());
+                sInactiveTextDownHoverColor.init(pWrapper, btn->inactive_text_down_hover_color());
+                sInactiveBorderDownHoverColor.init(pWrapper, btn->inactive_border_down_hover_color());
+
                 sHoleColor.init(pWrapper, btn->hole_color());
 
                 sEditable.init(pWrapper, btn->editable());
+                sActivity.init(pWrapper, btn->active());
                 sTextPad.init(pWrapper, btn->text_padding());
                 sText.init(pWrapper, btn->text());
 
@@ -134,9 +149,35 @@ namespace lsp
                 sBorderDownHoverColor.set("border.down.hover.color", name, value);
                 sBorderDownHoverColor.set("bdhcolor", name, value);
 
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveTextColor.set("inactive.text.color", name, value);
+                sInactiveTextColor.set("inactive.tcolor", name, value);
+                sInactiveBorderColor.set("inactive.border.color", name, value);
+                sInactiveBorderColor.set("inactive.bcolor", name, value);
+                sInactiveHoverColor.set("inactive.hover.color", name, value);
+                sInactiveHoverColor.set("inactive.hcolor", name, value);
+                sInactiveTextHoverColor.set("inactive.text.hover.color", name, value);
+                sInactiveTextHoverColor.set("inactive.thcolor", name, value);
+                sInactiveBorderHoverColor.set("inactive.border.hover.color", name, value);
+                sInactiveBorderHoverColor.set("inactive.bhcolor", name, value);
+                sInactiveDownColor.set("inactive.down.color", name, value);
+                sInactiveDownColor.set("inactive.dcolor", name, value);
+                sInactiveTextDownColor.set("inactive.text.down.color", name, value);
+                sInactiveTextDownColor.set("inactive.tdcolor", name, value);
+                sInactiveBorderDownColor.set("inactive.border.down.color", name, value);
+                sInactiveBorderDownColor.set("inactive.bdcolor", name, value);
+                sInactiveDownHoverColor.set("inactive.down.hover.color", name, value);
+                sInactiveDownHoverColor.set("inactive.dhcolor", name, value);
+                sInactiveTextDownHoverColor.set("inactive.text.down.hover.color", name, value);
+                sInactiveTextDownHoverColor.set("inactive.tdhcolor", name, value);
+                sInactiveBorderDownHoverColor.set("inactive.border.down.hover.color", name, value);
+                sInactiveBorderDownHoverColor.set("inactive.bdhcolor", name, value);
+
                 sHoleColor.set("hole.color", name, value);
 
                 sEditable.set("editable", name, value);
+                sActivity.set("activity", name, value);
+                sActivity.set("active", name, value);
                 sTextPad.set("text.padding", name, value);
                 sTextPad.set("text.pad", name, value);
                 sTextPad.set("tpadding", name, value);

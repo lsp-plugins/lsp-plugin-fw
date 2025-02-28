@@ -1391,13 +1391,13 @@ namespace lsp
 
         Steinberg::Vst::ParamValue PLUGIN_API Controller::normalizedParamToPlain(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue valueNormalized)
         {
-            lsp_trace("this=%p, id=0x%08x, valueNormalzed=%f", this, int(id), valueNormalized);
+//            lsp_trace("this=%p, id=0x%08x, valueNormalzed=%f", this, int(id), valueNormalized);
 
             // Get port
             vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
-                lsp_warn("parameter id=0x%08x not found", int(id));
+//                lsp_warn("parameter id=0x%08x not found", int(id));
                 return 0.0;
             }
             const meta::port_t *meta = p->metadata();
@@ -1406,20 +1406,20 @@ namespace lsp
 
             // Convert value
             const float plainValue = from_vst_value(meta, valueNormalized);
-            lsp_trace("normalizedValue=%f -> plainValue=%f", plainValue, valueNormalized);
+            lsp_trace("id=%s, normalizedValue=%f -> plainValue=%f", p->metadata()->id, valueNormalized, plainValue);
 
             return plainValue;
         }
 
         Steinberg::Vst::ParamValue PLUGIN_API Controller::plainParamToNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue plainValue)
         {
-            lsp_trace("this=%p, id=0x%08x, plainValue=%f", this, int(id), plainValue);
+//            lsp_trace("this=%p, id=0x%08x, plainValue=%f", this, int(id), plainValue);
 
             // Get port
             vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
-                lsp_warn("parameter id=0x%08x not found", int(id));
+//                lsp_warn("parameter id=0x%08x not found", int(id));
                 return 0.0;
             }
             const meta::port_t *meta = p->metadata();
@@ -1428,20 +1428,20 @@ namespace lsp
 
             // Convert value
             const float valueNormalized = to_vst_value(meta, plainValue);
-            lsp_trace("plainValue=%f -> normalizedValue=%f", plainValue, valueNormalized);
+            lsp_trace("id=%s, plainValue=%f -> normalizedValue=%f", p->metadata()->id, plainValue, valueNormalized);
 
             return valueNormalized;
         }
 
         Steinberg::Vst::ParamValue PLUGIN_API Controller::getParamNormalized(Steinberg::Vst::ParamID id)
         {
-            lsp_trace("this=%p, id=0x%08x", this, int(id));
+//            lsp_trace("this=%p, id=0x%08x", this, int(id));
 
             // Get port
             vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
-                lsp_warn("parameter id=0x%08x not found", int(id));
+//                lsp_warn("parameter id=0x%08x not found", int(id));
                 return 0.0;
             }
             const meta::port_t *meta = p->metadata();
@@ -1451,7 +1451,7 @@ namespace lsp
             // Convert value
             const float value   = p->value();
             const float result  = to_vst_value(meta, value);
-            lsp_trace("plainValue=%f -> normalizedValue=%f", value, result);
+            lsp_trace("id=%s, plainValue=%f -> normalizedValue=%f", p->metadata()->id, value, result);
 
             // Return result
             return result;
@@ -1459,13 +1459,13 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Controller::setParamNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value)
         {
-            lsp_trace("this=%p, id=0x%08x, value=%f", this, int(id), value);
+//            lsp_trace("this=%p, id=0x%08x, value=%f", this, int(id), value);
 
             // Get port
             vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
-                lsp_warn("parameter id=0x%08x not found", int(id));
+//                lsp_warn("parameter id=0x%08x not found", int(id));
                 return Steinberg::kInvalidArgument;
             }
             const meta::port_t *meta = p->metadata();
@@ -1474,7 +1474,7 @@ namespace lsp
 
             // Convert value
             const float plainValue = from_vst_value(meta, value);
-            lsp_trace("normalizedValue=%f -> plainValue=%f", value, plainValue);
+            lsp_trace("id=%s, normalizedValue=%f -> plainValue=%f", p->metadata()->id, value, plainValue);
 
             // Commit value
             p->commit_value(plainValue);

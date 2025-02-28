@@ -179,6 +179,8 @@ namespace lsp
                 size_t                      prepare_block(int32_t frame, Steinberg::Vst::ProcessData *pdata);
                 vst3::ParameterPort        *input_parameter(Steinberg::Vst::ParamID id);
                 status_t                    save_kvt_parameters_v1(Steinberg::IBStream *os, core::KVTStorage *kvt);
+                bool                        check_parameters_updated();
+                void                        apply_settings_update();
 
                 status_t                    save_state(Steinberg::IBStream *os);
                 status_t                    load_state(Steinberg::IBStream *is);

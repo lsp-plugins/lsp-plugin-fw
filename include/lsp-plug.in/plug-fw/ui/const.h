@@ -54,8 +54,9 @@
 #define UI_LANGUAGE_PORT_ID                 "language"
 #define UI_REL_PATHS_PORT_ID                "use_relative_paths"
 #define UI_SCALING_PORT_ID                  "ui_scaling"
-#define UI_SCALING_HOST_ID                  "ui_scaling_host"
+#define UI_SCALING_HOST_PORT_ID             "ui_scaling_host"
 #define UI_FONT_SCALING_PORT_ID             "font_scaling"
+#define UI_BUNDLE_SCALING_PORT_ID           "ui_bundle_scaling"
 #define UI_VISUAL_SCHEMA_FILE_ID            "visual_schema_file"
 #define UI_PREVIEW_AUTO_PLAY_ID             "preview_auto_play"
 #define UI_ENABLE_KNOB_SCALE_ACTIONS_ID     "enable_knob_scale_actions"
@@ -68,6 +69,7 @@
 #define UI_FILTER_POINT_THICK_ID            "filter_point_thickness"
 #define UI_DOCUMENTATION_PATH_ID            "documentation_path"
 #define UI_FILELIST_NAVIGAION_AUTOLOAD_ID   "file_list_navigation_autoload"
+#define UI_TAKE_INST_NAME_FROM_FILE_ID      "take_instrument_name_from_file"
 
 #define MSTUD_PORT                          UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                        UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -93,8 +95,9 @@
 #define LANGUAGE_PORT                       UI_CONFIG_PORT_PREFIX UI_LANGUAGE_PORT_ID
 #define REL_PATHS_PORT                      UI_CONFIG_PORT_PREFIX UI_REL_PATHS_PORT_ID
 #define UI_SCALING_PORT                     UI_CONFIG_PORT_PREFIX UI_SCALING_PORT_ID
-#define UI_SCALING_HOST                     UI_CONFIG_PORT_PREFIX UI_SCALING_HOST_ID
+#define UI_SCALING_HOST_PORT                UI_CONFIG_PORT_PREFIX UI_SCALING_HOST_PORT_ID
 #define UI_FONT_SCALING_PORT                UI_CONFIG_PORT_PREFIX UI_FONT_SCALING_PORT_ID
+#define UI_BUNDLE_SCALING_PORT              UI_CONFIG_PORT_PREFIX UI_BUNDLE_SCALING_PORT_ID
 #define UI_VISUAL_SCHEMA_PORT               UI_CONFIG_PORT_PREFIX UI_VISUAL_SCHEMA_FILE_ID
 #define UI_PREVIEW_AUTO_PLAY_PORT           UI_CONFIG_PORT_PREFIX UI_PREVIEW_AUTO_PLAY_ID
 #define UI_ENABLE_KNOB_SCALE_ACTIONS_PORT   UI_CONFIG_PORT_PREFIX UI_ENABLE_KNOB_SCALE_ACTIONS_ID
@@ -107,6 +110,7 @@
 #define UI_FILTER_POINT_THICK_PORT          UI_CONFIG_PORT_PREFIX UI_FILTER_POINT_THICK_ID
 #define UI_DOCUMENTATION_PORT               UI_CONFIG_PORT_PREFIX UI_DOCUMENTATION_PATH_ID
 #define UI_FILELIST_NAVIGAION_AUTOLOAD_PORT UI_CONFIG_PORT_PREFIX UI_FILELIST_NAVIGAION_AUTOLOAD_ID
+#define UI_TAKE_INST_NAME_FROM_FILE_PORT    UI_CONFIG_PORT_PREFIX UI_TAKE_INST_NAME_FROM_FILE_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                      "main_menu"

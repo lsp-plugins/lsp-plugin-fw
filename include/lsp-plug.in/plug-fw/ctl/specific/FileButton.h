@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 сент. 2021 г.
@@ -80,8 +80,10 @@ namespace lsp
                 ctl::Expression     sProgress;
                 ctl::Padding        sTextPadding;
                 ctl::Boolean        sGradient;
+                ctl::Boolean        sActivity;
                 ctl::Integer        sBorderSize;
                 ctl::Integer        sBorderPressedSize;
+
                 ctl::Color          sColor;
                 ctl::Color          sInvColor;
                 ctl::Color          sBorderColor;
@@ -90,6 +92,15 @@ namespace lsp
                 ctl::Color          sInvLineColor;
                 ctl::Color          sTextColor;
                 ctl::Color          sInvTextColor;
+
+                ctl::Color          sInactiveColor;
+                ctl::Color          sInactiveInvColor;
+                ctl::Color          sInactiveBorderColor;
+                ctl::Color          sInactiveInvBorderColor;
+                ctl::Color          sInactiveLineColor;
+                ctl::Color          sInactiveInvLineColor;
+                ctl::Color          sInactiveTextColor;
+                ctl::Color          sInactiveInvTextColor;
 
             protected:
                 void                update_state();

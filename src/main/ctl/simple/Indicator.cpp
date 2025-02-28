@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 мая 2021 г.
@@ -63,7 +63,7 @@ namespace lsp
             if (w == NULL)
                 return;
 
-            tk::atom_t atom = w->display()->atom_id("modern");
+            tk::atom_t atom = w->display()->atom_id("type");
             if (property == atom)
             {
                 pIndicator->parse_format();
@@ -103,11 +103,15 @@ namespace lsp
             {
                 sColor.init(pWrapper, ind->color());
                 sTextColor.init(pWrapper, ind->text_color());
+                sInactiveColor.init(pWrapper, ind->inactive_color());
+                sInactiveTextColor.init(pWrapper, ind->inactive_text_color());
+
+                sActivity.init(pWrapper, ind->active());
                 sIPadding.init(pWrapper, ind->ipadding());
 
                 parse_format();
 
-                ind->style()->bind_bool("modern", &sListener);
+                ind->style()->bind_bool("type", &sListener);
             }
 
             return STATUS_OK;
@@ -123,12 +127,18 @@ namespace lsp
                 sColor.set("color", name, value);
                 sTextColor.set("text.color", name, value);
                 sTextColor.set("tcolor", name, value);
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveTextColor.set("inactive.text.color", name, value);
+                sInactiveTextColor.set("inactive.tcolor", name, value);
+
+                sActivity.set("activity", name, value);
+                sActivity.set("active", name, value);
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
 
                 if (set_value(&sFormat, "format", name, value))
                     parse_format();
-                if (set_param(ind->modern(), "modern", name, value))
+                if (set_param(ind->type(), "type", name, value))
                     parse_format();
 
                 set_param(ind->spacing(), "spacing", name, value);
@@ -206,8 +216,8 @@ namespace lsp
 
             const char *format = sFormat.get_ascii();
 
-            tk::Indicator *ind = tk::widget_cast<tk::Indicator>(wWidget);
-            bool modern     = (ind != NULL) ? ind->modern()->get() : false;
+            tk::Indicator *ind  = tk::widget_cast<tk::Indicator>(wWidget);
+            const bool segment  = (ind != NULL) ? (ind->type()->get() == tk::INDICATOR_SEGMENT) : false;
 
             // Get predicates
             char *p         = const_cast<char *>(format);
@@ -257,7 +267,7 @@ namespace lsp
                 if (*p == '.')
                 {
                     nFlags     |= IF_DOT;
-                    if (modern)
+                    if (!segment)
                         nDigits     ++;
                 }
                 else if (*p != ',')
@@ -301,7 +311,7 @@ namespace lsp
                         item->type      = c;
                         item->digits    = 0;
                         item->precision = 0;
-                        if (modern)
+                        if (!segment)
                             nDigits        += 1;
                         break;
                     }
@@ -508,9 +518,9 @@ namespace lsp
             }
 
             tk::Indicator *ind  = tk::widget_cast<tk::Indicator>(wWidget);
-            bool modern         = (ind != NULL) ? ind->modern()->get() : false;
+            const bool segment = (ind != NULL) ? (ind->type()->get() == tk::INDICATOR_SEGMENT) : false;
             ssize_t digits      = nDigits;
-            if ((nFlags & IF_DOT) && (modern))
+            if ((nFlags & IF_DOT) && (!segment))
                 --digits;
 
             // FLOAT FORMAT: {s1}{pad}{s2}{zero}{int_p}{dot}{frac_p}

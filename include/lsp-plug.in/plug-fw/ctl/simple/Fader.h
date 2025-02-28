@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 июл. 2021 г.
@@ -60,6 +60,13 @@ namespace lsp
                 ctl::Color          sScaleColor;
                 ctl::Color          sScaleBorderColor;
                 ctl::Color          sBalanceColor;
+                ctl::Color          sInactiveBtnColor;
+                ctl::Color          sInactiveBtnBorderColor;
+                ctl::Color          sInactiveScaleColor;
+                ctl::Color          sInactiveScaleBorderColor;
+                ctl::Color          sInactiveBalanceColor;
+
+                ctl::Boolean        sActivity;
                 ctl::Expression     sMin;
                 ctl::Expression     sMax;
 

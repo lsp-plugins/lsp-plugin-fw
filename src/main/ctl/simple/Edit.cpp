@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 15 апр. 2022 г.
@@ -97,6 +97,8 @@ namespace lsp
                 inject_style(ed, INPUT_STYLE_VALID);
 
                 sEmptyText.init(pWrapper, ed->empty_text());
+                sActivity.init(pWrapper, ed->active());
+
                 sColor.init(pWrapper, ed->color());
                 sBorderColor.init(pWrapper, ed->border_color());
                 sBorderGapColor.init(pWrapper, ed->border_gap_color());
@@ -104,6 +106,14 @@ namespace lsp
                 sTextColor.init(pWrapper, ed->text_color());
                 sTextSelectedColor.init(pWrapper, ed->text_selected_color());
                 sEmptyTextColor.init(pWrapper, ed->placeholder_text_color());
+
+                sInactiveColor.init(pWrapper, ed->inactive_color());
+                sInactiveBorderColor.init(pWrapper, ed->inactive_border_color());
+                sInactiveBorderGapColor.init(pWrapper, ed->inactive_border_gap_color());
+                sInactiveCursorColor.init(pWrapper, ed->inactive_cursor_color());
+                sInactiveTextColor.init(pWrapper, ed->inactive_text_color());
+                sInactiveTextSelectedColor.init(pWrapper, ed->inactive_text_selected_color());
+                sInactiveEmptyTextColor.init(pWrapper, ed->inactive_placeholder_text_color());
 
                 sBorderSize.init(pWrapper, ed->border_size());
                 sBorderGapSize.init(pWrapper, ed->border_size());
@@ -125,6 +135,9 @@ namespace lsp
 
                 sEmptyText.set("text.empty", name, value);
                 sEmptyText.set("etext", name, value);
+                sActivity.set("activity", name, value);
+                sActivity.set("active", name, value);
+
                 sColor.set("color", name, value);
                 sBorderColor.set("border.color", name, value);
                 sBorderColor.set("bcolor", name, value);
@@ -138,6 +151,20 @@ namespace lsp
                 sEmptyTextColor.set("etext.color", name, value);
                 sTextSelectedColor.set("text.selected.color", name, value);
                 sTextSelectedColor.set("tsel.color", name, value);
+
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveBorderColor.set("inactive.border.color", name, value);
+                sInactiveBorderColor.set("inactive.bcolor", name, value);
+                sInactiveBorderGapColor.set("inactive.border.gap.color", name, value);
+                sInactiveBorderGapColor.set("inactive.bgap.color", name, value);
+                sInactiveCursorColor.set("inactive.cursor.color", name, value);
+                sInactiveCursorColor.set("inactive.ccolor", name, value);
+                sInactiveTextColor.set("inactive.text.color", name, value);
+                sInactiveTextColor.set("inactive.tcolor", name, value);
+                sInactiveEmptyTextColor.set("inactive.text.empty.color", name, value);
+                sInactiveEmptyTextColor.set("inactive.etext.color", name, value);
+                sInactiveTextSelectedColor.set("inactive.text.selected.color", name, value);
+                sInactiveTextSelectedColor.set("inactive.tsel.color", name, value);
 
                 sBorderSize.set("border.size", name, value);
                 sBorderSize.set("bsize", name, value);
