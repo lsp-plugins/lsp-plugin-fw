@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.30 ===
-
+* Added MacOS dependencies.
 
 === 1.0.29 ===
 * Added workaround for Renoise host related to latency reporting by VST2 and VST3 plugins
