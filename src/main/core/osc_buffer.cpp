@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 мар. 2023 г.
@@ -56,7 +56,7 @@ namespace lsp
             osc_buffer_t *res   = reinterpret_cast<osc_buffer_t *>(ptr);
             ptr                += align_size(sizeof(osc_buffer_t), DEFAULT_ALIGN);
 
-            atomic_store(&res->nSize, 0);
+            atomic_store(&res->nSize, size_t(0));
             res->nCapacity      = capacity;
             res->nHead          = 0;
             res->nTail          = 0;
@@ -143,7 +143,7 @@ namespace lsp
 
         void osc_buffer_t::clear()
         {
-            atomic_store(&nSize, 0);
+            atomic_store(&nSize, size_t(0));
             nHead   = 0;
             nTail   = 0;
         }
