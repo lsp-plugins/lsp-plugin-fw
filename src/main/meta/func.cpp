@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -1436,16 +1436,16 @@ namespace lsp
                 (int32_t(vst2_uid[4]));
 
             const int32_t vstfxid = (for_controller) ? (('V' << 16) | ('S' << 8) | 'E') : (('V' << 16) | ('S' << 8) | 'T');
-            sprintf(dst, "%06X", vstfxid);
+            snprintf(dst, 7, "%06X", vstfxid);
             dst    += 6;
 
-            sprintf(dst, "%08X", vst2_cconst);
+            snprintf(dst, 9, "%08X", vst2_cconst);
             dst    += 8;
 
             for (size_t i=0, n=strlen(name); i <= 8; i++)
             {
                 uint8_t c   = (i < n) ? tolower(name[i]) : 0;   // the plugin name has to be lower case
-                sprintf(dst, "%02X", c);
+                snprintf(dst, 3, "%02X", c);
                 dst        += 2;
             }
 
