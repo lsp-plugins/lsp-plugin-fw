@@ -390,10 +390,11 @@ namespace lsp
      */
     static char **get_library_paths(const char **exclude)
     {
+#if defined(PLATFORM_LINUX)
         char **res = NULL;
         if (getlibpath_proc(&res, exclude))
             return res;
-#if defined(PLATFORM_BSD)
+#elif defined(PLATFORM_BSD)
         if (getlibpath_procstat(&res, exclude))
             return res;
 #endif /* PLATFORM_BSD */
@@ -437,7 +438,7 @@ namespace lsp
 
         return path;
     }
-}
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_COMMON_LIBPATH_H_ */
