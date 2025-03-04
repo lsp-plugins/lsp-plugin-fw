@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 мая 2016 г.
@@ -447,7 +447,7 @@ namespace lsp
 
             // Output sorted plugin list
             char fmt[0x20];
-            sprintf(fmt, "  %%%ds  %%s\n", -int(maxlen));
+            snprintf(fmt, sizeof(fmt), "  %%%ds  %%s\n", -int(maxlen));
 
             for (size_t i=0, n=list.size(); i<n; ++i)
             {
