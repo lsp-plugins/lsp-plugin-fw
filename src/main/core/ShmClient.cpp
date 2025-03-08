@@ -560,7 +560,9 @@ namespace lsp
             for (size_t i=0, n=vSends.size(); i<n; ++i)
             {
                 send_t *s       = vSends.uget(i);
-                if ((s != NULL) && (s->pSend != NULL) && (s->bActive))
+                if (s == NULL)
+                    continue;
+                if ((s->pSend != NULL) && (s->bActive))
                 {
                     s->pSend->end();
                     s->bActive  = false;
@@ -570,7 +572,10 @@ namespace lsp
             for (size_t i=0, n=vReturns.size(); i<n; ++i)
             {
                 return_t *r     = vReturns.uget(i);
-                if ((r != NULL) && (r->pReturn != NULL))
+                if (r == NULL)
+                    continue;
+
+                if (r->pReturn != NULL)
                     r->pReturn->end();
                 r->bActive  = false;
             }

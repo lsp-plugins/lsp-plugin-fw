@@ -157,9 +157,7 @@ namespace lsp
             // Check that port identifier is present
             if (port->id == NULL)
                 validation_error(ctx, "Not specified port identifier for plugin uid='%s'", meta->uid);
-
-            // Check that port identifier is valid
-            if (!validate_identifier(port->id))
+            else if (!validate_identifier(port->id)) // Check that port identifier is valid
                 validation_error(ctx, "Invalid port identifier '%s' for plugin uid='%s', allowed characters are: a-z, A-Z, _, 0-9",
                     port->id, meta->uid);
 

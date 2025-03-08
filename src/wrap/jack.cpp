@@ -539,6 +539,13 @@ namespace lsp
 
         PluginLoop::PluginLoop()
         {
+            sCmdLine.cfg_file       = NULL;
+            sCmdLine.plugin_id      = NULL;
+            sCmdLine.parent_id      = NULL;
+            sCmdLine.headless       = false;
+            sCmdLine.list           = false;
+            sCmdLine.version        = false;
+
             pFactory                = NULL;
             pLoader                 = NULL;
             pPlugin                 = NULL;

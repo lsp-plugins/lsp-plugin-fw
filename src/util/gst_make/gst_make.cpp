@@ -188,6 +188,9 @@ namespace lsp
                 fprintf(stderr, "Error creating file '%s', code=%d\n", file->as_native(), code);
                 return STATUS_IO_ERROR;
             }
+            lsp_finally {
+                fclose(out);
+            };
 
             // Write to file
             fprintf(out,    "//------------------------------------------------------------------------------\n");
@@ -293,9 +296,6 @@ namespace lsp
             // Write the rest contents
             if (pos < length)
                 fputs(ftemplate->get_utf8(pos), out);
-
-            // Close file
-            fclose(out);
 
             return STATUS_OK;
         }

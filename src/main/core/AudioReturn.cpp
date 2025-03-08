@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins-plugin-template
  * Created on: 26 июн. 2024 г.
@@ -71,7 +71,6 @@ namespace lsp
             sStream(free_stream),
             sParams(free_params)
         {
-            enStatus            = ST_INACTIVE;
             sRecord.index       = -1;
             sRecord.magic       = 0;
             sRecord.version     = 0;

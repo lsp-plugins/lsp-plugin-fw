@@ -213,11 +213,14 @@ namespace lsp
             if (meta::is_path_port(meta))
             {
                 const char *path = value.get_utf8();
-                const size_t length = strlen(path);
-                if ((path != NULL) && (length < PATH_MAX))
+                if (path != NULL)
                 {
-                    pPort->write(path, length);
-                    pPort->notify_all(ui::PORT_USER_EDIT);
+                    const size_t length = strlen(path);
+                    if (length < PATH_MAX)
+                    {
+                        pPort->write(path, length);
+                        pPort->notify_all(ui::PORT_USER_EDIT);
+                    }
                 }
             }
             else if (meta::is_string_port(meta))
@@ -242,16 +245,16 @@ namespace lsp
 
         void Edit::commit_value()
         {
+            sTimer.cancel();
             if (pPort == NULL)
                 return;
-            sTimer.cancel();
 
             const meta::port_t *meta = pPort->metadata();
             if (meta == NULL)
                 return;
 
             tk::Edit *ed = tk::widget_cast<tk::Edit>(wWidget);
-            if ((ed == NULL) || (pPort == NULL))
+            if (ed == NULL)
                 return;
 
             // Do the stuff depending on the metadata

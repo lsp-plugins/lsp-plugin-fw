@@ -68,7 +68,6 @@ namespace lsp
             sStream(free_stream),
             sParams(free_params)
         {
-            enStatus            = ST_INACTIVE;
             sRecord.index       = -1;
             sRecord.magic       = 0;
             sRecord.version     = 0;
@@ -262,7 +261,7 @@ namespace lsp
             stream_t *st = sStream.current();
             if (st == NULL)
                 return -1;
-            return (st->pStream != NULL) ? st->sParams.nChannels : -1;
+            return (st->pStream != NULL) ? ssize_t(st->sParams.nChannels) : ssize_t(-1);
         }
 
         ssize_t AudioSend::length() const
@@ -270,7 +269,7 @@ namespace lsp
             stream_t *st = sStream.current();
             if (st == NULL)
                 return -1;
-            return (st->pStream != NULL) ? st->sParams.nLength : -1;
+            return (st->pStream != NULL) ? ssize_t(st->sParams.nLength) : ssize_t(-1);
         }
 
         status_t AudioSend::begin(ssize_t block_size)

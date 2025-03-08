@@ -1526,7 +1526,7 @@ namespace lsp
             const meta::bundle_t *bundle = (meta != NULL) ? meta->bundle : NULL;
             const char *bundle_uid = (bundle != NULL) ? bundle->uid : NULL;
 
-            if (bundle->uid != NULL)
+            if (bundle_uid != NULL)
             {
                 scaling_key.set_utf8(bundle_uid);
                 scaling_key.replace_all('-', '_');
