@@ -1673,7 +1673,7 @@ namespace lsp
             // Obtain actual versions of all modules
             lltl::pphash<LSPString, config::param_t> parameters;
             status_t res = read_parameters(file, &parameters);
-            if (res != STATUS_OK)
+            if ((res != STATUS_OK) && (res != STATUS_NOT_FOUND))
                 return res;
             lsp_finally { drop_parameters(&parameters); };
 

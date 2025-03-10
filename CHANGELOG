@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.30 ===
+* Fixed regression related to creating new global configuration file. 
 * Added MacOS dependencies.
 
 === 1.0.29 ===
