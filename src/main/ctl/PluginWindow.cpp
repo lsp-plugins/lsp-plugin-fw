@@ -1077,6 +1077,14 @@ namespace lsp
             if (tmp.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s", location) < 0)
                 return STATUS_BAD_STATE;
             ssize_t count = pWrapper->resources()->enumerate(&tmp, &resources);
+            if (count < 0)
+                return status_t(-count);
+            lsp_finally {
+                if (resources != NULL)
+                    free(resources);
+            };
+
+            lsp_trace("resources = %p, count = %d", resources, int(count));
 
             // Process all resources and form the final list of preset files
             for (ssize_t i=0; i<count; ++i)
@@ -1087,15 +1095,9 @@ namespace lsp
                 if (item->type != resource::RES_FILE)
                     continue;
                 if (path.set(item->name) != STATUS_OK)
-                {
-                    free(resources);
                     return STATUS_NO_MEM;
-                }
                 if (path.get_ext(&tmp) != STATUS_OK)
-                {
-                    free(resources);
                     return STATUS_BAD_STATE;
-                }
 
                 if ((!tmp.equals_ascii("patch")) && (!tmp.equals_ascii("preset")))
                     continue;
@@ -1104,13 +1106,9 @@ namespace lsp
                 strncpy(item->name, path.get(), resource::RESOURCE_NAME_MAX);
                 item->name[resource::RESOURCE_NAME_MAX-1] = '\0';
                 if (!presets->add(item))
-                {
-                    free(resources);
                     return STATUS_NO_MEM;
-                }
             }
 
-            free(resources);
             presets->qsort(compare_presets);
 
             return STATUS_OK;

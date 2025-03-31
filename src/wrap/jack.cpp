@@ -628,14 +628,14 @@ namespace lsp
 
             // Parse command-line arguments
             if ((res = parse_cmdline(&sCmdLine, plugin_id, argc, argv)) != STATUS_OK)
-                return (res == STATUS_CANCELLED) ? 0 : res;
+                return res;
 
             // Need just to output version?
             if (sCmdLine.version)
             {
                 if ((res = jack::output_version(sCmdLine)) != STATUS_OK)
                     return -res;
-                return 0;
+                return STATUS_CANCELLED;
             }
 
             // Need just to list available plugins?
@@ -643,7 +643,7 @@ namespace lsp
             {
                 if ((res = jack::list_plugins()) != STATUS_OK)
                     return -res;
-                return 0;
+                return STATUS_CANCELLED;
             }
 
             // Plugin identifier has been specified?
@@ -946,13 +946,11 @@ extern "C"
         };
 
         // Initialize loop
-        status_t res = w->init(plugin_id, argc, argv);
-        if (res != STATUS_OK)
-            return res;
+        status_t res                = w->init(plugin_id, argc, argv);
+        if (res == STATUS_OK)
+            *loop       = release_ptr(w); // Return loop
 
-        // Return loop
-        *loop       = release_ptr(w);
-        return STATUS_OK;
+        return res;
     }
 
 #ifdef __cplusplus
