@@ -1656,7 +1656,10 @@ namespace lsp
 
         status_t PluginWindow::add(ui::UIContext *ctx, ctl::Widget *child)
         {
-            return (wContent != NULL) ? wContent->add(child->widget()) : STATUS_BAD_STATE;
+            ctl::Overlay *ov = ctl::ctl_cast<ctl::Overlay>(child);
+            tk::WidgetContainer *target = (ov != NULL) ? tk::widget_cast<tk::WidgetContainer>(wWidget) : wContent;
+
+            return (target != NULL) ? target->add(child->widget()) : STATUS_BAD_STATE;
         }
 
         tk::FileFilters *PluginWindow::create_config_filters(tk::FileDialog *dlg)

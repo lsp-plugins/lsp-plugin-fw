@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 апр. 2021 г.
@@ -127,25 +127,37 @@ namespace lsp
             {
                 status_t res = STATUS_OK;
 
-                // Link the child widget togetgher with parent widget
-                if ((child == pChild) && (pChild != NULL))
+                // Forget the child at exit
+                lsp_finally { pChild = NULL; };
+
+                // Link the child widget together with parent widget
+                if ((child != pChild) || (pChild == NULL))
+                    return res;
+
+                ctl::Widget *w = pChild->pWidget;
+                if ((pWidget == NULL) || (w == NULL))
+                    return res;
+
+                ctl::Overlay *ov = ctl::ctl_cast<ctl::Overlay>(w);
+                if (ov != NULL)
                 {
-                    ctl::Widget *w = pChild->pWidget;
-
-                    if ((pWidget != NULL) && (w != NULL))
-                    {
-                        res = pWidget->add(pContext, w);
-                        if (res != STATUS_OK)
-                            lsp_error(
-                                "Error while trying to add widget of type '%s' as child for '%s'",
-                                w->get_class()->name,
-                                pWidget->get_class()->name
-                            );
-                    }
+                    // Need to add the widget to the list of overlays
+                    res = (pContext->overlays()->add(ov)) ? STATUS_OK : STATUS_NO_MEM;
+                    if (res != STATUS_OK)
+                        lsp_error(
+                            "Error while trying to register overlay widget of type '%s'",
+                            w->get_class()->name,
+                            pWidget->get_class()->name);
                 }
-
-                // Forget the child
-                pChild  = NULL;
+                else
+                {
+                    res = pWidget->add(pContext, w);
+                    if (res != STATUS_OK)
+                        lsp_error(
+                            "Error while trying to add widget of type '%s' as child for '%s'",
+                            w->get_class()->name,
+                            pWidget->get_class()->name);
+                }
 
                 return res;
             }

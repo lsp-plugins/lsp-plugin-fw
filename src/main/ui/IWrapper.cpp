@@ -750,7 +750,22 @@ namespace lsp
             // Parse the XML document
             xml::RootNode root(&ctx, "plugin", pWindow);
             xml::Handler handler(resources());
-            return handler.parse_resource(&xpath, &root);
+            if ((res = handler.parse_resource(&xpath, &root)) != STATUS_OK)
+                return res;
+
+            // Append overlays to the window
+            lltl::parray<ctl::Overlay> *overlays = ctx.overlays();
+            for (size_t i=0, n=overlays->size(); i<n; ++i)
+            {
+                ctl::Overlay *ov = overlays->uget(i);
+                if (ov == NULL)
+                    continue;
+
+                if ((res = pWindow->add(&ctx, ov)) != STATUS_OK)
+                    return res;
+            }
+
+            return res;
         }
 
         status_t IWrapper::export_settings(const char *file, bool relative)
