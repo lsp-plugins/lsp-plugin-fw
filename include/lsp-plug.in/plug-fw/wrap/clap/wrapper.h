@@ -132,6 +132,7 @@ namespace lsp
                 status_t        generate_audio_port_groups(const meta::plugin_t *meta);
                 clap::ParameterPort  *find_param(clap_id param_id);
                 size_t          prepare_block(size_t *ev_index, size_t offset, const clap_process_t *process);
+                void            process_transport_event(const clap_event_transport_t *ev);
                 void            generate_output_events(size_t offset, const clap_process_t *process);
 
         #ifdef WITH_UI_FEATURE
