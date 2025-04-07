@@ -103,7 +103,7 @@ namespace lsp
 
                 sMeterVisible.init(pWrapper, knob->meter_active());
                 sEditable.init(pWrapper, knob->editable());
-                sActivity.init(pWrapper, knob->editable());
+                sActivity.init(pWrapper, knob->active());
 
                 sMin.init(pWrapper, this);
                 sMax.init(pWrapper, this);
