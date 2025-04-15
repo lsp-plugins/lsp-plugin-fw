@@ -93,7 +93,6 @@ namespace lsp
             tk::LedMeterChannel *lmc = tk::widget_cast<tk::LedMeterChannel>(wWidget);
             if (lmc != NULL)
             {
-                sActivity.init(pWrapper, lmc->active());
                 sReversive.init(pWrapper, lmc->reversive());
                 sPeakVisible.init(pWrapper, lmc->peak_visible());
                 sBalanceVisible.init(pWrapper, lmc->balance_visible());
@@ -138,8 +137,6 @@ namespace lsp
             {
                 bind_port(&pPort, "id", name, value);
 
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
                 sReversive.set("reversive", name, value);
                 sPeakVisible.set("peak.visibility", name, value);
                 sBalanceVisible.set("balance.visibility", name, value);

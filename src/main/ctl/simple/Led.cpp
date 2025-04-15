@@ -87,8 +87,6 @@ namespace lsp
 
                 sHoleColor.init(pWrapper, led->hole_color());
 
-                sActivity.init(pWrapper, led->active());
-
                 sLight.init(pWrapper, this);
             }
 
@@ -125,8 +123,6 @@ namespace lsp
                 sHoleColor.set("hole.color", name, value);
                 sHoleColor.set("hcolor", name, value);
 
-                sActivity.set("active", name, value);
-                sActivity.set("activity", name, value);
                 set_expr(&sLight, "light", name, value);
 
                 set_constraints(led->constraints(), name, value);

@@ -97,7 +97,6 @@ namespace lsp
                 inject_style(ed, INPUT_STYLE_VALID);
 
                 sEmptyText.init(pWrapper, ed->empty_text());
-                sActivity.init(pWrapper, ed->active());
 
                 sColor.init(pWrapper, ed->color());
                 sBorderColor.init(pWrapper, ed->border_color());
@@ -135,8 +134,6 @@ namespace lsp
 
                 sEmptyText.set("text.empty", name, value);
                 sEmptyText.set("etext", name, value);
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
 
                 sColor.set("color", name, value);
                 sBorderColor.set("border.color", name, value);

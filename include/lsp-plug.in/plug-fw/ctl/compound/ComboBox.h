@@ -59,7 +59,6 @@ namespace lsp
                 ctl::Color                  sInactiveBorderColor;
                 ctl::Color                  sInactiveBorderGapColor;
 
-                ctl::Boolean                sActivity;
                 ctl::LCString               sEmptyText;
                 lltl::parray<ListBoxItem>   vItems;             // Custom items
 

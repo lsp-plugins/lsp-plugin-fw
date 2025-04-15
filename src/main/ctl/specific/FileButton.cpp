@@ -189,7 +189,6 @@ namespace lsp
                 sProgress.init(pWrapper, this);
                 sTextPadding.init(pWrapper, fb->text_padding());
                 sGradient.init(pWrapper, fb->gradient());
-                sActivity.init(pWrapper, fb->active());
                 sBorderSize.init(pWrapper, fb->border_size());
                 sBorderPressedSize.init(pWrapper, fb->border_pressed_size());
 
@@ -250,8 +249,6 @@ namespace lsp
                 sTextPadding.set("text.pad", name, value);
                 sTextPadding.set("tpad", name, value);
                 sGradient.set("gradient", name, value);
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
                 sBorderSize.set("border.size", name, value);
                 sBorderSize.set("bsize", name, value);
                 sBorderPressedSize.set("border.pressed.size", name, value);

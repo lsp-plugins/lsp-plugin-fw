@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -41,6 +41,7 @@ namespace lsp
             sProperties(this)
         {
             pClass          = &metadata;
+
             pWrapper        = wrapper;
             wWidget         = widget;
         }
@@ -482,12 +483,16 @@ namespace lsp
 
             if (wWidget != NULL)
             {
+                sActivity.init(pWrapper, wWidget->active());
                 sBgColor.init(pWrapper, wWidget->bg_color());
+                sInactiveBgColor.init(pWrapper, wWidget->inactive_bg_color());
                 sBgInherit.init(pWrapper, wWidget->bg_inherit());
                 sPadding.init(pWrapper, wWidget->padding());
                 sVisibility.init(pWrapper, wWidget->visibility());
                 sBrightness.init(pWrapper, wWidget->brightness());
+                sInactiveBrightness.init(pWrapper, wWidget->inactive_brightness());
                 sBgBrightness.init(pWrapper, wWidget->bg_brightness());
+                sInactiveBgBrightness.init(pWrapper, wWidget->inactive_bg_brightness());
                 sPointer.init(pWrapper, wWidget->pointer());
             }
 
@@ -515,12 +520,17 @@ namespace lsp
                     assign_styles(wWidget, value, false);
             }
 
+            sActivity.set("activity", name, value);
             sVisibility.set("visibility", name, value);
             sVisibility.set("visible", name, value);
             sBrightness.set("brightness", name, value);
             sBrightness.set("bright", name, value);
+            sInactiveBrightness.set("inactive.brightness", name, value);
+            sInactiveBrightness.set("inactive.bright", name, value);
             sBgBrightness.set("bg.brightness", name, value);
             sBgBrightness.set("bg.bright", name, value);
+            sInactiveBgBrightness.set("inactive.bg.brightness", name, value);
+            sInactiveBgBrightness.set("inactive.bg.bright", name, value);
             sPointer.set("pointer", name, value);
 
             sPadding.set("pad", name, value);
@@ -535,6 +545,8 @@ namespace lsp
                 if (wWidget != NULL)
                     wWidget->bg_inherit()->set(false);
             }
+            sInactiveBgColor.set("inactive.bg", name, value);
+            sInactiveBgColor.set("inactive.bg.color", name, value);
             sBgInherit.set("bg.inherit", name, value);
             sBgInherit.set("ibg", name, value);
         }

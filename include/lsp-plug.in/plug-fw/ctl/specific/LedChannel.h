@@ -79,7 +79,6 @@ namespace lsp
                 tk::prop::Color     sPropYellowZoneColor;
                 tk::prop::Color     sPropRedZoneColor;
 
-                ctl::Boolean        sActivity;
                 ctl::Boolean        sReversive;
                 ctl::Boolean        sPeakVisible;
                 ctl::Boolean        sBalanceVisible;

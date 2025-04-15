@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 6 мая 2021 г.
@@ -188,6 +188,9 @@ namespace lsp
             {
                 sColor.init(pWrapper, lbl->color());
                 sHoverColor.init(pWrapper, lbl->hover_color());
+                sInactiveColor.init(pWrapper, lbl->inactive_color());
+                sInactiveHoverColor.init(pWrapper, lbl->inactive_hover_color());
+
                 sText.init(pWrapper, lbl->text());
                 sIPadding.init(pWrapper, lbl->ipadding());
 
@@ -377,6 +380,9 @@ namespace lsp
                 sColor.set("color", name, value);
                 sHoverColor.set("hover.color", name, value);
                 sHoverColor.set("hcolor", name, value);
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveHoverColor.set("inactive.hover.color", name, value);
+                sInactiveHoverColor.set("inactive.hcolor", name, value);
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
             }

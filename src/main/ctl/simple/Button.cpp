@@ -107,7 +107,6 @@ namespace lsp
                 sHoleColor.init(pWrapper, btn->hole_color());
 
                 sEditable.init(pWrapper, btn->editable());
-                sActivity.init(pWrapper, btn->active());
                 sTextPad.init(pWrapper, btn->text_padding());
                 sText.init(pWrapper, btn->text());
 
@@ -176,8 +175,6 @@ namespace lsp
                 sHoleColor.set("hole.color", name, value);
 
                 sEditable.set("editable", name, value);
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
                 sTextPad.set("text.padding", name, value);
                 sTextPad.set("text.pad", name, value);
                 sTextPad.set("tpadding", name, value);

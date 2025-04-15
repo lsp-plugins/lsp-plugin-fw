@@ -75,7 +75,6 @@ namespace lsp
                 ctl::Color          sHoleColor;
 
                 ctl::Boolean        sEditable;
-                ctl::Boolean        sActivity;
                 ctl::Boolean        sHover;
                 ctl::Padding        sTextPad;
                 ctl::LCString       sText;

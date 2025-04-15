@@ -66,7 +66,6 @@ namespace lsp
                 ctl::Color          sInactiveScaleBorderColor;
                 ctl::Color          sInactiveBalanceColor;
 
-                ctl::Boolean        sActivity;
                 ctl::Expression     sMin;
                 ctl::Expression     sMax;
 

@@ -83,7 +83,6 @@ namespace lsp
                 sCheckRadius.init(pWrapper, ck->check_radius());
                 sCheckGapSize.init(pWrapper, ck->check_gap_size());
                 sCheckMinSize.init(pWrapper, ck->check_min_size());
-                sActivity.init(pWrapper, ck->active());
 
                 sColor.init(pWrapper, ck->color());
                 sFillColor.init(pWrapper, ck->fill_color());
@@ -127,8 +126,6 @@ namespace lsp
                 sCheckGapSize.set("check.gap.size", name, value);
                 sCheckGapSize.set("cgap.size", name, value);
                 sCheckMinSize.set("check.min.size", name, value);
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
 
                 sColor.set("color", name, value);
                 sFillColor.set("fill.color", name, value);

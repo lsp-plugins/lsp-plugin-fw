@@ -47,7 +47,6 @@ namespace lsp
                 ssize_t             nInputDelay;
 
                 ctl::LCString       sEmptyText;
-                ctl::Boolean        sActivity;
 
                 ctl::Color          sColor;
                 ctl::Color          sBorderColor;

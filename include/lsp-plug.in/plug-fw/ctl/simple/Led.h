@@ -54,8 +54,6 @@ namespace lsp
 
                 ctl::Color          sHoleColor;
 
-                ctl::Boolean        sActivity;
-
                 ctl::Expression     sLight;
                 ui::IPort          *pPort;
 

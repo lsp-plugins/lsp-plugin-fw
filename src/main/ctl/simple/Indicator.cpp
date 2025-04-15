@@ -106,7 +106,6 @@ namespace lsp
                 sInactiveColor.init(pWrapper, ind->inactive_color());
                 sInactiveTextColor.init(pWrapper, ind->inactive_text_color());
 
-                sActivity.init(pWrapper, ind->active());
                 sIPadding.init(pWrapper, ind->ipadding());
 
                 parse_format();
@@ -131,8 +130,6 @@ namespace lsp
                 sInactiveTextColor.set("inactive.text.color", name, value);
                 sInactiveTextColor.set("inactive.tcolor", name, value);
 
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
 

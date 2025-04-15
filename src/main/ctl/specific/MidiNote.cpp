@@ -185,7 +185,6 @@ namespace lsp
                 sInactiveColor.init(pWrapper, ind->inactive_color());
                 sInactiveTextColor.init(pWrapper, ind->inactive_text_color());
 
-                sActivity.init(pWrapper, ind->active());
                 sIPadding.init(pWrapper, ind->ipadding());
 
                 ind->slot(tk::SLOT_MOUSE_DBL_CLICK)->bind(slot_dbl_click, this);
@@ -221,8 +220,6 @@ namespace lsp
                 sInactiveTextColor.set("inactive.text.color", name, value);
                 sInactiveTextColor.set("inactive.tcolor", name, value);
 
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
 

@@ -3,6 +3,8 @@
 *******************************************************************************
 
 === 1.0.30 ===
+* Refactored support of activity property.
+* Added support of inactive backround color, brightness and backround brightness.
 * Fixed broken transport (tempo BPM) synchronization for CLAP plugin format.
 * Fixed regression related to creating new global configuration file.
 * Added basic Overlay support.

@@ -193,7 +193,7 @@ namespace lsp
 
             ssize_t index = (sActive.valid()) ? sActive.evaluate_int() : -1;
             tk::Widget *w = (index >= 0) ? tg->widgets()->get(index) : NULL;
-            tg->active()->set(w);
+            tg->active_tab()->set(w);
         }
 
         status_t TabGroup::slot_tab_submit(tk::Widget *sender, void *ptr, void *data)

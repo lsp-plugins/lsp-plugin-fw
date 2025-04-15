@@ -179,7 +179,7 @@ namespace lsp
 
             ssize_t index = (sActive.valid()) ? sActive.evaluate_int() : -1;
             tk::Widget *w = (index >= 0) ? cgrp->widgets()->get(index) : NULL;
-            cgrp->active()->set(w);
+            cgrp->active_group()->set(w);
         }
 
         status_t ComboGroup::slot_combo_submit(tk::Widget *sender, void *ptr, void *data)

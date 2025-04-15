@@ -95,7 +95,6 @@ namespace lsp
                 sBorderRadius.init(pWrapper, pb->border_radius());
 
                 sText.init(pWrapper, pb->text());
-                sActivity.init(pWrapper, pb->active());
                 sShowText.init(pWrapper, pb->show_text());
 
                 sValue.init(pWrapper, this);
@@ -145,8 +144,6 @@ namespace lsp
                 sText.set("text", name, value);
                 sShowText.set("text.visibility", name, value);
                 sShowText.set("tvisibility", name, value);
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
 
                 sBorderSize.set("border.size", name, value);
                 sBorderSize.set("bsize", name, value);
