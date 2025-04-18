@@ -297,6 +297,8 @@ namespace lsp
 
             // Fall-back to default widget name
             if (w == NULL)
+                w = pWrapper->controller()->widgets()->find("plugin_window");
+            if (w == NULL)
                 w = pWrapper->controller()->widgets()->find("plugin_content");
 
             // Obtain widget size
