@@ -57,6 +57,7 @@ namespace lsp
                 ctl::Integer        sBorderRadius;  // Border radius
                 ctl::Integer        sBorderSize;    // Border size
                 ctl::Color          sBorderColor;   // Border color
+                ctl::Padding        sIPadding;      // Internal padding
 
                 ctl::Expression     sHOrigin;       // Horizontal relative offset of origin point from left-top position of trigger area
                 ctl::Expression     sVOrigin;       // Vertical relative offset of origin point  from left-top position of trigger area

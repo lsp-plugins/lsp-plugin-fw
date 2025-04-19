@@ -87,6 +87,7 @@ namespace lsp
                 sBorderRadius.init(pWrapper, ov->border_radius());
                 sBorderSize.init(pWrapper, ov->border_size());
                 sBorderColor.init(pWrapper, ov->border_color());
+                sIPadding.init(pWrapper, ov->ipadding());
 
                 sHOrigin.init(pWrapper, this);
                 sVOrigin.init(pWrapper, this);
@@ -129,6 +130,8 @@ namespace lsp
 
                 sBorderColor.set("border.color", name, value);
                 sBorderColor.set("bcolor", name, value);
+
+                sIPadding.set("ipadding", name, value);
 
                 set_expr(&sHOrigin, "origin.hpos", name, value);
                 set_expr(&sHOrigin, "hpos", name, value);
