@@ -72,6 +72,7 @@ namespace lsp
             protected:
                 static bool         update_float(float & value, ctl::Expression & expr);
                 static bool         calc_position(ws::rectangle_t *rect, tk::Overlay *overlay, void *data);
+                static bool         filter_event(const ws::event_t *ev, tk::Overlay *overlay, void *data);
 
                 static status_t     slot_on_hide(tk::Widget *sender, void *ptr, void *data);
 
@@ -80,6 +81,7 @@ namespace lsp
                 void                update_alignment();
                 void                on_hide_overlay();
                 bool                calc_position(ws::rectangle_t *rect, tk::Overlay *overlay);
+                bool                filter_event(const ws::event_t *ev, tk::Overlay *overlay);
                 bool                get_area(ws::rectangle_t *rect, const LSPString *wid);
 
             public:

@@ -100,6 +100,7 @@ namespace lsp
                 sLayoutVScale.init(pWrapper, this);
 
                 ov->set_position_function(calc_position, this);
+                ov->set_filter_function(filter_event, this);
                 ov->slots()->bind(tk::SLOT_HIDE, slot_on_hide, this);
             }
 
@@ -262,6 +263,12 @@ namespace lsp
             return (self != NULL) ? self->calc_position(rect, overlay) : false;
         }
 
+        bool Overlay::filter_event(const ws::event_t *ev, tk::Overlay *overlay, void *data)
+        {
+            Overlay *self = static_cast<Overlay *>(data);
+            return (self != NULL) ? self->filter_event(ev, overlay) : false;
+        }
+
         bool Overlay::calc_position(ws::rectangle_t *rect, tk::Overlay *ov)
         {
             // Get trigger and area rectangles
@@ -289,6 +296,16 @@ namespace lsp
             rect->nTop             -= lsp_max((rect->nTop + rect->nHeight) - (pad_area.nTop + pad_area.nHeight), 0);
 
             return true;
+        }
+
+        bool Overlay::filter_event(const ws::event_t *ev, tk::Overlay *overlay)
+        {
+            // Get trigger and area rectangles
+            ws::rectangle_t trigger;
+            if (!get_area(&trigger, &sTriggerWID))
+                return false;
+
+            return tk::Position::inside(&trigger, ev->nLeft, ev->nTop);
         }
 
         bool Overlay::get_area(ws::rectangle_t *rect, const LSPString *wid)
