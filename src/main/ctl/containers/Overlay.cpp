@@ -279,15 +279,15 @@ namespace lsp
                 return false;
 
             // Compute origin
+            const float scaling     = lsp_max(ov->scaling()->get(), 0.0f);
             const ssize_t origin_x  = trigger.nLeft + trigger.nWidth * fHOrigin;
             const ssize_t origin_y  = trigger.nTop + trigger.nHeight * fVOrigin;
 
-            const float scaling     = lsp_max(ov->scaling()->get(), 0.0f);
             ov->padding()->enter(&pad_area, &area, scaling);
 
             // Compute position
-            rect->nLeft             = origin_x + rect->nWidth * (fHAlign - 1.0f) * 0.5f;
-            rect->nTop              = origin_y + rect->nHeight * (fVAlign - 1.0f) * 0.5f;
+            rect->nLeft             = origin_x + rect->nWidth * ((fHAlign - 1.0f) * 0.5f);
+            rect->nTop              = origin_y + rect->nHeight * ((fVAlign - 1.0f) * 0.5f);
 
             // Constraint position
             rect->nLeft             = lsp_max(rect->nLeft, pad_area.nLeft);
