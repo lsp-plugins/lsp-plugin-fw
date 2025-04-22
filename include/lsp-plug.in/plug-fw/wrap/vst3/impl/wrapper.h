@@ -1741,7 +1741,7 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::canProcessSampleSize(Steinberg::int32 symbolicSampleSize)
         {
-            lsp_trace("this=%p, symbolicSampleSize=%d", this, int(symbolicSampleSize));
+//            lsp_trace("this=%p, symbolicSampleSize=%d", this, int(symbolicSampleSize));
 
             // We support only 32-bit float samples
             return (symbolicSampleSize == Steinberg::Vst::kSample32) ? Steinberg::kResultTrue : Steinberg::kResultFalse;
