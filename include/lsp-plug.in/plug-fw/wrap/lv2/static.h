@@ -33,15 +33,15 @@ namespace lsp
         // Latency ports' metadata for LV2 plugins
         static const meta::port_t latency_port =
         {
-            LSP_LV2_LATENCY_PORT, "Latency OUT", meta::U_NONE, meta::R_METER, meta::F_INT | meta::F_LOWER | meta::F_UPPER, 0, MAX_SAMPLE_RATE, 0, 0, NULL
+            LSP_LV2_LATENCY_PORT, "Latency OUT", "Latency", meta::U_NONE, meta::R_METER, meta::F_INT | meta::F_LOWER | meta::F_UPPER, 0, MAX_SAMPLE_RATE, 0, 0, NULL, NULL, NULL
         };
 
         // Atom ports' metadata for LV2 plugins
         static const meta::port_t atom_ports[] =
         {
             // Input and output ATOM ports
-            { LSP_LV2_ATOM_PORT_IN,     "UI Input",     meta::U_NONE,         meta::R_AUDIO_IN,  0, 0, 0, 0, 0, NULL       },
-            { LSP_LV2_ATOM_PORT_OUT,    "UI Output",    meta::U_NONE,         meta::R_AUDIO_OUT, 0, 0, 0, 0, 0, NULL       },
+            { LSP_LV2_ATOM_PORT_IN,     "UI Input",     "UI Input",     meta::U_NONE,         meta::R_AUDIO_IN,  0, 0, 0, 0, 0, NULL, NULL, NULL },
+            { LSP_LV2_ATOM_PORT_OUT,    "UI Output",    "UI Output",    meta::U_NONE,         meta::R_AUDIO_OUT, 0, 0, 0, 0, 0, NULL, NULL, NULL },
 
             { NULL, NULL }
         };

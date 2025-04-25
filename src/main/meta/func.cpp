@@ -304,6 +304,7 @@ namespace lsp
 
             size_t  id_bytes        = strlen(metadata->id) + 1;
             size_t  name_bytes      = strlen(metadata->name) + 1;
+            size_t  sname_bytes     = (metadata->short_name) ? strlen(metadata->short_name) + 1 : 0;
 
             // Calculate the overall allocation size
             size_t to_copy          = sizeof(port_t);
@@ -319,12 +320,14 @@ namespace lsp
             ptr                    += to_copy;
             ::memcpy(meta, metadata, to_copy);
 
-            meta->id                = reinterpret_cast<char *>(ptr);
-            ptr                    += id_bytes;
-            meta->name              = reinterpret_cast<char *>(ptr);
+            meta->id                = advance_ptr_bytes<char>(ptr, id_bytes);
+            meta->name              = advance_ptr_bytes<char>(ptr, name_bytes);
+            meta->short_name        = (sname_bytes > 0) ? advance_ptr_bytes<char>(ptr, sname_bytes) : NULL;
 
             memcpy(const_cast<char *>(meta->id), metadata->id, id_bytes);
             memcpy(const_cast<char *>(meta->name), metadata->name, name_bytes);
+            if (metadata->short_name != NULL)
+                memcpy(const_cast<char *>(meta->short_name), metadata->short_name, sname_bytes);
 
             return meta;
         }
