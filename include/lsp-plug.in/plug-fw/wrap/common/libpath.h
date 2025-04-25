@@ -398,6 +398,8 @@ namespace lsp
             return res;
 #elif defined(PLATFORM_BSD)
         char **res = NULL;
+        if (getlibpath_proc(&res, exclude))
+            return res;
         if (getlibpath_procstat(&res, exclude))
             return res;
 #endif /* PLATFORM_BSD */
