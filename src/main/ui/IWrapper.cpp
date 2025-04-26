@@ -2188,6 +2188,35 @@ namespace lsp
             return NULL;
         }
 
+        /**
+         * Get name of graphics backend
+         * @return name of graphics backend
+         */
+        const char *IWrapper::graphics_backend() const
+        {
+            const ws::surface_type_t stype = (wWindow != NULL) ? wWindow->surface_type() : ws::ST_UNKNOWN;
+
+            switch (stype)
+            {
+                case ws::ST_UNKNOWN:
+                case ws::ST_IMAGE:
+                case ws::ST_XLIB:
+                case ws::ST_SIMILAR:
+                    return "Cairo";
+
+                case ws::ST_DDRAW:
+                    return "Direct2D";
+
+                case ws::ST_OPENGL:
+                    return "OpenGL";
+
+                default:
+                    break;
+            }
+
+            return "Unknown";
+        }
+
     } /* namespace ui */
 } /* namespace lsp */
 
