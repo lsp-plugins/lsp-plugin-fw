@@ -169,6 +169,17 @@ namespace lsp
             else if (!(ctx->port_ids.create(port->id, const_cast<meta::port_t *>(port))))
                 allocation_error(ctx);
 
+            // Ensure that port short name doesn't clash with any othe port name
+            if (port->short_name != NULL)
+            {
+                clash       = ctx->port_short_names.get(port->short_name);
+                if (clash != NULL)
+                    validation_error(ctx, "Port id='%s' short name '%s' clashes short name of port id='%s' for plugin uid='%s'",
+                        clash->id, port->short_name, port->id, meta->uid);
+                else if (!(ctx->port_short_names.create(port->short_name, const_cast<meta::port_t *>(port))))
+                    allocation_error(ctx);
+            }
+
             // Additional checks for specific port types
             switch (port->role)
             {
@@ -699,6 +710,7 @@ namespace lsp
             ctx->port_ids.flush();
             ctx->clap_port_ids.flush();
             ctx->vst3_port_ids.flush();
+            ctx->port_short_names.flush();
 
             // Validate name
             if (meta->name == NULL)

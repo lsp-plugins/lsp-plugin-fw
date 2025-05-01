@@ -61,6 +61,7 @@ namespace lsp
             lltl::pphash<char, meta::port_t>        port_ids;
             lltl::pphash<clap_id, meta::port_t>     clap_port_ids;
             lltl::pphash<Steinberg::Vst::ParamID, meta::port_t> vst3_port_ids;
+            lltl::pphash<char, meta::port_t>        port_short_names;
         } context_t;
 
         namespace ladspa
