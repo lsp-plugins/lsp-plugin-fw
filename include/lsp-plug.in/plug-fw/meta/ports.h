@@ -134,8 +134,8 @@
 
 #define LOG_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
     { id, label, alias, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOG, min, max, dfl, step, NULL, NULL, NULL }
-#define LOG_CONTROL(id, label, units, limits) \
-    LOG_CONTROL_ALL(id, label, NULL, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+#define LOG_CONTROL(id, label, alias, units, limits) \
+    LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
 #define EXT_LOG_CONTROL(id, label, units, limits) \
     { id, label, NULL, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOG | F_EXT, \
         limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
