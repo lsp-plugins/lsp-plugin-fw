@@ -62,12 +62,12 @@
     { id, label, NULL, U_NONE, R_FBUFFER, 0, 0.0, 0.0, rows, cols, NULL, NULL, NULL }
 #define PATH(id, label) \
     { id, label, NULL, U_STRING, R_PATH, 0, 0, 0, 0, 0, NULL, NULL, NULL }
-#define TRIGGER(id, label)  \
-    { id, label, NULL, U_BOOL, R_CONTROL, F_TRG, 0, 0, 0.0f, 0, NULL, NULL, NULL }
-#define SWITCH(id, label, dfl)  \
-    { id, label, NULL, U_BOOL, R_CONTROL, 0, 0, 0, dfl, 0, NULL, NULL, NULL }
-#define COMBO(id, label, dfl, list) \
-    { id, label, NULL, U_ENUM, R_CONTROL, 0, 0, 0, dfl, 0, list, NULL, NULL }
+#define TRIGGER(id, label, alias)  \
+    { id, label, alias, U_BOOL, R_CONTROL, F_TRG, 0, 0, 0.0f, 0, NULL, NULL, NULL }
+#define SWITCH(id, label, alias, dfl)  \
+    { id, label, alias, U_BOOL, R_CONTROL, 0, 0, 0, dfl, 0, NULL, NULL, NULL }
+#define COMBO(id, label, alias, dfl, list) \
+    { id, label, alias, U_ENUM, R_CONTROL, 0, 0, 0, dfl, 0, list, NULL, NULL }
 #define COMBO_START(id, label, dfl, list, min) \
     { id, label, NULL, U_ENUM, R_CONTROL, F_MIN, min, 0, dfl, 0, list, NULL, NULL }
 #define BLINK(id, label) \
