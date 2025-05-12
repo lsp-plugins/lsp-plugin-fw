@@ -73,12 +73,12 @@
 #define BLINK(id, label) \
     { id, label, NULL, U_BOOL, R_METER, 0, 0, 0, 0, 0, NULL, NULL, NULL }
 
-#define CONTROL_ALL(id, label, units, min, max, dfl, step) \
-    { id, label, NULL, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP, min, max, dfl, step, NULL, NULL, NULL }
-#define CONTROL(id, label, units, limits) \
-    CONTROL_ALL(id, label, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
-#define CONTROL_DFL(id, label, units, limits, dfl) \
-    CONTROL_ALL(id, label, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
+#define CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
+    { id, label, alias, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP, min, max, dfl, step, NULL, NULL, NULL }
+#define CONTROL(id, label, alias, units, limits) \
+    CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+#define CONTROL_DFL(id, label, alias, units, limits, dfl) \
+    CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
 #define LOW_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
     { id, label, NULL, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOWERING, min, max, dfl, step, NULL, NULL, NULL }
