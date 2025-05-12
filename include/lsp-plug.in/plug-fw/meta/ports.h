@@ -72,12 +72,6 @@
     { id, label, NULL, U_ENUM, R_CONTROL, F_MIN, min, 0, dfl, 0, list, NULL, NULL }
 #define BLINK(id, label) \
     { id, label, NULL, U_BOOL, R_METER, 0, 0, 0, 0, 0, NULL, NULL, NULL }
-#define KNOB(id, label, units, min, max, dfl, step) \
-    { id, label, NULL, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP, \
-        min, max, dfl, step, NULL, NULL, NULL }
-#define CKNOB(id, label, units, min, max, dfl, step) \
-    { id, label, NULL, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_CYCLIC, \
-        min, max, dfl, step, NULL, NULL, NULL }
 
 #define CONTROL_ALL(id, label, units, min, max, dfl, step) \
     { id, label, NULL, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP, min, max, dfl, step, NULL, NULL, NULL }
