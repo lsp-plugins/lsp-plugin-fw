@@ -80,12 +80,12 @@
 #define CONTROL_DFL(id, label, units, limits, dfl) \
     CONTROL_ALL(id, label, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
-#define LOW_CONTROL_ALL(id, label, units, min, max, dfl, step) \
+#define LOW_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
     { id, label, NULL, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOWERING, min, max, dfl, step, NULL, NULL, NULL }
-#define LOW_CONTROL(id, label, units, limits) \
-    LOW_CONTROL_ALL(id, label, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
-#define LOW_CONTROL_DFL(id, label, units, limits, dfl) \
-    LOW_CONTROL_ALL(id, label, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
+#define LOW_CONTROL(id, label, alias, units, limits) \
+    LOW_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+#define LOW_CONTROL_DFL(id, label, alias, units, limits, dfl) \
+    LOW_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
 #define INT_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
     { id, label, NULL, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_INT, min, max, dfl, step, NULL, NULL, NULL }
@@ -93,6 +93,20 @@
     INT_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
 #define INT_CONTROL_DFL(id, label, alias, units, limits, dfl) \
     INT_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
+
+#define LOG_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
+    { id, label, alias, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOG, min, max, dfl, step, NULL, NULL, NULL }
+#define LOG_CONTROL(id, label, alias, units, limits) \
+    LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+#define LOG_CONTROL_DFL(id, label, alias, units, limits, dfl) \
+    LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
+
+#define EXT_LOG_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
+    { id, label, alias, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOG | F_EXT, min, max, dfl, step, NULL, NULL, NULL }
+#define EXT_LOG_CONTROL(id, label, alias, units, limits) \
+    EXT_LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+#define EXT_LOG_CONTROL_DFL(id, label, alias, units, limits, dfl) \
+    EXT_LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
 #define HUE_CTL(id, label, dfl) \
     { id, label, NULL, U_NONE, R_CONTROL, F_UPPER | F_LOWER | F_STEP | F_CYCLIC, 0.0f, 1.0f, (dfl), 0.25f/360.0f, NULL, NULL     }
@@ -125,20 +139,6 @@
 
 #define ENUM_METER(id, label, dfl, list) \
     { id, label, NULL, U_ENUM, R_METER, F_INT, 0.0f, 0.0f, dfl, 0.0f, list, NULL, NULL }
-
-#define LOG_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
-    { id, label, alias, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOG, min, max, dfl, step, NULL, NULL, NULL }
-#define LOG_CONTROL(id, label, alias, units, limits) \
-    LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
-#define LOG_CONTROL_DFL(id, label, alias, units, limits, dfl) \
-    LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
-
-#define EXT_LOG_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
-    { id, label, alias, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_LOG | F_EXT, min, max, dfl, step, NULL, NULL, NULL }
-#define EXT_LOG_CONTROL(id, label, alias, units, limits) \
-    EXT_LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
-#define EXT_LOG_CONTROL_DFL(id, label, alias, units, limits, dfl) \
-    EXT_LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
 #define PORT_SET(id, label, keys, ports)  \
     { id, label, NULL, U_ENUM, R_PORT_SET, 0, 0, 0, 0, 0, keys, ports, NULL }
