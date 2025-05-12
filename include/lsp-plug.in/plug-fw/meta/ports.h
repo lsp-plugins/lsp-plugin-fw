@@ -87,12 +87,12 @@
 #define LOW_CONTROL_DFL(id, label, units, limits, dfl) \
     LOW_CONTROL_ALL(id, label, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
-#define INT_CONTROL_ALL(id, label, units, min, max, dfl, step) \
+#define INT_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
     { id, label, NULL, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_INT, min, max, dfl, step, NULL, NULL, NULL }
-#define INT_CONTROL(id, label, units, limits) \
-    INT_CONTROL_ALL(id, label, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
-#define INT_CONTROL_DFL(id, label, units, limits, dfl) \
-    INT_CONTROL_ALL(id, label, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
+#define INT_CONTROL(id, label, alias, units, limits) \
+    INT_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+#define INT_CONTROL_DFL(id, label, alias, units, limits, dfl) \
+    INT_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
 #define HUE_CTL(id, label, dfl) \
     { id, label, NULL, U_NONE, R_CONTROL, F_UPPER | F_LOWER | F_STEP | F_CYCLIC, 0.0f, 1.0f, (dfl), 0.25f/360.0f, NULL, NULL     }
