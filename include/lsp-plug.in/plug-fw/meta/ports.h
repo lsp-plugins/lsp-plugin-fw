@@ -42,16 +42,6 @@
 #define FILE_CHANNEL(id, label) \
     { id, label, NULL, U_ENUM, R_CONTROL, F_INT, 0, 0, 0, 0, file_channels, NULL, NULL }
 
-#define AMP_GAIN(id, label, dfl, max) \
-    { id, label, NULL, U_GAIN_AMP, R_CONTROL, F_LOG | F_UPPER | F_LOWER | F_STEP, 0, max, dfl, GAIN_AMP_S_0_5_DB, NULL, NULL, NULL }
-#define AMP_GAIN_RANGE(id, label, dfl, min, max) \
-    { id, label, NULL, U_GAIN_AMP, R_CONTROL, F_LOG | F_UPPER | F_LOWER | F_STEP, min, max, dfl, GAIN_AMP_S_0_5_DB, NULL, NULL, NULL }
-#define AMP_GAIN1(id, label, dfl)  AMP_GAIN(id, label, dfl, 1.0f)
-#define AMP_GAIN10(id, label, dfl)  AMP_GAIN(id, label, dfl, 10.0f)
-#define AMP_GAIN100(id, label, dfl)  AMP_GAIN(id, label, dfl, 100.0f)
-#define AMP_GAIN1000(id, label, dfl)  AMP_GAIN(id, label, dfl, 1000.0f)
-#define AMP_GAIN10000(id, label, dfl)  AMP_GAIN(id, label, dfl, 10000.0f)
-
 #define STATUS(id, label) \
     { id, label, NULL, U_NONE, R_METER, F_INT | F_UPPER | F_LOWER, 0, STATUS_MAX, STATUS_UNSPECIFIED, 0, NULL, NULL, NULL }
 #define MESH(id, label, dim, points) \
@@ -108,27 +98,39 @@
 #define EXT_LOG_CONTROL_DFL(id, label, alias, units, limits, dfl) \
     EXT_LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
+#define CYC_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
+    { id, label, alias, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_CYCLIC, min, max, dfl, step, NULL, NULL, NULL }
+#define CYC_CONTROL(id, label, alias, units, limits) \
+    CYC_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+#define CYC_CONTROL_DFL(id, label, alias, units, limits, dfl) \
+    CYC_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
+
+#define AMP_GAIN(id, label, alias, dfl, max) \
+    LOG_CONTROL_ALL(id, label, alias, U_GAIN_AMP, 0.0f, max, dfl, GAIN_AMP_S_0_5_DB)
+#define AMP_GAIN_RANGE(id, label, alias, dfl, min, max) \
+    LOG_CONTROL_ALL(id, label, alias, U_GAIN_AMP, min, max, dfl, GAIN_AMP_S_0_5_DB)
+#define AMP_GAIN1(id, label, alias, dfl)        AMP_GAIN(id, label, alias, dfl, 1.0f)
+#define AMP_GAIN10(id, label, alias, dfl)       AMP_GAIN(id, label, alias, dfl, 10.0f)
+#define AMP_GAIN100(id, label, alias, dfl)      AMP_GAIN(id, label, alias, dfl, 100.0f)
+#define AMP_GAIN1000(id, label, alias, dfl)     AMP_GAIN(id, label, alias, dfl, 1000.0f)
+#define AMP_GAIN10000(id, label, alias, dfl)    AMP_GAIN(id, label, alias, dfl, 10000.0f)
+
+#define PAN_CTL(id, label, alias, dfl) \
+    CONTROL_ALL(id, label, alias, U_PERCENT, -100.0f, 100.0f, dfl, 0.1f)
+#define PERCENTS(id, label, alias, dfl, step) \
+    CONTROL_ALL(id, label, alias, U_PERCENT, 0.0f, 100.0f, dfl, step)
+
 #define HUE_CTL(id, label, dfl) \
     { id, label, NULL, U_NONE, R_CONTROL, F_UPPER | F_LOWER | F_STEP | F_CYCLIC, 0.0f, 1.0f, (dfl), 0.25f/360.0f, NULL, NULL     }
-
-#define CYC_CONTROL_ALL(id, label, units, min, max, dfl, step) \
-    { id, label, NULL, units, R_CONTROL, F_LOWER | F_UPPER | F_STEP | F_CYCLIC, min, max, dfl, step, NULL, NULL, NULL }
-#define CYC_CONTROL(id, label, units, limits) \
-    CYC_CONTROL_ALL(id, label, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
-#define CYC_CONTROL_DFL(id, label, units, limits, dfl) \
-    CYC_CONTROL_ALL(id, label, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
 #define UNLIMITED_METER(id, label, units, dfl) \
     { id, label, NULL, units, R_METER, 0, 0.0f, 0.0f, dfl, 0.0f, NULL, NULL, NULL }
 #define METER(id, label, units, limits) \
-    { id, label, NULL, units, R_METER, F_LOWER | F_UPPER | F_STEP, \
-        limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
+    { id, label, NULL, units, R_METER, F_LOWER | F_UPPER | F_STEP, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
 #define METERZ(id, label, units, limits) \
-    { id, label, NULL, units, R_METER, F_LOWER | F_UPPER | F_STEP, \
-        limits ## _MIN, limits ## _MAX, 0.0f, 0.0f, NULL, NULL, NULL }
+    { id, label, NULL, units, R_METER, F_LOWER | F_UPPER | F_STEP, limits ## _MIN, limits ## _MAX, 0.0f, 0.0f, NULL, NULL, NULL }
 #define METER_MINMAX(id, label, units, min, max) \
-    { id, label, NULL, units, R_METER, F_LOWER | F_UPPER | F_STEP, \
-        min, max, min, 0.0f, NULL, NULL, NULL }
+    { id, label, NULL, units, R_METER, F_LOWER | F_UPPER | F_STEP, min, max, min, 0.0f, NULL, NULL, NULL }
 
 #define INT_METER_UNLIMITED(id, label, units, dfl) \
     { id, label, NULL, units, R_METER, F_INT, 0.0f, 0.0f, dfl, 0.0f, NULL, NULL, NULL }
@@ -142,10 +144,6 @@
 
 #define PORT_SET(id, label, keys, ports)  \
     { id, label, NULL, U_ENUM, R_PORT_SET, 0, 0, 0, 0, 0, keys, ports, NULL }
-#define PAN_CTL(id, label, dfl) \
-    { id, label, NULL, U_PERCENT, R_CONTROL, F_LOWER | F_UPPER | F_STEP, -100.0f, 100.0f, dfl, 0.1, NULL, NULL, NULL }
-#define PERCENTS(id, label, dfl, step) \
-    { id, label, NULL, U_PERCENT, R_CONTROL, F_LOWER | F_UPPER | F_STEP, 0, 100, dfl, step, NULL, NULL, NULL }
 #define OUT_PERCENTS(id, label) \
     { id, label, NULL, U_PERCENT, R_METER, F_LOWER | F_UPPER, 0, 100, 0, 0, NULL, NULL }
 #define METER_GAIN(id, label, max) \
@@ -243,20 +241,20 @@
 #define OSC_INPUT           OSC_IN_CHANNEL(PORT_NAME_OSC_INPUT, "OSC input")
 #define OSC_OUTPUT          OSC_OUT_CHANNEL(PORT_NAME_OSC_OUTPUT, "OSC output")
 
-#define IN_GAIN             AMP_GAIN("g_in", "Input gain", GAIN_AMP_0_DB, GAIN_AMP_P_60_DB)
-#define OUT_GAIN            AMP_GAIN("g_out", "Output gain", GAIN_AMP_0_DB, GAIN_AMP_P_60_DB)
+#define IN_GAIN             AMP_GAIN("g_in", "Input gain", "Input gain", GAIN_AMP_0_DB, GAIN_AMP_P_60_DB)
+#define OUT_GAIN            AMP_GAIN("g_out", "Output gain", "Output gain", GAIN_AMP_0_DB, GAIN_AMP_P_60_DB)
 
-#define DRY_GAIN(g)         AMP_GAIN10("dry", "Dry amount", g)
-#define DRY_GAIN_L(g)       AMP_GAIN10("dry_l", "Dry amount L", g)
-#define DRY_GAIN_R(g)       AMP_GAIN10("dry_r", "Dry amount R", g)
+#define DRY_GAIN(g)         AMP_GAIN10("dry", "Dry amount", "Dry amount", g)
+#define DRY_GAIN_L(g)       AMP_GAIN10("dry_l", "Dry amount Left", "Dry amount L", g)
+#define DRY_GAIN_R(g)       AMP_GAIN10("dry_r", "Dry amount Right", "Dry amount R", g)
 
-#define WET_GAIN(g)         AMP_GAIN10("wet", "Wet amount", g)
-#define WET_GAIN_L(g)       AMP_GAIN10("wet_l", "Wet amount L", g)
-#define WET_GAIN_R(g)       AMP_GAIN10("wet_r", "Wet amount R", g)
+#define WET_GAIN(g)         AMP_GAIN10("wet", "Wet amount", "Wet amount", g)
+#define WET_GAIN_L(g)       AMP_GAIN10("wet_l", "Wet amount Left", "Wet amount L", g)
+#define WET_GAIN_R(g)       AMP_GAIN10("wet_r", "Wet amount Right", "Wet amount R", g)
 
-#define DRYWET(perc)        PERCENTS("drywet", "Dry/Wet balance", perc, 0.1f)
-#define DRYWET_L(perc)      PERCENTS("dwmix_l", "Dry/Wet balance Left", perc, 0.1f)
-#define DRYWET_R(perc)      PERCENTS("dwmix_r", "Dry/Wet balance Right", perc, 0.1f)
+#define DRYWET(perc)        PERCENTS("drywet", "Dry/Wet balance", "Dry/Wet", perc, 0.1f)
+#define DRYWET_L(perc)      PERCENTS("dwmix_l", "Dry/Wet balance Left", "Dry/Wet L", perc, 0.1f)
+#define DRYWET_R(perc)      PERCENTS("dwmix_r", "Dry/Wet balance Right", "Dry/Wet R", perc, 0.1f)
 
 #define BYPASS              { PORT_NAME_BYPASS, "Bypass", NULL, U_BOOL, R_BYPASS, F_UPPER | F_LOWER, 0, 1, 0, 0, NULL, NULL, NULL }
 
