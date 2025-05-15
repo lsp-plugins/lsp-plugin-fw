@@ -4,6 +4,7 @@
 
 === 1.0.30 ===
 * Refactored support of activity property.
+* Added possibility to launch standalone plugins in minimized window state.
 * Added support of inactive backround color, brightness and backround brightness.
 * Fixed broken transport (tempo BPM) synchronization for CLAP plugin format.
 * Fixed regression related to creating new global configuration file.

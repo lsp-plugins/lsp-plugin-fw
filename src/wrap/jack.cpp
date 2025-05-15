@@ -130,6 +130,7 @@ namespace lsp
             bool            headless;
             bool            list;
             bool            version;
+            bool            minimized;
             lltl::darray<connection_t> routing;
         } cmdline_t;
 
@@ -315,6 +316,7 @@ namespace lsp
                     )
                     printf("  -h, --help                Output help\n");
                     printf("  -hl, --headless           Launch in console only, without UI\n");
+                    printf("  -mw, --minimized          Launch UI with minimized window\n");
                     if (plugin_id == NULL)
                         printf("  -l, --list                List available plugin identifiers\n");
                     printf("  -v, --version             Output the version of the software\n");
@@ -338,6 +340,8 @@ namespace lsp
                 }
                 else if ((!::strcmp(arg, "--headless")) || (!::strcmp(arg, "-hl")))
                     cfg->headless       = true;
+                else if ((!::strcmp(arg, "--minimized")) || (!::strcmp(arg, "-mw")))
+                    cfg->minimized      = true;
                 else if ((!::strcmp(arg, "--version")) || (!::strcmp(arg, "-v")))
                     cfg->version        = true;
                 else if ((plugin_id == NULL) && ((!::strcmp(arg, "--list")) || (!::strcmp(arg, "-l"))))
@@ -545,6 +549,7 @@ namespace lsp
             sCmdLine.headless       = false;
             sCmdLine.list           = false;
             sCmdLine.version        = false;
+            sCmdLine.minimized      = false;
 
             pFactory                = NULL;
             pLoader                 = NULL;
@@ -729,6 +734,14 @@ namespace lsp
                 // Initialize wrapper
                 if ((res = pUIWrapper->init(NULL)) != STATUS_OK)
                     return res;
+
+                // Minimize window if required
+                if (sCmdLine.minimized)
+                {
+                    tk::Window *wnd = pUIWrapper->window();
+                    if (wnd != NULL)
+                        wnd->state()->set_minimized();
+                }
             }
         #endif /* WITH_UI_FEATURE */
 
