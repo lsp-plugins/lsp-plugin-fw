@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 янв. 2024 г.
@@ -788,6 +788,7 @@ namespace lsp
                 {
                     port_id,
                     port_desc,
+                    NULL,
                     meta::U_NONE,
                     meta::R_CONTROL,
                     meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
@@ -1741,7 +1742,7 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::canProcessSampleSize(Steinberg::int32 symbolicSampleSize)
         {
-            lsp_trace("this=%p, symbolicSampleSize=%d", this, int(symbolicSampleSize));
+//            lsp_trace("this=%p, symbolicSampleSize=%d", this, int(symbolicSampleSize));
 
             // We support only 32-bit float samples
             return (symbolicSampleSize == Steinberg::Vst::kSample32) ? Steinberg::kResultTrue : Steinberg::kResultFalse;
@@ -1837,31 +1838,33 @@ namespace lsp
             pos->sampleRate             = pPlugin->sample_rate();
             pos->speed                  = 1.0f;
             pos->frame                  = 0;
-            if ((pctx != NULL) && (pctx->state & Steinberg::Vst::ProcessContext::kTimeSigValid))
-            {
-                pos->numerator              = pctx->timeSigNumerator;
-                pos->denominator            = pctx->timeSigDenominator;
-            }
-            else
-            {
-                pos->numerator              = 4.0;
-                pos->denominator            = 4.0;
-            }
-            if (pctx->state & Steinberg::Vst::ProcessContext::kTempoValid)
-                pos->beatsPerMinute         = pctx->tempo;
-            else
-                pos->beatsPerMinute         = BPM_DEFAULT;
+            pos->numerator              = 4.0;
+            pos->denominator            = 4.0;
+            pos->beatsPerMinute         = BPM_DEFAULT;
             pos->beatsPerMinuteChange   = 0.0f;
+            pos->tick                   = 0.0;
             pos->ticksPerBeat           = DEFAULT_TICKS_PER_BEAT;
 
-            if ((pctx->state & Steinberg::Vst::ProcessContext::kProjectTimeMusicValid) &&
-                (pctx->state & Steinberg::Vst::ProcessContext::kBarPositionValid))
+            if (pctx != NULL)
             {
-                double uppqPos              = (pctx->projectTimeMusic - pctx->barPositionMusic) * pctx->timeSigDenominator * 0.25 / pctx->timeSigNumerator;
-                pos->tick                   = pos->ticksPerBeat * pctx->timeSigNumerator * (uppqPos - int64_t(uppqPos));
+                if (pctx->state & Steinberg::Vst::ProcessContext::kTimeSigValid)
+                {
+                    pos->numerator              = pctx->timeSigNumerator;
+                    pos->denominator            = pctx->timeSigDenominator;
+                }
+
+                if (pctx->state & Steinberg::Vst::ProcessContext::kTempoValid)
+                    pos->beatsPerMinute         = pctx->tempo;
+
+                if ((pctx->state & Steinberg::Vst::ProcessContext::kProjectTimeMusicValid) &&
+                    (pctx->state & Steinberg::Vst::ProcessContext::kBarPositionValid))
+                {
+                    double uppqPos              = (pctx->projectTimeMusic - pctx->barPositionMusic) * pctx->timeSigDenominator * 0.25 / pctx->timeSigNumerator;
+                    pos->tick                   = pos->ticksPerBeat * pctx->timeSigNumerator * (uppqPos - int64_t(uppqPos));
+                }
+                else
+                    pos->tick                   = 0.0;
             }
-            else
-                pos->tick                   = 0.0;
 
             // Sync position with UI
             if (atomic_trylock(nPositionLock))

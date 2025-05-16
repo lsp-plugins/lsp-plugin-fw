@@ -157,9 +157,7 @@ namespace lsp
             // Check that port identifier is present
             if (port->id == NULL)
                 validation_error(ctx, "Not specified port identifier for plugin uid='%s'", meta->uid);
-
-            // Check that port identifier is valid
-            if (!validate_identifier(port->id))
+            else if (!validate_identifier(port->id)) // Check that port identifier is valid
                 validation_error(ctx, "Invalid port identifier '%s' for plugin uid='%s', allowed characters are: a-z, A-Z, _, 0-9",
                     port->id, meta->uid);
 
@@ -170,6 +168,17 @@ namespace lsp
                     clash->id, port->id, meta->uid);
             else if (!(ctx->port_ids.create(port->id, const_cast<meta::port_t *>(port))))
                 allocation_error(ctx);
+
+            // Ensure that port short name doesn't clash with any othe port name
+            if (port->short_name != NULL)
+            {
+                clash       = ctx->port_short_names.get(port->short_name);
+                if (clash != NULL)
+                    validation_error(ctx, "Port id='%s' short name '%s' clashes short name of port id='%s' for plugin uid='%s'",
+                        clash->id, port->short_name, port->id, meta->uid);
+                else if (!(ctx->port_short_names.create(port->short_name, const_cast<meta::port_t *>(port))))
+                    allocation_error(ctx);
+            }
 
             // Additional checks for specific port types
             switch (port->role)
@@ -701,6 +710,7 @@ namespace lsp
             ctx->port_ids.flush();
             ctx->clap_port_ids.flush();
             ctx->vst3_port_ids.flush();
+            ctx->port_short_names.flush();
 
             // Validate name
             if (meta->name == NULL)

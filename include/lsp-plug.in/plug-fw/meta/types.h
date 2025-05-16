@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins
  * Created on: 28 сент. 2015 г.
@@ -375,6 +375,7 @@ namespace lsp
         {
             const char             *id;             // Control ID
             const char             *name;           // Control name
+            const char             *short_name;     // Short name of the port
             unit_t                  unit;           // Units
             role_t                  role;           // Role
             int                     flags;          // Flags

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -68,12 +68,16 @@ namespace lsp
                 ui::IWrapper       *pWrapper;
                 tk::Widget         *wWidget;
 
+                ctl::Boolean        sActivity;
                 ctl::Color          sBgColor;
+                ctl::Color          sInactiveBgColor;
                 ctl::Boolean        sBgInherit;
                 ctl::Padding        sPadding;
                 ctl::Boolean        sVisibility;
                 ctl::Float          sBrightness;
+                ctl::Float          sInactiveBrightness;
                 ctl::Float          sBgBrightness;
+                ctl::Float          sInactiveBgBrightness;
                 ctl::Enum           sPointer;
 
                 PropListener        sProperties;        // Properties listener

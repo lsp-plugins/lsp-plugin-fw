@@ -38,6 +38,9 @@ namespace lsp
 
         UIContext::~UIContext()
         {
+            // Cleanup list of overlay widgets
+            vOverlays.flush();
+
             // Destroy the stack
             for (size_t i=0, n=vStack.size(); i<n; ++i)
             {

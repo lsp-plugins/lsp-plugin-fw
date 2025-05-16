@@ -74,6 +74,9 @@ namespace lsp
                 fprintf(stderr, "Error creating file '%s', code=%d\n", file->as_native(), code);
                 return STATUS_IO_ERROR;
             }
+            lsp_finally {
+                fclose(out);
+            };
 
             // Write to file
             fprintf(out,    "//------------------------------------------------------------------------------\n");
@@ -100,9 +103,6 @@ namespace lsp
             fprintf(out,    "#define LSP_PLUG_IN_JACK_MAIN_IMPL\n");
             fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/jack/main.h>\n");
             fprintf(out,    "#undef LSP_PLUG_IN_JACK_MAIN_IMPL\n");
-
-            // Close file
-            fclose(out);
 
             return STATUS_OK;
         }

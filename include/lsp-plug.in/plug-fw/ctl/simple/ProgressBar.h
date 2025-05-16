@@ -60,7 +60,6 @@ namespace lsp
 
                 ctl::LCString       sText;
                 ctl::Boolean        sShowText;
-                ctl::Boolean        sActivity;
                 ctl::Integer        sBorderSize;
                 ctl::Integer        sBorderGapSize;
                 ctl::Integer        sBorderRadius;

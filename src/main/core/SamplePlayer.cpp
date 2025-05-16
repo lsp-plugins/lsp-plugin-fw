@@ -23,6 +23,7 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/runtime/system.h>
 
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 
@@ -222,12 +223,18 @@ namespace lsp
             lsp_finally { destroy_sample(source); };
 
             // Load sample
+            IF_TRACE(system::time_millis_t ctime = system::get_time_millis());
             status_t res = source->load_ext(sFileName);
             if (res != STATUS_OK)
             {
                 lsp_trace("load failed: status=%d (%s)", res, get_status(res));
                 return res;
             }
+            IF_TRACE(
+                system::time_millis_t delta = system::get_time_millis() - ctime;
+                lsp_trace("Load time: %d", int(delta));
+                ctime = system::get_time_millis()
+            );
 
             // Resample
             if ((res = source->resample(nSampleRate)) != STATUS_OK)
@@ -235,6 +242,11 @@ namespace lsp
                 lsp_trace("resample failed: status=%d (%s)", res, get_status(res));
                 return res;
             }
+
+            IF_TRACE(
+                delta = system::get_time_millis() - ctime;
+                lsp_trace("Resample time: %d", int(delta));
+            );
 
             // Commit the result
             lsp_trace("file successfully loaded: %s", sFileName);

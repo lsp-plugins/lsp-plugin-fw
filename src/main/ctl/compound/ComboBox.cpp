@@ -113,7 +113,6 @@ namespace lsp
                 sInactiveBorderColor.init(pWrapper, cbox->inactive_border_color());
                 sInactiveBorderGapColor.init(pWrapper, cbox->inactive_border_gap_color());
 
-                sActivity.init(pWrapper, cbox->active());
                 sEmptyText.init(pWrapper, cbox->empty_text());
 
                 // Bind slots
@@ -162,8 +161,6 @@ namespace lsp
                 sInactiveBorderGapColor.set("inactive.border.gap.color", name, value);
                 sInactiveBorderGapColor.set("inactive.bgap.color", name, value);
 
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
                 sEmptyText.set("text.empty", name, value);
 
                 set_text_fitness(cbox->text_fit(), "text.fitness", name, value);

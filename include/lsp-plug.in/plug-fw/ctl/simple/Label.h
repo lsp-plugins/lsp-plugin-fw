@@ -78,6 +78,8 @@ namespace lsp
 
                 ctl::Color          sColor;
                 ctl::Color          sHoverColor;
+                ctl::Color          sInactiveColor;
+                ctl::Color          sInactiveHoverColor;
                 ctl::Padding        sIPadding;
 
                 ctl::LCString       sText;

@@ -288,11 +288,12 @@ namespace lsp
                 {
                     port_id,
                     port_desc,
+                    NULL,
                     meta::U_NONE,
                     meta::R_CONTROL,
                     meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
                     0.0f, 1.0f, 0.0f, 0.00001f,
-                    NULL, NULL
+                    NULL, NULL, NULL
                 };
 
                 // Generate ports for all possible control codes

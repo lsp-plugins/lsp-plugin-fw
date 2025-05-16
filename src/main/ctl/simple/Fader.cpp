@@ -95,8 +95,6 @@ namespace lsp
                 sInactiveScaleBorderColor.init(pWrapper, fdr->inactive_scale_border_color());
                 sInactiveBalanceColor.init(pWrapper, fdr->inactive_balance_color());
 
-                sActivity.init(pWrapper, fdr->active());
-
                 sMin.init(pWrapper, this);
                 sMax.init(pWrapper, this);
 
@@ -138,9 +136,6 @@ namespace lsp
                 sInactiveScaleBorderColor.set("inactive.sborder.color", name, value);
                 sInactiveBalanceColor.set("inactive.balance.color", name, value);
                 sInactiveBalanceColor.set("inactive.bcolor", name, value);
-
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
 
                 if (!strcmp(name, "min"))
                 {

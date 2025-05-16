@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 янв. 2023 г.
@@ -45,6 +45,16 @@ namespace lsp
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)
             {
+                if (port->short_name != NULL)
+                {
+                    // LV2: This is the same as name, with the additional requirement that the value is shorter than 16 characters.
+                    const size_t len = strlen(port->short_name);
+                    if (len >= 16)
+                        validation_error(
+                            ctx,
+                            "Plugin uid='%s' port id='%s' has short name '%s' of length %d characters but should be shorter than 16 characters",
+                            meta->uid, port->id, port->short_name, int(len));
+                }
             }
         } /* namespace lv2 */
     } /* namespace validator */

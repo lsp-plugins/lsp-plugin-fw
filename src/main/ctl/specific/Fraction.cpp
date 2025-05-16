@@ -87,7 +87,6 @@ namespace lsp
                 sAngle.init(pWrapper, fr->angle());
                 sTextPad.init(pWrapper, fr->text_pad());
                 sThick.init(pWrapper, fr->thickness());
-                sActivity.init(pWrapper, fr->active());
 
                 sColor.init(pWrapper, fr->color());
                 sNumColor.init(pWrapper, fr->num_color());
@@ -125,8 +124,6 @@ namespace lsp
                 sTextPad.set("tpad", name, value);
                 sThick.set("thickness", name, value);
                 sThick.set("thick", name, value);
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
 
                 sColor.set("color", name, value);
                 sNumColor.set("numerator.color", name, value);

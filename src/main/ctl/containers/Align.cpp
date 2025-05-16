@@ -144,7 +144,8 @@ namespace lsp
             Widget::reloaded(sheet);
             update_alignment();
         }
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

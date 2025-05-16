@@ -80,7 +80,6 @@ namespace lsp
                 ctl::Expression     sProgress;
                 ctl::Padding        sTextPadding;
                 ctl::Boolean        sGradient;
-                ctl::Boolean        sActivity;
                 ctl::Integer        sBorderSize;
                 ctl::Integer        sBorderPressedSize;
 

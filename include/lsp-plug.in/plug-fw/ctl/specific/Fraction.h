@@ -55,7 +55,6 @@ namespace lsp
                 ctl::Float          sAngle;
                 ctl::Integer        sTextPad;
                 ctl::Integer        sThick;
-                ctl::Boolean        sActivity;
 
                 ctl::Color          sColor;
                 ctl::Color          sNumColor;

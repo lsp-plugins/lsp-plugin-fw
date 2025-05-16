@@ -981,7 +981,7 @@ namespace lsp
                 for (size_t i=0, n=vSink.size(); i<n; ++i)
                 {
                     gst::AudioPort *p = vSink.uget(i);
-                    if (i < n)
+                    if (i < nFrameSize)
                     {
                         if (bInterleaved)
                             p->deinterleave(&in_buf[offset*nChannels + i], nChannels, to_do);
@@ -1023,7 +1023,7 @@ namespace lsp
                 for (size_t i=0, n=vSource.size(); i<n; ++i)
                 {
                     gst::AudioPort *p = vSource.uget(i);
-                    if (i < n)
+                    if (i < nFrameSize)
                     {
                         if (bInterleaved)
                             p->interleave(&out_buf[offset*nChannels + i], nChannels, to_do);

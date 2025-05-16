@@ -48,7 +48,6 @@ namespace lsp
                 ctl::Integer    sCheckRadius;
                 ctl::Integer    sCheckGapSize;
                 ctl::Integer    sCheckMinSize;
-                ctl::Boolean    sActivity;
 
                 ctl::Color      sColor;
                 ctl::Color      sFillColor;

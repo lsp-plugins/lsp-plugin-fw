@@ -85,7 +85,6 @@ namespace lsp
                 ctl::Color              sInactiveColor;
                 ctl::Color              sInactiveTextColor;
 
-                ctl::Boolean            sActivity;
                 ctl::Padding            sIPadding;
                 LSPString               sFormat;
                 PropListener            sListener;

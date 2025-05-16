@@ -772,6 +772,45 @@ namespace lsp
         {
         }
 
+        void Wrapper::process_transport_event(const clap_event_transport_t *ev)
+        {
+//            lsp_trace("CLAP_EVENT_TRANSPORT:  "
+//                "flags=0x%x, song_pos_beats=%lld, song_pos_seconds=%lld, tempo=%f, tempo_inc=%f, "
+//                "loop_start_beats=%lld, loop_end_beats=%lld, loop_start_seconds=%lld, loop_end_seconds=%lld, "
+//                "bar_start=%lld, bar_number=%d, tsig_num=%d, tsig_denom=%d",
+//                int(ev->flags),
+//                (long long)(ev->song_pos_beats),
+//                (long long)(ev->song_pos_seconds),
+//                ev->tempo,
+//                ev->tempo_inc,
+//                (long long)(ev->loop_start_beats),
+//                (long long)(ev->loop_end_beats),
+//                (long long)(ev->loop_start_seconds),
+//                (long long)(ev->loop_end_seconds),
+//                (long long)(ev->bar_start),
+//                int(ev->bar_number),
+//                int(ev->tsig_num),
+//                int(ev->tsig_denom));
+
+            // Update the transport state
+            if (ev->flags & CLAP_TRANSPORT_HAS_TEMPO)
+            {
+                sPosition.beatsPerMinute        = ev->tempo;
+                sPosition.beatsPerMinuteChange  = ev->tempo_inc;
+            }
+            if (ev->flags & CLAP_TRANSPORT_HAS_TIME_SIGNATURE)
+            {
+                sPosition.numerator             = ev->tsig_num;
+                sPosition.denominator           = ev->tsig_denom;
+            }
+            if (ev->flags & CLAP_TRANSPORT_HAS_BEATS_TIMELINE)
+            {
+                sPosition.frame                 = sPosition.sampleRate * (ev->song_pos_seconds / double(CLAP_SECTIME_FACTOR));
+                sPosition.ticksPerBeat          = DEFAULT_TICKS_PER_BEAT;
+                sPosition.tick                  = (sPosition.ticksPerBeat * double(ev->song_pos_beats - ev->bar_start) * sPosition.numerator * sPosition.beatsPerMinute) / (60.0 * CLAP_BEATTIME_FACTOR);
+            }
+        }
+
         size_t Wrapper::prepare_block(size_t *ev_index, size_t offset, const clap_process_t *process)
         {
             // There are no more events in the block?
@@ -802,6 +841,9 @@ namespace lsp
             {
                 // Fetch the event until it's timestamp is not out of the block
                 const clap_event_header_t *hdr = process->in_events->get(process->in_events, i);
+                lsp_trace("i=%d, event: size=%d, time=%d, space_id=%d, type=%d, flags=0x%x, last_time=%d",
+                    int(hdr->size), int(hdr->time), int(hdr->space_id), int(hdr->type), int(hdr->flags), int(last_time));
+
                 if ((hdr->space_id != CLAP_CORE_EVENT_SPACE_ID) || (hdr->time < offset))
                     continue;
                 else if (hdr->time >= last_time)
@@ -869,23 +911,7 @@ namespace lsp
                     case CLAP_EVENT_TRANSPORT:
                     {
                         const clap_event_transport_t *ev = reinterpret_cast<const clap_event_transport_t *>(hdr);
-                        // Update the transport state
-                        if (ev->flags & CLAP_TRANSPORT_HAS_TEMPO)
-                        {
-                            sPosition.beatsPerMinute        = ev->tempo;
-                            sPosition.beatsPerMinuteChange  = ev->tempo_inc;
-                        }
-                        if (ev->flags & CLAP_TRANSPORT_HAS_TIME_SIGNATURE)
-                        {
-                            sPosition.numerator             = ev->tsig_num;
-                            sPosition.denominator           = ev->tsig_denom;
-                        }
-                        if (ev->flags & CLAP_TRANSPORT_HAS_BEATS_TIMELINE)
-                        {
-                            sPosition.frame                 = sPosition.sampleRate * (ev->song_pos_seconds / double(CLAP_SECTIME_FACTOR));
-                            sPosition.ticksPerBeat          = DEFAULT_TICKS_PER_BEAT;
-                            sPosition.tick                  = (sPosition.ticksPerBeat * double(ev->song_pos_beats - ev->bar_start) * sPosition.numerator * sPosition.beatsPerMinute) / (60.0 * CLAP_BEATTIME_FACTOR);
-                        }
+                        process_transport_event(ev);
                         break;
                     }
                     case CLAP_EVENT_MIDI:
@@ -1063,6 +1089,10 @@ namespace lsp
                     }
                 }
             }
+
+            // Update transport if it is present
+            if (process->transport != NULL)
+                process_transport_event(process->transport);
 
             // Sync the parameter ports with the UI
             for (size_t i=0, n=vParamPorts.size(); i<n; ++i)

@@ -29,7 +29,7 @@ namespace lsp
     {
         static const meta::port_t fake_metadata =
         {
-            "", "",
+            "", "", "",
             meta::U_NONE, meta::R_CONTROL, meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
             0.0f, 0.0f, 0.0f, 0.0f,
             NULL, NULL, NULL

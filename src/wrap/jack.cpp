@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 мая 2016 г.
@@ -130,6 +130,7 @@ namespace lsp
             bool            headless;
             bool            list;
             bool            version;
+            bool            minimized;
             lltl::darray<connection_t> routing;
         } cmdline_t;
 
@@ -315,6 +316,7 @@ namespace lsp
                     )
                     printf("  -h, --help                Output help\n");
                     printf("  -hl, --headless           Launch in console only, without UI\n");
+                    printf("  -mw, --minimized          Launch UI with minimized window\n");
                     if (plugin_id == NULL)
                         printf("  -l, --list                List available plugin identifiers\n");
                     printf("  -v, --version             Output the version of the software\n");
@@ -338,6 +340,8 @@ namespace lsp
                 }
                 else if ((!::strcmp(arg, "--headless")) || (!::strcmp(arg, "-hl")))
                     cfg->headless       = true;
+                else if ((!::strcmp(arg, "--minimized")) || (!::strcmp(arg, "-mw")))
+                    cfg->minimized      = true;
                 else if ((!::strcmp(arg, "--version")) || (!::strcmp(arg, "-v")))
                     cfg->version        = true;
                 else if ((plugin_id == NULL) && ((!::strcmp(arg, "--list")) || (!::strcmp(arg, "-l"))))
@@ -447,7 +451,7 @@ namespace lsp
 
             // Output sorted plugin list
             char fmt[0x20];
-            sprintf(fmt, "  %%%ds  %%s\n", -int(maxlen));
+            snprintf(fmt, sizeof(fmt), "  %%%ds  %%s\n", -int(maxlen));
 
             for (size_t i=0, n=list.size(); i<n; ++i)
             {
@@ -539,6 +543,14 @@ namespace lsp
 
         PluginLoop::PluginLoop()
         {
+            sCmdLine.cfg_file       = NULL;
+            sCmdLine.plugin_id      = NULL;
+            sCmdLine.parent_id      = NULL;
+            sCmdLine.headless       = false;
+            sCmdLine.list           = false;
+            sCmdLine.version        = false;
+            sCmdLine.minimized      = false;
+
             pFactory                = NULL;
             pLoader                 = NULL;
             pPlugin                 = NULL;
@@ -621,14 +633,14 @@ namespace lsp
 
             // Parse command-line arguments
             if ((res = parse_cmdline(&sCmdLine, plugin_id, argc, argv)) != STATUS_OK)
-                return (res == STATUS_CANCELLED) ? 0 : res;
+                return res;
 
             // Need just to output version?
             if (sCmdLine.version)
             {
                 if ((res = jack::output_version(sCmdLine)) != STATUS_OK)
                     return -res;
-                return 0;
+                return STATUS_CANCELLED;
             }
 
             // Need just to list available plugins?
@@ -636,7 +648,7 @@ namespace lsp
             {
                 if ((res = jack::list_plugins()) != STATUS_OK)
                     return -res;
-                return 0;
+                return STATUS_CANCELLED;
             }
 
             // Plugin identifier has been specified?
@@ -722,6 +734,14 @@ namespace lsp
                 // Initialize wrapper
                 if ((res = pUIWrapper->init(NULL)) != STATUS_OK)
                     return res;
+
+                // Minimize window if required
+                if (sCmdLine.minimized)
+                {
+                    tk::Window *wnd = pUIWrapper->window();
+                    if (wnd != NULL)
+                        wnd->state()->set_minimized();
+                }
             }
         #endif /* WITH_UI_FEATURE */
 
@@ -939,13 +959,11 @@ extern "C"
         };
 
         // Initialize loop
-        status_t res = w->init(plugin_id, argc, argv);
-        if (res != STATUS_OK)
-            return res;
+        status_t res                = w->init(plugin_id, argc, argv);
+        if (res == STATUS_OK)
+            *loop       = release_ptr(w); // Return loop
 
-        // Return loop
-        *loop       = release_ptr(w);
-        return STATUS_OK;
+        return res;
     }
 
 #ifdef __cplusplus

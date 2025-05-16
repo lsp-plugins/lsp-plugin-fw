@@ -103,7 +103,6 @@ namespace lsp
 
                 sMeterVisible.init(pWrapper, knob->meter_active());
                 sEditable.init(pWrapper, knob->editable());
-                sActivity.init(pWrapper, knob->editable());
 
                 sMin.init(pWrapper, this);
                 sMax.init(pWrapper, this);
@@ -168,8 +167,6 @@ namespace lsp
                 sMeterVisible.set("mvisibility", name, value);
 
                 sEditable.set("editable", name, value);
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
 
                 if (!strcmp(name, "min"))
                 {

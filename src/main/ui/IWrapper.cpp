@@ -58,43 +58,43 @@ namespace lsp
         {
             PATH(UI_LAST_VERSION_PORT_ID, "Last version of the product installed"),
             PATH(UI_DLG_SAMPLE_PATH_ID, "Dialog path for selecting sample files"),
-            INT_CONTROL_RANGE(UI_DLG_SAMPLE_FTYPE_ID, "Dialog file type for selecting sample files", U_NONE, 0, 100, 0, 1),
+            INT_CONTROL_ALL(UI_DLG_SAMPLE_FTYPE_ID, "Dialog file type for selecting sample files", NULL, U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_IR_PATH_ID, "Dialog path for selecting impulse response files"),
-            INT_CONTROL_RANGE(UI_DLG_IR_FTYPE_ID, "Dialog file type for selecting impulse response files", U_NONE, 0, 100, 0, 1),
+            INT_CONTROL_ALL(UI_DLG_IR_FTYPE_ID, "Dialog file type for selecting impulse response files", NULL, U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_CONFIG_PATH_ID, "Dialog path for saving/loading configuration files"),
-            INT_CONTROL_RANGE(UI_DLG_CONFIG_FTYPE_ID, "Dialog file type for saving/loading configuration files", U_NONE, 0, 100, 0, 1),
+            INT_CONTROL_ALL(UI_DLG_CONFIG_FTYPE_ID, "Dialog file type for saving/loading configuration files", NULL, U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_REW_PATH_ID, "Dialog path for importing REW settings files"),
-            INT_CONTROL_RANGE(UI_DLG_REW_FTYPE_ID, "Dialog file type for importing REW settings files", U_NONE, 0, 100, 0, 1),
+            INT_CONTROL_ALL(UI_DLG_REW_FTYPE_ID, "Dialog file type for importing REW settings files", NULL, U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_HYDROGEN_PATH_ID, "Dialog path for importing Hydrogen drumkit files"),
-            INT_CONTROL_RANGE(UI_DLG_HYDROGEN_FTYPE_ID, "Dialog file type for importing Hydrogen drumkit files", U_NONE, 0, 100, 0, 1),
+            INT_CONTROL_ALL(UI_DLG_HYDROGEN_FTYPE_ID, "Dialog file type for importing Hydrogen drumkit files", NULL, U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_LSPC_BUNDLE_PATH_ID, "Dialog path for exporting/importing LSPC bundles"),
-            INT_CONTROL_RANGE(UI_DLG_LSPC_BUNDLE_FTYPE_ID, "Dialog file type for exporting/importing LSPC bundles", U_NONE, 0, 100, 0, 1),
+            INT_CONTROL_ALL(UI_DLG_LSPC_BUNDLE_FTYPE_ID, "Dialog file type for exporting/importing LSPC bundles", NULL, U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_SFZ_PATH_ID, "Dialog path for exporting/importing SFZ files"),
-            INT_CONTROL_RANGE(UI_DLG_SFZ_FTYPE_ID, "Dialog file type for exporting/importing SFZ files", U_NONE, 0, 100, 0, 1),
+            INT_CONTROL_ALL(UI_DLG_SFZ_FTYPE_ID, "Dialog file type for exporting/importing SFZ files", NULL, U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_MODEL3D_PATH_ID, "Dialog for saving/loading 3D model files"),
-            INT_CONTROL_RANGE(UI_DLG_MODEL3D_FTYPE_ID, "Dialog file type for saving/loading 3D model files", U_NONE, 0, 100, 0, 1),
+            INT_CONTROL_ALL(UI_DLG_MODEL3D_FTYPE_ID, "Dialog file type for saving/loading 3D model files", NULL, U_NONE, 0, 100, 0, 1),
             PATH(UI_DLG_DEFAULT_PATH_ID, "Dialog default path for other files"),
-            INT_CONTROL_RANGE(UI_DLG_DEFAULT_FTYPE_ID, "Dialog default file type for other files", U_NONE, 0, 100, 0, 1),
+            INT_CONTROL_ALL(UI_DLG_DEFAULT_FTYPE_ID, "Dialog default file type for other files", NULL, U_NONE, 0, 100, 0, 1),
             PATH(UI_R3D_BACKEND_PORT_ID, "Identifier of selected backend for 3D rendering"),
             PATH(UI_LANGUAGE_PORT_ID, "Selected language identifier for the UI interface"),
-            SWITCH(UI_REL_PATHS_PORT_ID, "Use relative paths when exporting configuration file", 0.0f),
-            KNOB(UI_SCALING_PORT_ID, "Manual UI scaling factor", U_PERCENT, 25.0f, 400.0f, 100.0f, 1.0f),
-            SWITCH(UI_SCALING_HOST_PORT_ID, "Prefer host-reported UI scale factor", 1.0f),
-            KNOB(UI_FONT_SCALING_PORT_ID, "Manual UI font scaling factor", U_PERCENT, 50.0f, 400.0f, 100.0f, 1.0f),
-            KNOB(UI_BUNDLE_SCALING_PORT_ID, "Manual Bundle UI scaling factor", U_PERCENT, 0.0f, 400.0f, 0.0f, 1.0f),
+            SWITCH(UI_REL_PATHS_PORT_ID, "Use relative paths when exporting configuration file", NULL, 0.0f),
+            CONTROL_ALL(UI_SCALING_PORT_ID, "Manual UI scaling factor", NULL, U_PERCENT, 25.0f, 400.0f, 100.0f, 1.0f),
+            SWITCH(UI_SCALING_HOST_PORT_ID, "Prefer host-reported UI scale factor", NULL, 1.0f),
+            CONTROL_ALL(UI_FONT_SCALING_PORT_ID, "Manual UI font scaling factor", NULL, U_PERCENT, 50.0f, 400.0f, 100.0f, 1.0f),
+            CONTROL_ALL(UI_BUNDLE_SCALING_PORT_ID, "Manual Bundle UI scaling factor", NULL, U_PERCENT, 0.0f, 400.0f, 0.0f, 1.0f),
             PATH(UI_VISUAL_SCHEMA_FILE_ID, "Current visual schema file used by the UI"),
-            SWITCH(UI_PREVIEW_AUTO_PLAY_ID, "Enable automatic playback of the audio file in the file preview part of the file open dialog", 0.0f),
-            SWITCH(UI_ENABLE_KNOB_SCALE_ACTIONS_ID, "Enable knob scale mouse actions", 1.0f),
+            SWITCH(UI_PREVIEW_AUTO_PLAY_ID, "Enable automatic playback of the audio file in the file preview part of the file open dialog", NULL, 0.0f),
+            SWITCH(UI_ENABLE_KNOB_SCALE_ACTIONS_ID, "Enable knob scale mouse actions", NULL, 1.0f),
             PATH(UI_USER_HYDROGEN_KIT_PATH_ID, "User Hydrogen kits path"),
             PATH(UI_OVERRIDE_HYDROGEN_KIT_PATH_ID, "Override Hydrogen kits path"),
-            SWITCH(UI_OVERRIDE_HYDROGEN_KITS_ID, "Override Hydrogen kits", 1.0f),
-            SWITCH(UI_INVERT_VSCROLL_ID, "Invert global mouse vertical scroll behaviour", 0.0f),
-            SWITCH(UI_GRAPH_DOT_INVERT_VSCROLL_ID, "Invert mouse vertical scroll behaviour for graph dot widget", 0.0f),
-            SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Enables the automatic scaling mode of the frequency graph", 1.0f),
-            COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", 1.0f, filter_point_thickness_modes),
+            SWITCH(UI_OVERRIDE_HYDROGEN_KITS_ID, "Override Hydrogen kits", NULL, 1.0f),
+            SWITCH(UI_INVERT_VSCROLL_ID, "Invert global mouse vertical scroll behaviour", NULL, 0.0f),
+            SWITCH(UI_GRAPH_DOT_INVERT_VSCROLL_ID, "Invert mouse vertical scroll behaviour for graph dot widget", NULL, 0.0f),
+            SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Enables the automatic scaling mode of the frequency graph", NULL, 1.0f),
+            COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", NULL, 1.0f, filter_point_thickness_modes),
             PATH(UI_DOCUMENTATION_PATH_ID, "Path to the local documentation installation"),
-            SWITCH(UI_FILELIST_NAVIGAION_AUTOLOAD_ID, "Automatically load files when navigating over file list", 0.0f),
-            SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", 0.0f),
+            SWITCH(UI_FILELIST_NAVIGAION_AUTOLOAD_ID, "Automatically load files when navigating over file list", NULL, 0.0f),
+            SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", NULL, 0.0f),
             PORTS_END
         };
 
@@ -750,7 +750,22 @@ namespace lsp
             // Parse the XML document
             xml::RootNode root(&ctx, "plugin", pWindow);
             xml::Handler handler(resources());
-            return handler.parse_resource(&xpath, &root);
+            if ((res = handler.parse_resource(&xpath, &root)) != STATUS_OK)
+                return res;
+
+            // Append overlays to the window
+            lltl::parray<ctl::Overlay> *overlays = ctx.overlays();
+            for (size_t i=0, n=overlays->size(); i<n; ++i)
+            {
+                ctl::Overlay *ov = overlays->uget(i);
+                if (ov == NULL)
+                    continue;
+
+                if ((res = pWindow->add(&ctx, ov)) != STATUS_OK)
+                    return res;
+            }
+
+            return res;
         }
 
         status_t IWrapper::export_settings(const char *file, bool relative)
@@ -1526,7 +1541,7 @@ namespace lsp
             const meta::bundle_t *bundle = (meta != NULL) ? meta->bundle : NULL;
             const char *bundle_uid = (bundle != NULL) ? bundle->uid : NULL;
 
-            if (bundle->uid != NULL)
+            if (bundle_uid != NULL)
             {
                 scaling_key.set_utf8(bundle_uid);
                 scaling_key.replace_all('-', '_');
@@ -1673,7 +1688,7 @@ namespace lsp
             // Obtain actual versions of all modules
             lltl::pphash<LSPString, config::param_t> parameters;
             status_t res = read_parameters(file, &parameters);
-            if (res != STATUS_OK)
+            if ((res != STATUS_OK) && (res != STATUS_NOT_FOUND))
                 return res;
             lsp_finally { drop_parameters(&parameters); };
 
@@ -2171,6 +2186,35 @@ namespace lsp
         const core::ShmState *IWrapper::shm_state()
         {
             return NULL;
+        }
+
+        /**
+         * Get name of graphics backend
+         * @return name of graphics backend
+         */
+        const char *IWrapper::graphics_backend() const
+        {
+            const ws::surface_type_t stype = (wWindow != NULL) ? wWindow->surface_type() : ws::ST_UNKNOWN;
+
+            switch (stype)
+            {
+                case ws::ST_UNKNOWN:
+                case ws::ST_IMAGE:
+                case ws::ST_XLIB:
+                case ws::ST_SIMILAR:
+                    return "Cairo";
+
+                case ws::ST_DDRAW:
+                    return "Direct2D";
+
+                case ws::ST_OPENGL:
+                    return "OpenGL";
+
+                default:
+                    break;
+            }
+
+            return "Unknown";
         }
 
     } /* namespace ui */

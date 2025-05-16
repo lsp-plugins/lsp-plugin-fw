@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -304,6 +304,7 @@ namespace lsp
 
             size_t  id_bytes        = strlen(metadata->id) + 1;
             size_t  name_bytes      = strlen(metadata->name) + 1;
+            size_t  sname_bytes     = (metadata->short_name) ? strlen(metadata->short_name) + 1 : 0;
 
             // Calculate the overall allocation size
             size_t to_copy          = sizeof(port_t);
@@ -319,12 +320,14 @@ namespace lsp
             ptr                    += to_copy;
             ::memcpy(meta, metadata, to_copy);
 
-            meta->id                = reinterpret_cast<char *>(ptr);
-            ptr                    += id_bytes;
-            meta->name              = reinterpret_cast<char *>(ptr);
+            meta->id                = advance_ptr_bytes<char>(ptr, id_bytes);
+            meta->name              = advance_ptr_bytes<char>(ptr, name_bytes);
+            meta->short_name        = (sname_bytes > 0) ? advance_ptr_bytes<char>(ptr, sname_bytes) : NULL;
 
             memcpy(const_cast<char *>(meta->id), metadata->id, id_bytes);
             memcpy(const_cast<char *>(meta->name), metadata->name, name_bytes);
+            if (metadata->short_name != NULL)
+                memcpy(const_cast<char *>(meta->short_name), metadata->short_name, sname_bytes);
 
             return meta;
         }
@@ -1436,16 +1439,16 @@ namespace lsp
                 (int32_t(vst2_uid[4]));
 
             const int32_t vstfxid = (for_controller) ? (('V' << 16) | ('S' << 8) | 'E') : (('V' << 16) | ('S' << 8) | 'T');
-            sprintf(dst, "%06X", vstfxid);
+            snprintf(dst, 7, "%06X", vstfxid);
             dst    += 6;
 
-            sprintf(dst, "%08X", vst2_cconst);
+            snprintf(dst, 9, "%08X", vst2_cconst);
             dst    += 8;
 
             for (size_t i=0, n=strlen(name); i <= 8; i++)
             {
                 uint8_t c   = (i < n) ? tolower(name[i]) : 0;   // the plugin name has to be lower case
-                sprintf(dst, "%02X", c);
+                snprintf(dst, 3, "%02X", c);
                 dst        += 2;
             }
 

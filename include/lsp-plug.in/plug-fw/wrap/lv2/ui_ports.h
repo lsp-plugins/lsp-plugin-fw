@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 нояб. 2021 г.
@@ -905,7 +905,7 @@ namespace lsp
                     UIPort(meta, ext)
                 {
                     lv2::StringPort *sp     = (xport != NULL) ? static_cast<lv2::StringPort *>(xport) : NULL;
-                    if (xport != NULL)
+                    if (sp != NULL)
                     {
                         pValue                  = sp->data();
                         nCapacity               = pValue->max_bytes();
@@ -915,6 +915,7 @@ namespace lsp
                     {
                         pValue                  = NULL;
                         nCapacity               = size_t(meta->max) * 4;
+                        nSerial                 = 0;
                     }
 
                     // Allocate buffer to store value

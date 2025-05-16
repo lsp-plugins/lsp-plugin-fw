@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 янв. 2021 г.
@@ -438,7 +438,8 @@ int main(int argc, const char **argv)
     lsp::IPluginLoop *loop = NULL;
     lsp::status_t res = factory(&loop, JACK_PLUGIN_UID, argc, argv);
     if (res != lsp::STATUS_OK)
-        return -res;
+        return (res == lsp::STATUS_CANCELLED) ? 0 : -res;
+
     lsp_finally {
         if (loop != NULL)
             delete loop;

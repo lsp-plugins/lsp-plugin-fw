@@ -485,6 +485,12 @@ namespace lsp
                  * @return pointer to actual shared memory state or NULL
                  */
                 virtual const core::ShmState   *shm_state();
+
+                /**
+                 * Get name of graphics backend
+                 * @return name of graphics backend
+                 */
+                const char                     *graphics_backend() const;
         };
 
     } /* namespace ui */

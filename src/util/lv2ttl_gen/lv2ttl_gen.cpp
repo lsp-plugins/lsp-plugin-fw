@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 дек. 2021 г.
@@ -848,6 +848,8 @@ namespace lsp
                 fprintf(out, "\t\tlv2:index %d ;\n", (int)port_id);
                 fprintf(out, "\t\tlv2:symbol \"%s\" ;\n", (p->role == meta::R_BYPASS) ? "enabled" : p->id);
                 fprintf(out, "\t\tlv2:name \"%s\" ;\n", (p->role == meta::R_BYPASS) ? "Enabled" : p->name);
+                if (p->short_name != NULL)
+                    fprintf(out, "\t\tlv2:shortName \"%s\" ;\n", p->short_name);
                 if (p->role == meta::R_BYPASS)
                     fprintf(out, "\t\tlv2:designation lv2:enabled ;\n");
 

@@ -79,7 +79,6 @@ namespace lsp
 
                 ctl::Boolean        sMeterVisible;
                 ctl::Boolean        sEditable;
-                ctl::Boolean        sActivity;
 
                 ctl::Expression     sMin;
                 ctl::Expression     sMax;
