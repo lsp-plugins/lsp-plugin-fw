@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.31 ===
+
+
 === 1.0.30 ===
 * Refactored support of activity property.
 * Added possibility to launch standalone plugins in minimized window state.
