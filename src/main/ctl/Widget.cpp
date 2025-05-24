@@ -34,7 +34,7 @@ namespace lsp
         }
 
         //---------------------------------------------------------------------
-        const ctl_class_t Widget::metadata = { "Widget", NULL };
+        const ctl_class_t Widget::metadata = { "Widget", &DOMController::metadata };
 
         Widget::Widget(ui::IWrapper *wrapper, tk::Widget *widget):
             ctl::DOMController(wrapper),
@@ -42,7 +42,6 @@ namespace lsp
             sProperties(this)
         {
             pClass          = &metadata;
-
             wWidget         = widget;
         }
 
@@ -65,19 +64,6 @@ namespace lsp
 
             pWrapper    = NULL;
             wWidget     = NULL;
-        }
-
-        bool Widget::instance_of(const ctl_class_t *wclass) const
-        {
-            const ctl_class_t *wc = pClass;
-            while (wc != NULL)
-            {
-                if (wc == wclass)
-                    return true;
-                wc = wc->parent;
-            }
-
-            return false;
         }
 
         tk::Widget *Widget::widget()
@@ -556,14 +542,6 @@ namespace lsp
             sInactiveBgColor.set("inactive.bg.color", name, value);
             sBgInherit.set("bg.inherit", name, value);
             sBgInherit.set("ibg", name, value);
-        }
-
-        void Widget::begin(ui::UIContext *ctx)
-        {
-        }
-
-        void Widget::end(ui::UIContext *ctx)
-        {
         }
 
         void Widget::notify(ui::IPort *port, size_t flags)

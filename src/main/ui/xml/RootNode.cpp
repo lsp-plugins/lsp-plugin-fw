@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -55,7 +55,10 @@ namespace lsp
                 // Create and initialize widget
                 ctl::Widget *widget     = pWidget;
                 if (widget == NULL) // If there is no widget, instantiate it
-                    widget  =  pContext->create_widget_controller(name);
+                {
+                    ctl::Controller *ctl = pContext->create_controller(name);
+                    widget = ctl::ctl_cast<ctl::Widget>(ctl);
+                }
 
                 // No handler?
                 if (widget == NULL)

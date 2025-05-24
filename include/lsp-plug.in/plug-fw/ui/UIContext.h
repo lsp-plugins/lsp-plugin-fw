@@ -39,6 +39,7 @@ namespace lsp
 {
     namespace ctl
     {
+        class Controller;
         class DOMController;
         class Widget;
         class Overlay;
@@ -204,7 +205,7 @@ namespace lsp
                  * @param name the tag name of the widget
                  * @return pointer to widget controller
                  */
-                ctl::Widget *create_widget_controller(const LSPString *name);
+                ctl::Controller *create_controller(const LSPString *name);
 
                 /**
                  * Set attributes to controller

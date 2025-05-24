@@ -215,13 +215,13 @@ namespace lsp
             return res;
         }
 
-        ctl::Widget *UIContext::create_widget_controller(const LSPString *name)
+        ctl::Controller *UIContext::create_controller(const LSPString *name)
         {
             if (name == NULL)
                 return NULL;
 
             // Instantiate the widget
-            ctl::Widget *c = NULL;
+            ctl::Controller *c = NULL;
 
             for (ctl::Factory *f = ctl::Factory::root(); f != NULL; f = f->next())
             {

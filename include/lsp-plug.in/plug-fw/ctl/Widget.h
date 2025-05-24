@@ -64,7 +64,6 @@ namespace lsp
                 };
 
             protected:
-                const ctl_class_t  *pClass;
                 tk::Widget         *wWidget;
 
                 ctl::Boolean        sActivity;
@@ -133,13 +132,7 @@ namespace lsp
                  */
                 virtual void        destroy() override;
 
-            public:
-                /** Get widget
-                 *
-                 * @return widget
-                 */
-                virtual tk::Widget  *widget();
-
+            public: // ctl::DOMController
                 /** Set attribute to widget controller
                  *
                  * @param ctx context
@@ -148,24 +141,21 @@ namespace lsp
                  */
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
 
-                /** Begin internal part of controller
-                 *
+            public:
+                /**
+                 * Get widget
+                 * @return widget
                  */
-                virtual void        begin(ui::UIContext *ctx);
+                virtual tk::Widget  *widget();
 
-                /** Add child widget
-                 *
+                /**
+                 * Add child widget
                  * @param child child widget to add
                  */
                 virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child);
 
-                /** End internal part of controller
-                 *
-                 */
-                virtual void        end(ui::UIContext *ctx);
-
-                /** Notify controller about one of port bindings has changed
-                 *
+                /**
+                 * Notify controller about one of port bindings has changed
                  * @param port port triggered change
                  * @param flags port modification flags @see notify_flags_t
                  */
@@ -175,77 +165,7 @@ namespace lsp
                  * This method is called when the visual schema has been reloaded
                  */
                 virtual void        reloaded(const tk::StyleSheet *sheet);
-
-            //---------------------------------------------------------------------------------
-            // Metadata, casting and type information
-            public:
-                /** Get widget controller class
-                 *
-                 * @return actual widget controller class metadata
-                 */
-                inline const ctl_class_t *get_class() const { return pClass; }
-
-                /** Check wheter the widget is instance of some class
-                 *
-                 * @param wclass widget class
-                 * @return true if widget is instance of some class
-                 */
-                bool                instance_of(const ctl_class_t *wclass) const;
-                inline bool         instance_of(const ctl_class_t &wclass) const { return instance_of(&wclass); }
-
-                /** Another way to check if widget is instance of some class
-                 *
-                 * @return true if widget is instance of some class
-                 */
-                template <class Target>
-                inline bool instance_of() const { return instance_of(&Target::metadata); };
-
-                /** Cast widget to another type
-                 *
-                 * @return pointer to widget or NULL if cast failed
-                 */
-                template <class Target>
-                inline Target *cast()            { return instance_of(&Target::metadata) ? static_cast<Target *>(this) : NULL; }
-
-                /** Cast widget to another type
-                 *
-                 * @return pointer to widget or NULL if cast failed
-                 */
-                template <class Target>
-                inline const Target *cast() const { return instance_of(&Target::metadata) ? static_cast<const Target *>(this) : NULL; }
-
-                /** Get pointer to self as pointer to ctl::Widget class
-                 *
-                 * @return pointer to self
-                 */
-                inline ctl::Widget *self()              { return this;  }
         };
-
-        template <class Target>
-        inline Target *ctl_cast(ctl::Widget *src)
-        {
-            return ((src != NULL) && (src->instance_of(&Target::metadata))) ? static_cast<Target *>(src) : NULL;
-        }
-
-        template <class Target>
-        inline const Target *ctl_cast(const ctl::Widget *src)
-        {
-            return ((src != NULL) && (src->instance_of(&Target::metadata))) ? static_cast<const Target *>(src) : NULL;
-        }
-
-        template <class Target>
-        inline Target *ctl_ptrcast(void *src)
-        {
-            ctl::Widget *w = (src != NULL) ? static_cast<Target *>(src) : NULL;
-            return ((w != NULL) && (w->instance_of(&Target::metadata))) ? static_cast<Target *>(w) : NULL;
-        }
-
-        template <class Target>
-        inline const Target *ctl_ptrcast(const void *src)
-        {
-            const ctl::Widget *w = (src != NULL) ? static_cast<const Target *>(src) : NULL;
-            return ((w != NULL) && (w->instance_of(&Target::metadata))) ? static_cast<const Target *>(w) : NULL;
-        }
 
     } /* namespace ctl */
 } /* namespace lsp */

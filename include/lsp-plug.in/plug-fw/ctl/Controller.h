@@ -2,21 +2,21 @@
  * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins
+ * This file is part of lsp-plugin-fw
  * Created on: 24 мая 2025 г.
  *
- * lsp-plugins is free software: you can redistribute it and/or modify
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * lsp-plugins is distributed in the hope that it will be useful,
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with lsp-plugins. If not, see <https://www.gnu.org/licenses/>.
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_CONTROLLER_H_
@@ -45,8 +45,12 @@ namespace lsp
          */
         class Controller
         {
+            public:
+                static const ctl_class_t metadata;
+
             protected:
-                ui::IWrapper *pWrapper;
+                const ctl_class_t  *pClass;
+                ui::IWrapper       *pWrapper;
 
             public:
                 explicit Controller(ui::IWrapper *wrapper);
@@ -67,7 +71,78 @@ namespace lsp
                  */
                 virtual void        destroy();
 
+
+            public:
+                /** Get pointer to self as pointer to ctl::Widget class
+                 *
+                 * @return pointer to self
+                 */
+                inline ctl::Controller *self()              { return this;  }
+
+            //---------------------------------------------------------------------------------
+            // Metadata, casting and type information
+            public:
+                /** Get widget controller class
+                 *
+                 * @return actual widget controller class metadata
+                 */
+                inline const ctl_class_t *get_class() const { return pClass; }
+
+                /** Check wheter the widget is instance of some class
+                 *
+                 * @param wclass widget class
+                 * @return true if widget is instance of some class
+                 */
+                bool                instance_of(const ctl_class_t *wclass) const;
+                inline bool         instance_of(const ctl_class_t &wclass) const { return instance_of(&wclass); }
+
+                /** Another way to check if widget is instance of some class
+                 *
+                 * @return true if widget is instance of some class
+                 */
+                template <class Target>
+                inline bool instance_of() const { return instance_of(&Target::metadata); };
+
+                /** Cast widget to another type
+                 *
+                 * @return pointer to widget or NULL if cast failed
+                 */
+                template <class Target>
+                inline Target *cast()            { return instance_of(&Target::metadata) ? static_cast<Target *>(this) : NULL; }
+
+                /** Cast widget to another type
+                 *
+                 * @return pointer to widget or NULL if cast failed
+                 */
+                template <class Target>
+                inline const Target *cast() const { return instance_of(&Target::metadata) ? static_cast<const Target *>(this) : NULL; }
         };
+
+        template <class Target>
+        inline Target *ctl_cast(ctl::Controller *src)
+        {
+            return ((src != NULL) && (src->instance_of(&Target::metadata))) ? static_cast<Target *>(src) : NULL;
+        }
+
+        template <class Target>
+        inline const Target *ctl_cast(const ctl::Controller *src)
+        {
+            return ((src != NULL) && (src->instance_of(&Target::metadata))) ? static_cast<const Target *>(src) : NULL;
+        }
+
+        template <class Target>
+        inline Target *ctl_ptrcast(void *src)
+        {
+            ctl::Controller *ctl = (src != NULL) ? static_cast<Target *>(src) : NULL;
+            return ((ctl != NULL) && (ctl->instance_of(&Target::metadata))) ? static_cast<Target *>(ctl) : NULL;
+        }
+
+        template <class Target>
+        inline const Target *ctl_ptrcast(const void *src)
+        {
+            const ctl::Controller *ctl = (src != NULL) ? static_cast<const Target *>(src) : NULL;
+            return ((ctl != NULL) && (ctl->instance_of(&Target::metadata))) ? static_cast<const Target *>(ctl) : NULL;
+        }
 
     } /* namespace ctl */
 } /* namespace lsp */
