@@ -46,7 +46,9 @@
     #include <lsp-plug.in/plug-fw/ctl/util/IChildSync.h>
     #include <lsp-plug.in/plug-fw/ctl/util/DirController.h>
 
-    // Widget controllers
+    // Controllers
+    #include <lsp-plug.in/plug-fw/ctl/Controller.h>
+    #include <lsp-plug.in/plug-fw/ctl/DOMController.h>
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Registry.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>

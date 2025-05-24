@@ -46,7 +46,7 @@ namespace lsp
         /**
          * Basic widget controller
          */
-        class Widget: public ui::IPortListener, public ui::ISchemaListener
+        class Widget: public ctl::DOMController, public ui::IPortListener, public ui::ISchemaListener
         {
             public:
                 static const ctl_class_t metadata;
@@ -65,7 +65,6 @@ namespace lsp
 
             protected:
                 const ctl_class_t  *pClass;
-                ui::IWrapper       *pWrapper;
                 tk::Widget         *wWidget;
 
                 ctl::Boolean        sActivity;
@@ -119,20 +118,20 @@ namespace lsp
                 explicit Widget(ui::IWrapper *wrapper, tk::Widget *widget);
                 Widget(const Widget &) = delete;
                 Widget(Widget &&) = delete;
-                virtual ~Widget();
+                virtual ~Widget() override;
 
                 Widget &operator = (const Widget &) = delete;
                 Widget &operator = (Widget &&) = delete;
 
-                /** Initialize widget controller
-                 *
+                /**
+                 * Initialize widget controller
                  */
-                virtual status_t    init();
+                virtual status_t    init() override;
 
-                /** Destroy widget controller
-                 *
+                /**
+                 * Destroy widget controller
                  */
-                virtual void        destroy();
+                virtual void        destroy() override;
 
             public:
                 /** Get widget
@@ -147,7 +146,7 @@ namespace lsp
                  * @param name attribute name
                  * @param value attribute value
                  */
-                virtual void        set(ui::UIContext *ctx, const char *name, const char *value);
+                virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
 
                 /** Begin internal part of controller
                  *
@@ -199,21 +198,21 @@ namespace lsp
                  * @return true if widget is instance of some class
                  */
                 template <class Target>
-                    inline bool instance_of() const { return instance_of(&Target::metadata); };
+                inline bool instance_of() const { return instance_of(&Target::metadata); };
 
                 /** Cast widget to another type
                  *
                  * @return pointer to widget or NULL if cast failed
                  */
                 template <class Target>
-                    inline Target *cast()            { return instance_of(&Target::metadata) ? static_cast<Target *>(this) : NULL; }
+                inline Target *cast()            { return instance_of(&Target::metadata) ? static_cast<Target *>(this) : NULL; }
 
                 /** Cast widget to another type
                  *
                  * @return pointer to widget or NULL if cast failed
                  */
                 template <class Target>
-                    inline const Target *cast() const { return instance_of(&Target::metadata) ? static_cast<const Target *>(this) : NULL; }
+                inline const Target *cast() const { return instance_of(&Target::metadata) ? static_cast<const Target *>(this) : NULL; }
 
                 /** Get pointer to self as pointer to ctl::Widget class
                  *
@@ -223,30 +222,30 @@ namespace lsp
         };
 
         template <class Target>
-            inline Target *ctl_cast(ctl::Widget *src)
-            {
-                return ((src != NULL) && (src->instance_of(&Target::metadata))) ? static_cast<Target *>(src) : NULL;
-            }
+        inline Target *ctl_cast(ctl::Widget *src)
+        {
+            return ((src != NULL) && (src->instance_of(&Target::metadata))) ? static_cast<Target *>(src) : NULL;
+        }
 
         template <class Target>
-            inline const Target *ctl_cast(const ctl::Widget *src)
-            {
-                return ((src != NULL) && (src->instance_of(&Target::metadata))) ? static_cast<const Target *>(src) : NULL;
-            }
+        inline const Target *ctl_cast(const ctl::Widget *src)
+        {
+            return ((src != NULL) && (src->instance_of(&Target::metadata))) ? static_cast<const Target *>(src) : NULL;
+        }
 
         template <class Target>
-            inline Target *ctl_ptrcast(void *src)
-            {
-                ctl::Widget *w = (src != NULL) ? static_cast<Target *>(src) : NULL;
-                return ((w != NULL) && (w->instance_of(&Target::metadata))) ? static_cast<Target *>(w) : NULL;
-            }
+        inline Target *ctl_ptrcast(void *src)
+        {
+            ctl::Widget *w = (src != NULL) ? static_cast<Target *>(src) : NULL;
+            return ((w != NULL) && (w->instance_of(&Target::metadata))) ? static_cast<Target *>(w) : NULL;
+        }
 
         template <class Target>
-            inline const Target *ctl_ptrcast(const void *src)
-            {
-                const ctl::Widget *w = (src != NULL) ? static_cast<const Target *>(src) : NULL;
-                return ((w != NULL) && (w->instance_of(&Target::metadata))) ? static_cast<const Target *>(w) : NULL;
-            }
+        inline const Target *ctl_ptrcast(const void *src)
+        {
+            const ctl::Widget *w = (src != NULL) ? static_cast<const Target *>(src) : NULL;
+            return ((w != NULL) && (w->instance_of(&Target::metadata))) ? static_cast<const Target *>(w) : NULL;
+        }
 
     } /* namespace ctl */
 } /* namespace lsp */

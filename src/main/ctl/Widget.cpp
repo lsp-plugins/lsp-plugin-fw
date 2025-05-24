@@ -37,12 +37,12 @@ namespace lsp
         const ctl_class_t Widget::metadata = { "Widget", NULL };
 
         Widget::Widget(ui::IWrapper *wrapper, tk::Widget *widget):
+            ctl::DOMController(wrapper),
             ui::IPortListener(),
             sProperties(this)
         {
             pClass          = &metadata;
 
-            pWrapper        = wrapper;
             wWidget         = widget;
         }
 
@@ -54,6 +54,7 @@ namespace lsp
         void Widget::destroy()
         {
             do_destroy();
+            ctl::DOMController::destroy();
         }
 
         void Widget::do_destroy()
@@ -479,6 +480,10 @@ namespace lsp
 
         status_t Widget::init()
         {
+            status_t res = ctl::DOMController::init();
+            if (res != STATUS_OK)
+                return res;
+
             pWrapper->add_schema_listener(this);
 
             if (wWidget != NULL)
@@ -502,6 +507,8 @@ namespace lsp
 
         void Widget::set(ui::UIContext *ctx, const char *name, const char *value)
         {
+            ctl::DOMController::set(ctx, name, value);
+
             if (wWidget != NULL)
             {
                 set_param(wWidget->scaling(), "scaling", name, value);

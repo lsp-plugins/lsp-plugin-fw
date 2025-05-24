@@ -51,7 +51,7 @@ namespace lsp
                     return STATUS_OK;
 
                 // Create and initialize widget
-                ctl::Widget *widget         = pContext->create_controller(name);
+                ctl::Widget *widget         = pContext->create_widget_controller(name);
                 if (widget == NULL)
                     return STATUS_OK;       // No handler
 

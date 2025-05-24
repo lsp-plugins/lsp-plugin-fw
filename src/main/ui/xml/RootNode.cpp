@@ -55,7 +55,7 @@ namespace lsp
                 // Create and initialize widget
                 ctl::Widget *widget     = pWidget;
                 if (widget == NULL) // If there is no widget, instantiate it
-                    widget  =  pContext->create_controller(name);
+                    widget  =  pContext->create_widget_controller(name);
 
                 // No handler?
                 if (widget == NULL)

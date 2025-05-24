@@ -215,7 +215,7 @@ namespace lsp
             return res;
         }
 
-        ctl::Widget *UIContext::create_controller(const LSPString *name)
+        ctl::Widget *UIContext::create_widget_controller(const LSPString *name)
         {
             if (name == NULL)
                 return NULL;
@@ -249,7 +249,7 @@ namespace lsp
             return c;
         }
 
-        status_t UIContext::set_attributes(ctl::Widget *widget, const LSPString * const *atts)
+        status_t UIContext::set_attributes(ctl::DOMController *ctl, const LSPString * const *atts)
         {
             status_t res;
 
@@ -262,7 +262,7 @@ namespace lsp
                     return res;
 
                 // Set widget attribute
-                widget->set(this, atts[0]->get_utf8(), avalue.get_utf8());
+                ctl->set(this, atts[0]->get_utf8(), avalue.get_utf8());
             }
 
             return STATUS_OK;
