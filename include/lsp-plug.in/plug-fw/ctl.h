@@ -55,6 +55,8 @@
     #include <lsp-plug.in/plug-fw/ctl/Window.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
 
+    #include <lsp-plug.in/plug-fw/ctl/headless/PortLink.h>
+
     #include <lsp-plug.in/plug-fw/ctl/simple/Void.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Bevel.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Edit.h>
