@@ -46,7 +46,7 @@ namespace lsp
         /**
          * Basic widget controller
          */
-        class Widget: public ctl::DOMController, public ui::IPortListener, public ui::ISchemaListener
+        class Widget: public ctl::DOMController, public ui::ISchemaListener
         {
             public:
                 static const ctl_class_t metadata;
@@ -91,25 +91,17 @@ namespace lsp
                 static bool         set_text_layout(tk::TextLayout *l, const char *name, const char *value);
                 static bool         set_text_layout(tk::TextLayout *l, const char *param, const char *name, const char *value);
                 static bool         set_text_fitness(tk::TextFitness *l, const char *param, const char *name, const char *value);
-                static bool         set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value);
                 static bool         set_font(tk::Font *f, const char *param, const char *name, const char *value);
                 static bool         set_size_range(tk::SizeRange *r, const char *param, const char *name, const char *value);
                 static bool         set_param(tk::Boolean *b, const char *param, const char *name, const char *value);
                 static bool         set_param(tk::Integer *i, const char *param, const char *name, const char *value);
                 static bool         set_param(tk::Float *f, const char *param, const char *name, const char *value);
                 static bool         set_param(tk::Enum *en, const char *param, const char *name, const char *value);
-                static bool         set_embedding(tk::Embedding *e, const char *name, const char *value);
                 static bool         set_orientation(tk::Orientation *o, const char *name, const char *value);
-                static bool         set_value(bool *v, const char *param, const char *name, const char *value);
-                static bool         set_value(ssize_t *v, const char *param, const char *name, const char *value);
-                static bool         set_value(size_t *v, const char *param, const char *name, const char *value);
-                static bool         set_value(float *v, const char *param, const char *name, const char *value);
-                static bool         set_value(LSPString *v, const char *param, const char *name, const char *value);
+                static bool         set_embedding(tk::Embedding *e, const char *name, const char *value);
 
             protected:
                 void                do_destroy();
-                bool                bind_port(ui::IPort **port, const char *param, const char *name, const char *value);
-                bool                link_port(ui::IPort **port, const char *id);
 
                 virtual void        property_changed(tk::Property *prop);
 

@@ -40,10 +40,12 @@ namespace lsp
 
     namespace ctl
     {
+        class Expression;
+
         /**
          * Controller
          */
-        class Controller
+        class Controller: public ui::IPortListener
         {
             public:
                 static const ctl_class_t metadata;
@@ -51,6 +53,17 @@ namespace lsp
             protected:
                 const ctl_class_t  *pClass;
                 ui::IWrapper       *pWrapper;
+
+            protected:
+                static bool         set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value);
+                static bool         set_value(bool *v, const char *param, const char *name, const char *value);
+                static bool         set_value(ssize_t *v, const char *param, const char *name, const char *value);
+                static bool         set_value(size_t *v, const char *param, const char *name, const char *value);
+                static bool         set_value(float *v, const char *param, const char *name, const char *value);
+                static bool         set_value(LSPString *v, const char *param, const char *name, const char *value);
+
+                bool                bind_port(ui::IPort **port, const char *param, const char *name, const char *value);
+                bool                link_port(ui::IPort **port, const char *id);
 
             public:
                 explicit Controller(ui::IWrapper *wrapper);
@@ -70,7 +83,6 @@ namespace lsp
                  *
                  */
                 virtual void        destroy();
-
 
             public:
                 /** Get pointer to self as pointer to ctl::Widget class

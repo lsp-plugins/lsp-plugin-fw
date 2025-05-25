@@ -38,7 +38,6 @@ namespace lsp
 
         Widget::Widget(ui::IWrapper *wrapper, tk::Widget *widget):
             ctl::DOMController(wrapper),
-            ui::IPortListener(),
             sProperties(this)
         {
             pClass          = &metadata;
@@ -279,18 +278,6 @@ namespace lsp
             return true;
         }
 
-        bool Widget::set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value)
-        {
-            if (expr == NULL)
-                return false;
-            if (strcmp(name, param))
-                return false;
-
-            if (!expr->parse(value))
-                lsp_warn("Failed to parse expression for attribute '%s': %s", name, value);
-            return true;
-        }
-
         bool Widget::set_param(tk::Boolean *b, const char *param, const char *name, const char *value)
         {
             if (b == NULL)
@@ -326,96 +313,6 @@ namespace lsp
             if (e == NULL)
                 return false;
             return e->parse(value) == STATUS_OK;
-        }
-
-        bool Widget::set_value(bool *v, const char *param, const char *name, const char *value)
-        {
-            if (v == NULL)
-                return false;
-            if (strcmp(param, name))
-                return false;
-            PARSE_BOOL(value, *v = __);
-            return true;
-        }
-
-        bool Widget::set_value(ssize_t *v, const char *param, const char *name, const char *value)
-        {
-            if (v == NULL)
-                return false;
-            if (strcmp(param, name))
-                return false;
-            PARSE_INT(value, *v = __);
-            return true;
-        }
-
-        bool Widget::set_value(size_t *v, const char *param, const char *name, const char *value)
-        {
-            if (v == NULL)
-                return false;
-            if (strcmp(param, name))
-                return false;
-            PARSE_UINT(value, *v = __);
-            return true;
-        }
-
-        bool Widget::set_value(float *v, const char *param, const char *name, const char *value)
-        {
-            if (v == NULL)
-                return false;
-            if (strcmp(param, name))
-                return false;
-            PARSE_FLOAT(value, *v = __);
-            return true;
-        }
-
-        bool Widget::set_value(LSPString *v, const char *param, const char *name, const char *value)
-        {
-            if (v == NULL)
-                return false;
-            if (strcmp(param, name))
-                return false;
-
-            v->set_utf8(value);
-            return true;
-        }
-
-        bool Widget::link_port(ui::IPort **port, const char *id)
-        {
-            ui::IPort *oldp = *port;
-            ui::IPort *newp = pWrapper->port(id);
-            if (oldp == newp)
-                return true;
-
-            if (oldp != NULL)
-                oldp->unbind(this);
-            if (newp != NULL)
-                newp->bind(this);
-
-            *port           = newp;
-
-            return true;
-        }
-
-        bool Widget::bind_port(ui::IPort **port, const char *param, const char *name, const char *value)
-        {
-            if (strcmp(param, name))
-                return false;
-            if (port == NULL)
-                return false;
-
-            ui::IPort *oldp = *port;
-            ui::IPort *newp = pWrapper->port(value);
-            if (oldp == newp)
-                return true;
-
-            if (oldp != NULL)
-                oldp->unbind(this);
-            if (newp != NULL)
-                newp->bind(this);
-
-            *port           = newp;
-
-            return true;
         }
 
         bool Widget::set_embedding(tk::Embedding *e, const char *name, const char *value)
