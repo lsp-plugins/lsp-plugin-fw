@@ -3,7 +3,7 @@
  *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 10 апр. 2021 г.
+ * Created on: 25 мая 2025 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef PRIVATE_UI_XML_WIDGETNODE_H_
-#define PRIVATE_UI_XML_WIDGETNODE_H_
+#ifndef PRIVATE_UI_XML_DOMCONTROLLERNODE_H_
+#define PRIVATE_UI_XML_DOMCONTROLLERNODE_H_
 
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/ui.h>
@@ -37,25 +37,22 @@ namespace lsp
             /**
              * Node for configuring properties of the widget controller from the XML document
              */
-            class WidgetNode: public Node
+            class DOMControllerNode: public Node
             {
                 private:
-                    ctl::Widget            *pWidget;
-                    WidgetNode             *pChild;
+                    ctl::DOMController     *pController;
 
                 public:
-                    explicit WidgetNode(UIContext *ctx, Node *parent, ctl::Widget *widget);
-                    WidgetNode(const WidgetNode &) = delete;
-                    WidgetNode(WidgetNode &&) = delete;
-                    WidgetNode & operator = (const WidgetNode &) = delete;
-                    WidgetNode & operator = (WidgetNode &&) = delete;
+                    explicit DOMControllerNode(UIContext *ctx, Node *parent, ctl::DOMController *ctl);
+                    DOMControllerNode(const DOMControllerNode &) = delete;
+                    DOMControllerNode(DOMControllerNode &&) = delete;
+                    DOMControllerNode & operator = (const DOMControllerNode &) = delete;
+                    DOMControllerNode & operator = (DOMControllerNode &&) = delete;
 
-                    virtual ~WidgetNode() override;
+                    virtual ~DOMControllerNode() override;
 
-                public:
-                    virtual status_t        lookup(Node **child, const LSPString *name) override;
+                public: // xml::Node
                     virtual status_t        enter(const LSPString * const *atts) override;
-                    virtual status_t        completed(Node *child) override;
                     virtual status_t        leave() override;
             };
 
@@ -63,4 +60,6 @@ namespace lsp
     } /* namespace ui */
 } /* namespace lsp */
 
-#endif /* PRIVATE_UI_XML_WIDGETNODE_H_ */
+
+
+#endif /* PRIVATE_UI_XML_DOMCONTROLLERNODE_H_ */

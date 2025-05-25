@@ -3,7 +3,7 @@
  *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 11 июн. 2021 г.
+ * Created on: 24 мая 2025 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -25,48 +25,30 @@ namespace lsp
 {
     namespace ctl
     {
-        Registry::Registry()
+        const ctl_class_t DOMController::metadata = { "Controller", &Controller::metadata };
+
+        DOMController::DOMController(ui::IWrapper *wrapper):
+            Controller(wrapper)
+        {
+            pClass          = &metadata;
+        }
+
+        DOMController::~DOMController()
         {
         }
 
-        Registry::~Registry()
+        void DOMController::set(ui::UIContext *ctx, const char *name, const char *value)
         {
-            do_destroy();
         }
 
-        void Registry::destroy()
+        void DOMController::begin(ui::UIContext *ctx)
         {
-            do_destroy();
         }
 
-        void Registry::do_destroy()
+        void DOMController::end(ui::UIContext *ctx)
         {
-            // Destroy all controllers in reverse order
-            for (size_t i=vControllers.size(); (i--) > 0;)
-            {
-                ctl::Controller *ctl = vControllers.uget(i);
-
-                if (ctl != NULL)
-                {
-                    ctl->destroy();
-                    delete ctl;
-                }
-            }
-            vControllers.flush();
         }
 
-        status_t Registry::add(ctl::Controller *ctl)
-        {
-//            lsp_trace("c = %p", w);
-
-            if (ctl == NULL)
-                return STATUS_BAD_ARGUMENTS;
-
-            if (vControllers.contains(ctl))
-                return STATUS_ALREADY_EXISTS;
-
-            return (vControllers.add(ctl)) ? STATUS_OK : STATUS_NO_MEM;
-        }
     } /* namespace ctl */
 } /* namespace lsp */
 

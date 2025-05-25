@@ -46,12 +46,16 @@
     #include <lsp-plug.in/plug-fw/ctl/util/IChildSync.h>
     #include <lsp-plug.in/plug-fw/ctl/util/DirController.h>
 
-    // Widget controllers
+    // Controllers
+    #include <lsp-plug.in/plug-fw/ctl/Controller.h>
+    #include <lsp-plug.in/plug-fw/ctl/DOMController.h>
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Registry.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
     #include <lsp-plug.in/plug-fw/ctl/Window.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
+
+    #include <lsp-plug.in/plug-fw/ctl/headless/PortLink.h>
 
     #include <lsp-plug.in/plug-fw/ctl/simple/Void.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Bevel.h>
