@@ -78,7 +78,7 @@ namespace lsp
                 virtual void        end(ui::UIContext *ctx) override;
 
             public: // ui::IPortListener
-                virtual void        notify(ui::IPort *port, size_t flags);
+                virtual void        notify(ui::IPort *port, size_t flags) override;
         };
 
     } /* namespace ctl */
