@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MODULES_LSP_PLUGIN_FW_INCLUDE_LSP_PLUG_IN_PLUG_FW_CTL_DOMCONTROLLER_H_
-#define MODULES_LSP_PLUGIN_FW_INCLUDE_LSP_PLUG_IN_PLUG_FW_CTL_DOMCONTROLLER_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_DOMCONTROLLER_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_DOMCONTROLLER_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -77,4 +77,4 @@ namespace lsp
 
 
 
-#endif /* MODULES_LSP_PLUGIN_FW_INCLUDE_LSP_PLUG_IN_PLUG_FW_CTL_DOMCONTROLLER_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_DOMCONTROLLER_H_ */

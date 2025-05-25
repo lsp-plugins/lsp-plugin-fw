@@ -441,14 +441,6 @@ namespace lsp
             sBgInherit.set("ibg", name, value);
         }
 
-        void Widget::notify(ui::IPort *port, size_t flags)
-        {
-        }
-
-        void Widget::reloaded(const tk::StyleSheet *sheet)
-        {
-        }
-
         void Widget::property_changed(tk::Property *prop)
         {
         }
