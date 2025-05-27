@@ -247,7 +247,7 @@ namespace lsp
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
                 static tk::FileFilters     *create_config_filters(tk::FileDialog *dlg);
                 static ssize_t              compare_presets(const resource::resource_t *a, const resource::resource_t *b);
-                void                init_enum_menu(enum_menu_t *menu);
+                void                        init_enum_menu(enum_menu_t *menu);
 
                 status_t                    add_scaling_menu_item(
                     lltl::parray<scaling_sel_t> & list,

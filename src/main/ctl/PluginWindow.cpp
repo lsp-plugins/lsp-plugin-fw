@@ -1024,8 +1024,13 @@ namespace lsp
             
             LSP_STATUS_ASSERT(
                 add_ui_flag(menu,
-                    UI_FILELIST_NAVIGAION_AUTOLOAD_PORT,
+                    UI_FILELIST_NAVIGATION_AUTOLOAD_PORT,
                     "actions.ui_behavior.file_list_navigation_autoload"));
+
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_FILELIST_NAVIGATION_AUTOPLAY_PORT,
+                    "actions.ui_behavior.file_list_navigation_autoplay"));
 
             LSP_STATUS_ASSERT(
                 add_ui_flag(menu,
