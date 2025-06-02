@@ -35,7 +35,7 @@ namespace lsp
         /**
          * Port link: defines the group of ports and dependency between ports in a group
          */
-        class PortLink: public DOMController
+        class PortLink: public DOMController, public expr::Resolver
         {
             public:
                 static const ctl_class_t metadata;
@@ -44,13 +44,14 @@ namespace lsp
                 typedef struct binding_t
                 {
                     char                   *pId;            // Binding identifier
+                    float                   fOldValue;      // Old value
+                    float                   fNewValue;      // New value
                     ui::IPort              *pPort;          // Associated port
                     ctl::Expression         sValue;         // Expression for computing the value
                 } binding_t;
 
             protected:
                 lltl::parray<binding_t>         vBindings;      // List of port bindings
-                lltl::parray<ui::IPort>         vReceivers;     // List of receivers of changes
                 ctl::Expression                 sActivity;      // Activity expression
                 bool                            bEnabled;       // Enabled flag
                 bool                            bChanging;      // Changing mode (avoid recursive calls)
@@ -69,6 +70,10 @@ namespace lsp
 
                 PortLink & operator = (const PortLink &) = delete;
                 PortLink & operator = (PortLink &&) = delete;
+
+            public: // expr::Resolver
+                virtual status_t resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes) override;
+                virtual status_t resolve(expr::value_t *value, const LSPString *name, size_t num_indexes, const ssize_t *indexes) override;
 
             public: // ctl::Controller
                 virtual status_t    init() override;

@@ -65,13 +65,14 @@ namespace lsp
                 expr::Parameters            sParams;
                 PropResolver                sResolver;
                 ui::IWrapper               *pWrapper;
+                expr::Resolver             *pResolver;
                 lltl::parray<ui::IPort>     vDependencies;
 
             protected:
                 void            do_destroy();
                 void            drop_dependencies();
                 status_t        on_resolved(const LSPString *name, ui::IPort *p);
-                virtual void    on_updated(ui::IPort *port);
+                virtual void    on_updated(ui::IPort *port, size_t flags);
 
             protected:
                 status_t        evaluate(expr::value_t *value);
@@ -89,7 +90,7 @@ namespace lsp
                 Property & operator = (const Property &) = delete;
                 Property & operator = (Property &&) = delete;
 
-                void            init(ui::IWrapper *wrapper);
+                void            init(ui::IWrapper *wrapper, expr::Resolver *resolver = NULL);
                 virtual void    destroy();
 
             public:

@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 
 namespace lsp
@@ -100,7 +101,7 @@ namespace lsp
             b->pId          = strdup(id);
             if (b->pId == NULL)
                 return NULL;
-            b->sValue.init(pWrapper, this);
+            b->sValue.init(pWrapper, this, this);
 
             // Put binding to the list
             if (!vBindings.add(b))
@@ -132,6 +133,18 @@ namespace lsp
             // Update activity
             if (sActivity.valid())
                 bEnabled    = sActivity.evaluate() >= 0.5f;
+
+            // Initialize current values
+            for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
+            {
+                binding_t *b = it.get();
+                if (b->pPort != NULL)
+                {
+                    const float value = b->pPort->value();
+                    b->fOldValue    = value;
+                    b->fNewValue    = value;
+                }
+            }
         }
 
         void PortLink::notify(ui::IPort *port, size_t flags)
@@ -144,36 +157,81 @@ namespace lsp
             if (sActivity.depends(port))
                 bEnabled    = sActivity.evaluate() >= 0.5f;
             if ((!bEnabled) || (!(flags & ui::PORT_USER_EDIT)))
+            {
+                for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
+                {
+                    binding_t *b = it.get();
+                    if (b->pPort == port)
+                    {
+                        const float value = b->pPort->value();
+                        b->fOldValue    = value;
+                        b->fNewValue    = value;
+                    }
+                }
                 return;
+            }
 
             // Now we're ready to apply changes to all ports
             bChanging = true;
             lsp_finally { bChanging = false; };
 
-            // Update port values and form the list of notification receivers
-            vReceivers.clear();
-            lsp_finally { vReceivers.clear(); };
+            // Compute new value for each binding depending on it's port's role
+            for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
+            {
+                binding_t *b = it.get();
+                if (b->pPort != NULL)
+                    b->fNewValue    = (b->pPort == port) ? b->pPort->value() : b->sValue.evaluate();
+            }
 
+            // Update port values without notification
             for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
             {
                 binding_t *b = it.get();
 
-                // Skip the port that initiated the change
-                if ((b->pPort == NULL) || (b->pPort == port))
-                    continue;
-
-                // Add port to receivers and update it's value
-                if (b->sValue.valid())
+                if ((b->pPort != NULL) && (b->pPort != port))
                 {
-                    const float v       = b->sValue.evaluate();
-                    if (vReceivers.add(b->pPort))
-                        b->pPort->set_value(v);
+                    b->pPort->set_value(b->fNewValue);
+                    b->fNewValue = b->pPort->value();
+                    lsp_trace("set %s = %f", b->pPort->id(), b->fNewValue);
+                }
+                b->fOldValue = b->fNewValue;
+            }
+
+            // Notify changed ports
+            for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
+            {
+                binding_t *b = it.get();
+                if ((b->pPort != NULL) && (b->pPort != port))
+                    b->pPort->notify_all(flags);
+            }
+        }
+
+        status_t PortLink::resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes)
+        {
+            if (num_indexes > 0)
+                return STATUS_NOT_FOUND;
+            if (strncmp(name, "_old_", 5) != 0)
+                return STATUS_NOT_FOUND;
+
+            // Lookup for previous values
+            name += 5;
+            for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
+            {
+                binding_t *b = it.get();
+                if ((b->pId != NULL) && (strcmp(b->pId, name) == 0))
+                {
+                    expr::set_value_float(value, b->fOldValue);
+                    lsp_trace("resolve _old_%s -> %f", b->pId, b->fOldValue);
+                    return STATUS_OK;
                 }
             }
 
-            // Notify receivers
-            for (lltl::iterator<ui::IPort> it = vReceivers.values(); it; ++it)
-                it->notify_all(flags);
+            return STATUS_NOT_FOUND;
+        }
+
+        status_t PortLink::resolve(expr::value_t *value, const LSPString *name, size_t num_indexes, const ssize_t *indexes)
+        {
+            return resolve(value, name->get_utf8(), num_indexes, indexes);
         }
 
     } /* namespace ctl */

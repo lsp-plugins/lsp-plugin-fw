@@ -40,6 +40,8 @@ namespace lsp
             status_t res = pProp->sParams.resolve(value, name, num_indexes, indexes);
             if (res != STATUS_OK)
                 res     = PortResolver::resolve(value, name, num_indexes, indexes);
+            if ((res != STATUS_OK) && (pProp->pResolver != NULL))
+                res = pProp->pResolver->resolve(value, name, num_indexes, indexes);
             if (res != STATUS_OK)
             {
                 expr::Resolver *vars = (pProp->pWrapper != NULL) ? pProp->pWrapper->global_variables() : NULL;
@@ -54,6 +56,8 @@ namespace lsp
             status_t res = pProp->sParams.resolve(value, name, num_indexes, indexes);
             if (res != STATUS_OK)
                 res     = PortResolver::resolve(value, name, num_indexes, indexes);
+            if ((res != STATUS_OK) && (pProp->pResolver != NULL))
+                res = pProp->pResolver->resolve(value, name, num_indexes, indexes);
             if (res != STATUS_OK)
             {
                 expr::Resolver *vars = (pProp->pWrapper != NULL) ? pProp->pWrapper->global_variables() : NULL;
@@ -67,6 +71,7 @@ namespace lsp
             sResolver(this)
         {
             pWrapper    = NULL;
+            pResolver   = NULL;
         }
 
         Property::~Property()
@@ -74,9 +79,10 @@ namespace lsp
             do_destroy();
         }
 
-        void Property::init(ui::IWrapper *wrapper)
+        void Property::init(ui::IWrapper *wrapper, expr::Resolver *resolver)
         {
             pWrapper    = wrapper;
+            pResolver   = resolver;
 
             // Bind expression stuff
             sResolver.init(wrapper);
@@ -112,7 +118,7 @@ namespace lsp
             if (!depends(port))
                 return;
 
-            on_updated(port);
+            on_updated(port, flags);
         }
 
         status_t Property::evaluate(expr::value_t *value)
@@ -179,7 +185,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void Property::on_updated(ui::IPort *port)
+        void Property::on_updated(ui::IPort *port, size_t flags)
         {
             // Nothing
         }
