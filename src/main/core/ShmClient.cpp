@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 9 авг. 2024 г.
@@ -584,6 +584,15 @@ namespace lsp
         bool ShmClient::update_catalog(dspu::Catalog *catalog)
         {
             lltl::parray<dspu::Catalog::Record> records;
+            lsp_finally {
+                for (size_t i=0, n=records.size(); i<n; ++i)
+                {
+                    dspu::Catalog::Record *rec = records.uget(i);
+                    if (rec != NULL)
+                        delete rec;
+                }
+            };
+
             status_t res = catalog->enumerate(&records);
             if (res != STATUS_OK)
                 return false;
