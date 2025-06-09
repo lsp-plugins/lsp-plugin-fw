@@ -105,6 +105,7 @@
     #include <lsp-plug.in/plug-fw/ctl/3d/Capture3D.h>
     #include <lsp-plug.in/plug-fw/ctl/3d/Model3D.h>
 
+    #include <lsp-plug.in/plug-fw/ctl/specific/AudioEnvelope.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioFolder.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioNavigator.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
