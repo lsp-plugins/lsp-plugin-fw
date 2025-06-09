@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 июл. 2021 г.
@@ -556,6 +556,19 @@ namespace lsp
             sync_markers();
 
             Widget::end(ctx);
+        }
+
+        status_t AudioSample::add(ui::UIContext *ctx, ctl::Widget *child)
+        {
+            tk::AudioSample *as = tk::widget_cast<tk::AudioSample>(wWidget);
+            if (as == NULL)
+                return STATUS_BAD_STATE;
+
+            ctl::AudioEnvelope *ae = ctl::ctl_cast<ctl::AudioEnvelope>(child);
+            if (ae != NULL)
+                return as->add(ae->widget());
+
+            return STATUS_INVALID_VALUE;
         }
 
         void AudioSample::notify(ui::IPort *port, size_t flags)
