@@ -99,6 +99,7 @@ namespace lsp
                 static float        get_normalized(ui::IPort *port);
                 static void         set_normalized(ui::IPort *port, float value);
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
+                static void         curve_function(float *y, const float *x, size_t count, const tk::AudioEnvelope *sender, void *data);
 
             protected:
                 void                arrange_time_values();

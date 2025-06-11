@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/dsp-units/util/ADSREnvelope.h>
 
 namespace lsp
 {
@@ -115,6 +116,7 @@ namespace lsp
                 sBorderColor.init(pWrapper, ae->border_color());
 
                 ae->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
+                ae->set_curve_function(curve_function, this);
             }
 
             return STATUS_OK;
@@ -327,6 +329,40 @@ namespace lsp
                         p->pPort->notify_all(ui::PORT_USER_EDIT);
                     }
                 }
+        }
+
+        void AudioEnvelope::curve_function(float *y, const float *x, size_t count, const tk::AudioEnvelope *sender, void *data)
+        {
+            if (sender == NULL)
+                return;
+
+            dspu::ADSREnvelope e;
+
+            e.set_attack(
+                sender->attack_time()->get(),
+                sender->attack_curvature()->get(),
+                dspu::ADSREnvelope::ADSR_LINE);
+            e.set_hold(
+                sender->hold_time()->get(),
+                sender->hold_enabled()->get());
+            e.set_decay(
+                sender->decay_time()->get(),
+                sender->decay_curvature()->get(),
+                dspu::ADSREnvelope::ADSR_LINE);
+            e.set_break(
+                sender->break_level()->get(),
+                sender->break_enabled()->get());
+            e.set_slope(
+                sender->slope_time()->get(),
+                sender->slope_curvature()->get(),
+                dspu::ADSREnvelope::ADSR_LINE);
+            e.set_sustain_level(sender->sustain_level()->get());
+            e.set_release(
+                sender->release_time()->get(),
+                sender->release_curvature()->get(),
+                dspu::ADSREnvelope::ADSR_LINE);
+
+            e.process(y, x, count);
         }
 
         status_t AudioEnvelope::slot_change(tk::Widget *sender, void *ptr, void *data)
