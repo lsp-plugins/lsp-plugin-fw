@@ -61,6 +61,7 @@ namespace lsp
             pClass              = &metadata;
 
             for (size_t i=0; i<P_TOTAL; ++i)
+            {
                 for (size_t j=0; j<R_TOTAL; ++j)
                 {
                     point_t *p      = &vPoints[i][j];
@@ -70,6 +71,9 @@ namespace lsp
                     p->fOldValue    = 0.0f;
                     p->fNewValue    = 0.0f;
                 }
+
+                vTypes[i]           = NULL;
+            }
 
             bCommitting         = false;
             bSubmitting         = false;
@@ -143,6 +147,11 @@ namespace lsp
                 bind_port(&vPoints[P_SUSTAIN][R_LEVEL].pPort, "sustain.level.id", name, value);
                 bind_port(&vPoints[P_RELEASE][R_TIME].pPort, "release.time.id", name, value);
                 bind_port(&vPoints[P_RELEASE][R_CURVE].pPort, "release.curve.id", name, value);
+
+                bind_port(&vTypes[P_ATTACK], "attack.type.id", name, value);
+                bind_port(&vTypes[P_DECAY], "decay.type.id", name, value);
+                bind_port(&vTypes[P_SLOPE], "slope.type.id", name, value);
+                bind_port(&vTypes[P_RELEASE], "release.type.id", name, value);
 
                 sHoldEnabled.set("hold.enabled", name, value);
                 sBreakEnabled.set("break.enabled", name, value);
@@ -276,9 +285,10 @@ namespace lsp
         {
             // Update state of points
             for (size_t i=0; i<P_TOTAL; ++i)
+            {
                 for (size_t j=0; j<R_TOTAL; ++j)
                 {
-                    point_t *p      = &vPoints[i][R_TIME];
+                    point_t *p      = &vPoints[i][j];
                     if ((p->pPort != port) || (p->pValue == NULL))
                         continue;
 
@@ -286,6 +296,11 @@ namespace lsp
                     if (j == R_TIME)
                         sync_time_values(p);
                 }
+
+                // Query curve redraw if curve segment type port has changed
+                if ((vTypes[i] != NULL) && (vTypes[i] == port))
+                    wWidget->query_draw();
+            }
 
             // Commit changes for points
             commit_values();
@@ -331,9 +346,19 @@ namespace lsp
                 }
         }
 
+        size_t AudioEnvelope::get_function(points_t point)
+        {
+            ui::IPort *port = vTypes[point];
+            return (port != NULL) ? port->value() : dspu::ADSREnvelope::ADSR_NONE;
+        }
+
         void AudioEnvelope::curve_function(float *y, const float *x, size_t count, const tk::AudioEnvelope *sender, void *data)
         {
             if (sender == NULL)
+                return;
+
+            AudioEnvelope *self = static_cast<AudioEnvelope *>(data);
+            if (self == NULL)
                 return;
 
             dspu::ADSREnvelope e;
@@ -341,26 +366,26 @@ namespace lsp
             e.set_attack(
                 sender->attack_time()->get(),
                 sender->attack_curvature()->get(),
-                dspu::ADSREnvelope::ADSR_LINE);
+                dspu::ADSREnvelope::function_t(self->get_function(P_ATTACK)));
             e.set_hold(
                 sender->hold_time()->get(),
                 sender->hold_enabled()->get());
             e.set_decay(
                 sender->decay_time()->get(),
                 sender->decay_curvature()->get(),
-                dspu::ADSREnvelope::ADSR_LINE);
+                dspu::ADSREnvelope::function_t(self->get_function(P_DECAY)));
             e.set_break(
                 sender->break_level()->get(),
                 sender->break_enabled()->get());
             e.set_slope(
                 sender->slope_time()->get(),
                 sender->slope_curvature()->get(),
-                dspu::ADSREnvelope::ADSR_LINE);
+                dspu::ADSREnvelope::function_t(self->get_function(P_SLOPE)));
             e.set_sustain_level(sender->sustain_level()->get());
             e.set_release(
                 sender->release_time()->get(),
                 sender->release_curvature()->get(),
-                dspu::ADSREnvelope::ADSR_LINE);
+                dspu::ADSREnvelope::function_t(self->get_function(P_RELEASE)));
 
             e.process(y, x, count);
         }

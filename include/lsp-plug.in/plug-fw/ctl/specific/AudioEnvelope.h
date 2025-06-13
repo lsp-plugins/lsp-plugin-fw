@@ -74,6 +74,7 @@ namespace lsp
 
             protected:
                 point_t             vPoints[P_TOTAL][R_TOTAL];
+                ui::IPort          *vTypes[P_TOTAL];
 
                 ctl::Boolean        sHoldEnabled;
                 ctl::Boolean        sBreakEnabled;
@@ -106,6 +107,7 @@ namespace lsp
                 void                sync_time_values(point_t *actor);
                 void                commit_values();
                 void                submit_ports();
+                size_t              get_function(points_t point);
 
             public:
                 explicit AudioEnvelope(ui::IWrapper *wrapper, tk::AudioEnvelope *widget);
