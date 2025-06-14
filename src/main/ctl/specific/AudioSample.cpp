@@ -188,7 +188,6 @@ namespace lsp
             pMenu           = NULL;
             pDataSink       = NULL;
             pDragInSink     = NULL;
-            bFullSample     = false;
             bLoadPreview    = false;
         }
 
@@ -287,6 +286,7 @@ namespace lsp
                 sPlayPosition.init(pWrapper, this);
                 sLength.init(pWrapper, this);
                 sActualLength.init(pWrapper, this);
+                sFullSample.init(pWrapper, this);
 
                 sColor.init(pWrapper, as->color());
                 sBorderColor.init(pWrapper, as->border_color());
@@ -436,6 +436,7 @@ namespace lsp
                 set_expr(&sPlayPosition, "play.position", name, value);
                 set_expr(&sLength, "length", name, value);
                 set_expr(&sActualLength, "length.actual", name, value);
+                set_expr(&sFullSample, "sample.full", name, value);
 
                 sWaveBorder.set("wave.border", name, value);
                 sWaveBorder.set("wborder", name, value);
@@ -458,7 +459,6 @@ namespace lsp
 
                 sIPadding.set("ipadding", name, value);
 
-                set_value(&bFullSample, "sample.full", name, value);
                 set_value(&bLoadPreview, "load.preview", name, value);
                 set_constraints(as->constraints(), name, value);
                 set_text_layout(as->main_text_layout(), "text.layout.main", name, value);
@@ -597,7 +597,8 @@ namespace lsp
                 (sHeadCut.depends(port)) ||
                 (sTailCut.depends(port)) ||
                 (sLength.depends(port)) ||
-                (sActualLength.depends(port)))
+                (sActualLength.depends(port)) ||
+                (sFullSample.depends(port)))
             {
                 sync_labels();
                 sync_markers();
@@ -734,11 +735,12 @@ namespace lsp
             float fade_in = 0.0f, fade_out = 0.0f;
             float s_begin = -1.0f, s_end = -1.0f;
             float l_begin = -1.0f, l_end = -1.0f;
-            float pp = sPlayPosition.evaluate_float(-1.0f);
-            bool s_on = sStretch.evaluate_bool(false);
-            bool l_on = sLoop.evaluate_bool(false);
+            float pp                = sPlayPosition.evaluate_float(-1.0f);
+            const bool s_on         = sStretch.evaluate_bool(false);
+            const bool l_on         = sLoop.evaluate_bool(false);
+            const bool full_sample  = sFullSample.evaluate_bool(false);
 
-            if (bFullSample)
+            if (full_sample)
             {
                 length      = sLength.evaluate_float();
                 act_length  = (sActualLength.valid()) ? sActualLength.evaluate_float() : sLength.evaluate_float();
