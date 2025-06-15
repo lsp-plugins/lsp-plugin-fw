@@ -80,6 +80,7 @@ namespace lsp
                 ctl::Boolean        sBreakEnabled;
                 ctl::Boolean        sQuadPoint;
                 ctl::Boolean        sFill;
+                ctl::Boolean        sEditable;
                 ctl::Integer        sLineWidth;
                 ctl::Color          sLineColor;
                 ctl::Color          sFillColor;
