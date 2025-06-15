@@ -74,11 +74,13 @@ namespace lsp
 
             protected:
                 point_t             vPoints[P_TOTAL][R_TOTAL];
+                ui::IPort          *vTypes[P_TOTAL];
 
                 ctl::Boolean        sHoldEnabled;
                 ctl::Boolean        sBreakEnabled;
                 ctl::Boolean        sQuadPoint;
                 ctl::Boolean        sFill;
+                ctl::Boolean        sEditable;
                 ctl::Integer        sLineWidth;
                 ctl::Color          sLineColor;
                 ctl::Color          sFillColor;
@@ -99,12 +101,14 @@ namespace lsp
                 static float        get_normalized(ui::IPort *port);
                 static void         set_normalized(ui::IPort *port, float value);
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
+                static void         curve_function(float *y, const float *x, size_t count, const tk::AudioEnvelope *sender, void *data);
 
             protected:
                 void                arrange_time_values();
                 void                sync_time_values(point_t *actor);
                 void                commit_values();
                 void                submit_ports();
+                size_t              get_function(points_t point);
 
             public:
                 explicit AudioEnvelope(ui::IWrapper *wrapper, tk::AudioEnvelope *widget);

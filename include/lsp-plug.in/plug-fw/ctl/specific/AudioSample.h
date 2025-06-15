@@ -96,7 +96,6 @@ namespace lsp
                 tk::Menu           *pMenu;
                 DataSink           *pDataSink;
                 DragInSink         *pDragInSink;
-                bool                bFullSample;
                 bool                bLoadPreview;
                 lltl::parray<file_format_t>     vFormats;
                 lltl::parray<tk::MenuItem>      vMenuItems;
@@ -136,6 +135,7 @@ namespace lsp
                 ctl::Expression     sPlayPosition;
                 ctl::Expression     sLength;
                 ctl::Expression     sActualLength;
+                ctl::Expression     sFullSample;
 
                 ctl::Padding        sIPadding;
 
