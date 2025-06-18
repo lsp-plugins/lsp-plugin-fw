@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 июн. 2021 г.
@@ -42,23 +42,30 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
-                LCString        sText;
-                LCString        sUrl;
+                LCString            sText;
+                LCString            sUrl;
 
-                ctl::Color      sColor;
-                ctl::Color      sHoverColor;
+                ctl::Color          sColor;
+                ctl::Color          sHoverColor;
+                ctl::Color          sInactiveColor;
+                ctl::Color          sInactiveHoverColor;
 
             public:
                 explicit Hyperlink(ui::IWrapper *wrapper, tk::Hyperlink *widget);
+                Hyperlink(const Hyperlink &) = delete;
+                Hyperlink(Hyperlink &&) = delete;
                 virtual ~Hyperlink() override;
+
+                Hyperlink & operator = (const Hyperlink &) = delete;
+                Hyperlink & operator = (Hyperlink &&) = delete;
 
                 virtual status_t    init() override;
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

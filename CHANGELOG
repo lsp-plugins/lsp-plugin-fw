@@ -2,9 +2,82 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.31 ===
+* Added possibility to automatically play samples when navigating file list.
+* Added ctl::Controller class that is a base controller class for UI settings.
+* Implemented ctl:link controller that allows to link values together in the UI.
+* Implemented ctl::AudioEnvelope controller.
+
+=== 1.0.30 ===
+* Refactored support of activity property.
+* Added possibility to launch standalone plugins in minimized window state.
+* Added support of inactive backround color, brightness and backround brightness.
+* Fixed broken transport (tempo BPM) synchronization for CLAP plugin format.
+* Fixed regression related to creating new global configuration file.
+* Added basic Overlay support.
+* Added MacOS dependencies.
+* Updated module versions in dependencies.
+
+=== 1.0.29 ===
+* Added workaround for Renoise host related to latency reporting by VST2 and VST3 plugins
+  on state load.
+* Added possibility to use custom scaling for each plugin bundle.
+* Added highlighting of active item in AudioFolder controller.
+* Removed ctl::Switch controller as outdated.
+* Fixed unnecessary output parameter cleanup when importing configuration.
+* Fixed regression in VST3 parameter setup.
+* Added activity option for controllers:
+  * ctl::Button;
+  * ctl::CheckBox;
+  * ctl::ComboBox;
+  * ctl::Edit;
+  * ctl::Fader;
+  * ctl::FileButton;
+  * ctl::Fraction;
+  * ctl::Indicator;
+  * ctl::Knob;
+  * ctl::Led;
+  * ctl::MidiNote;
+  * ctl::ProgressBar.
+* Updated module versions in dependencies.
+
+=== 1.0.28 ===
+* Fixed LV2 plugin factory link regression.
+* Fixed possible file/sample name loss on deactivated plugin for all modern formats.
+* Added possibility to specify custom styles for channels in AudioSample controller.
+* Updated Fader and Knob controllers for better performance.
+* Added possibility to draw background around tk::GraphText widget.
+* Added maximum amplitude property to AudioChannel and AudioSample.
+* Fixed VST3 integer parameter setup.
+* Added TabGroup widget support.
+* Updated module versions in dependencies.
+
+=== 1.0.27 ===
+* Updated VST3 SDK to 3.7.12, may be breaking changes related to parameter identifiers as
+  Steinberg has twice reduced the set of valid paremeter identifiers.
+* Fixed bug related to window sizing for CLAP plugin format.
+* Fixed unneeded resource object deletion and use-after-free in VST plugin wrapper.
+* Updated module versions in dependencies.
+
+=== 1.0.26 ===
+* Added support of audio send and audio return by the engine.
+* Implemented AudioNavigator controller.
+* Implemented AuidoFolder controller.
+* Fixed port group value synchronization for JACK wrapper.
+* Added documentation_path parameter in user configuration file which allows to
+  configure the path to the offline documentation installation.
+* Updated module versions in dependencies.
+
 === 1.0.25 ===
+* Better work with plugin window size.
+* Plugins now can be built without the ui if we omit the 'ui' feature in
+  build configuration.
 * Added support of string ports.
-* Added empty text support for Edit controller.
+* Improved build tools: UI resources are now built-in only for libraries that
+  need them.
+* Several fixes for VST3 wrapper.
+* Added INSTALL_FEATURES option.
+* Updated module versions in dependencies.
 
 === 1.0.24 ===
 * Updated module versions in dependencies.

@@ -54,6 +54,7 @@ namespace lsp
         constexpr const char *ID_MSG_METERS                 = "Meters";
         constexpr const char *ID_MSG_PATH                   = "Path";
         constexpr const char *ID_MSG_STRING                 = "String";
+        constexpr const char *ID_MSG_SHM_STATE              = "ShmState";
         constexpr const char *ID_MSG_MESH                   = "Mesh";
         constexpr const char *ID_MSG_FRAMEBUFFER            = "FrameBuffer";
         constexpr const char *ID_MSG_STREAM                 = "Stream";
@@ -62,8 +63,8 @@ namespace lsp
         constexpr const char *ID_MSG_DEACTIVATE_UI          = "UIDeactivate";
         constexpr const char *ID_MSG_PLAY_SAMPLE            = "PlaySample";
 
-        constexpr const Steinberg::Vst::ParamID MIDI_MAPPING_PARAM_BASE = 0x80000000;
-        constexpr const Steinberg::Vst::ParamID PARAM_ID_MODULO         = 0x7fffffff;
+        constexpr const Steinberg::Vst::ParamID MIDI_MAPPING_PARAM_BASE = 0x40000000;
+        constexpr const Steinberg::Vst::ParamID PARAM_ID_MODULO         = 0x3fffffff;
 
         constexpr const float MIDI_FLOAT_TO_BYTE            = 127.0f;
         constexpr const float MIDI_FLOAT_TO_BEND            = 16383.0f;
@@ -209,6 +210,13 @@ namespace lsp
                 const size_t count  = lsp_min(len, size_t(MAX_PATH_LEN - 1));
                 ::memcpy(sQPath, path, count);
                 sQPath[count]       = '\0';
+
+                if (flags & plug::PF_STATE_RESTORE)
+                {
+                    ::memcpy(sPath, path, count);
+                    sPath[count]        = '\0';
+                }
+
                 nPathFlags          = flags;
                 nFlags             |= F_QPATH;
             }

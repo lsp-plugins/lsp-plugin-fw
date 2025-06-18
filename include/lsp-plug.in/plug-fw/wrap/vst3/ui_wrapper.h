@@ -60,6 +60,7 @@ namespace lsp
                 float                               fScalingFactor;         // Scaling factor
                 uatomic_t                           nPlayPositionReq;
                 uatomic_t                           nPlayPositionResp;
+                bool                                bSizing;                // Sizing flag to prevent infinite recursion
 
                 lltl::parray<vst3::UIPort>          vSync;                  // Synchronization ports
 
@@ -111,6 +112,7 @@ namespace lsp
                 virtual float                       ui_scaling_factor(float scaling) override;
                 virtual void                        main_iteration() override;
                 virtual meta::plugin_format_t       plugin_format() const override;
+                virtual const core::ShmState       *shm_state() override;
 
             public: // vst3::IUISync
                 virtual void                        sync_ui() override;

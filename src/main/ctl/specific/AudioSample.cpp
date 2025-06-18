@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 июл. 2021 г.
@@ -188,7 +188,6 @@ namespace lsp
             pMenu           = NULL;
             pDataSink       = NULL;
             pDragInSink     = NULL;
-            bFullSample     = false;
             bLoadPreview    = false;
         }
 
@@ -247,6 +246,9 @@ namespace lsp
                 return STATUS_NO_MEM;
             pDragInSink->acquire();
 
+            for (size_t i=0; i<CHANNEL_PERIOD; ++i)
+                vChannelStyles[i].fmt_ascii("AudioSample::Channel%d", int(i + 1));
+
             tk::AudioSample *as = tk::widget_cast<tk::AudioSample>(wWidget);
             if (as != NULL)
             {
@@ -261,6 +263,7 @@ namespace lsp
                 sLabelRadius.init(pWrapper, as->label_radius());
                 sBorder.init(pWrapper, as->border_size());
                 sBorderRadius.init(pWrapper, as->border_radius());
+                sMaxAmplitude.init(pWrapper, as->max_amplitude());
                 sActive.init(pWrapper, as->active());
                 sStereoGroups.init(pWrapper, as->stereo_groups());
 
@@ -283,6 +286,7 @@ namespace lsp
                 sPlayPosition.init(pWrapper, this);
                 sLength.init(pWrapper, this);
                 sActualLength.init(pWrapper, this);
+                sFullSample.init(pWrapper, this);
 
                 sColor.init(pWrapper, as->color());
                 sBorderColor.init(pWrapper, as->border_color());
@@ -432,6 +436,7 @@ namespace lsp
                 set_expr(&sPlayPosition, "play.position", name, value);
                 set_expr(&sLength, "length", name, value);
                 set_expr(&sActualLength, "length.actual", name, value);
+                set_expr(&sFullSample, "sample.full", name, value);
 
                 sWaveBorder.set("wave.border", name, value);
                 sWaveBorder.set("wborder", name, value);
@@ -441,6 +446,8 @@ namespace lsp
                 sLabelRadius.set("label.radius", name, value);
                 sBorder.set("border.size", name, value);
                 sBorderRadius.set("border.radius", name, value);
+                sMaxAmplitude.set("amplitude.max", name, value);
+                sMaxAmplitude.set("amp.max", name, value);
 
                 sMainText.set("text.main", name, value);
 
@@ -452,7 +459,6 @@ namespace lsp
 
                 sIPadding.set("ipadding", name, value);
 
-                set_value(&bFullSample, "sample.full", name, value);
                 set_value(&bLoadPreview, "load.preview", name, value);
                 set_constraints(as->constraints(), name, value);
                 set_text_layout(as->main_text_layout(), "text.layout.main", name, value);
@@ -462,41 +468,57 @@ namespace lsp
                 set_font(as->label_font(), "label.font", name, value);
                 set_layout(as->label_layout(0), "", name, value);
 
+                // Update channel style
                 LSPString prefix;
+
+                for (size_t i=0; i<CHANNEL_PERIOD; ++i)
+                {
+                    prefix.fmt_ascii("channel%d.style", int(i+1));
+                    if (prefix.equals_ascii(name))
+                        vChannelStyles[i].set_ascii(value);
+
+                    prefix.fmt_ascii("ch%d.style", int(i));
+                    if (prefix.equals_ascii(name))
+                        vChannelStyles[i].set_ascii(value);
+                }
+
                 for (size_t i=0, n=lsp_min(size_t(LBL_COUNT), tk::AudioSample::LABELS); i<n; ++i)
                 {
-                    prefix.fmt_ascii("%s.visibility", label_names[i]);
+                    const char *label_name = label_names[i];
+
+                    prefix.fmt_ascii("%s.visibility", label_name);
                     sLabelVisibility[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d.visibility", int(i));
+                    prefix.fmt_ascii("label.%s.visibility", label_name);
                     sLabelVisibility[i].set(prefix.get_ascii(), name, value);
 
-                    prefix.fmt_ascii("%s.text.color", label_names[i]);
+                    prefix.fmt_ascii("%s.text.color", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%s.tcolor", label_names[i]);
+                    prefix.fmt_ascii("%s.tcolor", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d.text.color", int(i));
+                    prefix.fmt_ascii("label.%s.text.color", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d.tcolor", int(i));
+                    prefix.fmt_ascii("label.%s.tcolor", label_name);
                     sLabelTextColor[i].set(prefix.get_ascii(), name, value);
 
-                    prefix.fmt_ascii("%s", label_names[i]);
+                    prefix.fmt_ascii("%s", label_name);
                     set_layout(as->label_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("label.%d", int(i));
+                    prefix.fmt_ascii("label.%s", label_name);
                     set_layout(as->label_layout(i), prefix.get_ascii(), name, value);
 
-                    prefix.fmt_ascii("%s.text.layout", label_names[i]);
+                    prefix.fmt_ascii("%s.text.layout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%s.tlayout", label_names[i]);
+                    prefix.fmt_ascii("%s.tlayout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%d.text.layout", int(i));
+                    prefix.fmt_ascii("%s.text.layout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
-                    prefix.fmt_ascii("%d.tlayout", int(i));
+                    prefix.fmt_ascii("%s.tlayout", label_name);
                     set_text_layout(as->label_text_layout(i), prefix.get_ascii(), name, value);
                 }
 
                 sLabelRadius.init(pWrapper, as->label_radius());
                 sBorder.init(pWrapper, as->border_size());
                 sBorderRadius.init(pWrapper, as->border_radius());
+                sMaxAmplitude.init(pWrapper, as->max_amplitude());
 
                 sColor.set("color", name, value);
                 sBorderColor.set("border.color", name, value);
@@ -536,6 +558,19 @@ namespace lsp
             Widget::end(ctx);
         }
 
+        status_t AudioSample::add(ui::UIContext *ctx, ctl::Widget *child)
+        {
+            tk::AudioSample *as = tk::widget_cast<tk::AudioSample>(wWidget);
+            if (as == NULL)
+                return STATUS_BAD_STATE;
+
+            ctl::AudioEnvelope *ae = ctl::ctl_cast<ctl::AudioEnvelope>(child);
+            if (ae != NULL)
+                return as->add(ae->widget());
+
+            return STATUS_INVALID_VALUE;
+        }
+
         void AudioSample::notify(ui::IPort *port, size_t flags)
         {
             Widget::notify(port, flags);
@@ -562,7 +597,8 @@ namespace lsp
                 (sHeadCut.depends(port)) ||
                 (sTailCut.depends(port)) ||
                 (sLength.depends(port)) ||
-                (sActualLength.depends(port)))
+                (sActualLength.depends(port)) ||
+                (sFullSample.depends(port)))
             {
                 sync_labels();
                 sync_markers();
@@ -699,11 +735,12 @@ namespace lsp
             float fade_in = 0.0f, fade_out = 0.0f;
             float s_begin = -1.0f, s_end = -1.0f;
             float l_begin = -1.0f, l_end = -1.0f;
-            float pp = sPlayPosition.evaluate_float(-1.0f);
-            bool s_on = sStretch.evaluate_bool(false);
-            bool l_on = sLoop.evaluate_bool(false);
+            float pp                = sPlayPosition.evaluate_float(-1.0f);
+            const bool s_on         = sStretch.evaluate_bool(false);
+            const bool l_on         = sLoop.evaluate_bool(false);
+            const bool full_sample  = sFullSample.evaluate_bool(false);
 
-            if (bFullSample)
+            if (full_sample)
             {
                 length      = sLength.evaluate_float();
                 act_length  = (sActualLength.valid()) ? sActualLength.evaluate_float() : sLength.evaluate_float();
@@ -818,9 +855,7 @@ namespace lsp
                 ac->samples()->set(mesh->pvData[src_idx], samples);
 
                 // Inject style
-                LSPString style;
-                style.fmt_ascii("AudioSample::Channel%d", int(src_idx % 8) + 1);
-                inject_style(ac, style.get_ascii());
+                inject_style(ac, &vChannelStyles[src_idx % CHANNEL_PERIOD]);
 
                 // Add audio channel as managed and increment counter
                 as->channels()->madd(ac);
@@ -1139,11 +1174,6 @@ namespace lsp
             {
                 dpy->accept_drag(_this->pDragInSink, ws::DRAG_COPY, &r);
                 lsp_trace("Accepted drag");
-            }
-            else
-            {
-                dpy->reject_drag();
-                lsp_trace("Rejected drag");
             }
 
             return STATUS_OK;

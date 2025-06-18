@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 24 нояб. 2020 г.
+ * Created on: 24 нояб. 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -33,11 +33,12 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/lltl/ptrset.h>
-#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/io/IOutSequence.h>
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/expr/Variables.h>
 
+#include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/core/ShmState.h>
 #include <lsp-plug.in/plug-fw/ui/IPort.h>
 #include <lsp-plug.in/plug-fw/ui/Module.h>
 #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
@@ -58,6 +59,7 @@ namespace lsp
         class Module;
         class ISchemaListener;
         class IPlayListener;
+        class EvaluatedPort;
 
         enum import_flags_t
         {
@@ -104,6 +106,7 @@ namespace lsp
                 lltl::parray<ui::ValuePort>     vTimePorts;         // Time-related ports
                 lltl::parray<ui::IPort>         vCustomPorts;       // Custom-defined ports
                 lltl::pphash<LSPString, LSPString> vAliases;        // Port aliases
+                lltl::pphash<LSPString, ui::IPort> vEvaluated;      // Evaluated ports
                 lltl::parray<IKVTListener>      vKvtListeners;      // KVT listeners
                 lltl::ptrset<ISchemaListener>   vSchemaListeners;   // Schema change listeners
                 lltl::parray<IPlayListener>     vPlayListeners;     // List of playback listeners
@@ -113,6 +116,7 @@ namespace lsp
                 size_t          rebuild_sorted_ports();
                 void            global_config_changed(IPort *src);
                 status_t        create_alias(const LSPString *id, const LSPString *name);
+                status_t        register_evaluated_port(const LSPString *id, ui::IPort *port);
                 status_t        build_ui(const char *path, void *handle = NULL, ssize_t screen = -1);
                 void            build_config_header(LSPString *c);
                 void            build_global_config_header(LSPString *c);
@@ -120,14 +124,20 @@ namespace lsp
                 status_t        load_global_config(config::PullParser *parser);
                 status_t        init_global_constants(const tk::StyleSheet *sheet);
                 status_t        apply_visual_schema(const tk::StyleSheet *sheet);
-                status_t        export_ports(config::Serializer *s, lltl::parray<IPort> *ports, const io::Path *relative);
+                status_t        export_ports(
+                    config::Serializer *s,
+                    lltl::pphash<LSPString, config::param_t> *parameters,
+                    lltl::parray<IPort> *ports,
+                    const io::Path *relative);
+                bool            update_parameters(lltl::pphash<LSPString, config::param_t> *parameters, ui::IPort *port);
                 status_t        export_kvt(config::Serializer *s, core::KVTStorage *kvt, const io::Path *relative);
-                status_t        export_bundle_versions(config::Serializer *s, const lltl::pphash<LSPString, LSPString> *versions);
+                status_t        export_parameters(config::Serializer *s, lltl::pphash<LSPString, config::param_t> *parameters);
 
-                status_t        save_global_config(io::IOutSequence *os, const lltl::pphash<LSPString, LSPString> *versions);
-                status_t        read_bundle_versions(const io::Path *file, lltl::pphash<LSPString, LSPString> *versions);
-                static void     drop_bundle_versions(lltl::pphash<LSPString, LSPString> *versions);
+                status_t        save_global_config(io::IOutSequence *os, lltl::pphash<LSPString, config::param_t> *parameters);
+                status_t        read_parameters(const io::Path *file, lltl::pphash<LSPString, config::param_t> *params);
+                static void     drop_parameters(lltl::pphash<LSPString, config::param_t> *params);
                 void            get_bundle_version_key(LSPString *key);
+                void            get_bundle_scaling_key(LSPString *key);
 
                 void            notify_play_position(wssize_t position, wssize_t length);
 
@@ -136,6 +146,9 @@ namespace lsp
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
                 void            position_updated(const plug::position_t *pos);
+
+            protected:
+                virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
 
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
@@ -227,6 +240,15 @@ namespace lsp
                 status_t                        set_port_alias(const LSPString *alias, const char *id);
                 status_t                        set_port_alias(const char *alias, const LSPString *id);
                 status_t                        set_port_alias(const LSPString *alias, const LSPString *id);
+
+                /**
+                 * Add evaluated port
+                 * @param id port identifier
+                 * @param port port pointer
+                 * @return status of operation
+                 */
+                status_t                        add_evaluated_port(const char *id, ui::EvaluatedPort *port);
+                status_t                        add_evaluated_port(const LSPString *id, ui::EvaluatedPort *port);
 
                 /**
                  * Get UI scaling factor (100.0 means no extra scaling applied)
@@ -442,10 +464,33 @@ namespace lsp
                 virtual bool                    accept_window_size(tk::Window *wnd, size_t width, size_t height);
 
                 /**
+                 * Notify that window has been resized by user
+                 * @param width the requested window width
+                 * @param height the requested window height
+                 * @return true if the window was resized by user
+                 */
+                virtual bool                    window_resized(tk::Window *wnd, size_t width, size_t height);
+
+                /**
                  * Get the plugin format
                  * @return plugin format
                  */
                 virtual meta::plugin_format_t   plugin_format() const;
+
+                /**
+                 * Get the actual shared memory state (list of connections).
+                 * Note that multiple calls may change the result pointer and
+                 * invalidate the previously returned pointer.
+                 *
+                 * @return pointer to actual shared memory state or NULL
+                 */
+                virtual const core::ShmState   *shm_state();
+
+                /**
+                 * Get name of graphics backend
+                 * @return name of graphics backend
+                 */
+                const char                     *graphics_backend() const;
         };
 
     } /* namespace ui */

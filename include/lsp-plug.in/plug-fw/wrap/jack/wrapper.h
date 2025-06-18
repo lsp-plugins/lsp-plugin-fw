@@ -29,6 +29,8 @@
 #include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
+#include <lsp-plug.in/plug-fw/wrap/jack/factory.h>
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/string.h>
@@ -46,6 +48,9 @@ namespace lsp
     {
         class Port;
         class DataPort;
+        class AudioBufferPort;
+        class StringPort;
+        class Factory;
 
         /**
          * Wrapper for the plugin module
@@ -53,9 +58,6 @@ namespace lsp
         class Wrapper: public plug::IWrapper
         {
             private:
-                Wrapper(const Wrapper &);
-                Wrapper & operator = (const Wrapper &);
-
                 friend class    UIWrapper;
 
             protected:
@@ -68,7 +70,28 @@ namespace lsp
                     S_DISCONNECTED
                 };
 
+                typedef struct audio_send_t
+                {
+                    const char                 *sID;
+                    size_t                      nChannels;
+                    bool                        bPublish;
+                    core::AudioSend            *pSend;
+                    jack::StringPort           *pName;
+                    char                        sLastName[MAX_SHM_SEGMENT_NAME_BYTES];
+                    jack::AudioBufferPort      *vChannels[];
+                } audio_send_t;
+
+                typedef struct audio_return_t
+                {
+                    const char                 *sID;
+                    size_t                      nChannels;
+                    core::AudioReturn          *pReturn;
+                    jack::StringPort           *pName;
+                    jack::AudioBufferPort      *vChannels[];
+                } audio_return_t;
+
             private:
+                jack::Factory                  *pFactory;           // Factory for shared resources
                 jack_client_t                  *pClient;            // JACK connection client
                 state_t                         nState;             // Connection state to JACK server
                 bool                            bUpdateSettings;    // Plugin settings are required to be updated
@@ -86,11 +109,13 @@ namespace lsp
                 uatomic_t                       nDumpResp;          // Dump state to file response
 
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
+                core::ShmClient                *pShmClient;         // Shared memory client
 
                 lltl::parray<jack::Port>        vAllPorts;          // All ports
                 lltl::parray<jack::Port>        vParams;            // All input parameters
                 lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
                 lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
+                lltl::parray<jack::AudioBufferPort> vAudioBuffers;  // Audio buffers
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
                 meta::package_t                *pPackage;           // Package descriptor
@@ -114,8 +139,13 @@ namespace lsp
                 static bool     set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
-                explicit Wrapper(plug::Module *plugin, resource::ILoader *loader);
+                explicit Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader);
+                Wrapper(const Wrapper &) = delete;
+                Wrapper(Wrapper &&) = delete;
                 virtual ~Wrapper() override;
+
+                Wrapper & operator = (const Wrapper &) = delete;
+                Wrapper & operator = (Wrapper &&) = delete;
 
                 status_t                            init();
                 void                                destroy();
@@ -129,6 +159,7 @@ namespace lsp
                 virtual const meta::package_t      *package() const override;
                 virtual void                        request_settings_update() override;
                 virtual meta::plugin_format_t       plugin_format() const override;
+                virtual const core::ShmState       *shm_state() override;
 
             public:
                 inline jack_client_t               *client();

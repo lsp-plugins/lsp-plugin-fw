@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 27 июн. 2021 г.
@@ -45,12 +45,20 @@ namespace lsp
 
             protected:
                 ui::IPort                  *pPort;
+
                 ctl::Color                  sColor;
                 ctl::Color                  sSpinColor;
                 ctl::Color                  sTextColor;
                 ctl::Color                  sSpinTextColor;
                 ctl::Color                  sBorderColor;
                 ctl::Color                  sBorderGapColor;
+                ctl::Color                  sInactiveColor;
+                ctl::Color                  sInactiveSpinColor;
+                ctl::Color                  sInactiveTextColor;
+                ctl::Color                  sInactiveSpinTextColor;
+                ctl::Color                  sInactiveBorderColor;
+                ctl::Color                  sInactiveBorderGapColor;
+
                 ctl::LCString               sEmptyText;
                 lltl::parray<ListBoxItem>   vItems;             // Custom items
 

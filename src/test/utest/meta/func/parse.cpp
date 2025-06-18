@@ -31,6 +31,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test BOOL port",
+            "Test Bool",
             meta::U_BOOL,
             meta::R_CONTROL,
             0,
@@ -109,6 +110,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test ENUM port",
+            "Test Enum",
             meta::U_ENUM,
             meta::R_CONTROL,
             meta::F_LOWER | meta::F_STEP,
@@ -117,6 +119,7 @@ UTEST_BEGIN("meta.func", parse)
             2.0f,
             3.0f,
             enum_values,
+            NULL,
             NULL
         };
 
@@ -179,6 +182,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test GAIN_AMP port",
+            "Test Gain Amp",
             meta::U_GAIN_AMP,
             meta::R_CONTROL,
             meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
@@ -186,6 +190,7 @@ UTEST_BEGIN("meta.func", parse)
             1000.0f,
             1.0f,
             0.01f,
+            NULL,
             NULL,
             NULL
         };
@@ -251,6 +256,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test GAIN_AMP port",
+            "Test Gain Amp",
             meta::U_GAIN_POW,
             meta::R_CONTROL,
             meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
@@ -258,6 +264,7 @@ UTEST_BEGIN("meta.func", parse)
             1000.0f,
             1.0f,
             0.01f,
+            NULL,
             NULL,
             NULL
         };
@@ -324,6 +331,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test DB port",
+            "Test dB",
             meta::U_DB,
             meta::R_CONTROL,
             meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
@@ -331,6 +339,7 @@ UTEST_BEGIN("meta.func", parse)
             60.0f,
             0.0f,
             0.1f,
+            NULL,
             NULL,
             NULL
         };
@@ -393,6 +402,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test NEPER port",
+            "Test Neper",
             meta::U_NEPER,
             meta::R_CONTROL,
             meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
@@ -400,6 +410,7 @@ UTEST_BEGIN("meta.func", parse)
             60.0f,
             0.0f,
             0.1f,
+            NULL,
             NULL,
             NULL
         };
@@ -462,6 +473,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test FREQUENCY port",
+            "Test Frequency",
             meta::U_HZ,
             meta::R_CONTROL,
             meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
@@ -469,6 +481,7 @@ UTEST_BEGIN("meta.func", parse)
             24000.0f,
             0.0f,
             0.1f,
+            NULL,
             NULL,
             NULL
         };
@@ -543,6 +556,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test FREQUENCY port",
+            "Test Frequency",
             meta::U_KHZ,
             meta::R_CONTROL,
             meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
@@ -550,6 +564,7 @@ UTEST_BEGIN("meta.func", parse)
             24000.0f,
             0.0f,
             0.1f,
+            NULL,
             NULL,
             NULL
         };
@@ -712,6 +727,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test BAR port",
+            "Test Bar",
             meta::U_BAR,
             meta::R_CONTROL,
             meta::F_LOWER | meta::F_UPPER | meta::F_STEP | meta::F_INT,
@@ -719,6 +735,7 @@ UTEST_BEGIN("meta.func", parse)
             1000.0f,
             0.0f,
             1.0f,
+            NULL,
             NULL,
             NULL
         };
@@ -790,6 +807,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test BAR port",
+            "Test Bar",
             meta::U_BAR,
             meta::R_CONTROL,
             meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
@@ -797,6 +815,7 @@ UTEST_BEGIN("meta.func", parse)
             1000.0f,
             0.0f,
             1.0f,
+            NULL,
             NULL,
             NULL
         };
@@ -868,6 +887,7 @@ UTEST_BEGIN("meta.func", parse)
         static const meta::port_t port = {
             "test",
             "Test SEC port",
+            "Test Seconds",
             meta::U_SEC,
             meta::R_CONTROL,
             meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
@@ -875,6 +895,7 @@ UTEST_BEGIN("meta.func", parse)
             1000.0f,
             0.0f,
             1.0f,
+            NULL,
             NULL,
             NULL
         };

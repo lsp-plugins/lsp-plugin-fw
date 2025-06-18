@@ -170,6 +170,8 @@ namespace lsp
                 if (res != STATUS_OK)
                     return res;
 
+                strncpy(sPath, sDspRequest, PATH_MAX);
+
                 nXFlagsReq          = plug::PF_STATE_RESTORE;
                 atomic_add(&nDspSerial, 1);
                 return STATUS_OK;

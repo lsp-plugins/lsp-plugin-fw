@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 9 апр. 2021 г.
@@ -39,7 +39,10 @@ namespace lsp
 {
     namespace ctl
     {
+        class Controller;
+        class DOMController;
         class Widget;
+        class Overlay;
         class Registry;
     }
 
@@ -51,22 +54,24 @@ namespace lsp
          */
         class UIContext
         {
-            private:
-                UIContext & operator = (const UIContext &);
-                UIContext(const UIContext &);
-
             protected:
                 ui::IWrapper                   *pWrapper;
                 ctl::Registry                  *pControllers;
                 tk::Registry                   *pWidgets;
                 expr::Resolver                 *pResolver;
                 lltl::parray<expr::Variables>   vStack;
+                lltl::parray<ctl::Overlay>      vOverlays;
                 expr::Variables                 vRoot;
                 UIOverrides                     sOverrides;
 
             public:
                 explicit UIContext(ui::IWrapper *wrapper, ctl::Registry *controllers, tk::Registry *widgets);
+                UIContext(const UIContext &) = delete;
+                UIContext(UIContext &&) = delete;
                 ~UIContext();
+
+                UIContext & operator = (const UIContext &) = delete;
+                UIContext & operator = (UIContext &&) = delete;
 
                 status_t                init();
 
@@ -94,6 +99,12 @@ namespace lsp
                  * @return the registry for widgets
                  */
                 inline tk::Registry    *widgets()           { return pWidgets;          }
+
+                /**
+                 * Get list of overlay widget controllers
+                 * @return list of overlay widget controllers
+                 */
+                lltl::parray<ctl::Overlay> *overlays()      { return &vOverlays;        }
 
                 /**
                  * Get the display
@@ -189,22 +200,23 @@ namespace lsp
                 status_t    eval_int(ssize_t *value, const LSPString *expr);
 
                 /**
-                 * Create widget controller by the tag name
+                 * Create widget controller by the controller's tag name
                  *
                  * @param name the tag name of the widget
                  * @return pointer to widget controller
                  */
-                ctl::Widget *create_controller(const LSPString *name);
+                ctl::Controller *create_controller(const LSPString *name);
 
                 /**
-                 * Set attributes to widget
+                 * Set attributes to controller
                  * @param widget widget to set attributes
                  * @param atts attributes to set
                  * @return status of operation
                  */
-                status_t    set_attributes(ctl::Widget *widget, const LSPString * const *atts);
+                status_t    set_attributes(ctl::DOMController *ctl, const LSPString * const *atts);
         };
-    }
-}
+
+    } /* namespace ui */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_UI_UICONTEXT_H_ */

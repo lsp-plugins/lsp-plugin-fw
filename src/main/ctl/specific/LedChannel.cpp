@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 авг. 2021 г.
@@ -66,6 +66,7 @@ namespace lsp
         {
             pClass          = &metadata;
 
+            pParent         = NULL;
             pPort           = NULL;
             nFlags          = 0;
             nType           = MT_PEAK;
@@ -73,6 +74,7 @@ namespace lsp
             fMax            = 0.0f;
             fBalance        = 0.0f;
             fValue          = 0.0f;
+            fMaxValue       = 0.0f;
             fRms            = 0.0f;
             fReport         = 0.0f;
             fAttack         = 0.1f;
@@ -91,11 +93,11 @@ namespace lsp
             tk::LedMeterChannel *lmc = tk::widget_cast<tk::LedMeterChannel>(wWidget);
             if (lmc != NULL)
             {
-                sActivity.init(pWrapper, lmc->active());
                 sReversive.init(pWrapper, lmc->reversive());
                 sPeakVisible.init(pWrapper, lmc->peak_visible());
                 sBalanceVisible.init(pWrapper, lmc->balance_visible());
                 sTextVisible.init(pWrapper, lmc->text_visible());
+                sHeaderVisible.init(pWrapper, lmc->header_visible());
 
                 sPropValueColor.bind("normal.color", lmc->style());
                 sPropYellowZoneColor.bind("yellow.color", lmc->style());
@@ -116,6 +118,7 @@ namespace lsp
 
                 lmc->slots()->bind(tk::SLOT_SHOW, slot_show, this);
                 lmc->slots()->bind(tk::SLOT_HIDE, slot_hide, this);
+                lmc->slots()->bind(tk::SLOT_MOUSE_CLICK, slot_mouse_click, this);
             }
 
             return STATUS_OK;
@@ -134,12 +137,11 @@ namespace lsp
             {
                 bind_port(&pPort, "id", name, value);
 
-                sActivity.set("activity", name, value);
-                sActivity.set("active", name, value);
                 sReversive.set("reversive", name, value);
                 sPeakVisible.set("peak.visibility", name, value);
                 sBalanceVisible.set("balance.visibility", name, value);
                 sTextVisible.set("text.visibility", name, value);
+                sHeaderVisible.set("header.visibility", name, value);
 
                 sColor.set("color", name, value);
                 sValueColor.set("value.color", name, value);
@@ -242,20 +244,26 @@ namespace lsp
                 fRms        = 0.0f;
 
             // Update meter
+            fMaxValue           = lsp_max(fMaxValue, fValue);
+            const float value   = calc_value(fValue);
+
             if (nType == MT_RMS_PEAK)
             {
-                lmc->peak()->set(calc_value(fValue));
+                lmc->peak()->set(value);
                 lmc->value()->set(calc_value(fRms));
-                set_meter_text(lmc, fRms);
+                set_meter_text(lmc->text(), fRms);
             }
             else
             {
                 lmc->value()->set(calc_value(fValue));
-                set_meter_text(lmc, fValue);
+                set_meter_text(lmc->text(), fValue);
             }
+
+            lmc->header_value()->set(calc_value(fMaxValue));
+            set_meter_text(lmc->header(), fMaxValue);
         }
 
-        void LedChannel::set_meter_text(tk::LedMeterChannel *lmc, float value)
+        void LedChannel::set_meter_text(tk::String *dst, float value)
         {
             float avalue = fabs(value);
             const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
@@ -265,12 +273,12 @@ namespace lsp
             {
                 if (avalue >= GAIN_AMP_MAX)
                 {
-                    lmc->text()->set_raw("+inf");
+                    dst->set_raw("+inf");
                     return;
                 }
                 else if (avalue < GAIN_AMP_MIN)
                 {
-                    lmc->text()->set_raw("-inf");
+                    dst->set_raw("-inf");
                     return;
                 }
 
@@ -292,7 +300,7 @@ namespace lsp
             buf[sizeof(buf)-1] = '\0';
 
             // Update text of the meter
-            lmc->text()->set_raw(buf);
+            dst->set_raw(buf);
         }
 
         float LedChannel::calc_value(float value)
@@ -371,20 +379,22 @@ namespace lsp
                 return;
 
             // Clear value ranges
-            tk::ColorRanges *crv[3];
+            tk::ColorRanges *crv[4];
 
             crv[0]      = lmc->value_ranges();
             crv[1]      = lmc->peak_ranges();
             crv[2]      = lmc->text_ranges();
+            crv[3]      = lmc->header_ranges();
 
             lsp::Color c(sPropValueColor.color());
             lmc->value_color()->set(&c);
             lmc->peak_color()->set(&c);
             lmc->text_color()->set(&c);
+            lmc->header_color()->set(&c);
             float light = c.lightness();
 
             // For each component: update color ranges
-            for (size_t i=0; i<3; ++i)
+            for (size_t i=0; i<4; ++i)
             {
                 tk::ColorRange *cr;
                 tk::ColorRanges *crs = crv[i];
@@ -415,6 +425,21 @@ namespace lsp
                     cr->set_range(-120.0f, -96.0f);
                     cr->set_color(c);
                 }
+            }
+        }
+
+        void LedChannel::on_mouse_click(const ws::event_t *ev)
+        {
+            tk::LedMeterChannel *lmc = tk::widget_cast<tk::LedMeterChannel>(wWidget);
+            if (lmc == NULL)
+                return;
+
+            if (lmc->is_header(ev->nLeft, ev->nTop))
+            {
+                if (pParent != NULL)
+                    pParent->cleanup_header();
+                else
+                    cleanup_header();
             }
         }
 
@@ -453,7 +478,32 @@ namespace lsp
             if (sPropRedZoneColor.is(prop))
                 sync_colors();
         }
-    }
-}
 
+        status_t LedChannel::slot_mouse_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            LedChannel *self = static_cast<LedChannel *>(ptr);
+            if (self != NULL)
+                self->on_mouse_click(static_cast<ws::event_t *>(data));
 
+            return STATUS_OK;
+        }
+
+        void LedChannel::cleanup_header()
+        {
+            fMaxValue = 0.0f;
+
+            tk::LedMeterChannel *lmc = tk::widget_cast<tk::LedMeterChannel>(wWidget);
+            if (lmc == NULL)
+                return;
+
+            lmc->header_value()->set(calc_value(fMaxValue));
+            set_meter_text(lmc->header(), fMaxValue);
+        }
+
+        void LedChannel::set_parent(ctl::LedMeter *meter)
+        {
+            pParent     = meter;
+        }
+
+    } /* namespace ctl */
+} /* namespace lsp */

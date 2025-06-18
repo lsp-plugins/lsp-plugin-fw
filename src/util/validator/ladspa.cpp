@@ -94,6 +94,38 @@ namespace lsp
                                 meta->uid, port->id);
                         }
                         break;
+                    case meta::R_SEND_NAME:
+                        if (!meta::is_optional_port(port))
+                        {
+                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support SEND_NAME port, "
+                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
+                                meta->uid, port->id);
+                        }
+                        break;
+                    case meta::R_RETURN_NAME:
+                        if (!meta::is_optional_port(port))
+                        {
+                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support RETURN_NAME port, "
+                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
+                                meta->uid, port->id);
+                        }
+                        break;
+                    case meta::R_AUDIO_SEND:
+                        if (!meta::is_optional_port(port))
+                        {
+                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support AUDIO_SEND port, "
+                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
+                                meta->uid, port->id);
+                        }
+                        break;
+                    case meta::R_AUDIO_RETURN:
+                        if (!meta::is_optional_port(port))
+                        {
+                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support AUDIO_RETURN port, "
+                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
+                                meta->uid, port->id);
+                        }
+                        break;
                     default:
                         break;
                 }

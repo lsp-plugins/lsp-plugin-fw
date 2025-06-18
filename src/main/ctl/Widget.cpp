@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/common/debug.h>
 
 namespace lsp
 {
@@ -33,14 +34,13 @@ namespace lsp
         }
 
         //---------------------------------------------------------------------
-        const ctl_class_t Widget::metadata = { "Widget", NULL };
+        const ctl_class_t Widget::metadata = { "Widget", &DOMController::metadata };
 
         Widget::Widget(ui::IWrapper *wrapper, tk::Widget *widget):
-            ui::IPortListener(),
+            ctl::DOMController(wrapper),
             sProperties(this)
         {
             pClass          = &metadata;
-            pWrapper        = wrapper;
             wWidget         = widget;
         }
 
@@ -52,6 +52,7 @@ namespace lsp
         void Widget::destroy()
         {
             do_destroy();
+            ctl::DOMController::destroy();
         }
 
         void Widget::do_destroy()
@@ -62,19 +63,6 @@ namespace lsp
 
             pWrapper    = NULL;
             wWidget     = NULL;
-        }
-
-        bool Widget::instance_of(const ctl_class_t *wclass) const
-        {
-            const ctl_class_t *wc = pClass;
-            while (wc != NULL)
-            {
-                if (wc == wclass)
-                    return true;
-                wc = wc->parent;
-            }
-
-            return false;
         }
 
         tk::Widget *Widget::widget()
@@ -290,17 +278,6 @@ namespace lsp
             return true;
         }
 
-        bool Widget::set_expr(ctl::Expression *expr, const char *param, const char *name, const char *value)
-        {
-            if (expr == NULL)
-                return false;
-            if (strcmp(name, param))
-                return false;
-
-            expr->parse(value);
-            return true;
-        }
-
         bool Widget::set_param(tk::Boolean *b, const char *param, const char *name, const char *value)
         {
             if (b == NULL)
@@ -336,77 +313,6 @@ namespace lsp
             if (e == NULL)
                 return false;
             return e->parse(value) == STATUS_OK;
-        }
-
-        bool Widget::set_value(bool *v, const char *param, const char *name, const char *value)
-        {
-            if (v == NULL)
-                return false;
-            if (strcmp(param, name))
-                return false;
-            PARSE_BOOL(value, *v = __);
-            return true;
-        }
-
-        bool Widget::set_value(ssize_t *v, const char *param, const char *name, const char *value)
-        {
-            if (v == NULL)
-                return false;
-            if (strcmp(param, name))
-                return false;
-            PARSE_INT(value, *v = __);
-            return true;
-        }
-
-        bool Widget::set_value(size_t *v, const char *param, const char *name, const char *value)
-        {
-            if (v == NULL)
-                return false;
-            if (strcmp(param, name))
-                return false;
-            PARSE_UINT(value, *v = __);
-            return true;
-        }
-
-        bool Widget::set_value(float *v, const char *param, const char *name, const char *value)
-        {
-            if (v == NULL)
-                return false;
-            if (strcmp(param, name))
-                return false;
-            PARSE_FLOAT(value, *v = __);
-            return true;
-        }
-
-        bool Widget::set_value(LSPString *v, const char *param, const char *name, const char *value)
-        {
-            if (v == NULL)
-                return false;
-            if (strcmp(param, name))
-                return false;
-
-            v->set_utf8(value);
-            return true;
-        }
-
-        bool Widget::bind_port(ui::IPort **port, const char *param, const char *name, const char *value)
-        {
-            if (strcmp(param, name))
-                return false;
-            if (port == NULL)
-                return false;
-
-            ui::IPort *oldp = *port;
-            ui::IPort *newp = pWrapper->port(value);
-
-            if (oldp != NULL)
-                oldp->unbind(this);
-            if (newp != NULL)
-                newp->bind(this);
-
-            *port           = newp;
-
-            return true;
         }
 
         bool Widget::set_embedding(tk::Embedding *e, const char *name, const char *value)
@@ -457,16 +363,24 @@ namespace lsp
 
         status_t Widget::init()
         {
+            status_t res = ctl::DOMController::init();
+            if (res != STATUS_OK)
+                return res;
+
             pWrapper->add_schema_listener(this);
 
             if (wWidget != NULL)
             {
+                sActivity.init(pWrapper, wWidget->active());
                 sBgColor.init(pWrapper, wWidget->bg_color());
+                sInactiveBgColor.init(pWrapper, wWidget->inactive_bg_color());
                 sBgInherit.init(pWrapper, wWidget->bg_inherit());
                 sPadding.init(pWrapper, wWidget->padding());
                 sVisibility.init(pWrapper, wWidget->visibility());
                 sBrightness.init(pWrapper, wWidget->brightness());
+                sInactiveBrightness.init(pWrapper, wWidget->inactive_brightness());
                 sBgBrightness.init(pWrapper, wWidget->bg_brightness());
+                sInactiveBgBrightness.init(pWrapper, wWidget->inactive_bg_brightness());
                 sPointer.init(pWrapper, wWidget->pointer());
             }
 
@@ -476,6 +390,8 @@ namespace lsp
 
         void Widget::set(ui::UIContext *ctx, const char *name, const char *value)
         {
+            ctl::DOMController::set(ctx, name, value);
+
             if (wWidget != NULL)
             {
                 set_param(wWidget->scaling(), "scaling", name, value);
@@ -494,12 +410,17 @@ namespace lsp
                     assign_styles(wWidget, value, false);
             }
 
+            sActivity.set("activity", name, value);
             sVisibility.set("visibility", name, value);
             sVisibility.set("visible", name, value);
             sBrightness.set("brightness", name, value);
             sBrightness.set("bright", name, value);
+            sInactiveBrightness.set("inactive.brightness", name, value);
+            sInactiveBrightness.set("inactive.bright", name, value);
             sBgBrightness.set("bg.brightness", name, value);
             sBgBrightness.set("bg.bright", name, value);
+            sInactiveBgBrightness.set("inactive.bg.brightness", name, value);
+            sInactiveBgBrightness.set("inactive.bg.bright", name, value);
             sPointer.set("pointer", name, value);
 
             sPadding.set("pad", name, value);
@@ -514,24 +435,10 @@ namespace lsp
                 if (wWidget != NULL)
                     wWidget->bg_inherit()->set(false);
             }
+            sInactiveBgColor.set("inactive.bg", name, value);
+            sInactiveBgColor.set("inactive.bg.color", name, value);
             sBgInherit.set("bg.inherit", name, value);
             sBgInherit.set("ibg", name, value);
-        }
-
-        void Widget::begin(ui::UIContext *ctx)
-        {
-        }
-
-        void Widget::end(ui::UIContext *ctx)
-        {
-        }
-
-        void Widget::notify(ui::IPort *port, size_t flags)
-        {
-        }
-
-        void Widget::reloaded(const tk::StyleSheet *sheet)
-        {
         }
 
         void Widget::property_changed(tk::Property *prop)

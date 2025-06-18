@@ -31,8 +31,9 @@ namespace lsp
 {
     namespace jack
     {
-        Wrapper::Wrapper(plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
+        Wrapper::Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
         {
+            pFactory        = factory;
             pClient         = NULL;
             nState          = S_CREATED;
             bUpdateSettings = true;
@@ -48,6 +49,7 @@ namespace lsp
             nDumpResp       = 0;
 
             pSamplePlayer   = NULL;
+            pShmClient      = NULL;
 
             pPackage        = NULL;
         }
@@ -61,6 +63,7 @@ namespace lsp
             nQueryDrawResp  = 0;
             nDumpResp       = 0;
             pSamplePlayer   = NULL;
+            pShmClient      = NULL;
         }
 
         static ssize_t cmp_port_identifiers(const jack::Port *pa, const jack::Port *pb)
@@ -121,6 +124,16 @@ namespace lsp
                 if (pSamplePlayer == NULL)
                     return STATUS_NO_MEM;
                 pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
+            }
+
+            // Create shared memory client
+            if ((vAudioBuffers.size() > 0) || (meta->extensions & meta::E_SHM_TRACKING))
+            {
+                lsp_trace("Creating shared memory client");
+                pShmClient          = new core::ShmClient();
+                if (pShmClient == NULL)
+                    return STATUS_NO_MEM;
+                pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
             }
 
             // Update state, mark initialized
@@ -262,6 +275,14 @@ namespace lsp
                 dp->set_buffer_size(buf_size);
             }
 
+            for (size_t i=0, n=vAudioBuffers.size(); i<n; ++i)
+            {
+                jack::AudioBufferPort *ap = vAudioBuffers.uget(i);
+                if (ap == NULL)
+                    continue;
+                ap->set_buffer_size(buf_size);
+            }
+
             // Set plugin sample rate and call for settings update
             if (jack_set_sample_rate_callback(pClient, sync_sample_rate, this))
             {
@@ -358,6 +379,8 @@ namespace lsp
             if (bUpdateSettings)
             {
                 lsp_trace("updating settings");
+                if (pShmClient != NULL)
+                    pShmClient->update_settings();
                 pPlugin->update_settings();
                 bUpdateSettings = false;
             }
@@ -370,6 +393,12 @@ namespace lsp
                 nDumpResp           = dump_req;
             }
 
+            if (pShmClient != NULL)
+            {
+                pShmClient->begin(samples);
+                pShmClient->pre_process(samples);
+            }
+
             // Call the main processing unit
             pPlugin->process(samples);
 
@@ -377,12 +406,20 @@ namespace lsp
             if (pSamplePlayer != NULL)
                 pSamplePlayer->process(samples);
 
+            if (pShmClient != NULL)
+            {
+                pShmClient->post_process(samples);
+                pShmClient->end();
+            }
+
             // Report latency if changed
             ssize_t latency = pPlugin->latency();
             if (latency != nLatency)
             {
-                jack_recompute_total_latencies(pClient);
+                lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
+
                 nLatency = latency;
+                jack_recompute_total_latencies(pClient);
             }
 
             // Post-process data ports
@@ -452,7 +489,16 @@ namespace lsp
             {
                 pSamplePlayer->destroy();
                 delete pSamplePlayer;
-                pSamplePlayer = NULL;
+                pSamplePlayer   = NULL;
+            }
+
+            // Release catalog
+            if (pShmClient != NULL)
+            {
+                lsp_trace("Destroying shared memory client");
+                pShmClient->destroy();
+                delete pShmClient;
+                pShmClient      = NULL;
             }
 
             // Destroy ports
@@ -524,6 +570,15 @@ namespace lsp
                     break;
                 }
 
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
+                {
+                    jack::AudioBufferPort *jap = new jack::AudioBufferPort(port, this);
+                    vAudioBuffers.add(jap);
+                    jp      = jap;
+                    break;
+                }
+
                 case meta::R_OSC_IN:
                 case meta::R_OSC_OUT:
                     jp      = new jack::OscPort(port, this);
@@ -535,6 +590,8 @@ namespace lsp
                     break;
 
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     jp      = new jack::StringPort(port, this);
                     vParams.add(jp);
                     break;
@@ -722,17 +779,33 @@ namespace lsp
                     p->set_buffer_size(nframes);
             }
 
+            for (size_t i=0, n=_this->vAudioBuffers.size(); i<n; ++i)
+            {
+                jack::AudioBufferPort *p = _this->vAudioBuffers.uget(i);
+                if (p != NULL)
+                    p->set_buffer_size(nframes);
+            }
+
+            if (_this->pShmClient != NULL)
+                _this->pShmClient->set_buffer_size(nframes);
+
             return 0;
         }
 
         int Wrapper::sync_sample_rate(jack_nframes_t nframes, void *arg)
         {
             jack::Wrapper *_this        = static_cast<jack::Wrapper *>(arg);
+            if (_this->sPosition.sampleRate == nframes)
+                return 0;
+
             _this->pPlugin->set_sample_rate(nframes);
             if (_this->pSamplePlayer != NULL)
                 _this->pSamplePlayer->set_sample_rate(nframes);
+            if (_this->pShmClient != NULL)
+                _this->pShmClient->set_sample_rate(nframes);
             _this->sPosition.sampleRate = nframes;
             _this->bUpdateSettings      = true;
+
             return 0;
         }
 
@@ -1064,6 +1137,8 @@ namespace lsp
                     break;
                 }
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                 {
                     // Check type of argument
                     if (!param->is_string())
@@ -1142,6 +1217,11 @@ namespace lsp
         meta::plugin_format_t Wrapper::plugin_format() const
         {
             return meta::PLUGIN_JACK;
+        }
+
+        const core::ShmState *Wrapper::shm_state()
+        {
+            return (pShmClient != NULL) ? pShmClient->state() : NULL;
         }
 
     } /* namespace jack */

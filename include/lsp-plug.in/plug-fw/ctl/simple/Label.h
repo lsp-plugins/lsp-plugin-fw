@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 6 мая 2021 г.
@@ -67,10 +67,10 @@ namespace lsp
 
                     public:
                         explicit PopupWindow(Label *label, tk::Display *dpy);
-                        virtual ~PopupWindow();
+                        virtual ~PopupWindow() override;
 
-                        virtual status_t    init();
-                        virtual void        destroy();
+                        virtual status_t    init() override;
+                        virtual void        destroy() override;
                 };
 
             protected:
@@ -78,6 +78,8 @@ namespace lsp
 
                 ctl::Color          sColor;
                 ctl::Color          sHoverColor;
+                ctl::Color          sInactiveColor;
+                ctl::Color          sInactiveHoverColor;
                 ctl::Padding        sIPadding;
 
                 ctl::LCString       sText;
@@ -108,7 +110,11 @@ namespace lsp
 
             public:
                 explicit Label(ui::IWrapper *wrapper, tk::Label *widget, label_type_t type);
+                Label(const Label &) = delete;
+                Label(Label &&) = delete;
                 virtual ~Label() override;
+                Label & operator = (const Label &) = delete;
+                Label & operator = (Label &&) = delete;
 
                 virtual status_t    init() override;
                 virtual void        destroy() override;

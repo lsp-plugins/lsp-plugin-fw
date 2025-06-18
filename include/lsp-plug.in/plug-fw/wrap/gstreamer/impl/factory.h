@@ -86,35 +86,12 @@ namespace lsp
             }
 
             // Obtain the manifest
-            lsp_trace("Obtaining manifest...");
-
-            status_t res;
-            meta::package_t *manifest = NULL;
-            io::IInStream *is = pLoader->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
-            if (is != NULL)
+            status_t res = meta::load_manifest(&pPackage, pLoader);
+            if (res != STATUS_OK)
             {
-                lsp_finally {
-                    is->close();
-                    delete is;
-                };
-
-                if ((res = meta::load_manifest(&manifest, is)) != STATUS_OK)
-                {
-                    lsp_warn("Error loading manifest file, error=%d", int(res));
-                    manifest = NULL;
-                }
+                lsp_error("No manifest available");
+                return res;
             }
-            if (manifest == NULL)
-            {
-                lsp_trace("No manifest file found");
-                return STATUS_BAD_STATE;
-            }
-            lsp_finally {
-                meta::free_manifest(manifest);
-            };
-
-            // Remember the package
-            pPackage    = release_ptr(manifest);
 
             return STATUS_OK;
         }
@@ -131,6 +108,16 @@ namespace lsp
                 delete this;
 
             return ref_count;
+        }
+
+        core::Catalog *Factory::acquire_catalog()
+        {
+            return sCatalogManager.acquire();
+        }
+
+        void Factory::release_catalog(core::Catalog *catalog)
+        {
+            sCatalogManager.release(catalog);
         }
 
         ipc::IExecutor *Factory::acquire_executor()

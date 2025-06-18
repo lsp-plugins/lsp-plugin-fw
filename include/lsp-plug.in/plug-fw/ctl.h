@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -44,14 +44,19 @@
     #include <lsp-plug.in/plug-fw/ctl/util/Layout.h>
     #include <lsp-plug.in/plug-fw/ctl/util/TextLayout.h>
     #include <lsp-plug.in/plug-fw/ctl/util/IChildSync.h>
+    #include <lsp-plug.in/plug-fw/ctl/util/DirController.h>
 
-    // Widget controllers
+    // Controllers
+    #include <lsp-plug.in/plug-fw/ctl/Controller.h>
+    #include <lsp-plug.in/plug-fw/ctl/DOMController.h>
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Registry.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
     #include <lsp-plug.in/plug-fw/ctl/Window.h>
     #include <lsp-plug.in/plug-fw/ctl/PresetsWindow.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
+
+    #include <lsp-plug.in/plug-fw/ctl/headless/PortLink.h>
 
     #include <lsp-plug.in/plug-fw/ctl/simple/Void.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Bevel.h>
@@ -60,7 +65,6 @@
     #include <lsp-plug.in/plug-fw/ctl/simple/Knob.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Button.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Led.h>
-    #include <lsp-plug.in/plug-fw/ctl/simple/Switch.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Indicator.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Separator.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Hyperlink.h>
@@ -74,7 +78,9 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/Grid.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/Cell.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/MultiLabel.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/Overlay.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/TabControl.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/TabGroup.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/ListBox.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/ListBoxItem.h>
 
@@ -100,12 +106,16 @@
     #include <lsp-plug.in/plug-fw/ctl/3d/Capture3D.h>
     #include <lsp-plug.in/plug-fw/ctl/3d/Model3D.h>
 
+    #include <lsp-plug.in/plug-fw/ctl/specific/AudioEnvelope.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/AudioFolder.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/AudioNavigator.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/FileButton.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/Fraction.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedChannel.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedMeter.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/MidiNote.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/ShmLink.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/TempoTap.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/ThreadComboBox.h>
 

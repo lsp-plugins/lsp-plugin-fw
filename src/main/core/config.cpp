@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 апр. 2021 г.
@@ -175,9 +175,7 @@ namespace lsp
                     // Write comment
                     LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [pathname]", meta->name), STATUS_NO_MEM);
                     if (comment.length() > 0)
-                    {
                         LSP_STATUS_ASSERT(s->write_comment(&comment));
-                    }
 
                     // Write path
                     flags |= config::SF_QUOTED;
@@ -191,14 +189,14 @@ namespace lsp
 
                     break;
                 }
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                 case meta::R_STRING:
                 {
                     // Write comment
                     LSP_BOOL_ASSERT(comment.fmt_append_utf8("%s [string]", meta->name), STATUS_NO_MEM);
                     if (comment.length() > 0)
-                    {
                         LSP_STATUS_ASSERT(s->write_comment(&comment));
-                    }
 
                     // Write string
                     flags |= config::SF_QUOTED;

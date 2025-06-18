@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 янв. 2021 г.
@@ -36,6 +36,7 @@
 
 namespace lsp
 {
+#if defined(PLATFORM_LINUX) || defined(PLATFORM_BSD)
     typedef struct getlibpath_path_t
     {
         char      **paths;
@@ -229,6 +230,7 @@ namespace lsp
             buf->size  += n;
         }
     }
+#endif
 
 #if defined(PLATFORM_LINUX)
     /**
@@ -390,10 +392,14 @@ namespace lsp
      */
     static char **get_library_paths(const char **exclude)
     {
+#if defined(PLATFORM_LINUX)
         char **res = NULL;
         if (getlibpath_proc(&res, exclude))
             return res;
-#if defined(PLATFORM_BSD)
+#elif defined(PLATFORM_BSD)
+        char **res = NULL;
+        if (getlibpath_proc(&res, exclude))
+            return res;
         if (getlibpath_procstat(&res, exclude))
             return res;
 #endif /* PLATFORM_BSD */
@@ -437,7 +443,7 @@ namespace lsp
 
         return path;
     }
-}
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_COMMON_LIBPATH_H_ */

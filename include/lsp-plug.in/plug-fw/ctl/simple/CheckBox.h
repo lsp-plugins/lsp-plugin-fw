@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 17 дек. 2022 г.
@@ -50,13 +50,21 @@ namespace lsp
                 ctl::Integer    sCheckMinSize;
 
                 ctl::Color      sColor;
-                ctl::Color      sHoverColor;
                 ctl::Color      sFillColor;
-                ctl::Color      sFillHoverColor;
                 ctl::Color      sBorderColor;
-                ctl::Color      sBorderHoverColor;
                 ctl::Color      sBorderGapColor;
+                ctl::Color      sHoverColor;
+                ctl::Color      sFillHoverColor;
+                ctl::Color      sBorderHoverColor;
                 ctl::Color      sBorderGapHoverColor;
+                ctl::Color      sInactiveColor;
+                ctl::Color      sInactiveFillColor;
+                ctl::Color      sInactiveBorderColor;
+                ctl::Color      sInactiveBorderGapColor;
+                ctl::Color      sInactiveHoverColor;
+                ctl::Color      sInactiveFillHoverColor;
+                ctl::Color      sInactiveBorderHoverColor;
+                ctl::Color      sInactiveBorderGapHoverColor;
 
                 ui::IPort      *pPort;
                 float           fValue;
@@ -70,7 +78,11 @@ namespace lsp
 
             public:
                 explicit CheckBox(ui::IWrapper *wrapper, tk::CheckBox *widget);
+                CheckBox(const CheckBox &) = delete;
+                CheckBox(CheckBox &&) = delete;
                 virtual ~CheckBox() override;
+                CheckBox & operator = (const CheckBox &) = delete;
+                CheckBox & operator = (CheckBox &&) = delete;
 
                 virtual status_t    init() override;
 

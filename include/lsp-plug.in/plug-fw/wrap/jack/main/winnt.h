@@ -30,4 +30,19 @@
 
 #error "Needs to be implemented"
 
+#include <windows.h>
+
+static BOOL WINAPI ctrlc_handler(DWORD dwCtrlType)
+{
+    if (dwCtrlType != CTRL_C_EVENT)
+        return FALSE;
+
+    wrapper.bInterrupt     = true;
+    return TRUE;
+}
+
+// Handle the Ctrl-C event from console
+SetConsoleCtrlHandler(ctrlc_handler, TRUE);
+
+
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_WINNT_H_ */

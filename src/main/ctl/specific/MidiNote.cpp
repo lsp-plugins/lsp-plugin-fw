@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 30 июл. 2021 г.
@@ -61,6 +61,8 @@ namespace lsp
         CTL_FACTORY_IMPL_END(MidiNote);
 
         //-----------------------------------------------------------------
+        const tk::w_class_t MidiNote::PopupWindow::metadata     = { "MidiNote::PopupWindow", &tk::PopupWindow::metadata };
+
         MidiNote::PopupWindow::PopupWindow(MidiNote *label, tk::Display *dpy):
             tk::PopupWindow(dpy),
             sBox(dpy),
@@ -180,12 +182,22 @@ namespace lsp
             {
                 sColor.init(pWrapper, ind->color());
                 sTextColor.init(pWrapper, ind->text_color());
+                sInactiveColor.init(pWrapper, ind->inactive_color());
+                sInactiveTextColor.init(pWrapper, ind->inactive_text_color());
+
+                sIPadding.init(pWrapper, ind->ipadding());
 
                 ind->slot(tk::SLOT_MOUSE_DBL_CLICK)->bind(slot_dbl_click, this);
                 ind->slot(tk::SLOT_MOUSE_SCROLL)->bind(slot_mouse_scroll, this);
             }
 
             return STATUS_OK;
+        }
+
+        void MidiNote::destroy()
+        {
+            do_destroy();
+            Widget::destroy();
         }
 
         void MidiNote::set(ui::UIContext *ctx, const char *name, const char *value)
@@ -204,10 +216,14 @@ namespace lsp
                 sColor.set("color", name, value);
                 sTextColor.set("text.color", name, value);
                 sTextColor.set("tcolor", name, value);
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveTextColor.set("inactive.text.color", name, value);
+                sInactiveTextColor.set("inactive.tcolor", name, value);
+
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
 
-                set_param(ind->modern(), "modern", name, value);
+                set_param(ind->type(), "type", name, value);
 
                 set_param(ind->spacing(), "spacing", name, value);
                 set_param(ind->dark_text(), "text.dark", name, value);

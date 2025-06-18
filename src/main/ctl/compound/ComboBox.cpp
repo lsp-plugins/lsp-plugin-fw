@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 27 июн. 2021 г.
@@ -105,6 +105,14 @@ namespace lsp
                 sSpinTextColor.init(pWrapper, cbox->spin_text_color());
                 sBorderColor.init(pWrapper, cbox->border_color());
                 sBorderGapColor.init(pWrapper, cbox->border_gap_color());
+
+                sInactiveColor.init(pWrapper, cbox->inactive_color());
+                sInactiveSpinColor.init(pWrapper, cbox->inactive_spin_color());
+                sInactiveTextColor.init(pWrapper, cbox->inactive_text_color());
+                sInactiveSpinTextColor.init(pWrapper, cbox->inactive_spin_text_color());
+                sInactiveBorderColor.init(pWrapper, cbox->inactive_border_color());
+                sInactiveBorderGapColor.init(pWrapper, cbox->inactive_border_gap_color());
+
                 sEmptyText.init(pWrapper, cbox->empty_text());
 
                 // Bind slots
@@ -141,6 +149,18 @@ namespace lsp
                 sBorderColor.set("bcolor", name, value);
                 sBorderGapColor.set("border.gap.color", name, value);
                 sBorderGapColor.set("bgap.color", name, value);
+
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveSpinColor.set("inactive.spin.color", name, value);
+                sInactiveTextColor.set("inactive.text.color", name, value);
+                sInactiveTextColor.set("inactive.tcolor", name, value);
+                sInactiveSpinTextColor.set("inactive.spin.text.color", name, value);
+                sInactiveSpinTextColor.set("inactive.spin.tcolor", name, value);
+                sInactiveBorderColor.set("inactive.border.color", name, value);
+                sInactiveBorderColor.set("inactive.bcolor", name, value);
+                sInactiveBorderGapColor.set("inactive.border.gap.color", name, value);
+                sInactiveBorderGapColor.set("inactive.bgap.color", name, value);
+
                 sEmptyText.set("text.empty", name, value);
 
                 set_text_fitness(cbox->text_fit(), "text.fitness", name, value);

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 янв. 2021 г.
@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <dlfcn.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -112,7 +113,7 @@ namespace lsp
                 (str[2] == 'o');
         }
 
-        static jack_main_function_t lookup_jack_main(void **hInstance, const version_t *required, const char *path)
+        static jack_create_plugin_loop_t lookup_jack_main(void **hInstance, const version_t *required, const char *path)
         {
             lsp_trace("Searching core library at %s", path);
 
@@ -186,7 +187,7 @@ namespace lsp
                         continue;
                 #endif /* LSP_PLUGIN_ARTIFACT_GROUP */
 
-                    jack_main_function_t f = lookup_jack_main(hInstance, required, ptr);
+                    jack_create_plugin_loop_t f = lookup_jack_main(hInstance, required, ptr);
                     if (f != NULL)
                         return f;
                 }
@@ -254,10 +255,10 @@ namespace lsp
                     }
 
                     // Fetch function
-                    jack_main_function_t f = reinterpret_cast<jack_main_function_t>(dlsym(inst, JACK_MAIN_FUNCTION_NAME));
+                    jack_create_plugin_loop_t f = reinterpret_cast<jack_create_plugin_loop_t>(dlsym(inst, JACK_CREATE_PLUGIN_LOOP_NAME));
                     if (!f)
                     {
-                        lsp_trace("function %s not found: %s", JACK_MAIN_FUNCTION_NAME, dlerror());
+                        lsp_trace("function '%s' not found: %s", JACK_CREATE_PLUGIN_LOOP_NAME, dlerror());
                         continue;
                     }
 
@@ -269,12 +270,12 @@ namespace lsp
             return NULL;
         }
 
-        static jack_main_function_t get_main_function(void **hInstance, const version_t *required, const char *binary_path)
+        static jack_create_plugin_loop_t get_main_function(void **hInstance, const version_t *required, const char *binary_path)
         {
             lsp_debug("Trying to find CORE library");
 
             char path[PATH_MAX+1];
-            jack_main_function_t jack_main  = NULL;
+            jack_create_plugin_loop_t jack_main  = NULL;
 
             // Try to find files in current directory
             if (binary_path != NULL)
@@ -394,11 +395,30 @@ namespace lsp
 }; /* namespace lsp */
 
 //------------------------------------------------------------------------
+static lsp::IPluginLoop *plugin_loop = NULL;
+
+static void sigint_handler(int sig)
+{
+    if (sig != SIGINT)
+        return;
+
+    // Cancel the plugin loop
+    lsp::IPluginLoop *loop = plugin_loop;
+    if (loop != NULL)
+        loop->cancel();
+}
+
 int main(int argc, const char **argv)
 {
     IF_DEBUG( lsp::debug::redirect("lsp-jack-loader.log"); );
 
-    void *hInstance;
+    // JACK library instance
+    void *hInstance = NULL;
+    lsp_finally {
+        if (hInstance != NULL)
+            dlclose(hInstance);
+    };
+
     static const lsp::version_t version =
     {
         LSP_PLUGIN_PACKAGE_MAJOR,
@@ -407,19 +427,39 @@ int main(int argc, const char **argv)
         LSP_PLUGIN_PACKAGE_BRANCH
     };
 
-    lsp::jack_main_function_t jack_main = lsp::jack::get_main_function(&hInstance, &version, argv[0]);
-    if (jack_main == NULL)
+    // Get factory
+    lsp::jack_create_plugin_loop_t factory = lsp::jack::get_main_function(&hInstance, &version, argv[0]);
+    if (factory == NULL)
     {
         lsp_error("Could not find JACK plugin core library");
         return -lsp::STATUS_NOT_FOUND;
     }
 
-    int code = jack_main(JACK_PLUGIN_UID, argc, argv);
+    lsp::IPluginLoop *loop = NULL;
+    lsp::status_t res = factory(&loop, JACK_PLUGIN_UID, argc, argv);
+    if (res != lsp::STATUS_OK)
+        return (res == lsp::STATUS_CANCELLED) ? 0 : -res;
 
-    if (hInstance != NULL)
-        dlclose(hInstance);
+    lsp_finally {
+        if (loop != NULL)
+            delete loop;
+    };
 
-    return code;
+    // Set-up plugin loop handler
+    plugin_loop = loop;
+    // Ignore SIGPIPE signal since JACK can suddenly lose socket connection
+    signal(SIGPIPE, SIG_IGN);
+    // Handle the Ctrl-C event from console
+    signal(SIGINT, sigint_handler);
+    // Run the plugin loop
+    res = plugin_loop->run();
+    // Clean-up plugin loop handler
+    plugin_loop = NULL;
+    // Destroy plugin loop
+    delete loop;
+    loop = NULL;
+
+    return (res == lsp::STATUS_OK) ? 0 : -res;
 }
 
 

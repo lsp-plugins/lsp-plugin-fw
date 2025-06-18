@@ -35,12 +35,13 @@ namespace lsp
     {
         UIWrapper::UIWrapper(jack::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui) : ui::IWrapper(ui, loader)
         {
-            pPlugin         = wrapper->pPlugin;
-            pWrapper        = wrapper;
+            pPlugin             = wrapper->pPlugin;
+            pWrapper            = wrapper;
 
-            nPosition       = 0;
-            pJackStatus     = NULL;
-            bJackConnected  = false;
+            nPosition           = 0;
+            pJackStatus         = NULL;
+            pJackIndicatorPanel = NULL;
+            bJackConnected      = false;
         }
 
         UIWrapper::~UIWrapper()
@@ -108,16 +109,9 @@ namespace lsp
             // Call the post-initialization routine and show the 'jack' state indicator
             if ((res = pUI->post_init()) == STATUS_OK)
             {
-                pJackStatus = tk::widget_cast<tk::Label>(controller()->widgets()->find("jack_status"));
-                if (pJackStatus != NULL)
-                {
-                    tk::Widget *w = controller()->widgets()->find("jack_indicator");
-                    if (w != NULL)
-                    {
-                        w->visibility()->set(true);
-                        set_connection_status(bJackConnected);
-                    }
-                }
+                pJackStatus = controller()->widgets()->get<tk::Label>("jack_status");
+                pJackIndicatorPanel = controller()->widgets()->get<tk::Widget>("jack_indicator");
+                set_connection_status(bJackConnected);
             }
 
             tk::Window *root    = window();
@@ -234,6 +228,8 @@ namespace lsp
             {
                 case meta::R_AUDIO_IN:
                 case meta::R_AUDIO_OUT:
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
                     // Stub port
                     jup     = new jack::UIPort(jp);
                     break;
@@ -269,7 +265,10 @@ namespace lsp
                     break;
 
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     jup     = new jack::UIStringPort(jp);
+                    vSyncPorts.add(jup);
                     break;
 
                 case meta::R_CONTROL:
@@ -496,6 +495,14 @@ namespace lsp
             ctl::revoke_style(pJackStatus, JACK_STATUS_ON);
             ctl::inject_style(pJackStatus, (connected) ? JACK_STATUS_ON : JACK_STATUS_OFF);
             pJackStatus->text()->set((connected) ? "statuses.jack.on" : "statuses.jack.off");
+
+            if (pJackIndicatorPanel)
+                pJackIndicatorPanel->visibility()->set(true);
+        }
+
+        void UIWrapper::visual_schema_reloaded(const tk::StyleSheet *sheet)
+        {
+            set_connection_status(bJackConnected);
         }
 
         status_t UIWrapper::export_settings(config::Serializer *s, const io::Path *basedir)
@@ -548,6 +555,12 @@ namespace lsp
 
             return res;
         }
+
+        const core::ShmState *UIWrapper::shm_state()
+        {
+            return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
+        }
+
     } /* namespace jack */
 } /* namespace lsp */
 

@@ -38,6 +38,9 @@ namespace lsp
 
         UIContext::~UIContext()
         {
+            // Cleanup list of overlay widgets
+            vOverlays.flush();
+
             // Destroy the stack
             for (size_t i=0, n=vStack.size(); i<n; ++i)
             {
@@ -212,13 +215,13 @@ namespace lsp
             return res;
         }
 
-        ctl::Widget *UIContext::create_controller(const LSPString *name)
+        ctl::Controller *UIContext::create_controller(const LSPString *name)
         {
             if (name == NULL)
                 return NULL;
 
             // Instantiate the widget
-            ctl::Widget *c = NULL;
+            ctl::Controller *c = NULL;
 
             for (ctl::Factory *f = ctl::Factory::root(); f != NULL; f = f->next())
             {
@@ -246,7 +249,7 @@ namespace lsp
             return c;
         }
 
-        status_t UIContext::set_attributes(ctl::Widget *widget, const LSPString * const *atts)
+        status_t UIContext::set_attributes(ctl::DOMController *ctl, const LSPString * const *atts)
         {
             status_t res;
 
@@ -259,7 +262,7 @@ namespace lsp
                     return res;
 
                 // Set widget attribute
-                widget->set(this, atts[0]->get_utf8(), avalue.get_utf8());
+                ctl->set(this, atts[0]->get_utf8(), avalue.get_utf8());
             }
 
             return STATUS_OK;

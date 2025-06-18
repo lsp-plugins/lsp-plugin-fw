@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 дек. 2021 г.
@@ -86,6 +86,7 @@ namespace lsp
         class state_t
         {
             public:
+                const cmdline_t        *cfg;
                 lltl::pphash<LSPString, lltl::parray<io::Path> > ext;   // Files grouped by extension
                 resource::Compressor    c;                              // Resource compressor
                 FILE                   *fd;                             // File descriptor
@@ -94,8 +95,9 @@ namespace lsp
 
 
             public:
-                explicit inline state_t()
+                explicit inline state_t(const cmdline_t *cmd)
                 {
+                    cfg         = cmd;
                     fd          = NULL;
                     os          = NULL;
                     in_bytes    = 0;
@@ -185,6 +187,21 @@ namespace lsp
             return STATUS_NO_MEM;
         }
 
+        bool pattern_matches(const lltl::parray<io::PathPattern> *list, const io::Path *path)
+        {
+            lltl::parray<io::PathPattern> *vlist = const_cast<lltl::parray<io::PathPattern> *>(list);
+            for (lltl::iterator<io::PathPattern> it = vlist->values(); it; ++it)
+            {
+                io::PathPattern *pp = it.get();
+                if (pp == NULL)
+                    continue;
+
+                if (pp->test(path))
+                    return true;
+            }
+            return false;
+        }
+
         status_t scan_directory(state_t *ctx, const io::Path *base, const io::Path *p)
         {
             io::Dir d;
@@ -215,9 +232,13 @@ namespace lsp
                     if ((res = child.remove_base(base)) != STATUS_OK)
                         return res;
 
-                    printf("  found file: %s\n", child.as_native());
-                    if ((res = add_file(ctx, &child)) != STATUS_OK)
-                        return res;
+                    // Check that exclude matches
+                    if (!pattern_matches(&ctx->cfg->exclude, &child))
+                    {
+                        printf("  found file: %s\n", child.as_native());
+                        if ((res = add_file(ctx, &child)) != STATUS_OK)
+                            return res;
+                    }
                 }
             }
 
@@ -528,7 +549,15 @@ namespace lsp
             system::time_t ts, te;
 
             system::get_time(&ts);
-            state_t *ctx = new state_t();
+            state_t *ctx = new state_t(cfg);
+            if (ctx == NULL)
+            {
+                fprintf(stderr, "Out of memory\n");
+                return STATUS_NO_MEM;
+            }
+            lsp_finally {
+                drop_context(ctx);
+            };
 
             printf("Packing resources to %s from %s\n", cfg->dst_file, cfg->src_dir);
 
@@ -563,12 +592,70 @@ namespace lsp
                     res     = write_checksums(cfg, ctx);
             }
 
-            drop_context(ctx);
-
             system::get_time(&te);
             printf("Execution time: %.2f s\n", (te.seconds + te.nanos * 1e-9) - (ts.seconds + ts.nanos * 1e-9));
 
             return res;
+        }
+
+        status_t add_pattern(lltl::parray<io::PathPattern> *list, const LSPString *pattern)
+        {
+            io::PathPattern *pp = new io::PathPattern();
+            if (pp == NULL)
+            {
+                fprintf(stderr, "Out of memory\n");
+                return STATUS_NO_MEM;
+            }
+            lsp_finally {
+                if (pp != NULL)
+                    delete pp;
+            };
+
+            status_t res = pp->set(pattern, io::PathPattern::FULL_PATH);
+            if (res != STATUS_OK)
+            {
+                fprintf(stderr, "Failed to parse pattern: %s, code=%d\n", pattern->get_native(), int(res));
+                return res;
+            }
+
+            if (!list->add(pp))
+            {
+                fprintf(stderr, "Out of memory\n");
+                return STATUS_NO_MEM;
+            }
+
+            pp = NULL;
+
+            return STATUS_OK;
+        }
+
+        status_t parse_pattern(lltl::parray<io::PathPattern> *list, const char *pattern)
+        {
+            LSPString tmp;
+            const char *split;
+
+            while ((split = strchr(pattern, ':')) != NULL)
+            {
+                if (!tmp.set_native(pattern, split - pattern))
+                {
+                    fprintf(stderr, "Out of memory\n");
+                    return STATUS_NO_MEM;
+                }
+
+                status_t res = add_pattern(list, &tmp);
+                if (res != STATUS_OK)
+                    return res;
+
+                pattern = split + 1;
+            }
+
+            if (!tmp.set_native(pattern))
+            {
+                fprintf(stderr, "Out of memory\n");
+                return STATUS_NO_MEM;
+            }
+
+            return add_pattern(list, &tmp);
         }
 
         status_t parse_cmdline(cmdline_t *cfg, int argc, const char **argv)
@@ -587,10 +674,11 @@ namespace lsp
                 {
                     printf("Usage: %s [parameters] [resource-directories]\n\n", argv[0]);
                     printf("Available parameters:\n");
-                    printf("  -c, --checksums <file>    Write file checksums to the specified file\n");
-                    printf("  -h, --help                Show help\n");
-                    printf("  -i, --input <dir>         The local resource directory\n");
-                    printf("  -o, --output <file>       The name of the destination file to generate resources\n");
+                    printf("  -c, --checksums <file>        Write file checksums to the specified file\n");
+                    printf("  -h, --help                    Show help\n");
+                    printf("  -i, --input <dir>             The local resource directory\n");
+                    printf("  -o, --output <file>           The name of the destination file to generate resources\n");
+                    printf("  -x, --exclude <file>[:<file>] Specify the exclude files that should be not packed\n");
                     printf("\n");
 
                     return STATUS_CANCELLED;
@@ -632,6 +720,18 @@ namespace lsp
                     }
                     cfg->checksums = argv[i++];
                 }
+                else if ((!::strcmp(arg, "--exclude")) || (!::strcmp(arg, "-x")))
+                {
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified exclude name/list for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+
+                    status_t res = parse_pattern(&cfg->exclude, argv[i++]);
+                    if (res != STATUS_OK)
+                        return res;
+                }
             }
 
             // Validate mandatory arguments
@@ -649,10 +749,25 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void free_cmdline(cmdline_t *cmd)
+        {
+            for (lltl::iterator<io::PathPattern> it = cmd->exclude.values(); it; ++it)
+            {
+                io::PathPattern *pp = it.get();
+                if (pp != NULL)
+                    delete pp;
+            }
+            cmd->exclude.flush();
+        }
+
         int main(int argc, const char **argv)
         {
             cmdline_t cmd;
             lsp::status_t res;
+
+            lsp_finally {
+                free_cmdline(&cmd);
+            };
 
             if ((res = parse_cmdline(&cmd, argc, argv)) != STATUS_OK)
                 return res;

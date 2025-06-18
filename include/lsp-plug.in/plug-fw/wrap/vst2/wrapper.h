@@ -26,12 +26,13 @@
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/chunk.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/ports.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/factory.h>
 
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/parray.h>
@@ -49,20 +50,28 @@ namespace lsp
 
             private:
                 AEffect                            *pEffect;
+                vst2::Factory                      *pFactory;
                 audioMasterCallback                 pMaster;
                 ipc::IExecutor                     *pExecutor;
                 vst2::chunk_t                       sChunk;
                 bool                                bUpdateSettings;
                 bool                                bStateManage;   // State management barrier
+
+            #ifdef WITH_UI_FEATURE
                 UIWrapper                          *pUIWrapper;     // UI wrapper
                 uatomic_t                           nUIReq;         // UI change request
                 uatomic_t                           nUIResp;        // UI change response
-                float                               fLatency;
+            #endif /* WITH_UI_FEATURE */
+
+                uint32_t                            nLatency;
                 uatomic_t                           nDumpReq;
                 uatomic_t                           nDumpResp;
                 vst2::Port                         *pBypass;
+                core::SamplePlayer                 *pSamplePlayer;  // Sample player
+                core::ShmClient                    *pShmClient;     // Shared memory client
 
                 lltl::parray<vst2::AudioPort>       vAudioPorts;    // List of audio ports
+                lltl::parray<vst2::AudioBufferPort> vAudioBuffers;  // Audio buffer ports
                 lltl::parray<vst2::MidiInputPort>   vMidiIn;        // Input MIDI ports
                 lltl::parray<vst2::MidiOutputPort>  vMidiOut;       // Output MIDI ports
                 lltl::parray<vst2::ParameterPort>   vExtParams;     // List of controllable external parameters
@@ -72,12 +81,8 @@ namespace lsp
                 lltl::parray<vst2::Port>            vProxyPorts;    // List of all created VST proxy ports
                 lltl::parray<meta::port_t>          vGenMetadata;   // Generated metadata
 
-                core::SamplePlayer                 *pSamplePlayer;  // Sample player
-
                 core::KVTStorage                    sKVT;
                 ipc::Mutex                          sKVTMutex;
-
-                meta::package_t                    *pPackage;
 
             private:
                 vst2::Port                 *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
@@ -90,11 +95,14 @@ namespace lsp
                 void                        deserialize_new_chunk_format(const uint8_t *data, size_t bytes);
                 void                        sync_position();
                 status_t                    serialize_port_data();
+                bool                        check_parameters_updated();
+                void                        apply_settings_update();
+                void                        report_latency();
 
             public:
                 Wrapper(
                     plug::Module *plugin,
-                    resource::ILoader *loader,
+                    vst2::Factory *factory,
                     AEffect *effect,
                     audioMasterCallback callback
                 );
@@ -122,17 +130,17 @@ namespace lsp
                 inline bool                     has_bypass() const;
                 inline void                     set_bypass(bool bypass);
 
-                inline void                     set_ui_wrapper(UIWrapper *ui);
-
-                inline UIWrapper               *ui_wrapper();
-
                 size_t                          serialize_state(const void **dst, bool program);
-
                 void                            deserialize_state(const void *data, size_t size);
-
                 void                            request_state_dump();
 
                 inline core::SamplePlayer      *sample_player();
+
+        #ifdef WITH_UI_FEATURE
+            public: // UI-related stuff
+                inline void                     set_ui_wrapper(UIWrapper *ui);
+                inline UIWrapper               *ui_wrapper();
+        #endif /* WITH_UI_FEATURE */
 
             public: // core::IWrapper
                 virtual ipc::IExecutor         *executor() override;
@@ -143,6 +151,7 @@ namespace lsp
                 virtual void                    request_settings_update() override;
                 virtual void                    state_changed() override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
         };
     } /* namespace vst2 */
 } /* namespace lsp */

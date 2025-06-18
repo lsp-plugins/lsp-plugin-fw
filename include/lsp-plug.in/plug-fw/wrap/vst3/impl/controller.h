@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/io/charset.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/const.h>
@@ -33,15 +34,20 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
+#include <lsp-plug.in/plug-fw/core/ShmStateBuilder.h>
+#include <lsp-plug.in/plug-fw/core/ShmState.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/controller.h>
-#include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/debug.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
 #include <steinberg/vst3.h>
+
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
+#endif /* WITH_UI_FEATURE */
 
 namespace lsp
 {
@@ -51,7 +57,8 @@ namespace lsp
             PluginFactory *factory,
             resource::ILoader *loader,
             const meta::package_t *package,
-            const meta::plugin_t *meta)
+            const meta::plugin_t *meta):
+            sShmState(shm_state_deleter)
         {
             lsp_trace("this=%p", this);
 
@@ -108,6 +115,13 @@ namespace lsp
                     vup = new vst3::CtlPort(port);
                     break;
 
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
+                    // Stub port
+                    lsp_trace("creating stub audio buffer port %s", port->id);
+                    vup = new vst3::CtlPort(port);
+                    break;
+
                 case meta::R_MIDI_IN:
                     lsp_trace("creating stub input MIDI port %s", port->id);
                     vup = new vst3::CtlPort(port);
@@ -144,6 +158,8 @@ namespace lsp
                     break;
 
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     lsp_trace("creating string port %s", port->id);
                     vup = new vst3::CtlStringPort(port, this);
                     break;
@@ -251,6 +267,11 @@ namespace lsp
             return strcmp(pa->id, pb->id);
         }
 
+        void Controller::shm_state_deleter(core::ShmState *state)
+        {
+            delete state;
+        }
+
         status_t Controller::init()
         {
             lsp_trace("this=%p", this);
@@ -267,11 +288,12 @@ namespace lsp
                 {
                     port_id,
                     port_desc,
+                    NULL,
                     meta::U_NONE,
                     meta::R_CONTROL,
                     meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
                     0.0f, 1.0f, 0.0f, 0.00001f,
-                    NULL, NULL
+                    NULL, NULL, NULL
                 };
 
                 // Generate ports for all possible control codes
@@ -529,6 +551,8 @@ namespace lsp
 
                 if (nLatency != latency)
                 {
+                    lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
+
                     nLatency    = latency;
                     pComponentHandler->restartComponent(Steinberg::Vst::RestartFlags::kLatencyChanged);
                 }
@@ -578,6 +602,7 @@ namespace lsp
                 pos.sampleRate      = sr;
                 pos.frame           = frame;
 
+            #ifdef WITH_UI_FEATURE
                 // Notify UI about position update
                 if (sWrappersLock.lock())
                 {
@@ -589,6 +614,7 @@ namespace lsp
                             w->commit_position(&pos);
                     }
                 }
+            #endif /* WITH_UI_FEATURE */
             }
             else if (!strcmp(message_id, ID_MSG_PLAY_SAMPLE_POSITION))
             {
@@ -601,6 +627,7 @@ namespace lsp
 
                 // lsp_trace("Received play position = %lld, length=%lld", (long long)position, (long long)length);
 
+            #ifdef WITH_UI_FEATURE
                 // Notify UI about position update
                 if (sWrappersLock.lock())
                 {
@@ -612,6 +639,7 @@ namespace lsp
                             w->set_play_position(position, length);
                     }
                 }
+            #endif /* WITH_UI_FEATURE */
             }
             else if (!strcmp(message_id, ID_MSG_METERS))
             {
@@ -720,7 +748,7 @@ namespace lsp
                 }
 
                 // Update state of the mesh and notify
-                lsp_trace("Committed mesh data buffers=%d, items=%d", int(buffers), int(items));
+//                lsp_trace("Committed mesh data buffers=%d, items=%d", int(buffers), int(items));
                 mesh->data(buffers, items);
                 port->mark_changed();
             }
@@ -893,6 +921,95 @@ namespace lsp
                 }
                 port->mark_changed();
             }
+            else if (!strcmp(message_id, ID_MSG_STRING))
+            {
+                // Get endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Get port identifier
+                const char *param_id = sRxNotifyBuf.get_string(atts, "id", byte_order);
+                if (param_id == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Find string port
+                // Get port and validate it's type
+                vst3::CtlPort *port    = port_by_id(param_id);
+                if (port == NULL)
+                    return Steinberg::kResultFalse;
+                const meta::port_t *meta = port->metadata();
+                if ((meta == NULL) || (!meta::is_string_holding_port(meta)))
+                    return Steinberg::kResultFalse;
+
+                // Get the string data
+                const char *in_str = sRxNotifyBuf.get_string(atts, "value", byte_order);
+                if (in_str == NULL)
+                    return Steinberg::kResultFalse;
+
+                // Submit string data
+                lsp_trace("string %s = %s", meta->id, in_str);
+                port->write(in_str, strlen(in_str));
+                port->mark_changed();
+            }
+            else if (!strcmp(message_id, ID_MSG_SHM_STATE))
+            {
+                // Get endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Read number of frames
+                Steinberg::int64 size = 0;
+                if (atts->getInt("size", size) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (size < 0)
+                    return Steinberg::kResultFalse;
+
+                LSPString id, name;
+                core::ShmStateBuilder bld;
+
+                for (size_t i=0, n=size; i<n; ++i)
+                {
+                    // Read record index
+                    Steinberg::int64 index = 0;
+                    snprintf(key, sizeof(key), "index[%d]", int(i));
+                    if (atts->getInt(key, index) != Steinberg::kResultOk)
+                        return Steinberg::kResultFalse;
+
+                    // Read record magic
+                    Steinberg::int64 magic = 0;
+                    snprintf(key, sizeof(key), "magic[%d]", int(i));
+                    if (atts->getInt(key, magic) != Steinberg::kResultOk)
+                        return Steinberg::kResultFalse;
+
+                    // Read record identifier
+                    snprintf(key, sizeof(key), "id[%d]", int(i));
+                    const char *id_str = sRxNotifyBuf.get_string(atts, key, byte_order);
+                    if (id_str == NULL)
+                        return Steinberg::kResultFalse;
+                    if (!id.set_utf8(id_str))
+                        return Steinberg::kResultFalse;
+
+                    // Read record name
+                    snprintf(key, sizeof(key), "name[%d]", int(i));
+                    const char *name_str = sRxNotifyBuf.get_string(atts, key, byte_order);
+                    if (name_str == NULL)
+                        return Steinberg::kResultFalse;
+                    if (!name.set_utf8(name_str))
+                        return Steinberg::kResultFalse;
+
+                    // Add record to builder
+                    if (bld.append(name, id, index, magic) != STATUS_OK)
+                        return Steinberg::kResultFalse;
+                }
+
+                // Push new state
+                core::ShmState *state = bld.build();
+                if (state != NULL)
+                {
+                    sShmState.push(state);
+                    lsp_trace("Pushed new shared memory state");
+                }
+            }
             else if (!strcmp(message_id, ID_MSG_KVT))
             {
                 lsp_trace("Received message id=%s", message_id);
@@ -1049,7 +1166,7 @@ namespace lsp
                             pp->commit_value(name);
                             pp->mark_changed();
                         }
-                        else if (meta::is_string_port(meta))
+                        else if (meta::is_string_holding_port(meta))
                         {
                             vst3::CtlStringPort *sp     = static_cast<vst3::CtlStringPort *>(p);
 
@@ -1275,13 +1392,13 @@ namespace lsp
 
         Steinberg::Vst::ParamValue PLUGIN_API Controller::normalizedParamToPlain(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue valueNormalized)
         {
-            lsp_trace("this=%p, id=0x%08x, valueNormalzed=%f", this, int(id), valueNormalized);
+//            lsp_trace("this=%p, id=0x%08x, valueNormalzed=%f", this, int(id), valueNormalized);
 
             // Get port
             vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
-                lsp_warn("parameter id=0x%08x not found", int(id));
+//                lsp_warn("parameter id=0x%08x not found", int(id));
                 return 0.0;
             }
             const meta::port_t *meta = p->metadata();
@@ -1290,20 +1407,20 @@ namespace lsp
 
             // Convert value
             const float plainValue = from_vst_value(meta, valueNormalized);
-            lsp_trace("normalizedValue=%f -> plainValue=%f", plainValue, valueNormalized);
+            lsp_trace("id=%s, normalizedValue=%f -> plainValue=%f", p->metadata()->id, valueNormalized, plainValue);
 
             return plainValue;
         }
 
         Steinberg::Vst::ParamValue PLUGIN_API Controller::plainParamToNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue plainValue)
         {
-            lsp_trace("this=%p, id=0x%08x, plainValue=%f", this, int(id), plainValue);
+//            lsp_trace("this=%p, id=0x%08x, plainValue=%f", this, int(id), plainValue);
 
             // Get port
             vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
-                lsp_warn("parameter id=0x%08x not found", int(id));
+//                lsp_warn("parameter id=0x%08x not found", int(id));
                 return 0.0;
             }
             const meta::port_t *meta = p->metadata();
@@ -1312,20 +1429,20 @@ namespace lsp
 
             // Convert value
             const float valueNormalized = to_vst_value(meta, plainValue);
-            lsp_trace("plainValue=%f -> normalizedValue=%f", plainValue, valueNormalized);
+            lsp_trace("id=%s, plainValue=%f -> normalizedValue=%f", p->metadata()->id, plainValue, valueNormalized);
 
             return valueNormalized;
         }
 
         Steinberg::Vst::ParamValue PLUGIN_API Controller::getParamNormalized(Steinberg::Vst::ParamID id)
         {
-            lsp_trace("this=%p, id=0x%08x", this, int(id));
+//            lsp_trace("this=%p, id=0x%08x", this, int(id));
 
             // Get port
             vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
-                lsp_warn("parameter id=0x%08x not found", int(id));
+//                lsp_warn("parameter id=0x%08x not found", int(id));
                 return 0.0;
             }
             const meta::port_t *meta = p->metadata();
@@ -1335,7 +1452,7 @@ namespace lsp
             // Convert value
             const float value   = p->value();
             const float result  = to_vst_value(meta, value);
-            lsp_trace("plainValue=%f -> normalizedValue=%f", value, result);
+            lsp_trace("id=%s, plainValue=%f -> normalizedValue=%f", p->metadata()->id, value, result);
 
             // Return result
             return result;
@@ -1343,13 +1460,13 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Controller::setParamNormalized(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue value)
         {
-            lsp_trace("this=%p, id=0x%08x, value=%f", this, int(id), value);
+//            lsp_trace("this=%p, id=0x%08x, value=%f", this, int(id), value);
 
             // Get port
             vst3::CtlParamPort *p   = find_param(id);
             if (p == NULL)
             {
-                lsp_warn("parameter id=0x%08x not found", int(id));
+//                lsp_warn("parameter id=0x%08x not found", int(id));
                 return Steinberg::kInvalidArgument;
             }
             const meta::port_t *meta = p->metadata();
@@ -1358,7 +1475,7 @@ namespace lsp
 
             // Convert value
             const float plainValue = from_vst_value(meta, value);
-            lsp_trace("normalizedValue=%f -> plainValue=%f", value, plainValue);
+            lsp_trace("id=%s, normalizedValue=%f -> plainValue=%f", p->metadata()->id, value, plainValue);
 
             // Commit value
             p->commit_value(plainValue);
@@ -1387,6 +1504,7 @@ namespace lsp
             return Steinberg::kResultTrue;
         }
 
+    #ifdef WITH_UI_FEATURE
         ui::Module *Controller::create_ui()
         {
             if ((pUIMetadata == NULL) || (pUIMetadata->uids.vst3ui == NULL))
@@ -1423,6 +1541,32 @@ namespace lsp
             lsp_trace("Not found matching factory");
 
             return NULL;
+        }
+
+        status_t Controller::detach_ui_wrapper(UIWrapper *wrapper)
+        {
+            if (sWrappersLock.lock())
+            {
+                lsp_finally { sWrappersLock.unlock(); };
+                if (!vWrappers.qpremove(wrapper))
+                    return STATUS_NOT_FOUND;
+            }
+
+            // Notify backend about UI deactivation
+            if (pPeerConnection != NULL)
+            {
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
+                if (msg == NULL)
+                    return STATUS_OK;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize and send the message
+                msg->setMessageID(vst3::ID_MSG_DEACTIVATE_UI);
+                pPeerConnection->notify(msg);
+            }
+
+            return STATUS_OK;
         }
 
         Steinberg::IPlugView * PLUGIN_API Controller::createView(Steinberg::FIDString name)
@@ -1490,13 +1634,6 @@ namespace lsp
             return w;
         }
 
-        Steinberg::tresult PLUGIN_API Controller::setKnobMode(Steinberg::Vst::KnobMode mode)
-        {
-            lsp_trace("this=%p, mode=%d", this, int(mode));
-
-            return Steinberg::kNotImplemented;
-        }
-
         Steinberg::tresult PLUGIN_API Controller::openHelp(Steinberg::TBool onlyCheck)
         {
             lsp_trace("this=%p, onlyCheck=%d", this, int(onlyCheck));
@@ -1525,6 +1662,29 @@ namespace lsp
 
             vst3::UIWrapper *w = vWrappers.last();
             return (w != NULL) ? w->show_about_box() : Steinberg::kResultOk;
+        }
+    #else
+        Steinberg::IPlugView * PLUGIN_API Controller::createView(Steinberg::FIDString name)
+        {
+            return NULL;
+        }
+
+        Steinberg::tresult PLUGIN_API Controller::openHelp(Steinberg::TBool onlyCheck)
+        {
+            return Steinberg::kNotImplemented;
+        }
+
+        Steinberg::tresult PLUGIN_API Controller::openAboutBox(Steinberg::TBool onlyCheck)
+        {
+            return Steinberg::kNotImplemented;
+        }
+    #endif /* WITH_UI_FEATURE */
+
+        Steinberg::tresult PLUGIN_API Controller::setKnobMode(Steinberg::Vst::KnobMode mode)
+        {
+            lsp_trace("this=%p, mode=%d", this, int(mode));
+
+            return Steinberg::kNotImplemented;
         }
 
         Steinberg::tresult PLUGIN_API Controller::getMidiControllerAssignment(
@@ -1581,30 +1741,9 @@ namespace lsp
             pPeerConnection->notify(msg);
         }
 
-        status_t Controller::detach_ui_wrapper(UIWrapper *wrapper)
+        const core::ShmState *Controller::shm_state()
         {
-            if (sWrappersLock.lock())
-            {
-                lsp_finally { sWrappersLock.unlock(); };
-                if (!vWrappers.qpremove(wrapper))
-                    return STATUS_NOT_FOUND;
-            }
-
-            // Notify backend about UI deactivation
-            if (pPeerConnection != NULL)
-            {
-                // Allocate new message
-                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
-                if (msg == NULL)
-                    return STATUS_OK;
-                lsp_finally { safe_release(msg); };
-
-                // Initialize and send the message
-                msg->setMessageID(vst3::ID_MSG_DEACTIVATE_UI);
-                pPeerConnection->notify(msg);
-            }
-
-            return STATUS_OK;
+            return sShmState.get();
         }
 
         const meta::package_t *Controller::package() const
@@ -1701,7 +1840,7 @@ namespace lsp
                 // Finally, we're ready to send message
                 pPeerConnection->notify(msg);
             }
-            else if (meta::is_string_port(meta))
+            else if (meta::is_string_holding_port(meta))
             {
                 const char *str = port->buffer<char>();
                 lsp_trace("port write: id=%s, value='%s'", port->id(), str);
@@ -1782,7 +1921,7 @@ namespace lsp
             }
         }
 
-#ifdef VST_USE_RUNLOOP_IFACE
+    #ifdef VST_USE_RUNLOOP_IFACE
         Steinberg::Linux::IRunLoop *Controller::acquire_run_loop()
         {
             Steinberg::Linux::IRunLoop *run_loop = safe_query_iface<Steinberg::Linux::IRunLoop>(pHostContext);
@@ -1791,7 +1930,7 @@ namespace lsp
 
             return pFactory->acquire_run_loop();
         }
-#endif /* VST_USE_RUNLOOP_IFACE */
+    #endif /* VST_USE_RUNLOOP_IFACE */
 
         void Controller::send_kvt_state()
         {

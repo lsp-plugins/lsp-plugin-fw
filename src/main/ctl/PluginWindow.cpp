@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 13 апр. 2021 г.
@@ -109,17 +109,15 @@ namespace lsp
             wMenu                       = NULL;
             wPresets                    = NULL;
             wUIScaling                  = NULL;
+            wBundleScaling              = NULL;
             wFontScaling                = NULL;
             wResetSettings              = NULL;
             wExport                     = NULL;
             wImport                     = NULL;
             wPreferHost                 = NULL;
-            wKnobScaleEnable            = NULL;
-            wOverrideHydrogen           = NULL;
             wRelPaths                   = NULL;
             wInvertVScroll              = NULL;
             wInvertGraphDotVScroll      = NULL;
-            wZoomableSpectrum           = NULL;
 
             pPVersion                   = NULL;
             pPBypass                    = NULL;
@@ -130,13 +128,11 @@ namespace lsp
             pRelPaths                   = NULL;
             pUIScaling                  = NULL;
             pUIScalingHost              = NULL;
+            pUIBundleScaling            = NULL;
             pUIFontScaling              = NULL;
             pVisualSchema               = NULL;
-            pKnobScaleEnable            = NULL;
-            pOverrideHydrogen           = NULL;
             pInvertVScroll              = NULL;
             pInvertGraphDotVScroll      = NULL;
-            pZoomableSpectrum           = NULL;
 
             init_enum_menu(&sFilterPointThickness);
 
@@ -202,6 +198,15 @@ namespace lsp
                     delete s;
             }
             vScalingSel.flush();
+
+            // Delete UI bundle scaling bindings
+            for (size_t i=0, n=vBundleScalingSel.size(); i<n; ++i)
+            {
+                scaling_sel_t *s = vBundleScalingSel.uget(i);
+                if (s != NULL)
+                    delete s;
+            }
+            vBundleScalingSel.flush();
 
             // Delete UI font scaling bindings
             for (size_t i=0, n=vFontScalingSel.size(); i<n; ++i)
@@ -311,14 +316,12 @@ namespace lsp
             BIND_PORT(pWrapper, pLanguage, LANGUAGE_PORT);
             BIND_PORT(pWrapper, pRelPaths, REL_PATHS_PORT);
             BIND_PORT(pWrapper, pUIScaling, UI_SCALING_PORT);
-            BIND_PORT(pWrapper, pUIScalingHost, UI_SCALING_HOST);
+            BIND_PORT(pWrapper, pUIScalingHost, UI_SCALING_HOST_PORT);
+            BIND_PORT(pWrapper, pUIBundleScaling, UI_BUNDLE_SCALING_PORT);
             BIND_PORT(pWrapper, pUIFontScaling, UI_FONT_SCALING_PORT);
             BIND_PORT(pWrapper, pVisualSchema, UI_VISUAL_SCHEMA_PORT);
-            BIND_PORT(pWrapper, pKnobScaleEnable, UI_ENABLE_KNOB_SCALE_ACTIONS_PORT);
-            BIND_PORT(pWrapper, pOverrideHydrogen, UI_OVERRIDE_HYDROGEN_KITS_PORT);
             BIND_PORT(pWrapper, pInvertVScroll, UI_INVERT_VSCROLL_PORT);
             BIND_PORT(pWrapper, pInvertGraphDotVScroll, UI_GRAPH_DOT_INVERT_VSCROLL_PORT);
-            BIND_PORT(pWrapper, pZoomableSpectrum, UI_ZOOMABLE_SPECTRUM_GRAPH_PORT);
             BIND_PORT(pWrapper, sFilterPointThickness.pPort, UI_FILTER_POINT_THICK_PORT);
 
             const meta::plugin_t *meta   = pWrapper->ui()->metadata();
@@ -492,6 +495,9 @@ namespace lsp
 
                 // Create UI scaling menu
                 init_scaling_support(wMenu);
+
+                // Create Bundle scaling menu
+                init_bundle_scaling_support(wMenu);
 
                 // Create UI scaling menu
                 init_font_scaling_support(wMenu);
@@ -738,6 +744,38 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::add_scaling_menu_item(
+            lltl::parray<scaling_sel_t> & list,
+            tk::Menu *menu, const char *key, size_t scale,
+            tk::event_handler_t handler)
+        {
+            tk::MenuItem *item = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+            item->type()->set_radio();
+            item->text()->set_key(key);
+            item->text()->params()->set_int("value", scale);
+
+            // Add scaling record
+            scaling_sel_t *sel = new scaling_sel_t();
+            if (sel == NULL)
+                return STATUS_NO_MEM;
+
+            sel->ctl        = this;
+            sel->scaling    = scale;
+            sel->item       = item;
+
+            if (!list.add(sel))
+            {
+                delete sel;
+                return STATUS_NO_MEM;
+            }
+
+            item->slots()->bind(tk::SLOT_SUBMIT, handler, sel);
+
+            return STATUS_OK;
+        }
+
         status_t PluginWindow::init_scaling_support(tk::Menu *menu)
         {
             // Create submenu item
@@ -779,32 +817,48 @@ namespace lsp
             item->type()->set_separator();
 
             // Generate the 'Set scaling' menu items
-            scaling_sel_t *sel;
-
             for (size_t scale = SCALING_FACTOR_BEGIN; scale <= SCALING_FACTOR_END; scale += SCALING_FACTOR_STEP)
-            {
-                if ((item = create_menu_item(menu)) == NULL)
-                    return STATUS_NO_MEM;
-                item->type()->set_radio();
-                item->text()->set_key("actions.ui_scaling.value:pc");
-                item->text()->params()->set_int("value", scale);
+                add_scaling_menu_item(vScalingSel, menu, "actions.ui_scaling.value:pc", scale, slot_scaling_select);
 
-                // Add scaling record
-                if ((sel = new scaling_sel_t()) == NULL)
-                    return STATUS_NO_MEM;
+            return STATUS_OK;
+        }
 
-                sel->ctl        = this;
-                sel->scaling    = scale;
-                sel->item       = item;
+        status_t PluginWindow::init_bundle_scaling_support(tk::Menu *menu)
+        {
+            // Create submenu item
+            tk::MenuItem *item          = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set("actions.bundle_scaling.select");
 
-                if (!vScalingSel.add(sel))
-                {
-                    delete sel;
-                    return STATUS_NO_MEM;
-                }
+            // Create submenu
+            menu                        = create_menu();
+            if (menu == NULL)
+                return STATUS_NO_MEM;
+            item->menu()->set(menu);
+            wBundleScaling              = menu;
 
-                item->slots()->bind(tk::SLOT_SUBMIT, slot_scaling_select, sel);
-            }
+            // Add the 'Zoom in' setting
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set_key("actions.bundle_scaling.zoom_in");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_bundle_scaling_zoom_in, this);
+
+            // Add the 'Zoom out' setting
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set_key("actions.bundle_scaling.zoom_out");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_bundle_scaling_zoom_out, this);
+
+            // Add the separator
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->type()->set_separator();
+
+            // Generate the exact value menu items
+            add_scaling_menu_item(vBundleScalingSel, menu, "actions.bundle_scaling.default", 0, slot_bundle_scaling_select);
+            for (size_t scale = SCALING_FACTOR_BEGIN; scale <= SCALING_FACTOR_END; scale += SCALING_FACTOR_STEP)
+                add_scaling_menu_item(vBundleScalingSel, menu, "actions.bundle_scaling.value:pc", scale, slot_bundle_scaling_select);
 
             return STATUS_OK;
         }
@@ -980,19 +1034,15 @@ namespace lsp
             wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
 
             // Create menu items
-            if ((wKnobScaleEnable = create_menu_item(menu)) != NULL)
-            {
-                wKnobScaleEnable->type()->set_check();
-                wKnobScaleEnable->text()->set("actions.ui_behavior.ediable_knob_scale");
-                wKnobScaleEnable->slots()->bind(tk::SLOT_SUBMIT, slot_enable_slot_scale_changed, this);
-            }
+            LSP_STATUS_ASSERT(
+                add_ui_flag( menu,
+                    UI_ENABLE_KNOB_SCALE_ACTIONS_PORT,
+                    "actions.ui_behavior.ediable_knob_scale"));
 
-            if ((wOverrideHydrogen = create_menu_item(menu)) != NULL)
-            {
-                wOverrideHydrogen->type()->set_check();
-                wOverrideHydrogen->text()->set("actions.ui_behavior.override_hydrogen_kits");
-                wOverrideHydrogen->slots()->bind(tk::SLOT_SUBMIT, slot_override_hydrogen_kits_changed, this);
-            }
+            LSP_STATUS_ASSERT(
+                add_ui_flag( menu,
+                    UI_OVERRIDE_HYDROGEN_KITS_PORT,
+                    "actions.ui_behavior.override_hydrogen_kits"));
 
             // Vertical scroll inversion
             if ((wInvertVScroll = create_menu_item(menu)) != NULL)
@@ -1009,13 +1059,104 @@ namespace lsp
                 wInvertGraphDotVScroll->slots()->bind(tk::SLOT_SUBMIT, slot_invert_graph_dot_vscroll_changed, this);
             }
 
-            // Auto scale spectrum
-            if ((wZoomableSpectrum = create_menu_item(menu)) != NULL)
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_ZOOMABLE_SPECTRUM_GRAPH_PORT,
+                    "actions.ui_behavior.enable_zoomable_spectrum"));
+            
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_FILELIST_NAVIGATION_AUTOLOAD_PORT,
+                    "actions.ui_behavior.file_list_navigation_autoload"));
+
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_FILELIST_NAVIGATION_AUTOPLAY_PORT,
+                    "actions.ui_behavior.file_list_navigation_autoplay"));
+
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_TAKE_INST_NAME_FROM_FILE_PORT,
+                    "actions.ui_behavior.take_instrument_name_from_file"));
+
+            // Thickness of the enum menu item
+            wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::add_ui_flag(tk::Menu *menu, const char *port_id, const char *key)
+        {
+            ui::IPort *port = pWrapper->port(port_id);
+            if (port == NULL)
+                return STATUS_OK;
+            port->bind(this);
+
+            tk::MenuItem *item = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+
+            item->type()->set_check();
+            item->text()->set(key);
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_ui_behaviour_flag_changed, this);
+
+            ui_flag_t *flag = vBoolFlags.add();
+            if (flag == NULL)
+                return STATUS_NO_MEM;
+
+            flag->pPort     = port;
+            flag->wItem     = item;
+
+            return STATUS_OK;
+        }
+
+        ssize_t PluginWindow::compare_presets(const resource::resource_t *a, const resource::resource_t *b)
+        {
+            return strcmp(a->name, b->name);
+        }
+
+        status_t PluginWindow::scan_presets(const char *location, lltl::darray<resource::resource_t> *presets)
+        {
+            io::Path path;
+            LSPString tmp;
+            resource::resource_t *resources = NULL;
+
+            if (tmp.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s", location) < 0)
+                return STATUS_BAD_STATE;
+            ssize_t count = pWrapper->resources()->enumerate(&tmp, &resources);
+            if (count < 0)
+                return status_t(-count);
+            lsp_finally {
+                if (resources != NULL)
+                    free(resources);
+            };
+
+            lsp_trace("resources = %p, count = %d", resources, int(count));
+
+            // Process all resources and form the final list of preset files
+            for (ssize_t i=0; i<count; ++i)
             {
-                wZoomableSpectrum->type()->set_check();
-                wZoomableSpectrum->text()->set("actions.ui_behavior.enable_zoomable_spectrum");
-                wZoomableSpectrum->slots()->bind(tk::SLOT_SUBMIT, slot_zoomable_spectrum_changed, this);
+                resource::resource_t *item = &resources[i];
+
+                // Filter the preset file
+                if (item->type != resource::RES_FILE)
+                    continue;
+                if (path.set(item->name) != STATUS_OK)
+                    return STATUS_NO_MEM;
+                if (path.get_ext(&tmp) != STATUS_OK)
+                    return STATUS_BAD_STATE;
+
+                if ((!tmp.equals_ascii("patch")) && (!tmp.equals_ascii("preset")))
+                    continue;
+
+                // Add preset file to result
+                strncpy(item->name, path.get(), resource::RESOURCE_NAME_MAX);
+                item->name[resource::RESOURCE_NAME_MAX-1] = '\0';
+                if (!presets->add(item))
+                    return STATUS_NO_MEM;
             }
+
+            presets->qsort(compare_presets);
 
             return STATUS_OK;
         }
@@ -1335,21 +1476,28 @@ namespace lsp
 
         void PluginWindow::sync_ui_scaling()
         {
-            tk::Display *dpy    = wWidget->display();
+            tk::Display *dpy            = wWidget->display();
             if (dpy == NULL)
                 return;
 
-            bool sync_host      = (pUIScalingHost->value() >= 0.5f);
-            float scaling       = (pUIScaling != NULL) ? pUIScaling->value() : 100.0f;
+            const bool sync_host        = (pUIScalingHost->value() >= 0.5f);
+            const float bundle_scaling  = (pUIBundleScaling != NULL) ? pUIBundleScaling->value() : 0.0f;
+            const float ui_scaling      = (pUIScaling != NULL) ? pUIScaling->value() : 100.0f;
 
-            lsp_trace("sync_host = %s, scaling=%f", (sync_host) ? "true" : "false", scaling);
+            lsp_trace("sync_host=%s, ui_scaling=%f, ui_bundle_scaling=%f",
+                (sync_host) ? "true" : "false", ui_scaling, bundle_scaling);
 
-            if (sync_host)
-                scaling             = pWrapper->ui_scaling_factor(scaling);
+            // Compute actual scaling
+            float actual_scaling        = ui_scaling;
+            if (bundle_scaling >= float(SCALING_FACTOR_BEGIN))
+                actual_scaling              = bundle_scaling;
+            else if (sync_host)
+                actual_scaling              = pWrapper->ui_scaling_factor(actual_scaling);
 
-            // Update the UI scaling
-            dpy->schema()->scaling()->set(scaling * 0.01f);
-            scaling             = dpy->schema()->scaling()->get() * 100.0f;
+            lsp_trace("computed actual_scaling=%f", actual_scaling);
+
+            // Update the UI ui_scaling
+            dpy->schema()->scaling()->set(actual_scaling * 0.01f);
 
             // Synchronize state of menu check boxes
             if (wPreferHost != NULL)
@@ -1359,7 +1507,14 @@ namespace lsp
             {
                 scaling_sel_t *xsel = vScalingSel.uget(i);
                 if (xsel->item != NULL)
-                    xsel->item->checked()->set(fabs(xsel->scaling - scaling) < 1e-4f);
+                    xsel->item->checked()->set(fabs(xsel->scaling - ui_scaling) < 1e-4f);
+            }
+
+            for (size_t i=0, n=vBundleScalingSel.size(); i<n; ++i)
+            {
+                scaling_sel_t *xsel = vBundleScalingSel.uget(i);
+                if (xsel->item != NULL)
+                    xsel->item->checked()->set(fabs(xsel->scaling - bundle_scaling) < 1e-4f);
             }
         }
 
@@ -1397,16 +1552,32 @@ namespace lsp
                 gdot_style->set_bool("mouse.vscroll.invert", invert_gdot);
         }
 
-        void PluginWindow::sync_zoomable_spectrum()
+        void PluginWindow::sync_ui_behaviour_flags(ui::IPort *port)
         {
-            tk::Display *dpy    = wWidget->display();
-            if (dpy == NULL)
-                return;
+            for (size_t i=0, n=vBoolFlags.size(); i<n; ++i)
+            {
+                ui_flag_t *flag = vBoolFlags.uget(i);
+                if ((flag == NULL) || (flag->wItem == NULL) || (flag->pPort == NULL))
+                    continue;
 
-            bool zoomable  = (pZoomableSpectrum != NULL) ? pZoomableSpectrum->value() >= 0.5f : false;
+                if ((port == NULL) || (port == flag->pPort))
+                {
+                    const bool checked = flag->pPort->value() >= 0.5f;
+                    flag->wItem->checked()->set(checked);
+                }
+            }
+        }
 
-            if (wZoomableSpectrum != NULL)
-                wZoomableSpectrum->checked()->set(zoomable);
+        void PluginWindow::notify_ui_behaviour_flags(size_t flags)
+        {
+            for (size_t i=0, n=vBoolFlags.size(); i<n; ++i)
+            {
+                ui_flag_t *flag = vBoolFlags.uget(i);
+                if ((flag == NULL) || (flag->pPort == NULL))
+                    continue;
+
+                flag->pPort->notify_all(flags);
+            }
         }
 
         void PluginWindow::sync_enum_menu(enum_menu_t *menu, ui::IPort *port)
@@ -1465,22 +1636,6 @@ namespace lsp
             }
         }
 
-        void PluginWindow::sync_knob_scale_enabled()
-        {
-            // Update the knob scale
-            bool knob_enable    = (pKnobScaleEnable != NULL) ? pKnobScaleEnable->value() >= 0.5f : true;
-            if (wKnobScaleEnable != NULL)
-                wKnobScaleEnable->checked()->set(knob_enable);
-        }
-
-        void PluginWindow::sync_override_hydrogen()
-        {
-            // Update the knob scale
-            bool set_override   = (pOverrideHydrogen != NULL) ? pOverrideHydrogen->value() >= 0.5f : true;
-            if (wOverrideHydrogen != NULL)
-                wOverrideHydrogen->checked()->set(set_override);
-        }
-
         void PluginWindow::begin(ui::UIContext *ctx)
         {
             Window::begin(ctx);
@@ -1516,9 +1671,12 @@ namespace lsp
 
             // Footer
             bind_trigger("trg_ui_scaling", tk::SLOT_SUBMIT, slot_show_ui_scaling_menu);
+            bind_trigger("trg_bundle_scaling", tk::SLOT_SUBMIT, slot_show_bundle_scaling_menu);
             bind_trigger("trg_font_scaling", tk::SLOT_SUBMIT, slot_show_font_scaling_menu);
             bind_trigger("trg_ui_zoom_in", tk::SLOT_SUBMIT, slot_scaling_zoom_in);
             bind_trigger("trg_ui_zoom_out", tk::SLOT_SUBMIT, slot_scaling_zoom_out);
+            bind_trigger("trg_bundle_zoom_in", tk::SLOT_SUBMIT, slot_bundle_scaling_zoom_in);
+            bind_trigger("trg_bundle_zoom_out", tk::SLOT_SUBMIT, slot_bundle_scaling_zoom_out);
             bind_trigger("trg_font_zoom_in", tk::SLOT_SUBMIT, slot_font_scaling_zoom_in);
             bind_trigger("trg_font_zoom_out", tk::SLOT_SUBMIT, slot_font_scaling_zoom_out);
             bind_trigger("trg_plugin_manual", tk::SLOT_SUBMIT, slot_show_plugin_manual);
@@ -1551,18 +1709,14 @@ namespace lsp
                 notify(pUIScaling, ui::PORT_NONE);
             if (pUIFontScaling != NULL)
                 notify(pUIFontScaling, ui::PORT_NONE);
-            if (pKnobScaleEnable != NULL)
-                notify(pKnobScaleEnable, ui::PORT_NONE);
-            if (pOverrideHydrogen != NULL)
-                notify(pOverrideHydrogen, ui::PORT_NONE);
             if (pInvertVScroll != NULL)
                 notify(pInvertVScroll, ui::PORT_NONE);
             if (pInvertGraphDotVScroll != NULL)
                 notify(pInvertGraphDotVScroll, ui::PORT_NONE);
-            if (pZoomableSpectrum != NULL)
-                notify(pZoomableSpectrum, ui::PORT_NONE);
             if (sFilterPointThickness.pPort != NULL)
                 notify(sFilterPointThickness.pPort, ui::PORT_NONE);
+
+            notify_ui_behaviour_flags(ui::PORT_NONE);
 
             // Call for parent class method
             Window::end(ctx);
@@ -1574,27 +1728,25 @@ namespace lsp
 
             if (port == pLanguage)
                 sync_language_selection();
-            if ((port == pUIScaling) || (port == pUIScalingHost))
+            if ((port == pUIScaling) || (port == pUIScalingHost) || (port == pUIBundleScaling))
                 sync_ui_scaling();
             if (port == pUIFontScaling)
                 sync_font_scaling();
             if (port == pVisualSchema)
                 sync_visual_schemas();
-            if (port == pKnobScaleEnable)
-                sync_knob_scale_enabled();
-            if (port == pOverrideHydrogen)
-                sync_override_hydrogen();
             if ((port == pInvertVScroll) || (port == pInvertGraphDotVScroll))
                 sync_invert_vscroll(port);
-            if (port == pZoomableSpectrum)
-                sync_zoomable_spectrum();
 
+            sync_ui_behaviour_flags(port);
             sync_enum_menu(&sFilterPointThickness, port);
         }
 
         status_t PluginWindow::add(ui::UIContext *ctx, ctl::Widget *child)
         {
-            return (wContent != NULL) ? wContent->add(child->widget()) : STATUS_BAD_STATE;
+            ctl::Overlay *ov = ctl::ctl_cast<ctl::Overlay>(child);
+            tk::WidgetContainer *target = (ov != NULL) ? tk::widget_cast<tk::WidgetContainer>(wWidget) : wContent;
+
+            return (target != NULL) ? target->add(child->widget()) : STATUS_BAD_STATE;
         }
 
         tk::FileFilters *PluginWindow::create_config_filters(tk::FileDialog *dlg)
@@ -1810,34 +1962,9 @@ namespace lsp
 
         status_t PluginWindow::slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data)
         {
-            io::Path path;
-            LSPString spath;
-            status_t res;
-
-            // Try to open local documentation
-            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
-            {
-                path.fmt("%s/doc/%s/html/constrols.html", *prefix, "lsp-plugins");
-                lsp_trace("Checking path: %s", path.as_utf8());
-
-                if (path.exists())
-                {
-                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
-                    {
-                        if ((res = system::follow_url(&spath)) == STATUS_OK)
-                            return res;
-                    }
-                }
-            }
-
-            // Follow the online documentation
-            if (spath.fmt_utf8("%s?page=manuals&section=controls", "https://lsp-plug.in/"))
-            {
-                if ((res = system::follow_url(&spath)) == STATUS_OK)
-                    return res;
-            }
-
-            return STATUS_NOT_FOUND;
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            self->show_ui_manual();
+            return STATUS_OK;
         }
 
         status_t PluginWindow::slot_show_about(tk::Widget *sender, void *ptr, void *data)
@@ -1883,6 +2010,12 @@ namespace lsp
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
             return __this->show_menu(__this->wUIScaling, sender, data);
+        }
+
+        status_t PluginWindow::slot_show_bundle_scaling_menu(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            return __this->show_menu(__this->wBundleScaling, sender, data);
         }
 
         status_t PluginWindow::slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data)
@@ -2206,6 +2339,15 @@ namespace lsp
             value->set_raw((path != NULL) ? path : "");
         }
 
+        void PluginWindow::read_path_param(LSPString *value, const char *port_id)
+        {
+            ui::IPort *p = pWrapper->port(port_id);
+            const char *path = NULL;
+            if ((p != NULL) && (meta::is_path_port(p->metadata())))
+                path = p->buffer<const char>();
+            value->set_utf8((path != NULL) ? path : "");
+        }
+
         void PluginWindow::read_bool_param(tk::Boolean *value, const char *port_id)
         {
             ui::IPort *p = pWrapper->port(port_id);
@@ -2341,6 +2483,33 @@ namespace lsp
             return STATUS_OK;
         }
 
+        bool PluginWindow::open_manual_file(const char *fmt...)
+        {
+            va_list vl;
+            va_start(vl, fmt);
+            lsp_finally{ va_end(vl); };
+
+            // Form the path
+            io::Path path;
+            LSPString spath;
+            ssize_t res = path.vfmt(fmt, vl);
+            if (res <= 0)
+                return false;
+
+            if (path.is_empty())
+                return false;
+
+            lsp_trace("Checking path: %s", path.as_utf8());
+
+            if (!path.exists())
+                return false;
+
+            if (!spath.fmt_utf8("file://%s", path.as_utf8()))
+                return false;
+
+            return system::follow_url(&spath) == STATUS_OK;
+        }
+
         status_t PluginWindow::show_plugin_manual()
         {
             const meta::plugin_t *meta = pWrapper->ui()->metadata();
@@ -2349,26 +2518,54 @@ namespace lsp
             LSPString spath;
             status_t res;
 
+            // Check that documentation path is present
+            read_path_param(&spath, UI_DOCUMENTATION_PORT);
+            if (!spath.is_empty())
+            {
+                if (open_manual_file("%s/html/plugins/%s.html", spath.get_utf8(), meta->uid))
+                    return STATUS_OK;
+            }
+
             // Try to open local documentation
             for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
             {
-                path.fmt("%s/doc/%s/html/plugins/%s.html",
-                    *prefix, "lsp-plugins", meta->uid);
-
-                lsp_trace("Checking path: %s", path.as_utf8());
-
-                if (path.exists())
-                {
-                    if (spath.fmt_utf8("file://%s", path.as_utf8()))
-                    {
-                        if ((res = system::follow_url(&spath)) == STATUS_OK)
-                            return res;
-                    }
-                }
+                if (open_manual_file("%s/doc/%s/html/plugins/%s.html", *prefix, "lsp-plugins", meta->uid))
+                    return STATUS_OK;
             }
 
             // Follow the online documentation
             if (spath.fmt_utf8("%s?page=manuals&section=%s", "https://lsp-plug.in/", meta->uid))
+            {
+                if ((res = system::follow_url(&spath)) == STATUS_OK)
+                    return res;
+            }
+
+            return STATUS_NOT_FOUND;
+        }
+
+        status_t PluginWindow::show_ui_manual()
+        {
+            io::Path path;
+            LSPString spath;
+            status_t res;
+
+            // Check that documentation path is present
+            read_path_param(&spath, UI_DOCUMENTATION_PORT);
+            if (!spath.is_empty())
+            {
+                if (open_manual_file("%s/html/controls.html", spath.get_utf8()))
+                    return STATUS_OK;
+            }
+
+            // Try to open local documentation
+            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
+            {
+                if (open_manual_file("%s/doc/%s/html/controls.html", *prefix, "lsp-plugins"))
+                    return STATUS_OK;
+            }
+
+            // Follow the online documentation
+            if (spath.fmt_utf8("%s?page=manuals&section=controls", "https://lsp-plug.in/"))
             {
                 if ((res = system::follow_url(&spath)) == STATUS_OK)
                     return res;
@@ -2387,6 +2584,9 @@ namespace lsp
                 return STATUS_NO_MEM;
             widgets()->add(w);
             w->init();
+            w->actions()->set_actions(ws::WA_DIALOG | ws::WA_RESIZE | ws::WA_CLOSE);
+
+            lsp_trace("Registered window ptr=%p, path=%s", static_cast<tk::Widget *>(w), path);
 
             // Create controller
             ctl::Window *wc = new ctl::Window(pWrapper, w);
@@ -2532,6 +2732,80 @@ namespace lsp
             return STATUS_OK;
         }
 
+        ssize_t PluginWindow::get_bundle_scaling()
+        {
+            if (pUIBundleScaling == NULL)
+                return -1;
+
+            ssize_t value       = pUIBundleScaling->value();
+            if (value >= SCALING_FACTOR_BEGIN)
+                return value;
+
+            tk::Display *dpy            = wWidget->display();
+            if (dpy == NULL)
+                return -1;
+
+            return ssize_t(dpy->schema()->scaling()->get() * 100.0f);
+        }
+
+        status_t PluginWindow::slot_bundle_scaling_zoom_in(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            // Get actual scaling value
+            ssize_t value       = _this->get_bundle_scaling();
+            if (value < 0)
+                return STATUS_OK;
+
+            // Update value and commit
+            ssize_t new_value   = ((value / SCALING_FACTOR_STEP) + 1) * SCALING_FACTOR_STEP;
+            value               = lsp_limit(new_value , SCALING_FACTOR_BEGIN, SCALING_FACTOR_END);
+
+            _this->pUIBundleScaling->set_value(value);
+            _this->pUIBundleScaling->notify_all(ui::PORT_USER_EDIT);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_bundle_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            if (_this == NULL)
+                return STATUS_OK;
+
+            // Get actual scaling value
+            ssize_t value       = _this->get_bundle_scaling();
+            if (value < 0)
+                return STATUS_OK;
+
+            // Update value and commit
+            ssize_t new_value   = ((value / SCALING_FACTOR_STEP) - 1) * SCALING_FACTOR_STEP;
+            value               = lsp_limit(new_value , SCALING_FACTOR_BEGIN, SCALING_FACTOR_END);
+
+            _this->pUIBundleScaling->set_value(value);
+            _this->pUIBundleScaling->notify_all(ui::PORT_USER_EDIT);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_bundle_scaling_select(tk::Widget *sender, void *ptr, void *data)
+        {
+            scaling_sel_t *sel  = static_cast<scaling_sel_t *>(ptr);
+            if (sel == NULL)
+                return STATUS_OK;
+
+            PluginWindow *_this = sel->ctl;
+            if ((_this != NULL) && (_this->pUIBundleScaling != NULL))
+            {
+                _this->pUIBundleScaling->set_value(sel->scaling);
+                _this->pUIBundleScaling->notify_all(ui::PORT_USER_EDIT);
+            }
+
+            return STATUS_OK;
+        }
+
         status_t PluginWindow::slot_font_scaling_zoom_in(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this = static_cast<PluginWindow *>(ptr);
@@ -2606,16 +2880,14 @@ namespace lsp
                     _this->pUIScaling->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pLanguage != NULL)
                     _this->pLanguage->notify_all(ui::PORT_USER_EDIT);
-                if (_this->pKnobScaleEnable != NULL)
-                    _this->pKnobScaleEnable->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pInvertVScroll != NULL)
                     _this->pInvertVScroll->notify_all(ui::PORT_USER_EDIT);
                 if (_this->pInvertGraphDotVScroll != NULL)
                     _this->pInvertGraphDotVScroll->notify_all(ui::PORT_USER_EDIT);
-                if (_this->pZoomableSpectrum != NULL)
-                    _this->pZoomableSpectrum->notify_all(ui::PORT_USER_EDIT);
                 if (_this->sFilterPointThickness.pPort != NULL)
                     _this->sFilterPointThickness.pPort->notify_all(ui::PORT_USER_EDIT);
+
+                _this->notify_ui_behaviour_flags(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;
@@ -2752,17 +3024,26 @@ namespace lsp
                     return STATUS_OK;
 
                 ws::size_limit_t sr;
+                ws::rectangle_t ws;
                 ws::rectangle_t xr  = _this->sWndScale.sSize;
-                ssize_t width       = xr.nWidth  + ev->nLeft - _this->sWndScale.nMouseX;
-                ssize_t height      = xr.nHeight + ev->nTop  - _this->sWndScale.nMouseY;
+                xr.nWidth          += ev->nLeft - _this->sWndScale.nMouseX;
+                xr.nHeight         += ev->nTop - _this->sWndScale.nMouseY;
 
+                _this->wWidget->get_padded_rectangle(&ws);
                 _this->wWidget->get_padded_size_limits(&sr);
                 tk::SizeConstraints::apply(&xr, &sr);
 
-                if ((width != xr.nWidth) || (height != xr.nHeight))
+//                lsp_trace("ws.size={%d, %d}, xr.size={%d, %d}",
+//                    int(ws.nWidth), int(ws.nHeight),
+//                    int(xr.nWidth), int(xr.nHeight));
+
+                if ((ws.nWidth != xr.nWidth) || (ws.nHeight != xr.nHeight))
                 {
-                    if (_this->pWrapper->accept_window_size(wnd, width, height))
-                        wnd->resize_window(width, height);
+                    if (_this->pWrapper->accept_window_size(wnd, xr.nWidth, xr.nHeight))
+                    {
+                        _this->pWrapper->window_resized(wnd, xr.nWidth, xr.nHeight);
+                        wnd->resize_window(xr.nWidth, xr.nHeight);
+                    }
                 }
             }
 
@@ -2805,42 +3086,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::slot_enable_slot_scale_changed(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_OK;
-            if (_this->pKnobScaleEnable == NULL)
-                return STATUS_OK;
-            if (_this->wKnobScaleEnable == NULL)
-                return STATUS_OK;
-
-            _this->wKnobScaleEnable->checked()->toggle();
-            bool checked = _this->wKnobScaleEnable->checked()->get();
-            _this->pKnobScaleEnable->set_value((checked) ? 1.0f : 0.0f);
-            _this->pKnobScaleEnable->notify_all(ui::PORT_USER_EDIT);
-
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_override_hydrogen_kits_changed(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_OK;
-            if (_this->pOverrideHydrogen == NULL)
-                return STATUS_OK;
-            if (_this->wOverrideHydrogen == NULL)
-                return STATUS_OK;
-
-            _this->wOverrideHydrogen->checked()->toggle();
-            bool checked = _this->wOverrideHydrogen->checked()->get();
-            _this->pOverrideHydrogen->set_value((checked) ? 1.0f : 0.0f);
-            _this->pOverrideHydrogen->notify_all(ui::PORT_USER_EDIT);
-
-            return STATUS_OK;
-        }
-
         status_t PluginWindow::slot_invert_vscroll_changed(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this = static_cast<PluginWindow *>(ptr);
@@ -2877,20 +3122,27 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::slot_zoomable_spectrum_changed(tk::Widget *sender, void *ptr, void *data)
+        status_t PluginWindow::slot_ui_behaviour_flag_changed(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_OK;
-            if (_this->pZoomableSpectrum == NULL)
-                return STATUS_OK;
-            if (_this->wZoomableSpectrum == NULL)
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
                 return STATUS_OK;
 
-            _this->wZoomableSpectrum->checked()->toggle();
-            bool checked = _this->wZoomableSpectrum->checked()->get();
-            _this->pZoomableSpectrum->set_value((checked) ? 1.0f : 0.0f);
-            _this->pZoomableSpectrum->notify_all(ui::PORT_USER_EDIT);
+            // Apply changes
+            for (size_t i=0, n=self->vBoolFlags.size(); i<n; ++i)
+            {
+                ui_flag_t *flag = self->vBoolFlags.uget(i);
+                if ((flag == NULL) || (flag->wItem != sender) || (flag->pPort == NULL))
+                    continue;
+
+                if (flag->wItem == sender)
+                {
+                    flag->wItem->checked()->toggle();
+                    const bool checked = flag->wItem->checked()->get();
+                    flag->pPort->set_value((checked) ? 1.0f : 0.0f);
+                    flag->pPort->notify_all(ui::PORT_USER_EDIT);
+                }
+            }
 
             return STATUS_OK;
         }

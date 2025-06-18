@@ -24,6 +24,8 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
+#include <lsp-plug.in/plug-fw/core/ShmState.h>
+#include <lsp-plug.in/plug-fw/core/ShmStateBuilder.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/static.h>
 
@@ -81,8 +83,15 @@ namespace lsp
             return NULL;
         }
 
+        void UIWrapper::shm_state_deleter(core::ShmState *state)
+        {
+            delete state;
+        }
+
         //---------------------------------------------------------------------
-        UIWrapper::UIWrapper(ui::Module *ui, resource::ILoader *loader, lv2::Extensions *ext): ui::IWrapper(ui, loader)
+        UIWrapper::UIWrapper(ui::Module *ui, resource::ILoader *loader, lv2::Extensions *ext):
+            ui::IWrapper(ui, loader),
+            sShmState(shm_state_deleter)
         {
             pExt            = ext;
             nLatencyID      = 0;
@@ -330,11 +339,43 @@ namespace lsp
             }
 
             // Resize UI and show
+            ws::rectangle_t rect, new_rect;
+            root->get_screen_rectangle(&rect);
             root->get_padded_size_limits(&sr);
-            pExt->resize_ui(sr.nMinWidth, sr.nMinHeight);
+            tk::SizeConstraints::apply(&new_rect, &rect, &sr);
+
+//            lsp_trace("rect={%d, %d}, sr={%d, %d, %d, %d, %d, %d}, new_rect={%d, %d}",
+//                int(rect.nWidth), int(rect.nHeight),
+//                int(sr.nMinWidth), int(sr.nMinHeight), int(sr.nMaxWidth), int(sr.nMaxHeight), int(sr.nPreWidth), int(sr.nPreHeight),
+//                int(new_rect.nWidth), int(new_rect.nHeight));
+
+            if ((new_rect.nWidth != rect.nWidth) || (new_rect.nHeight != rect.nHeight))
+            {
+//                lsp_trace("resize window to: {x=%d, y=%d, w=%d, h=%d}",
+//                    int(new_rect.nLeft), int(new_rect.nTop), int(new_rect.nWidth), int(new_rect.nHeight));
+                root->resize_window(new_rect.nWidth, new_rect.nHeight);
+            }
+
+//            if ((new_rect.nWidth != rect.nWidth) || (new_rect.nHeight != rect.nHeight))
+//                pExt->resize_ui(new_rect.nWidth, new_rect.nHeight);
+
             root->show();
 
             return STATUS_OK;
+        }
+
+        bool UIWrapper::window_resized(tk::Window *wnd, size_t width, size_t height)
+        {
+            tk::Window *root = (pUI != NULL) ? window() : NULL;
+            if (root == NULL)
+                return false;
+
+            if (wnd == root)
+            {
+//                lsp_trace("Window resized to w=%d, h=%d", int(width), int(height));
+                pExt->resize_ui(width, height);
+            }
+            return true;
         }
 
         lv2::UIPort *UIWrapper::create_port(const meta::port_t *p, const char *postfix)
@@ -359,6 +400,15 @@ namespace lsp
                         lsp_trace("Added external audio port id=%s, external_id=%d", p->id, int(result->get_id()));
                     }
                     break;
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
+                    // Stub port
+                    result = new lv2::UIPort(p, pExt);
+                    lsp_trace("Added %s port id=%s, external_id=%d",
+                        (meta::is_audio_send_port(p)) ? "audio send" : "audio return",
+                        p->id, int(result->get_id()));
+                    break;
+
                 case meta::R_CONTROL:
                     result = new lv2::UIFloatPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
                     if (postfix == NULL)
@@ -394,11 +444,20 @@ namespace lsp
                     lsp_trace("Added path port id=%", p->id);
                     break;
                 case meta::R_STRING:
+                case meta::R_SEND_NAME:
+                case meta::R_RETURN_NAME:
                     if (pExt->atom_supported())
                         result = new lv2::UIStringPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
                     else
                         result = new lv2::UIPort(p, pExt); // Stub port
-                    lsp_trace("Added string port id=%", p->id);
+                #ifdef LSP_TRACE
+                    if (meta::is_send_name(p))
+                        lsp_trace("Added send name port id=%", p->id);
+                    else if (meta::is_return_name(p))
+                        lsp_trace("Added return name port id=%", p->id);
+                    else
+                        lsp_trace("Added string port id=%", p->id);
+                #endif /* LSP_TRACE */
                     break;
                 case meta::R_MESH:
                     if (pExt->atom_supported())
@@ -435,6 +494,7 @@ namespace lsp
                     char postfix_buf[MAX_PARAM_ID_BYTES];
                     lv2::UIPortGroup *pg    = new lv2::UIPortGroup(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
                     vPorts.add(pg);
+                    lsp_trace("Added port_set port id=%", pg->metadata()->id);
 
                     // Add nested ports
                     for (size_t row=0; row<pg->rows(); ++row)
@@ -462,7 +522,6 @@ namespace lsp
                         }
                     }
 
-                    lsp_trace("Added port set port id=%", p->id);
                     break;
                 }
 
@@ -741,6 +800,73 @@ namespace lsp
 
                 lsp_trace("received play position = %lld, length=%lld", (long long)position, (long long)length);
                 notify_play_position(position, length);
+            }
+            else if (obj->body.otype == pExt->uridShmStateType)
+            {
+                core::ShmStateBuilder bld;
+
+                for (
+                    LV2_Atom_Property_Body *body = lv2_atom_object_begin(&obj->body) ;
+                    !lv2_atom_object_is_end(&obj->body, obj->atom.size, body) ;
+                    body = lv2_atom_object_next(body))
+                {
+                    // Read tuple
+                    if ((body->key != pExt->uridShmStateItems) && (body->value.type != pExt->forge.Tuple))
+                        continue;
+
+                    const LV2_Atom_Tuple *tuple = reinterpret_cast<LV2_Atom_Tuple *>(&body->value);
+                    const void *tbody = &tuple[1];
+
+                    for (
+                        LV2_Atom *item = lv2_atom_tuple_begin(tuple);
+                        !lv2_atom_tuple_is_end(tbody, tuple->atom.size, item);
+                        item = lv2_atom_tuple_next(item))
+                    {
+                        if ((item->type != pExt->uridObject) && (item->type != pExt->uridBlank))
+                            continue;
+
+                        const LV2_Atom_Object * oitem = reinterpret_cast<const LV2_Atom_Object *>(item);
+                        if (oitem->body.otype != pExt->uridShmRecordType)
+                            continue;
+
+                        // Read single ShmRecord
+                        const char *id = NULL;
+                        const char *name = NULL;
+                        uint32_t index = 0, magic = 0;
+
+                        for (
+                            LV2_Atom_Property_Body *obody = lv2_atom_object_begin(&oitem->body) ;
+                            !lv2_atom_object_is_end(&oitem->body, oitem->atom.size, obody) ;
+                            obody = lv2_atom_object_next(obody))
+                        {
+                            if ((obody->key == pExt->uridShmRecordId) && (obody->value.type == pExt->forge.String))
+                            {
+                                const LV2_Atom_String *s = reinterpret_cast<const LV2_Atom_String *>(&obody->value);
+                                id = reinterpret_cast<const char *>(&s[1]);
+                            }
+                            else if ((obody->key == pExt->uridShmRecordName) && (obody->value.type == pExt->forge.String))
+                            {
+                                const LV2_Atom_String *s = reinterpret_cast<const LV2_Atom_String *>(&obody->value);
+                                name = reinterpret_cast<const char *>(&s[1]);
+                            }
+                            else if ((obody->key == pExt->uridShmRecordIndex) && (obody->value.type == pExt->forge.Int))
+                                index = (reinterpret_cast<const LV2_Atom_Int *>(&obody->value))->body;
+                            else if ((obody->key == pExt->uridShmRecordMagic) && (obody->value.type == pExt->forge.Int))
+                                magic = (reinterpret_cast<const LV2_Atom_Int *>(&obody->value))->body;
+                        }
+
+                        if ((id != NULL) && (name != NULL))
+                            bld.append(name, id, index, magic);
+                    }
+                }
+
+                // Submit new ShmState
+                core::ShmState *state = bld.build();
+                if (state != NULL)
+                {
+                    sShmState.push(state);
+                    lsp_trace("Submitted new shm_state");
+                }
             }
             else
             {
@@ -1124,6 +1250,11 @@ namespace lsp
                 }
                 nPlayReq        = 0;
             }
+        }
+
+        const core::ShmState *UIWrapper::shm_state()
+        {
+            return sShmState.get();
         }
 
     } /* namespace lv2 */

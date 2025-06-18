@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 июн. 2021 г.
@@ -75,6 +75,8 @@ namespace lsp
                 sUrl.init(pWrapper, lnk->url());
                 sColor.init(pWrapper, lnk->color());
                 sHoverColor.init(pWrapper, lnk->hover_color());
+                sInactiveColor.init(pWrapper, lnk->inactive_color());
+                sInactiveHoverColor.init(pWrapper, lnk->inactive_hover_color());
             }
 
             return STATUS_OK;
@@ -90,6 +92,9 @@ namespace lsp
                 sColor.set("color", name, value);
                 sHoverColor.set("hover.color", name, value);
                 sHoverColor.set("hcolor", name, value);
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveHoverColor.set("inactive.hover.color", name, value);
+                sInactiveHoverColor.set("inactive.hcolor", name, value);
 
                 set_constraints(lnk->constraints(), name, value);
                 set_font(lnk->font(), "font", name, value);
@@ -101,7 +106,8 @@ namespace lsp
 
             return Widget::set(ctx, name, value);
         }
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

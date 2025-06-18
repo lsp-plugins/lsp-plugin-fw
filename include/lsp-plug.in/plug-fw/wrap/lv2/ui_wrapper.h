@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
+#include <lsp-plug.in/plug-fw/core/ShmState.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/ui.h>
@@ -35,9 +36,9 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/sink.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/wrapper.h>
 
-
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/state.h>
 
 namespace lsp
 {
@@ -71,6 +72,8 @@ namespace lsp
                 wsize_t                     nPlayPosition;  // Playback position
                 bool                        bPlayRelease;   // Playback release flag
 
+                lltl::state<core::ShmState> sShmState;
+
             protected:
                 lv2::UIPort                *create_port(const meta::port_t *p, const char *postfix);
 
@@ -82,6 +85,8 @@ namespace lsp
                 static ssize_t              compare_abstract_ports_by_urid(const ui::IPort *a, const ui::IPort *b);
                 static lv2::UIPort         *find_by_urid(lltl::parray<lv2::UIPort> &v, LV2_URID urid);
                 static lv2::UIPort         *find_by_urid(lltl::parray<ui::IPort> &v, LV2_URID urid);
+
+                static void                 shm_state_deleter(core::ShmState *state);
 
             protected:
                 static status_t             slot_ui_hide(tk::Widget *sender, void *ptr, void *data);
@@ -120,6 +125,8 @@ namespace lsp
                 virtual void                    dump_state_request() override;
                 virtual status_t                play_file(const char *file, wsize_t position, bool release) override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual bool                    window_resized(tk::Window *wnd, size_t width, size_t height) override;
+                virtual const core::ShmState   *shm_state() override;
         };
     } /* namespace lv2 */
 } /* namespace lsp */

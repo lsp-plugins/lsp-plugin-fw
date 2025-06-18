@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 июл. 2021 г.
@@ -40,6 +40,9 @@ namespace lsp
         {
             public:
                 static const ctl_class_t metadata;
+
+            protected:
+                static const size_t CHANNEL_PERIOD  = 8;
 
             protected:
                 enum labels_t
@@ -93,11 +96,12 @@ namespace lsp
                 tk::Menu           *pMenu;
                 DataSink           *pDataSink;
                 DragInSink         *pDragInSink;
-                bool                bFullSample;
                 bool                bLoadPreview;
                 lltl::parray<file_format_t>     vFormats;
                 lltl::parray<tk::MenuItem>      vMenuItems;
                 lltl::pphash<char, ui::IPort>   vClipboardBind;
+
+                LSPString           vChannelStyles[CHANNEL_PERIOD];
 
                 ctl::Integer        sWaveBorder;
                 ctl::Integer        sFadeInBorder;
@@ -110,6 +114,7 @@ namespace lsp
                 ctl::Integer        sLabelRadius;
                 ctl::Integer        sBorder;
                 ctl::Integer        sBorderRadius;
+                ctl::Float          sMaxAmplitude;
                 ctl::Boolean        sActive;
                 ctl::Boolean        sStereoGroups;
                 ctl::Boolean        sLabelVisibility[tk::AudioSample::LABELS];
@@ -130,6 +135,7 @@ namespace lsp
                 ctl::Expression     sPlayPosition;
                 ctl::Expression     sLength;
                 ctl::Expression     sActualLength;
+                ctl::Expression     sFullSample;
 
                 ctl::Padding        sIPadding;
 
@@ -181,8 +187,9 @@ namespace lsp
                 virtual status_t    init() override;
                 virtual void        destroy() override;
 
-            public:
+            public: // ctl::Widget
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child) override;
                 virtual void        end(ui::UIContext *ctx) override;
                 virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        reloaded(const tk::StyleSheet *sheet) override;

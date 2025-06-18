@@ -48,18 +48,24 @@ ROOTDIR_ALL_DEPENDENCIES   := $(ALL_DEPENDENCIES)
 EXTRA_DEPENDENCIES         := $(subtract $(MODDIR_DEPENDENCIES),$(ROOTDIR_DEPENDENCIES))
 
 # Artifact settings
-ifeq ($(BUILD_HOST),1)
+ifeq ($(CROSS_COMPILE),1)
   override HOST                    = HOST_
 else
   override HOST                    =
 endif
 
-ALLOWED_FEATURES            = clap doc gst jack ladspa lv2 vst2 vst3 xdg
+ALLOWED_FEATURES            = clap doc gst jack ladspa lv2 ui vst2 vst3 xdg
+ALLOWED_INSTALL_FEATURES    = clap doc gst jack ladspa lv2 vst2 vst3 xdg
 INTERNAL_FEATURES           =
 ifeq ($(TEST),1)
   INTERNAL_FEATURES            += test
 endif
-ENABLED_FEATURES            = $(call intersection,$(FEATURES),$(ALLOWED_FEATURES))
+ENABLED_FEATURES           := $(call intersection,$(BUILD_FEATURES),$(ALLOWED_FEATURES))
+ifdef FEATURES
+  INSTALL_FEATURES           := $(call intersection,$(call intersection,$(FEATURES),$(ENABLED_FEATURES)),$(ALLOWED_INSTALL_FEATURES))
+else
+  INSTALL_FEATURES           := $(call intersection,$(ENABLED_FEATURES),$(ALLOWED_INSTALL_FEATURES))
+endif
 INTERNAL_FEATURES          += \
   $(call fcheck,$(ALLOWED_FEATURES),$(ENABLED_FEATURES),meta validate)
 
@@ -79,7 +85,7 @@ HOST_DEPENDENCIES_TEST_UI       = $(DEPENDENCIES_TEST_UI)
 MERGED_DEPENDENCIES             = \
   $(DEPENDENCIES_COMMON) \
   $(DEPENDENCIES_TEST) \
-  $(call fcheck,clap jack lv2 test vst2 vst3,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),\
+  $(call fcheck,test ui,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),\
     $(DEPENDENCIES_COMMON_UI) \
     $(DEPENDENCIES_TEST_UI) \
     $(DEPENDENCIES_BIN) \
@@ -87,6 +93,9 @@ MERGED_DEPENDENCIES             = \
   $(call fcheck,clap,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_CLAP) \
     $(DEPENDENCIES_CLAP_BIN) \
+    $(call fcheck,ui,$(ENABLED_FEATURES), \
+      $(DEPENDENCIES_CLAP_UI) \
+      $(DEPENDENCIES_CLAP_UI_BIN)) \
   ) \
   $(call fcheck,gst,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_GST) \
@@ -97,6 +106,7 @@ MERGED_DEPENDENCIES             = \
     $(DEPENDENCIES_JACK_UI) \
     $(DEPENDENCIES_JACK_WRAP) \
     $(DEPENDENCIES_JACK_BIN) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_JACK_UI_BIN)) \
   ) \
   $(call fcheck,ladspa,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_LADSPA) \
@@ -104,17 +114,24 @@ MERGED_DEPENDENCIES             = \
   ) \
   $(call fcheck,lv2,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_LV2) \
-    $(DEPENDENCIES_LV2_UI) \
     $(DEPENDENCIES_LV2TTL_GEN) \
     $(DEPENDENCIES_LV2_BIN) \
+    $(call fcheck,ui,$(ENABLED_FEATURES), \
+      $(DEPENDENCIES_LV2_UI) \
+      $(DEPENDENCIES_LV2_UI_BIN)) \
   ) \
   $(call fcheck,vst2,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_VST2) \
     $(DEPENDENCIES_VST2_BIN) \
+    $(call fcheck,ui,$(ENABLED_FEATURES), \
+      $(DEPENDENCIES_VST2_UI) \
+      $(DEPENDENCIES_VST2_UI_BIN) \
+    ) \
   ) \
   $(call fcheck,vst3,$(ENABLED_FEATURES), \
     $(DEPENDENCIES_VST3) \
     $(DEPENDENCIES_VST3_BIN) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_VST3_UI_BIN)) \
   ) \
   $(EXTRA_DEPENDENCIES) \
   $(ARTIFACT_ID) \
@@ -122,13 +139,29 @@ MERGED_DEPENDENCIES             = \
 
 MERGED_DEPENDENCIES_BIN        := \
   $(DEPENDENCIES_BIN) \
-  $(call fcheck,clap,$(ENABLED_FEATURES),$(DEPENDENCIES_CLAP_BIN)) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN)) \
+  $(call fcheck,clap,$(ENABLED_FEATURES), \
+    $(DEPENDENCIES_CLAP_BIN) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_CLAP_UI_BIN)) \
+  ) \
   $(call fcheck,gst,$(ENABLED_FEATURES),$(DEPENDENCIES_GST_BIN)) \
-  $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(DEPENDENCIES_JACK_BIN)) \
+  $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
+    $(DEPENDENCIES_JACK_BIN) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_JACK_UI_BIN)) \
+  ) \
   $(call fcheck,ladspa,$(DEPENDENCIES_LADSPA_BIN)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES),$(DEPENDENCIES_LV2_BIN)) \
-  $(call fcheck,vst2,$(ENABLED_FEATURES),$(DEPENDENCIES_VST2_BIN)) \
-  $(call fcheck,vst3,$(ENABLED_FEATURES),$(DEPENDENCIES_VST3_BIN))
+  $(call fcheck,lv2,$(ENABLED_FEATURES), \
+    $(DEPENDENCIES_LV2_BIN) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_LV2_UI_BIN)) \
+  ) \
+  $(call fcheck,vst2,$(ENABLED_FEATURES), \
+    $(DEPENDENCIES_VST2_BIN) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_VST2_UI_BIN)) \
+  ) \
+  $(call fcheck,vst3,$(ENABLED_FEATURES), \
+    $(DEPENDENCIES_VST3_BIN) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_VST3_UI_BIN)) \
+  )
 
 UNIQ_DEPENDENCIES              := $(sort $(MERGED_DEPENDENCIES))
 UNIQ_DEPENDENCIES_BIN          := $(sort $(MERGED_DEPENDENCIES_BIN))
@@ -151,8 +184,8 @@ HOST_PLUGIN_DEPENDENCIES        = $(HOST_UNIQ_PLUGIN_DEPENDENCIES)
 SRC_DEPS                        = $(foreach dep, $(DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
 PLUG_DEPS                       = $(foreach dep, $(DEPENDENCIES) $(PLUGIN_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
 
-HOST_SRC_DEPS                   = $(foreach dep, $(HOST_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
-HOST_PLUG_DEPS                  = $(foreach dep, $(HOST_DEPENDENCIES) $(HOST_PLUGIN_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),$(dep)))
+HOST_SRC_DEPS                   = $(foreach dep, $(HOST_DEPENDENCIES), $(if $(findstring src,$($(dep)_TYPE)),HOST_$(dep)))
+HOST_PLUG_DEPS                  = $(foreach dep, $(HOST_DEPENDENCIES) $(HOST_PLUGIN_DEPENDENCIES), $(if $(findstring plug,$($(dep)_TYPE)),HOST_$(dep)))
 
 #------------------------------------------------------------------------------
 # Miscellaneous names and paths
@@ -177,7 +210,7 @@ GST_LIBDIR             := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 JACK_LIBDIR            := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 LADSPA_LIBDIR          := $(LIBDIR)/ladspa
 LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
-VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_GROUP_LIBDIR)
+VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_LIBDIR).vst
 VST3_LIBDIR            := $(LIBDIR)/vst3/$(INSTALL_LIBDIR).vst3
 DOC_SHAREDDIR          := $(SHAREDDIR)/doc/$($(ROOT_ARTIFACT_ID)_NAME)
 
@@ -247,7 +280,12 @@ VERSION_CFLAGS             := \
 #------------------------------------------------------------------------------
 # Framework settings for (cross) build
 LSP_PLUGIN_FW_SRC_RES               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
+LSP_PLUGIN_FW_SRC_RES_EXCL          = -x "fonts/**/:i18n/**/:models/**/:presets/**/:schema/**/:ui/**/"
 LSP_PLUGIN_FW_SRC_RES_CKSUM         = $(LSP_PLUGIN_FW_BIN)/res-checksum.json
+
+LSP_PLUGIN_FW_SRC_UI_RES            = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui-res.cpp
+LSP_PLUGIN_FW_SRC_UI_RES_CKSUM      = $(LSP_PLUGIN_FW_BIN)/ui-res-checksum.json
+LSP_PLUGIN_FW_SRC_UI_RES_EXCL       = 
 
 LSP_PLUGIN_FW_DEPS                  = $(filter-out $(ARTIFACT_ID), $(DEPENDENCIES))
 LSP_PLUGIN_FW_OBJ_CORE              = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
@@ -258,6 +296,7 @@ LSP_PLUGIN_FW_OBJ_CTL               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)
 LSP_PLUGIN_FW_OBJ_WRAP_CAIRO        = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-wrap-cairo.o
 LSP_PLUGIN_FW_OBJ_TEST              = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-test.o
 LSP_PLUGIN_FW_OBJ_RES               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.o
+LSP_PLUGIN_FW_OBJ_UI_RES            = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui-res.o
 
 LSP_PLUGIN_FW_OBJ_VARS              = \
   -d "ARTIFACT_ID=$($(ROOT_ARTIFACT_ID)_NAME)" \
@@ -267,7 +306,7 @@ LSP_PLUGIN_FW_OBJ                   = \
   $(LSP_PLUGIN_FW_OBJ_CORE) \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
-  $(call fcheck,clap jack lv2 test vst2 vst3,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
+  $(call fcheck,test ui,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
     $(LSP_PLUGIN_FW_OBJ_UI)\
     $(LSP_PLUGIN_FW_OBJ_CTL) \
   )
@@ -278,7 +317,12 @@ LSP_PLUGIN_FW_ALL_CFLAGS           += $(foreach feature,$(ENABLED_FEATURES_DEFS)
 
 # Framework settings for host build
 HOST_LSP_PLUGIN_FW_SRC_RES          = $(HOST_LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
+HOST_LSP_PLUGIN_FW_SRC_RES_EXCL     = $(LSP_PLUGIN_FW_SRC_RES_EXCL)
 HOST_LSP_PLUGIN_FW_SRC_RES_CKSUM    = $(HOST_LSP_PLUGIN_FW_BIN)/res-checksum.json
+
+HOST_LSP_PLUGIN_FW_SRC_UI_RES       = $(HOST_LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui-res.cpp
+HOST_LSP_PLUGIN_FW_SRC_UI_RES_EXCL  = $(LSP_PLUGIN_FW_SRC_UI_RES_EXCL)
+HOST_LSP_PLUGIN_FW_SRC_UI_RES_CKSUM = $(HOST_LSP_PLUGIN_FW_BIN)/ui-res-checksum.json
 
 HOST_LSP_PLUGIN_FW_DEPS             = $(filter-out $(ARTIFACT_ID), $(HOST_DEPENDENCIES))
 HOST_LSP_PLUGIN_FW_OBJ_CORE         = $(HOST_LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
@@ -289,11 +333,12 @@ HOST_LSP_PLUGIN_FW_OBJ_CTL          = $(HOST_LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_
 HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO   = $(HOST_LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-wrap-cairo.o
 HOST_LSP_PLUGIN_FW_OBJ_TEST         = $(HOST_LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-test.o
 HOST_LSP_PLUGIN_FW_OBJ_RES          = $(HOST_LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.o
+HOST_LSP_PLUGIN_FW_OBJ_UI_RES       = $(HOST_LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui-res.o
 HOST_LSP_PLUGIN_FW_OBJ              = \
   $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
   $(HOST_LSP_PLUGIN_FW_OBJ_META) \
   $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(call fcheck,clap jack lv2 test vst2 vst3,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
+  $(call fcheck,test ui,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
     $(HOST_LSP_PLUGIN_FW_OBJ_UI) \
     $(HOST_LSP_PLUGIN_FW_OBJ_CTL) \
   )
@@ -325,13 +370,17 @@ CXX_SRC                     = \
   $(CXX_SRC_EXPORT) \
   $(CXX_SRC_META) \
   $(CXX_SRC_DSP) \
-  $(CXX_SRC_UI) \
-  $(CXX_SRC_CTL) \
+  $(call fcheck,ui test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
+    $(CXX_SRC_UI) \
+    $(CXX_SRC_CTL) \
+  ) \
   $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(CXX_SRC_WRAP_JACK)) \
   $(call fcheck,gst,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_GST)) \
   $(call fcheck,ladspa,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_LADSPA)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_LV2)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_LV2_UI)) \
+  $(call fcheck,lv2,$(ENABLED_FEATURES), \
+    $(CXX_SRC_WRAP_LV2) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_LV2_UI)) \
+  ) \
   $(call fcheck,vst2,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_VST2)) \
   $(call fcheck,vst3,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_VST3)) \
   $(call fcheck,clap,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_CLAP)) \
@@ -360,13 +409,17 @@ HOST_CXX_SRC                = \
   $(HOST_CXX_SRC_EXPORT) \
   $(HOST_CXX_SRC_META) \
   $(HOST_CXX_SRC_DSP) \
-  $(HOST_CXX_SRC_UI) \
-  $(HOST_CXX_SRC_CTL) \
+  $(call fcheck,ui test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
+    $(HOST_CXX_SRC_UI) \
+    $(HOST_CXX_SRC_CTL) \
+  ) \
   $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(HOST_CXX_SRC_WRAP_JACK)) \
   $(call fcheck,gst,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_GST)) \
   $(call fcheck,ladspa,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_LADSPA)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_LV2)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_LV2_UI)) \
+  $(call fcheck,lv2,$(ENABLED_FEATURES), \
+    $(HOST_CXX_SRC_WRAP_LV2) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_LV2_UI)) \
+  ) \
   $(call fcheck,vst2,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_VST2)) \
   $(call fcheck,vst3,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_VST3)) \
   $(call fcheck,clap,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_CLAP)) \
@@ -397,15 +450,19 @@ OBJ                         = \
   $(OBJ_EXPORT) \
   $(OBJ_META) \
   $(OBJ_DSP) \
-  $(OBJ_UI) \
-  $(OBJ_CTL) \
+  $(call fcheck,ui test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
+    $(OBJ_UI) \
+    $(OBJ_CTL) \
+  ) \
   $(OBJ_UTIL) \
   $(call fcheck,clap,$(ENABLED_FEATURES),$(OBJ_WRAP_CLAP)) \
   $(call fcheck,gst,$(ENABLED_FEATURES),$(OBJ_WRAP_GST)) \
   $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(OBJ_WRAP_JACK)) \
-  $(call fcheck,ladspa,$(ENABLED_FEATURES),$(OBJ_WRAP_LADSPA)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES),$(OBJ_WRAP_LV2)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES),$(OBJ_WRAP_LV2_UI)) \
+  $(call fcheck,ladspa test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(OBJ_WRAP_LADSPA)) \
+  $(call fcheck,lv2,$(ENABLED_FEATURES), \
+    $(OBJ_WRAP_LV2) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_WRAP_LV2_UI)) \
+  ) \
   $(call fcheck,vst2,$(ENABLED_FEATURES),$(OBJ_WRAP_VST2)) \
   $(call fcheck,vst3,$(ENABLED_FEATURES),$(OBJ_WRAP_VST3)) \
   $(if $(LIBCAIRO_VERSION),$(OBJ_WRAP_CAIRO))
@@ -434,15 +491,19 @@ HOST_OBJ                    = \
   $(HOST_OBJ_EXPORT) \
   $(HOST_OBJ_META) \
   $(HOST_OBJ_DSP) \
-  $(HOST_OBJ_UI) \
-  $(HOST_OBJ_CTL) \
+  $(call fcheck,ui test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
+    $(HOST_OBJ_UI) \
+    $(HOST_OBJ_CTL) \
+  ) \
   $(HOST_OBJ_UTIL) \
   $(call fcheck,clap,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_CLAP)) \
   $(call fcheck,gst,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_GST)) \
   $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(HOST_OBJ_WRAP_JACK)) \
-  $(call fcheck,ladspa,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LADSPA)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2_UI)) \
+  $(call fcheck,ladspa test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(HOST_OBJ_WRAP_LADSPA)) \
+  $(call fcheck,lv2,$(ENABLED_FEATURES), \
+    $(HOST_OBJ_WRAP_LV2) \
+    $(call fcheck,ui,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2_UI)) \
+  ) \
   $(call fcheck,vst2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_VST2)) \
   $(call fcheck,vst3,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_VST3)) \
   $(if $(LIBCAIRO_VERSION),$(HOST_OBJ_WRAP_CAIRO))
@@ -459,180 +520,180 @@ endif
 
 #------------------------------------------------------------------------------
 # Utilities
-HOST_UTL_BIN_PATH               = $(HOST_LSP_PLUGIN_FW_BIN)/utils-bin
-HOST_UTL_RES_PATH               = $(HOST_LSP_PLUGIN_FW_BIN)/res
+$(HOST)UTL_BIN_PATH               = $($(HOST)LSP_PLUGIN_FW_BIN)/utils-bin
+$(HOST)UTL_RES_PATH               = $($(HOST)LSP_PLUGIN_FW_BIN)/res
 
-HOST_UTL_COMMON_OBJ             = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/common, *.cpp))
+$(HOST)UTL_COMMON_OBJ             = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/common, *.cpp))
 
-HOST_UTL_VALIDATOR              = $(HOST_UTL_BIN_PATH)/validator$(EXECUTABLE_EXT)
-HOST_UTL_VALIDATOR_OBJ          = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/validator, *.cpp))
-HOST_UTL_VALIDATOR_MAIN_OBJ     = $(HOST_LSP_PLUGIN_FW_BIN)/util/validator.o
-HOST_UTL_VALIDATOR_DEPS_ALL     = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
-HOST_UTL_VALIDATOR_DEPS         = $(foreach dep, $(HOST_UTL_VALIDATOR_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-HOST_UTL_VALIDATOR_LIBS         = $(foreach dep, $(HOST_UTL_VALIDATOR_DEPS_ALL), $($(dep)_OBJ))
-HOST_UTL_VALIDATOR_LDFLAGS      = $(foreach dep, $(HOST_UTL_VALIDATOR_DEPS_ALL), $($(dep)_LDFLAGS))
-HOST_UTL_VALIDATOR_OBJS         = \
-  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(call fcheck,clap jack lv2 test vst2 vst3,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
-    $(HOST_LSP_PLUGIN_FW_OBJ_UI) \
-    $(HOST_LSP_PLUGIN_FW_OBJ_CTL) \
+$(HOST)UTL_VALIDATOR              = $($(HOST)UTL_BIN_PATH)/validator$(EXECUTABLE_EXT)
+$(HOST)UTL_VALIDATOR_OBJ          = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/validator, *.cpp))
+$(HOST)UTL_VALIDATOR_MAIN_OBJ     = $($(HOST)LSP_PLUGIN_FW_BIN)/util/validator.o
+$(HOST)UTL_VALIDATOR_DEPS_ALL     = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
+$(HOST)UTL_VALIDATOR_DEPS         = $(foreach dep, $($(HOST)UTL_VALIDATOR_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
+$(HOST)UTL_VALIDATOR_LIBS         = $(foreach dep, $($(HOST)UTL_VALIDATOR_DEPS_ALL), $($(HOST)$(dep)_OBJ))
+$(HOST)UTL_VALIDATOR_LDFLAGS      = $(foreach dep, $($(HOST)UTL_VALIDATOR_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
+$(HOST)UTL_VALIDATOR_OBJS         = \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
+  $(call fcheck,test ui,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
+    $($(HOST)LSP_PLUGIN_FW_OBJ_UI) \
+    $($(HOST)LSP_PLUGIN_FW_OBJ_CTL) \
   ) \
   $(call fcheck,clap gst jack ladspa lv2 vst2 vst3,$(ENABLED_FEATURES), \
-    $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
+    $($(HOST)LSP_PLUGIN_FW_OBJ_RES) \
   ) \
-  $(HOST_OBJ_PLUG_META) \
-  $(HOST_OBJ_PLUG_DSP) \
-  $(HOST_OBJ_PLUG_SHARED) \
-  $(call fcheck,clap jack lv2 test vst2 vst3,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
-    $(HOST_OBJ_PLUG_UI) \
+  $($(HOST)OBJ_PLUG_META) \
+  $($(HOST)OBJ_PLUG_DSP) \
+  $($(HOST)OBJ_PLUG_SHARED) \
+  $(call fcheck,test ui,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
+    $($(HOST)OBJ_PLUG_UI) \
   ) \
-  $(HOST_UTL_VALIDATOR_OBJ) \
-  $(HOST_UTL_COMMON_OBJ) \
-  $(HOST_UTL_VALIDATOR_MAIN_OBJ)
+  $($(HOST)UTL_VALIDATOR_OBJ) \
+  $($(HOST)UTL_COMMON_OBJ) \
+  $($(HOST)UTL_VALIDATOR_MAIN_OBJ)
 
-HOST_UTL_JACK_MAKE              = $(HOST_UTL_BIN_PATH)/jack_make$(EXECUTABLE_EXT)
-HOST_UTL_JACK_MAKE_OBJ          = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/jack_make, *.cpp))
-HOST_UTL_JACK_MAKE_MAIN_OBJ     = $(HOST_LSP_PLUGIN_FW_BIN)/util/jack_make.o
-HOST_UTL_JACK_MAKE_DEPS_ALL     = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
-HOST_UTL_JACK_MAKE_DEPS         = $(foreach dep, $(HOST_UTL_JACK_MAKE_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-HOST_UTL_JACK_MAKE_LIBS         = $(foreach dep, $(HOST_UTL_JACK_MAKE_DEPS_ALL), $($(dep)_OBJ))
-HOST_UTL_JACK_MAKE_LDFLAGS      = $(foreach dep, $(HOST_UTL_JACK_MAKE_DEPS_ALL), $($(dep)_LDFLAGS))
-HOST_UTL_JACK_MAKE_OBJS         = \
-  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
-  $(HOST_OBJ_PLUG_META) \
-  $(HOST_OBJ_PLUG_DSP) \
-  $(HOST_OBJ_PLUG_SHARED) \
-  $(HOST_UTL_COMMON_OBJ) \
-  $(HOST_UTL_JACK_MAKE_OBJ) \
-  $(HOST_UTL_JACK_MAKE_MAIN_OBJ)
+$(HOST)UTL_JACK_MAKE              = $($(HOST)UTL_BIN_PATH)/jack_make$(EXECUTABLE_EXT)
+$(HOST)UTL_JACK_MAKE_OBJ          = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/jack_make, *.cpp))
+$(HOST)UTL_JACK_MAKE_MAIN_OBJ     = $($(HOST)LSP_PLUGIN_FW_BIN)/util/jack_make.o
+$(HOST)UTL_JACK_MAKE_DEPS_ALL     = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
+$(HOST)UTL_JACK_MAKE_DEPS         = $(foreach dep, $($(HOST)UTL_JACK_MAKE_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
+$(HOST)UTL_JACK_MAKE_LIBS         = $(foreach dep, $($(HOST)UTL_JACK_MAKE_DEPS_ALL), $($(HOST)$(dep)_OBJ))
+$(HOST)UTL_JACK_MAKE_LDFLAGS      = $(foreach dep, $($(HOST)UTL_JACK_MAKE_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
+$(HOST)UTL_JACK_MAKE_OBJS         = \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_RES) \
+  $($(HOST)OBJ_PLUG_META) \
+  $($(HOST)OBJ_PLUG_DSP) \
+  $($(HOST)OBJ_PLUG_SHARED) \
+  $($(HOST)UTL_COMMON_OBJ) \
+  $($(HOST)UTL_JACK_MAKE_OBJ) \
+  $($(HOST)UTL_JACK_MAKE_MAIN_OBJ)
 
-HOST_UTL_GST_MAKE               = $(HOST_UTL_BIN_PATH)/gst_make$(EXECUTABLE_EXT)
-HOST_UTL_GST_MAKE_OBJ           = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/gst_make, *.cpp))
-HOST_UTL_GST_MAKE_MAIN_OBJ      = $(HOST_LSP_PLUGIN_FW_BIN)/util/gst_make.o
-HOST_UTL_GST_MAKE_DEPS_ALL      = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
-HOST_UTL_GST_MAKE_DEPS          = $(foreach dep, $(HOST_UTL_GST_MAKE_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-HOST_UTL_GST_MAKE_LIBS          = $(foreach dep, $(HOST_UTL_GST_MAKE_DEPS_ALL), $($(dep)_OBJ))
-HOST_UTL_GST_MAKE_LDFLAGS       = $(foreach dep, $(HOST_UTL_GST_MAKE_DEPS_ALL), $($(dep)_LDFLAGS))
-HOST_UTL_GST_MAKE_OBJS          = \
-  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
-  $(HOST_OBJ_PLUG_META) \
-  $(HOST_OBJ_PLUG_DSP) \
-  $(HOST_OBJ_PLUG_SHARED) \
-  $(HOST_UTL_COMMON_OBJ) \
-  $(HOST_UTL_GST_MAKE_OBJ) \
-  $(HOST_UTL_GST_MAKE_MAIN_OBJ)
+$(HOST)UTL_GST_MAKE               = $($(HOST)UTL_BIN_PATH)/gst_make$(EXECUTABLE_EXT)
+$(HOST)UTL_GST_MAKE_OBJ           = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/gst_make, *.cpp))
+$(HOST)UTL_GST_MAKE_MAIN_OBJ      = $($(HOST)LSP_PLUGIN_FW_BIN)/util/gst_make.o
+$(HOST)UTL_GST_MAKE_DEPS_ALL      = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
+$(HOST)UTL_GST_MAKE_DEPS          = $(foreach dep, $($(HOST)UTL_GST_MAKE_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
+$(HOST)UTL_GST_MAKE_LIBS          = $(foreach dep, $($(HOST)UTL_GST_MAKE_DEPS_ALL), $($(HOST)$(dep)_OBJ))
+$(HOST)UTL_GST_MAKE_LDFLAGS       = $(foreach dep, $($(HOST)UTL_GST_MAKE_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
+$(HOST)UTL_GST_MAKE_OBJS          = \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_RES) \
+  $($(HOST)OBJ_PLUG_META) \
+  $($(HOST)OBJ_PLUG_DSP) \
+  $($(HOST)OBJ_PLUG_SHARED) \
+  $($(HOST)UTL_COMMON_OBJ) \
+  $($(HOST)UTL_GST_MAKE_OBJ) \
+  $($(HOST)UTL_GST_MAKE_MAIN_OBJ)
 
-HOST_UTL_VST2_MAKE              = $(HOST_UTL_BIN_PATH)/vst2_make$(EXECUTABLE_EXT)
-HOST_UTL_VST2_MAKE_OBJ          = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/vst2_make, *.cpp))
-HOST_UTL_VST2_MAKE_MAIN_OBJ     = $(HOST_LSP_PLUGIN_FW_BIN)/util/vst2_make.o
-HOST_UTL_VST2_MAKE_DEPS_ALL     = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
-HOST_UTL_VST2_MAKE_DEPS         = $(foreach dep, $(HOST_UTL_VST2_MAKE_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-HOST_UTL_VST2_MAKE_LIBS         = $(foreach dep, $(HOST_UTL_VST2_MAKE_DEPS_ALL), $($(dep)_OBJ))
-HOST_UTL_VST2_MAKE_LDFLAGS      = $(foreach dep, $(HOST_UTL_VST2_MAKE_DEPS_ALL), $($(dep)_LDFLAGS))
-HOST_UTL_VST2_MAKE_OBJS         = \
-  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
-  $(HOST_OBJ_PLUG_META) \
-  $(HOST_OBJ_PLUG_DSP) \
-  $(HOST_OBJ_PLUG_SHARED) \
-  $(HOST_UTL_COMMON_OBJ) \
-  $(HOST_UTL_VST2_MAKE_OBJ) \
-  $(HOST_UTL_VST2_MAKE_MAIN_OBJ)
+$(HOST)UTL_VST2_MAKE              = $($(HOST)UTL_BIN_PATH)/vst2_make$(EXECUTABLE_EXT)
+$(HOST)UTL_VST2_MAKE_OBJ          = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/vst2_make, *.cpp))
+$(HOST)UTL_VST2_MAKE_MAIN_OBJ     = $($(HOST)LSP_PLUGIN_FW_BIN)/util/vst2_make.o
+$(HOST)UTL_VST2_MAKE_DEPS_ALL     = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
+$(HOST)UTL_VST2_MAKE_DEPS         = $(foreach dep, $($(HOST)UTL_VST2_MAKE_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
+$(HOST)UTL_VST2_MAKE_LIBS         = $(foreach dep, $($(HOST)UTL_VST2_MAKE_DEPS_ALL), $($(HOST)$(dep)_OBJ))
+$(HOST)UTL_VST2_MAKE_LDFLAGS      = $(foreach dep, $($(HOST)UTL_VST2_MAKE_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
+$(HOST)UTL_VST2_MAKE_OBJS         = \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_RES) \
+  $($(HOST)OBJ_PLUG_META) \
+  $($(HOST)OBJ_PLUG_DSP) \
+  $($(HOST)OBJ_PLUG_SHARED) \
+  $($(HOST)UTL_COMMON_OBJ) \
+  $($(HOST)UTL_VST2_MAKE_OBJ) \
+  $($(HOST)UTL_VST2_MAKE_MAIN_OBJ)
   
-HOST_UTL_VST3_MODINFO           = $(HOST_UTL_BIN_PATH)/vst3_modinfo$(EXECUTABLE_EXT)
-HOST_UTL_VST3_MODINFO_OBJ       = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/vst3_modinfo, *.cpp))
-HOST_UTL_VST3_MODINFO_MAIN_OBJ  = $(HOST_LSP_PLUGIN_FW_BIN)/util/vst3_modinfo.o
-HOST_UTL_VST3_MODINFO_DEPS_ALL  = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
-HOST_UTL_VST3_MODINFO_DEPS      = $(foreach dep, $(HOST_UTL_VST3_MODINFO_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-HOST_UTL_VST3_MODINFO_LIBS      = $(foreach dep, $(HOST_UTL_VST3_MODINFO_DEPS_ALL), $($(dep)_OBJ))
-HOST_UTL_VST3_MODINFO_LDFLAGS   = $(foreach dep, $(HOST_UTL_VST3_MODINFO_DEPS_ALL), $($(dep)_LDFLAGS))
-HOST_UTL_VST3_MODINFO_OBJS      = \
-  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
-  $(HOST_OBJ_PLUG_META) \
-  $(HOST_OBJ_PLUG_DSP) \
-  $(HOST_OBJ_PLUG_SHARED) \
-  $(HOST_UTL_COMMON_OBJ) \
-  $(HOST_UTL_VST3_MODINFO_OBJ) \
-  $(HOST_UTL_VST3_MODINFO_MAIN_OBJ)
+$(HOST)UTL_VST3_MODINFO           = $($(HOST)UTL_BIN_PATH)/vst3_modinfo$(EXECUTABLE_EXT)
+$(HOST)UTL_VST3_MODINFO_OBJ       = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/vst3_modinfo, *.cpp))
+$(HOST)UTL_VST3_MODINFO_MAIN_OBJ  = $($(HOST)LSP_PLUGIN_FW_BIN)/util/vst3_modinfo.o
+$(HOST)UTL_VST3_MODINFO_DEPS_ALL  = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
+$(HOST)UTL_VST3_MODINFO_DEPS      = $(foreach dep, $($(HOST)UTL_VST3_MODINFO_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
+$(HOST)UTL_VST3_MODINFO_LIBS      = $(foreach dep, $($(HOST)UTL_VST3_MODINFO_DEPS_ALL), $($(HOST)$(dep)_OBJ))
+$(HOST)UTL_VST3_MODINFO_LDFLAGS   = $(foreach dep, $($(HOST)UTL_VST3_MODINFO_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
+$(HOST)UTL_VST3_MODINFO_OBJS      = \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_RES) \
+  $($(HOST)OBJ_PLUG_META) \
+  $($(HOST)OBJ_PLUG_DSP) \
+  $($(HOST)OBJ_PLUG_SHARED) \
+  $($(HOST)UTL_COMMON_OBJ) \
+  $($(HOST)UTL_VST3_MODINFO_OBJ) \
+  $($(HOST)UTL_VST3_MODINFO_MAIN_OBJ)
 
-HOST_UTL_LV2TTL_GEN             = $(HOST_UTL_BIN_PATH)/lv2ttl_gen$(EXECUTABLE_EXT)
-HOST_UTL_LV2TTL_GEN_OBJ         = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/lv2ttl_gen, *.cpp))
-HOST_UTL_LV2TTL_GEN_MAIN_OBJ    = $(HOST_LSP_PLUGIN_FW_BIN)/util/lv2ttl_gen.o
-HOST_UTL_LV2TTL_GEN_DEPS_ALL    = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
-HOST_UTL_LV2TTL_GEN_DEPS        = $(foreach dep, $(HOST_UTL_LV2TTL_GEN_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-HOST_UTL_LV2TTL_GEN_LIBS        = $(foreach dep, $(HOST_UTL_LV2TTL_GEN_DEPS_ALL), $($(dep)_OBJ))
-HOST_UTL_LV2TTL_GEN_LDFLAGS     = $(foreach dep, $(HOST_UTL_LV2TTL_GEN_DEPS_ALL), $($(dep)_LDFLAGS))
-HOST_UTL_LV2TTL_GEN_OBJS        = \
-  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
-  $(HOST_OBJ_PLUG_META) \
-  $(HOST_OBJ_PLUG_DSP) \
-  $(HOST_OBJ_PLUG_SHARED) \
-  $(HOST_UTL_LV2TTL_GEN_OBJ) \
-  $(HOST_UTL_LV2TTL_GEN_MAIN_OBJ)
+$(HOST)UTL_LV2TTL_GEN             = $($(HOST)UTL_BIN_PATH)/lv2ttl_gen$(EXECUTABLE_EXT)
+$(HOST)UTL_LV2TTL_GEN_OBJ         = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/lv2ttl_gen, *.cpp))
+$(HOST)UTL_LV2TTL_GEN_MAIN_OBJ    = $($(HOST)LSP_PLUGIN_FW_BIN)/util/lv2ttl_gen.o
+$(HOST)UTL_LV2TTL_GEN_DEPS_ALL    = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
+$(HOST)UTL_LV2TTL_GEN_DEPS        = $(foreach dep, $($(HOST)UTL_LV2TTL_GEN_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
+$(HOST)UTL_LV2TTL_GEN_LIBS        = $(foreach dep, $($(HOST)UTL_LV2TTL_GEN_DEPS_ALL), $($(HOST)$(dep)_OBJ))
+$(HOST)UTL_LV2TTL_GEN_LDFLAGS     = $(foreach dep, $($(HOST)UTL_LV2TTL_GEN_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
+$(HOST)UTL_LV2TTL_GEN_OBJS        = \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_RES) \
+  $($(HOST)OBJ_PLUG_META) \
+  $($(HOST)OBJ_PLUG_DSP) \
+  $($(HOST)OBJ_PLUG_SHARED) \
+  $($(HOST)UTL_LV2TTL_GEN_OBJ) \
+  $($(HOST)UTL_LV2TTL_GEN_MAIN_OBJ)
 
-HOST_UTL_REPOSITORY             = $(HOST_UTL_BIN_PATH)/repository$(EXECUTABLE_EXT)
-HOST_UTL_REPOSITORY_OBJ         = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/repository, *.cpp))
-HOST_UTL_REPOSITORY_MAIN_OBJ    = $(HOST_LSP_PLUGIN_FW_BIN)/util/repository.o
-HOST_UTL_REPOSITORY_DEPS_ALL    = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
-HOST_UTL_REPOSITORY_DEPS        = $(foreach dep, $(HOST_UTL_REPOSITORY_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-HOST_UTL_REPOSITORY_LIBS        = $(foreach dep, $(HOST_UTL_REPOSITORY_DEPS_ALL), $($(dep)_OBJ))
-HOST_UTL_REPOSITORY_LDFLAGS     = $(foreach dep, $(HOST_UTL_REPOSITORY_DEPS_ALL), $($(dep)_LDFLAGS))
-HOST_UTL_REPOSITORY_OBJS        = \
-  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(HOST_UTL_COMMON_OBJ) \
-  $(HOST_UTL_REPOSITORY_OBJ) \
-  $(HOST_UTL_REPOSITORY_MAIN_OBJ)
+$(HOST)UTL_REPOSITORY             = $($(HOST)UTL_BIN_PATH)/repository$(EXECUTABLE_EXT)
+$(HOST)UTL_REPOSITORY_OBJ         = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/repository, *.cpp))
+$(HOST)UTL_REPOSITORY_MAIN_OBJ    = $($(HOST)LSP_PLUGIN_FW_BIN)/util/repository.o
+$(HOST)UTL_REPOSITORY_DEPS_ALL    = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
+$(HOST)UTL_REPOSITORY_DEPS        = $(foreach dep, $($(HOST)UTL_REPOSITORY_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
+$(HOST)UTL_REPOSITORY_LIBS        = $(foreach dep, $($(HOST)UTL_REPOSITORY_DEPS_ALL), $($(HOST)$(dep)_OBJ))
+$(HOST)UTL_REPOSITORY_LDFLAGS     = $(foreach dep, $($(HOST)UTL_REPOSITORY_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
+$(HOST)UTL_REPOSITORY_OBJS        = \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
+  $($(HOST)UTL_COMMON_OBJ) \
+  $($(HOST)UTL_REPOSITORY_OBJ) \
+  $($(HOST)UTL_REPOSITORY_MAIN_OBJ)
 
-HOST_UTL_RESPACK                = $(HOST_UTL_BIN_PATH)/respack$(EXECUTABLE_EXT)
-HOST_UTL_RESPACK_OBJ            = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/respack, *.cpp))
-HOST_UTL_RESPACK_MAIN_OBJ       = $(HOST_LSP_PLUGIN_FW_BIN)/util/respack.o
-HOST_UTL_RESPACK_DEPS_ALL       = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
-HOST_UTL_RESPACK_DEPS           = $(foreach dep, $(HOST_UTL_RESPACK_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-HOST_UTL_RESPACK_LIBS           = $(foreach dep, $(HOST_UTL_RESPACK_DEPS_ALL), $($(dep)_OBJ))
-HOST_UTL_RESPACK_LDFLAGS        = $(foreach dep, $(HOST_UTL_RESPACK_DEPS_ALL), $($(dep)_LDFLAGS))
-HOST_UTL_RESPACK_OBJS           = \
-  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(HOST_UTL_COMMON_OBJ) \
-  $(HOST_UTL_RESPACK_OBJ) \
-  $(HOST_UTL_RESPACK_MAIN_OBJ)
-
-HOST_UTL_PLUGLIST_GEN           = $(HOST_UTL_BIN_PATH)/pluglist_gen$(EXECUTABLE_EXT)
-HOST_UTL_PLUGLIST_GEN_OBJ       = $(patsubst %.cpp,$(HOST_LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/pluglist_gen, *.cpp))
-HOST_UTL_PLUGLIST_GEN_MAIN_OBJ  = $(HOST_LSP_PLUGIN_FW_BIN)/util/pluglist_gen.o
-HOST_UTL_PLUGLIST_GEN_DEPS_ALL  = $(call uniq, $(HOST_LSP_PLUGIN_FW_DEPS))
-HOST_UTL_PLUGLIST_GEN_DEPS      = $(foreach dep, $(HOST_UTL_PLUGLIST_GEN_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-HOST_UTL_PLUGLIST_GEN_LIBS      = $(foreach dep, $(HOST_UTL_PLUGLIST_GEN_DEPS_ALL), $($(dep)_OBJ))
-HOST_UTL_PLUGLIST_GEN_LDFLAGS   = $(foreach dep, $(HOST_UTL_PLUGLIST_GEN_DEPS_ALL), $($(dep)_LDFLAGS))
-HOST_UTL_PLUGLIST_GEN_OBJS      = \
-  $(HOST_LSP_PLUGIN_FW_OBJ_CORE) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_META) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
-  $(HOST_LSP_PLUGIN_FW_OBJ_RES) \
-  $(HOST_OBJ_PLUG_META) \
-  $(HOST_OBJ_PLUG_DSP) \
-  $(HOST_OBJ_PLUG_SHARED) \
-  $(HOST_UTL_PLUGLIST_GEN_OBJ) \
-  $(HOST_UTL_PLUGLIST_GEN_MAIN_OBJ)
+$(HOST)UTL_RESPACK                = $($(HOST)UTL_BIN_PATH)/respack$(EXECUTABLE_EXT)
+$(HOST)UTL_RESPACK_OBJ            = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/respack, *.cpp))
+$(HOST)UTL_RESPACK_MAIN_OBJ       = $($(HOST)LSP_PLUGIN_FW_BIN)/util/respack.o
+$(HOST)UTL_RESPACK_DEPS_ALL       = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
+$(HOST)UTL_RESPACK_DEPS           = $(foreach dep, $($(HOST)UTL_RESPACK_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
+$(HOST)UTL_RESPACK_LIBS           = $(foreach dep, $($(HOST)UTL_RESPACK_DEPS_ALL), $($(HOST)$(dep)_OBJ))
+$(HOST)UTL_RESPACK_LDFLAGS        = $(foreach dep, $($(HOST)UTL_RESPACK_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
+$(HOST)UTL_RESPACK_OBJS           = \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
+  $($(HOST)UTL_COMMON_OBJ) \
+  $($(HOST)UTL_RESPACK_OBJ) \
+  $($(HOST)UTL_RESPACK_MAIN_OBJ)
+  
+$(HOST)UTL_PLUGLIST_GEN           = $($(HOST)UTL_BIN_PATH)/pluglist_gen$(EXECUTABLE_EXT)
+$(HOST)UTL_PLUGLIST_GEN_OBJ       = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/pluglist_gen, *.cpp))
+$(HOST)UTL_PLUGLIST_GEN_MAIN_OBJ  = $($(HOST)LSP_PLUGIN_FW_BIN)/util/pluglist_gen.o
+$(HOST)UTL_PLUGLIST_GEN_DEPS_ALL  = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
+$(HOST)UTL_PLUGLIST_GEN_DEPS      = $(foreach dep, $($(HOST)UTL_PLUGLIST_GEN_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
+$(HOST)UTL_PLUGLIST_GEN_LIBS      = $(foreach dep, $($(HOST)UTL_PLUGLIST_GEN_DEPS_ALL), $($(HOST)$(dep)_OBJ))
+$(HOST)UTL_PLUGLIST_GEN_LDFLAGS   = $(foreach dep, $($(HOST)UTL_PLUGLIST_GEN_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
+$(HOST)UTL_PLUGLIST_GEN_OBJS      = \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
+  $($(HOST)LSP_PLUGIN_FW_OBJ_RES) \
+  $($(HOST)OBJ_PLUG_META) \
+  $($(HOST)OBJ_PLUG_DSP) \
+  $($(HOST)OBJ_PLUG_SHARED) \
+  $($(HOST)UTL_PLUGLIST_GEN_OBJ) \
+  $($(HOST)UTL_PLUGLIST_GEN_MAIN_OBJ)
 
 #------------------------------------------------------------------------------
 # Plugins
@@ -652,10 +713,43 @@ HOST_OBJ_PLUG               = $(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP) $(HOST_
 
 #------------------------------------------------------------------------------
 # Binaries
+ARTIFACT_LIB_CLAP           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME).clap
+ARTIFACT_LIB_CLAP_DEPS_FULL = \
+  $(DEPENDENCIES_CLAP) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_CLAP_UI)) \
+  $(DEPENDENCIES_TEST) \
+  $(DEPENDENCIES_TEST_UI) \
+  $(PLUGIN_SHARED)
+ARTIFACT_LIB_CLAP_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(ARTIFACT_LIB_CLAP_DEPS_FULL)))
+ARTIFACT_LIB_CLAP_DEPS      = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
+ARTIFACT_LIB_CLAP_LIBS      = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $($(dep)_OBJ))
+ARTIFACT_LIB_CLAP_LDFLAGS   = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $($(dep)_LDFLAGS))
+ARTIFACT_LIB_CLAP_OBJS      = \
+  $(LSP_PLUGIN_FW_OBJ_CORE) \
+  $(LSP_PLUGIN_FW_OBJ_META) \
+  $(LSP_PLUGIN_FW_OBJ_DSP) \
+  $(call fcheck,ui,$(ENABLED_FEATURES), \
+    $(LSP_PLUGIN_FW_OBJ_UI) \
+    $(LSP_PLUGIN_FW_OBJ_CTL) \
+    $(LSP_PLUGIN_FW_OBJ_UI_RES), \
+    $(LSP_PLUGIN_FW_OBJ_RES) \
+  ) \
+  $(OBJ_PLUG_META) \
+  $(OBJ_PLUG_DSP) \
+  $(OBJ_PLUG_SHARED) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_PLUG_UI)) \
+  $(OBJ_WRAP_CLAP)
+
 ARTIFACT_LIB_JACK           = $(LSP_PLUGIN_FW_BIN)/$(LIBRARY_PREFIX)$(PLUGIN_SHARED_NAME)-jack-$(PLUGIN_PACKAGE_VERSION)$(LIBRARY_EXT)
 ARTIFACT_LIB_JACK_PATH      = $(LSP_PLUGIN_FW_BIN)/jack
 ARTIFACT_LIB_JACK_SETTINGS  = $(ARTIFACT_LIB_JACK_PATH)/.settings.mk
-ARTIFACT_LIB_JACK_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_JACK) $(DEPENDENCIES_JACK_UI) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(PLUGIN_SHARED)))
+ARTIFACT_LIB_JACK_DEPS_FULL = \
+  $(DEPENDENCIES_JACK) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_JACK_UI)) \
+  $(DEPENDENCIES_TEST) \
+  $(DEPENDENCIES_TEST_UI) \
+  $(PLUGIN_SHARED)
+ARTIFACT_LIB_JACK_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(ARTIFACT_LIB_JACK_DEPS_FULL)))
 ARTIFACT_LIB_JACK_DEPS      = $(foreach dep, $(ARTIFACT_LIB_JACK_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
 ARTIFACT_LIB_JACK_LIBS      = $(foreach dep, $(ARTIFACT_LIB_JACK_DEPS_ALL), $($(dep)_OBJ))
 ARTIFACT_LIB_JACK_LDFLAGS   = $(foreach dep, $(ARTIFACT_LIB_JACK_DEPS_ALL), $($(dep)_LDFLAGS))
@@ -663,15 +757,18 @@ ARTIFACT_LIB_JACK_OBJS      = \
   $(LSP_PLUGIN_FW_OBJ_CORE) \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
-  $(LSP_PLUGIN_FW_OBJ_UI) \
-  $(LSP_PLUGIN_FW_OBJ_CTL) \
-  $(LSP_PLUGIN_FW_OBJ_RES) \
-  $(if $(LIBCAIRO_VERSION),$(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO)) \
+  $(call fcheck,ui,$(ENABLED_FEATURES), \
+    $(LSP_PLUGIN_FW_OBJ_UI) \
+    $(LSP_PLUGIN_FW_OBJ_CTL) \
+    $(LSP_PLUGIN_FW_OBJ_UI_RES) \
+    $(if $(LIBCAIRO_VERSION),$(LSP_PLUGIN_FW_OBJ_WRAP_CAIRO)), \
+    $(LSP_PLUGIN_FW_OBJ_RES) \
+  ) \
   $(OBJ_EXPORT) \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_PLUG_SHARED) \
-  $(OBJ_PLUG_UI) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_PLUG_UI)) \
   $(OBJ_WRAP_JACK)
   
 ARTIFACT_LIB_GST            = $(LSP_PLUGIN_FW_BIN)/$(LIBRARY_PREFIX)$(PLUGIN_SHARED_NAME)-gstreamer-$(PLUGIN_PACKAGE_VERSION)$(LIBRARY_EXT)
@@ -732,7 +829,7 @@ ARTIFACT_LIB_LV2_UI_OBJS    = \
   $(LSP_PLUGIN_FW_OBJ_CORE) \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
-  $(LSP_PLUGIN_FW_OBJ_RES) \
+  $(LSP_PLUGIN_FW_OBJ_UI_RES) \
   $(LSP_PLUGIN_FW_OBJ_UI) \
   $(LSP_PLUGIN_FW_OBJ_CTL) \
   $(OBJ_PLUG_META) \
@@ -744,7 +841,13 @@ ARTIFACT_LIB_LV2_UI_OBJS    = \
 ARTIFACT_LIB_VST2           = $(LSP_PLUGIN_FW_BIN)/$(LIBRARY_PREFIX)$(PLUGIN_SHARED_NAME)-vst2$(LIBRARY_EXT)
 ARTIFACT_LIB_VST2_PATH      = $(LSP_PLUGIN_FW_BIN)/vst2
 ARTIFACT_LIB_VST2_SETTINGS  = $(ARTIFACT_LIB_VST2_PATH)/.settings.mk
-ARTIFACT_LIB_VST2_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_VST2) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(PLUGIN_SHARED)))
+ARTIFACT_LIB_VST2_DEPS_FULL = \
+  $(DEPENDENCIES_VST2) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_VST2_UI)) \
+  $(DEPENDENCIES_TEST) \
+  $(DEPENDENCIES_TEST_UI) \
+  $(PLUGIN_SHARED)
+ARTIFACT_LIB_VST2_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(ARTIFACT_LIB_VST2_DEPS_FULL)))
 ARTIFACT_LIB_VST2_DEPS      = $(foreach dep, $(ARTIFACT_LIB_VST2_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
 ARTIFACT_LIB_VST2_LIBS      = $(foreach dep, $(ARTIFACT_LIB_VST2_DEPS_ALL), $($(dep)_OBJ))
 ARTIFACT_LIB_VST2_LDFLAGS   = $(foreach dep, $(ARTIFACT_LIB_VST2_DEPS_ALL), $($(dep)_LDFLAGS))
@@ -752,18 +855,27 @@ ARTIFACT_LIB_VST2_OBJS      = \
   $(LSP_PLUGIN_FW_OBJ_CORE) \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
-  $(LSP_PLUGIN_FW_OBJ_UI) \
-  $(LSP_PLUGIN_FW_OBJ_CTL) \
-  $(LSP_PLUGIN_FW_OBJ_RES) \
+  $(call fcheck,ui,$(ENABLED_FEATURES), \
+    $(LSP_PLUGIN_FW_OBJ_UI) \
+    $(LSP_PLUGIN_FW_OBJ_CTL) \
+    $(LSP_PLUGIN_FW_OBJ_UI_RES), \
+    $(LSP_PLUGIN_FW_OBJ_RES) \
+  ) \
   $(OBJ_EXPORT) \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_PLUG_SHARED) \
-  $(OBJ_PLUG_UI) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_PLUG_UI)) \
   $(OBJ_WRAP_VST2)
 
 ARTIFACT_LIB_VST3           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)$(VST3_EXT)
-ARTIFACT_LIB_VST3_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_VST3) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(PLUGIN_SHARED)))
+ARTIFACT_LIB_VST3_DEPS_FULL = \
+  $(DEPENDENCIES_VST3) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_VST3_UI)) \
+  $(DEPENDENCIES_TEST) \
+  $(DEPENDENCIES_TEST_UI) \
+  $(PLUGIN_SHARED)
+ARTIFACT_LIB_VST3_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(ARTIFACT_LIB_VST3_DEPS_FULL)))
 ARTIFACT_LIB_VST3_DEPS      = $(foreach dep, $(ARTIFACT_LIB_VST3_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
 ARTIFACT_LIB_VST3_LIBS      = $(foreach dep, $(ARTIFACT_LIB_VST3_DEPS_ALL), $($(dep)_OBJ))
 ARTIFACT_LIB_VST3_LDFLAGS   = $(foreach dep, $(ARTIFACT_LIB_VST3_DEPS_ALL), $($(dep)_LDFLAGS)) $(VST3_LDFLAGS)
@@ -771,33 +883,18 @@ ARTIFACT_LIB_VST3_OBJS      = \
   $(LSP_PLUGIN_FW_OBJ_CORE) \
   $(LSP_PLUGIN_FW_OBJ_META) \
   $(LSP_PLUGIN_FW_OBJ_DSP) \
-  $(LSP_PLUGIN_FW_OBJ_UI) \
-  $(LSP_PLUGIN_FW_OBJ_CTL) \
-  $(LSP_PLUGIN_FW_OBJ_RES) \
+  $(call fcheck,ui,$(ENABLED_FEATURES), \
+    $(LSP_PLUGIN_FW_OBJ_UI) \
+    $(LSP_PLUGIN_FW_OBJ_CTL) \
+    $(LSP_PLUGIN_FW_OBJ_UI_RES), \
+    $(LSP_PLUGIN_FW_OBJ_RES) \
+  ) \
   $(OBJ_EXPORT) \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_PLUG_SHARED) \
-  $(OBJ_PLUG_UI) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_PLUG_UI)) \
   $(OBJ_WRAP_VST3)
-
-ARTIFACT_LIB_CLAP           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-clap.clap
-ARTIFACT_LIB_CLAP_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_CLAP) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(PLUGIN_SHARED)))
-ARTIFACT_LIB_CLAP_DEPS      = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
-ARTIFACT_LIB_CLAP_LIBS      = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $($(dep)_OBJ))
-ARTIFACT_LIB_CLAP_LDFLAGS   = $(foreach dep, $(ARTIFACT_LIB_CLAP_DEPS_ALL), $($(dep)_LDFLAGS))
-ARTIFACT_LIB_CLAP_OBJS      = \
-  $(LSP_PLUGIN_FW_OBJ_CORE) \
-  $(LSP_PLUGIN_FW_OBJ_META) \
-  $(LSP_PLUGIN_FW_OBJ_DSP) \
-  $(LSP_PLUGIN_FW_OBJ_UI) \
-  $(LSP_PLUGIN_FW_OBJ_CTL) \
-  $(LSP_PLUGIN_FW_OBJ_RES) \
-  $(OBJ_PLUG_META) \
-  $(OBJ_PLUG_DSP) \
-  $(OBJ_PLUG_SHARED) \
-  $(OBJ_PLUG_UI) \
-  $(OBJ_WRAP_CLAP)
 
 ifeq ($(TEST),1)
   ARTIFACT_BIN_TEST           = $(HOST_LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-test$(EXECUTABLE_EXT)
@@ -812,7 +909,7 @@ ifeq ($(TEST),1)
     $(HOST_LSP_PLUGIN_FW_OBJ_DSP) \
     $(HOST_LSP_PLUGIN_FW_OBJ_UI) \
     $(HOST_LSP_PLUGIN_FW_OBJ_CTL) \
-    $(call fcheck,clap gst jack ladspa lv2 vst2 vst3,$(ENABLED_FEATURES),$(HOST_LSP_PLUGIN_FW_OBJ_RES)) \
+    $(call fcheck,ui,$(ENABLED_FEATURES), $(HOST_LSP_PLUGIN_FW_OBJ_UI_RES)) \
     $(HOST_LSP_PLUGIN_FW_OBJ_TEST) \
     $(if $(LIBCAIRO_VERSION),$(HOST_LSP_PLUGIN_FW_OBJ_WRAP_CAIRO)) \
     $(HOST_OBJ_PLUG_META) \
@@ -822,20 +919,22 @@ ifeq ($(TEST),1)
     $(call fcheck,clap,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_CLAP)) \
     $(call fcheck,gst,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_GST)) \
     $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(HOST_OBJ_WRAP_JACK)) \
-    $(call fcheck,ladspa,$(HOST_OBJ_WRAP_LADSPA)) \
-    $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2)) \
-    $(call fcheck,lv2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2UI)) \
+    $(call fcheck,ladspa test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(HOST_OBJ_WRAP_LADSPA)) \
+    $(call fcheck,lv2,$(ENABLED_FEATURES), \
+      $(HOST_OBJ_WRAP_LV2) \
+      $(call fcheck,ui,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2UI)) \
+    ) \
     $(call fcheck,vst2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_VST2)) \
     $(call fcheck,vst3,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_VST3)) \
-    $(HOST_UTL_COMMON_OBJ) \
-    $(HOST_UTL_VALIDATOR_OBJ) \
-    $(HOST_UTL_JACK_MAKE_OBJ) \
-    $(HOST_UTL_VST2_MAKE_OBJ) \
-    $(HOST_UTL_VST3_MODINFO_OBJ) \
-    $(HOST_UTL_LV2TTL_GEN_OBJ) \
-    $(HOST_UTL_REPOSITORY_OBJ) \
-    $(HOST_UTL_RESPACK_OBJ) \
-    $(HOST_UTL_PLUGLIST_GEN_OBJ)
+    $($(HOST)UTL_COMMON_OBJ) \
+    $($(HOST)UTL_VALIDATOR_OBJ) \
+    $($(HOST)UTL_JACK_MAKE_OBJ) \
+    $($(HOST)UTL_VST2_MAKE_OBJ) \
+    $($(HOST)UTL_VST3_MODINFO_OBJ) \
+    $($(HOST)UTL_LV2TTL_GEN_OBJ) \
+    $($(HOST)UTL_REPOSITORY_OBJ) \
+    $($(HOST)UTL_RESPACK_OBJ) \
+    $($(HOST)UTL_PLUGLIST_GEN_OBJ)
 endif
 
 ARTIFACT_DOC_SHARED         = $(foreach dep, $(sort $(PLUGIN_SHARED) $(PLUGIN_DEPENDENCIES)), $(if $(findstring src,$($(dep)_TYPE)),$(dep)))
@@ -864,13 +963,55 @@ BIN_INSTALL                 = $(foreach dep, $(UNIQ_DEPENDENCIES_BIN), install_$
 BIN_UNINSTALL               = $(foreach dep, $(UNIQ_DEPENDENCIES_BIN), uninstall_$(dep))
 
 BIN_PACKAGE                 = $(foreach dep, $(UNIQ_BIN_DEPENDENCIES), package_$(dep))
-BIN_PACKAGE_CLAP            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_CLAP_BIN)), package_$(dep))
-BIN_PACKAGE_GST             = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_GST_BIN)), package_$(dep))
-BIN_PACKAGE_JACK            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_JACK_BIN)), package_$(dep))
-BIN_PACKAGE_LADSPA          = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_LADSPA_BIN)), package_$(dep))
-BIN_PACKAGE_LV2             = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_LV2_BIN)), package_$(dep))
-BIN_PACKAGE_VST2            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_VST2_BIN)), package_$(dep))
-BIN_PACKAGE_VST3            = $(foreach dep, $(sort $(DEPENDENCIES_BIN) $(DEPENDENCIES_VST3_BIN)), package_$(dep))
+BIN_PACKAGE_CLAP_DEPS       = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_CLAP_BIN) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),\
+    $(DEPENDENCIES_UI_BIN) \
+    $(DEPENDENCIES_CLAP_UI_BIN) \
+  )
+BIN_PACKAGE_GST_DEPS        = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_GST_BIN)
+BIN_PACKAGE_JACK_DEPS       = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_JACK_BIN) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),\
+    $(DEPENDENCIES_UI_BIN) \
+    $(DEPENDENCIES_JACK_UI_BIN) \
+  )
+BIN_PACKAGE_LADSPA_DEPS     = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_LADSPA_BIN)
+BIN_PACKAGE_LV2_DEPS        = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_LV2_BIN) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),\
+    $(DEPENDENCIES_UI_BIN) \
+    $(DEPENDENCIES_LV2_UI_BIN) \
+  )
+BIN_PACKAGE_VST2_DEPS       = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_VST2_BIN) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),\
+    $(DEPENDENCIES_UI_BIN) \
+    $(DEPENDENCIES_VST2_UI_BIN) \
+  )
+BIN_PACKAGE_VST3_DEPS       = \
+  $(DEPENDENCIES_BIN) \
+  $(DEPENDENCIES_VST3_BIN) \
+  $(call fcheck,ui,$(ENABLED_FEATURES),\
+    $(DEPENDENCIES_UI_BIN) \
+    $(DEPENDENCIES_VST3_UI_BIN) \
+  )
+
+BIN_PACKAGE_CLAP            = $(foreach dep, $(sort $(BIN_PACKAGE_CLAP_DEPS)), package_$(dep))
+BIN_PACKAGE_GST             = $(foreach dep, $(sort $(BIN_PACKAGE_GST_DEPS)), package_$(dep))
+BIN_PACKAGE_JACK            = $(foreach dep, $(sort $(BIN_PACKAGE_JACK_DEPS)), package_$(dep))
+BIN_PACKAGE_LADSPA          = $(foreach dep, $(sort $(BIN_PACKAGE_LADSPA_DEPS)), package_$(dep))
+BIN_PACKAGE_LV2             = $(foreach dep, $(sort $(BIN_PACKAGE_LV2_DEPS)), package_$(dep))
+BIN_PACKAGE_VST2            = $(foreach dep, $(sort $(BIN_PACKAGE_VST2_DEPS)), package_$(dep))
+BIN_PACKAGE_VST3            = $(foreach dep, $(sort $(BIN_PACKAGE_VST3_DEPS)), package_$(dep))
 
 BIN_INST_ARTIFACT_ID        = $(patsubst install_%,%,$(@))
 BIN_UNINST_ARTIFACT_ID      = $(patsubst uninstall_%,%,$(@))
@@ -889,10 +1030,12 @@ BIN_EXTRA_FILES             = $(foreach dep, $(BIN_EXTRA_SHARED) $(BIN_EXTRA_PLU
   $(wildcard $($(dep)_PATH)/*LICENSE*) \
 )
 
-BUILD_TARGETS               = $(foreach feature,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(feature))
-INSTALL_TARGETS             = $(foreach feature,$(ENABLED_FEATURES),install_$(feature))
-UNINSTALL_TARGETS           = $(foreach feature,$(ENABLED_FEATURES),uninstall_$(feature))
-PACKAGE_TARGETS             = $(foreach feature,$(filter-out xdg,$(ENABLED_FEATURES)),package_$(feature))
+ALLOWED_BUILD_TARGETS       = clap doc gst jack ladspa lv2 test vst2 vst3 xdg meta validate
+ALLOWED_PACKAGE_TARGETS     = clap doc gst jack ladspa lv2 vst2 vst3
+BUILD_TARGETS               = $(call intersection,$(foreach feature,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(feature)),$(ALLOWED_BUILD_TARGETS))
+INSTALL_TARGETS             = $(foreach feature,$(INSTALL_FEATURES),install_$(feature))
+UNINSTALL_TARGETS           = $(foreach feature,$(INSTALL_FEATURES),uninstall_$(feature))
+PACKAGE_TARGETS             = $(foreach feature,$(call intersection,$(ENABLED_FEATURES),$(ALLOWED_PACKAGE_TARGETS)),package_$(feature))
 
 #------------------------------------------------------------------------------
 # Functional variables
@@ -938,6 +1081,8 @@ $(eval \
 .PHONY: $(DEPENDENCIES) $(DEPENDENCIES_BIN)
 .PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL) $(BIN_PACKAGE)
 .PHONY: $(ARTIFACT_XDG_INSTALL_DEPS) $(ARTIFACT_XDG_UNINSTALL_DEPS)
+.PHONY: $(SRC_DEPS) $(PLUG_DEPS)
+.PHONY: $(HOST_SRC_DEPS) $(HOST_PLUG_DEPS)
 
 #------------------------------------------------------------------------------
 # Derived source code libraries
@@ -945,6 +1090,13 @@ $(SRC_DEPS) $(PLUG_DEPS):
 	echo "make [$($(@)_NAME)]"
 	mkdir -p "$($(@)_BIN)"
 	$(MAKE) -C "$($(@)_PATH)" compile VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" NO_DEPENDENCIES="1" DEMO_TEST="0"
+
+#ifeq ($(CROSS_COMPILE),1)
+$(HOST_SRC_DEPS) $(HOST_PLUG_DEPS):
+	echo "make host [$($(@)_NAME)]"
+	mkdir -p "$($(@)_BIN)"
+	$(MAKE) -C "$($(@)_PATH)" compile VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" NO_DEPENDENCIES="1" DEMO_TEST="0" BUILD_HOST=1
+#endif
 
 $(DEPENDENCIES_BIN):
 	echo "make [$($(@)_NAME)]"
@@ -981,6 +1133,8 @@ $(OBJ_WRAP_CAIRO): EXT_FLAGS=$(WRAP_CAIRO_CFLAGS)
 
 $(OBJ_EXPORT): EXT_FLAGS=$(OBJ_EXPORT_CFLAGS)
 
+ifeq ($(CROSS_COMPILE),1)
+
 $(HOST_OBJ):
 	echo "  $(HOST_CXX)  [$(LSP_PLUGIN_FW_NAME)] $(HOST_CXX_FILE)"
 	mkdir -p $(dir $@)
@@ -1005,6 +1159,8 @@ $(HOST_OBJ_WRAP_CLAP): EXT_FLAGS=$(HOST_WRAP_CLAP_CFLAGS)
 $(HOST_OBJ_WRAP_CAIRO): EXT_FLAGS=$(HOST_WRAP_CAIRO_CFLAGS)
 
 $(HOST_OBJ_EXPORT): EXT_FLAGS=$(HOST_OBJ_EXPORT_CFLAGS)
+
+endif
 
 #------------------------------------------------------------------------------
 # Linking targets
@@ -1036,10 +1192,17 @@ $(LSP_PLUGIN_FW_OBJ_TEST): $(OBJ_TEST)
 	echo "  $(LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(LSP_PLUGIN_FW_OBJ_TEST))"
 	$(LD) -o $(LSP_PLUGIN_FW_OBJ_TEST) $(LDFLAGS) $(OBJ_TEST)
 	
-$(LSP_PLUGIN_FW_OBJ_RES): $(HOST_UTL_RESPACK) resources
-	echo "$(notdir $(HOST_UTL_RESPACK)) $(notdir $(LSP_PLUGIN_FW_SRC_RES))"
-	$(HOST_UTL_RESPACK) -o "$(LSP_PLUGIN_FW_SRC_RES)" -i "$(HOST_UTL_RES_PATH)" -c "$(LSP_PLUGIN_FW_SRC_RES_CKSUM)"
+$(LSP_PLUGIN_FW_OBJ_RES): $($(HOST)UTL_RESPACK) resources
+	echo "$(notdir $($(HOST)UTL_RESPACK)) $(notdir $(LSP_PLUGIN_FW_SRC_RES))"
+	$($(HOST)UTL_RESPACK) -o "$(LSP_PLUGIN_FW_SRC_RES)" -i "$($(HOST)UTL_RES_PATH)" -c "$(LSP_PLUGIN_FW_SRC_RES_CKSUM)" $(LSP_PLUGIN_FW_SRC_RES_EXCL)
 	$(CXX) -o $(@) -c $(LSP_PLUGIN_FW_SRC_RES) -fPIC $(CXXFLAGS) $(CXXDEFS) $(LSP_PLUGIN_FW_ALL_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
+	
+$(LSP_PLUGIN_FW_OBJ_UI_RES): $($(HOST)UTL_RESPACK) resources
+	echo "$(notdir $($(HOST)UTL_RESPACK)) $(notdir $(LSP_PLUGIN_FW_SRC_UI_RES))"
+	$($(HOST)UTL_RESPACK) -o "$(LSP_PLUGIN_FW_SRC_UI_RES)" -i "$($(HOST)UTL_RES_PATH)" -c "$(LSP_PLUGIN_FW_SRC_UI_RES_CKSUM)" $(LSP_PLUGIN_FW_SRC_UI_RES_EXCL)
+	$(CXX) -o $(@) -c $(LSP_PLUGIN_FW_SRC_UI_RES) -fPIC $(CXXFLAGS) $(CXXDEFS) $(LSP_PLUGIN_FW_ALL_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
+
+ifeq ($(CROSS_COMPILE),1)
 
 $(HOST_LSP_PLUGIN_FW_OBJ_CORE): $(HOST_OBJ_CORE)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_CORE))"
@@ -1069,57 +1232,66 @@ $(HOST_LSP_PLUGIN_FW_OBJ_TEST): $(HOST_OBJ_TEST)
 	echo "  $(HOST_LD)   [$(LSP_PLUGIN_FW_NAME)] $(notdir $(HOST_LSP_PLUGIN_FW_OBJ_TEST))"
 	$(HOST_LD) -o $(HOST_LSP_PLUGIN_FW_OBJ_TEST) $(HOST_LDFLAGS) $(HOST_OBJ_TEST)
 	
-$(HOST_LSP_PLUGIN_FW_OBJ_RES): $(HOST_UTL_RESPACK) resources
-	echo "$(notdir $(HOST_UTL_RESPACK)) $(notdir $(HOST_LSP_PLUGIN_FW_SRC_RES))"
-	$(HOST_UTL_RESPACK) -o "$(HOST_LSP_PLUGIN_FW_SRC_RES)" -i "$(HOST_UTL_RES_PATH)" -c "$(HOST_LSP_PLUGIN_FW_SRC_RES_CKSUM)"
+$(HOST_LSP_PLUGIN_FW_OBJ_RES): $($(HOST)UTL_RESPACK) resources
+	echo "$(notdir $($(HOST)UTL_RESPACK)) $(notdir $(HOST_LSP_PLUGIN_FW_SRC_RES))"
+	$($(HOST)UTL_RESPACK) -o "$(HOST_LSP_PLUGIN_FW_SRC_RES)" -i "$($(HOST)UTL_RES_PATH)" -c "$(HOST_LSP_PLUGIN_FW_SRC_RES_CKSUM)" $(HOST_LSP_PLUGIN_FW_SRC_RES_EXCL)
 	$(HOST_CXX) -o $(@) -c $(HOST_LSP_PLUGIN_FW_SRC_RES) -fPIC $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_LSP_PLUGIN_FW_ALL_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
+	
+$(HOST_LSP_PLUGIN_FW_OBJ_UI_RES): $($(HOST)UTL_RESPACK) resources
+	echo "$(notdir $($(HOST)UTL_RESPACK)) $(notdir $(HOST_LSP_PLUGIN_FW_SRC_UI_RES))"
+	$($(HOST)UTL_RESPACK) -o "$(HOST_LSP_PLUGIN_FW_SRC_UI_RES)" -i "$($(HOST)UTL_RES_PATH)" -c "$(HOST_LSP_PLUGIN_FW_SRC_UI_RES_CKSUM)" $(HOST_LSP_PLUGIN_FW_SRC_UI_RES_EXCL)
+	$(HOST_CXX) -o $(@) -c $(HOST_LSP_PLUGIN_FW_SRC_UI_RES) -fPIC $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_LSP_PLUGIN_FW_ALL_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
+
+endif
 
 #------------------------------------------------------------------------------
 # Utilities
-$(HOST_UTL_VALIDATOR): $(HOST_UTL_VALIDATOR_DEPS) $(HOST_UTL_VALIDATOR_OBJS) $(HOST_PLUG_DEPS)
-	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+$($(HOST)UTL_VALIDATOR): $($(HOST)UTL_VALIDATOR_DEPS) $($(HOST)UTL_VALIDATOR_OBJS) $($(HOST)PLUG_DEPS)
+	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
-	$(HOST_CXX) -o $(@) $(HOST_UTL_VALIDATOR_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_VALIDATOR_LIBS) $(EXE_FLAGS) $(HOST_UTL_VALIDATOR_LDFLAGS)
+	$($(HOST)CXX) -o $(@) $($(HOST)UTL_VALIDATOR_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_VALIDATOR_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_VALIDATOR_LDFLAGS)
 
-$(HOST_UTL_JACK_MAKE): $(HOST_UTL_JACK_MAKE_DEPS) $(HOST_UTL_JACK_MAKE_OBJS) $(HOST_PLUG_DEPS)
-	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+$($(HOST)UTL_JACK_MAKE): $($(HOST)UTL_JACK_MAKE_DEPS) $($(HOST)UTL_JACK_MAKE_OBJS) $($(HOST)PLUG_DEPS)
+	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
-	$(HOST_CXX) -o $(@) $(HOST_UTL_JACK_MAKE_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_JACK_MAKE_LIBS) $(EXE_FLAGS) $(HOST_UTL_JACK_MAKE_LDFLAGS)
+	$($(HOST)CXX) -o $(@) $($(HOST)UTL_JACK_MAKE_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_JACK_MAKE_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_JACK_MAKE_LDFLAGS)
 
-$(HOST_UTL_GST_MAKE): $(HOST_UTL_GST_MAKE_DEPS) $(HOST_UTL_GST_MAKE_OBJS) $(HOST_PLUG_DEPS)
-	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+$($(HOST)UTL_GST_MAKE): $($(HOST)UTL_GST_MAKE_DEPS) $($(HOST)UTL_GST_MAKE_OBJS) $($(HOST)PLUG_DEPS)
+	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
-	$(HOST_CXX) -o $(@) $(HOST_UTL_GST_MAKE_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_GST_MAKE_LIBS) $(EXE_FLAGS) $(HOST_UTL_GST_MAKE_LDFLAGS)
+	$($(HOST)CXX) -o $(@) $($(HOST)UTL_GST_MAKE_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_GST_MAKE_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_GST_MAKE_LDFLAGS)
 
-$(HOST_UTL_VST2_MAKE): $(HOST_UTL_VST2_MAKE_DEPS) $(HOST_UTL_VST2_MAKE_OBJS) $(HOST_PLUG_DEPS)
-	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+$($(HOST)UTL_VST2_MAKE): $($(HOST)UTL_VST2_MAKE_DEPS) $($(HOST)UTL_VST2_MAKE_OBJS) $($(HOST)PLUG_DEPS)
+	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
-	$(HOST_CXX) -o $(@) $(HOST_UTL_VST2_MAKE_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_VST2_MAKE_LIBS) $(EXE_FLAGS) $(HOST_UTL_VST2_MAKE_LDFLAGS)
+	$($(HOST)CXX) -o $(@) $($(HOST)UTL_VST2_MAKE_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_VST2_MAKE_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_VST2_MAKE_LDFLAGS)
 
-$(HOST_UTL_VST3_MODINFO): $(HOST_UTL_VST3_MODINFO_DEPS) $(HOST_UTL_VST3_MODINFO_OBJS) $(HOST_PLUG_DEPS)
-	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+$($(HOST)UTL_VST3_MODINFO): $($(HOST)UTL_VST3_MODINFO_DEPS) $($(HOST)UTL_VST3_MODINFO_OBJS) $($(HOST)PLUG_DEPS)
+	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
-	$(HOST_CXX) -o $(@) $(HOST_UTL_VST3_MODINFO_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_VST3_MODINFO_LIBS) $(EXE_FLAGS) $(HOST_UTL_VST3_MODINFO_LDFLAGS)
+	$($(HOST)CXX) -o $(@) $($(HOST)UTL_VST3_MODINFO_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_VST3_MODINFO_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_VST3_MODINFO_LDFLAGS)
 
-$(HOST_UTL_LV2TTL_GEN): $(HOST_UTL_LV2TTL_GEN_DEPS) $(HOST_UTL_LV2TTL_GEN_OBJS) $(HOST_PLUG_DEPS)
-	echo "  $(HOST_CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
+$($(HOST)UTL_LV2TTL_GEN): $($(HOST)UTL_LV2TTL_GEN_DEPS) $($(HOST)UTL_LV2TTL_GEN_OBJS) $($(HOST)PLUG_DEPS)
+	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
-	$(HOST_CXX) -o $(@) $(HOST_UTL_LV2TTL_GEN_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_LV2TTL_GEN_LIBS) $(EXE_FLAGS) $(HOST_UTL_LV2TTL_GEN_LDFLAGS)
+	$($(HOST)CXX) -o $(@) $($(HOST)UTL_LV2TTL_GEN_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_LV2TTL_GEN_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_LV2TTL_GEN_LDFLAGS)
 
-$(HOST_UTL_REPOSITORY): $(HOST_UTL_REPOSITORY_DEPS) $(HOST_UTL_REPOSITORY_OBJS) $(HOST_PLUG_DEPS)
+$($(HOST)UTL_REPOSITORY): $($(HOST)UTL_REPOSITORY_DEPS) $($(HOST)UTL_REPOSITORY_OBJS) $($(HOST)PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
-	$(HOST_CXX) -o $(@) $(HOST_UTL_REPOSITORY_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_REPOSITORY_LIBS) $(HOST_EXE_FLAGS) $(HOST_UTL_REPOSITORY_LDFLAGS)
+	$($(HOST)CXX) -o $(@) $($(HOST)UTL_REPOSITORY_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_REPOSITORY_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_REPOSITORY_LDFLAGS)
+	echo "utl_repository OK"
 
-$(HOST_UTL_RESPACK): $(HOST_UTL_RESPACK_DEPS) $(HOST_UTL_RESPACK_OBJS) $(HOST_PLUG_DEPS)
+$($(HOST)UTL_RESPACK): $($(HOST)UTL_RESPACK_DEPS) $($(HOST)UTL_RESPACK_OBJS) $($(HOST)PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
-	$(HOST_CXX) -o $(@) $(HOST_UTL_RESPACK_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_RESPACK_LIBS) $(HOST_EXE_FLAGS) $(HOST_UTL_RESPACK_LDFLAGS)
+	$($(HOST)CXX) -o $(@) $($(HOST)UTL_RESPACK_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_RESPACK_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_RESPACK_LDFLAGS)
+	echo "utl_respack OK"
 	
-$(HOST_UTL_PLUGLIST_GEN): $(HOST_UTL_PLUGLIST_GEN_DEPS) $(HOST_UTL_PLUGLIST_GEN_OBJS) $(HOST_PLUG_DEPS)
+$($(HOST)UTL_PLUGLIST_GEN): $($(HOST)UTL_PLUGLIST_GEN_DEPS) $($(HOST)UTL_PLUGLIST_GEN_OBJS) $($(HOST)PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
-	$(HOST_CXX) -o $(@) $(HOST_UTL_PLUGLIST_GEN_OBJS) $(HOST_CXXFLAGS) $(HOST_CXXDEFS) $(HOST_UTL_PLUGLIST_GEN_LIBS) $(HOST_EXE_FLAGS) $(HOST_UTL_PLUGLIST_GEN_LDFLAGS)
+	$($(HOST)CXX) -o $(@) $($(HOST)UTL_PLUGLIST_GEN_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_PLUGLIST_GEN_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_PLUGLIST_GEN_LDFLAGS)
 
 #------------------------------------------------------------------------------
 # Binaries
@@ -1160,22 +1332,22 @@ $(ARTIFACT_BIN_TEST): $(ARTIFACT_BIN_TEST_DEPS) $(ARTIFACT_BIN_TEST_OBJS) $(PLUG
 	$(CXX) -o $(ARTIFACT_BIN_TEST) $(ARTIFACT_BIN_TEST_LIBS) $(ARTIFACT_BIN_TEST_OBJS) $(EXE_FLAGS) $(ARTIFACT_BIN_TEST_LDFLAGS)
 
 # All targets
-validate: $(HOST_UTL_VALIDATOR)
+validate: $($(HOST)UTL_VALIDATOR)
 	echo "Validating plugin metadata"
-	$(HOST_UTL_VALIDATOR)
+	$($(HOST)UTL_VALIDATOR)
 
-resources: $(HOST_UTL_REPOSITORY)
-	echo "  $(HOST_UTL_REPOSITORY)"
-	$(HOST_UTL_REPOSITORY) -o "$(HOST_UTL_RES_PATH)" $(LSP_PLUGIN_FW_OBJ_VARS) -m "$(ROOTDIR)/res/manifest.json" "$(ROOTDIR)" "$(call pathconv,$(ROOTDIR))/modules/*"
+resources: $($(HOST)UTL_REPOSITORY)
+	echo "  $($(HOST)UTL_REPOSITORY)"
+	$($(HOST)UTL_REPOSITORY) -o "$($(HOST)UTL_RES_PATH)" $(LSP_PLUGIN_FW_OBJ_VARS) -m "$(ROOTDIR)/res/manifest.json" "$(ROOTDIR)" "$(call pathconv,$(ROOTDIR))/modules/*"
 
 all: $(BUILD_TARGETS)
 
-clap: $(ARTIFACT_LIB_CLAP) $(DEPENDENCIES_BIN) 
+clap: $(ARTIFACT_LIB_CLAP) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
 
-gst: resources $(HOST_UTL_GST_MAKE) $(ARTIFACT_LIB_GST) $(DEPENDENCIES_BIN)
-	echo "  $(notdir $(HOST_UTL_GST_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_GST_PATH))"
+gst: resources $($(HOST)UTL_GST_MAKE) $(ARTIFACT_LIB_GST) $(DEPENDENCIES_BIN)
+	echo "  $(notdir $($(HOST)UTL_GST_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_GST_PATH))"
 	mkdir -p "$(ARTIFACT_LIB_GST_PATH)"
-	$(HOST_UTL_GST_MAKE) -o "$(ARTIFACT_LIB_GST_PATH)" -m "$(HOST_UTL_RES_PATH)/manifest.json" -t "$(LSP_PLUGIN_FW_INC)/lsp-plug.in/plug-fw/wrap/gstreamer/template/plugin.h"
+	$($(HOST)UTL_GST_MAKE) -o "$(ARTIFACT_LIB_GST_PATH)" -m "$($(HOST)UTL_RES_PATH)/manifest.json" -t "$(LSP_PLUGIN_FW_INC)/lsp-plug.in/plug-fw/wrap/gstreamer/template/plugin.h"
 	echo "  make GST"
 	echo "" > $(ARTIFACT_LIB_GST_SETTINGS)
 	echo '# Auto-generated script, do not edit' >> $(ARTIFACT_LIB_GST_SETTINGS)
@@ -1206,10 +1378,10 @@ doc: meta
 	$(if $(ARTIFACT_DOC_PLUG_RES),cp -R $(ARTIFACT_DOC_PLUG_RES) $(ARTIFACT_DOC_PATH)/img/plugins)
 	$(MAKE) -C "$(ARTIFACT_DOC_BLD_PATH)" PHP=$(PHP) HTMLDIR=$(ARTIFACT_DOC_PATH) VERBOSE=$(VERBOSE)
 
-jack: $(HOST_UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK) $(DEPENDENCIES_BIN)
-	echo "  $(notdir $(HOST_UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_JACK_PATH))"
+jack: $($(HOST)UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
+	echo "  $(notdir $($(HOST)UTL_JACK_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_JACK_PATH))"
 	mkdir -p "$(ARTIFACT_LIB_JACK_PATH)"
-	$(HOST_UTL_JACK_MAKE) "$(ARTIFACT_LIB_JACK_PATH)"
+	$($(HOST)UTL_JACK_MAKE) "$(ARTIFACT_LIB_JACK_PATH)"
 	echo "  make JACK"
 	echo "" > $(ARTIFACT_LIB_JACK_SETTINGS)
 	echo '# Auto-generated script, do not edit' >> $(ARTIFACT_LIB_JACK_SETTINGS)
@@ -1226,16 +1398,16 @@ jack: $(HOST_UTL_JACK_MAKE) $(ARTIFACT_LIB_JACK) $(DEPENDENCIES_BIN)
 
 ladspa: $(ARTIFACT_LIB_LADSPA) $(DEPENDENCIES_BIN)
 
-meta: $(HOST_UTL_PLUGLIST_GEN)
+meta: $($(HOST)UTL_PLUGLIST_GEN)
 	mkdir -p "$(LSP_PLUGIN_FW_BIN)"
-	$(HOST_UTL_PLUGLIST_GEN) --php "$(LSP_PLUGIN_FW_BIN)/plugins.php" --json "$(LSP_PLUGIN_FW_BIN)/plugins.json"
+	$($(HOST)UTL_PLUGLIST_GEN) --php "$(LSP_PLUGIN_FW_BIN)/plugins.php" --json "$(LSP_PLUGIN_FW_BIN)/plugins.json"
 
-lv2: $(HOST_UTL_LV2TTL_GEN) $(ARTIFACT_LIB_LV2) $(ARTIFACT_LIB_LV2_UI) $(DEPENDENCIES_BIN)
+lv2: $($(HOST)UTL_LV2TTL_GEN) $(ARTIFACT_LIB_LV2) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(ARTIFACT_LIB_LV2_UI) $(DEPENDENCIES_UI_BIN)) 
 
-vst2: $(HOST_UTL_VST2_MAKE) $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_BIN)
-	echo "  $(notdir $(HOST_UTL_VST2_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_VST2_PATH))"
+vst2: $($(HOST)UTL_VST2_MAKE) $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
+	echo "  $(notdir $($(HOST)UTL_VST2_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_VST2_PATH))"
 	mkdir -p "$(ARTIFACT_LIB_VST2_PATH)"
-	$(HOST_UTL_VST2_MAKE) "$(ARTIFACT_LIB_VST2_PATH)"
+	$($(HOST)UTL_VST2_MAKE) "$(ARTIFACT_LIB_VST2_PATH)"
 	echo "  make VST2"
 	echo "" > $(ARTIFACT_LIB_VST2_SETTINGS)
 	echo '# Auto-generated script, do not edit' >> $(ARTIFACT_LIB_VST2_SETTINGS)
@@ -1250,7 +1422,7 @@ vst2: $(HOST_UTL_VST2_MAKE) $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_BIN)
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
 
-vst3: $(HOST_UTL_VST3_MODINFO) $(ARTIFACT_LIB_VST3) $(DEPENDENCIES_BIN)
+vst3: $($(HOST)UTL_VST3_MODINFO) $(ARTIFACT_LIB_VST3) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
 
 xdg:
 
@@ -1301,8 +1473,10 @@ install_lv2: lv2
 	echo "Install lv2"
 	mkdir -p "$(DESTDIR)$(LV2_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_LV2) "$(DESTDIR)$(LV2_LIBDIR)/"
-	$(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(DESTDIR)$(LV2_LIBDIR)/"
-	$(HOST_UTL_LV2TTL_GEN) -o "$(DESTDIR)$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" -ui $(ARTIFACT_LIB_LV2_UI)
+	$(call fcheck,ui,$(ENABLED_FEATURES), \
+	  $(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(DESTDIR)$(LV2_LIBDIR)/" \
+	)
+	$($(HOST)UTL_LV2TTL_GEN) -o "$(DESTDIR)$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" $(call fcheck,ui,$(ENABLED_FEATURES),-ui $(ARTIFACT_LIB_LV2_UI))
 
 install_vst2: vst2
 	echo "Install vst2"
@@ -1316,7 +1490,7 @@ install_vst3: vst3
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
-	$(HOST_UTL_VST3_MODINFO) "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$($(HOST)UTL_VST3_MODINFO) "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
 
 install_xdg_msg:
@@ -1420,8 +1594,10 @@ package_lv2: lv2 $(BIN_PACKAGE)
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_LV2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/"
-	$(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/"
-	$(HOST_UTL_LV2TTL_GEN) -o "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" -ui $(ARTIFACT_LIB_LV2_UI)
+	$(call fcheck,ui,$(ENABLED_FEATURES), \
+	  $(INSTALL) $(ARTIFACT_LIB_LV2_UI) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)/" \
+	)
+	$($(HOST)UTL_LV2TTL_GEN) -o "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" $(call fcheck,ui,$(ENABLED_FEATURES),-ui $(ARTIFACT_LIB_LV2_UI))
 	$(foreach target,$(BIN_PACKAGE_LV2), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
@@ -1453,7 +1629,7 @@ package_vst3: vst3 $(BIN_PACKAGE)
 	-rm -rf  "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
-	$(HOST_UTL_VST3_MODINFO) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$($(HOST)UTL_VST3_MODINFO) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
 	$(foreach target,$(BIN_PACKAGE_VST3), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \

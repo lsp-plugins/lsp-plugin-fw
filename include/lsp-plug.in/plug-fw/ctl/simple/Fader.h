@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 июл. 2021 г.
@@ -47,10 +47,11 @@ namespace lsp
                     FF_MIN          = 1 << 0,
                     FF_MAX          = 1 << 1,
                     FF_DFL          = 1 << 2,
-                    FF_STEP         = 1 << 3,
-                    FF_LOG          = 1 << 4,
-                    FF_LOG_SET      = 1 << 5,
-                    FF_BAL_SET      = 1 << 6
+                    FF_VALUE        = 1 << 3,
+                    FF_STEP         = 1 << 4,
+                    FF_LOG          = 1 << 5,
+                    FF_LOG_SET      = 1 << 6,
+                    FF_BAL_SET      = 1 << 7
                 };
 
             protected:
@@ -59,12 +60,18 @@ namespace lsp
                 ctl::Color          sScaleColor;
                 ctl::Color          sScaleBorderColor;
                 ctl::Color          sBalanceColor;
+                ctl::Color          sInactiveBtnColor;
+                ctl::Color          sInactiveBtnBorderColor;
+                ctl::Color          sInactiveScaleColor;
+                ctl::Color          sInactiveScaleBorderColor;
+                ctl::Color          sInactiveBalanceColor;
+
+                ctl::Expression     sMin;
+                ctl::Expression     sMax;
 
                 ui::IPort          *pPort;
 
                 size_t              nFlags;
-                float               fMin;
-                float               fMax;
                 float               fDefault;
                 float               fStep;
                 float               fAStep;
@@ -80,11 +87,16 @@ namespace lsp
             protected:
                 void                submit_value();
                 void                set_default_value();
-                void                commit_value(float value);
+                void                commit_value(size_t flags);
 
             public:
                 explicit Fader(ui::IWrapper *wrapper, tk::Fader *widget);
+                Fader(const Fader &) = delete;
+                Fader(Fader &&) = delete;
                 virtual ~Fader() override;
+
+                Fader & operator = (const Fader &) = delete;
+                Fader & operator = (Fader &&) = delete;
 
                 virtual status_t    init() override;
 
@@ -93,10 +105,7 @@ namespace lsp
                 virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        end(ui::UIContext *ctx) override;
         };
-    }
-}
-
-
-
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_FADER_H_ */

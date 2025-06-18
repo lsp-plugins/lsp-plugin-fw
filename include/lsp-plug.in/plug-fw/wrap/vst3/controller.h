@@ -26,9 +26,9 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/state.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
-#include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/protocol/osc.h>
 
 #include <steinberg/vst3.h>
@@ -37,7 +37,10 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/string_buf.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/ctl_ports.h>
-#include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
+
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
+#endif /* WITH_UI_FEATURE */
 
 namespace lsp
 {
@@ -76,10 +79,14 @@ namespace lsp
                 lltl::parray<vst3::CtlParamPort>    vPlainParams;           // Input parameters (non-virtual) sorted according to the metadata order
                 lltl::parray<vst3::CtlParamPort>    vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
                 lltl::parray<vst3::CtlMeterPort>    vMeters;                // Meters
+
+            #ifdef WITH_UI_FEATURE
                 ipc::Mutex                          sWrappersLock;          // Lock of wrappers
                 lltl::parray<vst3::UIWrapper>       vWrappers;              // UI wrappers
+            #endif /* WITH_UI_FEATURE */
 
                 lltl::parray<meta::port_t>          vGenMetadata;           // Generated metadata
+                lltl::state<core::ShmState>         sShmState;              // Shared memory state
                 vst3::string_buf                    sRxNotifyBuf;           // Notify buffer on receive
                 vst3::string_buf                    sTxNotifyBuf;           // Notify buffer on receive
                 core::KVTStorage                    sKVT;                   // KVT storage
@@ -95,12 +102,17 @@ namespace lsp
                 void                                receive_raw_osc_packet(const void *data, size_t size);
                 void                                parse_raw_osc_event(osc::parse_frame_t *frame);
                 status_t                            load_state(Steinberg::IBStream *is);
-                ui::Module                         *create_ui();
                 void                                send_kvt_state();
+
+        #ifdef WITH_UI_FEATURE
+            protected:
+                ui::Module                         *create_ui();
+        #endif /* WITH_UI_FEATURE */
 
             protected:
                 static ssize_t                      compare_param_ports(const vst3::CtlParamPort *a, const vst3::CtlParamPort *b);
                 static ssize_t                      compare_ports_by_id(const vst3::CtlPort *a, const vst3::CtlPort *b);
+                static void                         shm_state_deleter(core::ShmState *state);
 
             public:
                 explicit Controller(PluginFactory *factory, resource::ILoader *loader, const meta::package_t *package, const meta::plugin_t *meta);
@@ -114,10 +126,10 @@ namespace lsp
                 status_t                            init();
                 void                                destroy();
 
+        #ifdef VST_USE_RUNLOOP_IFACE
             public:
-            #ifdef VST_USE_RUNLOOP_IFACE
                 Steinberg::Linux::IRunLoop         *acquire_run_loop();
-            #endif /* VST_USE_RUNLOOP_IFACE */
+        #endif /* VST_USE_RUNLOOP_IFACE */
 
             public:
                 inline ipc::Mutex                  &kvt_mutex();
@@ -126,7 +138,12 @@ namespace lsp
                 status_t                            play_file(const char *file, wsize_t position, bool release);
                 vst3::CtlPort                      *port_by_id(const char *id);
                 void                                dump_state_request();
+                const core::ShmState               *shm_state();
+
+        #ifdef WITH_UI_FEATURE
+            public: // UI-related stuff
                 status_t                            detach_ui_wrapper(UIWrapper *wrapper);
+        #endif /* WITH_UI_FEATURE */
 
             public: // vst3::IDataSync
                 virtual void                        sync_data() override;

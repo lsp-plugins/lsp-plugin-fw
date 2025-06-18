@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 9 мая 2021 г.
@@ -78,11 +78,16 @@ namespace lsp
             {
                 sColor.init(pWrapper, led->color());
                 sLightColor.init(pWrapper, led->led_color());
-                sHoleColor.init(pWrapper, led->hole_color());
                 sBorderColor.init(pWrapper, led->border_color());
                 sLightBorderColor.init(pWrapper, led->led_border_color());
+                sInactiveColor.init(pWrapper, led->inactive_color());
+                sInactiveLightColor.init(pWrapper, led->inactive_led_color());
+                sInactiveBorderColor.init(pWrapper, led->inactive_border_color());
+                sInactiveLightBorderColor.init(pWrapper, led->inactive_led_border_color());
 
-                sActivity.init(pWrapper, this);
+                sHoleColor.init(pWrapper, led->hole_color());
+
+                sLight.init(pWrapper, this);
             }
 
             return STATUS_OK;
@@ -99,15 +104,26 @@ namespace lsp
                 sLightColor.set("light.color", name, value);
                 sLightColor.set("led.color", name, value);
                 sLightColor.set("lcolor", name, value);
-                sHoleColor.set("hole.color", name, value);
-                sHoleColor.set("hcolor", name, value);
                 sBorderColor.set("border.color", name, value);
                 sBorderColor.set("bcolor", name, value);
                 sLightBorderColor.set("light.bcolor", name, value);
                 sLightBorderColor.set("led.bcolor", name, value);
                 sLightBorderColor.set("lbcolor", name, value);
 
-                set_expr(&sActivity, "activity", name, value);
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveLightColor.set("inactive.light.color", name, value);
+                sInactiveLightColor.set("inactive.led.color", name, value);
+                sInactiveLightColor.set("inactive.lcolor", name, value);
+                sInactiveBorderColor.set("inactive.border.color", name, value);
+                sInactiveBorderColor.set("inactive.bcolor", name, value);
+                sInactiveLightBorderColor.set("inactive.light.bcolor", name, value);
+                sInactiveLightBorderColor.set("inactive.led.bcolor", name, value);
+                sInactiveLightBorderColor.set("inactive.lbcolor", name, value);
+
+                sHoleColor.set("hole.color", name, value);
+                sHoleColor.set("hcolor", name, value);
+
+                set_expr(&sLight, "light", name, value);
 
                 set_constraints(led->constraints(), name, value);
                 set_param(led->hole(), "hole", name, value);
@@ -132,14 +148,14 @@ namespace lsp
                 return;
 
             bool on = false;
-            if (sActivity.valid())
+            if (sLight.valid())
             {
-                float value = sActivity.evaluate();
+                const float value = sLight.evaluate();
                 on = value >= 0.5f;
             }
             else if (pPort != NULL)
             {
-                float value = pPort->value();
+                const float value = pPort->value();
                 const meta::port_t *meta = pPort->metadata();
 
                 on = (meta->unit == meta::U_ENUM) ? (abs(value - fKey) <= FLOAT_CMP_PREC) : (value >= 0.5f);
@@ -155,7 +171,7 @@ namespace lsp
         {
             Widget::notify(port, flags);
 
-            if (sActivity.depends(port))
+            if (sLight.depends(port))
                 update_value();
 
             if ((port == pPort) && (pPort != NULL))

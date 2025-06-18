@@ -1,22 +1,22 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins-sampler
+ * This file is part of lsp-plugin-fw
  * Created on: 17 дек. 2022 г.
  *
- * lsp-plugins-sampler is free software: you can redistribute it and/or modify
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * lsp-plugins-sampler is distributed in the hope that it will be useful,
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with lsp-plugins-sampler. If not, see <https://www.gnu.org/licenses/>.
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <lsp-plug.in/common/debug.h>
@@ -85,13 +85,22 @@ namespace lsp
                 sCheckMinSize.init(pWrapper, ck->check_min_size());
 
                 sColor.init(pWrapper, ck->color());
-                sHoverColor.init(pWrapper, ck->hover_color());
                 sFillColor.init(pWrapper, ck->fill_color());
-                sFillHoverColor.init(pWrapper, ck->fill_hover_color());
                 sBorderColor.init(pWrapper, ck->border_color());
-                sBorderHoverColor.init(pWrapper, ck->border_hover_color());
                 sBorderGapColor.init(pWrapper, ck->border_gap_color());
+                sHoverColor.init(pWrapper, ck->hover_color());
+                sFillHoverColor.init(pWrapper, ck->fill_hover_color());
+                sBorderHoverColor.init(pWrapper, ck->border_hover_color());
                 sBorderGapHoverColor.init(pWrapper, ck->border_gap_hover_color());
+
+                sInactiveColor.init(pWrapper, ck->inactive_color());
+                sInactiveFillColor.init(pWrapper, ck->inactive_fill_color());
+                sInactiveBorderColor.init(pWrapper, ck->inactive_border_color());
+                sInactiveBorderGapColor.init(pWrapper, ck->inactive_border_gap_color());
+                sInactiveHoverColor.init(pWrapper, ck->inactive_hover_color());
+                sInactiveFillHoverColor.init(pWrapper, ck->inactive_fill_hover_color());
+                sInactiveBorderHoverColor.init(pWrapper, ck->inactive_border_hover_color());
+                sInactiveBorderGapHoverColor.init(pWrapper, ck->inactive_border_gap_hover_color());
 
                 // Bind slots
                 ck->slots()->bind(tk::SLOT_SUBMIT, slot_submit, this);
@@ -119,22 +128,38 @@ namespace lsp
                 sCheckMinSize.set("check.min.size", name, value);
 
                 sColor.set("color", name, value);
-                sHoverColor.set("hover.color", name, value);
-                sHoverColor.set("hcolor", name, value);
                 sFillColor.set("fill.color", name, value);
-                sFillHoverColor.set("fill.hover.color", name, value);
-                sFillHoverColor.set("fill.hcolor", name, value);
-
                 sBorderColor.set("border.color", name, value);
                 sBorderColor.set("bcolor", name, value);
-                sBorderHoverColor.set("border.hover.color", name, value);
-                sBorderHoverColor.set("border.hcolor", name, value);
                 sBorderGapColor.set("border.gap.color", name, value);
                 sBorderGapColor.set("bgap.color", name, value);
+                sHoverColor.set("hover.color", name, value);
+                sHoverColor.set("hcolor", name, value);
+                sFillHoverColor.set("fill.hover.color", name, value);
+                sFillHoverColor.set("fill.hcolor", name, value);
+                sBorderHoverColor.set("border.hover.color", name, value);
+                sBorderHoverColor.set("border.hcolor", name, value);
                 sBorderGapHoverColor.set("border.gap.hover.color", name, value);
                 sBorderGapHoverColor.set("border.gap.hcolor", name, value);
                 sBorderGapHoverColor.set("bgap.hover.color", name, value);
                 sBorderGapHoverColor.set("bgap.hcolor", name, value);
+
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveFillColor.set("inactive.fill.color", name, value);
+                sInactiveBorderColor.set("inactive.border.color", name, value);
+                sInactiveBorderColor.set("inactive.bcolor", name, value);
+                sInactiveBorderGapColor.set("inactive.border.gap.color", name, value);
+                sInactiveBorderGapColor.set("inactive.bgap.color", name, value);
+                sInactiveHoverColor.set("inactive.hover.color", name, value);
+                sInactiveHoverColor.set("inactive.hcolor", name, value);
+                sInactiveFillHoverColor.set("inactive.fill.hover.color", name, value);
+                sInactiveFillHoverColor.set("inactive.fill.hcolor", name, value);
+                sInactiveBorderHoverColor.set("inactive.border.hover.color", name, value);
+                sInactiveBorderHoverColor.set("inactive.border.hcolor", name, value);
+                sInactiveBorderGapHoverColor.set("inactive.border.gap.hover.color", name, value);
+                sInactiveBorderGapHoverColor.set("inactive.border.gap.hcolor", name, value);
+                sInactiveBorderGapHoverColor.set("inactive.bgap.hover.color", name, value);
+                sInactiveBorderGapHoverColor.set("inactive.bgap.hcolor", name, value);
 
                 set_constraints(ck->constraints(), name, value);
                 set_value(&bInvert, "invert", name, value);

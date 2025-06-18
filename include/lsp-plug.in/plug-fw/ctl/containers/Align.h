@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 мая 2021 г.
@@ -43,17 +43,22 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
-                ctl::Expression    sHAlign;
-                ctl::Expression    sVAlign;
-                ctl::Expression    sHScale;
-                ctl::Expression    sVScale;
+                ctl::Expression     sHAlign;
+                ctl::Expression     sVAlign;
+                ctl::Expression     sHScale;
+                ctl::Expression     sVScale;
 
             protected:
                 void                update_alignment();
 
             public:
                 explicit Align(ui::IWrapper *wrapper, tk::Align *widget);
+                Align(const Align &) = delete;
+                Align(Align &&) = delete;
                 virtual ~Align() override;
+
+                Align & operator = (const Align &) = delete;
+                Align & operator = (Align &&) = delete;
 
                 virtual status_t    init() override;
 

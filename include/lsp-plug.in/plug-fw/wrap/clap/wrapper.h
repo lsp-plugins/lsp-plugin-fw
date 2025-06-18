@@ -29,18 +29,31 @@
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/ports.h>
-#include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/clap/ui_wrapper.h>
+
+    namespace lsp
+    {
+        namespace clap
+        {
+            class UIWrapper;
+        } /* namespace clap */
+    } /* namespace lsp */
+
+#endif /* WITH_UI_FEATURE */
 
 namespace lsp
 {
     namespace clap
     {
-        class UIWrapper;
+        class Factory;
 
         /**
          * CLAP plugin wrapper interface
@@ -60,21 +73,28 @@ namespace lsp
 
             protected:
                 const clap_host_t              *pHost;              // Host interface
+                clap::Factory                  *pFactory;           // CLAP plugin factory
                 const meta::package_t          *pPackage;           // Package metadata
+                clap::HostExtensions           *pExt;               // CLAP Extensions
+                ipc::IExecutor                 *pExecutor;          // Executor service
+                int32_t                         nLatency;           // The actual plugin latency
+                int32_t                         nTailSize;          // Tail size
+                uatomic_t                       nDumpReq;           // State dump request counter
+                uatomic_t                       nDumpResp;          // State dump response counter
+                uatomic_t                       nStateReq;          // Current version of the state
+                uatomic_t                       nStateResp;         // Last reported version of the state
+
+            #ifdef WITH_UI_FEATURE
                 const meta::plugin_t           *pUIMetadata;        // UI metadata
                 void                           *pUIFactory;         // UI factory
                 clap::UIWrapper                *pUIWrapper;         // UI wrapper
                 uatomic_t                       nUIReq;             // UI change request
                 uatomic_t                       nUIResp;            // UI change response
-                clap::HostExtensions           *pExt;               // CLAP Extensions
-                ipc::IExecutor                 *pExecutor;          // Executor service
-                ssize_t                         nLatency;           // The actual plugin latency
-                ssize_t                         nTailSize;          // Tail size
-                uatomic_t                       nDumpReq;           // State dump request counter
-                uatomic_t                       nDumpResp;          // State dump response counter
+            #endif /* WITH_UI_FEATURE */
 
                 lltl::parray<audio_group_t>     vAudioIn;           // Input audio ports
                 lltl::parray<audio_group_t>     vAudioOut;          // Output audio ports
+                lltl::parray<clap::AudioBufferPort> vAudioBuffers;  // Audio sends and returns
                 lltl::parray<ParameterPort>     vParamPorts;        // List of parameters sorted by clap_id
                 lltl::parray<MidiInputPort>     vMidiIn;            // Midi input ports
                 lltl::parray<MidiOutputPort>    vMidiOut;           // Midi output ports
@@ -90,6 +110,7 @@ namespace lsp
                 bool                            bUpdateSettings;    // Trigger settings update for the nearest run
                 bool                            bStateManage;       // State management barrier
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
+                core::ShmClient                *pShmClient;         // Shared memory client
 
             protected:
                 static audio_group_t *alloc_audio_group(size_t ports);
@@ -106,19 +127,23 @@ namespace lsp
                 static void     destroy_value(core::kvt_param_t *p);
 
             protected:
-                void            lookup_ui_factory();
                 void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 status_t        create_ports(lltl::parray<plug::IPort> *plugin_ports, const meta::plugin_t *meta);
                 status_t        generate_audio_port_groups(const meta::plugin_t *meta);
                 clap::ParameterPort  *find_param(clap_id param_id);
                 size_t          prepare_block(size_t *ev_index, size_t offset, const clap_process_t *process);
+                void            process_transport_event(const clap_event_transport_t *ev);
                 void            generate_output_events(size_t offset, const clap_process_t *process);
+
+        #ifdef WITH_UI_FEATURE
+            protected:
+                void            lookup_ui_factory();
+        #endif /* WITH_UI_FEATURE */
 
             public:
                 explicit Wrapper(
                     plug::Module *module,
-                    const meta::package_t *package,
-                    resource::ILoader *loader,
+                    clap::Factory *factory,
                     const clap_host_t *host);
                 virtual ~Wrapper() override;
 
@@ -179,18 +204,24 @@ namespace lsp
                 virtual void                    state_changed() override;
                 virtual void                    request_settings_update() override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
 
             public:
                 // Miscellaneous functions
                 clap::Port                     *find_by_id(const char *id);
                 inline core::SamplePlayer      *sample_player();
                 void                            request_state_dump();
+                inline HostExtensions          *extensions();
+
+        #ifdef WITH_UI_FEATURE
+            public:
+                // UI-related functions
                 inline UIWrapper               *ui_wrapper();
                 UIWrapper                      *create_ui();
                 void                            destroy_ui();
-                inline HostExtensions          *extensions();
                 bool                            ui_provided();
                 void                            ui_visibility_changed();
+        #endif /* WITH_UI_FEATURE */
         };
     } /* namespace clap */
 } /* namespace lsp */

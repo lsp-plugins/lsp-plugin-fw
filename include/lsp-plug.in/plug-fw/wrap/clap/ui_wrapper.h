@@ -58,6 +58,7 @@ namespace lsp
                 bool                            bUIInitialized; // UI initialized flag
                 bool                            bRequestProcess;// Request the process() call flag
                 bool                            bUIActive;      // UI is active flag
+                bool                            bRealizeActive; // Realize is active
 
             #ifdef LSP_CLAP_OWN_EVENT_LOOP
                 ipc::Thread                    *pUIThread;      // Thread that performs the UI event loop
@@ -103,6 +104,7 @@ namespace lsp
                 virtual void                    main_iteration() override;
                 virtual bool                    accept_window_size(tk::Window *wnd, size_t width, size_t height) override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
 
             public: // CLAP API
                 bool                            set_scale(double scale);

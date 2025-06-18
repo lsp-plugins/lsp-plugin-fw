@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 окт. 2021 г.
@@ -76,17 +76,26 @@ namespace lsp
             {
                 pb->text()->set("labels.values.x_pc");
 
-                sText.init(pWrapper, pb->text());
-                sShowText.init(pWrapper, pb->show_text());
+                sColor.init(pWrapper, pb->color());
+                sInvColor.init(pWrapper, pb->inv_color());
                 sBorderColor.init(pWrapper, pb->border_color());
                 sBorderGapColor.init(pWrapper, pb->border_gap_color());
-                sColor.init(pWrapper, pb->color());
                 sTextColor.init(pWrapper, pb->text_color());
-                sInvColor.init(pWrapper, pb->inv_color());
                 sInvTextColor.init(pWrapper, pb->inv_text_color());
+
+                sInactiveColor.init(pWrapper, pb->color());
+                sInactiveInvColor.init(pWrapper, pb->inv_color());
+                sInactiveBorderColor.init(pWrapper, pb->border_color());
+                sInactiveBorderGapColor.init(pWrapper, pb->border_gap_color());
+                sInactiveTextColor.init(pWrapper, pb->text_color());
+                sInactiveInvTextColor.init(pWrapper, pb->inv_text_color());
+
                 sBorderSize.init(pWrapper, pb->border_size());
                 sBorderGapSize.init(pWrapper, pb->border_gap_size());
                 sBorderRadius.init(pWrapper, pb->border_radius());
+
+                sText.init(pWrapper, pb->text());
+                sShowText.init(pWrapper, pb->show_text());
 
                 sValue.init(pWrapper, this);
                 sMin.init(pWrapper, this);
@@ -108,20 +117,33 @@ namespace lsp
                 set_text_layout(pb->text_layout(), name, value);
                 set_font(pb->font(), "font", name, value);
 
-                sText.set("text", name, value);
-                sShowText.set("text.visibility", name, value);
-                sShowText.set("tvisibility", name, value);
+                sColor.set("color", name, value);
+                sInvColor.set("color.inv", name, value);
                 sBorderColor.set("border.color", name, value);
                 sBorderColor.set("bcolor", name, value);
                 sBorderGapColor.set("border.gap.color", name, value);
                 sBorderGapColor.set("gap.color", name, value);
                 sBorderGapColor.set("gcolor", name, value);
-                sColor.set("color", name, value);
                 sTextColor.set("text.color", name, value);
                 sTextColor.set("tcolor", name, value);
-                sInvColor.set("color.inv", name, value);
                 sInvTextColor.set("text.color.inv", name, value);
                 sInvTextColor.set("tcolor.inv", name, value);
+
+                sInactiveColor.set("inactive.color", name, value);
+                sInactiveInvColor.set("inactive.color.inv", name, value);
+                sInactiveBorderColor.set("inactive.border.color", name, value);
+                sInactiveBorderColor.set("inactive.bcolor", name, value);
+                sInactiveBorderGapColor.set("inactive.border.gap.color", name, value);
+                sInactiveBorderGapColor.set("inactive.gap.color", name, value);
+                sInactiveBorderGapColor.set("inactive.gcolor", name, value);
+                sInactiveTextColor.set("inactive.text.color", name, value);
+                sInactiveTextColor.set("inactive.tcolor", name, value);
+                sInactiveInvTextColor.set("inactive.text.color.inv", name, value);
+                sInactiveInvTextColor.set("inactive.tcolor.inv", name, value);
+
+                sText.set("text", name, value);
+                sShowText.set("text.visibility", name, value);
+                sShowText.set("tvisibility", name, value);
 
                 sBorderSize.set("border.size", name, value);
                 sBorderSize.set("bsize", name, value);

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 10 апр. 2021 г.
@@ -40,30 +40,27 @@ namespace lsp
             class WidgetNode: public Node
             {
                 private:
-                    WidgetNode & operator = (const WidgetNode *);
-                    WidgetNode(const WidgetNode &);
-
-                private:
                     ctl::Widget            *pWidget;
                     WidgetNode             *pChild;
-                    Node                   *pSpecial;
 
                 public:
                     explicit WidgetNode(UIContext *ctx, Node *parent, ctl::Widget *widget);
-                    virtual ~WidgetNode();
+                    WidgetNode(const WidgetNode &) = delete;
+                    WidgetNode(WidgetNode &&) = delete;
+                    WidgetNode & operator = (const WidgetNode &) = delete;
+                    WidgetNode & operator = (WidgetNode &&) = delete;
+
+                    virtual ~WidgetNode() override;
 
                 public:
-                    virtual status_t        lookup(Node **child, const LSPString *name);
-
-                    virtual status_t        enter(const LSPString * const *atts);
-
-                    virtual status_t        completed(Node *child);
-
-                    virtual status_t        leave();
+                    virtual status_t        lookup(Node **child, const LSPString *name) override;
+                    virtual status_t        enter(const LSPString * const *atts) override;
+                    virtual status_t        completed(Node *child) override;
+                    virtual status_t        leave() override;
             };
 
-        }
-    }
-}
+        } /* namespace xml */
+    } /* namespace ui */
+} /* namespace lsp */
 
 #endif /* PRIVATE_UI_XML_WIDGETNODE_H_ */

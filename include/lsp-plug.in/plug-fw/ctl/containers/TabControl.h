@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 14 нояб. 2022 г.
@@ -46,7 +46,6 @@ namespace lsp
                 float                       fMin;
                 float                       fMax;
                 float                       fStep;
-                ssize_t                     nActive;
 
                 ctl::Color                  sBorderColor;
                 ctl::Color                  sHeadingColor;

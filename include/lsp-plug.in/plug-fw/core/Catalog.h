@@ -35,6 +35,8 @@ namespace lsp
     {
         class ICatalogClient;
 
+        constexpr uint32_t CATALOG_ID_STREAM            = __IF_LEBE(0x4D525453, 0x5354524D);
+
         /**
          * Catalog manager
          */
@@ -51,12 +53,14 @@ namespace lsp
                 lltl::parray<ICatalogClient>  vClients;
 
             protected:
-                status_t            add_client(ICatalogClient *client);
-                status_t            remove_client(ICatalogClient *client);
+                bool                open_catalog();
+                status_t            attach_client(ICatalogClient *client);
+                status_t            detach_client(ICatalogClient *client);
                 bool                process_events();
                 void                sync_catalog();
                 size_t              process_apply();
                 size_t              process_update();
+                void                process_keep_alive();
 
             public:
                 explicit Catalog();

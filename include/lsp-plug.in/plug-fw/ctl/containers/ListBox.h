@@ -35,7 +35,7 @@ namespace lsp
     namespace ctl
     {
         /**
-         * ComboBox controller
+         * ListBox controller
          */
         class ListBox: public Widget
         {
@@ -48,7 +48,12 @@ namespace lsp
 
             public:
                 explicit ListBox(ui::IWrapper *wrapper, tk::ListBox *widget);
+                ListBox(const ListBox &) = delete;
+                ListBox(ListBox &&) = delete;
                 virtual ~ListBox() override;
+
+                ListBox & operator = (const ListBox &) = delete;
+                ListBox & operator = (ListBox &&) = delete;
 
                 virtual status_t    init() override;
 

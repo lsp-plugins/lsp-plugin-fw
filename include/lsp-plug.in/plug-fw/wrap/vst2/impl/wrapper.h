@@ -33,36 +33,43 @@
 #include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 
+#ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/wrap/vst2/ui_wrapper.h>
+#endif /* WITH_UI_FEATURE */
+
 namespace lsp
 {
     namespace vst2
     {
         Wrapper::Wrapper(
             plug::Module *plugin,
-            resource::ILoader *loader,
+            vst2::Factory *factory,
             AEffect *effect,
             audioMasterCallback callback)
-            : plug::IWrapper(plugin, loader)
+            : plug::IWrapper(plugin, factory->resources())
         {
-            pPlugin         = plugin;
             pEffect         = effect;
-
+            pFactory        = factory;
             pMaster         = callback;
             pExecutor       = NULL;
-
-            fLatency        = 0.0f;
-            nDumpReq        = 0;
-            nDumpResp       = 0;
-
-            pSamplePlayer   = NULL;
-
-            pBypass         = NULL;
             bUpdateSettings = true;
             bStateManage    = false;
+
+        #ifdef WITH_UI_FEATURE
             pUIWrapper      = NULL;
             nUIReq          = 0;
             nUIResp         = 0;
-            pPackage        = NULL;
+        #endif /* WITH_UI_FEATURE */
+
+            nLatency        = 0;
+            nDumpReq        = 0;
+            nDumpResp       = 0;
+
+            pBypass         = NULL;
+            pSamplePlayer   = NULL;
+            pShmClient      = NULL;
+
+            pFactory->acquire();
         }
 
         Wrapper::~Wrapper()
@@ -70,7 +77,12 @@ namespace lsp
             pPlugin         = NULL;
             pEffect         = NULL;
             pMaster         = NULL;
-            pPackage        = NULL;
+
+            if (pFactory != NULL)
+            {
+                pFactory->release();
+                pFactory        = NULL;
+            }
         }
 
         static ssize_t cmp_port_identifiers(const vst2::Port *pa, const vst2::Port *pb)
@@ -84,26 +96,6 @@ namespace lsp
         {
             AEffect *e                      = pEffect;
             const meta::plugin_t *m         = pPlugin->metadata();
-
-            status_t res;
-
-            // Load package information
-            io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
-            if (is == NULL)
-            {
-                lsp_error("No manifest.json found in resources");
-                return STATUS_BAD_STATE;
-            }
-
-            res = meta::load_manifest(&pPackage, is);
-            is->close();
-            delete is;
-
-            if (res != STATUS_OK)
-            {
-                lsp_error("Error while reading manifest file");
-                return res;
-            }
 
             // Create ports
             lsp_trace("Creating ports for %s - %s", m->name, m->description);
@@ -154,17 +146,45 @@ namespace lsp
                 pSamplePlayer->init(this, plugin_ports.array(), plugin_ports.size());
             }
 
+            // Create shared memory sends and returns
+            if ((vAudioBuffers.size() > 0) || (m->extensions & meta::E_SHM_TRACKING))
+            {
+                lsp_trace("Creating shared memory client");
+                pShmClient          = new core::ShmClient();
+                if (pShmClient == NULL)
+                    return STATUS_NO_MEM;
+                pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
+            }
+
             return STATUS_OK;
         }
 
         void Wrapper::destroy()
         {
+        #ifdef WITH_UI_FEATURE
+            // Destroy UI wrapper
+            if (pUIWrapper != NULL)
+            {
+                lsp_trace("Destroy UI wrapper ui=%p", pUIWrapper);
+                pUIWrapper->destroy();
+                delete pUIWrapper;
+            }
+        #endif /* WITH_UI_FEATURE */
+
             // Destroy sample player
             if (pSamplePlayer != NULL)
             {
                 pSamplePlayer->destroy();
                 delete pSamplePlayer;
                 pSamplePlayer = NULL;
+            }
+
+            // Destroy shared memory client
+            if (pShmClient != NULL)
+            {
+                pShmClient->destroy();
+                delete pShmClient;
+                pShmClient = NULL;
             }
 
             // Shutdown and delete executor if exists
@@ -202,22 +222,9 @@ namespace lsp
             }
             vGenMetadata.flush();
 
-            // Destroy manifest
-            if (pPackage != NULL)
-            {
-                meta::free_manifest(pPackage);
-                pPackage        = NULL;
-            }
-
-            // Delete the loader
-            if (pLoader != NULL)
-            {
-                delete pLoader;
-                pLoader = NULL;
-            }
-
             // Clear all port lists
             vAudioPorts.flush();
+            vAudioBuffers.flush();
             vExtParams.flush();
             vParams.flush();
 
@@ -285,12 +292,34 @@ namespace lsp
                     vParams.add(static_cast<vst2::StringPort *>(vp));
                     break;
 
+                case meta::R_SEND_NAME:
+                    lsp_trace("creating send name port %s", port->id);
+                    vp  = new vst2::StringPort(port, pEffect, pMaster);
+                    plugin_ports->add(vp);
+                    vParams.add(static_cast<vst2::StringPort *>(vp));
+                    break;
+
+                case meta::R_RETURN_NAME:
+                    lsp_trace("creating return name port %s", port->id);
+                    vp  = new vst2::StringPort(port, pEffect, pMaster);
+                    plugin_ports->add(vp);
+                    vParams.add(static_cast<vst2::StringPort *>(vp));
+                    break;
+
                 case meta::R_AUDIO_IN:
                 case meta::R_AUDIO_OUT:
                     lsp_trace("creating audio port %s", port->id);
                     vp = new vst2::AudioPort(port, pEffect, pMaster);
                     plugin_ports->add(vp);
                     vAudioPorts.add(static_cast<vst2::AudioPort *>(vp));
+                    break;
+
+                case meta::R_AUDIO_SEND:
+                case meta::R_AUDIO_RETURN:
+                    lsp_trace("creating audio buffer port %s", port->id);
+                    vp = new vst2::AudioBufferPort(port, pEffect, pMaster);
+                    plugin_ports->add(vp);
+                    vAudioBuffers.add(static_cast<vst2::AudioBufferPort *>(vp));
                     break;
 
                 case meta::R_CONTROL:
@@ -377,6 +406,8 @@ namespace lsp
             pPlugin->set_sample_rate(sr);
             if (pSamplePlayer != NULL)
                 pSamplePlayer->set_sample_rate(sr);
+            if (pShmClient != NULL)
+                pShmClient->set_sample_rate(sr);
             bUpdateSettings = true;
         }
 
@@ -384,13 +415,24 @@ namespace lsp
         {
             lsp_trace("Block size for audio processing: %d", int(size));
 
-            // Sync buffer size to all input ports
+            // Sync buffer size to all audio ports
             for (size_t i=0, n=vAudioPorts.size(); i<n; ++i)
             {
                 vst2::AudioPort *p = vAudioPorts.uget(i);
                 if (p != NULL)
                     p->set_block_size(size);
             }
+
+            // Sync buffer size to all send/return ports
+            for (size_t i=0, n=vAudioBuffers.size(); i<n; ++i)
+            {
+                vst2::AudioBufferPort *p = vAudioBuffers.uget(i);
+                if (p != NULL)
+                    p->set_block_size(size);
+            }
+
+            if (pShmClient != NULL)
+                pShmClient->set_buffer_size(size);
         }
 
         void Wrapper::mains_changed(VstIntPtr value)
@@ -438,19 +480,22 @@ namespace lsp
         {
         }
 
+    #ifdef WITH_UI_FEATURE
         void Wrapper::set_ui_wrapper(UIWrapper *ui)
         {
             if (pUIWrapper == ui)
                 return;
 
             pUIWrapper  = ui;
-            atomic_add(&nUIReq, 1);
+            if (ui != NULL)
+                atomic_add(&nUIReq, 1);
         }
 
         UIWrapper *Wrapper::ui_wrapper()
         {
             return pUIWrapper;
         }
+    #endif /* WITH_UI_FEATURE */
 
         void Wrapper::sync_position()
         {
@@ -501,6 +546,51 @@ namespace lsp
 //                npos.sampleRate, npos.speed, npos.numerator, npos.denominator, npos.beatsPerMinute, npos.ticksPerBeat, npos.tick);
         }
 
+        bool Wrapper::check_parameters_updated()
+        {
+            for (size_t i=0, n=vParams.size(); i<n; ++i)
+            {
+                // Pre-process data in port
+                vst2::Port *port = vParams.uget(i);
+                if ((port != NULL) && (port->changed()))
+                {
+                    lsp_trace("port changed: %s", port->metadata()->id);
+                    bUpdateSettings = true;
+                }
+            }
+
+            return bUpdateSettings;
+        }
+
+        void Wrapper::apply_settings_update()
+        {
+            if (!bUpdateSettings)
+                return;
+
+            bUpdateSettings     = false;
+            lsp_trace("updating settings");
+            pPlugin->update_settings();
+            if (pShmClient != NULL)
+                pShmClient->update_settings();
+        }
+
+        void Wrapper::report_latency()
+        {
+            size_t latency      = pPlugin->latency();
+            if (nLatency == latency)
+                return;
+
+            lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
+
+            pEffect->initialDelay   = latency;
+            nLatency                = latency;
+            if (pMaster)
+            {
+                lsp_trace("Reporting latency = %d samples to the host", int(latency));
+                pMaster(pEffect, audioMasterIOChanged, 0, 0, 0, 0);
+            }
+        }
+
         void Wrapper::run(float** inputs, float** outputs, size_t samples)
         {
             // DO NOTHING if sample_rate is not set (fill output buffers with zeros)
@@ -515,6 +605,7 @@ namespace lsp
                 return;
             }
 
+        #ifdef WITH_UI_FEATURE
             // Sync UI state
             const uatomic_t ui_req = nUIReq;
             if (ui_req != nUIResp)
@@ -525,6 +616,7 @@ namespace lsp
                     pPlugin->activate_ui();
                 nUIResp     = ui_req;
             }
+        #endif /* WITH_UI_FEATURE */
 
             // Synchronize position
             sync_position();
@@ -542,22 +634,16 @@ namespace lsp
             }
 
             // Process ALL parameter ports for changes
-            for (size_t i=0, n=vParams.size(); i<n; ++i)
-            {
-                // Pre-process data in port
-                vst2::Port *port = vParams.uget(i);
-                if ((port != NULL) && (port->changed()))
-                {
-                    lsp_trace("port changed: %s", port->metadata()->id);
-                    bUpdateSettings = true;
-                }
-            }
+            if (check_parameters_updated())
+                apply_settings_update();
 
             // Check that input parameters have changed
             if (bUpdateSettings)
             {
                 lsp_trace("updating settings");
                 pPlugin->update_settings();
+                if (pShmClient != NULL)
+                    pShmClient->update_settings();
                 bUpdateSettings     = false;
             }
 
@@ -569,12 +655,24 @@ namespace lsp
                 nDumpResp           = dump_req;
             }
 
+            if (pShmClient != NULL)
+            {
+                pShmClient->begin(samples);
+                pShmClient->pre_process(samples);
+            }
+
             // Process samples
             pPlugin->process(samples);
 
             // Launch the sample player
             if (pSamplePlayer != NULL)
                 pSamplePlayer->process(samples);
+
+            if (pShmClient != NULL)
+            {
+                pShmClient->post_process(samples);
+                pShmClient->end();
+            }
 
             // Sanitize output audio data
             for (size_t i=0, n=vAudioPorts.size(); i<n; ++i)
@@ -593,17 +691,7 @@ namespace lsp
             }
 
             // Report latency
-            float latency           = pPlugin->latency();
-            if (fLatency != latency)
-            {
-                pEffect->initialDelay   = latency;
-                fLatency                = latency;
-                if (pMaster)
-                {
-                    lsp_trace("Reporting latency = %d samples to the host", int(latency));
-                    pMaster(pEffect, audioMasterIOChanged, 0, 0, 0, 0);
-                }
-            }
+            report_latency();
         }
 
         void Wrapper::process_events(const VstEvents *e)
@@ -1046,6 +1134,14 @@ namespace lsp
 
             // Notify the plugin that state has been loaded
             pPlugin->state_loaded();
+
+            // Update settings: workaround for some hosts like Renoise that do not call process() for plugins
+            // after their instantiation.
+            if (check_parameters_updated())
+            {
+                apply_settings_update();
+                report_latency();
+            }
         }
 
         void Wrapper::deserialize_new_chunk_format(const uint8_t *data, size_t bytes)
@@ -1359,7 +1455,7 @@ namespace lsp
 
         const meta::package_t *Wrapper::package() const
         {
-            return pPackage;
+            return pFactory->manifest();
         }
 
         meta::plugin_format_t Wrapper::plugin_format() const
@@ -1370,6 +1466,11 @@ namespace lsp
         core::SamplePlayer *Wrapper::sample_player()
         {
             return pSamplePlayer;
+        }
+
+        const core::ShmState *Wrapper::shm_state()
+        {
+            return (pShmClient != NULL) ? pShmClient->state() : NULL;
         }
 
         void Wrapper::request_settings_update()

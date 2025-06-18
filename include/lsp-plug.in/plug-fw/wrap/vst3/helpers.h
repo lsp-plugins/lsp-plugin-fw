@@ -558,6 +558,8 @@ namespace lsp
                         is_instrument   = true;
                         break;
                     case meta::CF_DRUM:
+                        code = Steinberg::Vst::PlugType::kFxDrums;
+                        break;
                     case meta::CF_DRUM_MACHINE:
                         code = Steinberg::Vst::PlugType::kInstrumentDrum;
                         is_instrument   = true;
@@ -968,10 +970,11 @@ namespace lsp
 
         inline float from_vst_value(const meta::port_t *meta, float value)
         {
-//                lsp_trace("input = %.3f", value);
             // Set value as integer or normalized
             float min = 0.0f, max = 1.0f, step = 0.0f;
             meta::get_port_parameters(meta, &min, &max, &step);
+
+//            lsp_trace("input = %.3f, min=%f, max=%f, step=%f", value, min, max, step);
 
             if ((meta::is_gain_unit(meta->unit)) || (meta::is_log_rule(meta)))
             {
@@ -998,14 +1001,20 @@ namespace lsp
             }
             else
             {
-                value = min + value * (max - min) + 1e-5f;
+                const float xv   = min + value * (max - min);
                 if ((meta->flags & meta::F_INT) ||
                     (meta->unit == meta::U_ENUM) ||
                     (meta->unit == meta::U_SAMPLES))
-                    value  = truncf(value);
+                {
+                    value   = floorf(xv + 1e-5f);
+                }
+                else
+                    value   = xv;
+
+//                lsp_trace("value = %f, truncated=%f", xv, value);
             }
 
-//                lsp_trace("result = %.3f", value);
+//            lsp_trace("result = %f", value);
             return value;
         }
 

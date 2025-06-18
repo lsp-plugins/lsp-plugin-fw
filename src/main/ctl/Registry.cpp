@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 июн. 2021 г.
@@ -41,34 +41,33 @@ namespace lsp
 
         void Registry::do_destroy()
         {
-            // Destroy all widgets in reverse order
+            // Destroy all controllers in reverse order
             for (size_t i=vControllers.size(); (i--) > 0;)
             {
-                ctl::Widget *w = vControllers.uget(i);
-//                lsp_trace("c = %p", w);
+                ctl::Controller *ctl = vControllers.uget(i);
 
-                if (w != NULL)
+                if (ctl != NULL)
                 {
-                    w->destroy();
-                    delete w;
+                    ctl->destroy();
+                    delete ctl;
                 }
             }
             vControllers.flush();
         }
 
-        status_t Registry::add(ctl::Widget *w)
+        status_t Registry::add(ctl::Controller *ctl)
         {
 //            lsp_trace("c = %p", w);
 
-            if (w == NULL)
+            if (ctl == NULL)
                 return STATUS_BAD_ARGUMENTS;
 
-            if (vControllers.contains(w))
+            if (vControllers.contains(ctl))
                 return STATUS_ALREADY_EXISTS;
 
-            return (vControllers.add(w)) ? STATUS_OK : STATUS_NO_MEM;
+            return (vControllers.add(ctl)) ? STATUS_OK : STATUS_NO_MEM;
         }
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 14 нояб. 2022 г.
@@ -65,7 +65,6 @@ namespace lsp
             fMin            = 0.0f;
             fMax            = 0.0f;
             fStep           = 0.0f;
-            nActive         = -1;
         }
 
         TabControl::~TabControl()

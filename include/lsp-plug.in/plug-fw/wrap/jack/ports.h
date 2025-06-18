@@ -32,6 +32,7 @@
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/dsp/dsp.h>
 
+#include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
@@ -229,8 +230,11 @@ namespace lsp
                     float *buf  = reinterpret_cast<float *>(::realloc(pSanitized, sizeof(float) * size));
                     if (buf == NULL)
                     {
-                        ::free(pSanitized);
-                        pSanitized = NULL;
+                        if (pSanitized != NULL)
+                        {
+                            ::free(pSanitized);
+                            pSanitized = NULL;
+                        }
                         return;
                     }
 
@@ -365,6 +369,35 @@ namespace lsp
                         dsp::sanitize1(reinterpret_cast<float *>(pDataBuffer), samples);
 
                     pBuffer     = NULL;
+                }
+        };
+
+        class AudioBufferPort: public Port
+        {
+            private:
+                core::AudioBuffer   sBuffer;
+
+            public:
+                explicit AudioBufferPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
+                {
+                }
+
+                AudioBufferPort(const AudioBufferPort &) = delete;
+                AudioBufferPort(AudioBufferPort &&) = delete;
+
+                AudioBufferPort & operator = (const AudioBufferPort &) = delete;
+                AudioBufferPort & operator = (AudioBufferPort &&) = delete;
+
+            public:
+                virtual void *buffer() override
+                {
+                    return &sBuffer;
+                }
+
+            public:
+                void set_buffer_size(size_t size)
+                {
+                    sBuffer.set_size(size);
                 }
         };
 
@@ -697,11 +730,15 @@ namespace lsp
         {
             private:
                 plug::string_t     *pValue;
+                uint32_t            nUISerial;      // Actual serial number for UI
+                uint32_t            nUIPending;     // Pending serial number for UI
 
             public:
                 explicit StringPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
                 {
                     pValue          = plug::string_t::allocate(size_t(meta->max));
+                    nUISerial       = 0;
+                    atomic_store(&nUIPending, 0);
                 }
                 StringPort(const StringPort &) = delete;
                 StringPort(StringPort &&) = delete;
@@ -729,10 +766,31 @@ namespace lsp
                     return (pValue != NULL) ? pValue->sync() : false;
                 }
 
+                virtual float value() override
+                {
+                    return (pValue != NULL) ? (pValue->nSerial & 0x3fffff) : 0.0f;
+                }
+
+                virtual void set_default() override
+                {
+                    strcpy(pValue->sData, pMetadata->value);
+                    atomic_add(&nUIPending, 1);
+                }
+
             public:
                 plug::string_t *data()
                 {
                     return pValue;
+                }
+
+                bool check_reset_pending()
+                {
+                    const uint32_t request = atomic_load(&nUIPending);
+                    if (request == nUISerial)
+                        return false;
+
+                    nUISerial = request;
+                    return true;
                 }
         };
 

@@ -36,6 +36,7 @@
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/core/ShmClient.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
 #include <steinberg/vst3.h>
@@ -106,11 +107,13 @@ namespace lsp
                 Steinberg::Vst::IConnectionPoint   *pPeerConnection;        // Peer connection
                 ipc::IExecutor                     *pExecutor;              // Offline task executor
                 lltl::parray<plug::IPort>           vAllPorts;              // All possible plugin ports
+                lltl::parray<vst3::AudioBufferPort> vAudioBuffers;          // Audio buffer ports
                 lltl::parray<audio_bus_t>           vAudioIn;               // Input audio busses
                 lltl::parray<audio_bus_t>           vAudioOut;              // Output audio busses
                 lltl::parray<vst3::ParameterPort>   vParams;                // Non-virtual parameter ports
                 lltl::parray<vst3::Port>            vAllParams;             // All parameter ports
                 lltl::parray<vst3::MeterPort>       vMeters;                // Meter ports
+                lltl::parray<vst3::StringPort>      vStrings;               // String ports
                 lltl::parray<plug::IPort>           vMeshes;                // Mesh ports
                 lltl::parray<plug::IPort>           vFBuffers;              // Frame buffer ports
                 lltl::parray<plug::IPort>           vStreams;               // Streaming ports
@@ -119,6 +122,7 @@ namespace lsp
                 event_bus_t                        *pEventsIn;              // Input event bus
                 event_bus_t                        *pEventsOut;             // Output event bus
                 core::SamplePlayer                 *pSamplePlayer;          // Sample player
+                core::ShmClient                    *pShmClient;             // Shared memory client
                 wssize_t                            nPlayPosition;          // Sample playback position
                 wssize_t                            nPlayLength;            // Sample playback length
                 plug::position_t                    sUIPosition;            // Position notified to UI
@@ -175,6 +179,8 @@ namespace lsp
                 size_t                      prepare_block(int32_t frame, Steinberg::Vst::ProcessData *pdata);
                 vst3::ParameterPort        *input_parameter(Steinberg::Vst::ParamID id);
                 status_t                    save_kvt_parameters_v1(Steinberg::IBStream *os, core::KVTStorage *kvt);
+                bool                        check_parameters_updated();
+                void                        apply_settings_update();
 
                 status_t                    save_state(Steinberg::IBStream *os);
                 status_t                    load_state(Steinberg::IBStream *is);
@@ -183,6 +189,7 @@ namespace lsp
                 bool                        decode_parameter_as_midi_event(midi::event_t &e, size_t offset, size_t id, double value);
                 bool                        encode_midi_event(Steinberg::Vst::Event &ev, const midi::event_t &e);
                 void                        toggle_ui_state();
+                void                        clear_output_events();
                 void                        process_input_events(Steinberg::Vst::IEventList *events, Steinberg::Vst::IParameterChanges *params);
                 void                        process_output_events(Steinberg::Vst::IEventList *events);
                 void                        report_latency();
@@ -194,6 +201,8 @@ namespace lsp
                 void                        transmit_frame_buffers();
                 void                        transmit_streams();
                 void                        transmit_play_position();
+                void                        transmit_strings();
+                void                        transmit_shm_state();
 
             public:
                 explicit Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package);
@@ -213,6 +222,7 @@ namespace lsp
                 virtual void                    request_settings_update() override;
                 virtual const meta::package_t  *package() const override;
                 virtual meta::plugin_format_t   plugin_format() const override;
+                virtual const core::ShmState   *shm_state() override;
 
             public: // vst3::IDataSync
                 virtual void                    sync_data() override;

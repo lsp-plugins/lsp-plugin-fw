@@ -31,7 +31,6 @@
 #include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
@@ -43,7 +42,6 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/modinfo.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/vst3/ui_wrapper.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -487,7 +485,7 @@ namespace lsp
 
             Steinberg::TUID tuid;
 
-            // Watch plugin factories first
+            // Watch plugin factories
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
             {
                 for (size_t i=0; ; ++i)
@@ -496,62 +494,56 @@ namespace lsp
                     const meta::plugin_t *plug_meta = f->enumerate(i);
                     if (plug_meta == NULL)
                         break;
-                    if ((plug_meta->uids.vst3 == NULL) || (!meta::uid_vst3_to_tuid(tuid, plug_meta->uids.vst3)))
-                        continue;
-                    if (!Steinberg::iidEqual(tuid, cid))
-                        continue;
 
-                    // UID matched, allocate plugin module
-                    plug::Module *module = f->create(plug_meta);
-                    if (module == NULL)
-                        return Steinberg::kOutOfMemory;
-                    lsp_finally {
-                        if (module != NULL)
-                            delete module;
-                    };
-
-                    // Allocate wrapper
-                    Wrapper *w  = new Wrapper(this, module, pLoader, pPackage);
-                    if (w == NULL)
-                        return Steinberg::kOutOfMemory;
-                    lsp_finally { safe_release(w); };
-
-                    lsp_trace("Created Wrapper w=%p", w);
-                    module      = NULL; // Force module to be destroyed by the wrapper
-
-                    // Query interface and return
-                    return w->queryInterface(_iid, obj);
-                }
-            }
-
-            // Watch UI factories next
-            for (ui::Factory *f = ui::Factory::root(); f != NULL; f = f->next())
-            {
-                for (size_t i=0; ; ++i)
-                {
-                    // Enumerate next element
-                    const meta::plugin_t *plug_meta = f->enumerate(i);
-                    if (plug_meta == NULL)
-                        break;
-                    if ((plug_meta->uids.vst3ui == NULL) || (!meta::uid_vst3_to_tuid(tuid, plug_meta->uids.vst3ui)))
-                        continue;
-                    if (!Steinberg::iidEqual(tuid, cid))
-                        continue;
-
-                    // Allocate Controller
-                    vst3::Controller *ctl   = new vst3::Controller(this, pLoader, pPackage, plug_meta);
-                    if (ctl == NULL)
-                        return Steinberg::kOutOfMemory;
-                    lsp_finally { safe_release(ctl); };
-                    lsp_trace("Created Controller ctl=%p", ctl);
-                    if (ctl->init() != STATUS_OK)
+                    // Check if specified IID is IID of the VstProcessor
+                    if ((plug_meta->uids.vst3 != NULL) && (meta::uid_vst3_to_tuid(tuid, plug_meta->uids.vst3)))
                     {
-                        lsp_trace("Failed to initialize Controller ctl=%p", ctl);
-                        return Steinberg::kInternalError;
+                        if (Steinberg::iidEqual(tuid, cid))
+                        {
+                            // UID matched, allocate plugin module
+                            plug::Module *module = f->create(plug_meta);
+                            if (module == NULL)
+                                return Steinberg::kOutOfMemory;
+                            lsp_finally {
+                                if (module != NULL)
+                                    delete module;
+                            };
+
+                            // Allocate wrapper
+                            Wrapper *w  = new Wrapper(this, module, pLoader, pPackage);
+                            if (w == NULL)
+                                return Steinberg::kOutOfMemory;
+                            lsp_finally { safe_release(w); };
+
+                            lsp_trace("Created Wrapper w=%p", w);
+                            module      = NULL; // Force module to be destroyed by the wrapper
+
+                            // Query interface and return
+                            return w->queryInterface(_iid, obj);
+                        }
                     }
 
-                    // Query interface and return
-                    return ctl->queryInterface(_iid, obj);
+                    // Check if specified IID is IID of the VstController
+                    if ((plug_meta->uids.vst3ui != NULL) && (meta::uid_vst3_to_tuid(tuid, plug_meta->uids.vst3ui)))
+                    {
+                        if (Steinberg::iidEqual(tuid, cid))
+                        {
+                            // UID matched, allocate Controller
+                            vst3::Controller *ctl   = new vst3::Controller(this, pLoader, pPackage, plug_meta);
+                            if (ctl == NULL)
+                                return Steinberg::kOutOfMemory;
+                            lsp_finally { safe_release(ctl); };
+                            lsp_trace("Created Controller ctl=%p", ctl);
+                            if (ctl->init() != STATUS_OK)
+                            {
+                                lsp_trace("Failed to initialize Controller ctl=%p", ctl);
+                                return Steinberg::kInternalError;
+                            }
+
+                            // Query interface and return
+                            return ctl->queryInterface(_iid, obj);
+                        }
+                    }
                 }
             }
 
@@ -692,10 +684,7 @@ namespace lsp
                 lsp_finally { sDataMutex.unlock(); };
 
                 if (!vDataSync.remove(sync))
-                {
-                    lsp_warn("Non-existing client=%p", sync);
                     return STATUS_NOT_FOUND;
-                }
 
                 while (pActiveSync == sync)
                 {
@@ -733,6 +722,8 @@ namespace lsp
         status_t PluginFactory::run()
         {
             lsp_trace("enter main loop this=%p", this);
+
+            static constexpr size_t LOOP_INTERVAL = 40;
 
             lltl::parray<IDataSync> list;
 
@@ -773,13 +764,24 @@ namespace lsp
                 }
 
                 // Wait for a while
-                const system::time_millis_t delay = lsp_min(system::get_time_millis() - time, 40u);
-                ipc::Thread::sleep(delay);
+                const system::time_millis_t consumed = system::get_time_millis() - time;
+                if (consumed < LOOP_INTERVAL)
+                    ipc::Thread::sleep(LOOP_INTERVAL - consumed);
             }
 
             lsp_trace("leave main loop this=%p", this);
 
             return STATUS_OK;
+        }
+
+        core::Catalog *PluginFactory::acquire_catalog()
+        {
+            return sCatalogManager.acquire();
+        }
+
+        void PluginFactory::release_catalog(core::Catalog *catalog)
+        {
+            sCatalogManager.release(catalog);
         }
 
     #ifdef VST_USE_RUNLOOP_IFACE

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 2 окт. 2021 г.
@@ -59,6 +59,9 @@ namespace lsp
                 ctl::Color          sColor;
                 ctl::Color          sNumColor;
                 ctl::Color          sDenColor;
+                ctl::Color          sInactiveColor;
+                ctl::Color          sInactiveNumColor;
+                ctl::Color          sInactiveDenColor;
 
             protected:
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);

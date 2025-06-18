@@ -42,12 +42,12 @@ namespace lsp
 
         status_t ICatalogClient::do_close()
         {
-            status_t res = (pCatalog != NULL) ? pCatalog->remove_client(this) : STATUS_NOT_BOUND;
+            status_t res = (pCatalog != NULL) ? pCatalog->detach_client(this) : STATUS_NOT_BOUND;
             pCatalog = NULL;
             return res;
         }
 
-        status_t ICatalogClient::connect(Catalog *catalog)
+        status_t ICatalogClient::attach(Catalog *catalog)
         {
             if (catalog == NULL)
                 return STATUS_BAD_ARGUMENTS;
@@ -61,17 +61,19 @@ namespace lsp
             sApply.nResponse            = sApply.nRequest - 1;
 
             // Connect and verify result
-            status_t res = catalog->add_client(this);
+            status_t res = catalog->attach_client(this);
             if (res != STATUS_OK)
             {
                 sUpdate.nResponse           = upd_response;
                 sApply.nResponse            = apl_response;
             }
+            else
+                pCatalog                    = catalog;
 
             return res;
         }
 
-        status_t ICatalogClient::close()
+        status_t ICatalogClient::detach()
         {
             return do_close();
         }
@@ -79,6 +81,11 @@ namespace lsp
         void ICatalogClient::request_update()
         {
             atomic_add(&sUpdate.nRequest, 1);
+        }
+
+        void ICatalogClient::request_apply()
+        {
+            atomic_add(&sApply.nRequest, 1);
         }
 
         bool ICatalogClient::update(dspu::Catalog * catalog)
@@ -91,9 +98,13 @@ namespace lsp
             return true;
         }
 
-        bool ICatalogClient::connected() const
+        void ICatalogClient::keep_alive(dspu::Catalog *catalog)
         {
-            return pCatalog     != NULL;
+        }
+
+        bool ICatalogClient::attached() const
+        {
+            return pCatalog != NULL;
         }
 
     } /* namespace core */

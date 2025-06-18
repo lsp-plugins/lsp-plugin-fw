@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 апр. 2021 г.
@@ -52,7 +52,7 @@ namespace lsp
                 void            apply_changes();
 
             protected:
-                virtual void    on_updated(ui::IPort *port) override;
+                virtual void    on_updated(ui::IPort *port, size_t flags) override;
 
             public:
                 explicit        Boolean();

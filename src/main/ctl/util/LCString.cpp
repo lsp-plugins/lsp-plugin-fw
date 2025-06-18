@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 23 мая 2021 г.
@@ -186,6 +186,11 @@ namespace lsp
             return true;
         }
 
+        expr::Parameters *LCString::params()
+        {
+            return (pProp != NULL) ? pProp->params() : NULL;
+        }
+
         void LCString::update_text(ui::IPort *port)
         {
             // Evaluated value
@@ -259,6 +264,7 @@ namespace lsp
             params->set_cstring("meta_plugin_vst3ui_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->uids.vst3ui));
 
             params->set_cstring("meta_plugin_format", meta::plugin_format_name(pWrapper->plugin_format()));
+            params->set_cstring("meta_ui_graphics_library", pWrapper->graphics_backend());
 
             tmp.fmt_utf8("%d.%d.%d",
                 int(LSP_MODULE_VERSION_MAJOR(plugin->version)),

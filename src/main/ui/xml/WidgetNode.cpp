@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 апр. 2021 г.
@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/common/debug.h>
 
+#include <private/ui/xml/DOMControllerNode.h>
 #include <private/ui/xml/WidgetNode.h>
 
 namespace lsp
@@ -33,7 +34,6 @@ namespace lsp
             {
                 pWidget     = widget;
                 pChild      = NULL;
-                pSpecial    = NULL;
             }
 
             WidgetNode::~WidgetNode()
@@ -50,17 +50,32 @@ namespace lsp
                 if (*child != NULL)
                     return STATUS_OK;
 
-                // Create and initialize widget
-                ctl::Widget *widget         = pContext->create_controller(name);
-                if (widget == NULL)
-                    return STATUS_OK;       // No handler
+                // Create controller
+                ctl::Controller *ctl    = pContext->create_controller(name);
 
-                // Create handler
-                pChild = new WidgetNode(pContext, this, widget);
-                if (pChild == NULL)
-                    return STATUS_NO_MEM;
+                // Process it as widget if it is a widget
+                ctl::Widget *widget     = ctl::ctl_cast<ctl::Widget>(ctl);
+                if (widget != NULL)
+                {
+                    // Create widget handler
+                    pChild = new WidgetNode(pContext, this, widget);
+                    if (pChild == NULL)
+                        return STATUS_NO_MEM;
 
-                *child = pChild;
+                    *child = pChild;
+                    return STATUS_OK;
+                }
+
+                // Process it as a DOM controller if it is a DOM controller
+                ctl::DOMController *dom_ctl = ctl::ctl_cast<ctl::DOMController>(ctl);
+                if (dom_ctl != NULL)
+                {
+                    // Create DOM controller handler
+                    DOMControllerNode *node = new DOMControllerNode(pContext, this, dom_ctl);
+                    *child = node;
+                    return (node != NULL) ? STATUS_OK : STATUS_NO_MEM;
+                }
+
                 return STATUS_OK;
             }
 
@@ -127,25 +142,37 @@ namespace lsp
             {
                 status_t res = STATUS_OK;
 
-                // Link the child widget togetgher with parent widget
-                if ((child == pChild) && (pChild != NULL))
+                // Forget the child at exit
+                lsp_finally { pChild = NULL; };
+
+                // Link the child widget together with parent widget
+                if ((child != pChild) || (pChild == NULL))
+                    return res;
+
+                ctl::Widget *w = pChild->pWidget;
+                if ((pWidget == NULL) || (w == NULL))
+                    return res;
+
+                ctl::Overlay *ov = ctl::ctl_cast<ctl::Overlay>(w);
+                if (ov != NULL)
                 {
-                    ctl::Widget *w = pChild->pWidget;
-
-                    if ((pWidget != NULL) && (w != NULL))
-                    {
-                        res = pWidget->add(pContext, w);
-                        if (res != STATUS_OK)
-                            lsp_error(
-                                "Error while trying to add widget of type '%s' as child for '%s'",
-                                w->get_class()->name,
-                                pWidget->get_class()->name
-                            );
-                    }
+                    // Need to add the widget to the list of overlays
+                    res = (pContext->overlays()->add(ov)) ? STATUS_OK : STATUS_NO_MEM;
+                    if (res != STATUS_OK)
+                        lsp_error(
+                            "Error while trying to register overlay widget of type '%s'",
+                            w->get_class()->name,
+                            pWidget->get_class()->name);
                 }
-
-                // Forget the child
-                pChild  = NULL;
+                else
+                {
+                    res = pWidget->add(pContext, w);
+                    if (res != STATUS_OK)
+                        lsp_error(
+                            "Error while trying to add widget of type '%s' as child for '%s'",
+                            w->get_class()->name,
+                            pWidget->get_class()->name);
+                }
 
                 return res;
             }

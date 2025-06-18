@@ -82,23 +82,23 @@ namespace lsp
 
             public:
                 /**
-                 * Connect to the catalog
+                 * Attach to the catalog
                  * @param catalog catalog to connect to
                  * @return status of operation
                  */
-                status_t                connect(Catalog *catalog);
+                status_t                attach(Catalog *catalog);
 
                 /**
-                 * Disconnect from catalog
+                 * Detach from catalog
                  * @return status of operation
                  */
-                status_t                close();
+                status_t                detach();
 
                 /**
                  * Check that client is connected to catalog
                  * @return true if client is connected to catalog
                  */
-                bool                    connected() const;
+                bool                    attached() const;
 
             public:
                 /**
@@ -115,6 +115,12 @@ namespace lsp
                  * @return true if apply has successfully passed, false if apply call should be retried after a while
                  */
                 virtual bool            apply(dspu::Catalog * catalog);
+
+                /**
+                 * Make possible to client to mark some records still being used in catalog
+                 * @param catalog the catalog that can be modified
+                 */
+                virtual void            keep_alive(dspu::Catalog *catalog);
         };
 
     } /* namespace core */
