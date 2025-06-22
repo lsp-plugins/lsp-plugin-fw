@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 мар. 2024 г.
@@ -29,13 +29,26 @@ namespace lsp
     {
         const ctl_class_t PresetsWindow::metadata = { "PresetsWindow", &Window::metadata };
 
+        static const char *preset_lists_ids[] =
+        {
+            "factory_presets_list",
+            "user_presets_list",
+            "favourites_presets_list",
+            "all_presets_list"
+        };
+
         PresetsWindow::PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow):
             ctl::Window(src, widget)
         {
             pClass          = &metadata;
 
-            pPluginWindow   = pluginWindow;
-            wPresetsList    = NULL;
+            wPluginWindow   = pluginWindow;
+
+            for (size_t i=0; i<PLT_TOTAL; ++i)
+            {
+                preset_list_t *plist = &vPresetsLists[i];
+                plist->wList    = NULL;
+            }
         }
 
         PresetsWindow::~PresetsWindow()
@@ -59,18 +72,27 @@ namespace lsp
 
             bind_slot("btn_new", tk::SLOT_SUBMIT, slot_preset_new_click);
             bind_slot("btn_delete", tk::SLOT_SUBMIT, slot_preset_delete_click);
-            bind_slot("btn_override", tk::SLOT_SUBMIT, slot_preset_override_click);
+            bind_slot("btn_save", tk::SLOT_SUBMIT, slot_preset_save_click);
             bind_slot("btn_import", tk::SLOT_SUBMIT, slot_import_click);
             bind_slot("btn_export", tk::SLOT_SUBMIT, slot_export_click);
             bind_slot("btn_copy", tk::SLOT_SUBMIT, slot_state_copy_click);
             bind_slot("btn_paste", tk::SLOT_SUBMIT, slot_state_paste_click);
-            bind_slot("presets_list", tk::SLOT_SUBMIT, slot_preset_select);
-            bind_slot("presets_list", tk::SLOT_MOUSE_DBL_CLICK, slot_preset_dblclick);
+
+            for (size_t i=0; i<PLT_TOTAL; ++i)
+            {
+                preset_list_t *plist = &vPresetsLists[i];
+
+                tk::ListBox *lbox   = widgets()->get<tk::ListBox>(preset_lists_ids[i]);
+                if (lbox == NULL)
+                    continue;
+
+                plist->wList        = lbox;
+                lbox->slots()->bind(tk::SLOT_SUBMIT, slot_preset_select, this);
+                lbox->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_preset_dblclick, this);
+            }
 
             refresh_presets();
-
-            wPresetsList = widgets()->get<tk::ListBox>("presets_list");
-            sync_preset_selection();
+            sync_preset_selection(&vPresetsLists[PLT_FACTORY]);
 
             return STATUS_OK;
         }
@@ -117,9 +139,14 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PresetsWindow::refresh_user_presets()
+        {
+            return STATUS_OK; // TODO
+        }
+
         void PresetsWindow::put_presets_to_list(lltl::darray<resource::resource_t> *presets)
         {
-            tk::ListBox *lb = widgets()->get<tk::ListBox>("presets_list");
+            tk::ListBox *lb = widgets()->get<tk::ListBox>("factory_presets_list");
             if (lb == NULL)
                 return;
 
@@ -165,21 +192,27 @@ namespace lsp
             }
         }
 
-        void PresetsWindow::sync_preset_selection()
+        void PresetsWindow::sync_preset_selection(preset_list_t *list)
         {
-            if (wPresetsList == NULL)
+            if (list->wList == NULL)
                 return;
 
-            tk::ListBoxItem *item = wPresetsList->selected()->any();
+            tk::ListBoxItem *item = list->wList->selected()->any();
             const bool editable = (item != NULL);
 
             tk::Button *btn_delete = widgets()->get<tk::Button>("btn_delete");
             if (btn_delete != NULL)
+            {
                 btn_delete->editable()->set(editable);
+                btn_delete->active()->set(editable);
+            }
 
-            tk::Button *btn_override = widgets()->get<tk::Button>("btn_override");
-            if (btn_override != NULL)
-                btn_override->editable()->set(editable);
+            tk::Button *btn_save = widgets()->get<tk::Button>("btn_save");
+            if (btn_save != NULL)
+            {
+                btn_save->editable()->set(editable);
+                btn_save->active()->set(editable);
+            }
 
             // TODO: Save selected preset index to iSelectedPreset
         }
@@ -222,9 +255,9 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PresetsWindow::slot_preset_override_click(tk::Widget *sender, void *ptr, void *data)
+        status_t PresetsWindow::slot_preset_save_click(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("slot_preset_override_click");
+            lsp_trace("slot_preset_save_click");
 
 //            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
 
@@ -275,7 +308,7 @@ namespace lsp
             lsp_trace("slot_preset_select");
 
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
-            self->sync_preset_selection();
+            self->sync_preset_selection(&self->vPresetsLists[PLT_FACTORY]);
 
             return STATUS_OK;
         }

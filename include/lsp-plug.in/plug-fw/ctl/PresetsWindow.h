@@ -60,8 +60,32 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
-                PluginWindow           *pPluginWindow;
-                tk::ListBox            *wPresetsList;
+                enum preset_list_type_t
+                {
+                    PLT_FACTORY,
+                    PLT_USER,
+                    PLT_FAVOURITES,
+                    PLT_ALL,
+
+                    PLT_TOTAL
+                };
+
+                typedef struct preset_list_t
+                {
+                    tk::ListBox        *wList;
+                } preset_list_t;
+
+                typedef struct preset_t
+                {
+                    LSPString           sPath;          // Location of the preset
+                    bool                bUser;          // Indicator that it is a user preset
+                    bool                bFavourite;     // Indicator that preset is marked as favourite
+                    bool                bPatch;         // Indicator that preset is a patch
+                } preset_t;
+
+            protected:
+                PluginWindow           *wPluginWindow;
+                preset_list_t           vPresetsLists[PLT_TOTAL];
                 int16_t                 iSelectedPreset = -1;
 
             protected:
@@ -69,7 +93,7 @@ namespace lsp
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_preset_new_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_preset_override_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_preset_save_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_state_copy_click(tk::Widget *sender, void *ptr, void *data);
@@ -80,8 +104,9 @@ namespace lsp
             protected:
                 void bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
                 status_t refresh_presets();
+                status_t refresh_user_presets();
                 void put_presets_to_list(lltl::darray<resource::resource_t> *presets);
-                void sync_preset_selection();
+                void sync_preset_selection(preset_list_t *list);
 
             public:
                 explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow);
