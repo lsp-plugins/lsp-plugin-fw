@@ -106,6 +106,7 @@ namespace lsp
                 sBreakEnabled.init(pWrapper, ae->break_enabled());
                 sQuadPoint.init(pWrapper, ae->quad_point());
                 sFill.init(pWrapper, ae->fill());
+                sWire.init(pWrapper, ae->wire());
                 sEditable.init(pWrapper, ae->editable());
                 sLineWidth.init(pWrapper, ae->line_width());
                 sLineColor.init(pWrapper, ae->line_color());
@@ -158,6 +159,7 @@ namespace lsp
                 sBreakEnabled.set("break.enabled", name, value);
                 sQuadPoint.set("point.quad", name, value);
                 sFill.set("fill", name, value);
+                sWire.set("wire", name, value);
                 sEditable.set("editable", name, value);
                 sLineWidth.set("line.width", name, value);
                 sLineColor.set("line.color", name, value);

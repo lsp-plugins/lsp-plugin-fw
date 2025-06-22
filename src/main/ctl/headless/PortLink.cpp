@@ -179,8 +179,10 @@ namespace lsp
             for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
             {
                 binding_t *b = it.get();
-                if (b->pPort != NULL)
-                    b->fNewValue    = (b->pPort == port) ? b->pPort->value() : b->sValue.evaluate();
+                if ((b->pPort != NULL) && (b->pPort == port))
+                    b->fNewValue    = b->pPort->value();
+                else if (b->sValue.depends(port))
+                    b->fNewValue    = b->sValue.evaluate();
             }
 
             // Update port values without notification

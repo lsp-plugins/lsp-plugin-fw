@@ -28,7 +28,11 @@
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/stdlib/math.h>
 
-#include <cairo/cairo.h>
+#ifdef PLATFORM_MACOSX
+    #include <cairo.h>
+#else
+    #include <cairo/cairo.h>
+#endif /* PLATFORM_MACOSX */
 
 namespace lsp
 {
