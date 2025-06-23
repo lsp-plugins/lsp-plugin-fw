@@ -91,7 +91,7 @@ namespace lsp
                 preset_list_t           vPresetsLists[PLT_TOTAL];
 
                 ui::IPort              *pPath;                      // Location of user's export/import directory
-                ui::IPort              *pFileType;                  // User's export file type
+                ui::IPort              *pFileType;                  // Import/export configuration file type selection
                 ui::IPort              *pRelPaths;                  // Relative paths configuration option
 
                 int16_t                 iSelectedPreset = -1;
@@ -102,18 +102,19 @@ namespace lsp
                 static status_t     slot_preset_new_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_save_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t     slot_import_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_state_copy_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_state_paste_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_select(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t     slot_submit_import_settings(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_submit_export_settings(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t     slot_fetch_path(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_commit_path(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t     slot_exec_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_exec_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data);
 
             protected:
@@ -143,6 +144,7 @@ namespace lsp
                 status_t            post_init();
                 status_t            show(tk::Widget *actor);
                 status_t            show_export_settings_dialog();
+                status_t            show_import_settings_dialog();
 
         };
 

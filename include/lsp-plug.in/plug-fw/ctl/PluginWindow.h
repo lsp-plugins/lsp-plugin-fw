@@ -140,7 +140,6 @@ namespace lsp
                 tk::Menu                   *wBundleScaling;             // Bundle Scaling menu
                 tk::Menu                   *wFontScaling;               // UI Scaling menu
                 tk::Menu                   *wResetSettings;             // Reset settings menu
-                tk::FileDialog             *wImport;                    // Import settings dialog
                 tk::MenuItem               *wPreferHost;                // Prefer host menu item
                 tk::CheckBox               *wRelPaths;                  // Relative path checkbox
                 tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
@@ -150,11 +149,8 @@ namespace lsp
 
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
-                ui::IPort                  *pPath;
-                ui::IPort                  *pFileType;
                 ui::IPort                  *pR3DBackend;
                 ui::IPort                  *pLanguage;
-                ui::IPort                  *pRelPaths;
                 ui::IPort                  *pUIScaling;
                 ui::IPort                  *pUIScalingHost;
                 ui::IPort                  *pUIBundleScaling;
@@ -201,11 +197,6 @@ namespace lsp
 
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
 
-                static status_t slot_call_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
-
-                static status_t slot_fetch_path(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_commit_path(tk::Widget *sender, void *ptr, void *data);
-
                 static status_t slot_select_backend(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_select_language(tk::Widget *sender, void *ptr, void *data);
@@ -248,7 +239,6 @@ namespace lsp
 
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
-                static tk::FileFilters     *create_config_filters(tk::FileDialog *dlg);
                 static ssize_t              compare_presets(const resource::resource_t *a, const resource::resource_t *b);
                 void                        init_enum_menu(enum_menu_t *menu);
 

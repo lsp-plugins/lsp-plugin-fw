@@ -111,7 +111,6 @@ namespace lsp
             wBundleScaling              = NULL;
             wFontScaling                = NULL;
             wResetSettings              = NULL;
-            wImport                     = NULL;
             wPreferHost                 = NULL;
             wRelPaths                   = NULL;
             wInvertVScroll              = NULL;
@@ -119,11 +118,8 @@ namespace lsp
 
             pPVersion                   = NULL;
             pPBypass                    = NULL;
-            pPath                       = NULL;
-            pFileType                   = NULL;
             pR3DBackend                 = NULL;
             pLanguage                   = NULL;
-            pRelPaths                   = NULL;
             pUIScaling                  = NULL;
             pUIScalingHost              = NULL;
             pUIBundleScaling            = NULL;
@@ -244,7 +240,6 @@ namespace lsp
             wMenu           = NULL;
             wPresets        = NULL;
             wResetSettings  = NULL;
-            wImport         = NULL;
             wPreferHost     = NULL;
         }
 
@@ -306,12 +301,9 @@ namespace lsp
 
             // Bind ports
             BIND_PORT(pWrapper, pPVersion, VERSION_PORT);
-            BIND_PORT(pWrapper, pPath, CONFIG_PATH_PORT);
-            BIND_PORT(pWrapper, pFileType, CONFIG_FTYPE_PORT);
             BIND_PORT(pWrapper, pPBypass, meta::PORT_NAME_BYPASS);
             BIND_PORT(pWrapper, pR3DBackend, R3D_BACKEND_PORT);
             BIND_PORT(pWrapper, pLanguage, LANGUAGE_PORT);
-            BIND_PORT(pWrapper, pRelPaths, REL_PATHS_PORT);
             BIND_PORT(pWrapper, pUIScaling, UI_SCALING_PORT);
             BIND_PORT(pWrapper, pUIScalingHost, UI_SCALING_HOST_PORT);
             BIND_PORT(pWrapper, pUIBundleScaling, UI_BUNDLE_SCALING_PORT);
@@ -1747,31 +1739,6 @@ namespace lsp
             return (target != NULL) ? target->add(child->widget()) : STATUS_BAD_STATE;
         }
 
-        tk::FileFilters *PluginWindow::create_config_filters(tk::FileDialog *dlg)
-        {
-            tk::FileFilters *f = dlg->filter();
-            if (f == NULL)
-                return f;
-
-            tk::FileMask *ffi = f->add();
-            if (ffi != NULL)
-            {
-                ffi->pattern()->set("*.cfg");
-                ffi->title()->set("files.config.lsp");
-                ffi->extensions()->set_raw(".cfg");
-            }
-
-            ffi = f->add();
-            if (ffi != NULL)
-            {
-                ffi->pattern()->set("*");
-                ffi->title()->set("files.all");
-                ffi->extensions()->set_raw("");
-            }
-
-            return f;
-        }
-
         status_t PluginWindow::slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *self      = static_cast<PluginWindow *>(ptr);
@@ -1811,34 +1778,19 @@ namespace lsp
 
         status_t PluginWindow::slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *_this     = static_cast<PluginWindow *>(ptr);
-            tk::Display *dpy        = _this->wWidget->display();
-            tk::FileDialog *dlg     = _this->wImport;
-            if (dlg == NULL)
-            {
-                dlg     = new tk::FileDialog(dpy);
-                _this->widgets()->add(dlg);
-                _this->wImport      = dlg;
+            PluginWindow *self      = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
 
-                dlg->init();
-                dlg->mode()->set(tk::FDM_OPEN_FILE);
-                dlg->title()->set("titles.import_settings");
-                dlg->action_text()->set("actions.open");
+            if (self->pPresetsWindow != NULL)
+                self->pPresetsWindow->show_import_settings_dialog();
 
-                create_config_filters(dlg);
-
-                dlg->slots()->bind(tk::SLOT_SUBMIT, slot_call_import_settings_from_file, ptr);
-                dlg->slots()->bind(tk::SLOT_SHOW, slot_fetch_path, _this);
-                dlg->slots()->bind(tk::SLOT_HIDE, slot_commit_path, _this);
-            }
-
-            dlg->show(_this->wWidget);
             return STATUS_OK;
         }
 
         status_t PluginWindow::slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
+            PluginWindow *_this     = static_cast<PluginWindow *>(ptr);
             tk::Display *dpy        = _this->wWidget->display();
 
             // Create new sink
@@ -1981,19 +1933,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::slot_call_import_settings_from_file(tk::Widget *sender, void *ptr, void *data)
-        {
-            LSPString path;
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            status_t res = _this->wImport->selected_file()->format(&path);
-
-            if (res == STATUS_OK)
-                _this->pWrapper->import_settings(&path, ui::IMPORT_FLAG_NONE);
-
-            return STATUS_OK;
-        }
-
-
         status_t PluginWindow::slot_greeting_close(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
@@ -2007,66 +1946,6 @@ namespace lsp
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
             if (__this->wAbout != NULL)
                 __this->wAbout->visibility()->set(false);
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_fetch_path(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_BAD_STATE;
-
-            tk::FileDialog *dlg = tk::widget_cast<tk::FileDialog>(sender);
-            if (dlg == NULL)
-                return STATUS_OK;
-
-            // Set-up path
-            if (_this->pPath != NULL)
-            {
-                dlg->path()->set_raw(_this->pPath->buffer<char>());
-            }
-            // Set-up file type
-            if (_this->pFileType != NULL)
-            {
-                size_t filter = _this->pFileType->value();
-                if (filter < dlg->filter()->size())
-                    dlg->selected_filter()->set(filter);
-            }
-
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_commit_path(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_BAD_STATE;
-
-            tk::FileDialog *dlg = tk::widget_cast<tk::FileDialog>(sender);
-            if (dlg == NULL)
-                return STATUS_OK;
-
-            // Update file path
-            if (_this->pPath != NULL)
-            {
-                LSPString tmp_path;
-                if (dlg->path()->format(&tmp_path) == STATUS_OK)
-                {
-                    const char *path = tmp_path.get_utf8();
-                    if (path != NULL)
-                    {
-                        _this->pPath->write(path, strlen(path));
-                        _this->pPath->notify_all(ui::PORT_USER_EDIT);
-                    }
-                }
-            }
-            // Update filter
-            if (_this->pFileType != NULL)
-            {
-                _this->pFileType->set_value(dlg->selected_filter()->get());
-                _this->pFileType->notify_all(ui::PORT_USER_EDIT);
-            }
-
             return STATUS_OK;
         }
 

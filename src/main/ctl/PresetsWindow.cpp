@@ -92,7 +92,7 @@ namespace lsp
             bind_slot("btn_new", tk::SLOT_SUBMIT, slot_preset_new_click);
             bind_slot("btn_delete", tk::SLOT_SUBMIT, slot_preset_delete_click);
             bind_slot("btn_save", tk::SLOT_SUBMIT, slot_preset_save_click);
-            bind_slot("btn_import", tk::SLOT_SUBMIT, slot_import_click);
+            bind_slot("btn_import", tk::SLOT_SUBMIT, slot_submit_import_settings);
             bind_slot("btn_export", tk::SLOT_SUBMIT, slot_submit_export_settings);
             bind_slot("btn_copy", tk::SLOT_SUBMIT, slot_state_copy_click);
             bind_slot("btn_paste", tk::SLOT_SUBMIT, slot_state_paste_click);
@@ -301,12 +301,18 @@ namespace lsp
 
         status_t PresetsWindow::show_export_settings_dialog()
         {
+            if (pPluginWindow == NULL)
+                return STATUS_BAD_STATE;
+
             tk::Display *dpy        = wWidget->display();
             tk::FileDialog *dlg     = wExport;
 
             if (dlg == NULL)
             {
                 dlg = new tk::FileDialog(dpy);
+                if (dlg == NULL)
+                    return STATUS_NO_MEM;
+
                 widgets()->add(dlg);
                 wExport = dlg;
 
@@ -321,6 +327,9 @@ namespace lsp
 
                 // Add 'Relative paths' option if present
                 tk::Box *wc = new tk::Box(dpy);
+                if (wc == NULL)
+                    return STATUS_NO_MEM;
+
                 widgets()->add(wc);
                 wc->init();
                 wc->orientation()->set_vertical();
@@ -370,6 +379,40 @@ namespace lsp
             {
                 bool checked = pRelPaths->value() >= 0.5f;
                 wRelPaths->checked()->set(checked);
+            }
+
+            wWidget->hide();
+            dlg->show(pPluginWindow->widget());
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::show_import_settings_dialog()
+        {
+            if (pPluginWindow == NULL)
+                return STATUS_BAD_STATE;
+
+            tk::Display *dpy        = wWidget->display();
+            tk::FileDialog *dlg     = wImport;
+
+            if (dlg == NULL)
+            {
+                dlg             = new tk::FileDialog(dpy);
+                if (dlg == NULL)
+                    return STATUS_NO_MEM;
+
+                widgets()->add(dlg);
+                wImport      = dlg;
+
+                dlg->init();
+                dlg->mode()->set(tk::FDM_OPEN_FILE);
+                dlg->title()->set("titles.import_settings");
+                dlg->action_text()->set("actions.open");
+
+                create_config_filters(dlg);
+
+                dlg->slots()->bind(tk::SLOT_SUBMIT, slot_exec_import_settings_from_file, self());
+                dlg->slots()->bind(tk::SLOT_SHOW, slot_fetch_path, self());
+                dlg->slots()->bind(tk::SLOT_HIDE, slot_commit_path, self());
             }
 
             wWidget->hide();
@@ -460,19 +503,35 @@ namespace lsp
 
         status_t PresetsWindow::slot_exec_export_settings_to_file(tk::Widget *sender, void *ptr, void *data)
         {
-            LSPString path;
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
             if (self->wExport == NULL)
                 return STATUS_OK;
 
+            LSPString path;
             status_t res = self->wExport->selected_file()->format(&path);
             if (res == STATUS_OK)
             {
                 bool relative = (self->pRelPaths != NULL) ? self->pRelPaths->value() >= 0.5f : false;
                 self->pWrapper->export_settings(&path, relative);
             }
+
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_exec_import_settings_from_file(tk::Widget *sender, void *ptr, void *data)
+        {
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+            if (self->wImport == NULL)
+                return STATUS_OK;
+
+            LSPString path;
+            status_t res = self->wImport->selected_file()->format(&path);
+            if (res == STATUS_OK)
+                self->pWrapper->import_settings(&path, ui::IMPORT_FLAG_NONE);
 
             return STATUS_OK;
         }
@@ -525,11 +584,11 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PresetsWindow::slot_import_click(tk::Widget *sender, void *ptr, void *data)
+        status_t PresetsWindow::slot_submit_import_settings(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("slot_import_click");
-
-            // TODO: Show import context menu
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
+                self->show_import_settings_dialog();
 
             return STATUS_OK;
         }
