@@ -26,8 +26,6 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/runtime/system.h>
-#include <lsp-plug.in/io/OutStringSequence.h>
-#include <lsp-plug.in/io/InStringSequence.h>
 #include <lsp-plug.in/tk/tk.h>
 
 #include <lsp-plug.in/plug-fw/ui.h>
@@ -48,25 +46,17 @@ namespace lsp
     namespace ctl
     {
         //-----------------------------------------------------------------
-        PluginWindow::ConfigSink::ConfigSink(ui::IWrapper *wrapper)
+        static const char * manual_prefixes[] =
         {
-            pWrapper = wrapper;
-        }
-
-        void PluginWindow::ConfigSink::unbind()
-        {
-            pWrapper        = NULL;
-        }
-
-        status_t PluginWindow::ConfigSink::receive(const LSPString *text, const char *mime)
-        {
-            ui::IWrapper *wrapper = pWrapper;
-            if (wrapper == NULL)
-                return STATUS_NOT_BOUND;
-
-            io::InStringSequence is(text);
-            return wrapper->import_settings(&is, ui::IMPORT_FLAG_NONE);
-        }
+        #ifdef LSP_LIB_PREFIX
+            LSP_LIB_PREFIX("/share"),
+            LSP_LIB_PREFIX("/local/share"),
+        #endif /*  LSP_LIB_PREFIX */
+            "/usr/share",
+            "/usr/local/share",
+            "/share",
+            NULL
+        };
 
         //-----------------------------------------------------------------
         // Plugin window
@@ -82,14 +72,6 @@ namespace lsp
         {
             { tk::TF_TOP | tk::TF_LEFT,         1.0f, -1.0f },
             { tk::TF_BOTTOM | tk::TF_LEFT,      1.0f,  1.0f },
-        };
-
-        const tk::tether_t PluginWindow::presets_tether[] =
-        {
-            { tk::TF_BOTTOM | tk::TF_LEFT,      1.0f,  1.0f },
-            { tk::TF_TOP | tk::TF_LEFT,         1.0f, -1.0f },
-            { tk::TF_BOTTOM | tk::TF_RIGHT,    -1.0f,  1.0f },
-            { tk::TF_TOP | tk::TF_RIGHT,       -1.0f, -1.0f },
         };
 
         PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget): Window(src, widget)
@@ -130,8 +112,6 @@ namespace lsp
 
             init_enum_menu(&sFilterPointThickness);
 
-            pConfigSink                 = NULL;
-
             sWndScale.nMFlags           = 0;
             sWndScale.sSize.nLeft       = 0;
             sWndScale.sSize.nTop        = 0;
@@ -157,14 +137,6 @@ namespace lsp
         {
             // Cancel greeting timer
             wGreetingTimer.cancel();
-
-            // Unbind configuration sink
-            if (pConfigSink != NULL)
-            {
-                pConfigSink->unbind();
-                pConfigSink->release();
-                pConfigSink = NULL;
-            }
 
             // Delete UI rendering backend bindings
             for (size_t i=0, n=vBackendSel.size(); i<n; ++i)
@@ -1753,25 +1725,12 @@ namespace lsp
 
         status_t PluginWindow::slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data)
         {
-            status_t res;
-            LSPString buf;
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-
-            // Export settings to text buffer
-            io::OutStringSequence sq(&buf);
-            if ((res = _this->pWrapper->export_settings(&sq)) != STATUS_OK)
+            PluginWindow *self      = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
                 return STATUS_OK;
-            sq.close();
 
-            // Now 'buf' contains serialized configuration, put it to clipboard
-            tk::TextDataSource *ds = new tk::TextDataSource();
-            if (ds == NULL)
-                return STATUS_NO_MEM;
-            ds->acquire();
-            res = ds->set_text(&buf);
-            if (res == STATUS_OK)
-                res = _this->wWidget->display()->set_clipboard(ws::CBUF_CLIPBOARD, ds);
-            ds->release();
+            if (self->pPresetsWindow != NULL)
+                self->pPresetsWindow->export_settings_to_clipboard();
 
             return STATUS_OK;
         }
@@ -1790,27 +1749,14 @@ namespace lsp
 
         status_t PluginWindow::slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *_this     = static_cast<PluginWindow *>(ptr);
-            tk::Display *dpy        = _this->wWidget->display();
+            PluginWindow *self      = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
 
-            // Create new sink
-            ConfigSink *ds = new ConfigSink(_this->pWrapper);
-            if (ds == NULL)
-                return STATUS_NO_MEM;
-            ds->acquire();
+            if (self->pPresetsWindow != NULL)
+                self->pPresetsWindow->import_settings_from_clipboard();
 
-            // Release previously used
-            ConfigSink *old = _this->pConfigSink;
-            _this->pConfigSink = ds;
-
-            if (old != NULL)
-            {
-                old->unbind();
-                old->release();
-            }
-
-            // Request clipboard data
-            return dpy->get_clipboard(ws::CBUF_CLIPBOARD, ds);
+            return STATUS_OK;
         }
 
         status_t PluginWindow::slot_reset_settings(tk::Widget *sender, void *ptr, void *data)
@@ -1825,18 +1771,6 @@ namespace lsp
             __this->set_preset_button_text("Select preset");
             return __this->pWrapper->reset_settings();
         }
-
-        static const char * manual_prefixes[] =
-        {
-        #ifdef LSP_LIB_PREFIX
-            LSP_LIB_PREFIX("/share"),
-            LSP_LIB_PREFIX("/local/share"),
-        #endif /*  LSP_LIB_PREFIX */
-            "/usr/share",
-            "/usr/local/share",
-            "/share",
-            NULL
-        };
 
         status_t PluginWindow::slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data)
         {

@@ -83,12 +83,29 @@ namespace lsp
                     bool                bPatch;         // Indicator that preset is a patch
                 } preset_t;
 
+                class ConfigSink: public tk::TextDataSink
+                {
+                    private:
+                        ui::IWrapper       *pWrapper;
+
+                    public:
+                        explicit ConfigSink(ui::IWrapper *wrapper);
+
+                    public:
+                        void             unbind();
+
+                    public:
+                        virtual status_t receive(const LSPString *text, const char *mime);
+                };
+
             protected:
                 PluginWindow           *pPluginWindow;              // Plugin window
                 tk::FileDialog         *wExport;                    // Export settings dialog
                 tk::FileDialog         *wImport;                    // Import settings dialog
                 tk::CheckBox           *wRelPaths;                  // Relative path checkbox
+
                 preset_list_t           vPresetsLists[PLT_TOTAL];
+                ConfigSink             *pConfigSink;                // Configuration sink
 
                 ui::IPort              *pPath;                      // Location of user's export/import directory
                 ui::IPort              *pFileType;                  // Import/export configuration file type selection
@@ -102,11 +119,11 @@ namespace lsp
                 static status_t     slot_preset_new_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_save_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t     slot_state_copy_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t     slot_state_paste_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_select(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t     slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_submit_import_settings(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_submit_export_settings(tk::Widget *sender, void *ptr, void *data);
 
@@ -126,6 +143,7 @@ namespace lsp
                 status_t            refresh_user_presets();
                 void                put_presets_to_list(lltl::darray<resource::resource_t> *presets);
                 void                sync_preset_selection(preset_list_t *list);
+                void                do_destroy();
                 bool                has_path_ports();
 
             public:
@@ -145,7 +163,8 @@ namespace lsp
                 status_t            show(tk::Widget *actor);
                 status_t            show_export_settings_dialog();
                 status_t            show_import_settings_dialog();
-
+                status_t            import_settings_from_clipboard();
+                status_t            export_settings_to_clipboard();
         };
 
 

@@ -47,7 +47,6 @@ namespace lsp
             private:
                 static const tk::tether_t top_tether[];
                 static const tk::tether_t bottom_tether[];
-                static const tk::tether_t presets_tether[];
 
             protected:
                 typedef struct backend_sel_t
@@ -109,21 +108,6 @@ namespace lsp
                     tk::MenuItem       *wItem;
                 } ui_flag_t;
 
-                class ConfigSink: public tk::TextDataSink
-                {
-                    private:
-                        ui::IWrapper       *pWrapper;
-
-                    public:
-                        explicit ConfigSink(ui::IWrapper *wrapper);
-
-                    public:
-                        void             unbind();
-
-                    public:
-                        virtual status_t receive(const LSPString *text, const char *mime);
-                };
-
             protected:
                 bool                        bResizable;
 
@@ -158,8 +142,6 @@ namespace lsp
                 ui::IPort                  *pVisualSchema;
                 ui::IPort                  *pInvertVScroll;
                 ui::IPort                  *pInvertGraphDotVScroll;
-
-                ConfigSink                 *pConfigSink;    // Configuration sink
 
                 window_scale_t              sWndScale;
                 enum_menu_t                 sFilterPointThickness;

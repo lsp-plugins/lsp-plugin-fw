@@ -20,6 +20,8 @@
  */
 
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/io/InStringSequence.h>
+#include <lsp-plug.in/io/OutStringSequence.h>
 #include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 
@@ -27,8 +29,7 @@ namespace lsp
 {
     namespace ctl
     {
-        const ctl_class_t PresetsWindow::metadata = { "PresetsWindow", &Window::metadata };
-
+        //-----------------------------------------------------------------
         static const char *preset_lists_ids[] =
         {
             "factory_presets_list",
@@ -45,6 +46,30 @@ namespace lsp
             { tk::TF_TOP | tk::TF_RIGHT,       -1.0f, -1.0f },
         };
 
+        //-----------------------------------------------------------------
+        PresetsWindow::ConfigSink::ConfigSink(ui::IWrapper *wrapper)
+        {
+            pWrapper = wrapper;
+        }
+
+        void PresetsWindow::ConfigSink::unbind()
+        {
+            pWrapper        = NULL;
+        }
+
+        status_t PresetsWindow::ConfigSink::receive(const LSPString *text, const char *mime)
+        {
+            ui::IWrapper *wrapper = pWrapper;
+            if (wrapper == NULL)
+                return STATUS_NOT_BOUND;
+
+            io::InStringSequence is(text);
+            return wrapper->import_settings(&is, ui::IMPORT_FLAG_NONE);
+        }
+
+        //-----------------------------------------------------------------
+        const ctl_class_t PresetsWindow::metadata = { "PresetsWindow", &Window::metadata };
+
         PresetsWindow::PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow):
             ctl::Window(src, widget)
         {
@@ -60,6 +85,7 @@ namespace lsp
                 preset_list_t *plist = &vPresetsLists[i];
                 plist->wList    = NULL;
             }
+            pConfigSink     = NULL;
 
             pPath           = NULL;
             pFileType       = NULL;
@@ -68,6 +94,20 @@ namespace lsp
 
         PresetsWindow::~PresetsWindow()
         {
+            do_destroy();
+        }
+
+        void PresetsWindow::do_destroy()
+        {
+            // Unbind configuration sink
+            if (pConfigSink != NULL)
+            {
+                pConfigSink->unbind();
+                pConfigSink->release();
+                pConfigSink = NULL;
+            }
+
+            wExport         = NULL; // Will be destroyed by wrapper
         }
 
         status_t PresetsWindow::init()
@@ -94,8 +134,8 @@ namespace lsp
             bind_slot("btn_save", tk::SLOT_SUBMIT, slot_preset_save_click);
             bind_slot("btn_import", tk::SLOT_SUBMIT, slot_submit_import_settings);
             bind_slot("btn_export", tk::SLOT_SUBMIT, slot_submit_export_settings);
-            bind_slot("btn_copy", tk::SLOT_SUBMIT, slot_state_copy_click);
-            bind_slot("btn_paste", tk::SLOT_SUBMIT, slot_state_paste_click);
+            bind_slot("btn_copy", tk::SLOT_SUBMIT, slot_export_settings_to_clipboard);
+            bind_slot("btn_paste", tk::SLOT_SUBMIT, slot_import_settings_from_clipboard);
 
             for (size_t i=0; i<PLT_TOTAL; ++i)
             {
@@ -118,9 +158,8 @@ namespace lsp
 
         void PresetsWindow::destroy()
         {
+            do_destroy();
             ctl::Window::destroy();
-
-            wExport         = NULL; // Will be destroyed by wrapper
         }
 
         void PresetsWindow::bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler)
@@ -381,7 +420,6 @@ namespace lsp
                 wRelPaths->checked()->set(checked);
             }
 
-            wWidget->hide();
             dlg->show(pPluginWindow->widget());
             return STATUS_OK;
         }
@@ -415,11 +453,60 @@ namespace lsp
                 dlg->slots()->bind(tk::SLOT_HIDE, slot_commit_path, self());
             }
 
-            wWidget->hide();
             dlg->show(pPluginWindow->widget());
             return STATUS_OK;
         }
 
+        status_t PresetsWindow::import_settings_from_clipboard()
+        {
+            tk::Display *dpy        = wWidget->display();
+
+            // Create new sink
+            ConfigSink *ds          = new ConfigSink(pWrapper);
+            if (ds == NULL)
+                return STATUS_NO_MEM;
+            ds->acquire();
+
+            // Release previously used
+            ConfigSink *old         = pConfigSink;
+            pConfigSink             = ds;
+
+            if (old != NULL)
+            {
+                old->unbind();
+                old->release();
+            }
+
+            // Request clipboard data
+            return dpy->get_clipboard(ws::CBUF_CLIPBOARD, ds);
+        }
+
+        status_t PresetsWindow::export_settings_to_clipboard()
+        {
+            status_t res;
+            LSPString buf;
+
+            // Export settings to text buffer
+            io::OutStringSequence sq(&buf);
+            if ((res = pWrapper->export_settings(&sq)) != STATUS_OK)
+                return STATUS_OK;
+            sq.close();
+
+            // Now 'buf' contains serialized configuration, put it to clipboard
+            tk::TextDataSource *ds = new tk::TextDataSource();
+            if (ds == NULL)
+                return STATUS_NO_MEM;
+            ds->acquire();
+            lsp_finally { ds->release(); };
+
+            res = ds->set_text(&buf);
+            if (res == STATUS_OK)
+                res = wWidget->display()->set_clipboard(ws::CBUF_CLIPBOARD, ds);
+
+            return STATUS_OK;
+        }
+
+        //-----------------------------------------------------------------
         // Slots
 
         status_t PresetsWindow::slot_fetch_path(tk::Widget *sender, void *ptr, void *data)
@@ -588,7 +675,11 @@ namespace lsp
         {
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self != NULL)
+            {
+                if (self->wWidget != NULL)
+                    self->wWidget->hide();
                 self->show_import_settings_dialog();
+            }
 
             return STATUS_OK;
         }
@@ -597,25 +688,37 @@ namespace lsp
         {
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self != NULL)
+            {
+                if (self->wWidget != NULL)
+                    self->wWidget->hide();
                 self->show_export_settings_dialog();
+            }
 
             return STATUS_OK;
         }
 
-        status_t PresetsWindow::slot_state_copy_click(tk::Widget *sender, void *ptr, void *data)
+        status_t PresetsWindow::slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("slot_state_copy_click");
-
-            // TODO: Copy current plugin state to clipboard
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
+            {
+                if (self->wWidget != NULL)
+                    self->wWidget->hide();
+                self->export_settings_to_clipboard();
+            }
 
             return STATUS_OK;
         }
 
-        status_t PresetsWindow::slot_state_paste_click(tk::Widget *sender, void *ptr, void *data)
+        status_t PresetsWindow::slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("slot_state_paste_click");
-
-            // TODO: Paste plugin state from clipboard
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
+            {
+                if (self->wWidget != NULL)
+                    self->wWidget->hide();
+                self->import_settings_from_clipboard();
+            }
 
             return STATUS_OK;
         }
