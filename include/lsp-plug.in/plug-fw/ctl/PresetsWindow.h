@@ -84,29 +84,48 @@ namespace lsp
                 } preset_t;
 
             protected:
-                PluginWindow           *wPluginWindow;
+                PluginWindow           *pPluginWindow;              // Plugin window
+                tk::FileDialog         *wExport;                    // Export settings dialog
+                tk::FileDialog         *wImport;                    // Import settings dialog
+                tk::CheckBox           *wRelPaths;                  // Relative path checkbox
                 preset_list_t           vPresetsLists[PLT_TOTAL];
+
+                ui::IPort              *pPath;                      // Location of user's export/import directory
+                ui::IPort              *pFileType;                  // User's export file type
+                ui::IPort              *pRelPaths;                  // Relative paths configuration option
+
                 int16_t                 iSelectedPreset = -1;
 
             protected:
                 // Slots
-                static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_preset_new_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_preset_save_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_import_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_export_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_state_copy_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_state_paste_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_preset_select(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_window_close(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_new_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_save_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_import_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_state_copy_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_state_paste_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_select(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data);
+
+                static status_t     slot_submit_export_settings(tk::Widget *sender, void *ptr, void *data);
+
+                static status_t     slot_fetch_path(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_commit_path(tk::Widget *sender, void *ptr, void *data);
+
+                static status_t     slot_exec_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data);
 
             protected:
-                void bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
-                status_t refresh_presets();
-                status_t refresh_user_presets();
-                void put_presets_to_list(lltl::darray<resource::resource_t> *presets);
-                void sync_preset_selection(preset_list_t *list);
+                tk::FileFilters    *create_config_filters(tk::FileDialog *dlg);
+
+            protected:
+                void                bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
+                status_t            refresh_presets();
+                status_t            refresh_user_presets();
+                void                put_presets_to_list(lltl::darray<resource::resource_t> *presets);
+                void                sync_preset_selection(preset_list_t *list);
+                bool                has_path_ports();
 
             public:
                 explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow);
@@ -122,6 +141,8 @@ namespace lsp
 
             public:
                 status_t            post_init();
+                status_t            show(tk::Widget *actor);
+                status_t            show_export_settings_dialog();
 
         };
 

@@ -34,6 +34,8 @@ namespace lsp
 {
     namespace ctl
     {
+        class PresetsWindow;
+
         /**
          * The plugin's window controller
          */
@@ -126,10 +128,9 @@ namespace lsp
                 bool                        bResizable;
 
                 ctl::Window                *pUserPaths;                 // User paths controller
-                ctl::Window                *pPresetsWnd;                // Presets window
+                ctl::PresetsWindow         *pPresetsWindow;             // Presets window
 
                 tk::WidgetContainer        *wContent;                   // The main box containing all widgets
-                tk::PopupWindow            *wPresetsW;                  // Greeting message window
                 tk::Window                 *wGreeting;                  // Greeting message window
                 tk::Window                 *wAbout;                     // About message window
                 tk::Window                 *wUserPaths;                 // User paths configuration
@@ -139,7 +140,6 @@ namespace lsp
                 tk::Menu                   *wBundleScaling;             // Bundle Scaling menu
                 tk::Menu                   *wFontScaling;               // UI Scaling menu
                 tk::Menu                   *wResetSettings;             // Reset settings menu
-                tk::FileDialog             *wExport;                    // Export settings dialog
                 tk::FileDialog             *wImport;                    // Import settings dialog
                 tk::MenuItem               *wPreferHost;                // Prefer host menu item
                 tk::CheckBox               *wRelPaths;                  // Relative path checkbox
@@ -201,7 +201,6 @@ namespace lsp
 
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
 
-                static status_t slot_call_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_call_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_fetch_path(tk::Widget *sender, void *ptr, void *data);
@@ -233,8 +232,6 @@ namespace lsp
                 static status_t slot_scale_mouse_down(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_scale_mouse_move(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_scale_mouse_up(tk::Widget *sender, void *ptr, void *data);
-
-                static status_t slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_show_user_paths_dialog(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_user_paths_submit(tk::Widget *sender, void *ptr, void *data);
