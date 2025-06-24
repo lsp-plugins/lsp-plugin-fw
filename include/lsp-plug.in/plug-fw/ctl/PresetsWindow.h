@@ -122,6 +122,7 @@ namespace lsp
                 static status_t     slot_preset_select(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t     slot_reset_settings(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_submit_import_settings(tk::Widget *sender, void *ptr, void *data);
@@ -165,6 +166,7 @@ namespace lsp
                 status_t            show_import_settings_dialog();
                 status_t            import_settings_from_clipboard();
                 status_t            export_settings_to_clipboard();
+                status_t            reset_settings();
         };
 
 

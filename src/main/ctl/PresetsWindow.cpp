@@ -129,6 +129,7 @@ namespace lsp
             if (wnd == NULL)
                 return STATUS_BAD_STATE;
 
+            bind_slot("btn_reset", tk::SLOT_SUBMIT, slot_reset_settings);
             bind_slot("btn_new", tk::SLOT_SUBMIT, slot_preset_new_click);
             bind_slot("btn_delete", tk::SLOT_SUBMIT, slot_preset_delete_click);
             bind_slot("btn_save", tk::SLOT_SUBMIT, slot_preset_save_click);
@@ -506,6 +507,12 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PresetsWindow::reset_settings()
+        {
+            pWrapper->reset_settings();
+            return STATUS_OK;
+        }
+
         //-----------------------------------------------------------------
         // Slots
 
@@ -718,6 +725,19 @@ namespace lsp
                 if (self->wWidget != NULL)
                     self->wWidget->hide();
                 self->import_settings_from_clipboard();
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_reset_settings(tk::Widget *sender, void *ptr, void *data)
+        {
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
+            {
+                if (self->wWidget != NULL)
+                    self->wWidget->hide();
+                self->reset_settings();
             }
 
             return STATUS_OK;

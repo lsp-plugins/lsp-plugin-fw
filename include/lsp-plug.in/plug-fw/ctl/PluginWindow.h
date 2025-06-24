@@ -123,7 +123,6 @@ namespace lsp
                 tk::Menu                   *wUIScaling;                 // UI Scaling menu
                 tk::Menu                   *wBundleScaling;             // Bundle Scaling menu
                 tk::Menu                   *wFontScaling;               // UI Scaling menu
-                tk::Menu                   *wResetSettings;             // Reset settings menu
                 tk::MenuItem               *wPreferHost;                // Prefer host menu item
                 tk::CheckBox               *wRelPaths;                  // Relative path checkbox
                 tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
@@ -175,7 +174,6 @@ namespace lsp
                 static status_t slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_reset_settings(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_confirm_reset_settings(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
 
@@ -259,7 +257,6 @@ namespace lsp
                 status_t            init_presets(tk::Menu *menu, bool add_submenu);
                 status_t            scan_presets(const char *location, lltl::darray<resource::resource_t> *presets);
                 status_t            create_main_menu();
-                status_t            create_reset_settings_menu();
                 void                sync_ui_scaling();
                 bool                has_path_ports();
                 void                sync_language_selection();
