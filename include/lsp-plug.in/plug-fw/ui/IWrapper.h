@@ -44,6 +44,7 @@
 #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
 #include <lsp-plug.in/plug-fw/ui/ValuePort.h>
 #include <lsp-plug.in/plug-fw/ui/IKVTListener.h>
+#include <lsp-plug.in/plug-fw/ui/presets.h>
 #include <lsp-plug.in/fmt/config/PullParser.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
 
@@ -96,6 +97,7 @@ namespace lsp
                 size_t                          nFlags;             // Flags
                 wssize_t                        nPlayPosition;      // Playback position of the current file preview
                 wssize_t                        nPlayLength;        // Overall playback file length in samples
+                ssize_t                         nActivePreset;      // Currently selected preset
                 expr::Variables                 sGlobalVars;        // Global variables
                 plug::position_t                sPosition;          // Melodic position
 
@@ -110,6 +112,8 @@ namespace lsp
                 lltl::parray<IKVTListener>      vKvtListeners;      // KVT listeners
                 lltl::ptrset<ISchemaListener>   vSchemaListeners;   // Schema change listeners
                 lltl::parray<IPlayListener>     vPlayListeners;     // List of playback listeners
+                lltl::parray<IPresetListener>   vPresetListeners;   // List of preset listeners
+                lltl::darray<preset_t>          vPresets;           // List of available presets
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
@@ -135,6 +139,8 @@ namespace lsp
 
                 status_t        save_global_config(io::IOutSequence *os, lltl::pphash<LSPString, config::param_t> *parameters);
                 status_t        read_parameters(const io::Path *file, lltl::pphash<LSPString, config::param_t> *params);
+                status_t        get_user_config_path(io::Path *path);
+                status_t        get_user_presets_path(io::Path *path);
                 static void     drop_parameters(lltl::pphash<LSPString, config::param_t> *params);
                 void            get_bundle_version_key(LSPString *key);
                 void            get_bundle_scaling_key(LSPString *key);
@@ -143,12 +149,21 @@ namespace lsp
 
                 IPort          *port_by_id(const char *id);
 
+                static preset_t *add_preset(lltl::darray<preset_t> *list);
+                void            destroy_presets(lltl::darray<preset_t> *list);
+                void            update_preset_list();
+                void            scan_factory_presets(lltl::darray<preset_t> *list);
+                void            scan_user_presets(lltl::darray<preset_t> *list);
+                void            scan_favourite_presets(lltl::darray<preset_t> *list);
+                void            select_active_preset(lltl::darray<preset_t> *list, const preset_t *active);
+
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
                 void            position_updated(const plug::position_t *pos);
 
             protected:
                 virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
+                virtual void    preset_selected(const preset_t *preset);
 
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
@@ -491,6 +506,56 @@ namespace lsp
                  * @return name of graphics backend
                  */
                 const char                     *graphics_backend() const;
+
+            public: // Preset management
+                /**
+                 * Add preset listener
+                 * @param listener preset listener
+                 * @return status of operation
+                 */
+                status_t                        add_preset_listener(IPresetListener *listener);
+
+                /**
+                 * Remove preset listener
+                 * @param listener preset listener
+                 * @return status of operation
+                 */
+                status_t                        remove_preset_listener(IPresetListener *listener);
+
+                /**
+                 * Select active preset
+                 * @param preset_id preset identifier, negative value for deselection of any preset
+                 * @return status of operation
+                 */
+                virtual status_t                select_active_preset(ssize_t preset_id);
+
+                /**
+                 * Mark active preset dirty
+                 */
+                void                            mark_active_preset_dirty();
+
+                /**
+                 * Get active preset
+                 * @return active preset
+                 */
+                const preset_t                 *active_preset() const;
+
+                /**
+                 * Get list of all available presets
+                 * @return list of all available presets
+                 */
+                const preset_t                 *all_presets() const;
+
+                /**
+                 * Get number of all presets
+                 * @return number of all presets
+                 */
+                size_t                          num_presets() const;
+
+                /**
+                 * Request for presets scan
+                 */
+                void                            scan_presets();
         };
 
     } /* namespace ui */

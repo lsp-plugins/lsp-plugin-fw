@@ -27,6 +27,7 @@
 
 #define LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
     #include <lsp-plug.in/plug-fw/ui/const.h>
+    #include <lsp-plug.in/plug-fw/ui/presets.h>
 
     #include <lsp-plug.in/plug-fw/ui/IPort.h>
     #include <lsp-plug.in/plug-fw/ui/IPortListener.h>

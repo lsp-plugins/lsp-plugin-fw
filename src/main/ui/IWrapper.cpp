@@ -20,17 +20,22 @@
  */
 
 #include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/core/config.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
+#include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
-#include <lsp-plug.in/plug-fw/ctl.h>
-#include <lsp-plug.in/plug-fw/core/config.h>
+#include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/io/InSequence.h>
 #include <lsp-plug.in/io/OutFileStream.h>
 #include <lsp-plug.in/io/OutSequence.h>
+#include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/common/new.h>
 #include <lsp-plug.in/dsp-units/units.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
+#include <lsp-plug.in/fmt/json/dom.h>
 #include <lsp-plug.in/runtime/system.h>
 
 #include <private/ui/xml/Handler.h>
@@ -116,6 +121,35 @@ namespace lsp
 
     namespace ui
     {
+        static void mark_presets_as_favourite(lltl::darray<preset_t> *list, json::Array array, bool user)
+        {
+            const uint32_t mask = (user) ? PRESET_FLAG_USER : PRESET_FLAG_NONE;
+            LSPString prest_name;
+
+            for (size_t i=0, n=array.size(); i<n; ++i)
+            {
+                json::String node = array.get(i);
+                if (node.get(&prest_name) != STATUS_OK)
+                    continue;
+
+                // Set the favourite flag for the associated preset
+                for (size_t j=0, m=list->size(); j<m; ++j)
+                {
+                    preset_t *preset    = list->uget(j);
+                    if (preset == NULL)
+                        continue;
+                    if ((preset->flags & PRESET_FLAG_USER) != mask)
+                        continue;
+
+                    if (preset->name.equals_nocase(&prest_name))
+                    {
+                        preset->flags      |= PRESET_FLAG_FAVOURITE;
+                        break;
+                    }
+                }
+            }
+        }
+
         IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
         {
             pDisplay        = NULL;
@@ -126,6 +160,7 @@ namespace lsp
             nFlags          = 0;
             nPlayPosition   = 0;
             nPlayLength     = 0;
+            nActivePreset   = -1;
 
             plug::position_t::init(&sPosition);
         }
@@ -142,6 +177,10 @@ namespace lsp
         {
             // Flush list of playback listeners
             vPlayListeners.flush();
+
+            // Flush list of preset listeners
+            vPresetListeners.flush();
+            destroy_presets(&vPresets);
 
             // Flush list of 'Schema reloaded' handlers
             vSchemaListeners.flush();
@@ -313,10 +352,9 @@ namespace lsp
 
             // Load the global configuration file
             io::Path gconfig;
-            if ((res = system::get_user_config_path(&gconfig)) == STATUS_OK)
+            if ((res = get_user_config_path(&gconfig)) == STATUS_OK)
             {
                 lsp_trace("User config path: %s", gconfig.as_utf8());
-                res = gconfig.append_child("lsp-plugins");
                 if (res == STATUS_OK)
                     res = gconfig.append_child("lsp-plugins.cfg");
                 if (res == STATUS_OK)
@@ -326,6 +364,30 @@ namespace lsp
                 lsp_warn("Failed to obtain plugin configuration: error=%d", int(res));
 
             return STATUS_OK;
+        }
+
+        status_t IWrapper::get_user_config_path(io::Path *path)
+        {
+            io::Path tmp;
+            status_t res    = system::get_user_config_path(&tmp);
+            if (res == STATUS_OK)
+                res             = tmp.append_child("lsp-plugins");
+            if (res == STATUS_OK)
+                tmp.swap(path);
+
+            return res;
+        }
+
+        status_t IWrapper::get_user_presets_path(io::Path *path)
+        {
+            io::Path tmp;
+            status_t res    = get_user_config_path(&tmp);
+            if (res == STATUS_OK)
+                res             = tmp.append_child("presets");
+            if (res == STATUS_OK)
+                tmp.swap(path);
+
+            return res;
         }
 
         void IWrapper::notify_all()
@@ -2216,6 +2278,323 @@ namespace lsp
             }
 
             return "Unknown";
+        }
+
+        status_t IWrapper::add_preset_listener(IPresetListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            if (vPresetListeners.contains(listener))
+                return STATUS_ALREADY_EXISTS;
+
+            if (!vPresetListeners.add(listener))
+                return STATUS_NO_MEM;
+
+            // Notify listener about presets
+            const preset_t *presets = all_presets();
+            const size_t n_presets = num_presets();
+            listener->presets_updated(presets, n_presets);
+
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::remove_preset_listener(IPresetListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            return (vPresetListeners.qpremove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
+        }
+
+        void IWrapper::preset_selected(const preset_t *preset)
+        {
+        }
+
+        status_t IWrapper::select_active_preset(ssize_t preset_id)
+        {
+            if ((preset_id < 0) && (nActivePreset < 0))
+                return STATUS_OK;
+
+            // Change current preset
+            preset_t *pold  = vPresets.get(nActivePreset);
+            preset_t *pnew  = (preset_id >= 0) ? vPresets.get(preset_id) : NULL;
+            if ((pold == pnew) && (!(pold->flags & PRESET_FLAG_DIRTY)))
+                return STATUS_OK;
+
+            if (pold != NULL)
+                pold->flags        &= ~(PRESET_FLAG_SELECTED | PRESET_FLAG_DIRTY);
+            if (pnew != NULL)
+                pnew->flags        |= PRESET_FLAG_SELECTED;
+
+            // Notify listeners about selection change
+            lltl::parray<IPresetListener> listeners;
+            if (listeners.add(vPresetListeners))
+            {
+                for (size_t i=0, n=listeners.size(); i<n; ++i)
+                {
+                    IPresetListener *listener = listeners.uget(i);
+                    if (listener != NULL)
+                        listener->preset_selected(pnew);
+                }
+            }
+            preset_selected(pnew);
+
+            return STATUS_OK;
+        }
+
+        const preset_t *IWrapper::active_preset() const
+        {
+            return (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
+        }
+
+        const preset_t *IWrapper::all_presets() const
+        {
+            return vPresets.array();
+        }
+
+        size_t IWrapper::num_presets() const
+        {
+            return vPresets.size();
+        }
+
+        void IWrapper::destroy_presets(lltl::darray<preset_t> *list)
+        {
+            for (size_t i=0, n=list->size(); i<n; ++i)
+            {
+                preset_t *preset = list->uget(i);
+                if (preset != NULL)
+                {
+                    preset->name.~LSPString();
+                    preset->path.~LSPString();
+                }
+            }
+            list->flush();
+        }
+
+        preset_t *IWrapper::add_preset(lltl::darray<preset_t> *list)
+        {
+            preset_t *preset    = list->add();
+            if (preset == NULL)
+                return NULL;
+
+            new (&preset->name, inplace_new_tag_t()) LSPString();
+            new (&preset->path, inplace_new_tag_t()) LSPString();
+            preset->flags       = 0;
+            preset->preset_id   = 0;
+
+            return preset;
+        }
+
+        void IWrapper::scan_factory_presets(lltl::darray<preset_t> *list)
+        {
+            const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
+            if ((meta == NULL) || (meta->ui_presets == NULL))
+                return;
+
+            lltl::darray<resource::resource_t> presets;
+            if (core::scan_presets(&presets, resources(), meta->ui_presets) != STATUS_OK)
+                return;
+
+            io::Path path;
+            LSPString tmp;
+            preset_t tmp_preset;
+            tmp_preset.preset_id = 0;
+
+            for (size_t i=0, n=presets.size(); i<n; ++i)
+            {
+                // Enumerate next backend information
+                const resource::resource_t *preset = presets.uget(i);
+                if (preset == NULL)
+                    continue;
+
+                if (path.set(preset->name) != STATUS_OK)
+                    continue;
+
+                // Get name of the preset/patch without an extension
+                if (path.get_last_noext(&tmp_preset.name) != STATUS_OK)
+                    continue;
+                if (tmp_preset.path.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s/%s", meta->ui_presets, preset->name) <= 0)
+                    continue;
+                if (path.get_ext(&tmp) != STATUS_OK)
+                    continue;
+
+                // Fill flags
+                tmp_preset.flags    = PRESET_FLAG_NONE;
+                if (tmp.equals_ascii_nocase("patch"))
+                    tmp_preset.flags   |= PRESET_FLAG_PATCH;
+                else if (!tmp.equals_ascii_nocase("preset"))
+                    continue;
+
+                // Create preset item
+                preset_t *item      = add_preset(list);
+                if (item == NULL)
+                    continue;
+
+                item->name.swap(tmp_preset.name);
+                item->path.swap(tmp_preset.path);
+                item->flags     = tmp_preset.flags;
+            }
+        }
+
+        void IWrapper::scan_user_presets(lltl::darray<preset_t> *list)
+        {
+            const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
+            if ((meta == NULL) || (meta->ui_presets == NULL))
+                return;
+
+            // File name format: <config>/presets/<plugin-uid>/<preset-name>.[preset|patch]
+            io::Path path;
+            if (get_user_presets_path(&path) != STATUS_OK)
+                return;
+            if (path.append_child(meta->uid) != STATUS_OK)
+                return;
+
+            io::Dir dir;
+            if (dir.open(&path) != STATUS_OK)
+                return;
+            lsp_finally { dir.close(); };
+
+            io::Path preset;
+            io::fattr_t fattr;
+            LSPString tmp;
+            preset_t tmp_preset;
+            tmp_preset.preset_id = 0;
+
+            while (dir.reads(&preset, &fattr, true) == STATUS_OK)
+            {
+                // We process only regular files
+                if (fattr.type != io::fattr_t::FT_REGULAR)
+                    continue;
+
+                // Get name of the preset/patch without an extension
+                if (path.get_last_noext(&tmp_preset.name) != STATUS_OK)
+                    continue;
+                if (preset.get(&tmp_preset.path) != STATUS_OK)
+                    continue;
+                if (path.get_ext(&tmp) != STATUS_OK)
+                    continue;
+
+                // Fill flags
+                tmp_preset.flags    = PRESET_FLAG_USER;
+                if (tmp.equals_ascii_nocase("patch"))
+                    tmp_preset.flags   |= PRESET_FLAG_PATCH;
+                else if (!tmp.equals_ascii_nocase("preset"))
+                    continue;
+
+                // Create preset item
+                preset_t *item      = add_preset(list);
+                if (item == NULL)
+                    continue;
+
+                item->name.swap(tmp_preset.name);
+                item->path.swap(tmp_preset.path);
+                item->flags     = tmp_preset.flags;
+            }
+        }
+
+        void IWrapper::scan_favourite_presets(lltl::darray<preset_t> *list)
+        {
+            const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
+            if ((meta == NULL) || (meta->ui_presets == NULL))
+                return;
+
+            // File name format: <config>/presets/<plugin-uid>/favourites.json
+            io::Path path;
+            if (get_user_presets_path(&path) != STATUS_OK)
+                return;
+            if (path.append_child("favourites.json") != STATUS_OK)
+                return;
+
+            // Load configuration file
+            json::Object config;
+            if (json::dom_load(&path, &config, json::JSON_VERSION5) != STATUS_OK)
+                return;
+            if (!config.valid())
+                return;
+
+            json::Array factory = config.get("factory");
+            if (factory.valid())
+                mark_presets_as_favourite(list, factory, false);
+
+            json::Array user = config.get("user");
+            if (user.valid())
+                mark_presets_as_favourite(list, user, true);
+        }
+
+        void IWrapper::select_active_preset(lltl::darray<preset_t> *list, const preset_t *active)
+        {
+            list->qsort(preset_compare_function);
+            for (size_t i=0, n=list->size(); i<n; ++i)
+            {
+                preset_t *preset    = list->uget(i);
+                preset->preset_id   = i;
+                if (preset_compare_function(preset, active) == 0)
+                    preset->flags      |= PRESET_FLAG_SELECTED;
+            }
+        }
+
+        void IWrapper::update_preset_list()
+        {
+            const preset_t *active = active_preset();
+
+            lltl::darray<preset_t> presets;
+            lsp_finally { destroy_presets(&presets); };
+
+            scan_factory_presets(&presets);
+            scan_user_presets(&presets);
+            scan_favourite_presets(&presets);
+            select_active_preset(&presets, active);
+
+            presets.swap(&vPresets);
+        }
+
+        void IWrapper::scan_presets()
+        {
+            // First, update the list of presets
+            update_preset_list();
+
+            // Notify listeners about presets
+            const preset_t *presets = all_presets();
+            const size_t n_presets = num_presets();
+
+            lltl::parray<IPresetListener> listeners;
+            if (listeners.add(vPresetListeners))
+            {
+                for (size_t i=0, n=listeners.size(); i<n; ++i)
+                {
+                    IPresetListener *listener = listeners.uget(i);
+                    if (listener != NULL)
+                        listener->presets_updated(presets, n_presets);
+                }
+            }
+        }
+
+        void IWrapper::mark_active_preset_dirty()
+        {
+            preset_t *preset    = (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
+            if (preset == NULL)
+                return;
+            if (preset->flags & PRESET_FLAG_DIRTY)
+                return;
+
+            // Change state of preset
+            preset->flags |= PRESET_FLAG_DIRTY;
+
+            // Notify listeners about selection change
+            lltl::parray<IPresetListener> listeners;
+            if (listeners.add(vPresetListeners))
+            {
+                for (size_t i=0, n=listeners.size(); i<n; ++i)
+                {
+                    IPresetListener *listener = listeners.uget(i);
+                    if (listener != NULL)
+                        listener->preset_selected(preset);
+                }
+            }
+
+            // Notify self about selection of preset
+            preset_selected(preset);
         }
 
     } /* namespace ui */

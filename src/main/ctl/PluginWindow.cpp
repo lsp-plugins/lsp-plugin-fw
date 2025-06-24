@@ -1047,52 +1047,6 @@ namespace lsp
             return strcmp(a->name, b->name);
         }
 
-        status_t PluginWindow::scan_presets(const char *location, lltl::darray<resource::resource_t> *presets)
-        {
-            io::Path path;
-            LSPString tmp;
-            resource::resource_t *resources = NULL;
-
-            if (tmp.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s", location) < 0)
-                return STATUS_BAD_STATE;
-            ssize_t count = pWrapper->resources()->enumerate(&tmp, &resources);
-            if (count < 0)
-                return status_t(-count);
-            lsp_finally {
-                if (resources != NULL)
-                    free(resources);
-            };
-
-            lsp_trace("resources = %p, count = %d", resources, int(count));
-
-            // Process all resources and form the final list of preset files
-            for (ssize_t i=0; i<count; ++i)
-            {
-                resource::resource_t *item = &resources[i];
-
-                // Filter the preset file
-                if (item->type != resource::RES_FILE)
-                    continue;
-                if (path.set(item->name) != STATUS_OK)
-                    return STATUS_NO_MEM;
-                if (path.get_ext(&tmp) != STATUS_OK)
-                    return STATUS_BAD_STATE;
-
-                if ((!tmp.equals_ascii("patch")) && (!tmp.equals_ascii("preset")))
-                    continue;
-
-                // Add preset file to result
-                strncpy(item->name, path.get(), resource::RESOURCE_NAME_MAX);
-                item->name[resource::RESOURCE_NAME_MAX-1] = '\0';
-                if (!presets->add(item))
-                    return STATUS_NO_MEM;
-            }
-
-            presets->qsort(compare_presets);
-
-            return STATUS_OK;
-        }
-
         status_t PluginWindow::init_presets(tk::Menu *menu, bool add_submenu)
         {
             status_t res;

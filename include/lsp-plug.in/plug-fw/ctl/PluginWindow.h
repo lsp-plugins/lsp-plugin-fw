@@ -255,7 +255,6 @@ namespace lsp
                 status_t            init_ui_behaviour(tk::Menu *menu);
                 status_t            add_ui_flag(tk::Menu *menu, const char *port, const char *key);
                 status_t            init_presets(tk::Menu *menu, bool add_submenu);
-                status_t            scan_presets(const char *location, lltl::darray<resource::resource_t> *presets);
                 status_t            create_main_menu();
                 void                sync_ui_scaling();
                 bool                has_path_ports();

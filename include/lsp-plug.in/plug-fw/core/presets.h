@@ -31,6 +31,13 @@ namespace lsp
 {
     namespace core
     {
+        enum preset_flags_t
+        {
+            PRESET_FLAG_NONE        = 0,
+            PRESET_FLAG_USER        = 1 << 0,   // User-defined preset
+            PRESET_FLAG_DIRTY       = 1 << 1
+        };
+
         /**
          * Scan resources directory for presets
          * @param presets target collection to store data
