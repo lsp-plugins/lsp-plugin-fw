@@ -27,8 +27,9 @@
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/tk/tk.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/tk/tk.h>
 
 namespace lsp
 {
@@ -54,34 +55,17 @@ namespace lsp
         /**
          * The plugin's window controller
          */
-        class PresetsWindow: public ctl::Window
+        class PresetsWindow: public ctl::Window, public ui::IPresetListener
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                enum preset_list_type_t
-                {
-                    PLT_FACTORY,
-                    PLT_USER,
-                    PLT_FAVOURITES,
-                    PLT_ALL,
-
-                    PLT_TOTAL
-                };
-
                 typedef struct preset_list_t
                 {
-                    tk::ListBox        *wList;
+                    tk::ListBox                *wList;
+                    lltl::parray<ui::preset_t>  vPresets;
                 } preset_list_t;
-
-                typedef struct preset_t
-                {
-                    LSPString           sPath;          // Location of the preset
-                    bool                bUser;          // Indicator that it is a user preset
-                    bool                bFavourite;     // Indicator that preset is marked as favourite
-                    bool                bPatch;         // Indicator that preset is a patch
-                } preset_t;
 
                 class ConfigSink: public tk::TextDataSink
                 {
@@ -104,7 +88,7 @@ namespace lsp
                 tk::FileDialog         *wImport;                    // Import settings dialog
                 tk::CheckBox           *wRelPaths;                  // Relative path checkbox
 
-                preset_list_t           vPresetsLists[PLT_TOTAL];
+                preset_list_t           vPresetsLists[ui::PRESET_TAB_TOTAL];
                 ConfigSink             *pConfigSink;                // Configuration sink
 
                 ui::IPort              *pPath;                      // Location of user's export/import directory
@@ -140,10 +124,9 @@ namespace lsp
 
             protected:
                 void                bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
-                status_t            refresh_presets();
-                status_t            refresh_user_presets();
-                void                put_presets_to_list(lltl::darray<resource::resource_t> *presets);
-                void                sync_preset_selection(preset_list_t *list);
+                void                make_preset_list(preset_list_t *list, const ui::preset_t *presets, size_t count, ui::preset_filter_t filter, bool indicate);
+                void                sync_preset_selection();
+                void                sync_preset_selection(const ui::preset_t *preset);
                 void                do_destroy();
                 bool                has_path_ports();
 
@@ -158,6 +141,10 @@ namespace lsp
 
                 virtual status_t    init() override;
                 virtual void        destroy() override;
+
+            public: // ui::IPresetListener
+                virtual void        preset_selected(const ui::preset_t *preset) override;
+                virtual void        presets_updated(const ui::preset_t *presets, size_t count) override;
 
             public:
                 status_t            post_init();

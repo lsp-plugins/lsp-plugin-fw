@@ -44,6 +44,16 @@ namespace lsp
             PRESET_FLAG_FAVOURITE   = 1 << 4,   // Preset marked as a favourite
         };
 
+        enum preset_tab_t
+        {
+            PRESET_TAB_ALL,
+            PRESET_TAB_FACTORY,
+            PRESET_TAB_USER,
+            PRESET_TAB_FAVOURITES,
+
+            PRESET_TAB_TOTAL
+        };
+
         typedef struct preset_t
         {
             LSPString       name;       // Name of the preset
@@ -51,6 +61,8 @@ namespace lsp
             uint32_t        flags;      // Preset flags
             uint32_t        preset_id;  // Unique identifier of the preset
         } preset_t;
+
+        typedef bool (*preset_filter_t)(const ui::preset_t *preset);
 
         class IPresetListener
         {
@@ -79,6 +91,11 @@ namespace lsp
         };
 
         ssize_t preset_compare_function(const preset_t *a, const preset_t *b);
+
+        bool is_any_preset(const ui::preset_t *preset);
+        bool is_factory_preset(const ui::preset_t *preset);
+        bool is_user_preset(const ui::preset_t *preset);
+        bool is_favourite_preset(const ui::preset_t *preset);
 
     } /* namespace ui */
 } /* namespace lsp */

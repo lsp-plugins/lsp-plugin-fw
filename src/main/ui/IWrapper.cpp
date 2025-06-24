@@ -161,6 +161,7 @@ namespace lsp
             nPlayPosition   = 0;
             nPlayLength     = 0;
             nActivePreset   = -1;
+            enPresetTab     = PRESET_TAB_ALL;
 
             plug::position_t::init(&sPosition);
         }
@@ -2288,10 +2289,14 @@ namespace lsp
             if (vPresetListeners.contains(listener))
                 return STATUS_ALREADY_EXISTS;
 
+            const bool first_listener = vPresetListeners.is_empty();
             if (!vPresetListeners.add(listener))
                 return STATUS_NO_MEM;
 
-            // Notify listener about presets
+            if (first_listener)
+                update_preset_list();
+
+            // Notify listener about containing presets
             const preset_t *presets = all_presets();
             const size_t n_presets = num_presets();
             listener->presets_updated(presets, n_presets);
@@ -2319,8 +2324,13 @@ namespace lsp
             // Change current preset
             preset_t *pold  = vPresets.get(nActivePreset);
             preset_t *pnew  = (preset_id >= 0) ? vPresets.get(preset_id) : NULL;
-            if ((pold == pnew) && (!(pold->flags & PRESET_FLAG_DIRTY)))
-                return STATUS_OK;
+            if (pold == pnew)
+            {
+                if (pold == NULL)
+                    return STATUS_OK;
+                if (!(pold->flags & PRESET_FLAG_DIRTY))
+                    return STATUS_OK;
+            }
 
             if (pold != NULL)
                 pold->flags        &= ~(PRESET_FLAG_SELECTED | PRESET_FLAG_DIRTY);
@@ -2529,7 +2539,7 @@ namespace lsp
             {
                 preset_t *preset    = list->uget(i);
                 preset->preset_id   = i;
-                if (preset_compare_function(preset, active) == 0)
+                if ((active != NULL) && (preset_compare_function(preset, active) == 0))
                     preset->flags      |= PRESET_FLAG_SELECTED;
             }
         }
@@ -2595,6 +2605,16 @@ namespace lsp
 
             // Notify self about selection of preset
             preset_selected(preset);
+        }
+
+        preset_tab_t IWrapper::preset_tab() const
+        {
+            return enPresetTab;
+        }
+
+        void IWrapper::set_preset_tab(preset_tab_t tab)
+        {
+            enPresetTab = tab;
         }
 
     } /* namespace ui */

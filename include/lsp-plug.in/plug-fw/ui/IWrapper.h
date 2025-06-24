@@ -98,6 +98,7 @@ namespace lsp
                 wssize_t                        nPlayPosition;      // Playback position of the current file preview
                 wssize_t                        nPlayLength;        // Overall playback file length in samples
                 ssize_t                         nActivePreset;      // Currently selected preset
+                preset_tab_t                    enPresetTab;        // Active preset tab
                 expr::Variables                 sGlobalVars;        // Global variables
                 plug::position_t                sPosition;          // Melodic position
 
@@ -551,6 +552,18 @@ namespace lsp
                  * @return number of all presets
                  */
                 size_t                          num_presets() const;
+
+                /**
+                 * Get current preset tab
+                 * @return current preset tab
+                 */
+                preset_tab_t                    preset_tab() const;
+
+                /**
+                 * Set current preset tab
+                 * @param tab current preset tab
+                 */
+                virtual void                    set_preset_tab(preset_tab_t tab);
 
                 /**
                  * Request for presets scan

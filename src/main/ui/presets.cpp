@@ -50,6 +50,26 @@ namespace lsp
             return ssize_t(a->flags & PRESET_FLAG_USER) - ssize_t(b->flags & PRESET_FLAG_USER);
         }
 
+        bool is_any_preset(const ui::preset_t *preset)
+        {
+            return true;
+        }
+
+        bool is_factory_preset(const ui::preset_t *preset)
+        {
+            return !(preset->flags & ui::PRESET_FLAG_USER);
+        }
+
+        bool is_user_preset(const ui::preset_t *preset)
+        {
+            return preset->flags & ui::PRESET_FLAG_USER;
+        }
+
+        bool is_favourite_preset(const ui::preset_t *preset)
+        {
+            return preset->flags & ui::PRESET_FLAG_FAVOURITE;
+        }
+
     } /* namespace ui */
 } /* namespace lsp */
 
