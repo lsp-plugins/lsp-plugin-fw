@@ -2297,9 +2297,7 @@ namespace lsp
                 update_preset_list();
 
             // Notify listener about containing presets
-            const preset_t *presets = all_presets();
-            const size_t n_presets = num_presets();
-            listener->presets_updated(presets, n_presets);
+            listener->presets_updated();
 
             return STATUS_OK;
         }
@@ -2571,9 +2569,6 @@ namespace lsp
         void IWrapper::notify_presets_updated()
         {
             // Notify listeners about presets
-            const preset_t *presets = all_presets();
-            const size_t n_presets = num_presets();
-
             lltl::parray<IPresetListener> listeners;
             if (listeners.add(vPresetListeners))
             {
@@ -2581,7 +2576,7 @@ namespace lsp
                 {
                     IPresetListener *listener = listeners.uget(i);
                     if (listener != NULL)
-                        listener->presets_updated(presets, n_presets);
+                        listener->presets_updated();
                 }
             }
         }
@@ -2623,20 +2618,57 @@ namespace lsp
             enPresetTab = tab;
         }
 
-        void IWrapper::mark_preset_favourite(size_t preset_id, bool favourite)
+        status_t IWrapper::mark_preset_favourite(size_t preset_id, bool favourite)
         {
             preset_t *preset = vPresets.get(preset_id);
             if (preset == NULL)
-                return;
+                return STATUS_NOT_FOUND;
 
             const uint32_t new_flags    = lsp_setflag(preset->flags, PRESET_FLAG_FAVOURITE, favourite);
             if (new_flags == preset->flags)
-                return;
+                return STATUS_OK;
 
             preset->flags = new_flags;
             // TODO: mark state for synchronization
 
             notify_presets_updated();
+
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::remove_preset(size_t preset_id)
+        {
+            preset_t *preset = vPresets.get(preset_id);
+            if (preset == NULL)
+                return STATUS_NOT_FOUND;
+
+            if (!(preset->flags & PRESET_FLAG_USER))
+                return STATUS_INVALID_VALUE;
+
+            // Delete original file
+            io::Path path;
+            status_t res    = path.set(&preset->path);
+            if (res == STATUS_OK)
+                res         = path.remove();
+            if (res != STATUS_OK)
+                return res;
+
+            // Remove preset from list
+            const uint32_t flags = preset->flags;
+            if (!vPresets.remove(preset_id))
+                return STATUS_NO_MEM;
+
+            // Update related state
+            if (flags & PRESET_FLAG_FAVOURITE)
+            {
+                // TODO: mark state for synchronization
+            }
+            if (nActivePreset == ssize_t(preset_id))
+                nActivePreset       = -1;
+
+            // Notify listeners
+            notify_presets_updated();
+            return STATUS_OK;
         }
 
     } /* namespace ui */

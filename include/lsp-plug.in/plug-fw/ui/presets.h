@@ -83,11 +83,9 @@ namespace lsp
                 virtual void    preset_selected(const preset_t *preset);
 
                 /**
-                 * Handle event when the list of presets has been updated
-                 * @param presets
-                 * @param count
+                 * Handle event when the whole list of presets has been updated
                  */
-                virtual void    presets_updated(const preset_t *presets, size_t count);
+                virtual void    presets_updated();
         };
 
         ssize_t preset_compare_function(const preset_t *a, const preset_t *b);

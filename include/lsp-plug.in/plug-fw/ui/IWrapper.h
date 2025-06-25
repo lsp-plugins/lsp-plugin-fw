@@ -565,7 +565,13 @@ namespace lsp
                  * @param preset_id preset identifier
                  * @param favourite favourite flag
                  */
-                void                            mark_preset_favourite(size_t preset_id, bool favourite);
+                status_t                        mark_preset_favourite(size_t preset_id, bool favourite);
+
+                /**
+                 * Remove user preset
+                 * @param preset_id preset identifier
+                 */
+                status_t                        remove_preset(size_t preset_id);
 
                 /**
                  * Set current preset tab

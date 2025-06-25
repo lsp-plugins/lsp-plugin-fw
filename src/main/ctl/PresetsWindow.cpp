@@ -183,7 +183,7 @@ namespace lsp
             bind_slot("btn_save", tk::SLOT_SUBMIT, slot_preset_save_submit);
             bind_slot("btn_favourite", tk::SLOT_SUBMIT, slot_preset_favourite_submit);
             bind_slot("btn_reset", tk::SLOT_SUBMIT, slot_reset_settings);
-            bind_slot("btn_delete", tk::SLOT_SUBMIT, slot_preset_delete_click);
+            bind_slot("btn_remove", tk::SLOT_SUBMIT, slot_preset_remove_click);
             bind_slot("btn_import", tk::SLOT_SUBMIT, slot_submit_import_settings);
             bind_slot("btn_export", tk::SLOT_SUBMIT, slot_submit_export_settings);
             bind_slot("btn_copy", tk::SLOT_SUBMIT, slot_export_settings_to_clipboard);
@@ -337,7 +337,7 @@ namespace lsp
             btn = vButtons[BTN_SAVE];
             if (btn != NULL)
             {
-                const bool can_save = preset != NULL;
+                const bool can_save = (preset != NULL) && (preset->flags & ui::PRESET_FLAG_USER);
                 btn->editable()->set(can_save);
                 btn->active()->set(can_save);
             }
@@ -666,9 +666,12 @@ namespace lsp
             sync_preset_button_state(preset);
         }
 
-        void PresetsWindow::presets_updated(const ui::preset_t *presets, size_t count)
+        void PresetsWindow::presets_updated()
         {
             lsp_trace("presets updated");
+
+            const ui::preset_t *presets = pWrapper->all_presets();
+            const size_t count = pWrapper->num_presets();
 
             make_preset_list(
                 &vPresetsLists[ui::PRESET_TAB_ALL],
@@ -692,6 +695,7 @@ namespace lsp
                 true);
 
             sync_preset_lists();
+            sync_preset_button_state();
         }
 
         //-----------------------------------------------------------------
@@ -833,14 +837,15 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PresetsWindow::slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data)
+        status_t PresetsWindow::slot_preset_remove_click(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("slot_preset_delete_click");
-
-//            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
-
-            // TODO: Ask for deletion confirmation
-            // TODO: Delete preset from the folder
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
+            {
+                const ui::preset_t *current = self->current_preset();
+                if (current != NULL)
+                    self->pWrapper->remove_preset(current->preset_id);
+            }
 
             return STATUS_OK;
         }

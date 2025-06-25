@@ -37,7 +37,7 @@ namespace lsp
         {
         }
 
-        void IPresetListener::presets_updated(const preset_t *presets, size_t count)
+        void IPresetListener::presets_updated()
         {
         }
 

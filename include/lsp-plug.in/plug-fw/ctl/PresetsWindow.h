@@ -116,7 +116,7 @@ namespace lsp
                 static status_t     slot_preset_load_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_save_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_favourite_submit(tk::Widget *sender, void *ptr, void *data);
-                static status_t     slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_remove_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_select(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data);
 
@@ -163,7 +163,7 @@ namespace lsp
 
             public: // ui::IPresetListener
                 virtual void        preset_selected(const ui::preset_t *preset) override;
-                virtual void        presets_updated(const ui::preset_t *presets, size_t count) override;
+                virtual void        presets_updated() override;
 
             public:
                 status_t            post_init();
