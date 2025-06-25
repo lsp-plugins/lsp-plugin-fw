@@ -153,6 +153,7 @@ namespace lsp
                 static preset_t *add_preset(lltl::darray<preset_t> *list);
                 void            destroy_presets(lltl::darray<preset_t> *list);
                 void            update_preset_list();
+                void            notify_presets_updated();
                 void            scan_factory_presets(lltl::darray<preset_t> *list);
                 void            scan_user_presets(lltl::darray<preset_t> *list);
                 void            scan_favourite_presets(lltl::darray<preset_t> *list);
@@ -531,15 +532,15 @@ namespace lsp
                 virtual status_t                select_active_preset(ssize_t preset_id);
 
                 /**
-                 * Mark active preset dirty
-                 */
-                void                            mark_active_preset_dirty();
-
-                /**
                  * Get active preset
                  * @return active preset
                  */
                 const preset_t                 *active_preset() const;
+
+                /**
+                 * Mark active preset dirty
+                 */
+                void                            mark_active_preset_dirty();
 
                 /**
                  * Get list of all available presets
@@ -558,6 +559,13 @@ namespace lsp
                  * @return current preset tab
                  */
                 preset_tab_t                    preset_tab() const;
+
+                /**
+                 * Mark preset as favourite
+                 * @param preset_id preset identifier
+                 * @param favourite favourite flag
+                 */
+                void                            mark_preset_favourite(size_t preset_id, bool favourite);
 
                 /**
                  * Set current preset tab

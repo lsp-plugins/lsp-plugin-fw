@@ -38,6 +38,14 @@ namespace lsp
             "favourites_presets_list"
         };
 
+        static const char *preset_management_buttons[] =
+        {
+            "btn_load",
+            "btn_save",
+            "btn_favourite",
+            "btn_remove"
+        };
+
         static const tk::tether_t presets_tether[] =
         {
             { tk::TF_BOTTOM | tk::TF_LEFT,      1.0f,  1.0f },
@@ -86,6 +94,9 @@ namespace lsp
                 preset_list_t *plist = &vPresetsLists[i];
                 plist->wList    = NULL;
             }
+            for (size_t i=0; i<BTN_TOTAL; ++i)
+                vButtons[i]     = NULL;
+
             pConfigSink     = NULL;
 
             pPath           = NULL;
@@ -158,14 +169,21 @@ namespace lsp
                 return STATUS_BAD_STATE;
 
             wPresetPattern  = widgets()->get<tk::Edit>("preset_filter");
-            if (wPresetPattern != NULL)
-                wPresetPattern->slots()->bind(tk::SLOT_CHANGE, slot_preset_filter_changed, self());
+            for (size_t i=0; i<BTN_TOTAL; ++i)
+                vButtons[i]     = widgets()->get<tk::Button>(preset_management_buttons[i]);
+            for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
+                vPresetsLists[i].wList  = widgets()->get<tk::ListBox>(preset_lists_ids[i]);
 
+            if (vButtons[BTN_FAVOURITE] != NULL)
+                vButtons[BTN_FAVOURITE]->mode()->set_toggle();
+
+            bind_slot("preset_filter", tk::SLOT_CHANGE, slot_preset_filter_changed);
             bind_slot("btn_refresh", tk::SLOT_SUBMIT, slot_refresh_preset_list);
+            bind_slot("btn_load", tk::SLOT_SUBMIT, slot_preset_load_submit);
+            bind_slot("btn_save", tk::SLOT_SUBMIT, slot_preset_save_submit);
+            bind_slot("btn_favourite", tk::SLOT_SUBMIT, slot_preset_favourite_submit);
             bind_slot("btn_reset", tk::SLOT_SUBMIT, slot_reset_settings);
-            bind_slot("btn_new", tk::SLOT_SUBMIT, slot_preset_new_click);
             bind_slot("btn_delete", tk::SLOT_SUBMIT, slot_preset_delete_click);
-            bind_slot("btn_save", tk::SLOT_SUBMIT, slot_preset_save_click);
             bind_slot("btn_import", tk::SLOT_SUBMIT, slot_submit_import_settings);
             bind_slot("btn_export", tk::SLOT_SUBMIT, slot_submit_export_settings);
             bind_slot("btn_copy", tk::SLOT_SUBMIT, slot_export_settings_to_clipboard);
@@ -173,19 +191,13 @@ namespace lsp
 
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
             {
-                preset_list_t *plist = &vPresetsLists[i];
-
-                tk::ListBox *lbox   = widgets()->get<tk::ListBox>(preset_lists_ids[i]);
-                if (lbox == NULL)
-                    continue;
-
-                plist->wList        = lbox;
-                lbox->slots()->bind(tk::SLOT_SUBMIT, slot_preset_select, this);
-                lbox->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_preset_dblclick, this);
+                const char *list_id = preset_lists_ids[i];
+                bind_slot(list_id, tk::SLOT_SUBMIT, slot_preset_select);
+                bind_slot(list_id, tk::SLOT_MOUSE_DBL_CLICK, slot_preset_dblclick);
             }
 
             pWrapper->add_preset_listener(this);
-            sync_preset_selection();
+            sync_preset_button_state();
 
             return STATUS_OK;
         }
@@ -296,34 +308,56 @@ namespace lsp
             tmp.vPresets.swap(list->vPresets);
         }
 
-        void PresetsWindow::sync_preset_selection()
+        const ui::preset_t *PresetsWindow::current_preset()
         {
             const ui::preset_tab_t tab = pWrapper->preset_tab();
             preset_list_t *list = (tab < ui::PRESET_TAB_TOTAL) ? &vPresetsLists[tab] : NULL;
 
             tk::ListBoxItem *item = (list->wList != NULL) ? list->wList->selected()->any() : NULL;
             const size_t index = list->vItems.index_of(item);
-            const ui::preset_t *preset = list->vPresets.get(index);
-
-            sync_preset_selection(preset);
+            return list->vPresets.get(index);
         }
 
-        void PresetsWindow::sync_preset_selection(const ui::preset_t *preset)
+        void PresetsWindow::sync_preset_button_state()
         {
-            const bool editable = (preset != NULL) && (preset->flags & ui::PRESET_FLAG_USER);
-            tk::Button *btn_delete = widgets()->get<tk::Button>("btn_delete");
-            if (btn_delete != NULL)
+            const ui::preset_t *current = current_preset();
+            sync_preset_button_state(current);
+        }
+
+        void PresetsWindow::sync_preset_button_state(const ui::preset_t *preset)
+        {
+            tk::Button *btn = vButtons[BTN_LOAD];
+            if (btn != NULL)
             {
-                btn_delete->editable()->set(editable);
-                btn_delete->active()->set(editable);
+                const bool can_load = (preset != NULL);
+                btn->editable()->set(can_load);
+                btn->active()->set(can_load);
             }
 
-            const bool dirty = (preset != NULL) && (preset->flags & ui::PRESET_FLAG_DIRTY);
-            tk::Button *btn_save = widgets()->get<tk::Button>("btn_save");
-            if (btn_save != NULL)
+            btn = vButtons[BTN_SAVE];
+            if (btn != NULL)
             {
-                btn_save->editable()->set(dirty);
-                btn_save->active()->set(dirty);
+                const bool can_save = preset != NULL;
+                btn->editable()->set(can_save);
+                btn->active()->set(can_save);
+            }
+
+            btn = vButtons[BTN_FAVOURITE];
+            if (btn != NULL)
+            {
+                const bool can_toggle = preset != NULL;
+                const bool is_favourite = (preset != NULL) && (preset->flags & ui::PRESET_FLAG_FAVOURITE);
+                btn->editable()->set(can_toggle);
+                btn->active()->set(can_toggle);
+                btn->down()->set(is_favourite);
+            }
+
+            btn = vButtons[BTN_DELETE];
+            if (btn != NULL)
+            {
+                const bool editable = (preset != NULL) && (preset->flags & ui::PRESET_FLAG_USER);
+                btn->editable()->set(editable);
+                btn->active()->set(editable);
             }
         }
 
@@ -629,7 +663,7 @@ namespace lsp
                 }
             }
 
-            sync_preset_selection(preset);
+            sync_preset_button_state(preset);
         }
 
         void PresetsWindow::presets_updated(const ui::preset_t *presets, size_t count)
@@ -786,9 +820,9 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PresetsWindow::slot_preset_new_click(tk::Widget *sender, void *ptr, void *data)
+        status_t PresetsWindow::slot_preset_load_submit(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("slot_preset_new_click");
+            lsp_trace("slot_preset_load_click");
 
 //            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
 
@@ -811,7 +845,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PresetsWindow::slot_preset_save_click(tk::Widget *sender, void *ptr, void *data)
+        status_t PresetsWindow::slot_preset_save_submit(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("slot_preset_save_click");
 
@@ -819,6 +853,21 @@ namespace lsp
 
             // TODO: Ask for override confirmation
             // TODO: Update preset in the folder
+
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_preset_favourite_submit(tk::Widget *sender, void *ptr, void *data)
+        {
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
+            {
+                const ui::preset_t *current = self->current_preset();
+                if (current != NULL)
+                    self->pWrapper->mark_preset_favourite(
+                        current->preset_id,
+                        !(current->flags & ui::PRESET_FLAG_FAVOURITE));
+            }
 
             return STATUS_OK;
         }

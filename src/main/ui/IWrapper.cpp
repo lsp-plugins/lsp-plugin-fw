@@ -2565,7 +2565,11 @@ namespace lsp
         {
             // First, update the list of presets
             update_preset_list();
+            notify_presets_updated();
+        }
 
+        void IWrapper::notify_presets_updated()
+        {
             // Notify listeners about presets
             const preset_t *presets = all_presets();
             const size_t n_presets = num_presets();
@@ -2617,6 +2621,22 @@ namespace lsp
         void IWrapper::set_preset_tab(preset_tab_t tab)
         {
             enPresetTab = tab;
+        }
+
+        void IWrapper::mark_preset_favourite(size_t preset_id, bool favourite)
+        {
+            preset_t *preset = vPresets.get(preset_id);
+            if (preset == NULL)
+                return;
+
+            const uint32_t new_flags    = lsp_setflag(preset->flags, PRESET_FLAG_FAVOURITE, favourite);
+            if (new_flags == preset->flags)
+                return;
+
+            preset->flags = new_flags;
+            // TODO: mark state for synchronization
+
+            notify_presets_updated();
         }
 
     } /* namespace ui */

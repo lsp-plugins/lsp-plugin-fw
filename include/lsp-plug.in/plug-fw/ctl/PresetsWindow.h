@@ -61,6 +61,16 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                enum button_t
+                {
+                    BTN_LOAD,
+                    BTN_SAVE,
+                    BTN_FAVOURITE,
+                    BTN_DELETE,
+
+                    BTN_TOTAL
+                };
+
                 typedef struct preset_list_t
                 {
                     tk::ListBox                    *wList;
@@ -89,6 +99,7 @@ namespace lsp
                 tk::FileDialog         *wImport;                    // Import settings dialog
                 tk::CheckBox           *wRelPaths;                  // Relative path checkbox
                 tk::Edit               *wPresetPattern;             // Preset pattern
+                tk::Button             *vButtons[BTN_TOTAL];        // Preset management buttons
 
                 preset_list_t           vPresetsLists[ui::PRESET_TAB_TOTAL];
                 ConfigSink             *pConfigSink;                // Configuration sink
@@ -102,9 +113,10 @@ namespace lsp
             protected:
                 // Slots
                 static status_t     slot_window_close(tk::Widget *sender, void *ptr, void *data);
-                static status_t     slot_preset_new_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_load_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_save_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_favourite_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_delete_click(tk::Widget *sender, void *ptr, void *data);
-                static status_t     slot_preset_save_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_select(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data);
 
@@ -130,11 +142,12 @@ namespace lsp
                 tk::FileFilters    *create_config_filters(tk::FileDialog *dlg);
                 void                bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
                 void                make_preset_list(preset_list_t *list, const ui::preset_t *presets, size_t count, ui::preset_filter_t filter, bool indicate);
-                void                sync_preset_selection();
-                void                sync_preset_selection(const ui::preset_t *preset);
+                void                sync_preset_button_state();
+                void                sync_preset_button_state(const ui::preset_t *preset);
                 void                sync_preset_lists();
                 void                do_destroy();
                 bool                has_path_ports();
+                const ui::preset_t *current_preset();
 
             public:
                 explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow);
