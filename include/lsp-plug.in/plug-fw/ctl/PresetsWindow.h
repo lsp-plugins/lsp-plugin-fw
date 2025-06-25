@@ -63,8 +63,9 @@ namespace lsp
             protected:
                 typedef struct preset_list_t
                 {
-                    tk::ListBox                *wList;
-                    lltl::parray<ui::preset_t>  vPresets;
+                    tk::ListBox                    *wList;
+                    lltl::parray<ui::preset_t>      vPresets;
+                    lltl::parray<tk::ListBoxItem>   vItems;
                 } preset_list_t;
 
                 class ConfigSink: public tk::TextDataSink
@@ -87,6 +88,7 @@ namespace lsp
                 tk::FileDialog         *wExport;                    // Export settings dialog
                 tk::FileDialog         *wImport;                    // Import settings dialog
                 tk::CheckBox           *wRelPaths;                  // Relative path checkbox
+                tk::Edit               *wPresetPattern;             // Preset pattern
 
                 preset_list_t           vPresetsLists[ui::PRESET_TAB_TOTAL];
                 ConfigSink             *pConfigSink;                // Configuration sink
@@ -106,6 +108,7 @@ namespace lsp
                 static status_t     slot_preset_select(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t     slot_refresh_preset_list(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_reset_settings(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
@@ -118,15 +121,18 @@ namespace lsp
                 static status_t     slot_exec_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_exec_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_filter_changed(tk::Widget *sender, void *ptr, void *data);
+
+            protected:
+                static void         destroy_preset_list(preset_list_t *list);
 
             protected:
                 tk::FileFilters    *create_config_filters(tk::FileDialog *dlg);
-
-            protected:
                 void                bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
                 void                make_preset_list(preset_list_t *list, const ui::preset_t *presets, size_t count, ui::preset_filter_t filter, bool indicate);
                 void                sync_preset_selection();
                 void                sync_preset_selection(const ui::preset_t *preset);
+                void                sync_preset_lists();
                 void                do_destroy();
                 bool                has_path_ports();
 

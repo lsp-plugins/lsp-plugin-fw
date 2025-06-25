@@ -79,6 +79,7 @@ namespace lsp
             wExport         = NULL;
             wImport         = NULL;
             wRelPaths       = NULL;
+            wPresetPattern  = NULL;
 
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
             {
@@ -111,7 +112,30 @@ namespace lsp
                 pConfigSink = NULL;
             }
 
+            // Clear filters
+            for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
+                destroy_preset_list(&vPresetsLists[i]);
+
             wExport         = NULL; // Will be destroyed by wrapper
+        }
+
+        void PresetsWindow::destroy_preset_list(preset_list_t *list)
+        {
+            if (list == NULL)
+                return;
+
+            list->vPresets.flush();
+
+            for (size_t i=0, n=list->vItems.size(); i<n; ++i)
+            {
+                tk::ListBoxItem *item = list->vItems.uget(i);
+                if (item != NULL)
+                {
+                    item->destroy();
+                    delete item;
+                }
+            }
+            list->vItems.flush();
         }
 
         status_t PresetsWindow::init()
@@ -133,6 +157,11 @@ namespace lsp
             if (wnd == NULL)
                 return STATUS_BAD_STATE;
 
+            wPresetPattern  = widgets()->get<tk::Edit>("preset_filter");
+            if (wPresetPattern != NULL)
+                wPresetPattern->slots()->bind(tk::SLOT_CHANGE, slot_preset_filter_changed, self());
+
+            bind_slot("btn_refresh", tk::SLOT_SUBMIT, slot_refresh_preset_list);
             bind_slot("btn_reset", tk::SLOT_SUBMIT, slot_reset_settings);
             bind_slot("btn_new", tk::SLOT_SUBMIT, slot_preset_new_click);
             bind_slot("btn_delete", tk::SLOT_SUBMIT, slot_preset_delete_click);
@@ -186,19 +215,28 @@ namespace lsp
             if (lb == NULL)
                 return;
 
-            lb->items()->clear();
             status_t res;
             io::Path path;
             LSPString preset_name;
+            LSPString preset_pattern;
+            preset_list_t tmp;
 
-            tk::ListBoxItem *selected = NULL;
+            // Create temporary list
+            tmp.wList       = NULL;
+            lsp_finally {
+                destroy_preset_list(&tmp);
+            };
 
+            tk::Display *dpy = wWidget->display();
             for (size_t i=0; i<count; ++i)
             {
+                // Get preset and filter
                 const ui::preset_t *p = &presets[i];
+                if (!filter(p))
+                    continue;
 
                 // Create list box item
-                tk::ListBoxItem *item = new tk::ListBoxItem(lb->display());
+                tk::ListBoxItem *item = new tk::ListBoxItem(dpy);
                 if (item == NULL)
                     continue;
                 lsp_finally {
@@ -231,23 +269,31 @@ namespace lsp
                 item->text()->set(key, &params);
                 item->tag()->set(p->preset_id);
 
-                if (p->flags & ui::PRESET_FLAG_SELECTED)
-                    selected = item;
-
-                // Add item to lists
-                if (!list->vPresets.add(const_cast<ui::preset_t *>(p)))
+                // Add item to preset list
+                if (!tmp.vPresets.add(const_cast<ui::preset_t *>(p)))
                     continue;
 
-                if ((res = lb->items()->madd(item)) == STATUS_OK)
-                    item    = NULL;
-                else
-                    list->vPresets.pop();
+                // Add item to ListBox
+                if (!tmp.vItems.add(item))
+                {
+                    tmp.vPresets.pop();
+                    continue;
+                }
+                item    = NULL;
             }
 
-            // Make item being selected
-            lb->selected()->clear();
-            if (selected != NULL)
-                lb->selected()->add(selected);
+            // Add new items to list
+            lb->items()->clear();
+            for (size_t i=0, n=tmp.vItems.size(); i<n; ++i)
+            {
+                tk::ListBoxItem *item = tmp.vItems.uget(i);
+                if (item != NULL)
+                    lb->add(item);
+            }
+
+            // Commit result
+            tmp.vItems.swap(list->vItems);
+            tmp.vPresets.swap(list->vPresets);
         }
 
         void PresetsWindow::sync_preset_selection()
@@ -256,7 +302,7 @@ namespace lsp
             preset_list_t *list = (tab < ui::PRESET_TAB_TOTAL) ? &vPresetsLists[tab] : NULL;
 
             tk::ListBoxItem *item = (list->wList != NULL) ? list->wList->selected()->any() : NULL;
-            const size_t index = list->wList->items()->index_of(item);
+            const size_t index = list->vItems.index_of(item);
             const ui::preset_t *preset = list->vPresets.get(index);
 
             sync_preset_selection(preset);
@@ -516,6 +562,41 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void PresetsWindow::sync_preset_lists()
+        {
+            LSPString filter;
+            if (wPresetPattern != NULL)
+                wPresetPattern->text()->format(&filter);
+
+            // Set selection for each list
+            for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
+            {
+                preset_list_t *list = &vPresetsLists[i];
+                if (list->wList == NULL)
+                    continue;
+
+                // Update visibility of preset items
+                tk::ListBoxItem *selected = NULL;
+                for (size_t j=0, n=list->vPresets.size(); j<n; ++j)
+                {
+                    const ui::preset_t *preset = list->vPresets.get(j);
+                    tk::ListBoxItem *item = list->vItems.get(j);
+                    if ((preset == NULL) || (item == NULL))
+                        continue;
+
+                    const bool visible = preset->name.index_of_nocase(&filter) >= 0;
+                    item->visibility()->set(visible);
+                    if (preset->flags & ui::PRESET_FLAG_SELECTED)
+                        selected = item;
+                }
+
+                // Make item being selected
+                list->wList->selected()->clear();
+                if (selected != NULL)
+                    list->wList->selected()->add(selected);
+            }
+        }
+
         void PresetsWindow::preset_selected(const ui::preset_t *preset)
         {
             // Set selection for each list
@@ -533,8 +614,9 @@ namespace lsp
                     continue;
                 }
 
-                tk::ListBoxItem * selection = lbox->items()->get(index);
-                if (selection == NULL)
+                // Synchronize state
+                tk::ListBoxItem *selection = list->vItems.get(index);
+                if ((selection == NULL) || (!selection->visibility()->get()))
                 {
                     lbox->selected()->clear();
                     continue;
@@ -552,6 +634,8 @@ namespace lsp
 
         void PresetsWindow::presets_updated(const ui::preset_t *presets, size_t count)
         {
+            lsp_trace("presets updated");
+
             make_preset_list(
                 &vPresetsLists[ui::PRESET_TAB_ALL],
                 presets, count,
@@ -572,6 +656,8 @@ namespace lsp
                 presets, count,
                 ui::is_favourite_preset,
                 true);
+
+            sync_preset_lists();
         }
 
         //-----------------------------------------------------------------
@@ -789,6 +875,15 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PresetsWindow::slot_refresh_preset_list(tk::Widget *sender, void *ptr, void *data)
+        {
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
+                self->pWrapper->scan_presets();
+
+            return STATUS_OK;
+        }
+
         status_t PresetsWindow::slot_reset_settings(tk::Widget *sender, void *ptr, void *data)
         {
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
@@ -818,7 +913,7 @@ namespace lsp
                 {
                     // Select new preset
                     tk::ListBoxItem *item = (list->wList != NULL) ? list->wList->selected()->any() : NULL;
-                    const size_t index = list->wList->items()->index_of(item);
+                    const size_t index = list->vItems.index_of(item);
                     const ui::preset_t *preset = list->vPresets.get(index);
 
                     self->pWrapper->select_active_preset((preset != NULL) ? preset->preset_id : -1);
@@ -841,6 +936,18 @@ namespace lsp
             // TODO: If iSelectedPreset == 0 -> PluginWindow.slot_confirm_reset_settings();
             // TODO: Else -> load preset
 
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_preset_filter_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("preset filter changed");
+
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            self->sync_preset_lists();
             return STATUS_OK;
         }
 

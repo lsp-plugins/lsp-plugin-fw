@@ -2337,6 +2337,9 @@ namespace lsp
             if (pnew != NULL)
                 pnew->flags        |= PRESET_FLAG_SELECTED;
 
+            nActivePreset       = preset_id;
+            preset_selected(pnew);
+
             // Notify listeners about selection change
             lltl::parray<IPresetListener> listeners;
             if (listeners.add(vPresetListeners))
@@ -2348,7 +2351,6 @@ namespace lsp
                         listener->preset_selected(pnew);
                 }
             }
-            preset_selected(pnew);
 
             return STATUS_OK;
         }
@@ -2478,11 +2480,11 @@ namespace lsp
                     continue;
 
                 // Get name of the preset/patch without an extension
-                if (path.get_last_noext(&tmp_preset.name) != STATUS_OK)
+                if (preset.get_last_noext(&tmp_preset.name) != STATUS_OK)
                     continue;
                 if (preset.get(&tmp_preset.path) != STATUS_OK)
                     continue;
-                if (path.get_ext(&tmp) != STATUS_OK)
+                if (preset.get_ext(&tmp) != STATUS_OK)
                     continue;
 
                 // Fill flags
