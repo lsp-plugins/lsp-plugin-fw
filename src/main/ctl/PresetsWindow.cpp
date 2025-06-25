@@ -264,16 +264,13 @@ namespace lsp
 
                 // Determine how to format the prest name
                 const char *key = "labels.presets.name.normal";
-                const bool is_dirty = p->flags & ui::PRESET_FLAG_DIRTY;
                 if (indicate)
                 {
                     if (p->flags & ui::PRESET_FLAG_USER)
-                        key     = (is_dirty) ? "labels.presets.name.user_mod" : "labels.presets.name.user";
+                        key     = "labels.presets.name.user";
                     else
-                        key     = (is_dirty) ? "labels.presets.name.factory_mod" : "labels.presets.name.factory";
+                        key     = "labels.presets.name.factory";
                 }
-                else if (is_dirty)
-                    key             = "labels.presets.name.mod";
 
                 // Fill the item
                 expr::Parameters params;
@@ -603,6 +600,7 @@ namespace lsp
                 wPresetPattern->text()->format(&filter);
 
             // Set selection for each list
+            const ui::preset_t *current_preset = pWrapper->selected_preset();
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
             {
                 preset_list_t *list = &vPresetsLists[i];
@@ -620,7 +618,7 @@ namespace lsp
 
                     const bool visible = preset->name.index_of_nocase(&filter) >= 0;
                     item->visibility()->set(visible);
-                    if (preset->flags & ui::PRESET_FLAG_SELECTED)
+                    if ((current_preset != NULL) && (preset->preset_id == current_preset->preset_id))
                         selected = item;
                 }
 
@@ -664,6 +662,10 @@ namespace lsp
             }
 
             sync_preset_button_state(preset);
+        }
+
+        void PresetsWindow::preset_activated(const ui::preset_t *preset)
+        {
         }
 
         void PresetsWindow::presets_updated()
@@ -826,7 +828,7 @@ namespace lsp
 
         status_t PresetsWindow::slot_preset_load_submit(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("slot_preset_load_click");
+            lsp_trace("slot_preset_load_submit");
 
 //            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
 
@@ -852,7 +854,7 @@ namespace lsp
 
         status_t PresetsWindow::slot_preset_save_submit(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("slot_preset_save_click");
+            lsp_trace("slot_preset_save_submit");
 
 //            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
 
@@ -970,7 +972,7 @@ namespace lsp
                     const size_t index = list->vItems.index_of(item);
                     const ui::preset_t *preset = list->vPresets.get(index);
 
-                    self->pWrapper->select_active_preset((preset != NULL) ? preset->preset_id : -1);
+                    self->pWrapper->select_current_preset((preset != NULL) ? preset->preset_id : -1);
                     break;
                 }
             }

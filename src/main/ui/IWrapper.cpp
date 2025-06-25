@@ -161,7 +161,9 @@ namespace lsp
             nPlayPosition   = 0;
             nPlayLength     = 0;
             nActivePreset   = -1;
+            nSelectedPreset = -1;
             enPresetTab     = PRESET_TAB_ALL;
+            nPresetFlags    = PF_NONE;
 
             plug::position_t::init(&sPosition);
         }
@@ -2310,52 +2312,49 @@ namespace lsp
             return (vPresetListeners.qpremove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
         }
 
-        void IWrapper::preset_selected(const preset_t *preset)
-        {
-        }
-
         status_t IWrapper::select_active_preset(ssize_t preset_id)
         {
             if ((preset_id < 0) && (nActivePreset < 0))
                 return STATUS_OK;
 
             // Change current preset
-            preset_t *pold  = vPresets.get(nActivePreset);
+            preset_t *pold  = (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
             preset_t *pnew  = (preset_id >= 0) ? vPresets.get(preset_id) : NULL;
             if (pold == pnew)
-            {
-                if (pold == NULL)
-                    return STATUS_OK;
-                if (!(pold->flags & PRESET_FLAG_DIRTY))
-                    return STATUS_OK;
-            }
+                return STATUS_OK;
 
-            if (pold != NULL)
-                pold->flags        &= ~(PRESET_FLAG_SELECTED | PRESET_FLAG_DIRTY);
-            if (pnew != NULL)
-                pnew->flags        |= PRESET_FLAG_SELECTED;
+            nActivePreset       = (pnew != NULL) ? pnew->preset_id : -1;
+            nPresetFlags       &= ~PF_DIRTY;
 
-            nActivePreset       = preset_id;
-            preset_selected(pnew);
+            notify_preset_activated(pnew);
+            return STATUS_OK;
+        }
 
-            // Notify listeners about selection change
-            lltl::parray<IPresetListener> listeners;
-            if (listeners.add(vPresetListeners))
-            {
-                for (size_t i=0, n=listeners.size(); i<n; ++i)
-                {
-                    IPresetListener *listener = listeners.uget(i);
-                    if (listener != NULL)
-                        listener->preset_selected(pnew);
-                }
-            }
+        status_t IWrapper::select_current_preset(ssize_t preset_id)
+        {
+            if ((preset_id < 0) && (nSelectedPreset < 0))
+                return STATUS_OK;
 
+            // Change current preset
+            preset_t *pold  = (nSelectedPreset >= 0) ? vPresets.get(nSelectedPreset) : NULL;
+            preset_t *pnew  = (preset_id >= 0) ? vPresets.get(preset_id) : NULL;
+            if (pold == pnew)
+                return STATUS_OK;
+
+            nSelectedPreset     = (pnew != NULL) ? pnew->preset_id : -1;
+
+            notify_preset_selected(pnew);
             return STATUS_OK;
         }
 
         const preset_t *IWrapper::active_preset() const
         {
             return (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
+        }
+
+        const preset_t *IWrapper::selected_preset() const
+        {
+            return (nSelectedPreset >= 0) ? vPresets.get(nSelectedPreset) : NULL;
         }
 
         const preset_t *IWrapper::all_presets() const
@@ -2532,21 +2531,27 @@ namespace lsp
                 mark_presets_as_favourite(list, user, true);
         }
 
-        void IWrapper::select_active_preset(lltl::darray<preset_t> *list, const preset_t *active)
+        void IWrapper::select_presets(lltl::darray<preset_t> *list, const preset_t *active, const preset_t *selected)
         {
             list->qsort(preset_compare_function);
+            nActivePreset       = -1;
+            nSelectedPreset     = -1;
+
             for (size_t i=0, n=list->size(); i<n; ++i)
             {
                 preset_t *preset    = list->uget(i);
                 preset->preset_id   = i;
                 if ((active != NULL) && (preset_compare_function(preset, active) == 0))
-                    preset->flags      |= PRESET_FLAG_SELECTED;
+                    nActivePreset       = active->preset_id;
+                if ((selected != NULL) && (preset_compare_function(preset, selected) == 0))
+                    nSelectedPreset     = selected->preset_id;
             }
         }
 
         void IWrapper::update_preset_list()
         {
             const preset_t *active = active_preset();
+            const preset_t *selected = selected_preset();
 
             lltl::darray<preset_t> presets;
             lsp_finally { destroy_presets(&presets); };
@@ -2554,7 +2559,7 @@ namespace lsp
             scan_factory_presets(&presets);
             scan_user_presets(&presets);
             scan_favourite_presets(&presets);
-            select_active_preset(&presets, active);
+            select_presets(&presets, active, selected);
 
             presets.swap(&vPresets);
         }
@@ -2568,7 +2573,7 @@ namespace lsp
 
         void IWrapper::notify_presets_updated()
         {
-            // Notify listeners about presets
+            // Notify listeners about the change of whole list of presets
             lltl::parray<IPresetListener> listeners;
             if (listeners.add(vPresetListeners))
             {
@@ -2581,18 +2586,24 @@ namespace lsp
             }
         }
 
-        void IWrapper::mark_active_preset_dirty()
+        void IWrapper::notify_preset_activated(const ui::preset_t *preset)
         {
-            preset_t *preset    = (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
-            if (preset == NULL)
-                return;
-            if (preset->flags & PRESET_FLAG_DIRTY)
-                return;
+            // Notify listeners about the activation of the preset
+            lltl::parray<IPresetListener> listeners;
+            if (listeners.add(vPresetListeners))
+            {
+                for (size_t i=0, n=listeners.size(); i<n; ++i)
+                {
+                    IPresetListener *listener = listeners.uget(i);
+                    if (listener != NULL)
+                        listener->preset_activated(preset);
+                }
+            }
+        }
 
-            // Change state of preset
-            preset->flags |= PRESET_FLAG_DIRTY;
-
-            // Notify listeners about selection change
+        void IWrapper::notify_preset_selected(const ui::preset_t *preset)
+        {
+            // Notify listeners about selection of the preset
             lltl::parray<IPresetListener> listeners;
             if (listeners.add(vPresetListeners))
             {
@@ -2603,9 +2614,11 @@ namespace lsp
                         listener->preset_selected(preset);
                 }
             }
+        }
 
-            // Notify self about selection of preset
-            preset_selected(preset);
+        void IWrapper::mark_active_preset_dirty()
+        {
+            nPresetFlags   |= PF_DIRTY;
         }
 
         preset_tab_t IWrapper::preset_tab() const
@@ -2628,8 +2641,8 @@ namespace lsp
             if (new_flags == preset->flags)
                 return STATUS_OK;
 
-            preset->flags = new_flags;
-            // TODO: mark state for synchronization
+            preset->flags   = new_flags;
+            nPresetFlags   |= PF_SYNC_FAVOURITES; // Favourites list needs to be synchronized
 
             notify_presets_updated();
 
@@ -2660,11 +2673,18 @@ namespace lsp
 
             // Update related state
             if (flags & PRESET_FLAG_FAVOURITE)
-            {
-                // TODO: mark state for synchronization
-            }
+                nPresetFlags   |= PF_SYNC_FAVOURITES; // Favourites list needs to be synchronized
+
             if (nActivePreset == ssize_t(preset_id))
+            {
                 nActivePreset       = -1;
+                nPresetFlags       |= PF_SYNC_STATE;
+            }
+            if (nSelectedPreset == ssize_t(preset_id))
+            {
+                nSelectedPreset     = -1;
+                nPresetFlags       |= PF_SYNC_STATE;
+            }
 
             // Notify listeners
             notify_presets_updated();

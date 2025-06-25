@@ -35,22 +35,7 @@ namespace lsp
 {
     namespace ctl
     {
-
         class PluginWindow;
-        class PresetsWindow;
-
-        /**
-         * Preset descriptor
-         */
-        typedef struct preset_item_t
-        {
-            PluginWindow       *plugin_window;
-            PresetsWindow      *presets_window;
-            LSPString           name;
-            LSPString           location;
-            // LSPString           author;
-            //                     date;
-        } preset_item_t;
 
         /**
          * The plugin's window controller
@@ -163,6 +148,7 @@ namespace lsp
 
             public: // ui::IPresetListener
                 virtual void        preset_selected(const ui::preset_t *preset) override;
+                virtual void        preset_activated(const ui::preset_t *preset) override;
                 virtual void        presets_updated() override;
 
             public:

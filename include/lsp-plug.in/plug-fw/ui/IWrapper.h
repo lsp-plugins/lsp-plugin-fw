@@ -83,9 +83,17 @@ namespace lsp
             protected:
                 enum flags_t
                 {
-                    F_QUIT          = 1 << 0,       // Quit main loop flag
-                    F_CONFIG_DIRTY  = 1 << 1,       // The configuration needs to be saved
-                    F_CONFIG_LOCK   = 1 << 2,       // The configuration file is locked for update
+                    F_QUIT              = 1 << 0,       // Quit main loop flag
+                    F_CONFIG_DIRTY      = 1 << 1,       // The configuration needs to be saved
+                    F_CONFIG_LOCK       = 1 << 2,       // The configuration file is locked for update
+                };
+
+                enum preset_flags_t
+                {
+                    PF_NONE             = 0,
+                    PF_DIRTY            = 1 << 0,       // Active preset is dirty
+                    PF_SYNC_FAVOURITES  = 1 << 1,       // List of favourites needs to be synchronized with disk
+                    PF_SYNC_STATE       = 1 << 2,       // Preset manager state needs to be transmitted to backend
                 };
 
             protected:
@@ -97,8 +105,10 @@ namespace lsp
                 size_t                          nFlags;             // Flags
                 wssize_t                        nPlayPosition;      // Playback position of the current file preview
                 wssize_t                        nPlayLength;        // Overall playback file length in samples
-                ssize_t                         nActivePreset;      // Currently selected preset
+                ssize_t                         nActivePreset;      // Active preset
+                ssize_t                         nSelectedPreset;    // Currently selected preset
                 preset_tab_t                    enPresetTab;        // Active preset tab
+                uint32_t                        nPresetFlags;       // Preset management flags
                 expr::Variables                 sGlobalVars;        // Global variables
                 plug::position_t                sPosition;          // Melodic position
 
@@ -153,11 +163,10 @@ namespace lsp
                 static preset_t *add_preset(lltl::darray<preset_t> *list);
                 void            destroy_presets(lltl::darray<preset_t> *list);
                 void            update_preset_list();
-                void            notify_presets_updated();
                 void            scan_factory_presets(lltl::darray<preset_t> *list);
                 void            scan_user_presets(lltl::darray<preset_t> *list);
                 void            scan_favourite_presets(lltl::darray<preset_t> *list);
-                void            select_active_preset(lltl::darray<preset_t> *list, const preset_t *active);
+                void            select_presets(lltl::darray<preset_t> *list, const preset_t *active, const preset_t *selected);
 
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
@@ -165,7 +174,9 @@ namespace lsp
 
             protected:
                 virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
-                virtual void    preset_selected(const preset_t *preset);
+                virtual void    notify_presets_updated();
+                virtual void    notify_preset_selected(const preset_t *preset);
+                virtual void    notify_preset_activated(const preset_t *preset);
 
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
@@ -532,10 +543,23 @@ namespace lsp
                 virtual status_t                select_active_preset(ssize_t preset_id);
 
                 /**
+                 * Select current preset
+                 * @param preset_id preset identifier, negative value for deselection of any preset
+                 * @return status of operation
+                 */
+                virtual status_t                select_current_preset(ssize_t preset_id);
+
+                /**
                  * Get active preset
                  * @return active preset
                  */
                 const preset_t                 *active_preset() const;
+
+                /**
+                 * Get active preset
+                 * @return active preset
+                 */
+                const preset_t                 *selected_preset() const;
 
                 /**
                  * Mark active preset dirty

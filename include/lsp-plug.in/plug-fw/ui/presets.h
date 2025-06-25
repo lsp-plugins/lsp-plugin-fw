@@ -38,10 +38,8 @@ namespace lsp
         {
             PRESET_FLAG_NONE        = 0,
             PRESET_FLAG_USER        = 1 << 0,   // User-defined preset
-            PRESET_FLAG_DIRTY       = 1 << 1,   // Preset is modified by user
-            PRESET_FLAG_PATCH       = 1 << 2,   // Preset is modified by user
-            PRESET_FLAG_SELECTED    = 1 << 3,   // Preset is currently selected
-            PRESET_FLAG_FAVOURITE   = 1 << 4,   // Preset marked as a favourite
+            PRESET_FLAG_PATCH       = 1 << 1,   // Preset is modified by user
+            PRESET_FLAG_FAVOURITE   = 1 << 2,   // Preset marked as a favourite
         };
 
         enum preset_tab_t
@@ -81,6 +79,12 @@ namespace lsp
                  * @param preset selected preset
                  */
                 virtual void    preset_selected(const preset_t *preset);
+
+                /**
+                 * Handle event when preset has been activated
+                 * @param preset activated preset
+                 */
+                virtual void    preset_activated(const preset_t *preset);
 
                 /**
                  * Handle event when the whole list of presets has been updated
