@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 мар. 2024 г.
@@ -80,20 +80,23 @@ namespace lsp
 
             protected:
                 PluginWindow           *pPluginWindow;              // Plugin window
+                tk::Widget             *wLastActor;                 // Last actor
                 tk::FileDialog         *wExport;                    // Export settings dialog
                 tk::FileDialog         *wImport;                    // Import settings dialog
                 tk::CheckBox           *wRelPaths;                  // Relative path checkbox
                 tk::Edit               *wPresetPattern;             // Preset pattern
                 tk::Button             *vButtons[BTN_TOTAL];        // Preset management buttons
+                tk::MessageBox         *wWConfirm;
 
                 preset_list_t           vPresetsLists[ui::PRESET_TAB_TOTAL];
                 ConfigSink             *pConfigSink;                // Configuration sink
+
+                ssize_t                 nNewPresetId;               // New preset identifier
 
                 ui::IPort              *pPath;                      // Location of user's export/import directory
                 ui::IPort              *pFileType;                  // Import/export configuration file type selection
                 ui::IPort              *pRelPaths;                  // Relative paths configuration option
 
-                int16_t                 iSelectedPreset = -1;
 
             protected:
                 // Slots
@@ -103,7 +106,6 @@ namespace lsp
                 static status_t     slot_preset_favourite_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_remove_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_select(tk::Widget *sender, void *ptr, void *data);
-                static status_t     slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t     slot_refresh_preset_list(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_reset_settings(tk::Widget *sender, void *ptr, void *data);
@@ -120,6 +122,9 @@ namespace lsp
                 static status_t     slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_filter_changed(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t     slot_accept_preset_selection(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_reject_preset_selection(tk::Widget *sender, void *ptr, void *data);
+
             protected:
                 static void         destroy_preset_list(preset_list_t *list);
 
@@ -131,7 +136,9 @@ namespace lsp
                 void                sync_preset_button_state(const ui::preset_t *preset);
                 void                sync_preset_lists();
                 void                do_destroy();
+                void                select_active_preset(ssize_t preset_id);
                 bool                has_path_ports();
+                bool                request_change_preset_conrifmation(const ui::preset_t *preset);
                 const ui::preset_t *current_preset();
 
             public:
@@ -147,13 +154,15 @@ namespace lsp
                 virtual void        destroy() override;
 
             public: // ui::IPresetListener
-                virtual void        preset_selected(const ui::preset_t *preset) override;
                 virtual void        preset_activated(const ui::preset_t *preset) override;
                 virtual void        presets_updated() override;
 
             public:
                 status_t            post_init();
                 status_t            show(tk::Widget *actor);
+                status_t            hide();
+                bool                visible() const;
+                status_t            toggle_visibility(tk::Widget *actor);
                 status_t            show_export_settings_dialog();
                 status_t            show_import_settings_dialog();
                 status_t            import_settings_from_clipboard();

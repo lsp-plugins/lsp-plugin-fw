@@ -84,6 +84,7 @@ namespace lsp
             pClass          = &metadata;
 
             pPluginWindow   = pluginWindow;
+            wLastActor      = NULL;
             wExport         = NULL;
             wImport         = NULL;
             wRelPaths       = NULL;
@@ -96,8 +97,11 @@ namespace lsp
             }
             for (size_t i=0; i<BTN_TOTAL; ++i)
                 vButtons[i]     = NULL;
+            wWConfirm       = NULL;
 
             pConfigSink     = NULL;
+
+            nNewPresetId    = -1;
 
             pPath           = NULL;
             pFileType       = NULL;
@@ -121,6 +125,14 @@ namespace lsp
                 pConfigSink->unbind();
                 pConfigSink->release();
                 pConfigSink = NULL;
+            }
+
+            // Destroy confirmation dialog
+            if (wWConfirm != NULL)
+            {
+                wWConfirm->destroy();
+                delete wWConfirm;
+                wWConfirm = NULL;
             }
 
             // Clear filters
@@ -193,7 +205,6 @@ namespace lsp
             {
                 const char *list_id = preset_lists_ids[i];
                 bind_slot(list_id, tk::SLOT_SUBMIT, slot_preset_select);
-                bind_slot(list_id, tk::SLOT_MOUSE_DBL_CLICK, slot_preset_dblclick);
             }
 
             pWrapper->add_preset_listener(this);
@@ -401,6 +412,7 @@ namespace lsp
             if (wnd == NULL)
                 return STATUS_BAD_STATE;
 
+            wLastActor = actor;
             if (actor != NULL)
             {
                 ws::rectangle_t r;
@@ -409,14 +421,35 @@ namespace lsp
                 wnd->set_tether(presets_tether, sizeof(presets_tether)/sizeof(tk::tether_t));
                 wnd->trigger_widget()->set(actor);
                 wnd->trigger_area()->set(&r);
-                wnd->show();
             }
-            else
-                wnd->show(wnd);
 
+            wnd->show();
             wnd->grab_events(ws::GRAB_DROPDOWN);
 
             return STATUS_OK;
+        }
+
+        bool PresetsWindow::visible() const
+        {
+            tk::PopupWindow *wnd = tk::widget_cast<tk::PopupWindow>(wWidget);
+            if (wnd == NULL)
+                return false;
+
+            return wnd->visibility()->get();
+        }
+
+        status_t PresetsWindow::hide()
+        {
+            if (wWidget == NULL)
+                return STATUS_BAD_STATE;
+
+            wWidget->hide();
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::toggle_visibility(tk::Widget *actor)
+        {
+            return (visible()) ? hide() : show(actor);
         }
 
         status_t PresetsWindow::show_export_settings_dialog()
@@ -600,7 +633,7 @@ namespace lsp
                 wPresetPattern->text()->format(&filter);
 
             // Set selection for each list
-            const ui::preset_t *current_preset = pWrapper->selected_preset();
+            const ui::preset_t *active = pWrapper->active_preset();
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
             {
                 preset_list_t *list = &vPresetsLists[i];
@@ -618,7 +651,7 @@ namespace lsp
 
                     const bool visible = preset->name.index_of_nocase(&filter) >= 0;
                     item->visibility()->set(visible);
-                    if ((current_preset != NULL) && (preset->preset_id == current_preset->preset_id))
+                    if ((active != NULL) && (preset->preset_id == active->preset_id))
                         selected = item;
                 }
 
@@ -629,7 +662,7 @@ namespace lsp
             }
         }
 
-        void PresetsWindow::preset_selected(const ui::preset_t *preset)
+        void PresetsWindow::preset_activated(const ui::preset_t *preset)
         {
             // Set selection for each list
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
@@ -664,10 +697,6 @@ namespace lsp
             sync_preset_button_state(preset);
         }
 
-        void PresetsWindow::preset_activated(const ui::preset_t *preset)
-        {
-        }
-
         void PresetsWindow::presets_updated()
         {
             lsp_trace("presets updated");
@@ -698,6 +727,81 @@ namespace lsp
 
             sync_preset_lists();
             sync_preset_button_state();
+        }
+
+        bool PresetsWindow::request_change_preset_conrifmation(const ui::preset_t *preset)
+        {
+            if (preset == NULL)
+                return false;
+
+            if (wWConfirm == NULL)
+            {
+                // Create and initialize dialog object
+                tk::MessageBox *dialog = new tk::MessageBox(wWidget->display());
+                if (dialog == NULL)
+                    return false;
+                lsp_finally {
+                    if (dialog != NULL)
+                    {
+                        dialog->destroy();
+                        delete dialog;
+                    }
+                };
+
+                status_t res = dialog->init();
+                if (res != STATUS_OK)
+                    return false;
+
+                dialog->title()->set("titles.confirmation");
+                dialog->heading()->set("headings.confirmation");
+                dialog->add("actions.confirm.yes", slot_accept_preset_selection, self());
+                dialog->add("actions.confirm.no", slot_reject_preset_selection, self());
+
+                dialog->buttons()->get(0)->constraints()->set_min_width(96);
+                dialog->buttons()->get(1)->constraints()->set_min_width(96);
+
+                tk::Shortcut *scut = NULL;
+                if ((scut = dialog->shortcuts()->append(ws::WSK_ESCAPE, tk::KM_NONE)) != NULL)
+                    scut->slot()->bind(slot_reject_preset_selection, self());
+                if ((scut = dialog->shortcuts()->append(ws::WSK_RETURN, tk::KM_NONE)) != NULL)
+                    scut->slot()->bind(slot_accept_preset_selection, self());
+                if ((scut = dialog->shortcuts()->append(ws::WSK_KEYPAD_ENTER, tk::KM_NONE)) != NULL)
+                    scut->slot()->bind(slot_accept_preset_selection, self());
+
+                // Commit dialog
+                wWConfirm       = release_ptr(dialog);
+            }
+
+            // Update text
+            expr::Parameters params;
+            params.set_string("name", &preset->name);
+            wWConfirm->message()->set(
+                (preset->flags & ui::PRESET_FLAG_USER) ?
+                    "messages.presets.factory_preset_changed" :
+                    "messages.presets.user_preset_changed",
+                &params);
+
+            // Hide self and show the nested window
+            hide();
+            wWConfirm->show(wLastActor);
+
+            return true;
+        }
+
+        void PresetsWindow::select_active_preset(ssize_t preset_id)
+        {
+            const ui::preset_t *dirty = (pWrapper->active_preset_dirty()) ? pWrapper->active_preset() : NULL;
+
+            // Check that we need to confirm changes
+            if ((dirty != NULL) && (preset_id != dirty->preset_id))
+            {
+                nNewPresetId        = preset_id;
+
+                if (!request_change_preset_conrifmation(dirty))
+                    preset_activated(dirty);
+            }
+            else
+                pWrapper->select_active_preset(preset_id);
         }
 
         //-----------------------------------------------------------------
@@ -856,6 +960,10 @@ namespace lsp
         {
             lsp_trace("slot_preset_save_submit");
 
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
 //            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
 
             // TODO: Ask for override confirmation
@@ -885,7 +993,7 @@ namespace lsp
             if (self != NULL)
             {
                 if (self->wWidget != NULL)
-                    self->wWidget->hide();
+                    self->hide();
                 self->show_import_settings_dialog();
             }
 
@@ -898,7 +1006,7 @@ namespace lsp
             if (self != NULL)
             {
                 if (self->wWidget != NULL)
-                    self->wWidget->hide();
+                    self->hide();
                 self->show_export_settings_dialog();
             }
 
@@ -911,7 +1019,7 @@ namespace lsp
             if (self != NULL)
             {
                 if (self->wWidget != NULL)
-                    self->wWidget->hide();
+                    self->hide();
                 self->export_settings_to_clipboard();
             }
 
@@ -924,7 +1032,7 @@ namespace lsp
             if (self != NULL)
             {
                 if (self->wWidget != NULL)
-                    self->wWidget->hide();
+                    self->hide();
                 self->import_settings_from_clipboard();
             }
 
@@ -946,7 +1054,7 @@ namespace lsp
             if (self != NULL)
             {
                 if (self->wWidget != NULL)
-                    self->wWidget->hide();
+                    self->hide();
                 self->reset_settings();
             }
 
@@ -965,32 +1073,16 @@ namespace lsp
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
             {
                 preset_list_t *list = &self->vPresetsLists[i];
-                if (list->wList == sender)
-                {
-                    // Select new preset
-                    tk::ListBoxItem *item = (list->wList != NULL) ? list->wList->selected()->any() : NULL;
-                    const size_t index = list->vItems.index_of(item);
-                    const ui::preset_t *preset = list->vPresets.get(index);
+                if (list->wList != sender)
+                    continue;
 
-                    self->pWrapper->select_current_preset((preset != NULL) ? preset->preset_id : -1);
-                    break;
-                }
+                // Determine new preset
+                tk::ListBoxItem *item = (list->wList != NULL) ? list->wList->selected()->any() : NULL;
+                const size_t index = list->vItems.index_of(item);
+                const ui::preset_t *preset = list->vPresets.get(index);
+
+                self->select_active_preset((preset != NULL) ? preset->preset_id : -1);
             }
-
-            return STATUS_OK;
-        }
-
-        status_t PresetsWindow::slot_preset_dblclick(tk::Widget *sender, void *ptr, void *data)
-        {
-            lsp_trace("slot_preset_dblclick");
-
-            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
-
-            if (self->iSelectedPreset < 0)
-                return STATUS_OK; // Impossible
-
-            // TODO: If iSelectedPreset == 0 -> PluginWindow.slot_confirm_reset_settings();
-            // TODO: Else -> load preset
 
             return STATUS_OK;
         }
@@ -1004,6 +1096,38 @@ namespace lsp
                 return STATUS_OK;
 
             self->sync_preset_lists();
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_accept_preset_selection(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("accept preset selection");
+
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            self->pWrapper->select_active_preset(self->nNewPresetId);
+            tk::Window *wnd = tk::widget_cast<tk::Window>(self->wWidget);
+            if (wnd != NULL)
+                self->show(self->wLastActor);
+
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_reject_preset_selection(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("reject preset selection");
+
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            self->preset_activated(self->pWrapper->active_preset());
+            tk::Window *wnd = tk::widget_cast<tk::Window>(self->wWidget);
+            if (wnd != NULL)
+                self->show(self->wLastActor);
+
             return STATUS_OK;
         }
 

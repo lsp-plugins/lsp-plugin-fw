@@ -161,7 +161,6 @@ namespace lsp
             nPlayPosition   = 0;
             nPlayLength     = 0;
             nActivePreset   = -1;
-            nSelectedPreset = -1;
             enPresetTab     = PRESET_TAB_ALL;
             nPresetFlags    = PF_NONE;
 
@@ -2330,31 +2329,9 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::select_current_preset(ssize_t preset_id)
-        {
-            if ((preset_id < 0) && (nSelectedPreset < 0))
-                return STATUS_OK;
-
-            // Change current preset
-            preset_t *pold  = (nSelectedPreset >= 0) ? vPresets.get(nSelectedPreset) : NULL;
-            preset_t *pnew  = (preset_id >= 0) ? vPresets.get(preset_id) : NULL;
-            if (pold == pnew)
-                return STATUS_OK;
-
-            nSelectedPreset     = (pnew != NULL) ? pnew->preset_id : -1;
-
-            notify_preset_selected(pnew);
-            return STATUS_OK;
-        }
-
         const preset_t *IWrapper::active_preset() const
         {
             return (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
-        }
-
-        const preset_t *IWrapper::selected_preset() const
-        {
-            return (nSelectedPreset >= 0) ? vPresets.get(nSelectedPreset) : NULL;
         }
 
         const preset_t *IWrapper::all_presets() const
@@ -2531,11 +2508,10 @@ namespace lsp
                 mark_presets_as_favourite(list, user, true);
         }
 
-        void IWrapper::select_presets(lltl::darray<preset_t> *list, const preset_t *active, const preset_t *selected)
+        void IWrapper::select_presets(lltl::darray<preset_t> *list, const preset_t *active)
         {
             list->qsort(preset_compare_function);
             nActivePreset       = -1;
-            nSelectedPreset     = -1;
 
             for (size_t i=0, n=list->size(); i<n; ++i)
             {
@@ -2543,15 +2519,12 @@ namespace lsp
                 preset->preset_id   = i;
                 if ((active != NULL) && (preset_compare_function(preset, active) == 0))
                     nActivePreset       = active->preset_id;
-                if ((selected != NULL) && (preset_compare_function(preset, selected) == 0))
-                    nSelectedPreset     = selected->preset_id;
             }
         }
 
         void IWrapper::update_preset_list()
         {
             const preset_t *active = active_preset();
-            const preset_t *selected = selected_preset();
 
             lltl::darray<preset_t> presets;
             lsp_finally { destroy_presets(&presets); };
@@ -2559,7 +2532,7 @@ namespace lsp
             scan_factory_presets(&presets);
             scan_user_presets(&presets);
             scan_favourite_presets(&presets);
-            select_presets(&presets, active, selected);
+            select_presets(&presets, active);
 
             presets.swap(&vPresets);
         }
@@ -2601,24 +2574,22 @@ namespace lsp
             }
         }
 
-        void IWrapper::notify_preset_selected(const ui::preset_t *preset)
+        void IWrapper::mark_active_preset_dirty()
         {
-            // Notify listeners about selection of the preset
-            lltl::parray<IPresetListener> listeners;
-            if (listeners.add(vPresetListeners))
+            // Set flag only when there is an active preset
+            const preset_t *preset = active_preset();
+            if (preset != NULL)
             {
-                for (size_t i=0, n=listeners.size(); i<n; ++i)
-                {
-                    IPresetListener *listener = listeners.uget(i);
-                    if (listener != NULL)
-                        listener->preset_selected(preset);
-                }
+                nPresetFlags   |= PF_DIRTY;
+                notify_presets_updated();
             }
         }
 
-        void IWrapper::mark_active_preset_dirty()
+        bool IWrapper::active_preset_dirty() const
         {
-            nPresetFlags   |= PF_DIRTY;
+            if (!(nPresetFlags & PF_DIRTY))
+                return false;
+            return active_preset() != NULL;
         }
 
         preset_tab_t IWrapper::preset_tab() const
@@ -2678,11 +2649,6 @@ namespace lsp
             if (nActivePreset == ssize_t(preset_id))
             {
                 nActivePreset       = -1;
-                nPresetFlags       |= PF_SYNC_STATE;
-            }
-            if (nSelectedPreset == ssize_t(preset_id))
-            {
-                nSelectedPreset     = -1;
                 nPresetFlags       |= PF_SYNC_STATE;
             }
 

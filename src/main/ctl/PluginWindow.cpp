@@ -1911,7 +1911,7 @@ namespace lsp
                 return STATUS_OK;
 
             tk::Widget *actor = widgets()->find("trg_presets_menu");
-            return pPresetsWindow->show(actor);
+            return pPresetsWindow->toggle_visibility(actor);
         }
 
         status_t PluginWindow::show_greeting_window()

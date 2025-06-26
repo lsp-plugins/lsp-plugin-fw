@@ -106,7 +106,6 @@ namespace lsp
                 wssize_t                        nPlayPosition;      // Playback position of the current file preview
                 wssize_t                        nPlayLength;        // Overall playback file length in samples
                 ssize_t                         nActivePreset;      // Active preset
-                ssize_t                         nSelectedPreset;    // Currently selected preset
                 preset_tab_t                    enPresetTab;        // Active preset tab
                 uint32_t                        nPresetFlags;       // Preset management flags
                 expr::Variables                 sGlobalVars;        // Global variables
@@ -166,7 +165,7 @@ namespace lsp
                 void            scan_factory_presets(lltl::darray<preset_t> *list);
                 void            scan_user_presets(lltl::darray<preset_t> *list);
                 void            scan_favourite_presets(lltl::darray<preset_t> *list);
-                void            select_presets(lltl::darray<preset_t> *list, const preset_t *active, const preset_t *selected);
+                void            select_presets(lltl::darray<preset_t> *list, const preset_t *active);
 
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
@@ -175,7 +174,6 @@ namespace lsp
             protected:
                 virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
                 virtual void    notify_presets_updated();
-                virtual void    notify_preset_selected(const preset_t *preset);
                 virtual void    notify_preset_activated(const preset_t *preset);
 
             public:
@@ -543,28 +541,21 @@ namespace lsp
                 virtual status_t                select_active_preset(ssize_t preset_id);
 
                 /**
-                 * Select current preset
-                 * @param preset_id preset identifier, negative value for deselection of any preset
-                 * @return status of operation
-                 */
-                virtual status_t                select_current_preset(ssize_t preset_id);
-
-                /**
                  * Get active preset
                  * @return active preset
                  */
                 const preset_t                 *active_preset() const;
 
                 /**
-                 * Get active preset
-                 * @return active preset
-                 */
-                const preset_t                 *selected_preset() const;
-
-                /**
                  * Mark active preset dirty
                  */
                 void                            mark_active_preset_dirty();
+
+                /**
+                 * Check that active preset is dirty
+                 * @return true if active preset is dirty
+                 */
+                bool                            active_preset_dirty() const;
 
                 /**
                  * Get list of all available presets

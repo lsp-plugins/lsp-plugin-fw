@@ -33,10 +33,6 @@ namespace lsp
         {
         }
 
-        void IPresetListener::preset_selected(const preset_t *preset)
-        {
-        }
-
         void IPresetListener::preset_activated(const preset_t *preset)
         {
         }

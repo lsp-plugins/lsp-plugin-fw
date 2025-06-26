@@ -75,12 +75,6 @@ namespace lsp
 
             public:
                 /**
-                 * Handle event when preset has been selected
-                 * @param preset selected preset
-                 */
-                virtual void    preset_selected(const preset_t *preset);
-
-                /**
                  * Handle event when preset has been activated
                  * @param preset activated preset
                  */
