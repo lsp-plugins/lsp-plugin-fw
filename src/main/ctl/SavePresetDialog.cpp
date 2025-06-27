@@ -174,7 +174,10 @@ namespace lsp
 
                 status_t res = dialog->init();
                 if (res != STATUS_OK)
+                {
+                    lsp_trace("init failed");
                     return false;
+                }
 
                 dialog->title()->set("titles.confirmation");
                 dialog->heading()->set("headings.confirmation");
@@ -198,7 +201,7 @@ namespace lsp
                 bind_shortcut(dialog, 'Y', tk::KM_NONE, slot_accept_save_preset);
 
                 // Commit dialog
-                if (!widgets()->add(dialog))
+                if (widgets()->add(dialog) != STATUS_OK)
                     return false;
                 wConfirmation   = release_ptr(dialog);
             }
@@ -250,7 +253,7 @@ namespace lsp
                 bind_shortcut(dialog, ws::WSK_BACKSPACE, tk::KM_NONE, slot_close_notification);
 
                 // Commit dialog
-                if (!widgets()->add(dialog))
+                if (widgets()->add(dialog) != STATUS_OK)
                     return false;
                 wNotification   = release_ptr(dialog);
             }
@@ -262,7 +265,7 @@ namespace lsp
                 "messages.presets.confirm_overwrite",
                 &params);
 
-            wConfirmation->show(wWidget);
+            wNotification->show(wWidget);
 
             return true;
         }
@@ -302,7 +305,7 @@ namespace lsp
             const ui::preset_t *save = self->find_user_preset_by_name(&name);
             if (save != NULL)
             {
-                const bool need_confirm = (active == NULL) || (active->preset_id != save->preset_id);
+                const bool need_confirm = (active != save);
                 if (need_confirm)
                 {
                     self->request_confirmation(&name);

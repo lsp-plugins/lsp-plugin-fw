@@ -92,7 +92,7 @@ namespace lsp
                 preset_list_t           vPresetsLists[ui::PRESET_TAB_TOTAL];
                 ConfigSink             *pConfigSink;                // Configuration sink
 
-                ssize_t                 nNewPresetId;               // New preset identifier
+                const ui::preset_t     *pNewPreset;                 // New preset pointer
 
                 ui::IPort              *pPath;                      // Location of user's export/import directory
                 ui::IPort              *pFileType;                  // Import/export configuration file type selection
@@ -136,7 +136,7 @@ namespace lsp
                 void                sync_preset_button_state(const ui::preset_t *preset);
                 void                sync_preset_lists();
                 void                do_destroy();
-                void                select_active_preset(ssize_t preset_id);
+                void                select_active_preset(const ui::preset_t *preset);
                 bool                has_path_ports();
                 bool                request_change_preset_conrifmation(const ui::preset_t *preset);
                 const ui::preset_t *current_preset();

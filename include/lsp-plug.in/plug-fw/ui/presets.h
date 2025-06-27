@@ -57,7 +57,6 @@ namespace lsp
             LSPString       name;       // Name of the preset
             LSPString       path;       // Location of the preset
             uint32_t        flags;      // Preset flags
-            uint32_t        preset_id;  // Unique identifier of the preset
         } preset_t;
 
         typedef bool (*preset_filter_t)(const ui::preset_t *preset);

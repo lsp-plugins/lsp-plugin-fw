@@ -104,7 +104,7 @@ namespace lsp
 
             pConfigSink     = NULL;
 
-            nNewPresetId    = -1;
+            pNewPreset      = NULL;
 
             pPath           = NULL;
             pFileType       = NULL;
@@ -269,7 +269,6 @@ namespace lsp
                 expr::Parameters params;
                 params.set_string("name", &p->name);
                 item->text()->set(key, &params);
-                item->tag()->set(p->preset_id);
 
                 // Add item to preset list
                 if (!tmp.vPresets.add(const_cast<ui::preset_t *>(p)))
@@ -617,7 +616,7 @@ namespace lsp
 
                     const bool visible = preset->name.index_of_nocase(&filter) >= 0;
                     item->visibility()->set(visible);
-                    if ((active != NULL) && (preset->preset_id == active->preset_id))
+                    if (preset == active)
                         selected = item;
                 }
 
@@ -735,7 +734,7 @@ namespace lsp
                 bind_shortcut(dialog, 'Y', tk::KM_NONE, slot_accept_preset_selection);
 
                 // Commit dialog
-                if (!widgets()->add(dialog))
+                if (widgets()->add(dialog) != STATUS_OK)
                     return false;
                 wWConfirm       = release_ptr(dialog);
             }
@@ -756,21 +755,24 @@ namespace lsp
             return true;
         }
 
-        void PresetsWindow::select_active_preset(ssize_t preset_id)
+        void PresetsWindow::select_active_preset(const ui::preset_t *preset)
         {
             const ui::preset_t *dirty = (pWrapper->active_preset_dirty()) ? pWrapper->active_preset() : NULL;
 //            const ui::preset_t *dirty = pWrapper->active_preset(); // for tests
 
             // Check that we need to confirm changes
-            if ((dirty != NULL) && (preset_id != dirty->preset_id))
+            if ((dirty != NULL) && (dirty != preset))
             {
-                nNewPresetId        = preset_id;
+                pNewPreset          = preset;
 
                 if (!request_change_preset_conrifmation(dirty))
                     preset_activated(dirty);
             }
             else
-                pWrapper->select_active_preset(preset_id);
+            {
+                pNewPreset          = NULL;
+                pWrapper->select_active_preset(preset);
+            }
         }
 
         status_t PresetsWindow::create_save_preset_dialog()
@@ -949,7 +951,7 @@ namespace lsp
             {
                 const ui::preset_t *current = self->current_preset();
                 if (current != NULL)
-                    self->pWrapper->remove_preset(current->preset_id);
+                    self->pWrapper->remove_preset(current);
             }
 
             return STATUS_OK;
@@ -985,7 +987,7 @@ namespace lsp
                 const ui::preset_t *current = self->current_preset();
                 if (current != NULL)
                     self->pWrapper->mark_preset_favourite(
-                        current->preset_id,
+                        current,
                         !(current->flags & ui::PRESET_FLAG_FAVOURITE));
             }
 
@@ -1086,7 +1088,7 @@ namespace lsp
                 const size_t index = list->vItems.index_of(item);
                 const ui::preset_t *preset = list->vPresets.get(index);
 
-                self->select_active_preset((preset != NULL) ? preset->preset_id : -1);
+                self->select_active_preset(preset);
             }
 
             return STATUS_OK;
@@ -1112,7 +1114,8 @@ namespace lsp
             if (self == NULL)
                 return STATUS_OK;
 
-            self->pWrapper->select_active_preset(self->nNewPresetId);
+            self->pWrapper->select_active_preset(self->pNewPreset);
+            self->pNewPreset = NULL;
             if (self->wWConfirm != NULL)
                 self->wWConfirm->hide();
             tk::Window *wnd = tk::widget_cast<tk::Window>(self->wWidget);

@@ -151,6 +151,7 @@ namespace lsp
                 status_t        read_parameters(const io::Path *file, lltl::pphash<LSPString, config::param_t> *params);
                 status_t        get_user_config_path(io::Path *path);
                 status_t        get_user_presets_path(io::Path *path);
+                status_t        get_plugin_presets_path(io::Path *path);
                 static void     drop_parameters(lltl::pphash<LSPString, config::param_t> *params);
                 void            get_bundle_version_key(LSPString *key);
                 void            get_bundle_scaling_key(LSPString *key);
@@ -170,6 +171,8 @@ namespace lsp
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
                 void            position_updated(const plug::position_t *pos);
+                static status_t allocate_temp_file(io::Path *dst, const io::Path *src);
+                preset_t       *find_user_preset(const LSPString *name);
 
             protected:
                 virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
@@ -538,7 +541,7 @@ namespace lsp
                  * @param preset_id preset identifier, negative value for deselection of any preset
                  * @return status of operation
                  */
-                virtual status_t                select_active_preset(ssize_t preset_id);
+                virtual status_t                select_active_preset(const preset_t *preset);
 
                 /**
                  * Get active preset
@@ -577,16 +580,16 @@ namespace lsp
 
                 /**
                  * Mark preset as favourite
-                 * @param preset_id preset identifier
+                 * @param preset preset to mark
                  * @param favourite favourite flag
                  */
-                status_t                        mark_preset_favourite(size_t preset_id, bool favourite);
+                status_t                        mark_preset_favourite(const preset_t *preset, bool favourite);
 
                 /**
                  * Remove user preset
                  * @param preset_id preset identifier
                  */
-                status_t                        remove_preset(size_t preset_id);
+                status_t                        remove_preset(const preset_t *preset);
 
                 /**
                  * Save current state to the selected user preset and switch to it
