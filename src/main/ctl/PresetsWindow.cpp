@@ -199,6 +199,7 @@ namespace lsp
             {
                 const char *list_id = preset_lists_ids[i];
                 bind_slot(list_id, tk::SLOT_SUBMIT, slot_preset_select);
+                bind_slot(list_id, tk::SLOT_CHANGE, slot_preset_select);
             }
 
             pWrapper->add_preset_listener(this);
@@ -588,6 +589,7 @@ namespace lsp
         status_t PresetsWindow::reset_settings()
         {
             pWrapper->reset_settings();
+            pWrapper->select_active_preset(NULL);
             return STATUS_OK;
         }
 

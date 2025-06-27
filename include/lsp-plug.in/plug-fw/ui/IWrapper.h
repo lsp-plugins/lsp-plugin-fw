@@ -86,14 +86,9 @@ namespace lsp
                     F_QUIT              = 1 << 0,       // Quit main loop flag
                     F_CONFIG_DIRTY      = 1 << 1,       // The configuration needs to be saved
                     F_CONFIG_LOCK       = 1 << 2,       // The configuration file is locked for update
-                };
-
-                enum preset_flags_t
-                {
-                    PF_NONE             = 0,
-                    PF_DIRTY            = 1 << 0,       // Active preset is dirty
-                    PF_SYNC_FAVOURITES  = 1 << 1,       // List of favourites needs to be synchronized with disk
-                    PF_SYNC_STATE       = 1 << 2,       // Preset manager state needs to be transmitted to backend
+                    F_PRESET_SYNC       = 1 << 3,       // New preset has been selected and we need to synchronize state
+                    F_PRESET_DIRTY      = 1 << 4,       // Active preset is dirty
+                    F_FAVOURITES_DIRTY  = 1 << 5,       // List of favourites had been updated
                 };
 
             protected:
@@ -107,7 +102,6 @@ namespace lsp
                 wssize_t                        nPlayLength;        // Overall playback file length in samples
                 ssize_t                         nActivePreset;      // Active preset
                 preset_tab_t                    enPresetTab;        // Active preset tab
-                uint32_t                        nPresetFlags;       // Preset management flags
                 expr::Variables                 sGlobalVars;        // Global variables
                 plug::position_t                sPosition;          // Melodic position
 
@@ -166,6 +160,7 @@ namespace lsp
                 void            scan_factory_presets(lltl::darray<preset_t> *list);
                 void            scan_user_presets(lltl::darray<preset_t> *list);
                 void            scan_favourite_presets(lltl::darray<preset_t> *list);
+                status_t        save_favourites(const io::Path *path);
                 void            select_presets(lltl::darray<preset_t> *list, const preset_t *active);
 
             protected:

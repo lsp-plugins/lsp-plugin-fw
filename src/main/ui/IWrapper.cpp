@@ -36,6 +36,7 @@
 #include <lsp-plug.in/dsp-units/units.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
 #include <lsp-plug.in/fmt/json/dom.h>
+#include <lsp-plug.in/fmt/json/Serializer.h>
 #include <lsp-plug.in/runtime/system.h>
 
 #include <private/ui/xml/Handler.h>
@@ -150,6 +151,32 @@ namespace lsp
             }
         }
 
+        static status_t save_favourites_list(json::Serializer & json, const char *key, lltl::darray<preset_t> *list, size_t flags)
+        {
+            flags |= ui::PRESET_FLAG_FAVOURITE;
+
+            status_t res = json.write_property(key);
+            if (res != STATUS_OK)
+                return res;
+            if ((res = json.start_array()) != STATUS_OK)
+                return res;
+            {
+                for (size_t i=0, n=list->size(); i<n; ++i)
+                {
+                    const preset_t *preset = list->uget(i);
+                    if (preset == NULL)
+                        continue;
+                    if ((preset->flags & (ui::PRESET_FLAG_FAVOURITE | ui::PRESET_FLAG_USER)) != flags)
+                        continue;
+
+                    if ((res = json.write_string(&preset->name)) != STATUS_OK)
+                        return res;
+                }
+            }
+
+            return json.end_array();
+        }
+
         IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
         {
             pDisplay        = NULL;
@@ -162,7 +189,6 @@ namespace lsp
             nPlayLength     = 0;
             nActivePreset   = -1;
             enPresetTab     = PRESET_TAB_ALL;
-            nPresetFlags    = PF_NONE;
 
             plug::position_t::init(&sPosition);
         }
@@ -751,9 +777,7 @@ namespace lsp
             {
                 // Save global configuration
                 io::Path path;
-                status_t res = system::get_user_config_path(&path);
-                if (res == STATUS_OK)
-                    res = path.append_child("lsp-plugins");
+                status_t res = get_user_config_path(&path);
                 if (res == STATUS_OK)
                     res = path.mkdir(true);
                 if (res == STATUS_OK)
@@ -765,6 +789,24 @@ namespace lsp
 
                 // Reset flags
                 nFlags     &= ~F_CONFIG_DIRTY;
+            }
+
+            if (nFlags & F_FAVOURITES_DIRTY)
+            {
+                // Save favourites list
+                io::Path path;
+                status_t res = get_plugin_presets_path(&path);
+                if (res == STATUS_OK)
+                    res = path.mkdir(true);
+                if (res == STATUS_OK)
+                    res = path.append_child("favourites.json");
+                if (res == STATUS_OK)
+                    res = save_favourites(&path);
+
+                lsp_trace("Save favourites to %s: result=%d", path.as_native(), int(res));
+
+                // Reset flags
+                nFlags     &= ~F_FAVOURITES_DIRTY;
             }
         }
 
@@ -2331,7 +2373,7 @@ namespace lsp
 
         status_t IWrapper::select_active_preset(const preset_t *preset)
         {
-            ssize_t preset_id = vPresets.index_of(preset);
+            const ssize_t preset_id = vPresets.index_of(preset);
             if ((preset_id < 0) && (nActivePreset < 0))
                 return STATUS_OK;
 
@@ -2341,11 +2383,19 @@ namespace lsp
             if (pold == pnew)
                 return STATUS_OK;
 
+            // Import preset settings
+            status_t res        = STATUS_OK;
+            if (preset != NULL)
+            {
+                const size_t flags  = (preset->flags & ui::PRESET_FLAG_PATCH) ? IMPORT_FLAG_PATCH : IMPORT_FLAG_PRESET;
+                res                 = import_settings(&pnew->path, flags);
+            }
+
             nActivePreset       = (pnew != NULL) ? preset_id : -1;
-            nPresetFlags       &= ~PF_DIRTY;
+            nFlags              = (nFlags & ~F_PRESET_DIRTY) | F_PRESET_SYNC;
 
             notify_preset_activated(pnew);
-            return STATUS_OK;
+            return res;
         }
 
         const preset_t *IWrapper::active_preset() const
@@ -2497,7 +2547,7 @@ namespace lsp
 
             // File name format: <config>/presets/<plugin-uid>/favourites.json
             io::Path path;
-            if (get_user_presets_path(&path) != STATUS_OK)
+            if (get_plugin_presets_path(&path) != STATUS_OK)
                 return;
             if (path.append_child("favourites.json") != STATUS_OK)
                 return;
@@ -2516,6 +2566,39 @@ namespace lsp
             json::Array user = config.get("user");
             if (user.valid())
                 mark_presets_as_favourite(list, user, true);
+        }
+
+        status_t IWrapper::save_favourites(const io::Path *path)
+        {
+            json::Serializer json;
+            json::serial_flags_t flags;
+
+            flags.version       = json::JSON_VERSION5;
+            flags.identifiers   = false;
+            flags.ident         = ' ';
+            flags.padding       = 4;
+            flags.separator     = true;
+            flags.multiline     = true;
+
+            status_t res = json.open(path, &flags);
+            if (res != STATUS_OK)
+                return res;
+            lsp_finally {
+                json.close();
+            };
+
+            if ((res = json.start_object()) != STATUS_OK)
+                return res;
+            {
+                if ((res = save_favourites_list(json, "factory", &vPresets, ui::PRESET_FLAG_NONE)) != STATUS_OK)
+                    return res;
+                if ((res = save_favourites_list(json, "user", &vPresets, ui::PRESET_FLAG_USER)) != STATUS_OK)
+                    return res;
+            }
+            if ((res = json.end_object()) != STATUS_OK)
+                return res;
+
+            return STATUS_OK;
         }
 
         void IWrapper::select_presets(lltl::darray<preset_t> *list, const preset_t *active)
@@ -2589,14 +2672,14 @@ namespace lsp
             const preset_t *preset = active_preset();
             if (preset != NULL)
             {
-                nPresetFlags   |= PF_DIRTY;
+                nFlags         |= F_PRESET_DIRTY;
                 notify_presets_updated();
             }
         }
 
         bool IWrapper::active_preset_dirty() const
         {
-            if (!(nPresetFlags & PF_DIRTY))
+            if (!(nFlags & F_PRESET_DIRTY))
                 return false;
             return active_preset() != NULL;
         }
@@ -2624,7 +2707,7 @@ namespace lsp
                 return STATUS_OK;
 
             preset->flags   = new_flags;
-            nPresetFlags   |= PF_SYNC_FAVOURITES; // Favourites list needs to be synchronized
+            nFlags         |= F_FAVOURITES_DIRTY; // Favourites list needs to be synchronized
 
             notify_presets_updated();
 
@@ -2659,12 +2742,12 @@ namespace lsp
 
             // Update related state
             if (flags & PRESET_FLAG_FAVOURITE)
-                nPresetFlags   |= PF_SYNC_FAVOURITES; // Favourites list needs to be synchronized
+                nFlags             |= F_FAVOURITES_DIRTY; // Favourites list needs to be synchronized
 
             if (nActivePreset == ssize_t(preset_id))
             {
                 nActivePreset       = -1;
-                nPresetFlags       |= PF_SYNC_STATE;
+                nFlags             |= F_PRESET_SYNC;
             }
 
             // Notify listeners
@@ -2789,7 +2872,7 @@ namespace lsp
 
             const bool is_favourite = flags & ui::PRESET_FLAG_FAVOURITE;
             if (was_favourite != is_favourite)
-                nPresetFlags   |= PF_SYNC_FAVOURITES;       // Favourites list needs to be synchronized
+                nFlags         |= F_FAVOURITES_DIRTY;       // Favourites list needs to be synchronized
 
             // Sort list of presets
             vPresets.qsort(preset_compare_function);
@@ -2798,7 +2881,7 @@ namespace lsp
                 return STATUS_UNKNOWN_ERR;
 
             nActivePreset   = vPresets.index_of(preset);
-            nPresetFlags   |= PF_SYNC_STATE;
+            nFlags         |= F_PRESET_SYNC;
 
             // Notify listeners about presets change
             notify_presets_updated();
