@@ -589,6 +589,14 @@ namespace lsp
                 status_t                        remove_preset(size_t preset_id);
 
                 /**
+                 * Save current state to the selected user preset and switch to it
+                 * @param name name of the preset
+                 * @param flags preset flags
+                 * @return status of operation
+                 */
+                status_t                        save_preset(const LSPString *name, size_t flags);
+
+                /**
                  * Set current preset tab
                  * @param tab current preset tab
                  */

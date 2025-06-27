@@ -2657,6 +2657,11 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t IWrapper::save_preset(const LSPString *name, size_t flags)
+        {
+            return STATUS_OK;
+        }
+
     } /* namespace ui */
 } /* namespace lsp */
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 июн. 2021 г.
@@ -43,27 +43,27 @@ namespace lsp
                 tk::Registry            sWidgets;
                 ctl::LCString           sTitle;
 
+            protected:
+                tk::handler_id_t        bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
+                tk::handler_id_t        bind_shortcut(tk::Window *wnd, ws::code_t key, size_t mod, tk::event_handler_t handler);
+
             public:
                 explicit Window(ui::IWrapper *src, tk::Window *window);
-                virtual ~Window();
+                virtual ~Window() override;
 
-                virtual status_t        init();
-                virtual void            destroy();
+                virtual status_t        init() override;
+                virtual void            destroy() override;
 
             public:
                 inline ctl::Registry   *controllers()   { return &sControllers; }
                 inline tk::Registry    *widgets()       { return &sWidgets;     }
 
-            public:
-                virtual void            begin(ui::UIContext *ctx);
-
-                virtual void            set(ui::UIContext *ctx, const char *name, const char *value);
-
-                virtual status_t        add(ui::UIContext *ctx, ctl::Widget *child);
-
-                virtual void            end(ui::UIContext *ctx);
-
-                virtual void            reloaded(const tk::StyleSheet *sheet);
+            public: // ctl::DOMController
+                virtual void            begin(ui::UIContext *ctx) override;
+                virtual void            set(ui::UIContext *ctx, const char *name, const char *value) override;
+                virtual status_t        add(ui::UIContext *ctx, ctl::Widget *child) override;
+                virtual void            end(ui::UIContext *ctx) override;
+                virtual void            reloaded(const tk::StyleSheet *sheet) override;
         };
     } /* namespace ctl */
 } /* namespace lsp */

@@ -55,6 +55,7 @@
     #include <lsp-plug.in/plug-fw/ctl/Window.h>
     #include <lsp-plug.in/plug-fw/ctl/PresetsWindow.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
+    #include <lsp-plug.in/plug-fw/ctl/SavePresetDialog.h>
 
     #include <lsp-plug.in/plug-fw/ctl/headless/PortLink.h>
 

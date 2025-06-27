@@ -25,6 +25,9 @@
 #include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 
+#include <private/ui/xml/RootNode.h>
+#include <private/ui/xml/Handler.h>
+
 namespace lsp
 {
     namespace ctl
@@ -40,7 +43,6 @@ namespace lsp
 
         static const char *preset_management_buttons[] =
         {
-            "btn_load",
             "btn_save",
             "btn_favourite",
             "btn_remove"
@@ -84,6 +86,7 @@ namespace lsp
             pClass          = &metadata;
 
             pPluginWindow   = pluginWindow;
+            pSavePresetDlg  = NULL;
             wLastActor      = NULL;
             wExport         = NULL;
             wImport         = NULL;
@@ -125,14 +128,6 @@ namespace lsp
                 pConfigSink->unbind();
                 pConfigSink->release();
                 pConfigSink = NULL;
-            }
-
-            // Destroy confirmation dialog
-            if (wWConfirm != NULL)
-            {
-                wWConfirm->destroy();
-                delete wWConfirm;
-                wWConfirm = NULL;
             }
 
             // Clear filters
@@ -191,7 +186,6 @@ namespace lsp
 
             bind_slot("preset_filter", tk::SLOT_CHANGE, slot_preset_filter_changed);
             bind_slot("btn_refresh", tk::SLOT_SUBMIT, slot_refresh_preset_list);
-            bind_slot("btn_load", tk::SLOT_SUBMIT, slot_preset_load_submit);
             bind_slot("btn_save", tk::SLOT_SUBMIT, slot_preset_save_submit);
             bind_slot("btn_favourite", tk::SLOT_SUBMIT, slot_preset_favourite_submit);
             bind_slot("btn_reset", tk::SLOT_SUBMIT, slot_reset_settings);
@@ -217,18 +211,6 @@ namespace lsp
         {
             do_destroy();
             ctl::Window::destroy();
-        }
-
-        void PresetsWindow::bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler)
-        {
-            tk::Widget *w = widgets()->find(widget_id);
-            if (w == NULL)
-            {
-                lsp_warn("Not found widget: ui:id=%s", widget_id);
-                return;
-            }
-
-            w->slots()->bind(id, handler, this);
         }
 
         void PresetsWindow::make_preset_list(preset_list_t *list, const ui::preset_t *presets,
@@ -334,23 +316,7 @@ namespace lsp
 
         void PresetsWindow::sync_preset_button_state(const ui::preset_t *preset)
         {
-            tk::Button *btn = vButtons[BTN_LOAD];
-            if (btn != NULL)
-            {
-                const bool can_load = (preset != NULL);
-                btn->editable()->set(can_load);
-                btn->active()->set(can_load);
-            }
-
-            btn = vButtons[BTN_SAVE];
-            if (btn != NULL)
-            {
-                const bool can_save = (preset != NULL) && (preset->flags & ui::PRESET_FLAG_USER);
-                btn->editable()->set(can_save);
-                btn->active()->set(can_save);
-            }
-
-            btn = vButtons[BTN_FAVOURITE];
+            tk::Button *btn = vButtons[BTN_FAVOURITE];
             if (btn != NULL)
             {
                 const bool can_toggle = preset != NULL;
@@ -424,7 +390,7 @@ namespace lsp
             }
 
             wnd->show();
-            wnd->grab_events(ws::GRAB_DROPDOWN);
+//            wnd->grab_events(ws::GRAB_DROPDOWN);
 
             return STATUS_OK;
         }
@@ -760,15 +726,17 @@ namespace lsp
                 dialog->buttons()->get(0)->constraints()->set_min_width(96);
                 dialog->buttons()->get(1)->constraints()->set_min_width(96);
 
-                tk::Shortcut *scut = NULL;
-                if ((scut = dialog->shortcuts()->append(ws::WSK_ESCAPE, tk::KM_NONE)) != NULL)
-                    scut->slot()->bind(slot_reject_preset_selection, self());
-                if ((scut = dialog->shortcuts()->append(ws::WSK_RETURN, tk::KM_NONE)) != NULL)
-                    scut->slot()->bind(slot_accept_preset_selection, self());
-                if ((scut = dialog->shortcuts()->append(ws::WSK_KEYPAD_ENTER, tk::KM_NONE)) != NULL)
-                    scut->slot()->bind(slot_accept_preset_selection, self());
+                bind_shortcut(dialog, ws::WSK_ESCAPE, tk::KM_NONE, slot_reject_preset_selection);
+                bind_shortcut(dialog, 'n', tk::KM_NONE, slot_reject_preset_selection);
+                bind_shortcut(dialog, 'N', tk::KM_NONE, slot_reject_preset_selection);
+                bind_shortcut(dialog, ws::WSK_RETURN, tk::KM_NONE, slot_accept_preset_selection);
+                bind_shortcut(dialog, ws::WSK_KEYPAD_ENTER, tk::KM_NONE, slot_accept_preset_selection);
+                bind_shortcut(dialog, 'y', tk::KM_NONE, slot_accept_preset_selection);
+                bind_shortcut(dialog, 'Y', tk::KM_NONE, slot_accept_preset_selection);
 
                 // Commit dialog
+                if (!widgets()->add(dialog))
+                    return false;
                 wWConfirm       = release_ptr(dialog);
             }
 
@@ -791,6 +759,7 @@ namespace lsp
         void PresetsWindow::select_active_preset(ssize_t preset_id)
         {
             const ui::preset_t *dirty = (pWrapper->active_preset_dirty()) ? pWrapper->active_preset() : NULL;
+//            const ui::preset_t *dirty = pWrapper->active_preset(); // for tests
 
             // Check that we need to confirm changes
             if ((dirty != NULL) && (preset_id != dirty->preset_id))
@@ -802,6 +771,49 @@ namespace lsp
             }
             else
                 pWrapper->select_active_preset(preset_id);
+        }
+
+        status_t PresetsWindow::create_save_preset_dialog()
+        {
+            if (pSavePresetDlg != NULL)
+                return STATUS_OK;
+
+            status_t res;
+
+            // Create window
+            tk::Window *w = new tk::Window(wWidget->display());
+            if (w == NULL)
+                return STATUS_NO_MEM;
+            widgets()->add(w);
+            w->init();
+
+            // Create controller
+            ctl::SavePresetDialog *wc = new ctl::SavePresetDialog(pWrapper, w);
+            if (wc == NULL)
+                return STATUS_NO_MEM;
+            controllers()->add(wc);
+            wc->init();
+
+            // Initialize context
+            ui::UIContext uctx(pWrapper, wc->controllers(), wc->widgets());
+            if ((res = uctx.init()) != STATUS_OK)
+                return res;
+
+            // Parse the XML document
+            ui::xml::RootNode root(&uctx, "window", wc);
+            ui::xml::Handler handler(pWrapper->resources());
+            if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/save_preset.xml", &root)) != STATUS_OK)
+                return res;
+
+            // Initialize the window
+            if ((res = wc->post_init()) != STATUS_OK)
+                return res;
+
+            pSavePresetDlg      = wc;
+            w->slots()->bind(tk::SLOT_SUBMIT, slot_create_preset_window_closed, self());
+            w->slots()->bind(tk::SLOT_CANCEL, slot_create_preset_window_closed, self());
+
+            return STATUS_OK;
         }
 
         //-----------------------------------------------------------------
@@ -930,19 +942,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PresetsWindow::slot_preset_load_submit(tk::Widget *sender, void *ptr, void *data)
-        {
-            lsp_trace("slot_preset_load_submit");
-
-//            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
-
-            // TODO: Ask for name using prompt dialog
-            // Validate the name
-            // TODO: Save preset to the folder
-
-            return STATUS_OK;
-        }
-
         status_t PresetsWindow::slot_preset_remove_click(tk::Widget *sender, void *ptr, void *data)
         {
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
@@ -964,10 +963,16 @@ namespace lsp
             if (self == NULL)
                 return STATUS_OK;
 
-//            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
-
-            // TODO: Ask for override confirmation
-            // TODO: Update preset in the folder
+            const ui::preset_t *active = self->pWrapper->active_preset();
+            status_t res = self->create_save_preset_dialog();
+            if (res == STATUS_OK)
+            {
+                self->wWidget->hide();
+                self->pSavePresetDlg->show(
+                    self->wLastActor,
+                    (active != NULL) ? &active->name : NULL,
+                    (active != NULL) ? (active->flags & ui::PRESET_FLAG_FAVOURITE) : false);
+            }
 
             return STATUS_OK;
         }
@@ -1108,6 +1113,8 @@ namespace lsp
                 return STATUS_OK;
 
             self->pWrapper->select_active_preset(self->nNewPresetId);
+            if (self->wWConfirm != NULL)
+                self->wWConfirm->hide();
             tk::Window *wnd = tk::widget_cast<tk::Window>(self->wWidget);
             if (wnd != NULL)
                 self->show(self->wLastActor);
@@ -1124,6 +1131,23 @@ namespace lsp
                 return STATUS_OK;
 
             self->preset_activated(self->pWrapper->active_preset());
+            if (self->wWConfirm != NULL)
+                self->wWConfirm->hide();
+            tk::Window *wnd = tk::widget_cast<tk::Window>(self->wWidget);
+            if (wnd != NULL)
+                self->show(self->wLastActor);
+
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_create_preset_window_closed(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("create preset window closed");
+
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
             tk::Window *wnd = tk::widget_cast<tk::Window>(self->wWidget);
             if (wnd != NULL)
                 self->show(self->wLastActor);

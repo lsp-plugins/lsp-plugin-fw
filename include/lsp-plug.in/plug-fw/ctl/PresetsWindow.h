@@ -36,6 +36,7 @@ namespace lsp
     namespace ctl
     {
         class PluginWindow;
+        class SavePresetDialog;
 
         /**
          * The plugin's window controller
@@ -48,7 +49,6 @@ namespace lsp
             protected:
                 enum button_t
                 {
-                    BTN_LOAD,
                     BTN_SAVE,
                     BTN_FAVOURITE,
                     BTN_DELETE,
@@ -80,6 +80,7 @@ namespace lsp
 
             protected:
                 PluginWindow           *pPluginWindow;              // Plugin window
+                SavePresetDialog       *pSavePresetDlg;             // Preset saving dialog
                 tk::Widget             *wLastActor;                 // Last actor
                 tk::FileDialog         *wExport;                    // Export settings dialog
                 tk::FileDialog         *wImport;                    // Import settings dialog
@@ -101,7 +102,6 @@ namespace lsp
             protected:
                 // Slots
                 static status_t     slot_window_close(tk::Widget *sender, void *ptr, void *data);
-                static status_t     slot_preset_load_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_save_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_favourite_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_remove_click(tk::Widget *sender, void *ptr, void *data);
@@ -113,6 +113,7 @@ namespace lsp
                 static status_t     slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_submit_import_settings(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_submit_export_settings(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_create_preset_window_closed(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t     slot_fetch_path(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_commit_path(tk::Widget *sender, void *ptr, void *data);
@@ -130,7 +131,6 @@ namespace lsp
 
             protected:
                 tk::FileFilters    *create_config_filters(tk::FileDialog *dlg);
-                void                bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler);
                 void                make_preset_list(preset_list_t *list, const ui::preset_t *presets, size_t count, ui::preset_filter_t filter, bool indicate);
                 void                sync_preset_button_state();
                 void                sync_preset_button_state(const ui::preset_t *preset);
@@ -140,6 +140,7 @@ namespace lsp
                 bool                has_path_ports();
                 bool                request_change_preset_conrifmation(const ui::preset_t *preset);
                 const ui::preset_t *current_preset();
+                status_t            create_save_preset_dialog();
 
             public:
                 explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow);
