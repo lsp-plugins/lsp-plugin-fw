@@ -39,7 +39,7 @@ namespace lsp
         /**
          * The plugin's window controller
          */
-        class PluginWindow: public ctl::Window
+        class PluginWindow: public ctl::Window, public ui::IPresetListener
         {
             public:
                 static const ctl_class_t metadata;
@@ -161,6 +161,7 @@ namespace lsp
                 static status_t slot_about_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_select_next_preset(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_bundle_scaling_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data);
@@ -273,6 +274,7 @@ namespace lsp
                 void                commit_bool_param(tk::Boolean *value, const char *port_id);
                 void                bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler);
                 bool                open_manual_file(const char *fmt...);
+                void                sync_preset_name();
 
                 void                set_preset_button_text(const char *text);
 
@@ -302,8 +304,13 @@ namespace lsp
                 status_t            show_plugin_manual();
                 status_t            show_ui_manual();
                 void                host_scaling_changed();
+                status_t            post_init();
 
-            public:
+            public: // ui::IPresetListener
+                virtual void        preset_activated(const ui::preset_t *preset);
+                virtual void        presets_updated();
+
+            public: // ctl::DOMController
                 virtual void        begin(ui::UIContext *ctx) override;
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
                 virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child) override;

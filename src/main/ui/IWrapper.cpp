@@ -856,10 +856,10 @@ namespace lsp
                 return res;
 
             // Create window controller
-            pWindow     = new ctl::PluginWindow(this, wWindow);
-            if (pWindow == NULL)
+            ctl::PluginWindow *wnd  = new ctl::PluginWindow(this, wWindow);
+            if (wnd == NULL)
                 return STATUS_NO_MEM;
-            if ((res = pWindow->init()) != STATUS_OK)
+            if ((res = wnd->init()) != STATUS_OK)
                 return res;
 
             // Form the location of the resource
@@ -868,12 +868,12 @@ namespace lsp
                 return STATUS_NO_MEM;
 
             // Create context
-            UIContext ctx(this, pWindow->controllers(), pWindow->widgets());
+            UIContext ctx(this, wnd->controllers(), wnd->widgets());
             if ((res = ctx.init()) != STATUS_OK)
                 return res;
 
             // Parse the XML document
-            xml::RootNode root(&ctx, "plugin", pWindow);
+            xml::RootNode root(&ctx, "plugin", wnd);
             xml::Handler handler(resources());
             if ((res = handler.parse_resource(&xpath, &root)) != STATUS_OK)
                 return res;
@@ -886,11 +886,16 @@ namespace lsp
                 if (ov == NULL)
                     continue;
 
-                if ((res = pWindow->add(&ctx, ov)) != STATUS_OK)
+                if ((res = wnd->add(&ctx, ov)) != STATUS_OK)
                     return res;
             }
 
-            return res;
+            // Call post-initialization
+            if ((res = wnd->post_init()) != STATUS_OK)
+                return res;
+
+            pWindow     = wnd;
+            return STATUS_OK;
         }
 
         status_t IWrapper::export_settings(const char *file, bool relative)

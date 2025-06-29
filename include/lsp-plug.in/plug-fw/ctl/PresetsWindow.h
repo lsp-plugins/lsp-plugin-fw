@@ -169,6 +169,7 @@ namespace lsp
                 status_t            import_settings_from_clipboard();
                 status_t            export_settings_to_clipboard();
                 status_t            reset_settings();
+                void                select_next_preset(bool forward);
         };
 
 

@@ -305,6 +305,16 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::post_init()
+        {
+            // Bind as preset listener to the wrapper
+            pWrapper->add_preset_listener(this);
+            bind_slot("trg_prev_preset", tk::SLOT_SUBMIT, slot_select_next_preset);
+            bind_slot("trg_next_preset", tk::SLOT_SUBMIT, slot_select_next_preset);
+
+            return STATUS_OK;
+        }
+
         i18n::IDictionary  *PluginWindow::get_default_dict(tk::Widget *src)
         {
             i18n::IDictionary *dict = src->display()->dictionary();
@@ -1744,6 +1754,20 @@ namespace lsp
             return __this->show_menu(__this->wPresets, sender, data);
         }
 
+        status_t PluginWindow::slot_select_next_preset(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            if (self->pPresetsWindow == NULL)
+                return STATUS_OK;
+
+            tk::Widget *w = self->widgets()->find("trg_next_preset");
+            self->pPresetsWindow->select_next_preset(sender == w);
+            return STATUS_OK;
+        }
+
         status_t PluginWindow::slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
@@ -2277,6 +2301,60 @@ namespace lsp
             pPresetsWindow  = wc;
 
             return STATUS_OK;
+        }
+
+        void PluginWindow::sync_preset_name()
+        {
+            tk::Widget *w = widgets()->find("trg_presets_menu");
+            if (w == NULL)
+                return;
+
+            tk::String *prop = NULL;
+            // Try to cast to button
+            {
+                tk::Button *btn = tk::widget_cast<tk::Button>(w);
+                if (btn != NULL)
+                    prop        = btn->text();
+            }
+            // Try to cast to label
+            {
+                tk::Label *lbl = tk::widget_cast<tk::Label>(w);
+                if (lbl != NULL)
+                    prop        = lbl->text();
+            }
+            if (prop == NULL)
+                return;
+
+            // Set default label if preset is not selected
+            const ui::preset_t *preset = pWrapper->active_preset();
+            if (preset == NULL)
+            {
+                prop->set("actions.presets.select");
+                return;
+            }
+
+            // Determine how to format the prest name
+            const char *key = "labels.presets.name.normal";
+            const bool changed = pWrapper->active_preset_dirty();
+            if (preset->flags & ui::PRESET_FLAG_USER)
+                key     = (changed) ? "labels.presets.name.user_mod" : "labels.presets.name.user";
+            else
+                key     = (changed) ? "labels.presets.name.factory_mod" : "labels.presets.name.factory";
+
+            // Fill the item
+            expr::Parameters params;
+            params.set_string("name", &preset->name);
+            prop->set(key, &params);
+        }
+
+        void PluginWindow::preset_activated(const ui::preset_t *preset)
+        {
+            sync_preset_name();
+        }
+
+        void PluginWindow::presets_updated()
+        {
+            sync_preset_name();
         }
 
         status_t PluginWindow::slot_scaling_toggle_prefer_host(tk::Widget *sender, void *ptr, void *data)

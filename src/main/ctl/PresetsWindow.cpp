@@ -233,6 +233,9 @@ namespace lsp
                 destroy_preset_list(&tmp);
             };
 
+            const bool active_preset_changed = pWrapper->active_preset_dirty();
+            const ui::preset_t *active = pWrapper->active_preset();
+
             tk::Display *dpy = wWidget->display();
             for (size_t i=0; i<count; ++i)
             {
@@ -258,12 +261,13 @@ namespace lsp
 
                 // Determine how to format the prest name
                 const char *key = "labels.presets.name.normal";
+                const bool changed = (active_preset_changed) && (p == active);
                 if (indicate)
                 {
                     if (p->flags & ui::PRESET_FLAG_USER)
-                        key     = "labels.presets.name.user";
+                        key     = (changed) ? "labels.presets.name.user_mod" : "labels.presets.name.user";
                     else
-                        key     = "labels.presets.name.factory";
+                        key     = (changed) ? "labels.presets.name.factory_mod" : "labels.presets.name.factory";
                 }
 
                 // Fill the item
@@ -818,6 +822,39 @@ namespace lsp
             w->slots()->bind(tk::SLOT_CANCEL, slot_create_preset_window_closed, self());
 
             return STATUS_OK;
+        }
+
+        void PresetsWindow::select_next_preset(bool forward)
+        {
+            // Obtain the current list of presets
+            const ui::preset_tab_t tab  = pWrapper->preset_tab();
+            preset_list_t *list         = (tab < ui::PRESET_TAB_TOTAL) ? &vPresetsLists[tab] : NULL;
+            if (list == NULL)
+                return;
+            const ssize_t num_presets   = list->vPresets.size();
+            if (num_presets <= 0)
+                return;
+
+            // We need to ensure that current preset is in the list
+            const ui::preset_t *preset  = pWrapper->active_preset();
+            ssize_t preset_index        = (preset != NULL) ? list->vPresets.index_of(preset) : -1;
+
+            // Obtain the index of the next preset
+            if (preset_index >= 0)
+            {
+                const ssize_t direction     = (forward) ? 1 : num_presets - 1;
+                preset_index                = (preset_index + direction) % num_presets;
+            }
+            else
+                preset_index                = 0;
+
+            // Obtain new preset
+            preset                      = list->vPresets.get(preset_index);
+            if (preset == NULL)
+                return;
+
+            // Select new active preset
+            pWrapper->select_active_preset(preset);
         }
 
         //-----------------------------------------------------------------
