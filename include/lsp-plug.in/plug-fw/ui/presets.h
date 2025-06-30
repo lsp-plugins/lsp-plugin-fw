@@ -61,30 +61,6 @@ namespace lsp
 
         typedef bool (*preset_filter_t)(const ui::preset_t *preset);
 
-        class IPresetListener
-        {
-            public:
-                IPresetListener();
-                IPresetListener(const IPresetListener &) = delete;
-                IPresetListener(IPresetListener &&) = delete;
-                virtual ~IPresetListener();
-
-                IPresetListener & operator = (const IPresetListener &) = delete;
-                IPresetListener & operator = (IPresetListener &&) = delete;
-
-            public:
-                /**
-                 * Handle event when preset has been activated
-                 * @param preset activated preset
-                 */
-                virtual void    preset_activated(const preset_t *preset);
-
-                /**
-                 * Handle event when the whole list of presets has been updated
-                 */
-                virtual void    presets_updated();
-        };
-
         ssize_t preset_compare_function(const preset_t *a, const preset_t *b);
 
         bool is_any_preset(const ui::preset_t *preset);

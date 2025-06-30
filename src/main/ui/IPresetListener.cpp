@@ -3,7 +3,7 @@
  *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 24 июн. 2025 г.
+ * Created on: 30 июн. 2025 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -25,33 +25,20 @@ namespace lsp
 {
     namespace ui
     {
-        ssize_t preset_compare_function(const preset_t *a, const preset_t *b)
+        IPresetListener::IPresetListener()
         {
-            ssize_t result = a->name.compare_to_nocase(&b->name);
-            if (result != 0)
-                return result;
-
-            return ssize_t(a->flags & PRESET_FLAG_USER) - ssize_t(b->flags & PRESET_FLAG_USER);
         }
 
-        bool is_any_preset(const ui::preset_t *preset)
+        IPresetListener::~IPresetListener()
         {
-            return true;
         }
 
-        bool is_factory_preset(const ui::preset_t *preset)
+        void IPresetListener::preset_activated(const preset_t *preset)
         {
-            return !(preset->flags & ui::PRESET_FLAG_USER);
         }
 
-        bool is_user_preset(const ui::preset_t *preset)
+        void IPresetListener::presets_updated()
         {
-            return preset->flags & ui::PRESET_FLAG_USER;
-        }
-
-        bool is_favourite_preset(const ui::preset_t *preset)
-        {
-            return preset->flags & ui::PRESET_FLAG_FAVOURITE;
         }
 
     } /* namespace ui */

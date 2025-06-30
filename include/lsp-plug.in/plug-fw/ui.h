@@ -29,6 +29,8 @@
     #include <lsp-plug.in/plug-fw/ui/const.h>
     #include <lsp-plug.in/plug-fw/ui/presets.h>
 
+    #include <lsp-plug.in/plug-fw/ui/IPresetListener.h>
+    #include <lsp-plug.in/plug-fw/ui/IPresetManager.h>
     #include <lsp-plug.in/plug-fw/ui/IPort.h>
     #include <lsp-plug.in/plug-fw/ui/IPortListener.h>
     #include <lsp-plug.in/plug-fw/ui/IWrapper.h>

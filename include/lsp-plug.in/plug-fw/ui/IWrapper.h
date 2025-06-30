@@ -44,6 +44,8 @@
 #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
 #include <lsp-plug.in/plug-fw/ui/ValuePort.h>
 #include <lsp-plug.in/plug-fw/ui/IKVTListener.h>
+#include <lsp-plug.in/plug-fw/ui/IPresetManager.h>
+#include <lsp-plug.in/plug-fw/ui/IPresetListener.h>
 #include <lsp-plug.in/plug-fw/ui/presets.h>
 #include <lsp-plug.in/fmt/config/PullParser.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
@@ -72,7 +74,7 @@ namespace lsp
         /**
          * UI wrapper
          */
-        class IWrapper
+        class IWrapper: public IPresetManager
         {
             private:
                 friend class ControlPort;
@@ -516,6 +518,9 @@ namespace lsp
                  */
                 const char                     *graphics_backend() const;
 
+            public: // ui::IPresetManager
+                virtual void                    mark_active_preset_dirty() override;
+
             public: // Preset management
                 /**
                  * Add preset listener
@@ -543,11 +548,6 @@ namespace lsp
                  * @return active preset
                  */
                 const preset_t                 *active_preset() const;
-
-                /**
-                 * Mark active preset dirty
-                 */
-                void                            mark_active_preset_dirty();
 
                 /**
                  * Check that active preset is dirty
