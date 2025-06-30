@@ -138,6 +138,7 @@ namespace lsp
                 status_t                            play_file(const char *file, wsize_t position, bool release);
                 vst3::CtlPort                      *port_by_id(const char *id);
                 void                                dump_state_request();
+                void                                notify_preset_changed();
                 const core::ShmState               *shm_state();
 
         #ifdef WITH_UI_FEATURE

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 6 февр. 2024 г.
@@ -1741,6 +1741,23 @@ namespace lsp
             pPeerConnection->notify(msg);
         }
 
+        void Controller::notify_preset_changed()
+        {
+        #ifdef WITH_UI_FEATURE
+            // Notify UI about preset change
+            if (sWrappersLock.lock())
+            {
+                lsp_finally { sWrappersLock.unlock(); };
+                for (lltl::iterator<UIWrapper> it = vWrappers.values(); it; ++it)
+                {
+                    UIWrapper *w = it.get();
+                    if (w != NULL)
+                        w->mark_active_preset_dirty();
+                }
+            }
+        #endif /* WITH_UI_FEATURE */
+        }
+
         const core::ShmState *Controller::shm_state()
         {
             return sShmState.get();
@@ -1839,6 +1856,7 @@ namespace lsp
 
                 // Finally, we're ready to send message
                 pPeerConnection->notify(msg);
+                notify_preset_changed();
             }
             else if (meta::is_string_holding_port(meta))
             {
@@ -1871,6 +1889,7 @@ namespace lsp
 
                 // Finally, we're ready to send message
                 pPeerConnection->notify(msg);
+                notify_preset_changed();
             }
             else
             {
@@ -1906,6 +1925,7 @@ namespace lsp
 
                     // Finally, we're ready to send message
                     pPeerConnection->notify(msg);
+                    notify_preset_changed();
                 }
                 else
                 {
@@ -1917,6 +1937,7 @@ namespace lsp
                     pComponentHandler->beginEdit(param_id);
                     pComponentHandler->performEdit(param_id, valueNormalized);
                     pComponentHandler->endEdit(param_id);
+                    notify_preset_changed();
                 }
             }
         }
