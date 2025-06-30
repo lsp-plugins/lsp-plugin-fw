@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins-comp-delay
  * Created on: 5 янв. 2023 г.
@@ -304,40 +304,44 @@ namespace lsp
 
                 case meta::R_PATH:
                     lsp_trace("creating path port %s", port->id);
-                    cup = new clap::UIPathPort(cp);
+                    cup = new clap::UIPathPort(cp, this);
                     break;
 
                 case meta::R_STRING:
                     lsp_trace("creating string port %s", port->id);
-                    cup = new clap::UIStringPort(cp);
+                    cup = new clap::UIStringPort(cp, this);
                     break;
 
                 case meta::R_SEND_NAME:
                     lsp_trace("creating send name port %s", port->id);
-                    cup = new clap::UIStringPort(cp);
+                    cup = new clap::UIStringPort(cp, this);
                     break;
 
                 case meta::R_RETURN_NAME:
                     lsp_trace("creating return name port %s", port->id);
-                    cup = new clap::UIStringPort(cp);
+                    cup = new clap::UIStringPort(cp, this);
                     break;
 
                 case meta::R_CONTROL:
-                case meta::R_METER:
+                    lsp_trace("creating parameter port %s", port->id);
+                    cup     = new clap::UIParameterPort(static_cast<clap::ParameterPort *>(cp), &bRequestProcess, this);
+                    break;
+
                 case meta::R_BYPASS:
-                    lsp_trace("creating regular port %s", port->id);
-                    // VST specifies only INPUT parameters, output should be read in different way
-                    if (meta::is_out_port(port))
-                        cup     = new clap::UIMeterPort(cp);
-                    else
-                        cup     = new clap::UIParameterPort(static_cast<clap::ParameterPort *>(cp), &bRequestProcess);
+                    lsp_trace("creating bypass port %s", port->id);
+                    cup     = new clap::UIParameterPort(static_cast<clap::ParameterPort *>(cp), &bRequestProcess, NULL);
+                    break;
+
+                case meta::R_METER:
+                    lsp_trace("creating meter port %s", port->id);
+                    cup     = new clap::UIMeterPort(cp);
                     break;
 
                 case meta::R_PORT_SET:
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES], param_name[MAX_PARAM_ID_BYTES];
                     lsp_trace("creating port group %s", port->id);
-                    UIPortGroup *upg = new clap::UIPortGroup(static_cast<clap::PortGroup *>(cp), &bRequestProcess);
+                    UIPortGroup *upg = new clap::UIPortGroup(static_cast<clap::PortGroup *>(cp), &bRequestProcess, this);
 
                     // Add immediately port group to list
                     vPorts.add(upg);
