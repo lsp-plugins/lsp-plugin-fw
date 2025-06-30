@@ -272,8 +272,11 @@ namespace lsp
                     break;
 
                 case meta::R_CONTROL:
-                case meta::R_BYPASS:
                     jup     = new jack::UIControlPort(jp, this);
+                    break;
+
+                case meta::R_BYPASS:
+                    jup     = new jack::UIControlPort(jp, NULL);
                     break;
 
                 case meta::R_METER:

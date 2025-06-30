@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 29 янв. 2021 г.
@@ -96,7 +96,11 @@ namespace lsp
 
                 virtual void set_value(float value) override
                 {
-                    fValue  = meta::limit_value(pMetadata, value);
+                    value = meta::limit_value(pMetadata, value);
+                    if (value == fValue)
+                        return;
+
+                    fValue  = value;
                     pPort->commit_value(fValue);
                     if (pManager != NULL)
                         pManager->mark_active_preset_dirty();
@@ -104,13 +108,10 @@ namespace lsp
 
                 virtual void write(const void *buffer, size_t size) override
                 {
-                    if (size == sizeof(float))
-                    {
-                        fValue  = *static_cast<const float *>(buffer);
-                        pPort->commit_value(fValue);
-                        if (pManager != NULL)
-                            pManager->mark_active_preset_dirty();
-                    }
+                    if (size != sizeof(float))
+                        return;
+
+                    set_value(*static_cast<const float *>(buffer));
                 }
         };
 
