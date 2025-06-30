@@ -50,6 +50,12 @@ namespace lsp
 
             public:
                 /**
+                 * Handle event when preset has been deactivated
+                 * @param preset deactivated preset
+                 */
+                virtual void    preset_deactivated(const preset_t *preset);
+
+                /**
                  * Handle event when preset has been activated
                  * @param preset activated preset
                  */

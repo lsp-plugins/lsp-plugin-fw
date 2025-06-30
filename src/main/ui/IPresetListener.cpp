@@ -37,6 +37,10 @@ namespace lsp
         {
         }
 
+        void IPresetListener::preset_deactivated(const preset_t *preset)
+        {
+        }
+
         void IPresetListener::presets_updated()
         {
         }

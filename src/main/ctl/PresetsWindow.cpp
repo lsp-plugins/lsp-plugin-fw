@@ -48,6 +48,14 @@ namespace lsp
             "btn_remove"
         };
 
+        static const ui::preset_filter_t preset_filters[] =
+        {
+            ui::is_any_preset,
+            ui::is_factory_preset,
+            ui::is_user_preset,
+            ui::is_favourite_preset,
+        };
+
         static const tk::tether_t presets_tether[] =
         {
             { tk::TF_BOTTOM | tk::TF_LEFT,      1.0f,  1.0f },
@@ -101,6 +109,7 @@ namespace lsp
             for (size_t i=0; i<BTN_TOTAL; ++i)
                 vButtons[i]     = NULL;
             wWConfirm       = NULL;
+            bWasVisible     = false;
 
             pConfigSink     = NULL;
 
@@ -214,6 +223,21 @@ namespace lsp
             ctl::Window::destroy();
         }
 
+        bool PresetsWindow::need_indication(size_t i)
+        {
+            switch (i)
+            {
+                case ui::PRESET_TAB_ALL:
+                case ui::PRESET_TAB_FAVOURITES:
+                    return true;
+                case ui::PRESET_TAB_USER:
+                case ui::PRESET_TAB_FACTORY:
+                default:
+                    break;
+            }
+            return false;
+        }
+
         void PresetsWindow::make_preset_list(preset_list_t *list, const ui::preset_t *presets,
             size_t count, ui::preset_filter_t filter, bool indicate)
         {
@@ -232,9 +256,6 @@ namespace lsp
             lsp_finally {
                 destroy_preset_list(&tmp);
             };
-
-            const bool active_preset_changed = pWrapper->active_preset_dirty();
-            const ui::preset_t *active = pWrapper->active_preset();
 
             tk::Display *dpy = wWidget->display();
             for (size_t i=0; i<count; ++i)
@@ -259,21 +280,8 @@ namespace lsp
                 if ((res = item->init()) != STATUS_OK)
                     continue;
 
-                // Determine how to format the prest name
-                const char *key = "labels.presets.name.normal";
-                const bool changed = (active_preset_changed) && (p == active);
-                if (indicate)
-                {
-                    if (p->flags & ui::PRESET_FLAG_USER)
-                        key     = (changed) ? "labels.presets.name.user_mod" : "labels.presets.name.user";
-                    else
-                        key     = (changed) ? "labels.presets.name.factory_mod" : "labels.presets.name.factory";
-                }
-
-                // Fill the item
-                expr::Parameters params;
-                params.set_string("name", &p->name);
-                item->text()->set(key, &params);
+                // Set name
+                sync_preset_name(item, p, indicate);
 
                 // Add item to preset list
                 if (!tmp.vPresets.add(const_cast<ui::preset_t *>(p)))
@@ -633,8 +641,32 @@ namespace lsp
             }
         }
 
-        void PresetsWindow::preset_activated(const ui::preset_t *preset)
+        void PresetsWindow::sync_preset_name(tk::ListBoxItem *item, const ui::preset_t *preset, bool indicate)
         {
+            // Determine how to format the prest name
+            const ui::preset_t *active = pWrapper->active_preset();
+            const char *key     = "labels.presets.name.normal";
+            const bool changed  = (preset == active) && (pWrapper->active_preset_dirty());
+            if (indicate)
+            {
+                if (preset->flags & ui::PRESET_FLAG_USER)
+                    key     = (changed) ? "labels.presets.name.user_mod" : "labels.presets.name.user";
+                else
+                    key     = (changed) ? "labels.presets.name.factory_mod" : "labels.presets.name.factory";
+            }
+
+            // Fill the item
+            expr::Parameters params;
+            params.set_string("name", &preset->name);
+            item->text()->set(key, &params);
+
+            lsp_trace("set name for preset %s to %s", preset->name.get_utf8(), key);
+        }
+
+        void PresetsWindow::preset_deactivated(const ui::preset_t *preset)
+        {
+            lsp_trace("preset deactivated: %s", preset->name.get_utf8());
+
             // Set selection for each list
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
             {
@@ -643,26 +675,47 @@ namespace lsp
                 if (lbox == NULL)
                     continue;
 
+                lbox->selected()->clear();
                 const ssize_t index = list->vPresets.index_of(preset);
                 if (index < 0)
-                {
-                    lbox->selected()->clear();
                     continue;
-                }
 
                 // Synchronize state
-                tk::ListBoxItem *selection = list->vItems.get(index);
-                if ((selection == NULL) || (!selection->visibility()->get()))
-                {
-                    lbox->selected()->clear();
-                    continue;
-                }
+                tk::ListBoxItem *item = list->vItems.get(index);
+                if (item != NULL)
+                    sync_preset_name(item, preset, need_indication(i));
+            }
 
-                if (!lbox->selected()->contains(selection))
-                {
-                    lbox->selected()->clear();
-                    lbox->selected()->add(selection);
-                }
+            sync_preset_button_state(preset);
+        }
+
+        void PresetsWindow::preset_activated(const ui::preset_t *preset)
+        {
+            lsp_trace("preset activated: %s", preset->name.get_utf8());
+
+            // Set selection for each list
+            for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
+            {
+                preset_list_t *list = &vPresetsLists[i];
+                tk::ListBox *lbox   = list->wList;
+                if (lbox == NULL)
+                    continue;
+
+                lbox->selected()->clear();
+                const ssize_t index = list->vPresets.index_of(preset);
+                if (index < 0)
+                    continue;
+
+                // Synchronize state
+                tk::ListBoxItem *item = list->vItems.get(index);
+                if (item == NULL)
+                    continue;
+
+                sync_preset_name(item, preset, need_indication(i));
+                if (!item->visibility()->get())
+                    continue;
+
+                lbox->selected()->add(item);
             }
 
             sync_preset_button_state(preset);
@@ -675,26 +728,12 @@ namespace lsp
             const ui::preset_t *presets = pWrapper->all_presets();
             const size_t count = pWrapper->num_presets();
 
-            make_preset_list(
-                &vPresetsLists[ui::PRESET_TAB_ALL],
-                presets, count,
-                ui::is_any_preset,
-                true);
-            make_preset_list(
-                &vPresetsLists[ui::PRESET_TAB_FACTORY],
-                presets, count,
-                ui::is_factory_preset,
-                false);
-            make_preset_list(
-                &vPresetsLists[ui::PRESET_TAB_USER],
-                presets, count,
-                ui::is_user_preset,
-                false);
-            make_preset_list(
-                &vPresetsLists[ui::PRESET_TAB_FAVOURITES],
-                presets, count,
-                ui::is_favourite_preset,
-                true);
+            for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
+                make_preset_list(
+                    &vPresetsLists[i],
+                    presets, count,
+                    preset_filters[i],
+                    need_indication(i));
 
             sync_preset_lists();
             sync_preset_button_state();
@@ -755,7 +794,9 @@ namespace lsp
                 &params);
 
             // Hide self and show the nested window
-            hide();
+            bWasVisible     = wWidget->visibility()->get();
+            if (bWasVisible)
+                hide();
             wWConfirm->show(wLastActor);
 
             return true;
@@ -764,7 +805,6 @@ namespace lsp
         void PresetsWindow::select_active_preset(const ui::preset_t *preset)
         {
             const ui::preset_t *dirty = (pWrapper->active_preset_dirty()) ? pWrapper->active_preset() : NULL;
-//            const ui::preset_t *dirty = pWrapper->active_preset(); // for tests
 
             // Check that we need to confirm changes
             if ((dirty != NULL) && (dirty != preset))
@@ -854,7 +894,7 @@ namespace lsp
                 return;
 
             // Select new active preset
-            pWrapper->select_active_preset(preset);
+            select_active_preset(preset);
         }
 
         //-----------------------------------------------------------------
@@ -1158,8 +1198,11 @@ namespace lsp
             if (self->wWConfirm != NULL)
                 self->wWConfirm->hide();
             tk::Window *wnd = tk::widget_cast<tk::Window>(self->wWidget);
-            if (wnd != NULL)
+            if ((wnd != NULL) && (self->bWasVisible))
+            {
+                self->bWasVisible = false;
                 self->show(self->wLastActor);
+            }
 
             return STATUS_OK;
         }
@@ -1176,8 +1219,11 @@ namespace lsp
             if (self->wWConfirm != NULL)
                 self->wWConfirm->hide();
             tk::Window *wnd = tk::widget_cast<tk::Window>(self->wWidget);
-            if (wnd != NULL)
+            if ((wnd != NULL) && (self->bWasVisible))
+            {
+                self->bWasVisible = false;
                 self->show(self->wLastActor);
+            }
 
             return STATUS_OK;
         }

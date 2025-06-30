@@ -87,7 +87,8 @@ namespace lsp
                 tk::CheckBox           *wRelPaths;                  // Relative path checkbox
                 tk::Edit               *wPresetPattern;             // Preset pattern
                 tk::Button             *vButtons[BTN_TOTAL];        // Preset management buttons
-                tk::MessageBox         *wWConfirm;
+                tk::MessageBox         *wWConfirm;                  // Confirmation meessage box
+                bool                    bWasVisible;                // Visibility flag
 
                 preset_list_t           vPresetsLists[ui::PRESET_TAB_TOTAL];
                 ConfigSink             *pConfigSink;                // Configuration sink
@@ -128,6 +129,7 @@ namespace lsp
 
             protected:
                 static void         destroy_preset_list(preset_list_t *list);
+                static inline bool  need_indication(size_t i);
 
             protected:
                 tk::FileFilters    *create_config_filters(tk::FileDialog *dlg);
@@ -141,6 +143,7 @@ namespace lsp
                 bool                request_change_preset_conrifmation(const ui::preset_t *preset);
                 const ui::preset_t *current_preset();
                 status_t            create_save_preset_dialog();
+                void                sync_preset_name(tk::ListBoxItem *item, const ui::preset_t *preset, bool indicate);
 
             public:
                 explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow);
@@ -156,6 +159,7 @@ namespace lsp
 
             public: // ui::IPresetListener
                 virtual void        preset_activated(const ui::preset_t *preset) override;
+                virtual void        preset_deactivated(const ui::preset_t *preset) override;
                 virtual void        presets_updated() override;
 
             public:

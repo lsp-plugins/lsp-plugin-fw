@@ -174,6 +174,7 @@ namespace lsp
             protected:
                 virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
                 virtual void    notify_presets_updated();
+                virtual void    notify_preset_deactivated(const preset_t *preset);
                 virtual void    notify_preset_activated(const preset_t *preset);
 
             public:

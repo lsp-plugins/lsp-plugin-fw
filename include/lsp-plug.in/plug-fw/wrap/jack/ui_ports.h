@@ -67,12 +67,14 @@ namespace lsp
         class UIControlPort: public UIPort
         {
             protected:
-                float           fValue;
+                float                   fValue;
+                ui::IPresetManager     *pManager;
 
             public:
-                explicit UIControlPort(jack::Port *port): UIPort(port)
+                explicit UIControlPort(jack::Port *port, ui::IPresetManager *manager): UIPort(port)
                 {
                     fValue      = port->value();
+                    pManager    = manager;
                 }
 
                 UIControlPort(const UIControlPort &) = delete;
@@ -96,6 +98,8 @@ namespace lsp
                 {
                     fValue  = meta::limit_value(pMetadata, value);
                     pPort->commit_value(fValue);
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual void write(const void *buffer, size_t size) override
@@ -104,6 +108,8 @@ namespace lsp
                     {
                         fValue  = *static_cast<const float *>(buffer);
                         pPort->commit_value(fValue);
+                        if (pManager != NULL)
+                            pManager->mark_active_preset_dirty();
                     }
                 }
         };
@@ -114,7 +120,7 @@ namespace lsp
                 jack::PortGroup        *pPG;
 
             public:
-                explicit UIPortGroup(jack::PortGroup *port) : UIControlPort(port)
+                explicit UIPortGroup(jack::PortGroup *port, ui::IPresetManager *manager) : UIControlPort(port, manager)
                 {
                     pPG                 = port;
                 }
@@ -404,12 +410,15 @@ namespace lsp
         class UIPathPort: public UIPort
         {
             private:
-                jack::path_t   *pPath;
-                char            sPath[PATH_MAX];
+                ui::IPresetManager *pManager;
+                jack::path_t       *pPath;
+                char                sPath[PATH_MAX];
 
             public:
-                explicit UIPathPort(jack::Port *port): UIPort(port)
+                explicit UIPathPort(jack::Port *port, ui::IPresetManager *manager): UIPort(port)
                 {
+                    pManager                = manager;
+
                     plug::path_t *path      = pPort->buffer<plug::path_t>();
                     pPath                   = (path != NULL) ? static_cast<jack::path_t *>(path) : NULL;
                     sPath[0]                = '\0';
@@ -444,6 +453,9 @@ namespace lsp
                     ::memcpy(sPath, buffer, size);
                     sPath[size] = '\0';
 
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
+
                     // Submit path string to DSP
                     if (pPath != NULL)
                         pPath->submit(sPath, flags);
@@ -458,13 +470,16 @@ namespace lsp
         class UIStringPort: public UIPort
         {
             private:
+                ui::IPresetManager *pManager;
                 plug::string_t     *pValue;
                 char               *pData;
                 uint32_t            nSerial;
 
             public:
-                explicit UIStringPort(jack::Port *port): UIPort(port)
+                explicit UIStringPort(jack::Port *port, ui::IPresetManager *manager): UIPort(port)
                 {
+                    pManager                = manager;
+
                     jack::StringPort *sp    = static_cast<jack::StringPort *>(port);
                     pValue                  = sp->data();
                     pData                   = (pValue != NULL) ? reinterpret_cast<char *>(malloc(pValue->max_bytes() + 1)) : NULL;
@@ -509,6 +524,9 @@ namespace lsp
                     const size_t count = lsp_min(size, pValue->nCapacity);
                     plug::utf8_strncpy(pData, count, buffer, size);
                     nSerial = pValue->submit(buffer, size, flags & plug::PF_STATE_RESTORE);
+
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual void set_default() override
@@ -521,6 +539,9 @@ namespace lsp
 
                     plug::utf8_strncpy(pData, pValue->nCapacity, text);
                     write(pData, strlen(pData), plug::PF_PRESET_IMPORT);
+
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual bool sync() override

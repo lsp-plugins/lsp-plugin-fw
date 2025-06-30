@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 янв. 2022 г.
@@ -261,19 +261,19 @@ namespace lsp
                     break;
 
                 case meta::R_PATH:
-                    jup     = new jack::UIPathPort(jp);
+                    jup     = new jack::UIPathPort(jp, this);
                     break;
 
                 case meta::R_STRING:
                 case meta::R_SEND_NAME:
                 case meta::R_RETURN_NAME:
-                    jup     = new jack::UIStringPort(jp);
+                    jup     = new jack::UIStringPort(jp, this);
                     vSyncPorts.add(jup);
                     break;
 
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
-                    jup     = new jack::UIControlPort(jp);
+                    jup     = new jack::UIControlPort(jp, this);
                     break;
 
                 case meta::R_METER:
@@ -285,7 +285,7 @@ namespace lsp
                 {
                     LSPString postfix_str;
                     jack::PortGroup *pg     = static_cast<jack::PortGroup *>(jp);
-                    jack::UIPortGroup *upg  = new jack::UIPortGroup(pg);
+                    jack::UIPortGroup *upg  = new jack::UIPortGroup(pg, this);
                     vPorts.add(upg);
 
                     for (size_t row=0; row<pg->rows(); ++row)

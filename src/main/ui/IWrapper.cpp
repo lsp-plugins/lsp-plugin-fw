@@ -2380,7 +2380,10 @@ namespace lsp
         {
             const ssize_t preset_id = vPresets.index_of(preset);
             if ((preset_id < 0) && (nActivePreset < 0))
+            {
+                nFlags              = (nFlags & (~F_PRESET_DIRTY));
                 return STATUS_OK;
+            }
 
             // Change current preset
             preset_t *pold  = (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
@@ -2397,9 +2400,12 @@ namespace lsp
             }
 
             nActivePreset       = (pnew != NULL) ? preset_id : -1;
-            nFlags              = (nFlags & ~F_PRESET_DIRTY) | F_PRESET_SYNC;
+            nFlags              = (nFlags & (~F_PRESET_DIRTY)) | F_PRESET_SYNC;
 
-            notify_preset_activated(pnew);
+            if (pold != NULL)
+                notify_preset_deactivated(pold);
+            if (pnew != NULL)
+                notify_preset_activated(pnew);
             return res;
         }
 
@@ -2656,6 +2662,21 @@ namespace lsp
             }
         }
 
+        void IWrapper::notify_preset_deactivated(const ui::preset_t *preset)
+        {
+            // Notify listeners about the activation of the preset
+            lltl::parray<IPresetListener> listeners;
+            if (listeners.add(vPresetListeners))
+            {
+                for (size_t i=0, n=listeners.size(); i<n; ++i)
+                {
+                    IPresetListener *listener = listeners.uget(i);
+                    if (listener != NULL)
+                        listener->preset_deactivated(preset);
+                }
+            }
+        }
+
         void IWrapper::notify_preset_activated(const ui::preset_t *preset)
         {
             // Notify listeners about the activation of the preset
@@ -2675,7 +2696,7 @@ namespace lsp
         {
             // Set flag only when there is an active preset
             const preset_t *preset = active_preset();
-            if (preset != NULL)
+            if ((preset != NULL) && (!(nFlags & F_PRESET_DIRTY)))
             {
                 nFlags         |= F_PRESET_DIRTY;
                 notify_presets_updated();
@@ -2886,7 +2907,7 @@ namespace lsp
                 return STATUS_UNKNOWN_ERR;
 
             nActivePreset   = vPresets.index_of(preset);
-            nFlags         |= F_PRESET_SYNC;
+            nFlags          = (nFlags & (~F_PRESET_DIRTY)) | F_PRESET_SYNC;
 
             // Notify listeners about presets change
             notify_presets_updated();
