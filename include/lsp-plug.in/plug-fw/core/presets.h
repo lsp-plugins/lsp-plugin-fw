@@ -31,12 +31,21 @@ namespace lsp
 {
     namespace core
     {
+        static constexpr size_t PRESET_NAME_BYTES   = 0x200;
+
         enum preset_flags_t
         {
             PRESET_FLAG_NONE        = 0,
             PRESET_FLAG_USER        = 1 << 0,   // User-defined preset
             PRESET_FLAG_DIRTY       = 1 << 1
         };
+
+        typedef struct preset_state_t
+        {
+            uint32_t flags;                     // Current preset flags
+            uint32_t tab;                       // Current preset tab
+            char name[PRESET_NAME_BYTES];       // UTF-8 name of current preset
+        } preset_state_t;
 
         /**
          * Scan resources directory for presets

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2021 г.
@@ -114,6 +114,9 @@ namespace lsp
                 void                        sync_kvt_state();
 
                 void                        send_play_event();
+
+            protected: // ui::IWrapper
+                virtual void                    send_preset_state(const core::preset_state_t *state) override;
 
             public: // ui::IWrapper
                 virtual float                   ui_scaling_factor(float scaling) override;

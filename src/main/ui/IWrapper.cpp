@@ -122,6 +122,8 @@ namespace lsp
 
     namespace ui
     {
+        static constexpr ssize_t INVALID_PRESET_INDEX       = -1;
+
         static void mark_presets_as_favourite(lltl::darray<preset_t> *list, json::Array array, bool user)
         {
             const uint32_t mask = (user) ? PRESET_FLAG_USER : PRESET_FLAG_NONE;
@@ -187,7 +189,7 @@ namespace lsp
             nFlags          = 0;
             nPlayPosition   = 0;
             nPlayLength     = 0;
-            nActivePreset   = -1;
+            nActivePreset   = INVALID_PRESET_INDEX;
             enPresetTab     = PRESET_TAB_ALL;
 
             plug::position_t::init(&sPosition);
@@ -421,7 +423,7 @@ namespace lsp
         status_t IWrapper::get_plugin_presets_path(io::Path *path)
         {
             const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
-            if ((meta == NULL) || (meta->ui_presets == NULL))
+            if (meta == NULL)
                 return STATUS_BAD_STATE;
 
             // File name format: <config>/presets/<plugin-uid>/<preset-name>.[preset|patch]
@@ -807,6 +809,36 @@ namespace lsp
 
                 // Reset flags
                 nFlags     &= ~F_FAVOURITES_DIRTY;
+            }
+
+            if (nFlags & F_PRESET_SYNC)
+            {
+                lsp_trace("Synchronizing preset state with backend");
+                // Send new state to DSP
+                core::preset_state_t state;
+
+                state.flags     = core::PRESET_FLAG_NONE;
+                state.tab       = enPresetTab;
+
+                const preset_t *preset  = active_preset();
+                const char *name        = (preset != NULL) ? preset->name.get_utf8() : NULL;
+                if (name != NULL)
+                {
+                    const size_t bytes      = lsp_min(strlen(name), core::PRESET_NAME_BYTES - 1);
+                    memcpy(state.name, name, bytes);
+                    state.name[bytes]       = '\0';
+
+                    if (preset->flags & ui::PRESET_FLAG_USER)
+                        state.flags            |= core::PRESET_FLAG_USER;
+                    if (nFlags & F_PRESET_DIRTY)
+                        state.flags            |= core::PRESET_FLAG_DIRTY;
+                }
+                else
+                    state.name[0]           = '\0';
+
+                // Commit preset state
+                send_preset_state(&state);
+                nFlags     &= ~F_PRESET_SYNC;
             }
         }
 
@@ -2399,7 +2431,7 @@ namespace lsp
                 res                 = import_settings(&pnew->path, flags);
             }
 
-            nActivePreset       = (pnew != NULL) ? preset_id : -1;
+            nActivePreset       = (pnew != NULL) ? preset_id : INVALID_PRESET_INDEX;
             nFlags              = (nFlags & (~F_PRESET_DIRTY)) | F_PRESET_SYNC;
 
             if (pold != NULL)
@@ -2615,7 +2647,7 @@ namespace lsp
         void IWrapper::select_presets(lltl::darray<preset_t> *list, const preset_t *active)
         {
             list->qsort(preset_compare_function);
-            nActivePreset       = -1;
+            nActivePreset       = INVALID_PRESET_INDEX;
 
             for (size_t i=0, n=list->size(); i<n; ++i)
             {
@@ -2698,7 +2730,7 @@ namespace lsp
             const preset_t *preset = active_preset();
             if ((preset != NULL) && (!(nFlags & F_PRESET_DIRTY)))
             {
-                nFlags         |= F_PRESET_DIRTY;
+                nFlags         |= F_PRESET_DIRTY | F_PRESET_SYNC;
                 notify_presets_updated();
             }
         }
@@ -2717,7 +2749,8 @@ namespace lsp
 
         void IWrapper::set_preset_tab(preset_tab_t tab)
         {
-            enPresetTab = tab;
+            enPresetTab         = tab;
+            nFlags             |= F_PRESET_SYNC;
         }
 
         status_t IWrapper::mark_preset_favourite(const preset_t *src_preset, bool favourite)
@@ -2772,7 +2805,7 @@ namespace lsp
 
             if (nActivePreset == ssize_t(preset_id))
             {
-                nActivePreset       = -1;
+                nActivePreset       = INVALID_PRESET_INDEX;
                 nFlags             |= F_PRESET_SYNC;
             }
 
@@ -2795,14 +2828,15 @@ namespace lsp
             return STATUS_OK;
         }
 
-        preset_t *IWrapper::find_user_preset(const LSPString *name)
+        preset_t *IWrapper::find_preset(const LSPString *name, bool user)
         {
+            const bool mask = (user) ? ui::PRESET_FLAG_USER : ui::PRESET_FLAG_NONE;
             for (size_t i=0, n=vPresets.size(); i<n; ++i)
             {
                 preset_t *p = vPresets.uget(i);
                 if (p == NULL)
                     continue;
-                if ((p->flags & ui::PRESET_FLAG_USER) && (p->name.equals_nocase(name)))
+                if (((p->flags & ui::PRESET_FLAG_USER) == mask) && (p->name.equals_nocase(name)))
                     return p;
             }
 
@@ -2828,7 +2862,7 @@ namespace lsp
             // Find the previous preset
             io::Path old_file, new_file, temp_file;
 
-            preset_t *preset = find_user_preset(name);
+            preset_t *preset = find_preset(name, true);
             bool was_favourite = false;
             if (preset != NULL)
             {
@@ -2902,17 +2936,45 @@ namespace lsp
 
             // Sort list of presets
             vPresets.qsort(preset_compare_function);
-            preset = find_user_preset(name);
+            preset = find_preset(name, true);
             if (preset == NULL)
                 return STATUS_UNKNOWN_ERR;
 
             nActivePreset   = vPresets.index_of(preset);
             nFlags          = (nFlags & (~F_PRESET_DIRTY)) | F_PRESET_SYNC;
 
-            // Notify listeners about presets change
+            // Notify listeners about presets changes
             notify_presets_updated();
 
             return STATUS_OK;
+        }
+
+        void IWrapper::send_preset_state(const core::preset_state_t *state)
+        {
+            // Implement for wrapper
+        }
+
+        void IWrapper::receive_preset_state(const core::preset_state_t *state)
+        {
+            LSPString name;
+            if (!name.set_utf8(state->name))
+                return;
+
+            size_t flags    = nFlags & ~(F_PRESET_DIRTY | F_PRESET_SYNC);
+            if (state->flags & core::PRESET_FLAG_DIRTY)
+                flags          |= F_PRESET_DIRTY;
+
+            const preset_t *preset  = (name.is_empty()) ? NULL : find_preset(&name, state->flags & core::PRESET_FLAG_USER);
+            const ssize_t active    = (preset != NULL) ? vPresets.index_of(preset) : INVALID_PRESET_INDEX;
+
+            if ((flags == nFlags) && (active == nActivePreset))
+                return;
+
+            nFlags          = flags;
+            nActivePreset   = active;
+
+            // Notify listeners about presets changes
+            notify_presets_updated();
         }
 
     } /* namespace ui */

@@ -88,6 +88,7 @@ namespace lsp
                 tk::Edit               *wPresetPattern;             // Preset pattern
                 tk::Button             *vButtons[BTN_TOTAL];        // Preset management buttons
                 tk::MessageBox         *wWConfirm;                  // Confirmation meessage box
+                tk::TabControl         *wPresetTabs;                // Preset category tabs
                 bool                    bWasVisible;                // Visibility flag
 
                 preset_list_t           vPresetsLists[ui::PRESET_TAB_TOTAL];
@@ -137,6 +138,7 @@ namespace lsp
                 void                sync_preset_button_state();
                 void                sync_preset_button_state(const ui::preset_t *preset);
                 void                sync_preset_lists();
+                void                sync_preset_tab();
                 void                do_destroy();
                 void                select_active_preset(const ui::preset_t *preset);
                 bool                has_path_ports();

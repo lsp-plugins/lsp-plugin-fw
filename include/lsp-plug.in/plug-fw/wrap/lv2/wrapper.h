@@ -107,6 +107,7 @@ namespace lsp
                 bool                    bQueueDraw;     // Queue draw request
                 bool                    bUpdateSettings;// Settings update
                 bool                    bStateManage;   // State management barrier
+                bool                    bSendPreset;    // Need to send preset state to UI
                 float                   fSampleRate;
                 uint8_t                *pOscPacket;     // OSC packet data
                 uatomic_t               nStateMode;     // State change flag
@@ -125,13 +126,17 @@ namespace lsp
 
                 core::ShmClient        *pShmClient;         // Shared memory client
 
+                core::preset_state_t    sPresetState;       // Preset state
+
                 LV2_Inline_Display_Image_Surface sSurface;  // Canvas surface
 
             protected:
                 lv2::Port                      *create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *meta, const char *postfix, bool virt);
                 void                            clear_midi_ports();
                 void                            save_kvt_parameters();
+                void                            save_preset_state(const core::preset_state_t *state);
                 void                            restore_kvt_parameters();
+                void                            restore_preset_state();
 
                 void                            parse_kvt_v1(const LV2_Atom_Object_Body *data, size_t size);
                 void                            parse_kvt_v2(const LV2_Atom *data, size_t size);
@@ -147,6 +152,7 @@ namespace lsp
                 void                            transmit_osc_events(lv2::Port *p);
                 void                            transmit_kvt_events();
                 void                            transmit_atoms(size_t samples);
+                void                            transmit_preset_settings_to_clients(const core::preset_state_t *state);
 
                 void                            receive_midi_event(const LV2_Atom_Event *ev);
                 void                            receive_raw_osc_event(osc::parse_frame_t *frame);

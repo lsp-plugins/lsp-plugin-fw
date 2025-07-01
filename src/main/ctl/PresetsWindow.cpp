@@ -109,6 +109,7 @@ namespace lsp
             for (size_t i=0; i<BTN_TOTAL; ++i)
                 vButtons[i]     = NULL;
             wWConfirm       = NULL;
+            wPresetTabs     = NULL;
             bWasVisible     = false;
 
             pConfigSink     = NULL;
@@ -193,6 +194,8 @@ namespace lsp
             if (vButtons[BTN_FAVOURITE] != NULL)
                 vButtons[BTN_FAVOURITE]->mode()->set_toggle();
 
+            wPresetTabs     = widgets()->get<tk::TabControl>("preset_category");
+
             bind_slot("preset_filter", tk::SLOT_CHANGE, slot_preset_filter_changed);
             bind_slot("btn_refresh", tk::SLOT_SUBMIT, slot_refresh_preset_list);
             bind_slot("btn_save", tk::SLOT_SUBMIT, slot_preset_save_submit);
@@ -213,6 +216,7 @@ namespace lsp
 
             pWrapper->add_preset_listener(this);
             sync_preset_button_state();
+            sync_preset_tab();
 
             return STATUS_OK;
         }
@@ -324,6 +328,15 @@ namespace lsp
         {
             const ui::preset_t *current = current_preset();
             sync_preset_button_state(current);
+        }
+
+        void PresetsWindow::sync_preset_tab()
+        {
+            if (wPresetTabs == NULL)
+                return;
+
+            tk::Tab *tab = wPresetTabs->widgets()->get(pWrapper->preset_tab());
+            wPresetTabs->selected()->set(tab);
         }
 
         void PresetsWindow::sync_preset_button_state(const ui::preset_t *preset)
@@ -737,6 +750,7 @@ namespace lsp
 
             sync_preset_lists();
             sync_preset_button_state();
+            sync_preset_tab();
         }
 
         bool PresetsWindow::request_change_preset_conrifmation(const ui::preset_t *preset)

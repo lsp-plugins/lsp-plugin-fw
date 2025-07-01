@@ -39,6 +39,7 @@
 
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/ShmState.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/ui/IPort.h>
 #include <lsp-plug.in/plug-fw/ui/Module.h>
 #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
@@ -146,8 +147,6 @@ namespace lsp
                 status_t        save_global_config(io::IOutSequence *os, lltl::pphash<LSPString, config::param_t> *parameters);
                 status_t        read_parameters(const io::Path *file, lltl::pphash<LSPString, config::param_t> *params);
                 status_t        get_user_config_path(io::Path *path);
-                status_t        get_user_presets_path(io::Path *path);
-                status_t        get_plugin_presets_path(io::Path *path);
                 static void     drop_parameters(lltl::pphash<LSPString, config::param_t> *params);
                 void            get_bundle_version_key(LSPString *key);
                 void            get_bundle_scaling_key(LSPString *key);
@@ -156,26 +155,43 @@ namespace lsp
 
                 IPort          *port_by_id(const char *id);
 
+            protected:
+                static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
+                void            position_updated(const plug::position_t *pos);
+                static status_t allocate_temp_file(io::Path *dst, const io::Path *src);
+
+            protected:
+                virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
+
+            protected:
                 static preset_t *add_preset(lltl::darray<preset_t> *list);
-                void            destroy_presets(lltl::darray<preset_t> *list);
-                void            update_preset_list();
+                static void     destroy_presets(lltl::darray<preset_t> *list);
+
+            protected:
+                status_t        get_user_presets_path(io::Path *path);
+                status_t        get_plugin_presets_path(io::Path *path);
                 void            scan_factory_presets(lltl::darray<preset_t> *list);
                 void            scan_user_presets(lltl::darray<preset_t> *list);
                 void            scan_favourite_presets(lltl::darray<preset_t> *list);
                 status_t        save_favourites(const io::Path *path);
                 void            select_presets(lltl::darray<preset_t> *list, const preset_t *active);
+                void            update_preset_list();
+                preset_t       *find_preset(const LSPString *name, bool user);
+                void            notify_presets_updated();
+                void            notify_preset_deactivated(const preset_t *preset);
+                void            notify_preset_activated(const preset_t *preset);
 
-            protected:
-                static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
-                void            position_updated(const plug::position_t *pos);
-                static status_t allocate_temp_file(io::Path *dst, const io::Path *src);
-                preset_t       *find_user_preset(const LSPString *name);
+                /**
+                 * Set current state of the preset to the DSP
+                 * @param state current preset state
+                 */
+                virtual void    send_preset_state(const core::preset_state_t *state);
 
-            protected:
-                virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
-                virtual void    notify_presets_updated();
-                virtual void    notify_preset_deactivated(const preset_t *preset);
-                virtual void    notify_preset_activated(const preset_t *preset);
+                /**
+                 * Receive current state of the preset ffrom DSP
+                 * @param state current preset state
+                 */
+                void            receive_preset_state(const core::preset_state_t *state);
 
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
@@ -599,7 +615,7 @@ namespace lsp
                  * Set current preset tab
                  * @param tab current preset tab
                  */
-                virtual void                    set_preset_tab(preset_tab_t tab);
+                void                            set_preset_tab(preset_tab_t tab);
 
                 /**
                  * Request for presets scan

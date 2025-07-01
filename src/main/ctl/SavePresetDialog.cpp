@@ -261,8 +261,9 @@ namespace lsp
             // Update text
             expr::Parameters params;
             params.set_string("name", name);
+            params.set_int("code", code);
             wNotification->message()->set(
-                "messages.presets.confirm_overwrite",
+                "messages.presets.save_preset_failed",
                 &params);
 
             wNotification->show(wWidget);

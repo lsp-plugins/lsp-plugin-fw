@@ -868,6 +868,18 @@ namespace lsp
                     lsp_trace("Submitted new shm_state");
                 }
             }
+            else if (obj->body.otype == pExt->uridPresetStateType)
+            {
+                core::preset_state_t state;
+
+                if (pExt->deserialize_preset_state(&state, &obj->body, obj->atom.type, obj->atom.size))
+                {
+                    lsp_trace("Received preset state name='%s', flags=0x%x, tab=%d",
+                        state.name, int(state.flags), int(state.tab));
+
+                    receive_preset_state(&state);
+                }
+            }
             else
             {
                 lsp_trace("Received object");
@@ -1255,6 +1267,13 @@ namespace lsp
         const core::ShmState *UIWrapper::shm_state()
         {
             return sShmState.get();
+        }
+
+        void UIWrapper::send_preset_state(const core::preset_state_t *state)
+        {
+            // Send preset state to DSP
+            if (!pExt->ui_send_preset_state(state))
+                lsp_warn("failed to send preset state");
         }
 
     } /* namespace lv2 */
