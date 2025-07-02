@@ -103,5 +103,19 @@ namespace lsp
                     compare_presets_desc);
         }
 
+        void init_preset_state(preset_state_t *state)
+        {
+            state->flags        = PRESET_FLAG_NONE;
+            state->tab          = 0;
+            state->name[0]      = '\0';
+        }
+
+        void copy_preset_state(preset_state_t *dst, const preset_state_t *src)
+        {
+            dst->flags          = src->flags;
+            dst->tab            = src->tab;
+            strcpy(dst->name, src->name);
+        }
+
     } /* namespace core */
 } /* namespace lsp */

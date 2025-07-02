@@ -63,6 +63,19 @@ namespace lsp
          */
         void sort_presets(lltl::darray<resource::resource_t> *presets, bool ascending);
 
+        /**
+         * Initialize preset state with default values
+         * @param state preset state
+         */
+        void init_preset_state(preset_state_t *state);
+
+        /**
+         * Copy preset state
+         * @param dst destination state to store value
+         * @param src source state to read value
+         */
+        void copy_preset_state(preset_state_t *dst, const preset_state_t *src);
+
     } /* namespace core */
 } /* namespace lsp */
 

@@ -98,9 +98,7 @@ namespace lsp
 
             pShmClient      = NULL;
 
-            sPresetState.flags      = core::PRESET_FLAG_NONE;
-            sPresetState.tab        = 0;
-            sPresetState.name[0]    = '\0';
+            init_preset_state(&sPresetState);
 
             pFactory->acquire();
         }
@@ -1050,12 +1048,12 @@ namespace lsp
             else if (obj->body.otype == pExt->uridPresetStateType)
             {
                 core::preset_state_t state;
+                init_preset_state(&state);
+
                 if (pExt->deserialize_preset_state(&state, &obj->body, obj->atom.type, obj->atom.size))
                 {
                     // Remember new preset settings, mark state as changed and reset transmission flag
-                    sPresetState.flags      = state.flags;
-                    sPresetState.tab        = state.tab;
-                    strcpy(sPresetState.name, state.name);
+                    copy_preset_state(&sPresetState, &state);
 
                     bSendPreset             = false;
                     state_changed();
@@ -1942,16 +1940,15 @@ namespace lsp
             lsp_trace("p_type = %d (%s), p_size = %d", int(p_type), pExt->unmap_urid(p_type), int(p_size));
 
             core::preset_state_t state;
+            init_preset_state(&state);
+
             if (pExt->deserialize_preset_state(&state, static_cast<const LV2_Atom_Object_Body *>(ptr), p_type, p_size))
             {
                 lsp_trace("Restored preset state preset='%s', flags=0x%x, tab=%d",
                     state.name, int(state.flags), int(state.tab));
 
                 // Now state has been parsed, we can mark it as need for sync with UI
-                strcpy(sPresetState.name, state.name);
-                sPresetState.flags  = state.flags;
-                sPresetState.tab    = state.tab;
-
+                copy_preset_state(&sPresetState, &state);
                 bSendPreset         = true;
             }
         }

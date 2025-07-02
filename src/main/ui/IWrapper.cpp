@@ -816,6 +816,7 @@ namespace lsp
                 lsp_trace("Synchronizing preset state with backend");
                 // Send new state to DSP
                 core::preset_state_t state;
+                init_preset_state(&state);
 
                 state.flags     = core::PRESET_FLAG_NONE;
                 state.tab       = enPresetTab;
