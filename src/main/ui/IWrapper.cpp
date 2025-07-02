@@ -2968,11 +2968,12 @@ namespace lsp
             const preset_t *preset  = (name.is_empty()) ? NULL : find_preset(&name, state->flags & core::PRESET_FLAG_USER);
             const ssize_t active    = (preset != NULL) ? vPresets.index_of(preset) : INVALID_PRESET_INDEX;
 
-            if ((flags == nFlags) && (active == nActivePreset))
+            if ((flags == nFlags) && (active == nActivePreset) && (state->tab == uint32_t(enPresetTab)))
                 return;
 
             nFlags          = flags;
             nActivePreset   = active;
+            enPresetTab     = preset_tab_t(lsp_min(state->tab, uint32_t(ui::PRESET_TAB_TOTAL - 1)));
 
             // Notify listeners about presets changes
             notify_presets_updated();

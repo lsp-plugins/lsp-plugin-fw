@@ -69,6 +69,9 @@ namespace lsp
             pSamplePlayer   = NULL;
             pShmClient      = NULL;
 
+            core::init_preset_state(&sPresetState);
+            atomic_store(&nPresetFlags, PT_NONE);
+
             pFactory->acquire();
         }
 
@@ -743,11 +746,22 @@ namespace lsp
                 }
             }
 
+            // Serialize preset state
+            serialize_preset_state();
+            if (sChunk.res != STATUS_OK)
+            {
+                lsp_warn("Error serializing preset state code=%d", int(sChunk.res));
+                return sChunk.res;
+            }
+
             status_t res = STATUS_OK;
 
             // Serialize KVT storage
-            if (sKVTMutex.lock())
             {
+                if (!sKVTMutex.lock())
+                    return STATUS_BAD_STATE;
+                lsp_finally { sKVTMutex.unlock(); };
+
                 const core::kvt_param_t *p;
 
                 // Read the whole KVT storage
@@ -859,7 +873,6 @@ namespace lsp
                 }
 
                 sKVT.gc();
-                sKVTMutex.unlock();
             }
 
             return res;
@@ -1243,6 +1256,51 @@ namespace lsp
             }
         }
 
+        bool Wrapper::deserialize_special_variable(const char *name, const uint8_t *head, const uint8_t *tail)
+        {
+            lsp_trace("name = %s", name);
+            if (strcmp(name, "!preset_state") == 0)
+            {
+                core::preset_state_t state;
+                core::init_preset_state(&state);
+
+                // Read flags and tab
+                IF_UNALIGNED_MEMORY_SAFE(
+                    state.flags     = BE_TO_CPU(*advance_ptr<const uint32_t>(head, 1));
+                    state.tab       = BE_TO_CPU(*advance_ptr<const uint32_t>(head, 1));
+                )
+                IF_UNALIGNED_MEMORY_UNSAFE(
+                    uint32_t flags, tab;
+                    memcpy(&flags, advance_ptr_bytes<const uint8_t>(head, sizeof(uint32_t)), sizeof(uint32_t));
+                    memcpy(&tab, advance_ptr_bytes<const uint8_t>(head, sizeof(uint32_t)), sizeof(uint32_t));
+
+                    state.flags     = BE_TO_CPU(flags);
+                    state.tab       = BE_TO_CPU(tab);
+                )
+
+                // Read preset name
+                const char *pname   = reinterpret_cast<const char *>(head);
+                const size_t length = lsp_min(strnlen(pname, tail - head), core::PRESET_NAME_BYTES - 1);
+                memcpy(state.name, pname, length);
+                state.name[length + 1]  = '\0';
+
+                lsp_trace("preset name = %s, flags=0x%x, tab=%d", state.name, int(state.flags), int(state.tab));
+
+                head               += length + 1;
+                if (head <= tail)
+                {
+                    set_preset_state(&state, PT_STATE);
+                    return true;
+                }
+                else
+                    lsp_trace("Failed parsing preset state: head=%p > tail=%p", head, tail);
+            }
+            else
+                lsp_warn("Unknown special variable: %s, skipping", name);
+
+            return false;
+        }
+
         void Wrapper::deserialize_v2_v3(const uint8_t *data, size_t bytes)
         {
             const uint8_t *head = data;
@@ -1269,7 +1327,16 @@ namespace lsp
                     lsp_warn("Unexpected end of chunk while fetching parameter name");
                     return;
                 }
-                if (name[0] == '/') // This is KVT port?
+                else if (name[0] == '!')
+                {
+                    head       += len;
+                    if (!deserialize_special_variable(name, head, next))
+                        lsp_warn("Error deserializing special variable %s, skipping", name);
+
+                    head        = next;
+                    continue;
+                }
+                else if (name[0] == '/') // This is KVT parameter?
                 {
                     head               -= sizeof(uint32_t); // Rollback head pointer
                     break;
@@ -1304,8 +1371,11 @@ namespace lsp
 
             // Deserialize KVT state
             lsp_debug("Reading KVT ports...");
-            if (sKVTMutex.lock())
             {
+                if (!sKVTMutex.lock())
+                    return;
+                lsp_finally {sKVTMutex.unlock(); };
+
                 sKVT.clear();
 
                 while (size_t(tail - head) >= sizeof(uint32_t))
@@ -1429,7 +1499,6 @@ namespace lsp
                 }
 
                 sKVT.gc();
-                sKVTMutex.unlock();
             }
         }
 
@@ -1485,6 +1554,139 @@ namespace lsp
 
             if ((pMaster != NULL) && (pEffect != NULL))
                 pMaster(pEffect, audioMasterUpdateDisplay, 0, 0, 0, 0);
+        }
+
+        void Wrapper::set_preset_state(const core::preset_state_t *state, uint32_t mode)
+        {
+            lsp_trace("this=%p, name=%s, flags=0x%x, tab=%d, mode=%d",
+                this, state->name, state->flags, state->tab, int(mode));
+
+            {
+                // Lock the state
+                while (true)
+                {
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if ((flags & PT_UNLOCK) > mode) // Leave if data has greater priority than submitted
+                    {
+                        lsp_trace("preset state not updated, flags=0x%x, mode=%d", int(flags), int(mode));
+                        return;
+                    }
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // State is locked
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, mode & PT_UNLOCK)) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                core::copy_preset_state(&sPresetState, state);
+            }
+
+            // Mark state changed if data was transferred from UI
+            if (mode == PT_UI)
+                state_changed();
+
+            lsp_trace("this=%p, mode=0x%x", this, int(mode));
+        }
+
+        bool Wrapper::fetch_preset_state(core::preset_state_t *state, bool force)
+        {
+//            lsp_trace("this=%p, force=%s", this, (force) ? "true" : "false");
+
+            {
+                // Lock the state
+                while (true)
+                {
+                    // We can fetch data only if it is in PT_STATE state or fetch is forced
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if ((!force) && ((flags & PT_UNLOCK) != PT_STATE))
+                        return false;
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // State is locked
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, PT_NONE)) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                // Now we have locked state
+                core::copy_preset_state(state, &sPresetState);
+            }
+
+            lsp_trace("this=%p, name=%s, flags=0x%x, tab=%d",
+                this, state->name, state->flags, state->tab);
+            return true;
+        }
+
+        void Wrapper::serialize_preset_state()
+        {
+//            lsp_trace("this=%p", this);
+
+            core::preset_state_t state;
+
+            {
+                // Lock the atomic state
+                while (true)
+                {
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // Now we have locked state
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, flags & PT_UNLOCK)) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                // Fetch the value
+                core::copy_preset_state(&state, &sPresetState);
+            }
+
+            // Serialize stuff
+            size_t param_off   = sChunk.write(uint32_t(0)); // Reserve space for size
+            if (param_off != 0)
+            {
+                sChunk.write_string("!preset_state");           // Preset state object
+                sChunk.write(state.flags);
+                sChunk.write(state.tab);
+                sChunk.write_string(state.name);
+                sChunk.write_at(param_off, uint32_t(sChunk.offset - param_off - sizeof(uint32_t))); // Write the actual size
+            }
+
+            lsp_trace("this=%p, name=%s, flags=0x%x, tab=%d, mode=0x%x",
+                this, state.name, state.flags, state.tab);
         }
 
     } /* namespace vst2 */

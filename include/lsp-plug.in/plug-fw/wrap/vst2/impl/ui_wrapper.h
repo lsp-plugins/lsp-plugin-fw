@@ -306,6 +306,13 @@ namespace lsp
         void UIWrapper::main_iteration()
         {
             transfer_dsp_to_ui();
+            if (pWrapper != NULL)
+            {
+                core::preset_state_t state;
+                if (pWrapper->fetch_preset_state(&state, false))
+                    receive_preset_state(&state);
+            }
+
             IWrapper::main_iteration();
         }
 
@@ -504,6 +511,12 @@ namespace lsp
                 kvt_release();
             }
             transfer_dsp_to_ui();
+            if (pWrapper != NULL)
+            {
+                core::preset_state_t state;
+                if (pWrapper->fetch_preset_state(&state, true))
+                    receive_preset_state(&state);
+            }
 
             // Show the UI window
             tk::Window *wnd  = window();
@@ -710,6 +723,12 @@ namespace lsp
         const core::ShmState *UIWrapper::shm_state()
         {
             return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
+        }
+
+        void UIWrapper::send_preset_state(const core::preset_state_t *state)
+        {
+            if (pWrapper != NULL)
+                pWrapper->set_preset_state(state, vst2::Wrapper::PT_STATE);
         }
     } /* namespace vst2 */
 } /* namespace lsp */

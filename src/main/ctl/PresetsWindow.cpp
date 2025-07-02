@@ -206,6 +206,7 @@ namespace lsp
             bind_slot("btn_export", tk::SLOT_SUBMIT, slot_submit_export_settings);
             bind_slot("btn_copy", tk::SLOT_SUBMIT, slot_export_settings_to_clipboard);
             bind_slot("btn_paste", tk::SLOT_SUBMIT, slot_import_settings_from_clipboard);
+            bind_slot("preset_category", tk::SLOT_SUBMIT, slot_preset_tab_selected);
 
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
             {
@@ -1253,6 +1254,25 @@ namespace lsp
             tk::Window *wnd = tk::widget_cast<tk::Window>(self->wWidget);
             if (wnd != NULL)
                 self->show(self->wLastActor);
+
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_preset_tab_selected(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("preset tab selected");
+
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            if (self->wPresetTabs == NULL)
+                return STATUS_OK;
+
+            tk::Tab *tab = self->wPresetTabs->selected()->get();
+            const ssize_t index = (tab != NULL) ? self->wPresetTabs->widgets()->index_of(tab) : ui::PRESET_TAB_ALL;
+            if (self->pWrapper != NULL)
+                self->pWrapper->set_preset_tab(ui::preset_tab_t(lsp_min(index, ui::PRESET_TAB_TOTAL - 1)));
 
             return STATUS_OK;
         }

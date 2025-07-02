@@ -151,6 +151,7 @@ namespace lsp
                     if (value == fValue)
                         return;
 
+					fValue = value;
                     if (pPort != NULL)
                         pPort->write_value(value);
                     if (pManager != NULL)

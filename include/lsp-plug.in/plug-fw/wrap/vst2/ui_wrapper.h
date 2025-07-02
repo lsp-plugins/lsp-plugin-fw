@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 дек. 2021 г.
@@ -69,6 +69,9 @@ namespace lsp
                 void                            do_destroy();
                 vst2::UIPort                   *create_port(const meta::port_t *port, const char *postfix);
 
+            protected: // ui::IWrapper
+                virtual void                    send_preset_state(const core::preset_state_t *state);
+
             public:
                 explicit UIWrapper(ui::Module *ui, vst2::Wrapper *wrapper);
                 virtual ~UIWrapper() override;
@@ -76,7 +79,7 @@ namespace lsp
                 virtual status_t                init(void *root_widget) override;
                 virtual void                    destroy() override;
 
-            public: // plug::IWrapper
+            public: // ui::IWrapper
                 virtual core::KVTStorage       *kvt_lock() override;
                 virtual core::KVTStorage       *kvt_trylock() override;
                 virtual bool                    kvt_release() override;

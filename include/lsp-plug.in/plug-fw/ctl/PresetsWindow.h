@@ -108,6 +108,7 @@ namespace lsp
                 static status_t     slot_preset_favourite_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_remove_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_select(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_preset_tab_selected(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t     slot_refresh_preset_list(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_reset_settings(tk::Widget *sender, void *ptr, void *data);

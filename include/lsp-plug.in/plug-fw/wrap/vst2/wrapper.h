@@ -27,6 +27,7 @@
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/core/ShmClient.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/chunk.h>
@@ -47,6 +48,16 @@ namespace lsp
         {
             private:
                 friend class UIWrapper;
+
+                enum preset_type_t
+                {
+                    PT_NONE     = 0,
+                    PT_UI       = 1,
+                    PT_STATE    = 2,
+
+                    PT_LOCK     = 0x8000,
+                    PT_UNLOCK   = 0x7fff
+                };
 
             private:
                 AEffect                            *pEffect;
@@ -69,6 +80,8 @@ namespace lsp
                 vst2::Port                         *pBypass;
                 core::SamplePlayer                 *pSamplePlayer;  // Sample player
                 core::ShmClient                    *pShmClient;     // Shared memory client
+                core::preset_state_t                sPresetState;   // Preset state
+                uatomic_t                           nPresetFlags;   // Preset flags
 
                 lltl::parray<vst2::AudioPort>       vAudioPorts;    // List of audio ports
                 lltl::parray<vst2::AudioBufferPort> vAudioBuffers;  // Audio buffer ports
@@ -98,6 +111,10 @@ namespace lsp
                 bool                        check_parameters_updated();
                 void                        apply_settings_update();
                 void                        report_latency();
+                void                        set_preset_state(const core::preset_state_t *state, uint32_t mode);
+                bool                        fetch_preset_state(core::preset_state_t *state, bool force);
+                bool                        deserialize_special_variable(const char *name, const uint8_t *head, const uint8_t *tail);
+                void                        serialize_preset_state();
 
             public:
                 Wrapper(
