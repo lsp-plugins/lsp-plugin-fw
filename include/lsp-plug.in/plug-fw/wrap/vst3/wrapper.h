@@ -84,6 +84,19 @@ namespace lsp
                     vst3::MidiPort                 *vPorts[];   // List of ports related to the event bus
                 } event_bus_t;
 
+                enum preset_type_t
+                {
+                    PT_NONE     = 0,
+                    PT_UI       = 1,
+                    PT_STATE    = 2,
+
+                    PT_LOCK     = 0x8000,
+                    PT_FORCE    = 0x4000,
+
+                    PT_TYPE     = 0x000f,
+                    PT_UNLOCK   = 0x7fff
+                };
+
                 class VST3KVTListener: public core::KVTListener
                 {
                     private:
@@ -126,6 +139,7 @@ namespace lsp
                 wssize_t                            nPlayPosition;          // Sample playback position
                 wssize_t                            nPlayLength;            // Sample playback length
                 plug::position_t                    sUIPosition;            // Position notified to UI
+                core::preset_state_t                sPresetState;           // Preset state
 
                 vst3::string_buf                    sRxNotifyBuf;           // Notify buffer for notify() processing
                 vst3::string_buf                    sTxNotifyBuf;           // Notify buffer for sync_data()
@@ -142,6 +156,7 @@ namespace lsp
                 uatomic_t                           nDirtyResp;             // Dirty state response
                 uatomic_t                           nDumpReq;               // State dump request
                 uatomic_t                           nDumpResp;              // State dump response
+                uatomic_t                           nPresetFlags;           // Preset flags
                 uint32_t                            nMaxSamplesPerBlock;    // Maximum samples per block
                 bool                                bUpdateSettings;        // Indicator that settings should be updated
                 bool                                bStateManage;           // State management barrier
@@ -182,6 +197,9 @@ namespace lsp
                 bool                        check_parameters_updated();
                 void                        apply_settings_update();
 
+                void                        set_preset_state(const core::preset_state_t *state, uint32_t mode);
+                void                        request_preset_state();
+
                 status_t                    save_state(Steinberg::IBStream *os);
                 status_t                    load_state(Steinberg::IBStream *is);
 
@@ -203,6 +221,7 @@ namespace lsp
                 void                        transmit_play_position();
                 void                        transmit_strings();
                 void                        transmit_shm_state();
+                void                        transmit_preset_state();
 
             public:
                 explicit Wrapper(PluginFactory *factory, plug::Module *plugin, resource::ILoader *loader, const meta::package_t *package);

@@ -93,11 +93,15 @@ namespace lsp
             nDirtyResp          = 0;
             nDumpReq            = 0;
             nDumpResp           = 0;
+            atomic_store(&nPresetFlags, PT_NONE);
+
             nMaxSamplesPerBlock = 0;
             bUpdateSettings     = true;
             bStateManage        = false;
             bMidiMapping        = false;
             bMsgWorkaround      = false;
+
+            core::init_preset_state(&sPresetState);
 
             nLatency            = 0;
         }
@@ -2012,7 +2016,7 @@ namespace lsp
 
         void Wrapper::toggle_ui_state()
         {
-            uatomic_t counter   = nUICounterReq;
+            uatomic_t counter   = atomic_load(&nUICounterReq);
             if (counter == nUICounterResp)
                 return;
 
@@ -2950,6 +2954,7 @@ namespace lsp
             else if (!strcmp(message_id, vst3::ID_MSG_ACTIVATE_UI))
             {
                 atomic_add(&nUICounterReq, 1);
+                request_preset_state();
             }
             else if (!strcmp(message_id, vst3::ID_MSG_DEACTIVATE_UI))
             {
@@ -3019,6 +3024,40 @@ namespace lsp
                     osc::parse_destroy(&parser);
                 }
             }
+            else if (!strcmp(message_id, ID_MSG_PRESET_STATE))
+            {
+                // Get endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                Steinberg::int64 flags = 0, tab = 0;
+
+                if (atts->getInt("flags", flags) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getInt("tab", tab) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Read identifier of the mesh port
+                const char *name = sRxNotifyBuf.get_string(atts, "name", byte_order);
+                if (name == NULL)
+                    return Steinberg::kResultFalse;
+
+                lsp_trace("Received preset state flags=0x%x, tab=%d, name='%s'",
+                    int(flags), int(tab), name);
+
+                // Commit state
+                core::preset_state_t state;
+                core::init_preset_state(&state);
+
+                state.flags  = uint32_t(flags);
+                state.tab    = uint32_t(tab);
+                const size_t length = lsp_min(strnlen(name, core::PRESET_NAME_BYTES), core::PRESET_NAME_BYTES - 1);
+                memcpy(state.name, name, length);
+                state.name[length]   = '\0';
+
+                // Set preset state
+                set_preset_state(&state, PT_UI);
+            }
 
             return Steinberg::kResultOk;
         }
@@ -3052,7 +3091,7 @@ namespace lsp
         void Wrapper::report_state_change()
         {
             // Report state change
-            uatomic_t dirty_req = nDirtyReq;
+            uatomic_t dirty_req = atomic_load(&nDirtyReq);
             if (dirty_req == nDirtyResp)
                 return;
 
@@ -3582,6 +3621,7 @@ namespace lsp
             report_state_change();
             report_music_position();
             transmit_kvt_changes();
+            transmit_preset_state();
 
             // Do not synchronize other data until there is no UI visible
             if (nUICounterResp > 0)
@@ -3596,6 +3636,126 @@ namespace lsp
             }
         }
 
+        void Wrapper::set_preset_state(const core::preset_state_t *state, uint32_t mode)
+        {
+            lsp_trace("this=%p, name=%s, flags=0x%x, tab=%d, mode=%d",
+                this, state->name, state->flags, state->tab, int(mode));
+
+            {
+                // Lock the state
+                while (true)
+                {
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if ((flags & PT_UNLOCK) > mode) // Leave if data has greater priority than submitted
+                    {
+                        lsp_trace("preset state not updated, flags=0x%x, mode=%d", int(flags), int(mode));
+                        return;
+                    }
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // State is locked
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, mode & PT_UNLOCK)) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                core::copy_preset_state(&sPresetState, state);
+            }
+
+            // Mark state changed if data was transferred from UI
+            if (mode == PT_UI)
+                state_changed();
+
+            lsp_trace("this=%p, mode=0x%x", this, int(mode));
+        }
+
+
+        void Wrapper::request_preset_state()
+        {
+            // Set the 'PT_FORCE' flag
+            while (true)
+            {
+                const uatomic_t flags = atomic_load(&nPresetFlags);
+                if (flags & PT_FORCE)
+                    return;
+                if (atomic_cas(&nPresetFlags, flags, flags | PT_FORCE))
+                    break;
+
+                ipc::Thread::yield();
+            }
+        }
+
+        void Wrapper::transmit_preset_state()
+        {
+            core::preset_state_t state;
+
+            {
+                // Lock the state
+                while (true)
+                {
+                    // We can fetch data only if it is in PT_STATE state or fetch is forced
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if ((!(flags & PT_FORCE)) && ((flags & PT_TYPE) != PT_STATE))
+                        return;
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // State is locked
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, PT_NONE)) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                // Now we have locked state
+                core::copy_preset_state(&state, &sPresetState);
+            }
+
+            // Now we can form message and transmit it
+            // Allocate new message
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
+            if (msg == NULL)
+                return;
+            lsp_finally { safe_release(msg); };
+
+            // Initialize and send the message
+            msg->setMessageID(vst3::ID_MSG_PRESET_STATE);
+            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+            if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                return;
+            if (list->setInt("flags", state.flags) != Steinberg::kResultOk)
+                return;
+            if (list->setInt("tab", state.tab) != Steinberg::kResultOk)
+                return;
+
+            // Write identifier of the mesh port
+            if (!sTxNotifyBuf.set_string(list, "name", state.name))
+                return ;
+
+            // Notify peer
+            pPeerConnection->notify(msg);
+        }
     } /* namespace vst3 */
 } /* namespace lsp */
 

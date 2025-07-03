@@ -78,6 +78,8 @@ namespace lsp
             fScalingFactor      = -1.0f;
             bMidiMapping        = false;
             bMsgWorkaround      = false;
+
+            core::init_preset_state(&sPresetState);
         }
 
         Controller::~Controller()
@@ -604,15 +606,18 @@ namespace lsp
 
             #ifdef WITH_UI_FEATURE
                 // Notify UI about position update
+                lltl::parray<UIWrapper> receivers;
                 if (sWrappersLock.lock())
                 {
                     lsp_finally { sWrappersLock.unlock(); };
-                    for (lltl::iterator<UIWrapper> it = vWrappers.values(); it; ++it)
-                    {
-                        UIWrapper *w = it.get();
-                        if (w != NULL)
-                            w->commit_position(&pos);
-                    }
+                    receivers.add(vWrappers);
+                }
+
+                for (lltl::iterator<UIWrapper> it = receivers.values(); it; ++it)
+                {
+                    UIWrapper *w = it.get();
+                    if (w != NULL)
+                        w->commit_position(&pos);
                 }
             #endif /* WITH_UI_FEATURE */
             }
@@ -629,15 +634,18 @@ namespace lsp
 
             #ifdef WITH_UI_FEATURE
                 // Notify UI about position update
+                lltl::parray<UIWrapper> receivers;
                 if (sWrappersLock.lock())
                 {
                     lsp_finally { sWrappersLock.unlock(); };
-                    for (lltl::iterator<UIWrapper> it = vWrappers.values(); it; ++it)
-                    {
-                        UIWrapper *w = it.get();
-                        if (w != NULL)
-                            w->set_play_position(position, length);
-                    }
+                    receivers.add(vWrappers);
+                }
+
+                for (lltl::iterator<UIWrapper> it = receivers.values(); it; ++it)
+                {
+                    UIWrapper *w = it.get();
+                    if (w != NULL)
+                        w->set_play_position(position, length);
                 }
             #endif /* WITH_UI_FEATURE */
             }
@@ -1025,6 +1033,51 @@ namespace lsp
                     receive_raw_osc_packet(data, sizeInBytes);
                     sKVTMutex.unlock();
                 }
+            }
+            else if (!strcmp(message_id, ID_MSG_PRESET_STATE))
+            {
+                // Get endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                Steinberg::int64 flags = 0, tab = 0;
+
+                if (atts->getInt("flags", flags) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getInt("tab", tab) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Read identifier of the mesh port
+                const char *name = sRxNotifyBuf.get_string(atts, "name", byte_order);
+                if (name == NULL)
+                    return Steinberg::kResultFalse;
+
+                lsp_trace("Received preset state flags=0x%x, tab=%d, name='%s'",
+                    int(flags), int(tab), name);
+
+                // Commit state
+                sPresetState.flags  = uint32_t(flags);
+                sPresetState.tab    = uint32_t(tab);
+                const size_t length = lsp_min(strnlen(name, core::PRESET_NAME_BYTES), core::PRESET_NAME_BYTES - 1);
+                memcpy(sPresetState.name, name, length);
+                sPresetState.name[length]   = '\0';
+
+            #ifdef WITH_UI_FEATURE
+                // Notify UI about position update
+                lltl::parray<UIWrapper> receivers;
+                if (sWrappersLock.lock())
+                {
+                    lsp_finally { sWrappersLock.unlock(); };
+                    receivers.add(vWrappers);
+                }
+
+                for (lltl::iterator<UIWrapper> it = receivers.values(); it; ++it)
+                {
+                    UIWrapper *w = it.get();
+                    if (w != NULL)
+                        w->receive_preset_state(&sPresetState);
+                }
+            #endif /* WITH_UI_FEATURE */
             }
 
             return Steinberg::kResultOk;
@@ -1569,6 +1622,57 @@ namespace lsp
             return STATUS_OK;
         }
 
+        void Controller::send_preset_state(UIWrapper *wrapper, const core::preset_state_t *state)
+        {
+            // Copy preset state
+            core::copy_preset_state(&sPresetState, state);
+
+            // Notify receivers
+            lltl::parray<UIWrapper> receivers;
+            if (sWrappersLock.lock())
+            {
+                lsp_finally { sWrappersLock.unlock(); };
+                receivers.add(vWrappers);
+            }
+
+            for (lltl::iterator<UIWrapper> it = receivers.values(); it; ++it)
+            {
+                UIWrapper *w    = it.get();
+                if ((w != NULL) && (w != wrapper))
+                    w->receive_preset_state(state);
+            }
+
+            // Send message to DSP backend
+            if (pPeerConnection != NULL)
+            {
+                LSPString name;
+                if (!name.set_utf8(state->name))
+                    return;
+
+                // Allocate new message
+                Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
+                if (msg == NULL)
+                    return;
+                lsp_finally { safe_release(msg); };
+
+                // Initialize and send the message
+                msg->setMessageID(vst3::ID_MSG_PRESET_STATE);
+                Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+                if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                    return;
+                if (list->setInt("flags", state->flags) != Steinberg::kResultOk)
+                    return;
+                if (list->setInt("tab", state->tab) != Steinberg::kResultOk)
+                    return;
+                if (list->setString("name", to_tchar(name.get_utf16())) != Steinberg::kResultOk)
+                    return;
+
+                // Notify peer
+                pPeerConnection->notify(msg);
+            }
+        }
+
         Steinberg::IPlugView * PLUGIN_API Controller::createView(Steinberg::FIDString name)
         {
             lsp_trace("this=%p, name=%s", this, name);
@@ -1629,6 +1733,9 @@ namespace lsp
                     pPeerConnection->notify(msg);
                 }
             }
+
+            // Send peset state
+            w->receive_preset_state(&sPresetState);
 
             // Return pointer to wrapper
             return w;

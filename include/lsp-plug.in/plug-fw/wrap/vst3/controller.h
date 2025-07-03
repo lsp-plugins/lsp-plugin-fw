@@ -79,6 +79,7 @@ namespace lsp
                 lltl::parray<vst3::CtlParamPort>    vPlainParams;           // Input parameters (non-virtual) sorted according to the metadata order
                 lltl::parray<vst3::CtlParamPort>    vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
                 lltl::parray<vst3::CtlMeterPort>    vMeters;                // Meters
+                core::preset_state_t                sPresetState;           // Preset state
 
             #ifdef WITH_UI_FEATURE
                 ipc::Mutex                          sWrappersLock;          // Lock of wrappers
@@ -144,6 +145,7 @@ namespace lsp
         #ifdef WITH_UI_FEATURE
             public: // UI-related stuff
                 status_t                            detach_ui_wrapper(UIWrapper *wrapper);
+                void                                send_preset_state(UIWrapper *wrapper, const core::preset_state_t *state);
         #endif /* WITH_UI_FEATURE */
 
             public: // vst3::IDataSync

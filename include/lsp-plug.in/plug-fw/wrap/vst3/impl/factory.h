@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 27 дек. 2023 г.
@@ -61,7 +61,7 @@ namespace lsp
             pExecutor           = NULL;
             pDataSync           = NULL;
             pPackage            = NULL;
-            pActiveSync         = NULL;
+            atomic_store(&pActiveSync, NULL);
 
         #ifdef VST_USE_RUNLOOP_IFACE
             pRunLoop            = NULL;
@@ -686,7 +686,7 @@ namespace lsp
                 if (!vDataSync.remove(sync))
                     return STATUS_NOT_FOUND;
 
-                while (pActiveSync == sync)
+                while (atomic_load(&pActiveSync) == sync)
                 {
                     // TODO: replace this with proper solution (add conditional wait)
                     // sDataMutex.wait();
@@ -753,14 +753,14 @@ namespace lsp
                         lsp_finally { sDataMutex.unlock(); };
                         if (!vDataSync.contains(dsync))
                             continue;
-                        pActiveSync     = dsync;
+                        atomic_store(&pActiveSync, dsync);
                     }
 
                     // Now dsync object is locked, perform processing
                     dsync->sync_data();
 
                     // Finally, unlock the data sync
-                    pActiveSync     = NULL;
+                    atomic_store(&pActiveSync, NULL);
                 }
 
                 // Wait for a while

@@ -870,6 +870,11 @@ namespace lsp
             return pController->shm_state();
         }
 
+        void UIWrapper::send_preset_state(const core::preset_state_t *state)
+        {
+            pController->send_preset_state(this, state);
+        }
+
     } /* namespace vst3 */
 } /* namespace lsp */
 

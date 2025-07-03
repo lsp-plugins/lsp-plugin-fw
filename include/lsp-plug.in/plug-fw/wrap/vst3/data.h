@@ -61,6 +61,7 @@ namespace lsp
         constexpr const char *ID_MSG_KVT                    = "KVT";
         constexpr const char *ID_MSG_ACTIVATE_UI            = "UIActivate";
         constexpr const char *ID_MSG_DEACTIVATE_UI          = "UIDeactivate";
+        constexpr const char *ID_MSG_PRESET_STATE           = "PresetState";
         constexpr const char *ID_MSG_PLAY_SAMPLE            = "PlaySample";
 
         constexpr const Steinberg::Vst::ParamID MIDI_MAPPING_PARAM_BASE = 0x40000000;
