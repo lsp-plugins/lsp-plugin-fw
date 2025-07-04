@@ -1062,22 +1062,7 @@ namespace lsp
                 memcpy(sPresetState.name, name, length);
                 sPresetState.name[length]   = '\0';
 
-            #ifdef WITH_UI_FEATURE
-                // Notify UI about position update
-                lltl::parray<UIWrapper> receivers;
-                if (sWrappersLock.lock())
-                {
-                    lsp_finally { sWrappersLock.unlock(); };
-                    receivers.add(vWrappers);
-                }
-
-                for (lltl::iterator<UIWrapper> it = receivers.values(); it; ++it)
-                {
-                    UIWrapper *w = it.get();
-                    if (w != NULL)
-                        w->receive_preset_state(&sPresetState);
-                }
-            #endif /* WITH_UI_FEATURE */
+                receive_preset_state(NULL);
             }
 
             return Steinberg::kResultOk;
@@ -1161,7 +1146,11 @@ namespace lsp
                 lsp_warn("Failed to read serial version");
                 return STATUS_CORRUPTED;
             }
-            if (version != 1)
+
+            bool param_types = false;
+            if (version == 2)
+                param_types     = true;
+            else if (version != 1)
             {
                 lsp_warn("Unsupported serial version %d", int(version));
                 return STATUS_CORRUPTED;
@@ -1199,59 +1188,7 @@ namespace lsp
 
                 lsp_trace("Parameter name: %s", name);
 
-                if (name[0] != '/')
-                {
-                    // Try to find virtual port
-                    vst3::CtlPort *p        = port_by_id(name);
-                    if (p != NULL)
-                    {
-                        const meta::port_t *meta = p->metadata();
-                        if (meta::is_path_port(meta))
-                        {
-                            vst3::CtlPathPort *pp       = static_cast<vst3::CtlPathPort *>(p);
-
-                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
-                            {
-                                lsp_warn("Failed to deserialize port id=%s", meta->id);
-                                return res;
-                            }
-                            lsp_trace("  %s = %s", meta->id, name);
-                            pp->commit_value(name);
-                            pp->mark_changed();
-                        }
-                        else if (meta::is_string_holding_port(meta))
-                        {
-                            vst3::CtlStringPort *sp     = static_cast<vst3::CtlStringPort *>(p);
-
-                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
-                            {
-                                lsp_warn("Failed to deserialize port id=%s", meta->id);
-                                return res;
-                            }
-                            lsp_trace("  %s = %s", meta->id, name);
-                            sp->commit_value(name);
-                            sp->mark_changed();
-                        }
-                        else if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)) || (meta::is_port_set_port(meta)))
-                        {
-                            vst3::CtlParamPort *pp      = static_cast<vst3::CtlParamPort *>(p);
-                            float v = 0.0f;
-                            if ((res = read_fully(is, &v)) != STATUS_OK)
-                            {
-                                lsp_warn("Failed to deserialize port id=%s", name);
-                                return res;
-                            }
-                            lsp_trace("  %s = %f", meta->id, v);
-                            pp->commit_value(v);
-                            pp->mark_changed();
-                        }
-                        else
-                            lsp_warn("Port id=%s is present in serial data but has invalid type", name);
-                    }
-                    else
-                        lsp_warn("Missing port id=%s, skipping", name);
-                }
-                else
+                if (name[0] == '/')
                 {
                     // Read the KVT parameter flags
                     uint8_t flags = 0;
@@ -1274,6 +1211,140 @@ namespace lsp
                         size_t kflags = core::KVT_TX;
                         kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
                         sKVT.put(name, &p, kflags);
+                    }
+                }
+                else if (name[0] == '!')
+                {
+                    if (strcmp(name, "!preset_state") == 0)
+                    {
+                        core::preset_state_t state;
+                        if ((res = vst3::deserialize_preset_state(&state, is)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to deserialize preset state, error code=%d", int(res));
+                            return res;
+                        }
+
+                        core::copy_preset_state(&sPresetState, &state);
+                    }
+                    else
+                    {
+                        lsp_warn("Unknown special variable: %s, skipping", name);
+                        if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to skip special variable", int(res));
+                            return res;
+                        }
+                    }
+                }
+                else
+                {
+                    // Read parameter type
+                    uint8_t param_type      = '?';
+                    if (param_types)
+                    {
+                        if ((res = read_fully(is, &param_type)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to deserialize parameter type, error code=%d", int(res));
+                            return res;
+                        }
+                    }
+
+                    // Try to find virtual port
+                    vst3::CtlPort *p        = port_by_id(name);
+                    if (p != NULL)
+                    {
+                        const meta::port_t *meta = p->metadata();
+                        if (meta::is_path_port(meta))
+                        {
+                            if ((param_type != '?') && (param_type != 's'))
+                            {
+                                lsp_warn("Failed to deserialize port id=%s: invalid parameter type '%c'", meta->id, char(param_type));
+                                return res;
+                            }
+
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
+
+                            vst3::CtlPathPort *pp       = static_cast<vst3::CtlPathPort *>(p);
+                            lsp_trace("  %s = %s", meta->id, name);
+                            pp->commit_value(name);
+                            pp->mark_changed();
+                        }
+                        else if (meta::is_string_holding_port(meta))
+                        {
+                            if ((param_type != '?') && (param_type != 's'))
+                            {
+                                lsp_warn("Failed to deserialize port id=%s: invalid parameter type '%c'", meta->id, char(param_type));
+                                return res;
+                            }
+
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
+
+                            vst3::CtlStringPort *sp     = static_cast<vst3::CtlStringPort *>(p);
+                            lsp_trace("  %s = %s", meta->id, name);
+                            sp->commit_value(name);
+                            sp->mark_changed();
+                        }
+                        else if ((meta::is_control_port(meta)) || (meta::is_bypass_port(meta)) || (meta::is_port_set_port(meta)))
+                        {
+                            if ((param_type != '?') && (param_type != 'f'))
+                            {
+                                lsp_warn("Failed to deserialize port id=%s: invalid parameter type '%c'", meta->id, char(param_type));
+                                return res;
+                            }
+
+                            float v = 0.0f;
+                            if ((res = read_fully(is, &v)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", name);
+                                return res;
+                            }
+
+                            vst3::CtlParamPort *pp      = static_cast<vst3::CtlParamPort *>(p);
+                            lsp_trace("  %s = %f", meta->id, v);
+                            pp->commit_value(v);
+                            pp->mark_changed();
+                        }
+                        else
+                            lsp_warn("Port id=%s is present in serial data but has invalid type", name);
+                    }
+                    else
+                    {
+                        lsp_warn("Missing port id=%s, skipping", name);
+                        switch (param_type)
+                        {
+                            case 'f':
+                            {
+                                float v;
+                                if ((res = read_fully(is, &v)) != STATUS_OK)
+                                {
+                                    lsp_warn("Failed to skip floating-point parameter");
+                                    return res;
+                                }
+                                break;
+                            }
+                            case 's':
+                            {
+                                if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                                {
+                                    lsp_warn("Failed to skip string");
+                                    return res;
+                                }
+                                break;
+                            }
+                            case '?':
+                                break;
+                            default:
+                                lsp_warn("Unknown parameter type: '%c'", param_type);
+                                return STATUS_CORRUPTED;
+                        }
                     }
                 }
             }
@@ -1305,7 +1376,12 @@ namespace lsp
             );
 
             status_t res = load_state(state);
-            return (res == STATUS_OK) ? Steinberg::kResultOk : Steinberg::kInternalError;
+            if (res != STATUS_OK)
+                return Steinberg::kInternalError;
+
+            receive_preset_state(NULL);
+
+            return Steinberg::kResultOk;
         }
 
         Steinberg::int32 PLUGIN_API Controller::getParameterCount()
@@ -1628,19 +1704,7 @@ namespace lsp
             core::copy_preset_state(&sPresetState, state);
 
             // Notify receivers
-            lltl::parray<UIWrapper> receivers;
-            if (sWrappersLock.lock())
-            {
-                lsp_finally { sWrappersLock.unlock(); };
-                receivers.add(vWrappers);
-            }
-
-            for (lltl::iterator<UIWrapper> it = receivers.values(); it; ++it)
-            {
-                UIWrapper *w    = it.get();
-                if ((w != NULL) && (w != wrapper))
-                    w->receive_preset_state(state);
-            }
+            receive_preset_state(wrapper);
 
             // Send message to DSP backend
             if (pPeerConnection != NULL)
@@ -2118,6 +2182,26 @@ namespace lsp
                 sKVT.gc();
                 sKVTMutex.unlock();
             }
+        }
+
+        void Controller::receive_preset_state(ui::IWrapper *except)
+        {
+        #ifdef WITH_UI_FEATURE
+            // Notify UI about position update
+            lltl::parray<UIWrapper> receivers;
+            if (sWrappersLock.lock())
+            {
+                lsp_finally { sWrappersLock.unlock(); };
+                receivers.add(vWrappers);
+            }
+
+            for (lltl::iterator<UIWrapper> it = receivers.values(); it; ++it)
+            {
+                UIWrapper *w = it.get();
+                if ((w != NULL) && (w != except))
+                    w->receive_preset_state(&sPresetState);
+            }
+        #endif /* WITH_UI_FEATURE */
         }
 
     } /* namespace vst3 */

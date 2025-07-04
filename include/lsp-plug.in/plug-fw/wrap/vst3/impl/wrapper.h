@@ -1290,7 +1290,7 @@ namespace lsp
         status_t Wrapper::save_state(Steinberg::IBStream *os)
         {
             status_t res;
-            const uint16_t version      = 1;
+            const uint16_t version      = 2;
 
             // Set-up DSP context
             dsp::context_t ctx;
@@ -1323,7 +1323,7 @@ namespace lsp
                     lsp_trace("Saving state of path parameter: %s = %s", meta->id, path->path());
 
                     const char *path_value = path->path();
-                    if ((res = write_value(os, meta->id, path_value)) != STATUS_OK)
+                    if ((res = write_value(os, meta->id, 's', path_value)) != STATUS_OK)
                     {
                         lsp_trace("write_value failed for id=%s", meta->id);
                         return res;
@@ -1339,7 +1339,7 @@ namespace lsp
                     }
 
                     lsp_trace("Saving state of string parameter: %s = %s", meta->id, str);
-                    if ((res = write_value(os, meta->id, str)) != STATUS_OK)
+                    if ((res = write_value(os, meta->id, 's', str)) != STATUS_OK)
                     {
                         lsp_trace("write_value failed for id=%s", meta->id);
                         return res;
@@ -1355,7 +1355,7 @@ namespace lsp
                             p->value())
                     );
 
-                    if ((res = write_value(os, meta->id, p->value())) != STATUS_OK)
+                    if ((res = write_value(os, meta->id, 'f', p->value())) != STATUS_OK)
                     {
                         lsp_trace("write_value failed for id=%s", meta->id);
                         return res;
@@ -1412,7 +1412,11 @@ namespace lsp
                 lsp_warn("Failed to read serial version");
                 return STATUS_CORRUPTED;
             }
-            if (version != 1)
+
+            bool param_types = false;
+            if (version == 2)
+                param_types     = true;
+            else if (version != 1)
             {
                 lsp_warn("Unsupported serial version %d", int(version));
                 return STATUS_CORRUPTED;
@@ -1494,10 +1498,26 @@ namespace lsp
                     else
                     {
                         lsp_warn("Unknown special variable: %s, skipping", name);
+                        if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to skip special variable", int(res));
+                            return res;
+                        }
                     }
                 }
                 else
                 {
+                    // Read parameter type
+                    uint8_t param_type      = '?';
+                    if (param_types)
+                    {
+                        if ((res = read_fully(is, &param_type)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to deserialize parameter type, error code=%d", int(res));
+                            return res;
+                        }
+                    }
+
                     // Try to find virtual port
                     vst3::Port *p           = vParamMapping.get(name);
                     if (p != NULL)
@@ -1505,43 +1525,90 @@ namespace lsp
                         const meta::port_t *meta = p->metadata();
                         if (meta::is_path_port(meta))
                         {
-                            path_t *xp  = p->buffer<path_t>();
-
+                            if ((param_type != '?') && (param_type != 's'))
+                            {
+                                lsp_warn("Failed to deserialize port id=%s: invalid parameter type '%c'", meta->id, char(param_type));
+                                return res;
+                            }
                             if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
                             {
                                 lsp_warn("Failed to deserialize port id=%s", meta->id);
                                 return res;
                             }
+
+                            path_t *xp  = p->buffer<path_t>();
                             lsp_trace("  %s = %s", meta->id, name);
                             xp->submit(name, strlen(name), plug::PF_STATE_RESTORE);
                         }
                         else if (meta::is_string_holding_port(meta))
                         {
-                            vst3::StringPort *sp    = static_cast<vst3::StringPort *>(p);
-                            plug::string_t *xs      = sp->data();
+                            if ((param_type != '?') && (param_type != 's'))
+                            {
+                                lsp_warn("Failed to deserialize port id=%s: invalid parameter type '%c'", meta->id, char(param_type));
+                                return res;
+                            }
                             if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
                             {
                                 lsp_warn("Failed to deserialize port id=%s", meta->id);
                                 return res;
                             }
+
+                            vst3::StringPort *sp    = static_cast<vst3::StringPort *>(p);
+                            plug::string_t *xs      = sp->data();
                             lsp_trace("  %s = %s", meta->id, name);
                             xs->submit(name, strlen(name), true);
                         }
                         else
                         {
-                            vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);
+                            if ((param_type != '?') && (param_type != 'f'))
+                            {
+                                lsp_warn("Failed to deserialize port id=%s: invalid parameter type '%c'", meta->id, char(param_type));
+                                return res;
+                            }
+
                             float v = 0.0f;
                             if ((res = read_fully(is, &v)) != STATUS_OK)
                             {
                                 lsp_warn("Failed to deserialize port id=%s", name);
                                 return res;
                             }
+
+                            vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);
                             lsp_trace("  %s = %f", meta->id, v);
                             pp->submit(v);
                         }
                     }
                     else
+                    {
                         lsp_warn("Missing port id=%s, skipping", name);
+                        switch (param_type)
+                        {
+                            case 'f':
+                            {
+                                float v;
+                                if ((res = read_fully(is, &v)) != STATUS_OK)
+                                {
+                                    lsp_warn("Failed to skip floating-point parameter");
+                                    return res;
+                                }
+                                break;
+                            }
+                            case 's':
+                            {
+                                if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                                {
+                                    lsp_warn("Failed to skip string");
+                                    return res;
+                                }
+                                break;
+                            }
+                            case '?':
+                                break;
+                            default:
+                                lsp_warn("Unknown parameter type: '%c'", param_type);
+                                return STATUS_CORRUPTED;
+                        }
+                    }
                 }
             }
 
@@ -3784,7 +3851,6 @@ namespace lsp
 
         status_t Wrapper::serialize_preset_state(Steinberg::IBStream *os)
         {
-            status_t res;
             core::preset_state_t state;
             {
                 // Lock the state
@@ -3817,46 +3883,16 @@ namespace lsp
 
             // Serialize obtained preset state
             lsp_trace("preset state: flags=0x%x, tab=%d, name=%s", int(state.flags), int(state.tab), state.name);
-            if ((res = write_string(os, "!preset_state")) != STATUS_OK)
-                return res;
-            if ((res = write_single(os, uint32_t(state.flags))) != STATUS_OK)
-                return res;
-            if ((res = write_single(os, uint32_t(state.tab))) != STATUS_OK)
-                return res;
-            if ((res = write_string(os, state.name)) != STATUS_OK)
-                return res;
-
-            return STATUS_OK;
+            return vst3::serialize_preset_state(os, &state);
         }
 
         status_t Wrapper::deserialize_preset_state(core::preset_state_t *state, Steinberg::IBStream *is)
         {
-            status_t res;
-            char *name = NULL;
-            size_t name_cap = 0;
-            lsp_finally {
-                if (name != NULL)
-                    free(name);
-            };
+            status_t res = vst3::deserialize_preset_state(state, is);
+            if (res == STATUS_OK)
+                lsp_trace("preset state: flags=0x%x, tab=%d, name=%s", int(state->flags), int(state->tab), state->name);
 
-            uint32_t flags = 0, tab = 0;
-            if ((res = read_fully(is, &flags)) != STATUS_OK)
-                return res;
-            if ((res = read_fully(is, &tab)) != STATUS_OK)
-                return res;
-            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
-                return res;
-
-            name_cap        = lsp_min(name_cap, core::PRESET_NAME_BYTES - 1);
-            core::init_preset_state(state);
-            state->flags    = flags;
-            state->tab      = tab;
-            memcpy(state->name, name, name_cap);
-            state->name[name_cap]   = '\0';
-
-            lsp_trace("preset state: flags=0x%x, tab=%d, name=%s", int(state->flags), int(state->tab), state->name);
-
-            return STATUS_OK;
+            return res;
         }
 
     } /* namespace vst3 */

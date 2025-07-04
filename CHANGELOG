@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.31 ===
+* Changed VST3 chunk format incompatible with previous plugin versions.
 * Added possibility to automatically play samples when navigating file list.
 * Added ctl::Controller class that is a base controller class for UI settings.
 * Implemented ctl:link controller that allows to link values together in the UI.
