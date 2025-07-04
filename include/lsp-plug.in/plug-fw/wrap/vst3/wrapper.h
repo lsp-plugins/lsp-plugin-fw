@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 янв. 2024 г.
@@ -199,6 +199,8 @@ namespace lsp
 
                 void                        set_preset_state(const core::preset_state_t *state, uint32_t mode);
                 void                        request_preset_state();
+                status_t                    serialize_preset_state(Steinberg::IBStream *os);
+                status_t                    deserialize_preset_state(core::preset_state_t *state, Steinberg::IBStream *is);
 
                 status_t                    save_state(Steinberg::IBStream *os);
                 status_t                    load_state(Steinberg::IBStream *is);

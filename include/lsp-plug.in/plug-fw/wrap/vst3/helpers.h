@@ -324,7 +324,7 @@ namespace lsp
         }
 
         /**
-         * Write floating-point value to the stream
+         * Write named floating-point value to the stream
          * @param is output stream
          * @param key parameter name
          * @param value parameter value
@@ -342,6 +342,13 @@ namespace lsp
             return res;
         }
 
+        /**
+         * Write named string value to the stream
+         * @param is output stream
+         * @param key parameter name
+         * @param value parameter value
+         * @return status of operation
+         */
         template <>
         inline status_t write_value(Steinberg::IBStream *is, const char *key, const char *value)
         {
@@ -349,6 +356,31 @@ namespace lsp
             if (res == STATUS_OK)
                 res = write_string(is, value);
             return res;
+        }
+
+        /**
+         * Write single value to the stream
+         * @param is output stream
+         * @param value value to write
+         * @return status of operation
+         */
+        template <class T>
+        inline status_t write_single(Steinberg::IBStream *is, const T value)
+        {
+            T tmp   = CPU_TO_LE(value);
+            return write_fully(is, &tmp, sizeof(T));
+        }
+
+        /**
+         * Write single UTF-8 string to the stream
+         * @param is output stream
+         * @param value value to write
+         * @return status of operation
+         */
+        template <>
+        inline status_t write_single(Steinberg::IBStream *is, const char *value)
+        {
+            return write_string(is, value);
         }
 
         /**

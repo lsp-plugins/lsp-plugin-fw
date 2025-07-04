@@ -1363,6 +1363,13 @@ namespace lsp
                 }
             }
 
+            // Write special variables
+            if ((res = serialize_preset_state(os)) != STATUS_OK)
+            {
+                lsp_warn("Error serializing preset state, error=%d", int(res));
+                return res;
+            }
+
             // Save state of all KVT parameters
             if (sKVTMutex.lock())
             {
@@ -1443,7 +1450,53 @@ namespace lsp
 
                 lsp_trace("Parameter name: %s", name);
 
-                if (name[0] != '/')
+                if (name[0] == '/')
+                {
+                    // Read the KVT parameter flags
+                    uint8_t flags = 0;
+                    if ((res = read_fully(is, &flags)) != STATUS_OK)
+                    {
+                        lsp_warn("Failed to resolve flags for parameter id=%s", name);
+                        return res;
+                    }
+
+                    lsp_trace("Parameter flags: 0x%x", int(flags));
+                    if ((res = read_kvt_value(is, name, &p)) != STATUS_OK)
+                    {
+                        lsp_warn("Failed to read value for KVT parameter id=%s, code=%d", name, int(res));
+                        return res;
+                    }
+
+                    // This is KVT port
+                    if (p.type != core::KVT_ANY)
+                    {
+                        size_t kflags = core::KVT_TX;
+                        if (flags & vst3::FLAG_PRIVATE)
+                            kflags     |= core::KVT_PRIVATE;
+
+                        kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
+                        sKVT.put(name, &p, kflags);
+                    }
+                }
+                else if (name[0] == '!')
+                {
+                    if (strcmp(name, "!preset_state") == 0)
+                    {
+                        core::preset_state_t state;
+                        if ((res = deserialize_preset_state(&state, is)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to deserialize preset state, error code=%d", int(res));
+                            return res;
+                        }
+
+                        set_preset_state(&state, PT_STATE);
+                    }
+                    else
+                    {
+                        lsp_warn("Unknown special variable: %s, skipping", name);
+                    }
+                }
+                else
                 {
                     // Try to find virtual port
                     vst3::Port *p           = vParamMapping.get(name);
@@ -1489,34 +1542,6 @@ namespace lsp
                     }
                     else
                         lsp_warn("Missing port id=%s, skipping", name);
-                }
-                else
-                {
-                    // Read the KVT parameter flags
-                    uint8_t flags = 0;
-                    if ((res = read_fully(is, &flags)) != STATUS_OK)
-                    {
-                        lsp_warn("Failed to resolve flags for parameter id=%s", name);
-                        return res;
-                    }
-
-                    lsp_trace("Parameter flags: 0x%x", int(flags));
-                    if ((res = read_kvt_value(is, name, &p)) != STATUS_OK)
-                    {
-                        lsp_warn("Failed to read value for KVT parameter id=%s, code=%d", name, int(res));
-                        return res;
-                    }
-
-                    // This is KVT port
-                    if (p.type != core::KVT_ANY)
-                    {
-                        size_t kflags = core::KVT_TX;
-                        if (flags & vst3::FLAG_PRIVATE)
-                            kflags     |= core::KVT_PRIVATE;
-
-                        kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
-                        sKVT.put(name, &p, kflags);
-                    }
                 }
             }
 
@@ -3621,11 +3646,11 @@ namespace lsp
             report_state_change();
             report_music_position();
             transmit_kvt_changes();
-            transmit_preset_state();
 
             // Do not synchronize other data until there is no UI visible
             if (nUICounterResp > 0)
             {
+                transmit_preset_state();
                 transmit_meter_values();
                 transmit_mesh_states();
                 transmit_frame_buffers();
@@ -3756,6 +3781,84 @@ namespace lsp
             // Notify peer
             pPeerConnection->notify(msg);
         }
+
+        status_t Wrapper::serialize_preset_state(Steinberg::IBStream *os)
+        {
+            status_t res;
+            core::preset_state_t state;
+            {
+                // Lock the state
+                while (true)
+                {
+                    // We can fetch data only if it is in PT_STATE state or fetch is forced
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // State is locked
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, flags & (~PT_LOCK))) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                // Now we have locked state
+                core::copy_preset_state(&state, &sPresetState);
+            }
+
+            // Serialize obtained preset state
+            lsp_trace("preset state: flags=0x%x, tab=%d, name=%s", int(state.flags), int(state.tab), state.name);
+            if ((res = write_string(os, "!preset_state")) != STATUS_OK)
+                return res;
+            if ((res = write_single(os, uint32_t(state.flags))) != STATUS_OK)
+                return res;
+            if ((res = write_single(os, uint32_t(state.tab))) != STATUS_OK)
+                return res;
+            if ((res = write_string(os, state.name)) != STATUS_OK)
+                return res;
+
+            return STATUS_OK;
+        }
+
+        status_t Wrapper::deserialize_preset_state(core::preset_state_t *state, Steinberg::IBStream *is)
+        {
+            status_t res;
+            char *name = NULL;
+            size_t name_cap = 0;
+            lsp_finally {
+                if (name != NULL)
+                    free(name);
+            };
+
+            uint32_t flags = 0, tab = 0;
+            if ((res = read_fully(is, &flags)) != STATUS_OK)
+                return res;
+            if ((res = read_fully(is, &tab)) != STATUS_OK)
+                return res;
+            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                return res;
+
+            name_cap        = lsp_min(name_cap, core::PRESET_NAME_BYTES - 1);
+            core::init_preset_state(state);
+            state->flags    = flags;
+            state->tab      = tab;
+            memcpy(state->name, name, name_cap);
+            state->name[name_cap]   = '\0';
+
+            lsp_trace("preset state: flags=0x%x, tab=%d, name=%s", int(state->flags), int(state->tab), state->name);
+
+            return STATUS_OK;
+        }
+
     } /* namespace vst3 */
 } /* namespace lsp */
 
