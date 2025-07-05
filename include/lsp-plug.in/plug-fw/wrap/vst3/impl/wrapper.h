@@ -3738,7 +3738,7 @@ namespace lsp
                 while (true)
                 {
                     const uatomic_t flags = atomic_load(&nPresetFlags);
-                    if ((flags & PT_UNLOCK) > mode) // Leave if data has greater priority than submitted
+                    if ((flags & PT_TYPE) > mode) // Leave if data has greater priority than submitted
                     {
                         lsp_trace("preset state not updated, flags=0x%x, mode=%d", int(flags), int(mode));
                         return;
@@ -3756,7 +3756,7 @@ namespace lsp
                     while (true)
                     {
                         const uatomic_t flags = atomic_load(&nPresetFlags);
-                        if (atomic_cas(&nPresetFlags, flags, mode & PT_UNLOCK)) // Unlock the state
+                        if (atomic_cas(&nPresetFlags, flags, mode & (~PT_LOCK))) // Unlock the state
                             break;
                         ipc::Thread::yield();
                     }
@@ -3813,7 +3813,7 @@ namespace lsp
                     while (true)
                     {
                         const uatomic_t flags = atomic_load(&nPresetFlags);
-                        if (atomic_cas(&nPresetFlags, flags, PT_NONE)) // Unlock the state
+                        if (atomic_cas(&nPresetFlags, flags, flags & (~(PT_LOCK | PT_TYPE)))) // Unlock the state
                             break;
                         ipc::Thread::yield();
                     }

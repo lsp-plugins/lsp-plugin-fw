@@ -69,9 +69,6 @@ namespace lsp
                 void                            do_destroy();
                 vst2::UIPort                   *create_port(const meta::port_t *port, const char *postfix);
 
-            protected: // ui::IWrapper
-                virtual void                    send_preset_state(const core::preset_state_t *state);
-
             public:
                 explicit UIWrapper(ui::Module *ui, vst2::Wrapper *wrapper);
                 virtual ~UIWrapper() override;
@@ -89,6 +86,7 @@ namespace lsp
                 virtual status_t                play_file(const char *file, wsize_t position, bool release) override;
                 virtual meta::plugin_format_t   plugin_format() const override;
                 virtual const core::ShmState   *shm_state() override;
+                virtual void                    send_preset_state(const core::preset_state_t *state);
 
             public:
                 bool                            show_ui();

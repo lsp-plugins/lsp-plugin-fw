@@ -102,10 +102,12 @@ namespace lsp
 
                 virtual void set_value(float value) override
                 {
+                    lsp_trace("this=%p, id=%s, value=%f", this, id(), value);
                     value = meta::limit_value(pMetadata, value);
-                    if (value != fValue)
+                    if (value == fValue)
                         return;
 
+					fValue	= value;
                     if (bRqFlag != NULL)
                         *bRqFlag    = true;
                     if (pPort == NULL)
@@ -115,7 +117,10 @@ namespace lsp
                     port->write_value(value);
 
                     if (pManager != NULL)
+                    {
                         pManager->mark_active_preset_dirty();
+                        lsp_trace("mark_active_preset_dirty");
+                    }
                 }
 
                 virtual bool sync() override

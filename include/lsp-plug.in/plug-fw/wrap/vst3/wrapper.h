@@ -93,8 +93,7 @@ namespace lsp
                     PT_LOCK     = 0x8000,
                     PT_FORCE    = 0x4000,
 
-                    PT_TYPE     = 0x000f,
-                    PT_UNLOCK   = 0x7fff
+                    PT_TYPE     = 0x000f
                 };
 
                 class VST3KVTListener: public core::KVTListener

@@ -181,18 +181,6 @@ namespace lsp
                 void            notify_preset_deactivated(const preset_t *preset);
                 void            notify_preset_activated(const preset_t *preset);
 
-                /**
-                 * Set current state of the preset to the DSP
-                 * @param state current preset state
-                 */
-                virtual void    send_preset_state(const core::preset_state_t *state);
-
-                /**
-                 * Receive current state of the preset ffrom DSP
-                 * @param state current preset state
-                 */
-                void            receive_preset_state(const core::preset_state_t *state);
-
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
                 IWrapper(const IWrapper &) = delete;
@@ -621,6 +609,19 @@ namespace lsp
                  * Request for presets scan
                  */
                 void                            scan_presets();
+
+                /**
+                 * Set current state of the preset to the DSP
+                 * @param state current preset state
+                 */
+                virtual void                    send_preset_state(const core::preset_state_t *state);
+
+                /**
+                 * Receive current state of the preset ffrom DSP
+                 * @param state current preset state
+                 */
+                void                            receive_preset_state(const core::preset_state_t *state);
+
         };
 
     } /* namespace ui */

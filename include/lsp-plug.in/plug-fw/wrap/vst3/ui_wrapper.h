@@ -87,9 +87,6 @@ namespace lsp
                 void                                sync_kvt_state(core::KVTStorage *kvt);
                 void                                do_destroy();
 
-            protected: // ui::IWrapper
-                virtual void                        send_preset_state(const core::preset_state_t *state) override;
-
             public:
                 explicit UIWrapper(vst3::Controller *controller, ui::Module *ui, resource::ILoader *loader);
                 UIWrapper(const UIWrapper &) = delete;
@@ -119,6 +116,7 @@ namespace lsp
                 virtual void                        main_iteration() override;
                 virtual meta::plugin_format_t       plugin_format() const override;
                 virtual const core::ShmState       *shm_state() override;
+                virtual void                        send_preset_state(const core::preset_state_t *state) override;
 
             public: // vst3::IUISync
                 virtual void                        sync_ui() override;

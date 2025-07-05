@@ -30,6 +30,7 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/core/ShmClient.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/helpers.h>
@@ -60,6 +61,17 @@ namespace lsp
          */
         class Wrapper: public plug::IWrapper
         {
+            public:
+                enum preset_type_t
+                {
+                    PT_NONE     = 0,
+                    PT_UI       = 1,
+                    PT_STATE    = 2,
+
+                    PT_TYPE     = 0x000f,
+                    PT_LOCK     = 0x8000
+                };
+
             protected:
                 typedef struct audio_group_t
                 {
@@ -77,12 +89,14 @@ namespace lsp
                 const meta::package_t          *pPackage;           // Package metadata
                 clap::HostExtensions           *pExt;               // CLAP Extensions
                 ipc::IExecutor                 *pExecutor;          // Executor service
+                core::preset_state_t            sPresetState;       // Preset state
                 int32_t                         nLatency;           // The actual plugin latency
                 int32_t                         nTailSize;          // Tail size
                 uatomic_t                       nDumpReq;           // State dump request counter
                 uatomic_t                       nDumpResp;          // State dump response counter
                 uatomic_t                       nStateReq;          // Current version of the state
                 uatomic_t                       nStateResp;         // Last reported version of the state
+                uatomic_t                       nPresetFlags;       // Preset flags
 
             #ifdef WITH_UI_FEATURE
                 const meta::plugin_t           *pUIMetadata;        // UI metadata
@@ -134,6 +148,7 @@ namespace lsp
                 size_t          prepare_block(size_t *ev_index, size_t offset, const clap_process_t *process);
                 void            process_transport_event(const clap_event_transport_t *ev);
                 void            generate_output_events(size_t offset, const clap_process_t *process);
+                status_t        serialize_preset_settings(const clap_ostream_t *os);
 
         #ifdef WITH_UI_FEATURE
             protected:
@@ -212,6 +227,8 @@ namespace lsp
                 inline core::SamplePlayer      *sample_player();
                 void                            request_state_dump();
                 inline HostExtensions          *extensions();
+                void                            set_preset_state(const core::preset_state_t *state, size_t mode);
+                bool                            fetch_preset_state(core::preset_state_t *state, bool force);
 
         #ifdef WITH_UI_FEATURE
             public:

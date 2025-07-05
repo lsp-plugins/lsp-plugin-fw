@@ -27,6 +27,7 @@
 #include <clap/clap.h>
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/endian.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
@@ -171,6 +172,34 @@ namespace lsp
         }
 
         /**
+         * Read the variable-size block from the CLAP input streem
+         * @param is CLAP input stream
+         * @param buf target buffer to read the data to
+         * @param capacity the variable that stores buffer capacity
+         * @param count number of bytes to read
+         * @return status of operation
+         */
+        inline status_t read_fully(const clap_istream_t *is, void **buf, size_t *capacity, size_t count)
+        {
+            // Reallocate memory if there is not enough space
+            uint8_t *s  = reinterpret_cast<uint8_t *>(*buf);
+            size_t cap  = *capacity;
+            if ((s == NULL) || (cap < count))
+            {
+                cap         = align_size(count, 32);
+                uint8_t *ns = static_cast<uint8_t *>(realloc(s, sizeof(uint8_t) * cap));
+                if (ns == NULL)
+                    return STATUS_NO_MEM;
+
+                s           = ns;
+                *buf        = ns;
+                *capacity   = cap;
+            }
+
+            return read_fully(is, *buf, count);
+        }
+
+        /**
          * Read simple data type from the CLAP input stream
          * @param is CLAP input stream
          * @param value value to write
@@ -186,6 +215,12 @@ namespace lsp
             return STATUS_OK;
         }
 
+        /**
+         * Write variable-length integer
+         * @param os CLAP output stream
+         * @param value integer to write
+         * @return status of operation
+         */
         inline status_t write_varint(const clap_ostream_t *os, size_t value)
         {
             do {
@@ -201,6 +236,22 @@ namespace lsp
         }
 
         /**
+         * Get size of serialized variable-length integer
+         * @param value variable-length integer
+         * @return number of bytes used to serialize value
+         */
+        inline size_t szof_varint(size_t value)
+        {
+            size_t szof = 0;
+            do {
+                ++szof;
+                value     >>= 7;
+            } while (value > 0);
+
+            return szof;
+        }
+
+        /**
          * Write string to CLAP output stream
          * @param os CLAP output stream
          * @param s NULL_terminated string to write
@@ -208,7 +259,7 @@ namespace lsp
          */
         inline status_t write_string(const clap_ostream_t *os, const char *s)
         {
-            size_t len = strlen(s);
+            const size_t len = strlen(s);
 
             // Write variable-sized string length
             status_t res = write_varint(os, len);
@@ -217,6 +268,17 @@ namespace lsp
 
             // Write the payload data
             return write_fully(os, s, len);
+        }
+
+        /**
+         * Set serialized string size
+         * @param s string
+         * @return serialized string size
+         */
+        inline size_t szof_string(const char *s)
+        {
+            const size_t len = strlen(s);
+            return szof_varint(len) + len;
         }
 
         /**
@@ -302,7 +364,7 @@ namespace lsp
             if ((s == NULL) || (cap < (len + 1)))
             {
                 cap         = align_size(len + 1, 32);
-                char *ns    = static_cast<char *>(realloc(s, sizeof(char *) * cap));
+                char *ns    = static_cast<char *>(realloc(s, sizeof(char) * cap));
                 if (ns == NULL)
                     return STATUS_NO_MEM;
 
@@ -317,6 +379,46 @@ namespace lsp
                 s[len]      = '\0';
 
             return STATUS_OK;
+        }
+
+        inline status_t read_preset_state(const clap_istream_t *is, core::preset_state_t *state)
+        {
+            // Read variable-sized preset length
+            size_t len = 0;
+            status_t res = read_varint(is, &len);
+            if (res != STATUS_OK)
+                return res;
+
+            core::init_preset_state(state);
+            uint32_t flags = 0, tab = 0;
+            if ((res = read_fully(is, &flags)) != STATUS_OK)
+                return res;
+            if ((res = read_fully(is, &tab)) != STATUS_OK)
+                return res;
+            if ((res = read_string(is, state->name, core::PRESET_NAME_BYTES)) != STATUS_OK)
+                return res;
+
+            state->flags        = flags;
+            state->tab          = tab;
+
+            const size_t szof   = sizeof(uint32_t) * 2 + szof_string(state->name);
+
+            return (len == szof) ? STATUS_OK : STATUS_BAD_STATE;
+        }
+
+        inline status_t write_preset_state(const clap_ostream_t *os, const core::preset_state_t *state)
+        {
+            // Read variable-sized preset length
+            status_t res;
+            const size_t szof   = sizeof(uint32_t) * 2 + szof_string(state->name);
+
+            if ((res = write_varint(os, szof)) != STATUS_OK)
+                return res;
+            if ((res = write_fully(os, uint32_t(state->flags))) != STATUS_OK)
+                return res;
+            if ((res = write_fully(os, uint32_t(state->tab))) != STATUS_OK)
+                return res;
+            return write_string(os, state->name);
         }
 
         inline float to_clap_value(const meta::port_t *meta, float value, float *min_value, float *max_value)

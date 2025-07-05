@@ -115,9 +115,6 @@ namespace lsp
 
                 void                        send_play_event();
 
-            protected: // ui::IWrapper
-                virtual void                    send_preset_state(const core::preset_state_t *state) override;
-
             public: // ui::IWrapper
                 virtual float                   ui_scaling_factor(float scaling) override;
                 virtual void                    main_iteration() override;
@@ -130,6 +127,7 @@ namespace lsp
                 virtual meta::plugin_format_t   plugin_format() const override;
                 virtual bool                    window_resized(tk::Window *wnd, size_t width, size_t height) override;
                 virtual const core::ShmState   *shm_state() override;
+                virtual void                    send_preset_state(const core::preset_state_t *state) override;
         };
     } /* namespace lv2 */
 } /* namespace lsp */
