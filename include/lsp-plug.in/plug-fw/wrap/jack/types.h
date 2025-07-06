@@ -41,6 +41,11 @@ namespace lsp
             const char *dst;
         } connection_t;
 
+        typedef struct wrapper_info_t
+        {
+            const char *client_name;
+        } wrapper_info_t;
+
         typedef struct path_t: public plug::path_t
         {
             enum flags_t

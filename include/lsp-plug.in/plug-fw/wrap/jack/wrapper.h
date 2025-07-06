@@ -93,6 +93,7 @@ namespace lsp
             private:
                 jack::Factory                  *pFactory;           // Factory for shared resources
                 jack_client_t                  *pClient;            // JACK connection client
+                char                           *sClientName;        // JACK client name
                 state_t                         nState;             // Connection state to JACK server
                 bool                            bUpdateSettings;    // Plugin settings are required to be updated
                 ssize_t                         nLatency;           // The actual latency of device
@@ -139,7 +140,7 @@ namespace lsp
                 static bool     set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
-                explicit Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader);
+                explicit Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader, const wrapper_info_t *info);
                 Wrapper(const Wrapper &) = delete;
                 Wrapper(Wrapper &&) = delete;
                 virtual ~Wrapper() override;

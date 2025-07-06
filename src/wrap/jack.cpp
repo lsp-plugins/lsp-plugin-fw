@@ -126,6 +126,7 @@ namespace lsp
         {
             const char     *cfg_file;
             const char     *plugin_id;
+            const char     *client_name;
             void           *parent_id;
             bool            headless;
             bool            list;
@@ -292,6 +293,7 @@ namespace lsp
             // Initialize config with default values
             cfg->cfg_file       = NULL;
             cfg->plugin_id      = NULL;
+            cfg->client_name    = NULL;
             cfg->parent_id      = NULL;
             cfg->headless       = false;
             cfg->list           = false;
@@ -317,6 +319,7 @@ namespace lsp
                     printf("  -h, --help                Output help\n");
                     printf("  -hl, --headless           Launch in console only, without UI\n");
                     printf("  -mw, --minimized          Launch UI with minimized window\n");
+                    printf("  -n, --name                Specify the client name for JACK\n");
                     if (plugin_id == NULL)
                         printf("  -l, --list                List available plugin identifiers\n");
                     printf("  -v, --version             Output the version of the software\n");
@@ -337,6 +340,15 @@ namespace lsp
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->cfg_file = argv[i++];
+                }
+                else if ((!::strcmp(arg, "--name")) || (!::strcmp(arg, "-n")))
+                {
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified JACK client for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->client_name = argv[i++];
                 }
                 else if ((!::strcmp(arg, "--headless")) || (!::strcmp(arg, "-hl")))
                     cfg->headless       = true;
@@ -713,9 +725,12 @@ namespace lsp
             }
         #endif /* WITH_UI_FEATURE */
 
+            wrapper_info_t info;
+            info.client_name    = sCmdLine.client_name;
+
             // Initialize plugin wrapper
-            pRouting        = &sCmdLine.routing;
-            pWrapper        = new jack::Wrapper(pFactory, pPlugin, pLoader);
+            pRouting            = &sCmdLine.routing;
+            pWrapper            = new jack::Wrapper(pFactory, pPlugin, pLoader, &info);
             if (pWrapper == NULL)
                 return STATUS_NO_MEM;
 

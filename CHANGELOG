@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.31 ===
+* Added command line option for JACK that allows to specify client name.
 * Implemented preset management in the UI of the plugin.
 * Added Steinberg::Linux::IEventHandler support for better integration with
   the editorhost from the Steinberg SDK.

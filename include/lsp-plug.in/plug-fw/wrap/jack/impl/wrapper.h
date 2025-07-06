@@ -31,10 +31,12 @@ namespace lsp
 {
     namespace jack
     {
-        Wrapper::Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
+        Wrapper::Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader, const wrapper_info_t *info):
+            IWrapper(plugin, loader)
         {
             pFactory        = factory;
             pClient         = NULL;
+            sClientName     = (info->client_name != NULL) ? strdup(info->client_name) : NULL;
             nState          = S_CREATED;
             bUpdateSettings = true;
             nLatency        = 0;
@@ -57,6 +59,11 @@ namespace lsp
         Wrapper::~Wrapper()
         {
             pClient         = NULL;
+            if (sClientName != NULL)
+            {
+                free(sClientName);
+                sClientName     = NULL;
+            }
             nState          = S_CREATED;
             nLatency        = 0;
             pExecutor       = NULL;
@@ -213,11 +220,24 @@ namespace lsp
 
         status_t Wrapper::connect()
         {
-            // Ensure that client identifier is not longer than jack_client_name_size()
-            size_t max_client_size  = jack_client_name_size();
-            char *client_name       = static_cast<char *>(alloca(max_client_size));
-            strncpy(client_name, pPlugin->metadata()->uid, max_client_size);
-            client_name[max_client_size-1] = '\0';
+            // Init client identifier and ensure that it is not longer than jack_client_name_size()
+            char *client_name       = NULL;
+            lsp_finally {
+                if (client_name != NULL)
+                    free(client_name);
+            };
+            {
+                const size_t max_client_size  = jack_client_name_size();
+                client_name         = static_cast<char *>(malloc(max_client_size));
+                if (client_name == NULL)
+                    return STATUS_NO_MEM;
+
+                strncpy(
+                    client_name,
+                    (sClientName != NULL) ? sClientName : pPlugin->metadata()->uid,
+                    max_client_size);
+                client_name[max_client_size-1] = '\0';
+            }
 
             // Check connection state
             switch (nState)
