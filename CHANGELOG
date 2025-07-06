@@ -3,6 +3,9 @@
 *******************************************************************************
 
 === 1.0.31 ===
+* Implemented preset management in the UI of the plugin.
+* Added Steinberg::Linux::IEventHandler support for better integration with
+  the editorhost from the Steinberg SDK.
 * Changed VST3 chunk format incompatible with previous plugin versions.
 * Added possibility to automatically play samples when navigating file list.
 * Added ctl::Controller class that is a base controller class for UI settings.

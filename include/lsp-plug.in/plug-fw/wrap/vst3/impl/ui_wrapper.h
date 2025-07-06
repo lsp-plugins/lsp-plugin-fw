@@ -62,13 +62,19 @@ namespace lsp
 
         #ifdef VST_USE_RUNLOOP_IFACE
             pRunLoop            = NULL;
-            pTimer              = safe_acquire(new vst3::PlatformTimer(this));
+            pTimer              = new vst3::PlatformTimer(this);
+            pEventHandler       = new vst3::EventHandler(this);
         #endif /* VST_USE_RUNLOOP_IFACE */
         }
 
         UIWrapper::~UIWrapper()
         {
             lsp_trace("this=%p", this);
+
+        #ifdef VST_USE_RUNLOOP_IFACE
+            safe_release(pTimer);
+            safe_release(pEventHandler);
+        #endif /* VST_USE_RUNLOOP_IFACE */
 
             // Remove self from synchronization list of UI wrapper
             if (pController != NULL)
@@ -566,8 +572,17 @@ namespace lsp
         #ifdef VST_USE_RUNLOOP_IFACE
             // Register the timer for event loop
             lsp_trace("this=%p, pRunLoop=%p, pTimer=%p", this, pRunLoop, pTimer);
-            if ((pRunLoop != NULL) && (pTimer != NULL))
-                pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
+            if (pRunLoop != NULL)
+            {
+                if (pEventHandler != NULL)
+                {
+                    int fd = 0;
+                    if ((wWindow->display()->get_file_descriptor(&fd)) == STATUS_OK)
+                        pRunLoop->registerEventHandler(pEventHandler, fd);
+                }
+                if (pTimer != NULL)
+                    pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
+            }
         #endif /* VST_USE_RUNLOOP_IFACE */
 
             // Show the window
@@ -597,8 +612,13 @@ namespace lsp
 
         #ifdef VST_USE_RUNLOOP_IFACE
             // Unregister the timer for event loop
-            if ((pRunLoop != NULL) && (pTimer != NULL))
-                pRunLoop->unregisterTimer(pTimer);
+            if (pRunLoop != NULL)
+            {
+                if (pEventHandler != NULL)
+                    pRunLoop->unregisterEventHandler(pEventHandler);
+                if (pTimer != NULL)
+                    pRunLoop->unregisterTimer(pTimer);
+            }
         #endif /* VST_USE_RUNLOOP_IFACE */
 
             return Steinberg::kResultOk;
@@ -725,6 +745,8 @@ namespace lsp
             if (pRunLoop != NULL)
             {
                 // Unregister the timer for event loop
+                if (pEventHandler != NULL)
+                    pRunLoop->unregisterEventHandler(pEventHandler);
                 if (pTimer != NULL)
                     pRunLoop->unregisterTimer(pTimer);
                 safe_release(pRunLoop);
@@ -737,8 +759,17 @@ namespace lsp
                 pRunLoop    = pController->acquire_run_loop();
 
             lsp_trace("RUN LOOP object=%p", pRunLoop);
-            if ((pRunLoop != NULL) && (pTimer != NULL))
-                pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
+            if (pRunLoop != NULL)
+            {
+                if (pEventHandler != NULL)
+                {
+                    int fd = 0;
+                    if ((wWindow->display()->get_file_descriptor(&fd)) == STATUS_OK)
+                        pRunLoop->registerEventHandler(pEventHandler, fd);
+                }
+                if (pTimer != NULL)
+                    pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
+            }
         #endif /* VST_USE_RUNLOOP_IFACE */
 
             return Steinberg::kResultOk;

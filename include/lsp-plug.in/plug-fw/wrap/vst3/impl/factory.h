@@ -39,6 +39,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/ibstreamout.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/controller.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/event_handler.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/modinfo.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>

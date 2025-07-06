@@ -70,6 +70,7 @@ namespace lsp
             #ifdef VST_USE_RUNLOOP_IFACE
                 Steinberg::Linux::IRunLoop         *pRunLoop;               // Run loop interface
                 Steinberg::Linux::ITimerHandler    *pTimer;                 // Timer handler
+                Steinberg::Linux::IEventHandler    *pEventHandler;          // Event handler
             #endif /* VST_USE_RUNLOOP_IFACE */
 
             protected:
