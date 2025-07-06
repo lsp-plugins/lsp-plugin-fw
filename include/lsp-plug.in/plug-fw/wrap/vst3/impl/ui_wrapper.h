@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 3 янв. 2024 г.
@@ -656,12 +656,16 @@ namespace lsp
                 lsp_trace("window is not visible");
 
                 ws::size_limit_t sr;
-                wWindow->get_size_limits(&sr);
+                wWindow->get_padded_size_limits(&sr);
+
+                lsp_trace("size limits: width={min=%d, max=%d, pre=%d}, height={min=%d, max=%d, pre=%d}",
+                    int(sr.nMinWidth), int(sr.nMaxWidth), int(sr.nPreWidth),
+                    int(sr.nMinHeight), int(sr.nMaxHeight), int(sr.nPreHeight));
 
                 size->left      = 0;
                 size->top       = 0;
-                size->right     = lsp_min(sr.nMinWidth, 32);
-                size->bottom    = lsp_min(sr.nMinHeight, 32);
+                size->right     = lsp_max(sr.nMinWidth, 32);
+                size->bottom    = lsp_max(sr.nMinHeight, 32);
             }
 
             lsp_trace("this=%p, size={left=%d, top=%d, right=%d, bottom=%d}",
@@ -717,13 +721,24 @@ namespace lsp
             pPlugFrame  = safe_acquire(frame);
 
         #ifdef VST_USE_RUNLOOP_IFACE
+            // Release previous pointer of the run loop
+            if (pRunLoop != NULL)
+            {
+                // Unregister the timer for event loop
+                if (pTimer != NULL)
+                    pRunLoop->unregisterTimer(pTimer);
+                safe_release(pRunLoop);
+                pRunLoop    = NULL;
+            }
+
             // Acquire new pointer to the run loop
-            safe_release(pRunLoop);
             pRunLoop = safe_query_iface<Steinberg::Linux::IRunLoop>(frame);
             if (pRunLoop == NULL)
                 pRunLoop    = pController->acquire_run_loop();
 
-           lsp_trace("RUN LOOP object=%p", pRunLoop);
+            lsp_trace("RUN LOOP object=%p", pRunLoop);
+            if ((pRunLoop != NULL) && (pTimer != NULL))
+                pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
         #endif /* VST_USE_RUNLOOP_IFACE */
 
             return Steinberg::kResultOk;
@@ -788,6 +803,7 @@ namespace lsp
 
         void UIWrapper::sync_ui()
         {
+            lsp_trace("sync_ui this=%p, pDisplay=%p");
             if (pDisplay != NULL)
                 pDisplay->main_iteration();
         }
