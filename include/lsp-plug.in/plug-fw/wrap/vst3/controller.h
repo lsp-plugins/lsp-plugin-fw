@@ -104,11 +104,11 @@ namespace lsp
                 void                                parse_raw_osc_event(osc::parse_frame_t *frame);
                 status_t                            load_state(Steinberg::IBStream *is);
                 void                                send_kvt_state();
-                void                                receive_preset_state(ui::IWrapper *except);
                 status_t                            deserialize_preset_state(core::preset_state_t *state, Steinberg::IBStream *is);
 
         #ifdef WITH_UI_FEATURE
             protected:
+                void                                receive_preset_state(ui::IWrapper *except);
                 ui::Module                         *create_ui();
         #endif /* WITH_UI_FEATURE */
 

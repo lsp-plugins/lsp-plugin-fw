@@ -1034,6 +1034,7 @@ namespace lsp
                     sKVTMutex.unlock();
                 }
             }
+        #ifdef WITH_UI_FEATURE
             else if (!strcmp(message_id, ID_MSG_PRESET_STATE))
             {
                 // Get endianess
@@ -1064,6 +1065,7 @@ namespace lsp
 
                 receive_preset_state(NULL);
             }
+        #endif /* WITH_UI_FEATURE */
 
             return Steinberg::kResultOk;
         }
@@ -1379,7 +1381,9 @@ namespace lsp
             if (res != STATUS_OK)
                 return Steinberg::kInternalError;
 
+        #ifdef WITH_UI_FEATURE
             receive_preset_state(NULL);
+        #endif /* WITH_UI_FEATURE */
 
             return Steinberg::kResultOk;
         }
@@ -2184,9 +2188,9 @@ namespace lsp
             }
         }
 
+    #ifdef WITH_UI_FEATURE
         void Controller::receive_preset_state(ui::IWrapper *except)
         {
-        #ifdef WITH_UI_FEATURE
             // Notify UI about position update
             lltl::parray<UIWrapper> receivers;
             if (sWrappersLock.lock())
@@ -2201,8 +2205,8 @@ namespace lsp
                 if ((w != NULL) && (w != except))
                     w->receive_preset_state(&sPresetState);
             }
-        #endif /* WITH_UI_FEATURE */
         }
+    #endif /* WITH_UI_FEATURE */
 
     } /* namespace vst3 */
 } /* namespace lsp */
