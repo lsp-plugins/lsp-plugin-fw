@@ -30,6 +30,7 @@
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/io/charset.h>
 #include <lsp-plug.in/lltl/phashset.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/runtime/LSPString.h>
@@ -269,15 +270,32 @@ namespace lsp
             return STATUS_OK;
         }
 
+        inline status_t sizeof_varint(size_t value)
+        {
+            size_t szof = 0;
+            do {
+                ++szof;
+                value     >>= 7;
+            } while (value > 0);
+
+            return szof;
+        };
+
         /**
          * Write string to VST3 output stream
          * @param os VST3 output stream
          * @param s NULL-terminated string to write
          * @return number of actual bytes written or negative error code
          */
+        inline size_t sizeof_string(const char *s)
+        {
+            const size_t len = strlen(s);
+            return sizeof_varint(len) + len;
+        }
+
         inline status_t write_string(Steinberg::IBStream *os, const char *s)
         {
-            size_t len = strlen(s);
+            const size_t len = strlen(s);
 
             // Write variable-sized string length
             status_t res = write_varint(os, len);
@@ -324,31 +342,71 @@ namespace lsp
         }
 
         /**
-         * Write floating-point value to the stream
+         * Write named floating-point value to the stream
          * @param is output stream
          * @param key parameter name
+         * @param type parameter type
          * @param value parameter value
          * @return status of operation
          */
         template <class T>
-        inline status_t write_value(Steinberg::IBStream *is, const char *key, const T value)
+        inline status_t write_value(Steinberg::IBStream *is, const char *key, uint8_t type, const T value)
         {
             status_t res = write_string(is, key);
-            if (res == STATUS_OK)
-            {
-                T tmp   = CPU_TO_LE(value);
-                res     = write_fully(is, &tmp, sizeof(T));
-            }
-            return res;
+            if (res != STATUS_OK)
+                return res;
+
+            if ((res = write_fully(is, &type, sizeof(type))) != STATUS_OK)
+                return res;
+
+            T tmp   = CPU_TO_LE(value);
+            return write_fully(is, &tmp, sizeof(T));
         }
 
+        /**
+         * Write named string value to the stream
+         * @param is output stream
+         * @param key parameter name
+         * @param value parameter value
+         * @param type parameter type
+         * @return status of operation
+         */
         template <>
-        inline status_t write_value(Steinberg::IBStream *is, const char *key, const char *value)
+        inline status_t write_value(Steinberg::IBStream *is, const char *key, uint8_t type, const char *value)
         {
             status_t res = write_string(is, key);
-            if (res == STATUS_OK)
-                res = write_string(is, value);
-            return res;
+            if (res != STATUS_OK)
+                return res;
+
+            if ((res = write_fully(is, &type, sizeof(type))) != STATUS_OK)
+                return res;
+
+            return write_string(is, value);
+        }
+
+        /**
+         * Write single value to the stream
+         * @param is output stream
+         * @param value value to write
+         * @return status of operation
+         */
+        template <class T>
+        inline status_t write_single(Steinberg::IBStream *is, const T value)
+        {
+            T tmp   = CPU_TO_LE(value);
+            return write_fully(is, &tmp, sizeof(T));
+        }
+
+        /**
+         * Write single UTF-8 string to the stream
+         * @param is output stream
+         * @param value value to write
+         * @return status of operation
+         */
+        template <>
+        inline status_t write_single(Steinberg::IBStream *is, const char *value)
+        {
+            return write_string(is, value);
         }
 
         /**
@@ -1052,6 +1110,57 @@ namespace lsp
 
             lsp_trace("Using standard Steinberg::Vst::IMessage implementation");
             return false;
+        }
+
+        inline status_t serialize_preset_state(Steinberg::IBStream *os, const core::preset_state_t *state)
+        {
+            status_t res;
+
+            const size_t szof = sizeof(uint32_t) * 2 + sizeof_string(state->name);
+
+            // Serialize obtained preset state
+            if ((res = write_string(os, "!preset_state")) != STATUS_OK)
+                return res;
+            if ((res = write_varint(os, szof)) != STATUS_OK)
+                return res;
+            if ((res = write_single(os, uint32_t(state->flags))) != STATUS_OK)
+                return res;
+            if ((res = write_single(os, uint32_t(state->tab))) != STATUS_OK)
+                return res;
+            return write_string(os, state->name);
+        }
+
+        inline status_t deserialize_preset_state(core::preset_state_t *state, Steinberg::IBStream *is)
+        {
+            status_t res;
+            char *name = NULL;
+            size_t name_cap = 0;
+            lsp_finally {
+                if (name != NULL)
+                    free(name);
+            };
+
+            size_t in_szof = 0;
+            uint32_t flags = 0, tab = 0;
+            if ((res = read_varint(is, &in_szof)) != STATUS_OK)
+                return res;
+            if ((res = read_fully(is, &flags)) != STATUS_OK)
+                return res;
+            if ((res = read_fully(is, &tab)) != STATUS_OK)
+                return res;
+            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                return res;
+
+            name_cap        = lsp_min(name_cap, core::PRESET_NAME_BYTES - 1);
+            core::init_preset_state(state);
+            state->flags    = flags;
+            state->tab      = tab;
+            memcpy(state->name, name, name_cap);
+            state->name[name_cap]   = '\0';
+
+            const size_t szof = sizeof(uint32_t) * 2 + sizeof_string(state->name);
+
+            return (szof == in_szof) ? STATUS_OK : STATUS_CORRUPTED;
         }
 
     } /* namespace vst3 */

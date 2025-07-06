@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 янв. 2023 г.
@@ -27,6 +27,7 @@
 #include <clap/clap.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/ipc/Mutex.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/extensions.h>
@@ -105,6 +106,7 @@ namespace lsp
                 virtual bool                    accept_window_size(tk::Window *wnd, size_t width, size_t height) override;
                 virtual meta::plugin_format_t   plugin_format() const override;
                 virtual const core::ShmState   *shm_state() override;
+                virtual void                    send_preset_state(const core::preset_state_t *state) override;
 
             public: // CLAP API
                 bool                            set_scale(double scale);

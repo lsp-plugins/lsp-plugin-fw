@@ -420,10 +420,18 @@ namespace lsp
                 {
                     if (length < sizeof(float))
                         return -1;
-                    float value     = BE_TO_CPU(*(reinterpret_cast<const float *>(data)));
-                    write_value(value);
+
+                    float v;
+                    IF_UNALIGNED_MEMORY_SAFE(
+                        v           = BE_TO_CPU(*(reinterpret_cast<const float *>(data)));
+                    )
+                    IF_UNALIGNED_MEMORY_UNSAFE(
+                        memcpy(&v, data, sizeof(v));
+                        v           = BE_TO_CPU(v);
+                    )
+                    write_value(v);
                     atomic_add(&nSID, 1);
-                    return sizeof(float);
+                    return sizeof(v);
                 }
 
                 virtual bool deserialize_v2(const uint8_t *data, size_t size) override
@@ -431,7 +439,14 @@ namespace lsp
                     if (size < sizeof(float))
                         return false;
 
-                    float v         = BE_TO_CPU(*(reinterpret_cast<const float *>(data)));
+                    float v;
+                    IF_UNALIGNED_MEMORY_SAFE(
+                        v           = BE_TO_CPU(*(reinterpret_cast<const float *>(data)));
+                    )
+                    IF_UNALIGNED_MEMORY_UNSAFE(
+                        memcpy(&v, data, sizeof(v));
+                        v           = BE_TO_CPU(v);
+                    )
                     write_value(v);
                     atomic_add(&nSID, 1);
                     return true;
@@ -569,13 +584,20 @@ namespace lsp
                 {
                     if (length < sizeof(int32_t))
                         return -1;
-                    int32_t value   = BE_TO_CPU(*(reinterpret_cast<const int32_t *>(data)));
-                    if ((value >= 0) && (value < ssize_t(nRows)))
+                    int32_t v;
+                    IF_UNALIGNED_MEMORY_SAFE(
+                        v               = BE_TO_CPU(*(reinterpret_cast<const int32_t *>(data)));
+                    )
+                    IF_UNALIGNED_MEMORY_UNSAFE(
+                        memcpy(&value, data, sizeof(value));
+                        v               = BE_TO_CPU(value);
+                    )
+                    if ((v >= 0) && (v < ssize_t(nRows)))
                     {
-                        fValue          = value;
+                        fValue          = v;
                         atomic_add(&nSID, 1);
                     }
-                    return sizeof(int32_t);
+                    return sizeof(v);
                 }
 
                 virtual bool deserialize_v2(const uint8_t *data, size_t size) override

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 6 февр. 2024 г.
@@ -203,8 +203,12 @@ namespace lsp
 
                 virtual void set_value(float value, size_t flags) override
                 {
+                    value       = meta::limit_value(pMetadata, value);
+                    if (value == fValue)
+                        return;
+
                     lsp_trace("id=%s, value=%f, handler=%p", pMetadata->id, value, pHandler);
-                    fValue      = meta::limit_value(pMetadata, value);
+                    fValue      = value;
                     if (pHandler != NULL)
                         pHandler->port_write(this, flags);
                 }

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 дек. 2021 г.
@@ -102,40 +102,44 @@ namespace lsp
 
                 case meta::R_PATH:
                     lsp_trace("creating path port %s", port->id);
-                    vup = new vst2::UIPathPort(port, vp);
+                    vup = new vst2::UIPathPort(port, vp, this);
                     break;
 
                 case meta::R_STRING:
                     lsp_trace("creating string port %s", port->id);
-                    vup = new vst2::UIStringPort(port, vp);
+                    vup = new vst2::UIStringPort(port, vp, this);
                     break;
 
                 case meta::R_SEND_NAME:
                     lsp_trace("creating send name port %s", port->id);
-                    vup = new vst2::UIStringPort(port, vp);
+                    vup = new vst2::UIStringPort(port, vp, this);
                     break;
 
                 case meta::R_RETURN_NAME:
                     lsp_trace("creating return name port %s", port->id);
-                    vup = new vst2::UIStringPort(port, vp);
+                    vup = new vst2::UIStringPort(port, vp, this);
                     break;
 
                 case meta::R_CONTROL:
-                case meta::R_METER:
+                    lsp_trace("creating control port %s", port->id);
+                    vup     = new vst2::UIParameterPort(port, static_cast<vst2::ParameterPort *>(vp), this);
+                    break;
+
                 case meta::R_BYPASS:
-                    lsp_trace("creating regular port %s", port->id);
-                    // VST specifies only INPUT parameters, output should be read in different way
-                    if (meta::is_out_port(port))
-                        vup     = new vst2::UIMeterPort(port, vp);
-                    else
-                        vup     = new vst2::UIParameterPort(port, static_cast<vst2::ParameterPort *>(vp));
+                    lsp_trace("creating bypass port %s", port->id);
+                    vup     = new vst2::UIParameterPort(port, static_cast<vst2::ParameterPort *>(vp), NULL);
+                    break;
+
+                case meta::R_METER:
+                    lsp_trace("creating meter port %s", port->id);
+                    vup     = new vst2::UIMeterPort(port, vp);
                     break;
 
                 case meta::R_PORT_SET:
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES], param_name[MAX_PARAM_ID_BYTES];
                     lsp_trace("creating port group %s", port->id);
-                    UIPortGroup *upg = new vst2::UIPortGroup(static_cast<vst2::PortGroup *>(vp));
+                    UIPortGroup *upg = new vst2::UIPortGroup(static_cast<vst2::PortGroup *>(vp), this);
 
                     // Add immediately port group to list
                     vPorts.add(upg);
@@ -302,6 +306,13 @@ namespace lsp
         void UIWrapper::main_iteration()
         {
             transfer_dsp_to_ui();
+            if (pWrapper != NULL)
+            {
+                core::preset_state_t state;
+                if (pWrapper->fetch_preset_state(&state, false))
+                    receive_preset_state(&state);
+            }
+
             IWrapper::main_iteration();
         }
 
@@ -500,6 +511,12 @@ namespace lsp
                 kvt_release();
             }
             transfer_dsp_to_ui();
+            if (pWrapper != NULL)
+            {
+                core::preset_state_t state;
+                if (pWrapper->fetch_preset_state(&state, true))
+                    receive_preset_state(&state);
+            }
 
             // Show the UI window
             tk::Window *wnd  = window();
@@ -706,6 +723,12 @@ namespace lsp
         const core::ShmState *UIWrapper::shm_state()
         {
             return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
+        }
+
+        void UIWrapper::send_preset_state(const core::preset_state_t *state)
+        {
+            if (pWrapper != NULL)
+                pWrapper->set_preset_state(state, vst2::Wrapper::PT_STATE);
         }
     } /* namespace vst2 */
 } /* namespace lsp */

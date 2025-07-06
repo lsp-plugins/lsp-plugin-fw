@@ -34,10 +34,12 @@ namespace lsp
 {
     namespace ctl
     {
+        class PresetsWindow;
+
         /**
          * The plugin's window controller
          */
-        class PluginWindow: public ctl::Window
+        class PluginWindow: public ctl::Window, public ui::IPresetListener
         {
             public:
                 static const ctl_class_t metadata;
@@ -106,37 +108,21 @@ namespace lsp
                     tk::MenuItem       *wItem;
                 } ui_flag_t;
 
-                class ConfigSink: public tk::TextDataSink
-                {
-                    private:
-                        ui::IWrapper       *pWrapper;
-
-                    public:
-                        explicit ConfigSink(ui::IWrapper *wrapper);
-
-                    public:
-                        void             unbind();
-
-                    public:
-                        virtual status_t receive(const LSPString *text, const char *mime);
-                };
-
             protected:
                 bool                        bResizable;
 
                 ctl::Window                *pUserPaths;                 // User paths controller
+                ctl::PresetsWindow         *pPresetsWindow;             // Presets window
 
                 tk::WidgetContainer        *wContent;                   // The main box containing all widgets
                 tk::Window                 *wGreeting;                  // Greeting message window
                 tk::Window                 *wAbout;                     // About message window
                 tk::Window                 *wUserPaths;                 // User paths configuration
                 tk::Menu                   *wMenu;                      // Menu
+                tk::Menu                   *wPresets;                   // Presets menu
                 tk::Menu                   *wUIScaling;                 // UI Scaling menu
                 tk::Menu                   *wBundleScaling;             // Bundle Scaling menu
                 tk::Menu                   *wFontScaling;               // UI Scaling menu
-                tk::Menu                   *wResetSettings;             // Reset settings menu
-                tk::FileDialog             *wExport;                    // Export settings dialog
-                tk::FileDialog             *wImport;                    // Import settings dialog
                 tk::MenuItem               *wPreferHost;                // Prefer host menu item
                 tk::CheckBox               *wRelPaths;                  // Relative path checkbox
                 tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
@@ -146,11 +132,8 @@ namespace lsp
 
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
-                ui::IPort                  *pPath;
-                ui::IPort                  *pFileType;
                 ui::IPort                  *pR3DBackend;
                 ui::IPort                  *pLanguage;
-                ui::IPort                  *pRelPaths;
                 ui::IPort                  *pUIScaling;
                 ui::IPort                  *pUIScalingHost;
                 ui::IPort                  *pUIBundleScaling;
@@ -158,8 +141,6 @@ namespace lsp
                 ui::IPort                  *pVisualSchema;
                 ui::IPort                  *pInvertVScroll;
                 ui::IPort                  *pInvertGraphDotVScroll;
-
-                ConfigSink                 *pConfigSink;    // Configuration sink
 
                 window_scale_t              sWndScale;
                 enum_menu_t                 sFilterPointThickness;
@@ -179,6 +160,8 @@ namespace lsp
                 static status_t slot_greeting_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_about_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_select_next_preset(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_bundle_scaling_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data);
@@ -186,20 +169,14 @@ namespace lsp
                 static status_t slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_about(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_presets_window(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_reset_settings(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_confirm_reset_settings(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
-
-                static status_t slot_call_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_call_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
-
-                static status_t slot_fetch_path(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_commit_path(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_select_backend(tk::Widget *sender, void *ptr, void *data);
 
@@ -228,8 +205,6 @@ namespace lsp
                 static status_t slot_scale_mouse_move(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_scale_mouse_up(tk::Widget *sender, void *ptr, void *data);
 
-                static status_t slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data);
-
                 static status_t slot_show_user_paths_dialog(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_user_paths_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_user_paths_close(tk::Widget *sender, void *ptr, void *data);
@@ -245,7 +220,6 @@ namespace lsp
 
             protected:
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
-                static tk::FileFilters     *create_config_filters(tk::FileDialog *dlg);
                 static ssize_t              compare_presets(const resource::resource_t *a, const resource::resource_t *b);
                 void                        init_enum_menu(enum_menu_t *menu);
 
@@ -258,6 +232,7 @@ namespace lsp
                 void                do_destroy();
                 status_t            set_greeting_timer();
                 status_t            show_greeting_window();
+                status_t            show_presets_window();
                 status_t            show_user_paths_window();
                 status_t            fmt_package_version(LSPString &pkgver);
                 status_t            locate_window();
@@ -270,6 +245,7 @@ namespace lsp
                 tk::Menu           *create_menu();
                 tk::Menu           *create_enum_menu(enum_menu_t *em, tk::Menu *parent, const char *label);
                 status_t            create_dialog_window(ctl::Window **ctl, tk::Window **dst, const char *path);
+                status_t            create_presets_window();
 
                 status_t            init_r3d_support(tk::Menu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);
@@ -279,10 +255,8 @@ namespace lsp
                 status_t            init_visual_schema_support(tk::Menu *menu);
                 status_t            init_ui_behaviour(tk::Menu *menu);
                 status_t            add_ui_flag(tk::Menu *menu, const char *port, const char *key);
-                status_t            init_presets(tk::Menu *menu);
-                status_t            scan_presets(const char *location, lltl::darray<resource::resource_t> *presets);
+                status_t            init_presets(tk::Menu *menu, bool add_submenu);
                 status_t            create_main_menu();
-                status_t            create_reset_settings_menu();
                 void                sync_ui_scaling();
                 bool                has_path_ports();
                 void                sync_language_selection();
@@ -300,6 +274,9 @@ namespace lsp
                 void                commit_bool_param(tk::Boolean *value, const char *port_id);
                 void                bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler);
                 bool                open_manual_file(const char *fmt...);
+                void                sync_preset_name();
+
+                void                set_preset_button_text(const char *text);
 
                 status_t            init_context(ui::UIContext *ctx);
 
@@ -327,8 +304,13 @@ namespace lsp
                 status_t            show_plugin_manual();
                 status_t            show_ui_manual();
                 void                host_scaling_changed();
+                status_t            post_init();
 
-            public:
+            public: // ui::IPresetListener
+                virtual void        preset_activated(const ui::preset_t *preset);
+                virtual void        presets_updated();
+
+            public: // ctl::DOMController
                 virtual void        begin(ui::UIContext *ctx) override;
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
                 virtual status_t    add(ui::UIContext *ctx, ctl::Widget *child) override;

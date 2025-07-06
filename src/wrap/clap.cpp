@@ -218,20 +218,20 @@ namespace lsp
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
 
-//        #ifdef LSP_TRACE
-//            debug_ostream_t dbg(stream);
-//
-//            status_t res = w->save_state(&dbg);
-//            if (res == STATUS_OK)
-//            {
-//                lsp_dumpb("Output state dump", dbg.data(), dbg.size());
-//                res     = dbg.flush();
-//            }
-//
-//            return res == STATUS_OK;
-//        #else
+        #ifdef LSP_TRACE
+            debug_ostream_t dbg(stream);
+
+            status_t res = w->save_state(&dbg);
+            if (res == STATUS_OK)
+            {
+                lsp_dumpb("Output state dump", dbg.data(), dbg.size());
+                res     = dbg.flush();
+            }
+
+            return res == STATUS_OK;
+        #else
             return w->save_state(stream) == STATUS_OK;
-//        #endif /* LSP_TRACE */
+        #endif /* LSP_TRACE */
         }
 
         bool CLAP_ABI load_state(const clap_plugin_t *plugin, const clap_istream_t *stream)
@@ -240,18 +240,18 @@ namespace lsp
 
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
 
-//        #ifdef LSP_TRACE
-//            debug_istream_t dbg(stream);
-//            status_t res = dbg.fill();
-//            if (res == STATUS_OK)
-//            {
-//                lsp_dumpb("Input state dump", dbg.data(), dbg.size());
-//                res     = w->load_state(&dbg);
-//            }
-//            return res == STATUS_OK;
-//        #else
+        #ifdef LSP_TRACE
+            debug_istream_t dbg(stream);
+            status_t res = dbg.fill();
+            if (res == STATUS_OK)
+            {
+                lsp_dumpb("Input state dump", dbg.data(), dbg.size());
+                res     = w->load_state(&dbg);
+            }
+            return res == STATUS_OK;
+        #else
             return w->load_state(stream) == STATUS_OK;
-//        #endif /* LSP_TRACE */
+        #endif /* LSP_TRACE */
         }
 
         const clap_plugin_state_t state_extension =
@@ -370,7 +370,10 @@ namespace lsp
 
         bool CLAP_ABI ui_adjust_size(const clap_plugin_t *plugin, uint32_t *width, uint32_t *height)
         {
-            lsp_trace("plugin = %p, width=%p, height=%p", plugin, width, height);
+            lsp_trace("plugin = %p, width=%p (%d), height=%p (%d)",
+                plugin,
+                width, (width != NULL) ? int(*width) : 0,
+                height, (height != NULL) ? int(*height) : 0);
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             UIWrapper *uw = w->ui_wrapper();
             return (uw != NULL) ? uw->adjust_size(width, height) : false;

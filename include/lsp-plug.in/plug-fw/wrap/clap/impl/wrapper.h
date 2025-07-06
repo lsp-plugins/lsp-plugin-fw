@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 дек. 2022 г.
@@ -55,10 +55,13 @@ namespace lsp
 
             nLatency            = 0;
             nTailSize           = 0;
-            nDumpReq            = 0;
+            atomic_store(&nDumpReq, 0);
             nDumpResp           = 0;
-            nStateReq           = 0;
+            atomic_store(&nStateReq, 0);
             nStateResp          = 0;
+            atomic_store(&nPresetFlags, 0);
+
+            core::init_preset_state(&sPresetState);
 
             bLatencyChanged     = false;
             bUpdateSettings     = true;
@@ -1333,7 +1336,7 @@ namespace lsp
                 lsp_warn("Error serializing header signature, code=%d", int(res));
                 return res;
             }
-            if ((res = write_fully(os, uint32_t(LSP_CLAP_VERSION))) != STATUS_OK)
+            if ((res = write_fully(os, uint32_t(LSP_CLAP_VERSION_CURRENT))) != STATUS_OK)
             {
                 lsp_warn("Error serializing header version, code=%d", int(res));
                 return res;
@@ -1368,6 +1371,13 @@ namespace lsp
                     lsp_warn("Error serializing port state id=%s, code=%d", p->id, int(res));
                     return res;
                 }
+            }
+
+            // Serialize preset state
+            if ((res = serialize_preset_settings(os)) != STATUS_OK)
+            {
+                lsp_warn("Error serializing preset settings, code=%d", int(res));
+                return res;
             }
 
             // Serialize KVT storage
@@ -1828,8 +1838,14 @@ namespace lsp
                 lsp_warn("Failed to read state version, code=%d", int(res));
                 return res;
             }
+
             lsp_trace("Data version: %d", int(version));
-            if (version != clap::LSP_CLAP_VERSION)
+            bool has_preset_settings = false;
+            if (version == clap::LSP_CLAP_VERSION_2)
+            {
+                has_preset_settings = true;
+            }
+            else if (version != clap::LSP_CLAP_VERSION_1)
             {
                 lsp_warn("Unsupported version %d", int(version));
                 return STATUS_NO_DATA;
@@ -1867,29 +1883,7 @@ namespace lsp
 
                 lsp_trace("Parameter name: %s", name);
 
-                if (name[0] != '/')
-                {
-                    // Obtain the port by it's identifier
-                    clap::Port *cp       = find_by_id(name);
-                    if (cp != NULL)
-                    {
-                        if ((res = cp->deserialize(is)) != STATUS_OK)
-                        {
-                            lsp_warn("Failed to deserialize port id=%s", name);
-                            return res;
-                        }
-                    }
-                    else
-                    {
-                        if ((res = read_value(is, name, &p)) != STATUS_OK)
-                        {
-                            lsp_warn("Failed to read value for port id=%s", name);
-                            return res;
-                        }
-                        lsp_warn("Missing port id=%s, skipping", name);
-                    }
-                }
-                else
+                if (name[0] == '/')
                 {
                     // Read the KVT parameter flags
                     uint8_t flags = 0;
@@ -1915,6 +1909,52 @@ namespace lsp
 
                         kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
                         sKVT.put(name, &p, kflags);
+                    }
+                }
+                else if ((name[0] == '!') && (has_preset_settings))
+                {
+                    // Special variables
+                    if (strcmp(name, "!preset_settings") == 0)
+                    {
+                        core::preset_state_t state;
+                        if ((res = read_preset_state(is, &state)) != STATUS_OK)
+                        {
+                            lsp_warn("Error reading preset state, code=%d", int(res));
+                            return res;
+                        }
+
+                        set_preset_state(&state, PT_STATE);
+                    }
+                    else
+                    {
+                        lsp_trace("Unknown special variable %s, skipping", name);
+                        if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to skip special variable");
+                            return res;
+                        }
+                    }
+                }
+                else
+                {
+                    // Obtain the port by it's identifier
+                    clap::Port *cp       = find_by_id(name);
+                    if (cp != NULL)
+                    {
+                        if ((res = cp->deserialize(is)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to deserialize port id=%s", name);
+                            return res;
+                        }
+                    }
+                    else
+                    {
+                        if ((res = read_value(is, name, &p)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to read value for port id=%s", name);
+                            return res;
+                        }
+                        lsp_warn("Missing port id=%s, skipping", name);
                     }
                 }
             }
@@ -2202,6 +2242,131 @@ namespace lsp
         const core::ShmState *Wrapper::shm_state()
         {
             return (pShmClient != NULL) ? pShmClient->state() : NULL;
+        }
+
+        void Wrapper::set_preset_state(const core::preset_state_t *state, size_t mode)
+        {
+            lsp_trace("this=%p, name=%s, flags=0x%x, tab=%d, mode=%d",
+                this, state->name, state->flags, state->tab, int(mode));
+
+            {
+                // Lock the state
+                while (true)
+                {
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if ((flags & PT_TYPE) > mode) // Leave if data has greater priority than submitted
+                    {
+                        lsp_trace("preset state not updated, flags=0x%x, mode=%d", int(flags), int(mode));
+                        return;
+                    }
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // State is locked
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, mode & (~PT_LOCK))) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                core::copy_preset_state(&sPresetState, state);
+            }
+
+            // Mark state changed if data was transferred from UI
+            if (mode == PT_UI)
+                state_changed();
+
+            lsp_trace("this=%p, mode=0x%x", this, int(mode));
+        }
+
+        bool Wrapper::fetch_preset_state(core::preset_state_t *state, bool force)
+        {
+            {
+                // Lock the state
+                while (true)
+                {
+                    // We can fetch data only if it is in PT_STATE state or fetch is forced
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if ((!force) && ((flags & PT_TYPE) != PT_STATE))
+                        return false;
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // State is locked
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, flags & (~(PT_LOCK | PT_TYPE)))) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                // Now we have locked state
+                core::copy_preset_state(state, &sPresetState);
+            }
+
+            lsp_trace("this=%p, name=%s, flags=0x%x, tab=%d",
+                this, state->name, state->flags, state->tab);
+            return true;
+        }
+
+        status_t Wrapper::serialize_preset_settings(const clap_ostream_t *os)
+        {
+            core::preset_state_t state;
+
+            {
+                // Lock the atomic state
+                while (true)
+                {
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // Now we have locked state
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, flags & (~PT_LOCK))) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                // Fetch the value
+                core::copy_preset_state(&state, &sPresetState);
+            }
+
+            lsp_trace("this=%p, name=%s, flags=0x%x, tab=%d, mode=0x%x",
+                this, state.name, state.flags, state.tab);
+
+            // Serialize stuff
+            status_t res;
+            if ((res = write_string(os, "!preset_settings")) != STATUS_OK)
+                return res;
+
+            return write_preset_state(os, &state);
         }
 
     } /* namespace clap */

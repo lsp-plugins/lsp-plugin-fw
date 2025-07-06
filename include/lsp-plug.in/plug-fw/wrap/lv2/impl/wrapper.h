@@ -83,6 +83,7 @@ namespace lsp
             bQueueDraw      = false;
             bUpdateSettings = true;
             bStateManage    = false;
+            bSendPreset     = false;
             fSampleRate     = DEFAULT_SAMPLE_RATE;
             pOscPacket      = reinterpret_cast<uint8_t *>(::malloc(OSC_PACKET_MAX));
             atomic_store(&nStateMode, SM_LOADING);
@@ -96,6 +97,8 @@ namespace lsp
             nPlayLength     = 0;
 
             pShmClient      = NULL;
+
+            init_preset_state(&sPresetState);
 
             pFactory->acquire();
         }
@@ -981,6 +984,7 @@ namespace lsp
                 {
                     ++nClients;
                     ++nStateReqs;
+                    bSendPreset = true; // Mark that we need to send preset settings
                     atomic_add(&nShmReqs, 1);
                     lsp_trace("UI has connected, current number of clients=%d", int(nClients));
                     if (pKVTDispatcher != NULL)
@@ -1039,6 +1043,20 @@ namespace lsp
 
                     // Submit the playback request and make the play position out-of-sync
                     pSamplePlayer->play_sample(position, release);
+                }
+            }
+            else if (obj->body.otype == pExt->uridPresetStateType)
+            {
+                core::preset_state_t state;
+                init_preset_state(&state);
+
+                if (pExt->deserialize_preset_state(&state, &obj->body, obj->atom.type, obj->atom.size))
+                {
+                    // Remember new preset settings, mark state as changed and reset transmission flag
+                    copy_preset_state(&sPresetState, &state);
+
+                    bSendPreset             = false;
+                    state_changed();
                 }
             }
             else
@@ -1459,6 +1477,34 @@ namespace lsp
             }
         }
 
+        void Wrapper::transmit_preset_settings_to_clients(const core::preset_state_t *state)
+        {
+            if (!bSendPreset)
+                return;
+
+            lsp_trace("Transmitting preset state preset='%s', flags=0x%x, tab=%d",
+                state->name, int(state->flags), int(state->tab));
+
+            LV2_Atom_Forge_Frame    frame;
+
+            pExt->forge_frame_time(0); // Event header
+            pExt->forge_object(&frame, pExt->uridPresetState, pExt->uridPresetStateType);
+
+            pExt->forge_key(pExt->uridPresetName);
+            pExt->forge_string(state->name);
+
+            pExt->forge_key(pExt->uridPresetFlags);
+            pExt->forge_int(state->flags);
+
+            pExt->forge_key(pExt->uridPresetTab);
+            pExt->forge_int(state->tab);
+
+            pExt->forge_pop(&frame);
+
+            // Reset send flag
+            bSendPreset     = false;
+        }
+
         void Wrapper::transmit_atoms(size_t samples)
         {
             // Get sequence
@@ -1535,6 +1581,7 @@ namespace lsp
                 transmit_port_data_to_clients(sync_req, patch_req, state_req);
             }
 
+            transmit_preset_settings_to_clients(&sPresetState);
             transmit_play_position_to_clients();
             transmit_shm_state_to_clients();
         }
@@ -1779,6 +1826,31 @@ namespace lsp
             pExt->store_value(pExt->uridKvtObject, msg->type, &msg[1], msg->size);
         }
 
+        void Wrapper::save_preset_state(const core::preset_state_t *state)
+        {
+            // We should use our own forge to prevent from race condition
+            LV2_Atom_Forge forge;
+            LV2_Atom_Forge_Frame frame;
+            lv2::lv2_sink   sink(0x100);
+
+            // Initialize sink
+            lv2_atom_forge_init(&forge, pExt->map);
+            lv2_atom_forge_set_sink(&forge, lv2_sink::sink, lv2_sink::deref, &sink);
+            lv2_atom_forge_object(&forge, &frame, 0, pExt->uridPresetStateType);
+            {
+                lv2_atom_forge_key(&forge, pExt->uridPresetName);
+                lv2_atom_forge_string(&forge, state->name, strlen(state->name));
+                lv2_atom_forge_key(&forge, pExt->uridPresetFlags);
+                lv2_atom_forge_int(&forge, int32_t(state->flags));
+                lv2_atom_forge_key(&forge, pExt->uridPresetTab);
+                lv2_atom_forge_int(&forge, int32_t(state->tab));
+            }
+            lv2_atom_forge_pop(&forge, &frame);
+
+            LV2_Atom *msg = reinterpret_cast<LV2_Atom *>(sink.buf);
+            pExt->store_value(pExt->uridPresetState, msg->type, &msg[1], msg->size);
+        }
+
         void Wrapper::save_state(
                 LV2_State_Store_Function   store,
                 LV2_State_Handle           handle,
@@ -1812,6 +1884,8 @@ namespace lsp
                 // Save state of port
                 lvp->save();
             }
+
+            save_preset_state(&sPresetState);
 
             // Save state of all KVT parameters
             if (sKVTMutex.lock())
@@ -1852,6 +1926,31 @@ namespace lsp
             }
             else
                 lsp_warn("Unsupported KVT property type: %s", pExt->unmap_urid(p_type));
+        }
+
+        void Wrapper::restore_preset_state()
+        {
+            uint32_t p_type = 0;
+            size_t p_size = 0;
+            const void *ptr = pExt->retrieve_value(pExt->uridPresetState, &p_type, &p_size);
+            if (ptr == NULL)
+                return;
+
+            lsp_trace("Deserializing preset state");
+            lsp_trace("p_type = %d (%s), p_size = %d", int(p_type), pExt->unmap_urid(p_type), int(p_size));
+
+            core::preset_state_t state;
+            init_preset_state(&state);
+
+            if (pExt->deserialize_preset_state(&state, static_cast<const LV2_Atom_Object_Body *>(ptr), p_type, p_size))
+            {
+                lsp_trace("Restored preset state preset='%s', flags=0x%x, tab=%d",
+                    state.name, int(state.flags), int(state.tab));
+
+                // Now state has been parsed, we can mark it as need for sync with UI
+                copy_preset_state(&sPresetState, &state);
+                bSendPreset         = true;
+            }
         }
 
         void Wrapper::parse_kvt_v2(const LV2_Atom *data, size_t size)
@@ -2180,6 +2279,9 @@ namespace lsp
                 sKVTMutex.unlock();
             }
 
+            // Restore preset state
+            restore_preset_state();
+
             // Update the state
             pExt->reset_state_context();
             atomic_store(&nStateMode, SM_LOADING);
@@ -2209,6 +2311,8 @@ namespace lsp
             // Increment number of clients
             ++nDirectClients;
             atomic_add(&nShmReqs, 1);
+            bSendPreset = true;
+
             if (pKVTDispatcher != NULL)
                 pKVTDispatcher->connect_client();
         }

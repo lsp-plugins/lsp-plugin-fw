@@ -22,11 +22,10 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/runtime/system.h>
-#include <lsp-plug.in/io/OutStringSequence.h>
-#include <lsp-plug.in/io/InStringSequence.h>
 #include <lsp-plug.in/tk/tk.h>
 
 #include <lsp-plug.in/plug-fw/ui.h>
@@ -47,25 +46,17 @@ namespace lsp
     namespace ctl
     {
         //-----------------------------------------------------------------
-        PluginWindow::ConfigSink::ConfigSink(ui::IWrapper *wrapper)
+        static const char * manual_prefixes[] =
         {
-            pWrapper = wrapper;
-        }
-
-        void PluginWindow::ConfigSink::unbind()
-        {
-            pWrapper        = NULL;
-        }
-
-        status_t PluginWindow::ConfigSink::receive(const LSPString *text, const char *mime)
-        {
-            ui::IWrapper *wrapper = pWrapper;
-            if (wrapper == NULL)
-                return STATUS_NOT_BOUND;
-
-            io::InStringSequence is(text);
-            return wrapper->import_settings(&is, ui::IMPORT_FLAG_NONE);
-        }
+        #ifdef LSP_LIB_PREFIX
+            LSP_LIB_PREFIX("/share"),
+            LSP_LIB_PREFIX("/local/share"),
+        #endif /*  LSP_LIB_PREFIX */
+            "/usr/share",
+            "/usr/local/share",
+            "/share",
+            NULL
+        };
 
         //-----------------------------------------------------------------
         // Plugin window
@@ -90,18 +81,17 @@ namespace lsp
             bResizable                  = false;
 
             pUserPaths                  = NULL;
+            pPresetsWindow              = NULL;
 
             wContent                    = NULL;
             wGreeting                   = NULL;
             wAbout                      = NULL;
             wUserPaths                  = NULL;
             wMenu                       = NULL;
+            wPresets                    = NULL;
             wUIScaling                  = NULL;
             wBundleScaling              = NULL;
             wFontScaling                = NULL;
-            wResetSettings              = NULL;
-            wExport                     = NULL;
-            wImport                     = NULL;
             wPreferHost                 = NULL;
             wRelPaths                   = NULL;
             wInvertVScroll              = NULL;
@@ -109,11 +99,8 @@ namespace lsp
 
             pPVersion                   = NULL;
             pPBypass                    = NULL;
-            pPath                       = NULL;
-            pFileType                   = NULL;
             pR3DBackend                 = NULL;
             pLanguage                   = NULL;
-            pRelPaths                   = NULL;
             pUIScaling                  = NULL;
             pUIScalingHost              = NULL;
             pUIBundleScaling            = NULL;
@@ -123,8 +110,6 @@ namespace lsp
             pInvertGraphDotVScroll      = NULL;
 
             init_enum_menu(&sFilterPointThickness);
-
-            pConfigSink                 = NULL;
 
             sWndScale.nMFlags           = 0;
             sWndScale.sSize.nLeft       = 0;
@@ -151,14 +136,6 @@ namespace lsp
         {
             // Cancel greeting timer
             wGreetingTimer.cancel();
-
-            // Unbind configuration sink
-            if (pConfigSink != NULL)
-            {
-                pConfigSink->unbind();
-                pConfigSink->release();
-                pConfigSink = NULL;
-            }
 
             // Delete UI rendering backend bindings
             for (size_t i=0, n=vBackendSel.size(); i<n; ++i)
@@ -225,14 +202,14 @@ namespace lsp
 
             pUserPaths      = NULL;
 
+            pPresetsWindow  = NULL;     // Destroyed by wrapper
+
             wContent        = NULL;
             wGreeting       = NULL;
             wAbout          = NULL;
             wUserPaths      = NULL;
             wMenu           = NULL;
-            wResetSettings  = NULL;
-            wExport         = NULL;
-            wImport         = NULL;
+            wPresets        = NULL;
             wPreferHost     = NULL;
         }
 
@@ -273,6 +250,16 @@ namespace lsp
             Window::set(ctx, name, value);
         }
 
+        void PluginWindow::set_preset_button_text(const char *text)
+        {
+            tk::Button *presetButton = tk::widget_cast<tk::Button>(widgets()->find("trg_presets_menu"));
+
+            if (presetButton != NULL)
+            {
+                presetButton->text()->set_raw(text);
+            }
+        }
+
         status_t PluginWindow::init()
         {
             Window::init();
@@ -284,12 +271,9 @@ namespace lsp
 
             // Bind ports
             BIND_PORT(pWrapper, pPVersion, VERSION_PORT);
-            BIND_PORT(pWrapper, pPath, CONFIG_PATH_PORT);
-            BIND_PORT(pWrapper, pFileType, CONFIG_FTYPE_PORT);
             BIND_PORT(pWrapper, pPBypass, meta::PORT_NAME_BYPASS);
             BIND_PORT(pWrapper, pR3DBackend, R3D_BACKEND_PORT);
             BIND_PORT(pWrapper, pLanguage, LANGUAGE_PORT);
-            BIND_PORT(pWrapper, pRelPaths, REL_PATHS_PORT);
             BIND_PORT(pWrapper, pUIScaling, UI_SCALING_PORT);
             BIND_PORT(pWrapper, pUIScalingHost, UI_SCALING_HOST_PORT);
             BIND_PORT(pWrapper, pUIBundleScaling, UI_BUNDLE_SCALING_PORT);
@@ -311,12 +295,22 @@ namespace lsp
                 wnd->actions()->deny(ws::WA_RESIZE);
 
             LSP_STATUS_ASSERT(create_main_menu());
-            LSP_STATUS_ASSERT(create_reset_settings_menu());
+            LSP_STATUS_ASSERT(create_presets_window());
 
             // Bind event handlers
             wnd->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
             wnd->slots()->bind(tk::SLOT_SHOW, slot_window_show, this);
             wnd->slots()->bind(tk::SLOT_RESIZE, slot_window_resize, this);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::post_init()
+        {
+            // Bind as preset listener to the wrapper
+            pWrapper->add_preset_listener(this);
+            bind_slot("trg_prev_preset", tk::SLOT_SUBMIT, slot_select_next_preset);
+            bind_slot("trg_next_preset", tk::SLOT_SUBMIT, slot_select_next_preset);
 
             return STATUS_OK;
         }
@@ -344,6 +338,11 @@ namespace lsp
             widgets()->add(WUID_MAIN_MENU, wMenu);
             wMenu->init();
 
+            // TODO: Move to a separate method
+            wPresets = new tk::Menu(dpy);
+            widgets()->add(WUID_PRESETS_MENU, wPresets);
+            wPresets->init();
+
             // Initialize menu items
             {
                 // Add 'Plugin manual' menu item
@@ -361,6 +360,9 @@ namespace lsp
                 itm->text()->set("actions.ui_manual");
                 itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_ui_manual, this);
                 wMenu->add(itm);
+
+                // init_presets(wMenu, true);
+                init_presets(wPresets, false);
 
                 // Add separator
                 itm     = new tk::MenuItem(dpy);
@@ -430,15 +432,15 @@ namespace lsp
                 itm     = new tk::MenuItem(dpy);
                 widgets()->add(itm);
                 itm->init();
-                itm->text()->set("actions.user_paths");
-                itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_user_paths_dialog, this);
+                itm->text()->set("actions.reset_settings");
+                itm->slots()->bind(tk::SLOT_SUBMIT, slot_reset_settings, this);
                 wMenu->add(itm);
 
-                // Add separator
                 itm     = new tk::MenuItem(dpy);
                 widgets()->add(itm);
                 itm->init();
-                itm->type()->set_separator();
+                itm->text()->set("actions.user_paths");
+                itm->slots()->bind(tk::SLOT_SUBMIT, slot_show_user_paths_dialog, this);
                 wMenu->add(itm);
 
                 // Create 'Dump state' menu item if supported
@@ -452,11 +454,12 @@ namespace lsp
                     wMenu->add(itm);
                 }
 
-                // Create UI behaviour menu
-                init_ui_behaviour(wMenu);
-
-                // Create language selection menu
-                init_i18n_support(wMenu);
+                // Add separator
+                itm     = new tk::MenuItem(dpy);
+                widgets()->add(itm);
+                itm->init();
+                itm->type()->set_separator();
+                wMenu->add(itm);
 
                 // Create UI scaling menu
                 init_scaling_support(wMenu);
@@ -470,37 +473,15 @@ namespace lsp
                 // Create schema selection support menu
                 init_visual_schema_support(wMenu);
 
+                // Create language selection menu
+                init_i18n_support(wMenu);
+
                 // Add support of 3D rendering backend switch
                 if (meta->extensions & meta::E_3D_BACKEND)
                     init_r3d_support(wMenu);
 
-                init_presets(wMenu);
-            }
-
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::create_reset_settings_menu()
-        {
-            tk::Window *wnd             = tk::widget_cast<tk::Window>(wWidget);
-            tk::Display *dpy            = wnd->display();
-
-            // Initialize menu
-            wResetSettings              = new tk::Menu(dpy);
-            widgets()->add(WUID_RESET_SETTINGS_MENU, wResetSettings);
-            wResetSettings->init();
-            inject_style(wResetSettings, "PluginWindow::ResetMenu");
-
-            // Initialize menu items
-            {
-                // Add 'Reset' menu item
-                tk::MenuItem *itm       = new tk::MenuItem(dpy);
-                widgets()->add(itm);
-                itm->init();
-                itm->text()->set("actions.reset");
-                inject_style(itm, "PluginWindow::ResetMenu::Reset");
-                itm->slots()->bind(tk::SLOT_SUBMIT, slot_confirm_reset_settings, this);
-                wResetSettings->add(itm);
+                // Create UI behaviour menu
+                init_ui_behaviour(wMenu);
             }
 
             return STATUS_OK;
@@ -991,6 +972,9 @@ namespace lsp
                 return STATUS_NO_MEM;
             item->menu()->set(menu);
 
+            // Thickness of the enum menu item
+            wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
+
             // Create menu items
             LSP_STATUS_ASSERT(
                 add_ui_flag( menu,
@@ -1073,53 +1057,7 @@ namespace lsp
             return strcmp(a->name, b->name);
         }
 
-        status_t PluginWindow::scan_presets(const char *location, lltl::darray<resource::resource_t> *presets)
-        {
-            io::Path path;
-            LSPString tmp;
-            resource::resource_t *resources = NULL;
-
-            if (tmp.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s", location) < 0)
-                return STATUS_BAD_STATE;
-            ssize_t count = pWrapper->resources()->enumerate(&tmp, &resources);
-            if (count < 0)
-                return status_t(-count);
-            lsp_finally {
-                if (resources != NULL)
-                    free(resources);
-            };
-
-            lsp_trace("resources = %p, count = %d", resources, int(count));
-
-            // Process all resources and form the final list of preset files
-            for (ssize_t i=0; i<count; ++i)
-            {
-                resource::resource_t *item = &resources[i];
-
-                // Filter the preset file
-                if (item->type != resource::RES_FILE)
-                    continue;
-                if (path.set(item->name) != STATUS_OK)
-                    return STATUS_NO_MEM;
-                if (path.get_ext(&tmp) != STATUS_OK)
-                    return STATUS_BAD_STATE;
-
-                if ((!tmp.equals_ascii("patch")) && (!tmp.equals_ascii("preset")))
-                    continue;
-
-                // Add preset file to result
-                strncpy(item->name, path.get(), resource::RESOURCE_NAME_MAX);
-                item->name[resource::RESOURCE_NAME_MAX-1] = '\0';
-                if (!presets->add(item))
-                    return STATUS_NO_MEM;
-            }
-
-            presets->qsort(compare_presets);
-
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::init_presets(tk::Menu *menu)
+        status_t PluginWindow::init_presets(tk::Menu *menu, bool add_submenu)
         {
             status_t res;
             if (menu == NULL)
@@ -1128,28 +1066,61 @@ namespace lsp
             // Enumerate presets
             lltl::darray<resource::resource_t> presets;
             const meta::plugin_t *metadata = pWrapper->ui()->metadata();
-            if ((metadata == NULL) || (metadata->ui_presets == NULL))
-                return STATUS_OK;
-            if (scan_presets(metadata->ui_presets, &presets) != STATUS_OK)
-                return STATUS_OK;
-            if (presets.is_empty())
+            if ((metadata == NULL))
                 return STATUS_OK;
 
-            // Create submenu item
-            tk::MenuItem *item          = create_menu_item(menu);
-            if (item == NULL)
-                return STATUS_NO_MEM;
-            item->text()->set("actions.load_preset");
+            tk::MenuItem *item;
 
-            // Create submenu
-            menu                        = create_menu();
-            if (menu == NULL)
-                return STATUS_NO_MEM;
-            item->menu()->set(menu);
+            if (add_submenu)
+            {
+                // Create submenu item
+                item          = create_menu_item(menu);
+                if (item == NULL)
+                    return STATUS_NO_MEM;
+                item->text()->set("actions.load_preset");
+
+                // Create submenu
+                menu                        = create_menu();
+                if (menu == NULL)
+                    return STATUS_NO_MEM;
+                item->menu()->set(menu);
+            }
 
             preset_sel_t *sel;
             io::Path path;
             LSPString tmp;
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set("actions.reset_settings");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_reset_settings, this);
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set_raw("actions.manage_presets");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_show_presets_window, this);
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->type()->set_separator();
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set("actions.import_settings_from_file");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_file, this);
+
+            if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            item->text()->set("actions.import_settings_from_clipboard");
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_import_settings_from_clipboard, this);
+
+            // if ((item = create_menu_item(menu)) == NULL) return STATUS_NO_MEM;
+            // item->text()->set("*Open presets folder*");
+
+            if (core::scan_presets(&presets, pWrapper->resources(), metadata->ui_presets) != STATUS_OK)
+                return STATUS_OK;
+            if (presets.is_empty())
+                return STATUS_OK;
+            core::sort_presets(&presets, true);
+
+            if ((item = create_menu_item(menu)) == NULL)
+                return STATUS_NO_MEM;
+            item->type()->set_separator();
 
             for (size_t i=0, n=presets.size(); i<n; ++i)
             {
@@ -1364,6 +1335,8 @@ namespace lsp
             lsp_trace("sender=%p, sel=%p", sender, sel);
             if ((sender == NULL) || (sel == NULL) || (sel->ctl == NULL) || (sel->item == NULL))
                 return STATUS_BAD_ARGUMENTS;
+
+            sel->ctl->set_preset_button_text(sel->item->text()->raw()->get_utf8());
 
             lsp_trace("Loading preset %s", sel->location.get_native());
             size_t flags = ui::IMPORT_FLAG_PRESET;
@@ -1582,6 +1555,7 @@ namespace lsp
 
             // Header menu
             bind_trigger("trg_main_menu", tk::SLOT_SUBMIT, slot_show_main_menu);
+            bind_trigger("trg_presets_menu", tk::SLOT_SUBMIT, slot_show_presets_window);
             bind_trigger("trg_export_settings", tk::SLOT_SUBMIT, slot_export_settings_to_file);
             bind_trigger("trg_import_settings", tk::SLOT_SUBMIT, slot_import_settings_from_file);
             bind_trigger("trg_reset_settings", tk::SLOT_SUBMIT, slot_reset_settings);
@@ -1667,208 +1641,65 @@ namespace lsp
             return (target != NULL) ? target->add(child->widget()) : STATUS_BAD_STATE;
         }
 
-        tk::FileFilters *PluginWindow::create_config_filters(tk::FileDialog *dlg)
-        {
-            tk::FileFilters *f = dlg->filter();
-            if (f == NULL)
-                return f;
-
-            tk::FileMask *ffi = f->add();
-            if (ffi != NULL)
-            {
-                ffi->pattern()->set("*.cfg");
-                ffi->title()->set("files.config.lsp");
-                ffi->extensions()->set_raw(".cfg");
-            }
-
-            ffi = f->add();
-            if (ffi != NULL)
-            {
-                ffi->pattern()->set("*");
-                ffi->title()->set("files.all");
-                ffi->extensions()->set_raw("");
-            }
-
-            return f;
-        }
-
         status_t PluginWindow::slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *_this     = static_cast<PluginWindow *>(ptr);
-            tk::Display *dpy        = _this->wWidget->display();
-            tk::FileDialog *dlg     = _this->wExport;
+            PluginWindow *self      = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
 
-            if (dlg == NULL)
-            {
-                dlg = new tk::FileDialog(dpy);
-                _this->widgets()->add(dlg);
-                _this->wExport = dlg;
+            if (self->pPresetsWindow != NULL)
+                self->pPresetsWindow->show_export_settings_dialog();
 
-                dlg->init();
-                dlg->mode()->set(tk::FDM_SAVE_FILE);
-                dlg->title()->set("titles.export_settings");
-                dlg->action_text()->set("actions.save");
-                dlg->use_confirm()->set(true);
-                dlg->confirm_message()->set("messages.file.confirm_overwrite");
-
-                create_config_filters(dlg);
-
-                // Add 'Relative paths' option if present
-                tk::Box *wc = new tk::Box(dpy);
-                _this->widgets()->add(wc);
-                wc->init();
-                wc->orientation()->set_vertical();
-                wc->allocation()->set_hfill(true);
-
-                if (_this->has_path_ports())
-                {
-                    tk::Box *op_rpath       = new tk::Box(dpy);
-                    _this->widgets()->add(op_rpath);
-                    op_rpath->init();
-                    op_rpath->orientation()->set_horizontal();
-                    op_rpath->spacing()->set(4);
-
-                    // Add switch button
-                    tk::CheckBox *ck_rpath  = new tk::CheckBox(dpy);
-                    _this->widgets()->add(ck_rpath);
-                    ck_rpath->init();
-                    ck_rpath->slots()->bind(tk::SLOT_SUBMIT, slot_relative_path_changed, _this);
-                    _this->wRelPaths        = ck_rpath;
-                    op_rpath->add(ck_rpath);
-
-                    // Add label
-                    tk::Label *lbl_rpath     = new tk::Label(dpy);
-                    _this->widgets()->add(lbl_rpath);
-                    lbl_rpath->init();
-
-                    lbl_rpath->allocation()->set_hexpand(true);
-                    lbl_rpath->allocation()->set_hfill(true);
-                    lbl_rpath->text_layout()->set_halign(-1.0f);
-                    lbl_rpath->text()->set("labels.relative_paths");
-                    op_rpath->add(lbl_rpath);
-
-                    // Add option to dialog
-                    wc->add(op_rpath);
-                }
-
-                // Bind actions
-                if (wc->items()->size() > 0)
-                    dlg->options()->set(wc);
-                dlg->slots()->bind(tk::SLOT_SUBMIT, slot_call_export_settings_to_file, ptr);
-                dlg->slots()->bind(tk::SLOT_SHOW, slot_fetch_path, _this);
-                dlg->slots()->bind(tk::SLOT_HIDE, slot_commit_path, _this);
-            }
-
-            // Initialize and show the window
-            if ((_this->wRelPaths != NULL) && (_this->pRelPaths != NULL))
-            {
-                bool checked = _this->pRelPaths->value() >= 0.5f;
-                _this->wRelPaths->checked()->set(checked);
-            }
-            dlg->show(_this->wWidget);
             return STATUS_OK;
         }
 
         status_t PluginWindow::slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data)
         {
-            status_t res;
-            LSPString buf;
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-
-            // Export settings to text buffer
-            io::OutStringSequence sq(&buf);
-            if ((res = _this->pWrapper->export_settings(&sq)) != STATUS_OK)
+            PluginWindow *self      = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
                 return STATUS_OK;
-            sq.close();
 
-            // Now 'buf' contains serialized configuration, put it to clipboard
-            tk::TextDataSource *ds = new tk::TextDataSource();
-            if (ds == NULL)
-                return STATUS_NO_MEM;
-            ds->acquire();
-            res = ds->set_text(&buf);
-            if (res == STATUS_OK)
-                res = _this->wWidget->display()->set_clipboard(ws::CBUF_CLIPBOARD, ds);
-            ds->release();
+            if (self->pPresetsWindow != NULL)
+                self->pPresetsWindow->export_settings_to_clipboard();
 
             return STATUS_OK;
         }
 
         status_t PluginWindow::slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *_this     = static_cast<PluginWindow *>(ptr);
-            tk::Display *dpy        = _this->wWidget->display();
-            tk::FileDialog *dlg     = _this->wImport;
-            if (dlg == NULL)
-            {
-                dlg     = new tk::FileDialog(dpy);
-                _this->widgets()->add(dlg);
-                _this->wImport      = dlg;
+            PluginWindow *self      = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
 
-                dlg->init();
-                dlg->mode()->set(tk::FDM_OPEN_FILE);
-                dlg->title()->set("titles.import_settings");
-                dlg->action_text()->set("actions.open");
+            if (self->pPresetsWindow != NULL)
+                self->pPresetsWindow->show_import_settings_dialog();
 
-                create_config_filters(dlg);
-
-                dlg->slots()->bind(tk::SLOT_SUBMIT, slot_call_import_settings_from_file, ptr);
-                dlg->slots()->bind(tk::SLOT_SHOW, slot_fetch_path, _this);
-                dlg->slots()->bind(tk::SLOT_HIDE, slot_commit_path, _this);
-            }
-
-            dlg->show(_this->wWidget);
             return STATUS_OK;
         }
 
         status_t PluginWindow::slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            tk::Display *dpy        = _this->wWidget->display();
+            PluginWindow *self      = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
 
-            // Create new sink
-            ConfigSink *ds = new ConfigSink(_this->pWrapper);
-            if (ds == NULL)
-                return STATUS_NO_MEM;
-            ds->acquire();
+            if (self->pPresetsWindow != NULL)
+                self->pPresetsWindow->import_settings_from_clipboard();
 
-            // Release previously used
-            ConfigSink *old = _this->pConfigSink;
-            _this->pConfigSink = ds;
-
-            if (old != NULL)
-            {
-                old->unbind();
-                old->release();
-            }
-
-            // Request clipboard data
-            return dpy->get_clipboard(ws::CBUF_CLIPBOARD, ds);
+            return STATUS_OK;
         }
 
         status_t PluginWindow::slot_reset_settings(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            return __this->show_menu(__this->wResetSettings, sender, data);
-        }
+            PluginWindow *self      = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
 
-        status_t PluginWindow::slot_confirm_reset_settings(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            return __this->pWrapper->reset_settings();
-        }
+            if (self->pPresetsWindow != NULL)
+                self->pPresetsWindow->reset_settings();
 
-        static const char * manual_prefixes[] =
-        {
-        #ifdef LSP_LIB_PREFIX
-            LSP_LIB_PREFIX("/share"),
-            LSP_LIB_PREFIX("/local/share"),
-        #endif /*  LSP_LIB_PREFIX */
-            "/usr/share",
-            "/usr/local/share",
-            "/share",
-            NULL
-        };
+            return STATUS_OK;
+        }
 
         status_t PluginWindow::slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data)
         {
@@ -1893,6 +1724,15 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::slot_show_presets_window(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            if (__this != NULL)
+                __this->show_presets_window();
+
+            return STATUS_OK;
+        }
+
         status_t PluginWindow::slot_debug_dump(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
@@ -1906,6 +1746,26 @@ namespace lsp
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
             return __this->show_menu(__this->wMenu, sender, data);
+        }
+
+        status_t PluginWindow::slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
+            return __this->show_menu(__this->wPresets, sender, data);
+        }
+
+        status_t PluginWindow::slot_select_next_preset(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            if (self->pPresetsWindow == NULL)
+                return STATUS_OK;
+
+            tk::Widget *w = self->widgets()->find("trg_next_preset");
+            self->pPresetsWindow->select_next_preset(sender == w);
+            return STATUS_OK;
         }
 
         status_t PluginWindow::slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data)
@@ -1950,34 +1810,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::slot_call_export_settings_to_file(tk::Widget *sender, void *ptr, void *data)
-        {
-            LSPString path;
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            status_t res = _this->wExport->selected_file()->format(&path);
-
-            if (res == STATUS_OK)
-            {
-                bool relative = (_this->pRelPaths != NULL) ? _this->pRelPaths->value() >= 0.5f : false;
-                _this->pWrapper->export_settings(&path, relative);
-            }
-
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_call_import_settings_from_file(tk::Widget *sender, void *ptr, void *data)
-        {
-            LSPString path;
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            status_t res = _this->wImport->selected_file()->format(&path);
-
-            if (res == STATUS_OK)
-                _this->pWrapper->import_settings(&path, ui::IMPORT_FLAG_NONE);
-
-            return STATUS_OK;
-        }
-
-
         status_t PluginWindow::slot_greeting_close(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
@@ -1991,66 +1823,6 @@ namespace lsp
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
             if (__this->wAbout != NULL)
                 __this->wAbout->visibility()->set(false);
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_fetch_path(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_BAD_STATE;
-
-            tk::FileDialog *dlg = tk::widget_cast<tk::FileDialog>(sender);
-            if (dlg == NULL)
-                return STATUS_OK;
-
-            // Set-up path
-            if (_this->pPath != NULL)
-            {
-                dlg->path()->set_raw(_this->pPath->buffer<char>());
-            }
-            // Set-up file type
-            if (_this->pFileType != NULL)
-            {
-                size_t filter = _this->pFileType->value();
-                if (filter < dlg->filter()->size())
-                    dlg->selected_filter()->set(filter);
-            }
-
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_commit_path(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_BAD_STATE;
-
-            tk::FileDialog *dlg = tk::widget_cast<tk::FileDialog>(sender);
-            if (dlg == NULL)
-                return STATUS_OK;
-
-            // Update file path
-            if (_this->pPath != NULL)
-            {
-                LSPString tmp_path;
-                if (dlg->path()->format(&tmp_path) == STATUS_OK)
-                {
-                    const char *path = tmp_path.get_utf8();
-                    if (path != NULL)
-                    {
-                        _this->pPath->write(path, strlen(path));
-                        _this->pPath->notify_all(ui::PORT_USER_EDIT);
-                    }
-                }
-            }
-            // Update filter
-            if (_this->pFileType != NULL)
-            {
-                _this->pFileType->set_value(dlg->selected_filter()->get());
-                _this->pFileType->notify_all(ui::PORT_USER_EDIT);
-            }
-
             return STATUS_OK;
         }
 
@@ -2110,6 +1882,10 @@ namespace lsp
             if ((v != NULL) && (pkgver.equals_utf8(v)))
                 return STATUS_OK;
 
+            // Skip if current version contains "dev"
+            if (strstr(pkgver.get_utf8(), "dev") != NULL)
+                return STATUS_OK;
+
             // Set timer to show the greeting window
             wGreetingTimer.set_handler(timer_show_greeting, this);
             wGreetingTimer.bind(pWrapper->display());
@@ -2147,6 +1923,19 @@ namespace lsp
             self->wGreetingTimer.cancel();
             self->show_greeting_window();
             return STATUS_OK;
+        }
+
+        status_t PluginWindow::show_presets_window()
+        {
+            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
+            if (wnd == NULL)
+                return STATUS_BAD_STATE;
+
+            if (pPresetsWindow == NULL)
+                return STATUS_OK;
+
+            tk::Widget *actor = widgets()->find("trg_presets_menu");
+            return pPresetsWindow->toggle_visibility(actor);
         }
 
         status_t PluginWindow::show_greeting_window()
@@ -2473,6 +2262,99 @@ namespace lsp
                 *dst    = w;
 
             return STATUS_OK;
+        }
+
+        status_t PluginWindow::create_presets_window()
+        {
+            status_t res;
+
+            PluginWindow *self = this;
+
+            // Create window
+            tk::PopupWindow *w = new tk::PopupWindow(wWidget->display());
+            if (w == NULL)
+                return STATUS_NO_MEM;
+            widgets()->add(w);
+            w->init();
+            w->auto_close()->set(true);
+
+            // Create controller
+            ctl::PresetsWindow *wc = new ctl::PresetsWindow(pWrapper, w, self);
+            if (wc == NULL)
+                return STATUS_NO_MEM;
+            controllers()->add(wc);
+            wc->init();
+
+            ui::UIContext uctx(pWrapper, wc->controllers(), wc->widgets());
+            if ((res = init_context(&uctx)) != STATUS_OK)
+                return res;
+
+            // Parse the XML document
+            ui::xml::RootNode root(&uctx, "window", wc);
+            ui::xml::Handler handler(pWrapper->resources());
+            if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/presets.xml", &root)) != STATUS_OK)
+                return res;
+
+            if ((res = wc->post_init()) != STATUS_OK)
+                return res;
+
+            pPresetsWindow  = wc;
+
+            return STATUS_OK;
+        }
+
+        void PluginWindow::sync_preset_name()
+        {
+            tk::Widget *w = widgets()->find("trg_presets_menu");
+            if (w == NULL)
+                return;
+
+            tk::String *prop = NULL;
+            // Try to cast to button
+            {
+                tk::Button *btn = tk::widget_cast<tk::Button>(w);
+                if (btn != NULL)
+                    prop        = btn->text();
+            }
+            // Try to cast to label
+            {
+                tk::Label *lbl = tk::widget_cast<tk::Label>(w);
+                if (lbl != NULL)
+                    prop        = lbl->text();
+            }
+            if (prop == NULL)
+                return;
+
+            // Set default label if preset is not selected
+            const ui::preset_t *preset = pWrapper->active_preset();
+            if (preset == NULL)
+            {
+                prop->set("actions.presets.select");
+                return;
+            }
+
+            // Determine how to format the prest name
+            const char *key = "labels.presets.name.normal";
+            const bool changed = pWrapper->active_preset_dirty();
+            if (preset->flags & ui::PRESET_FLAG_USER)
+                key     = (changed) ? "labels.presets.name.user_mod" : "labels.presets.name.user";
+            else
+                key     = (changed) ? "labels.presets.name.factory_mod" : "labels.presets.name.factory";
+
+            // Fill the item
+            expr::Parameters params;
+            params.set_string("name", &preset->name);
+            prop->set(key, &params);
+        }
+
+        void PluginWindow::preset_activated(const ui::preset_t *preset)
+        {
+            sync_preset_name();
+        }
+
+        void PluginWindow::presets_updated()
+        {
+            sync_preset_name();
         }
 
         status_t PluginWindow::slot_scaling_toggle_prefer_host(tk::Widget *sender, void *ptr, void *data)
@@ -2885,25 +2767,6 @@ namespace lsp
             _this->sWndScale.nMFlags   &= ~(size_t(1) << ev->nCode);
             if (_this->sWndScale.nMFlags == 0)
                 _this->sWndScale.bActive    = false;
-
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
-                return STATUS_OK;
-            if (_this->pRelPaths == NULL)
-                return STATUS_OK;
-
-            tk::CheckBox *ck_box = tk::widget_cast<tk::CheckBox>(sender);
-            if (ck_box == NULL)
-                return STATUS_OK;
-
-            float value = ck_box->checked()->get() ? 1.0f : 0.0f;
-            _this->pRelPaths->set_value(value);
-            _this->pRelPaths->notify_all(ui::PORT_USER_EDIT);
 
             return STATUS_OK;
         }

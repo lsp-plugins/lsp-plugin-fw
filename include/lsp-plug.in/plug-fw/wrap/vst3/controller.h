@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 февр. 2024 г.
@@ -79,6 +79,7 @@ namespace lsp
                 lltl::parray<vst3::CtlParamPort>    vPlainParams;           // Input parameters (non-virtual) sorted according to the metadata order
                 lltl::parray<vst3::CtlParamPort>    vParams;                // Input parameters (non-virtual) sorted by unique parameter ID
                 lltl::parray<vst3::CtlMeterPort>    vMeters;                // Meters
+                core::preset_state_t                sPresetState;           // Preset state
 
             #ifdef WITH_UI_FEATURE
                 ipc::Mutex                          sWrappersLock;          // Lock of wrappers
@@ -103,6 +104,8 @@ namespace lsp
                 void                                parse_raw_osc_event(osc::parse_frame_t *frame);
                 status_t                            load_state(Steinberg::IBStream *is);
                 void                                send_kvt_state();
+                void                                receive_preset_state(ui::IWrapper *except);
+                status_t                            deserialize_preset_state(core::preset_state_t *state, Steinberg::IBStream *is);
 
         #ifdef WITH_UI_FEATURE
             protected:
@@ -138,11 +141,13 @@ namespace lsp
                 status_t                            play_file(const char *file, wsize_t position, bool release);
                 vst3::CtlPort                      *port_by_id(const char *id);
                 void                                dump_state_request();
+                void                                notify_preset_changed();
                 const core::ShmState               *shm_state();
 
         #ifdef WITH_UI_FEATURE
             public: // UI-related stuff
                 status_t                            detach_ui_wrapper(UIWrapper *wrapper);
+                void                                send_preset_state(UIWrapper *wrapper, const core::preset_state_t *state);
         #endif /* WITH_UI_FEATURE */
 
             public: // vst3::IDataSync

@@ -39,11 +39,15 @@
 
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/ShmState.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/ui/IPort.h>
 #include <lsp-plug.in/plug-fw/ui/Module.h>
 #include <lsp-plug.in/plug-fw/ui/SwitchedPort.h>
 #include <lsp-plug.in/plug-fw/ui/ValuePort.h>
 #include <lsp-plug.in/plug-fw/ui/IKVTListener.h>
+#include <lsp-plug.in/plug-fw/ui/IPresetManager.h>
+#include <lsp-plug.in/plug-fw/ui/IPresetListener.h>
+#include <lsp-plug.in/plug-fw/ui/presets.h>
 #include <lsp-plug.in/fmt/config/PullParser.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
 
@@ -71,7 +75,7 @@ namespace lsp
         /**
          * UI wrapper
          */
-        class IWrapper
+        class IWrapper: public IPresetManager
         {
             private:
                 friend class ControlPort;
@@ -82,9 +86,12 @@ namespace lsp
             protected:
                 enum flags_t
                 {
-                    F_QUIT          = 1 << 0,       // Quit main loop flag
-                    F_CONFIG_DIRTY  = 1 << 1,       // The configuration needs to be saved
-                    F_CONFIG_LOCK   = 1 << 2,       // The configuration file is locked for update
+                    F_QUIT              = 1 << 0,       // Quit main loop flag
+                    F_CONFIG_DIRTY      = 1 << 1,       // The configuration needs to be saved
+                    F_CONFIG_LOCK       = 1 << 2,       // The configuration file is locked for update
+                    F_PRESET_SYNC       = 1 << 3,       // New preset has been selected and we need to synchronize state
+                    F_PRESET_DIRTY      = 1 << 4,       // Active preset is dirty
+                    F_FAVOURITES_DIRTY  = 1 << 5,       // List of favourites had been updated
                 };
 
             protected:
@@ -96,6 +103,8 @@ namespace lsp
                 size_t                          nFlags;             // Flags
                 wssize_t                        nPlayPosition;      // Playback position of the current file preview
                 wssize_t                        nPlayLength;        // Overall playback file length in samples
+                ssize_t                         nActivePreset;      // Active preset
+                preset_tab_t                    enPresetTab;        // Active preset tab
                 expr::Variables                 sGlobalVars;        // Global variables
                 plug::position_t                sPosition;          // Melodic position
 
@@ -110,6 +119,8 @@ namespace lsp
                 lltl::parray<IKVTListener>      vKvtListeners;      // KVT listeners
                 lltl::ptrset<ISchemaListener>   vSchemaListeners;   // Schema change listeners
                 lltl::parray<IPlayListener>     vPlayListeners;     // List of playback listeners
+                lltl::parray<IPresetListener>   vPresetListeners;   // List of preset listeners
+                lltl::darray<preset_t>          vPresets;           // List of available presets
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
@@ -135,6 +146,7 @@ namespace lsp
 
                 status_t        save_global_config(io::IOutSequence *os, lltl::pphash<LSPString, config::param_t> *parameters);
                 status_t        read_parameters(const io::Path *file, lltl::pphash<LSPString, config::param_t> *params);
+                status_t        get_user_config_path(io::Path *path);
                 static void     drop_parameters(lltl::pphash<LSPString, config::param_t> *params);
                 void            get_bundle_version_key(LSPString *key);
                 void            get_bundle_scaling_key(LSPString *key);
@@ -146,9 +158,28 @@ namespace lsp
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
                 void            position_updated(const plug::position_t *pos);
+                static status_t allocate_temp_file(io::Path *dst, const io::Path *src);
 
             protected:
                 virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
+
+            protected:
+                static preset_t *add_preset(lltl::darray<preset_t> *list);
+                static void     destroy_presets(lltl::darray<preset_t> *list);
+
+            protected:
+                status_t        get_user_presets_path(io::Path *path);
+                status_t        get_plugin_presets_path(io::Path *path);
+                void            scan_factory_presets(lltl::darray<preset_t> *list);
+                void            scan_user_presets(lltl::darray<preset_t> *list);
+                void            scan_favourite_presets(lltl::darray<preset_t> *list);
+                status_t        save_favourites(const io::Path *path);
+                void            select_presets(lltl::darray<preset_t> *list, const preset_t *active);
+                void            update_preset_list();
+                preset_t       *find_preset(const LSPString *name, bool user);
+                void            notify_presets_updated();
+                void            notify_preset_deactivated(const preset_t *preset);
+                void            notify_preset_activated(const preset_t *preset);
 
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
@@ -491,6 +522,106 @@ namespace lsp
                  * @return name of graphics backend
                  */
                 const char                     *graphics_backend() const;
+
+            public: // ui::IPresetManager
+                virtual void                    mark_active_preset_dirty() override;
+
+            public: // Preset management
+                /**
+                 * Add preset listener
+                 * @param listener preset listener
+                 * @return status of operation
+                 */
+                status_t                        add_preset_listener(IPresetListener *listener);
+
+                /**
+                 * Remove preset listener
+                 * @param listener preset listener
+                 * @return status of operation
+                 */
+                status_t                        remove_preset_listener(IPresetListener *listener);
+
+                /**
+                 * Select active preset
+                 * @param preset_id preset identifier, negative value for deselection of any preset
+                 * @return status of operation
+                 */
+                virtual status_t                select_active_preset(const preset_t *preset);
+
+                /**
+                 * Get active preset
+                 * @return active preset
+                 */
+                const preset_t                 *active_preset() const;
+
+                /**
+                 * Check that active preset is dirty
+                 * @return true if active preset is dirty
+                 */
+                bool                            active_preset_dirty() const;
+
+                /**
+                 * Get list of all available presets
+                 * @return list of all available presets
+                 */
+                const preset_t                 *all_presets() const;
+
+                /**
+                 * Get number of all presets
+                 * @return number of all presets
+                 */
+                size_t                          num_presets() const;
+
+                /**
+                 * Get current preset tab
+                 * @return current preset tab
+                 */
+                preset_tab_t                    preset_tab() const;
+
+                /**
+                 * Mark preset as favourite
+                 * @param preset preset to mark
+                 * @param favourite favourite flag
+                 */
+                status_t                        mark_preset_favourite(const preset_t *preset, bool favourite);
+
+                /**
+                 * Remove user preset
+                 * @param preset_id preset identifier
+                 */
+                status_t                        remove_preset(const preset_t *preset);
+
+                /**
+                 * Save current state to the selected user preset and switch to it
+                 * @param name name of the preset
+                 * @param flags preset flags
+                 * @return status of operation
+                 */
+                status_t                        save_preset(const LSPString *name, size_t flags);
+
+                /**
+                 * Set current preset tab
+                 * @param tab current preset tab
+                 */
+                void                            set_preset_tab(preset_tab_t tab);
+
+                /**
+                 * Request for presets scan
+                 */
+                void                            scan_presets();
+
+                /**
+                 * Set current state of the preset to the DSP
+                 * @param state current preset state
+                 */
+                virtual void                    send_preset_state(const core::preset_state_t *state);
+
+                /**
+                 * Receive current state of the preset ffrom DSP
+                 * @param state current preset state
+                 */
+                void                            receive_preset_state(const core::preset_state_t *state);
+
         };
 
     } /* namespace ui */

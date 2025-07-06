@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 дек. 2021 г.
@@ -76,7 +76,7 @@ namespace lsp
                 virtual status_t                init(void *root_widget) override;
                 virtual void                    destroy() override;
 
-            public: // plug::IWrapper
+            public: // ui::IWrapper
                 virtual core::KVTStorage       *kvt_lock() override;
                 virtual core::KVTStorage       *kvt_trylock() override;
                 virtual bool                    kvt_release() override;
@@ -86,6 +86,7 @@ namespace lsp
                 virtual status_t                play_file(const char *file, wsize_t position, bool release) override;
                 virtual meta::plugin_format_t   plugin_format() const override;
                 virtual const core::ShmState   *shm_state() override;
+                virtual void                    send_preset_state(const core::preset_state_t *state);
 
             public:
                 bool                            show_ui();

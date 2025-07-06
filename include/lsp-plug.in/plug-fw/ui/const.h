@@ -116,6 +116,7 @@
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                          "main_menu"
+#define WUID_PRESETS_MENU                       "presets_menu"
 #define WUID_EXPORT_MENU                        "export_menu"
 #define WUID_IMPORT_MENU                        "import_menu"
 #define WUID_LANGUAGE_MENU                      "language_menu"

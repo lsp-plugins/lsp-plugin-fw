@@ -67,7 +67,7 @@ namespace lsp
                 ipc::IExecutor                         *pExecutor;      // Offline task executor
                 ipc::Thread                            *pDataSync;      // Synchronization thread
                 meta::package_t                        *pPackage;       // Package manifest
-                volatile IDataSync                     *pActiveSync;    // Active data sync
+                void                                   *pActiveSync;    // Active data sync
                 lltl::ptrset<IDataSync>                 vDataSync;      // List of objects for synchronization
                 core::CatalogManager                    sCatalogManager;// Catalog management
 
