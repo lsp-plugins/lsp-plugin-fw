@@ -307,8 +307,8 @@ namespace lsp
                 status_t            post_init();
 
             public: // ui::IPresetListener
-                virtual void        preset_activated(const ui::preset_t *preset);
-                virtual void        presets_updated();
+                virtual void        preset_activated(const ui::preset_t *preset) override;
+                virtual void        presets_updated() override;
 
             public: // ctl::DOMController
                 virtual void        begin(ui::UIContext *ctx) override;

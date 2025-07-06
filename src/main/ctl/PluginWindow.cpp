@@ -1066,7 +1066,7 @@ namespace lsp
             // Enumerate presets
             lltl::darray<resource::resource_t> presets;
             const meta::plugin_t *metadata = pWrapper->ui()->metadata();
-            if ((metadata == NULL))
+            if (metadata == NULL)
                 return STATUS_OK;
 
             tk::MenuItem *item;
