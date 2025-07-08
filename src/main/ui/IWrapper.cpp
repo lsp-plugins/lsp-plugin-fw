@@ -99,7 +99,7 @@ namespace lsp
             SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Zoom slider affects the frequency graph", NULL, 1.0f),
             COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", NULL, 1.0f, filter_point_thickness_modes),
             PATH(UI_DOCUMENTATION_PATH_ID, "Path to the local documentation installation"),
-            SWITCH(UI_FILELIST_NAVIGATION_AUTOLOAD_ID, "Automatically load files when navigating over file list", NULL, 0.0f),
+            SWITCH(UI_FILELIST_NAVIGATION_AUTOLOAD_ID, "Automatically load files when navigating over file list", NULL, 1.0f),
             SWITCH(UI_FILELIST_NAVIGATION_AUTOPLAY_ID, "Enable automatic playback of the audio file in the file navigator when selected", NULL, 0.0f),
             SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", NULL, 0.0f),
             PORTS_END
