@@ -308,6 +308,7 @@ namespace lsp
 
             // Commit changes for points
             commit_values();
+            submit_ports();
         }
 
         void AudioEnvelope::submit_ports()
