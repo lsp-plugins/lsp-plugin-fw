@@ -2276,6 +2276,12 @@ namespace lsp
                 p->notify_all(ui::PORT_NONE);
             }
 
+            // Update preset settings
+            nActivePreset       = -1;
+            nFlags              = (nFlags & ~(F_PRESET_DIRTY)) | F_PRESET_SYNC;
+            notify_presets_updated();
+
+            // Notify UI
             if (pUI != NULL)
                 pUI->reset_settings();
 

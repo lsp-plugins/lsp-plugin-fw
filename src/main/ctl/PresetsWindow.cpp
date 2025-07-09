@@ -615,7 +615,6 @@ namespace lsp
         status_t PresetsWindow::reset_settings()
         {
             pWrapper->reset_settings();
-            pWrapper->select_active_preset(NULL);
             return STATUS_OK;
         }
 
