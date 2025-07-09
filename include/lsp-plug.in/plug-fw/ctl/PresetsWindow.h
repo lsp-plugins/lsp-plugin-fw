@@ -87,7 +87,8 @@ namespace lsp
                 tk::CheckBox           *wRelPaths;                  // Relative path checkbox
                 tk::Edit               *wPresetPattern;             // Preset pattern
                 tk::Button             *vButtons[BTN_TOTAL];        // Preset management buttons
-                tk::MessageBox         *wWConfirm;                  // Confirmation meessage box
+                tk::MessageBox         *wWConfirm;                  // Confirmation message box
+                tk::MessageBox         *wRstConfirm;                // Reset confirmation message box
                 tk::TabControl         *wPresetTabs;                // Preset category tabs
                 bool                    bWasVisible;                // Visibility flag
 
@@ -130,6 +131,9 @@ namespace lsp
                 static status_t     slot_accept_preset_selection(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_reject_preset_selection(tk::Widget *sender, void *ptr, void *data);
 
+                static status_t     slot_accept_reset_state(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_reject_reset_state(tk::Widget *sender, void *ptr, void *data);
+
             protected:
                 static void         destroy_preset_list(preset_list_t *list);
                 static inline bool  need_indication(size_t i);
@@ -145,6 +149,7 @@ namespace lsp
                 void                select_active_preset(const ui::preset_t *preset);
                 bool                has_path_ports();
                 bool                request_change_preset_conrifmation(const ui::preset_t *preset);
+                bool                request_reset_state_confirmation();
                 const ui::preset_t *current_preset();
                 status_t            create_save_preset_dialog();
                 void                sync_preset_name(tk::ListBoxItem *item, const ui::preset_t *preset, bool indicate);

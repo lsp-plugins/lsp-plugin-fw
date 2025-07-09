@@ -109,6 +109,7 @@ namespace lsp
             for (size_t i=0; i<BTN_TOTAL; ++i)
                 vButtons[i]     = NULL;
             wWConfirm       = NULL;
+            wRstConfirm     = NULL;
             wPresetTabs     = NULL;
             bWasVisible     = false;
 
@@ -417,7 +418,7 @@ namespace lsp
             }
 
             wnd->show();
-            wnd->grab_events(ws::GRAB_DROPDOWN);
+//            wnd->grab_events(ws::GRAB_DROPDOWN);
 
             return STATUS_OK;
         }
@@ -817,6 +818,58 @@ namespace lsp
             return true;
         }
 
+        bool PresetsWindow::request_reset_state_confirmation()
+        {
+            if (wRstConfirm == NULL)
+            {
+                // Create and initialize dialog object
+                tk::MessageBox *dialog = new tk::MessageBox(wWidget->display());
+                if (dialog == NULL)
+                    return false;
+                lsp_finally {
+                    if (dialog != NULL)
+                    {
+                        dialog->destroy();
+                        delete dialog;
+                    }
+                };
+
+                status_t res = dialog->init();
+                if (res != STATUS_OK)
+                    return false;
+
+                dialog->title()->set("titles.confirmation");
+                dialog->heading()->set("headings.confirmation");
+                dialog->add("actions.confirm.yes", slot_accept_reset_state, self());
+                dialog->add("actions.confirm.no", slot_reject_reset_state, self());
+
+                dialog->buttons()->get(0)->constraints()->set_min_width(96);
+                dialog->buttons()->get(1)->constraints()->set_min_width(96);
+
+                bind_shortcut(dialog, ws::WSK_ESCAPE, tk::KM_NONE, slot_reject_reset_state);
+                bind_shortcut(dialog, 'n', tk::KM_NONE, slot_reject_reset_state);
+                bind_shortcut(dialog, 'N', tk::KM_NONE, slot_reject_reset_state);
+                bind_shortcut(dialog, ws::WSK_RETURN, tk::KM_NONE, slot_accept_reset_state);
+                bind_shortcut(dialog, ws::WSK_KEYPAD_ENTER, tk::KM_NONE, slot_accept_reset_state);
+                bind_shortcut(dialog, 'y', tk::KM_NONE, slot_accept_reset_state);
+                bind_shortcut(dialog, 'Y', tk::KM_NONE, slot_accept_reset_state);
+
+                // Commit dialog
+                if (widgets()->add(dialog) != STATUS_OK)
+                    return false;
+                wRstConfirm     = release_ptr(dialog);
+
+                wRstConfirm->message()->set("messages.presets.confirm_reset_state");
+            }
+
+            // Hide self and show the nested window
+            hide();
+            wRstConfirm->show(wLastActor);
+
+            return true;
+        }
+
+
         void PresetsWindow::select_active_preset(const ui::preset_t *preset)
         {
             const ui::preset_t *dirty = (pWrapper->active_preset_dirty()) ? pWrapper->active_preset() : NULL;
@@ -1153,12 +1206,32 @@ namespace lsp
         {
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self != NULL)
+                self->request_reset_state_confirmation();
+
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_accept_reset_state(tk::Widget *sender, void *ptr, void *data)
+        {
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
             {
-                if (self->wWidget != NULL)
-                    self->hide();
+                if (self->wRstConfirm != NULL)
+                    self->wRstConfirm->hide();
                 self->reset_settings();
             }
+            return STATUS_OK;
+        }
 
+        status_t PresetsWindow::slot_reject_reset_state(tk::Widget *sender, void *ptr, void *data)
+        {
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
+            {
+                if (self->wRstConfirm != NULL)
+                    self->wRstConfirm->hide();
+                self->show(self->wLastActor);
+            }
             return STATUS_OK;
         }
 
