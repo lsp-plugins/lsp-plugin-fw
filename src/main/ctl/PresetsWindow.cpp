@@ -212,6 +212,7 @@ namespace lsp
             {
                 const char *list_id = preset_lists_ids[i];
                 bind_slot(list_id, tk::SLOT_SUBMIT, slot_preset_select);
+                bind_slot(list_id, tk::SLOT_MOUSE_DBL_CLICK, slot_preset_dbl_click);
                 bind_slot(list_id, tk::SLOT_CHANGE, slot_preset_select);
             }
 
@@ -1183,6 +1184,21 @@ namespace lsp
 
                 self->select_active_preset(preset);
             }
+
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_preset_dbl_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            lsp_trace("slot preset dbl click");
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            const ws::event_t *ev = static_cast<ws::event_t *>(data);
+
+            if (ev->nCode == ws::MCB_LEFT)
+                self->hide();
 
             return STATUS_OK;
         }
