@@ -2310,15 +2310,17 @@ namespace lsp
                 return;
 
             tk::String *prop = NULL;
+            tk::Button *btn = NULL;
+            tk::Label *lbl = NULL;
             // Try to cast to button
             {
-                tk::Button *btn = tk::widget_cast<tk::Button>(w);
+                btn = tk::widget_cast<tk::Button>(w);
                 if (btn != NULL)
                     prop        = btn->text();
             }
             // Try to cast to label
             {
-                tk::Label *lbl = tk::widget_cast<tk::Label>(w);
+                lbl = tk::widget_cast<tk::Label>(w);
                 if (lbl != NULL)
                     prop        = lbl->text();
             }
@@ -2326,25 +2328,39 @@ namespace lsp
                 return;
 
             // Set default label if preset is not selected
+            const ui::preset_t *list = pWrapper->all_presets();
+            if (lbl != NULL)
+                lbl->clear_text_estimations();
+            if (btn != NULL)
+                btn->clear_text_estimations();
+
             const ui::preset_t *preset = pWrapper->active_preset();
-            if (preset == NULL)
+            expr::Parameters params;
+            for (size_t i=0, n=pWrapper->num_presets(); i<n; ++i)
             {
-                prop->set("actions.presets.select");
-                return;
+                const ui::preset_t *item = &list[i];
+
+                // Determine how to format the prest name
+                const char *key = "labels.presets.name.normal";
+                const bool changed = pWrapper->active_preset_dirty();
+                if (item->flags & ui::PRESET_FLAG_USER)
+                    key     = (changed) ? "labels.presets.name.user_mod" : "labels.presets.name.user";
+                else
+                    key     = (changed) ? "labels.presets.name.factory_mod" : "labels.presets.name.factory";
+
+                // Fill the item
+                tk::String *est = (btn != NULL) ? btn->add_text_estimation() : lbl->add_text_estimation();
+                params.set_string("name", &item->name);
+                if (est != NULL)
+                    est->set(key, &params);
+
+                // Fill the text
+                if (item == preset)
+                    prop->set(key, &params);
             }
 
-            // Determine how to format the prest name
-            const char *key = "labels.presets.name.normal";
-            const bool changed = pWrapper->active_preset_dirty();
-            if (preset->flags & ui::PRESET_FLAG_USER)
-                key     = (changed) ? "labels.presets.name.user_mod" : "labels.presets.name.user";
-            else
-                key     = (changed) ? "labels.presets.name.factory_mod" : "labels.presets.name.factory";
-
-            // Fill the item
-            expr::Parameters params;
-            params.set_string("name", &preset->name);
-            prop->set(key, &params);
+            if (preset == NULL)
+                prop->set("actions.presets.select");
         }
 
         void PluginWindow::preset_activated(const ui::preset_t *preset)
