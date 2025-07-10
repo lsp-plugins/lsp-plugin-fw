@@ -192,6 +192,7 @@ namespace lsp
                 sInactiveHoverColor.init(pWrapper, lbl->inactive_hover_color());
 
                 sText.init(pWrapper, lbl->text());
+                sTextClip.init(pWrapper, lbl->text_clip());
                 sIPadding.init(pWrapper, lbl->ipadding());
 
                 lbl->slot(tk::SLOT_MOUSE_DBL_CLICK)->bind(slot_dbl_click, this);
@@ -385,6 +386,7 @@ namespace lsp
                 sInactiveHoverColor.set("inactive.hcolor", name, value);
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
+                sTextClip.set("text.clip", name, value);
             }
 
             Widget::set(ctx, name, value);

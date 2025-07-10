@@ -1934,7 +1934,9 @@ namespace lsp
             if (pPresetsWindow == NULL)
                 return STATUS_OK;
 
-            tk::Widget *actor = widgets()->find("trg_presets_menu");
+            tk::Widget *actor = widgets()->find("trg_presets_menu_area");
+            if (actor == NULL)
+                actor = widgets()->find("trg_presets_menu");
             return pPresetsWindow->toggle_visibility(actor);
         }
 
@@ -2328,14 +2330,40 @@ namespace lsp
                 return;
 
             // Set default label if preset is not selected
+            const ui::preset_t *preset = pWrapper->active_preset();
+            expr::Parameters params;
+
+            // If text clipping is enabled, just update text
+            const bool text_clip = (lbl != NULL) ? lbl->text_clip()->get() : btn->text_clip()->get();
+            if (text_clip)
+            {
+                if (preset == NULL)
+                {
+                    prop->set("actions.presets.select");
+                    return;
+                }
+
+                // Determine how to format the prest name
+                const char *key = "labels.presets.name.normal";
+                const bool changed = pWrapper->active_preset_dirty();
+                if (preset->flags & ui::PRESET_FLAG_USER)
+                    key     = (changed) ? "labels.presets.name.user_mod" : "labels.presets.name.user";
+                else
+                    key     = (changed) ? "labels.presets.name.factory_mod" : "labels.presets.name.factory";
+
+                params.set_string("name", &preset->name);
+                prop->set(key, &params);
+
+                return;
+            }
+
+            // Otherwise, fill esimation list
             const ui::preset_t *list = pWrapper->all_presets();
             if (lbl != NULL)
                 lbl->clear_text_estimations();
             if (btn != NULL)
                 btn->clear_text_estimations();
 
-            const ui::preset_t *preset = pWrapper->active_preset();
-            expr::Parameters params;
             for (size_t i=0, n=pWrapper->num_presets(); i<n; ++i)
             {
                 const ui::preset_t *item = &list[i];
@@ -2348,14 +2376,15 @@ namespace lsp
                 else
                     key     = (changed) ? "labels.presets.name.factory_mod" : "labels.presets.name.factory";
 
-                // Fill the item
-                tk::String *est = (btn != NULL) ? btn->add_text_estimation() : lbl->add_text_estimation();
-                params.set_string("name", &item->name);
-                if (est != NULL)
-                    est->set(key, &params);
-
                 // Fill the text
-                if (item == preset)
+                params.set_string("name", &item->name);
+                if (item != preset)
+                {
+                    tk::String *est = (btn != NULL) ? btn->add_text_estimation() : lbl->add_text_estimation();
+                    if (est != NULL)
+                        est->set(key, &params);
+                }
+                else
                     prop->set(key, &params);
             }
 

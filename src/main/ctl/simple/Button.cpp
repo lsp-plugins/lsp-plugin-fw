@@ -109,6 +109,7 @@ namespace lsp
                 sEditable.init(pWrapper, btn->editable());
                 sTextPad.init(pWrapper, btn->text_padding());
                 sText.init(pWrapper, btn->text());
+                sTextClip.init(pWrapper, btn->text_clip());
 
                 // Bind slots
                 btn->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
@@ -181,6 +182,7 @@ namespace lsp
                 sTextPad.set("tpad", name, value);
                 sHover.set("hover", name, value);
                 sText.set("text", name, value);
+                sTextClip.set("text.clip", name, value);
 
                 set_font(btn->font(), "font", name, value);
                 set_constraints(btn->constraints(), name, value);
