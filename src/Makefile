@@ -1,6 +1,6 @@
 #
-# Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
-#           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+# Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+#           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
 #
 # This file is part of lsp-plugin-fw
 #
@@ -256,6 +256,9 @@ else ifeq ($(PLATFORM),Windows)
   endif
   VST3_EXT               := .vst3
   VST3_LDFLAGS           := -Wl,--kill-at
+else ifeq ($(PLATFORM),MacOS)
+  VST3_ARCH              := MacOS
+  VST3_EXT               := .dylib
 else
   VST3_ARCH              := $(shell uname -m)-${shell uname -s | tr '[:upper:]' '[:lower:]'}
   VST3_EXT               := $(LIBRARY_EXT)
