@@ -1493,7 +1493,10 @@ install_vst3: vst3
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
-	$($(HOST)UTL_VST3_MODINFO) "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$($(HOST)UTL_VST3_MODINFO) -m "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$(if $(findstring MacOS, $(PLATFORM)), \
+	  $($(HOST)UTL_VST3_MODINFO) -i "$(DESTDIR)$(VST3_LIBDIR)/Contents/Info.plist" \
+    )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
 
 install_xdg_msg:
@@ -1632,7 +1635,10 @@ package_vst3: vst3 $(BIN_PACKAGE)
 	-rm -rf  "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
-	$($(HOST)UTL_VST3_MODINFO) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$($(HOST)UTL_VST3_MODINFO) -m "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$(if $(findstring MacOS, $(PLATFORM)), \
+	  $($(HOST)UTL_VST3_MODINFO) -i "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Info.plist" \
+    )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
 	$(foreach target,$(BIN_PACKAGE_VST3), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \

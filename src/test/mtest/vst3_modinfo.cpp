@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 4 февр. 2024 г.
@@ -34,17 +34,24 @@ MTEST_BEGIN("", vst3_modinfo)
         resdir.set(tempdir(), "resources");
         system::set_env_var(LSP_RESOURCE_PATH_VAR, resdir.as_string());
 
-        // Call the gen_ttl tool
-        io::Path outfile;
-        MTEST_ASSERT(outfile.fmt("%s/mtest-%s-vst3-moduleinfo.json", tempdir(), full_name()) > 0);
+        // Call the tool
+        io::Path modinfo;
+        MTEST_ASSERT(modinfo.fmt("%s/mtest-%s-vst3-moduleinfo.json", tempdir(), full_name()) > 0);
+
+        io::Path plist;
+        MTEST_ASSERT(plist.fmt("%s/mtest-%s-vst3-info.plist", tempdir(), full_name()) > 0);
 
         const char *data[]=
         {
             "vst3_modinfo",
-            outfile.as_native(),
+            "-m",
+            modinfo.as_native(),
+            "-i",
+            plist.as_native()
         };
 
-        printf("Writing moduleinfo.json file to %s...\n", outfile.as_native());
+        printf("Writing moduleinfo.json file to %s...\n", modinfo.as_native());
+        printf("Writing info.plist file to %s...\n", plist.as_native());
 
         MTEST_ASSERT(lsp::vst3_modinfo::main(sizeof(data)/sizeof(const char *), data) == 0);
     }
