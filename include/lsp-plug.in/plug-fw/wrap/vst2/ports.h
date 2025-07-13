@@ -589,8 +589,8 @@ namespace lsp
                         v               = BE_TO_CPU(*(reinterpret_cast<const int32_t *>(data)));
                     )
                     IF_UNALIGNED_MEMORY_UNSAFE(
-                        memcpy(&value, data, sizeof(value));
-                        v               = BE_TO_CPU(value);
+                        memcpy(&v, data, sizeof(v));
+                        v               = BE_TO_CPU(v);
                     )
                     if ((v >= 0) && (v < ssize_t(nRows)))
                     {

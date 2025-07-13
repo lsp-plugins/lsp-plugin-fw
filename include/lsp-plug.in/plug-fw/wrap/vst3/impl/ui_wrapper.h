@@ -556,6 +556,7 @@ namespace lsp
 #if defined(PLATFORM_WINDOWS)
             supported = (strcmp(type, Steinberg::kPlatformTypeHWND) == 0);
 #elif defined(PLATFORM_MACOSX)
+            supported = (strcmp(type, Steinberg::kPlatformTypeNSView) == 0);
 #else
             supported = (strcmp(type, Steinberg::kPlatformTypeX11EmbedWindowID) == 0);
 #endif
