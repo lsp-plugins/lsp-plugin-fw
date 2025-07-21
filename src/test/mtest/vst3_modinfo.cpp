@@ -41,17 +41,23 @@ MTEST_BEGIN("", vst3_modinfo)
         io::Path plist;
         MTEST_ASSERT(plist.fmt("%s/mtest-%s-vst3-info.plist", tempdir(), full_name()) > 0);
 
+        io::Path pkginfo;
+        MTEST_ASSERT(pkginfo.fmt("%s/mtest-%s-vst3-PkgInfo", tempdir(), full_name()) > 0);
+
         const char *data[]=
         {
             "vst3_modinfo",
             "-m",
             modinfo.as_native(),
             "-i",
-            plist.as_native()
+            plist.as_native(),
+            "-p",
+            pkginfo.as_native()
         };
 
         printf("Writing moduleinfo.json file to %s...\n", modinfo.as_native());
         printf("Writing info.plist file to %s...\n", plist.as_native());
+        printf("Writing PkgInfo file to %s...\n", pkginfo.as_native());
 
         MTEST_ASSERT(lsp::vst3_modinfo::main(sizeof(data)/sizeof(const char *), data) == 0);
     }

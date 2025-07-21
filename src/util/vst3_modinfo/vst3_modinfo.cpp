@@ -37,12 +37,14 @@ namespace lsp
         {
             const char *modinfo;        // Path to moduleinfo.json
             const char *info_plist;     // Path to Info.plist
+            const char *pkginfo;        // Path to PkgInfo
         } cmdline_t;
 
         static status_t parse_cmdline(cmdline_t *cfg, int argc, const char **argv)
         {
             cfg->modinfo        = NULL;
             cfg->info_plist     = NULL;
+            cfg->pkginfo        = NULL;
 
             // Parse arguments
             int i = 1;
@@ -57,6 +59,7 @@ namespace lsp
                     printf("  -h, --help                    Show help\n");
                     printf("  -i, --info-plist <file>       Generate Info.plist file contents to the specified file\n");
                     printf("  -m, --modinfo <file>          Write modinfo.json file contents to the specified file\n");
+                    printf("  -p, --pkginfo <file>          Write PkgInfo file contents to the specified file\n");
                     printf("\n");
 
                     return STATUS_CANCELLED;
@@ -88,6 +91,20 @@ namespace lsp
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->modinfo = argv[i++];
+                }
+                else if ((!::strcmp(arg, "--pkginfo")) || (!::strcmp(arg, "-p")))
+                {
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified file name for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    else if (cfg->pkginfo)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->pkginfo = argv[i++];
                 }
                 else
                 {
@@ -253,6 +270,9 @@ namespace lsp
                 LSP_STATUS_ASSERT(write_key(&os, "CFBundlePackageType"));
                 LSP_STATUS_ASSERT(write_escaped_string(&os, "BNDL"));
 
+                LSP_STATUS_ASSERT(write_key(&os, "CFBundleExecutable"));
+                LSP_STATUS_ASSERT(write_escaped_string(&os, manifest->artifact));
+
                 LSP_STATUS_ASSERT(write_key(&os, "CFBundleVersion"));
                 LSP_STATUS_ASSERT(write_escaped_string(&os, &version));
 
@@ -274,6 +294,35 @@ namespace lsp
                 LSP_STATUS_ASSERT(write_escaped_string(&os, manifest->copyright));
             }
             LSP_STATUS_ASSERT(os.writeln_ascii("</plist>"));
+
+            return STATUS_OK;
+        }
+
+
+        static status_t write_pkginfo(const char *file, const meta::package_t *manifest)
+        {
+            // Initialize path
+            status_t res;
+            io::Path path;
+            if ((res = path.set_native(file)) != STATUS_OK)
+            {
+                fprintf(stderr, "Error parsing PkgInfo path, error=%d\n", int(res));
+                return res;
+            }
+
+            // Create output file
+            io::OutSequence os;
+            if ((res = os.open(&path, io::File::FM_WRITE_NEW, "UTF-8")) != STATUS_OK)
+            {
+                fprintf(stderr, "Error writing  PkgInfo path, error=%d\n", int(res));
+                return res;
+            }
+            lsp_finally {
+                os.close();
+            };
+
+            // Generate PkgInfo contents
+            LSP_STATUS_ASSERT(os.writeln_ascii("BNDL????"));
 
             return STATUS_OK;
         }
@@ -338,6 +387,13 @@ namespace lsp
             if (cmd.info_plist != NULL)
             {
                 if ((res = write_info_plist(cmd.info_plist, manifest)) != STATUS_OK)
+                    return res;
+            }
+
+            // Write the PkgInfo file
+            if (cmd.pkginfo != NULL)
+            {
+                if ((res = write_pkginfo(cmd.pkginfo, manifest)) != STATUS_OK)
                     return res;
             }
 

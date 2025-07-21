@@ -210,8 +210,13 @@ GST_LIBDIR             := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 JACK_LIBDIR            := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 LADSPA_LIBDIR          := $(LIBDIR)/ladspa
 LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
-VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_LIBDIR).vst
-VST3_LIBDIR            := $(LIBDIR)/vst3/$(INSTALL_LIBDIR).vst3
+ifeq ($(PLATFORM),MacOS)
+  VST2_LIBDIR            := /Library/Audio/Plug-Ins/VST/$(INSTALL_LIBDIR).vst
+  VST3_LIBDIR            := /Library/Audio/Plug-Ins/VST3/$(INSTALL_LIBDIR).vst3
+else
+  VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_LIBDIR).vst
+  VST3_LIBDIR            := $(LIBDIR)/vst3/$(INSTALL_LIBDIR).vst3
+endif
 DOC_SHAREDDIR          := $(SHAREDDIR)/doc/$($(ROOT_ARTIFACT_ID)_NAME)
 
 ifeq ($(PLATFORM),Linux)
@@ -258,7 +263,7 @@ else ifeq ($(PLATFORM),Windows)
   VST3_LDFLAGS           := -Wl,--kill-at
 else ifeq ($(PLATFORM),MacOS)
   VST3_ARCH              := MacOS
-  VST3_EXT               := .dylib
+  VST3_EXT               := 
 else
   VST3_ARCH              := $(shell uname -m)-${shell uname -s | tr '[:upper:]' '[:lower:]'}
   VST3_EXT               := $(LIBRARY_EXT)
@@ -1495,7 +1500,7 @@ install_vst3: vst3
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
 	$($(HOST)UTL_VST3_MODINFO) -m "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
 	$(if $(findstring MacOS, $(PLATFORM)), \
-	  $($(HOST)UTL_VST3_MODINFO) -i "$(DESTDIR)$(VST3_LIBDIR)/Contents/Info.plist" \
+	  $($(HOST)UTL_VST3_MODINFO) -i "$(DESTDIR)$(VST3_LIBDIR)/Contents/Info.plist" -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/PkgInfo" \
     )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
 
@@ -1637,7 +1642,7 @@ package_vst3: vst3 $(BIN_PACKAGE)
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
 	$($(HOST)UTL_VST3_MODINFO) -m "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
 	$(if $(findstring MacOS, $(PLATFORM)), \
-	  $($(HOST)UTL_VST3_MODINFO) -i "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Info.plist" \
+	  $($(HOST)UTL_VST3_MODINFO) -i "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Info.plist" -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/PkgInfo" \
     )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
 	$(foreach target,$(BIN_PACKAGE_VST3), \
