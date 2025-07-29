@@ -22,6 +22,8 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/fmt/json/dom.h>
+#include <lsp-plug.in/fmt/obj/Compressor.h>
+#include <lsp-plug.in/fmt/obj/PushParser.h>
 #include <lsp-plug.in/fmt/xml/PullParser.h>
 #include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/io/Path.h>
@@ -54,6 +56,7 @@ namespace lsp
             lltl::pphash<LSPString, LSPString>  other;          // Other files
             lltl::pphash<LSPString, LSPString>  local;          // Local files
             lltl::pphash<LSPString, LSPString>  fonts;          // Fonts
+            lltl::pphash<LSPString, LSPString>  scene3d;        // 3D scenec
             util::checksum_list_t               checksums;      // Checksums
         } context_t;
 
@@ -72,6 +75,48 @@ namespace lsp
          * @return status of operation
          */
         typedef status_t (* file_handler_t)(context_t *ctx, const LSPString *relative, const LSPString *full);
+
+        /**
+         * File processing rule
+         */
+        typedef struct file_rule_t
+        {
+            io::PathPattern     pattern;
+            file_handler_t      handler;
+        } file_rule_t;
+
+        status_t add_rule(lltl::parray<file_rule_t> *rules, const char *pattern, file_handler_t handler)
+        {
+            file_rule_t *rule = new file_rule_t;
+            if (rule == NULL)
+                return STATUS_NO_MEM;
+            lsp_finally {
+                if (rule != NULL)
+                    delete rule;
+            };
+
+            status_t res = rule->pattern.set(pattern, io::PathPattern::FULL_PATH);
+            if (res != STATUS_OK)
+                return res;
+
+            rule->handler   = handler;
+            if (!rules->add(rule))
+                return STATUS_NO_MEM;
+
+            release_ptr(rule);
+            return STATUS_OK;
+        }
+
+        void clear_rules(lltl::parray<file_rule_t> *rules)
+        {
+            for (size_t i=0, n=rules->size(); i<n; ++i)
+            {
+                file_rule_t *rule = rules->uget(i);
+                if (rule != NULL)
+                    delete rule;
+            }
+            rules->flush();
+        }
 
         void drop_paths(lltl::parray<LSPString> *paths)
         {
@@ -130,6 +175,11 @@ namespace lsp
             ctx->fonts.flush();
             drop_paths(&paths);
 
+            // Drop fonts
+            ctx->scene3d.values(&paths);
+            ctx->scene3d.flush();
+            drop_paths(&paths);
+
             // Drop checksums
             util::drop_checksums(&ctx->checksums);
         }
@@ -151,6 +201,14 @@ namespace lsp
             if (path->get_ext(&ext) != STATUS_OK)
                 return false;
             return ext.equals_ascii_nocase("xml");
+        }
+
+        bool is_obj_file(const io::Path *path)
+        {
+            LSPString ext;
+            if (path->get_ext(&ext) != STATUS_OK)
+                return false;
+            return ext.equals_ascii_nocase("obj");
         }
 
         status_t add_unique_file(lltl::pphash<LSPString, LSPString> *dst, const LSPString *relative, const LSPString *full)
@@ -528,6 +586,11 @@ namespace lsp
             return add_unique_file(&ctx->local, relative, full);
         }
 
+        status_t scene3d_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
+        {
+            return add_unique_file(&ctx->scene3d, relative, full);
+        }
+
         status_t i18n_handler(context_t *ctx, const LSPString *relative, const LSPString *full)
         {
             status_t res;
@@ -569,10 +632,7 @@ namespace lsp
             return res;
         }
 
-        status_t scan_files(
-            const io::Path *base, const LSPString *child, const io::PathPattern *pattern,
-            context_t *ctx, file_handler_t handler
-        )
+        status_t scan_files(const io::Path *base, const LSPString *child, context_t *ctx, lltl::parray<file_rule_t> * rules)
         {
             status_t res;
             io::Path path, rel, full;
@@ -634,18 +694,30 @@ namespace lsp
 //                        printf("  found  dir: %s\n", rel.as_native());
                     }
                 }
-                else if (pattern->test(&item))
+                else
                 {
                     // Build file paths
                     if ((res = rel.set(child, &item)) != STATUS_OK)
                         return res;
-                    if ((res = full.set(base, &rel)) != STATUS_OK)
-                        return res;
 
-                    // Handle the file
-                    //printf("  found file: %s\n", rel.as_native());
-                    if ((res = handler(ctx, rel.as_string(), full.as_string())) != STATUS_OK)
-                        return res;
+                    for (size_t i=0, n=rules->size(); i<n; ++i)
+                    {
+                        const file_rule_t *rule = rules->uget(i);
+                        if (rule == NULL)
+                            continue;
+                        if (!rule->pattern.test(&rel))
+                            continue;
+
+                        if ((res = full.set(base, &rel)) != STATUS_OK)
+                            return res;
+
+                        // Handle the file
+                        //printf("  found file: %s\n", rel.as_native());
+                        if ((res = rule->handler(ctx, rel.as_string(), full.as_string())) != STATUS_OK)
+                            return res;
+
+                        break;
+                    }
                 }
             }
 
@@ -653,7 +725,7 @@ namespace lsp
             for (size_t i=0, n=subdirs.size(); i<n; ++i)
             {
                 subdir = subdirs.uget(i);
-                if ((res = scan_files(base, subdir, pattern, ctx, handler)) != STATUS_OK)
+                if ((res = scan_files(base, subdir, ctx, rules)) != STATUS_OK)
                 {
                     drop_paths(&subdirs);
                     return res;
@@ -666,24 +738,22 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t scan_files(
-            const io::Path *base, const LSPString *child, const char *pattern,
-            context_t *ctx, file_handler_t handler
-        )
-        {
-            status_t res;
-            io::PathPattern pat;
-
-            if ((res = pat.set(pattern)) != STATUS_OK)
-                return res;
-
-            return scan_files(base, child, &pat, ctx, handler);
-        }
-
         status_t scan_resources(const LSPString *path, context_t *ctx)
         {
             status_t res;
             LSPString child;
+
+            // Create rules
+            lltl::parray<file_rule_t> rules;
+            lsp_finally { clear_rules(&rules); };
+            LSP_STATUS_ASSERT(add_rule(&rules, "schema/**/*.xml", schema_handler));
+            LSP_STATUS_ASSERT(add_rule(&rules, "ui/**/*.xml", ui_handler));
+            LSP_STATUS_ASSERT(add_rule(&rules, "presets/**/*.preset", preset_handler));
+            LSP_STATUS_ASSERT(add_rule(&rules, "presets/**/*.patch", preset_handler));
+            LSP_STATUS_ASSERT(add_rule(&rules, "i18n/**/*.json", i18n_handler));
+            LSP_STATUS_ASSERT(add_rule(&rules, "fonts/**/**", font_handler));
+            LSP_STATUS_ASSERT(add_rule(&rules, "models/**/*.obj", scene3d_handler));
+            LSP_STATUS_ASSERT(add_rule(&rules, "**/**", other_handler));
 
             // Compute the base path
             io::Path base, full;
@@ -700,18 +770,7 @@ namespace lsp
                 if (io::Path::is_dots(&child))
                     continue;
 
-                if (child.equals_ascii("schema"))
-                    res = scan_files(&base, &child, "*.xml", ctx, schema_handler);
-                else if (child.equals_ascii("ui"))
-                    res = scan_files(&base, &child, "*.xml", ctx, ui_handler);
-                else if (child.equals_ascii("preset"))
-                    res = scan_files(&base, &child, "*.preset", ctx, preset_handler);
-                else if (child.equals_ascii("i18n"))
-                    res = scan_files(&base, &child, "*.json", ctx, i18n_handler);
-                else if (child.equals_ascii("fonts"))
-                    res = scan_files(&base, &child, "*", ctx, font_handler);
-                else
-                    res = scan_files(&base, &child, "*", ctx, other_handler);
+                scan_files(&base, &child, ctx, &rules);
 
                 if (res != STATUS_OK)
                     return res;
@@ -735,7 +794,11 @@ namespace lsp
             if ((res = base.set(path)) != STATUS_OK)
                 return res;
 
-            return scan_files(&base, &child, "*", ctx, local_handler);
+            lltl::parray<file_rule_t> rules;
+            lsp_finally { clear_rules(&rules); };
+            LSP_STATUS_ASSERT(add_rule(&rules, "**/**", local_handler));
+
+            return scan_files(&base, &child, ctx, &rules);
         }
 
         status_t lookup_path(const char *path, context_t *ctx)
@@ -881,6 +944,27 @@ namespace lsp
                     if ((res = update_status(res, preprocess_xml(source, &df))) != STATUS_OK)
                     {
                         fprintf(stderr, "Error preprocessing XML file '%s', error: %d\n", df.as_native(), int(res));
+                        if (!strict)
+                            continue;
+                        return res;
+                    }
+                }
+                else if (is_obj_file(&df))
+                {
+                    // Compress obj file
+                    obj::PushParser parser;
+                    obj::Compressor compressor;
+
+                    res = compressor.set_buffer_size(7);
+                    if (res == STATUS_OK)
+                        res = compressor.open(&df, io::File::FM_WRITE_NEW);
+                    if (res == STATUS_OK)
+                        res = parser.parse_file(&compressor, source);
+                    res = update_status(res, compressor.close());
+
+                    if (res != STATUS_OK)
+                    {
+                        fprintf(stderr, "Error compressing OBJ file '%s', error: %d\n", df.as_native(), int(res));
                         if (!strict)
                             continue;
                         return res;
@@ -1238,6 +1322,8 @@ namespace lsp
                 res = update_status(res, export_files(strict, &ctx, &ctx.local));
             if ((res == STATUS_OK) || (!strict))
                 res = update_status(res, export_files(strict, &ctx, &ctx.fonts));
+            if ((res == STATUS_OK) || (!strict))
+                res = update_status(res, export_files(strict, &ctx, &ctx.scene3d));
             if ((res == STATUS_OK) || (!strict))
                 res = process_manifest_file(&ctx, cmd);
 
