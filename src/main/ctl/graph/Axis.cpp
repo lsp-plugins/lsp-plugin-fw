@@ -61,7 +61,6 @@ namespace lsp
             pClass      = &metadata;
 
             pPort       = NULL;
-            bLogSet     = false;
         }
 
         Axis::~Axis()
@@ -79,6 +78,7 @@ namespace lsp
                 sMin.init(pWrapper, ga->min());
                 sMax.init(pWrapper, ga->max());
                 sZero.init(pWrapper, ga->zero());
+                sLogScale.init(pWrapper, ga->log_scale());
                 sDx.init(pWrapper, this);
                 sDy.init(pWrapper, this);
                 sAngle.init(pWrapper, this);
@@ -112,11 +112,8 @@ namespace lsp
                 set_param(ga->priority_group(), "priority_group", name, value);
                 set_param(ga->priority_group(), "pgroup", name, value);
 
-                if (set_param(ga->log_scale(), "log", name, value))
-                    bLogSet     = true;
-                if (set_param(ga->log_scale(), "logarithmic", name, value))
-                    bLogSet     = true;
-
+                sLogScale.set("log", name, value);
+                sLogScale.set("logarithmic", name, value);
                 sWidth.set("width", name, value);
                 sColor.set("color", name, value);
                 sSmooth.set("smooth", name, value);
@@ -207,7 +204,7 @@ namespace lsp
                 ga->min()->set(mdata->min);
             if (!sMax.valid())
                 ga->max()->set(mdata->max);
-            if (!bLogSet)
+            if (!sLogScale.valid())
                 ga->log_scale()->set(meta::is_log_rule(mdata));
         }
 
