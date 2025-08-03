@@ -110,6 +110,7 @@ namespace lsp
                 vButtons[i]     = NULL;
             wWConfirm       = NULL;
             wRstConfirm     = NULL;
+            wRemoveConfirm  = NULL;
             wPresetTabs     = NULL;
             bWasVisible     = false;
 
@@ -869,6 +870,64 @@ namespace lsp
             return true;
         }
 
+        bool PresetsWindow::request_remove_preset_confirmation()
+        {
+            // Get current preset
+            const ui::preset_t *current = current_preset();
+            if ((current == NULL) || (!(current->flags & ui::PRESET_FLAG_USER)))
+                return false;
+
+            if (wRemoveConfirm == NULL)
+            {
+                // Create and initialize dialog object
+                tk::MessageBox *dialog = new tk::MessageBox(wWidget->display());
+                if (dialog == NULL)
+                    return false;
+                lsp_finally {
+                    if (dialog != NULL)
+                    {
+                        dialog->destroy();
+                        delete dialog;
+                    }
+                };
+
+                status_t res = dialog->init();
+                if (res != STATUS_OK)
+                    return false;
+
+                dialog->title()->set("titles.confirmation");
+                dialog->heading()->set("headings.confirmation");
+                dialog->add("actions.confirm.yes", slot_accept_remove_preset, self());
+                dialog->add("actions.confirm.no", slot_reject_remove_preset, self());
+
+                dialog->buttons()->get(0)->constraints()->set_min_width(96);
+                dialog->buttons()->get(1)->constraints()->set_min_width(96);
+
+                bind_shortcut(dialog, ws::WSK_ESCAPE, tk::KM_NONE, slot_reject_remove_preset);
+                bind_shortcut(dialog, 'n', tk::KM_NONE, slot_reject_remove_preset);
+                bind_shortcut(dialog, 'N', tk::KM_NONE, slot_reject_remove_preset);
+                bind_shortcut(dialog, ws::WSK_RETURN, tk::KM_NONE, slot_accept_remove_preset);
+                bind_shortcut(dialog, ws::WSK_KEYPAD_ENTER, tk::KM_NONE, slot_accept_remove_preset);
+                bind_shortcut(dialog, 'y', tk::KM_NONE, slot_accept_remove_preset);
+                bind_shortcut(dialog, 'Y', tk::KM_NONE, slot_accept_remove_preset);
+
+                // Commit dialog
+                if (widgets()->add(dialog) != STATUS_OK)
+                    return false;
+                wRemoveConfirm     = release_ptr(dialog);
+            }
+
+            // Initialize dialog
+            expr::Parameters params;
+            params.set_string("name", &current->name);
+            wRemoveConfirm->message()->set("messages.presets.confirm_remove_preset", &params);
+
+            // Hide self and show the nested window
+            hide();
+            wRemoveConfirm->show(wLastActor);
+
+            return true;
+        }
 
         void PresetsWindow::select_active_preset(const ui::preset_t *preset)
         {
@@ -1095,11 +1154,7 @@ namespace lsp
         {
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self != NULL)
-            {
-                const ui::preset_t *current = self->current_preset();
-                if (current != NULL)
-                    self->pWrapper->remove_preset(current);
-            }
+                self->request_remove_preset_confirmation();
 
             return STATUS_OK;
         }
@@ -1235,10 +1290,36 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PresetsWindow::slot_accept_remove_preset(tk::Widget *sender, void *ptr, void *data)
+        {
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
+            {
+                if (self->wRemoveConfirm != NULL)
+                    self->wRemoveConfirm->hide();
+
+                const ui::preset_t *current = self->current_preset();
+                if (current != NULL)
+                    self->pWrapper->remove_preset(current);
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_reject_remove_preset(tk::Widget *sender, void *ptr, void *data)
+        {
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self != NULL)
+            {
+                if (self->wRemoveConfirm != NULL)
+                    self->wRemoveConfirm->hide();
+                self->show(self->wLastActor);
+            }
+            return STATUS_OK;
+        }
+
         status_t PresetsWindow::slot_preset_select(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("slot_preset_select");
-
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
@@ -1263,7 +1344,6 @@ namespace lsp
 
         status_t PresetsWindow::slot_preset_dbl_click(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("slot preset dbl click");
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
@@ -1278,8 +1358,6 @@ namespace lsp
 
         status_t PresetsWindow::slot_preset_filter_changed(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("preset filter changed");
-
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
@@ -1290,8 +1368,6 @@ namespace lsp
 
         status_t PresetsWindow::slot_accept_preset_selection(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("accept preset selection");
-
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
@@ -1312,8 +1388,6 @@ namespace lsp
 
         status_t PresetsWindow::slot_reject_preset_selection(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("reject preset selection");
-
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
@@ -1333,8 +1407,6 @@ namespace lsp
 
         status_t PresetsWindow::slot_create_preset_window_closed(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("create preset window closed");
-
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
@@ -1348,8 +1420,6 @@ namespace lsp
 
         status_t PresetsWindow::slot_preset_tab_selected(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("preset tab selected");
-
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
