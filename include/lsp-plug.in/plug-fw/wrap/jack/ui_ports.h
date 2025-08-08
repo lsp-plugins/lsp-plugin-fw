@@ -167,14 +167,8 @@ namespace lsp
                 virtual bool sync() override
                 {
                     float value = fValue;
-
-                    if (pMetadata->flags & meta::F_PEAK)
-                    {
-                        jack::MeterPort *mp = static_cast<jack::MeterPort *>(pPort);
-                        fValue      = mp->sync_value();
-                    }
-                    else
-                        fValue      = pPort->value();
+                    jack::MeterPort *mp = static_cast<jack::MeterPort *>(pPort);
+                    fValue      = mp->sync_value();
 
                     return fValue != value;
                 }

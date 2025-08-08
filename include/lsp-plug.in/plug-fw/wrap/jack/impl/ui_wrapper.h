@@ -399,14 +399,19 @@ namespace lsp
             }
 
             // Transfer the values of the ports to the UI
-            size_t sync = vSyncPorts.size();
-            for (size_t i=0; i<sync; ++i)
+            if (pWrapper->lock_meters_soft())
             {
-                jack::UIPort *jup   = vSyncPorts.uget(i);
-                do {
-                    if (jup->sync())
-                        jup->notify_all(ui::PORT_NONE);
-                } while (jup->sync_again());
+                lsp_finally { pWrapper->unlock_meters(); };
+
+                size_t sync = vSyncPorts.size();
+                for (size_t i=0; i<sync; ++i)
+                {
+                    jack::UIPort *jup   = vSyncPorts.uget(i);
+                    do {
+                        if (jup->sync())
+                            jup->notify_all(ui::PORT_NONE);
+                    } while (jup->sync_again());
+                }
             }
 
             // Synchronize KVT state

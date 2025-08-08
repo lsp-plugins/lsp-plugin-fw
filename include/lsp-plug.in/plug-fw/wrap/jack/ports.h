@@ -487,12 +487,14 @@ namespace lsp
         {
             private:
                 float       fValue;
+                float       fUIValue;
                 bool        bForce;
 
             public:
                 explicit MeterPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
                 {
                     fValue      = meta->start;
+                    fUIValue    = fValue;
                     bForce      = true;
                 }
 
@@ -529,12 +531,16 @@ namespace lsp
                         fValue = value;
                 }
 
+                void commit()
+                {
+                    fUIValue        = fValue;
+                    bForce          = pMetadata->flags & meta::F_PEAK;
+                }
+
             public:
                 float sync_value()
                 {
-                    float value = fValue;
-                    bForce  = true;
-                    return value;
+                    return fUIValue;
                 }
         };
 

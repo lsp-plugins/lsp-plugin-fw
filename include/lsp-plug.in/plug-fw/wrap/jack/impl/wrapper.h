@@ -50,6 +50,8 @@ namespace lsp
             atomic_store(&nDumpReq, 0);
             nDumpResp       = 0;
 
+            atomic_init(nLockMeters);
+
             pSamplePlayer   = NULL;
             pShmClient      = NULL;
 
@@ -449,6 +451,19 @@ namespace lsp
                 if (dp != NULL)
                     dp->after_process(samples);
             }
+
+            // Commit meters
+            if (lock_meters())
+            {
+                lsp_finally { unlock_meters(); };
+                for (size_t i=0, n=vMeters.size(); i<n; ++i)
+                {
+                    jack::MeterPort *mp = vMeters.uget(i);
+                    if (mp != NULL)
+                        mp->commit();
+                }
+            }
+
             return 0;
         }
 
@@ -530,6 +545,7 @@ namespace lsp
                 delete p;
             }
             vParams.flush();
+            vMeters.flush();
             vAllPorts.flush();
             vSortedPorts.flush();
 
@@ -623,8 +639,12 @@ namespace lsp
                     break;
 
                 case meta::R_METER:
-                    jp      = new jack::MeterPort(port, this);
+                {
+                    jack::MeterPort *mp = new jack::MeterPort(port, this);
+                    vMeters.add(mp);
+                    jp      = mp;
                     break;
+                }
 
                 case meta::R_PORT_SET:
                 {
@@ -1177,6 +1197,35 @@ namespace lsp
                     return false;
             }
             return true;
+        }
+
+        bool Wrapper::lock_meters()
+        {
+            for (size_t i=0; i<10; ++i)
+            {
+                if (atomic_trylock(nLockMeters))
+                    return true;
+            }
+
+            return false;
+        }
+
+        bool Wrapper::lock_meters_soft()
+        {
+            for (size_t i=0; i<10; ++i)
+            {
+                if (atomic_trylock(nLockMeters))
+                    return true;
+                if (i & 1)
+                    ipc::Thread::yield();
+            }
+
+            return false;
+        }
+
+        void Wrapper::unlock_meters()
+        {
+            atomic_unlock(nLockMeters);
         }
 
         bool Wrapper::test_display_draw()
