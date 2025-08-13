@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 14 июн. 2021 г.
@@ -72,7 +72,7 @@ namespace lsp
             if (bv != NULL)
             {
                 sColor.init(pWrapper, bv->color());
-                sBorderColor.init(pWrapper, bv->bg_color());
+                sBorderColor.init(pWrapper, bv->border_color());
                 sDirection.init(pWrapper, bv->direction());
                 sBorder.init(pWrapper, bv->border());
             }
@@ -99,8 +99,9 @@ namespace lsp
 
             return Widget::set(ctx, name, value);
         }
-    }
-}
+
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 

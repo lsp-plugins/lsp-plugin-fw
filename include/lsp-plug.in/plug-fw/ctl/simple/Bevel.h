@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 14 июн. 2021 г.
@@ -50,16 +50,20 @@ namespace lsp
 
             public:
                 explicit Bevel(ui::IWrapper *wrapper, tk::Bevel *widget);
+                Bevel(const Bevel &) = delete;
+                Bevel(Bevel &&) = delete;
                 virtual ~Bevel() override;
+
+                Bevel & operator = (const Bevel &) = delete;
+                Bevel & operator = (Bevel &&) = delete;
 
                 virtual status_t    init() override;
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
         };
-    }
-}
-
+    } /* namespace ctl */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_BEVEL_H_ */
