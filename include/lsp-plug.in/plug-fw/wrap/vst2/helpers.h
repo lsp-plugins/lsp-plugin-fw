@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 дек. 2021 г.
@@ -38,30 +38,18 @@ namespace lsp
     {
         inline plug::mesh_t *create_mesh(const meta::port_t *meta)
         {
-            size_t buffers      = meta->step;
-            size_t buf_size     = meta->start * sizeof(float);
-            size_t mesh_size    = sizeof(plug::mesh_t) + sizeof(float *) * buffers;
-
-            // Align values to 64-byte boundaries
-            buf_size            = align_size(buf_size, 0x40);
-            mesh_size           = align_size(mesh_size, 0x40);
+            const size_t buffers    = meta->step;
+            const size_t buf_size   = align_size(meta->start * sizeof(float), 0x40);
+            const size_t mesh_size  = align_size(sizeof(plug::mesh_t) + sizeof(float *) * buffers, 0x40);
 
             // Allocate pointer
-            uint8_t *ptr        = new uint8_t[mesh_size + buf_size * buffers];
+            uint8_t *ptr            = static_cast<uint8_t *>(malloc(mesh_size + buf_size * buffers));
             if (ptr == NULL)
                 return NULL;
 
-            // Initialize references
-            plug::mesh_t *mesh  = reinterpret_cast<plug::mesh_t *>(ptr);
-            mesh->nState        = plug::M_EMPTY;
-            mesh->nBuffers      = 0;
-            mesh->nItems        = 0;
-            ptr                += mesh_size;
-            for (size_t i=0; i<buffers; ++i)
-            {
-                mesh->pvData[i]     = reinterpret_cast<float *>(ptr);
-                ptr                += buf_size;
-            }
+            // Initialize mesh
+            plug::mesh_t *mesh      = advance_ptr_bytes<plug::mesh_t>(ptr, mesh_size);
+            mesh->init(reinterpret_cast<float *>(ptr), buffers, buf_size / sizeof(float));
 
             return mesh;
         }
@@ -69,7 +57,7 @@ namespace lsp
         inline void destroy_mesh(plug::mesh_t *mesh)
         {
             if (mesh != NULL)
-                delete [] reinterpret_cast<uint8_t *>(mesh);
+                free(mesh);
         }
 
         inline ssize_t serialize_string(const char *str, uint8_t *buf, size_t len)

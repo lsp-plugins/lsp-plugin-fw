@@ -1324,7 +1324,7 @@ namespace lsp
                 pExt->forge_pop(&frame);
 
                 // Cleanup data of the mesh for refill
-                mesh->markEmpty();
+                mesh->mark_empty();
             }
 
             // Serialize streams (it's own primitive STREAM)

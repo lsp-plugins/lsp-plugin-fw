@@ -522,11 +522,6 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Controller::notify(Steinberg::Vst::IMessage *message)
         {
-            // Set-up DSP context
-            dsp::context_t ctx;
-            dsp::start(&ctx);
-            lsp_finally { dsp::finish(&ctx); };
-
             // Obtain the message data
             if (message == NULL)
                 return Steinberg::kInvalidArgument;
@@ -536,6 +531,11 @@ namespace lsp
             Steinberg::Vst::IAttributeList *atts = message->getAttributes();
             if (atts == NULL)
                 return Steinberg::kInvalidArgument;
+
+            // Set-up DSP context
+            dsp::context_t ctx;
+            dsp::start(&ctx);
+            lsp_finally { dsp::finish(&ctx); };
 
             // Analyze the message
             Steinberg::char8 key[32];

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -57,37 +57,50 @@ namespace lsp
         // Mesh port structure
         typedef struct mesh_t
         {
-            volatile mesh_state_t   nState;     // Actual state of the mesh
+            uint32_t                nState;     // Actual state of the mesh
             size_t                  nBuffers;   // Overall number of buffers
             size_t                  nItems;     // Number of items per each buffer
             float                  *pvData[];   // Array of pointers to buffer data
 
-            inline bool isEmpty() const         { return nState == M_EMPTY; };
-            inline bool containsData() const    { return nState == M_DATA; };
-            inline bool isWaiting() const       { return nState == M_WAIT;  };
+            inline void init(float *ptr, size_t buffers, size_t length, uint32_t state = M_EMPTY)
+            {
+                atomic_store(&nState, state);
+                nBuffers      = 0;
+                nItems        = 0;
+
+                for (size_t i=0; i<buffers; ++i)
+                {
+                    pvData[i]           = reinterpret_cast<float *>(ptr);
+                    ptr                += length;
+                }
+            }
+
+            inline bool isEmpty() const         { return atomic_load(&nState) == M_EMPTY;   };
+            inline bool containsData() const    { return atomic_load(&nState) == M_DATA;    };
+            inline bool isWaiting() const       { return atomic_load(&nState) == M_WAIT;    };
 
             inline void data(size_t bufs, size_t items)
             {
                 nBuffers    = bufs;
                 nItems      = items;
-                nState      = M_DATA; // This should be the last operation
+                atomic_store(&nState, M_DATA);  // This should be the last operation
             }
 
             inline void cleanup()
             {
                 nBuffers    = 0;
                 nItems      = 0;
-                nState      = M_EMPTY; // This should be the last operation
+                atomic_store(&nState, M_EMPTY); // This should be the last operation
             }
 
-            inline void markEmpty()
+            inline void mark_empty()
             {
-                nState      = M_EMPTY; // This should be the last operation
+                atomic_store(&nState, M_EMPTY); // This should be the last operation
             }
 
-            inline void setWaiting()
+            inline void set_waiting()
             {
-                nState      = M_WAIT; // This should be the last operation
+                atomic_store(&nState, M_WAIT); // This should be the last operation
             }
         } mesh_t;
 
