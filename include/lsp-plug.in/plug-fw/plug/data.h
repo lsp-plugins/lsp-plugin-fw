@@ -116,7 +116,7 @@ namespace lsp
             protected:
                 typedef struct frame_t
                 {
-                    volatile uint32_t   id;         // Unique frame identifier
+                    uint32_t            id;         // Unique frame identifier
                     size_t              head;       // Head of the frame
                     size_t              tail;       // The tail of frame
                     size_t              size;       // The size of the frame
@@ -129,7 +129,7 @@ namespace lsp
                 size_t                  nBufCap;    // Buffer capacity
                 size_t                  nFrameCap;  // Capacity in frames
 
-                volatile uint32_t       nFrameId;   // Current frame identifier
+                uint32_t                nFrameId;   // Current frame identifier
 
                 frame_t                *vFrames;    // List of frames
                 float                 **vChannels;  // Channel data
@@ -195,7 +195,7 @@ namespace lsp
                  * @return identifier of head frame
                  */
 
-                inline uint32_t         frame_id() const        { return nFrameId;      }
+                inline uint32_t         frame_id() const        { return atomic_load(&nFrameId);    }
                 /**
                  * Begin write of frame data
                  * @param size the required size of frame
