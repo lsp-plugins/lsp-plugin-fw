@@ -68,10 +68,11 @@ namespace lsp
             pClass          = &metadata;
 
             pPort           = NULL;
-            pAutoload       = NULL;
             wActive         = NULL;
 
             bActive         = false;
+            bAutoLoad       = false;
+            bAutoPlay       = false;
         }
 
         AudioFolder::~AudioFolder()
@@ -87,13 +88,16 @@ namespace lsp
             {
                 sHScroll.init(pWrapper, lbox->hscroll_mode());
                 sVScroll.init(pWrapper, lbox->vscroll_mode());
+                sAutoLoad.init(pWrapper, this);
+                sAutoPlay.init(pWrapper, this);
 
                 // Bind slots
                 lbox->slots()->bind(tk::SLOT_SUBMIT, slot_submit, this);
                 lbox->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
-            }
 
-            link_port(&pAutoload, UI_FILELIST_NAVIGAION_AUTOLOAD_PORT);
+                sAutoLoad.parse(":" UI_FILELIST_NAVIGATION_AUTOLOAD_PORT);
+                sAutoPlay.parse(":" UI_FILELIST_NAVIGATION_AUTOPLAY_PORT);
+            }
 
             return STATUS_OK;
         }
@@ -104,7 +108,6 @@ namespace lsp
             if (lbox != NULL)
             {
                 bind_port(&pPort, "id", name, value);
-                bind_port(&pAutoload, "autoload_id", name, value);
 
                 set_param(lbox->border_size(), "border.size", name, value);
                 set_param(lbox->border_size(), "bsize", name, value);
@@ -112,6 +115,9 @@ namespace lsp
                 set_param(lbox->border_gap(), "bgap", name, value);
                 set_param(lbox->border_radius(), "border.radius", name, value);
                 set_param(lbox->border_radius(), "bradius", name, value);
+
+                set_expr(&sAutoLoad, "autoload", name, value);
+                set_expr(&sAutoPlay, "autoplay", name, value);
 
                 sHScroll.set(name, "hscroll", value);
                 sVScroll.set(name, "vscroll", value);
@@ -129,6 +135,8 @@ namespace lsp
         {
             update_styles();
             sync_state();
+            sync_auto_load();
+            sync_auto_play();
             Widget::end(ctx);
         }
 
@@ -174,6 +182,16 @@ namespace lsp
             }
 
             return true;
+        }
+
+        void AudioFolder::sync_auto_play()
+        {
+            bAutoPlay   = (sAutoPlay.valid()) ? sAutoPlay.evaluate() >= 0.5f : false;
+        }
+
+        void AudioFolder::sync_auto_load()
+        {
+            bAutoLoad   = (sAutoLoad.valid()) ? sAutoLoad.evaluate() >= 0.5f : false;
         }
 
         void AudioFolder::sync_state()
@@ -284,14 +302,25 @@ namespace lsp
                 return;
 
             // Apply changes
-            pPort->write(buf, strlen(buf));
-            pPort->notify_all(ui::PORT_USER_EDIT);
+            pWrapper->play_file(NULL, 0, false);
+            if (bAutoPlay)
+                pWrapper->play_file(buf, 0, true);
+
+            if (bAutoLoad)
+            {
+                pPort->write(buf, strlen(buf));
+                pPort->notify_all(ui::PORT_USER_EDIT);
+            }
         }
 
         void AudioFolder::notify(ui::IPort *port, size_t flags)
         {
             if ((pPort != NULL) && (port == pPort))
                 sync_state();
+            if (sAutoLoad.depends(port))
+                sync_auto_load();
+            if (sAutoPlay.depends(port))
+                sync_auto_play();
         }
 
         status_t AudioFolder::slot_submit(tk::Widget *sender, void *ptr, void *data)
@@ -300,7 +329,7 @@ namespace lsp
             if (self == NULL)
                 return STATUS_OK;
 
-            if ((self->pAutoload == NULL) || (self->pAutoload->value() < 0.5f))
+            if ((self->bAutoLoad) || (self->bAutoPlay))
                 self->apply_action();
             return STATUS_OK;
         }
@@ -311,7 +340,7 @@ namespace lsp
             if (self == NULL)
                 return STATUS_OK;
 
-            if ((self->pAutoload != NULL) && (self->pAutoload->value() >= 0.5f))
+            if ((self->bAutoLoad) || (self->bAutoPlay))
                 self->apply_action();
             return STATUS_OK;
         }

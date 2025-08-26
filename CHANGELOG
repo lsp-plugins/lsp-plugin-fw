@@ -2,6 +2,19 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.31 ===
+* Added command line option for JACK that allows to specify client name.
+* Implemented preset management in the UI of the plugin.
+* Added Steinberg::Linux::IEventHandler support for better integration with
+  the editorhost from the Steinberg SDK.
+* Changed VST3 chunk format incompatible with previous plugin versions.
+* Added possibility to automatically play samples when navigating file list.
+* Added ctl::Controller class that is a base controller class for UI settings.
+* Implemented ctl:link controller that allows to link values together in the UI.
+* Implemented ctl::AudioEnvelope controller.
+* Implemented pre-compression of OBJ files before adding to built-in resources.
+* Updated module versions in dependencies.
+
 === 1.0.30 ===
 * Refactored support of activity property.
 * Added possibility to launch standalone plugins in minimized window state.

@@ -56,7 +56,7 @@ namespace lsp
                 ui::IPortListener          *pListener;
 
             protected:
-                virtual void    on_updated(ui::IPort *port) override;
+                virtual void    on_updated(ui::IPort *port, size_t flags) override;
 
             public:
                 explicit Expression();
@@ -67,7 +67,7 @@ namespace lsp
                 Expression & operator = (const Expression &) = delete;
                 Expression & operator = (Expression &&) = delete;
 
-                void            init(ui::IWrapper *wrapper, ui::IPortListener *listener);
+                void            init(ui::IWrapper *wrapper, ui::IPortListener *listener, expr::Resolver *resolver = NULL);
 
             public:
                 float           evaluate_float(float dfl = 0.0f);

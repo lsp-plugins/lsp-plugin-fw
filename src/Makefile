@@ -1,6 +1,6 @@
 #
-# Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
-#           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+# Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+#           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
 #
 # This file is part of lsp-plugin-fw
 #
@@ -210,8 +210,13 @@ GST_LIBDIR             := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 JACK_LIBDIR            := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 LADSPA_LIBDIR          := $(LIBDIR)/ladspa
 LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
-VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_LIBDIR).vst
-VST3_LIBDIR            := $(LIBDIR)/vst3/$(INSTALL_LIBDIR).vst3
+ifeq ($(PLATFORM),MacOS)
+  VST2_LIBDIR            := /Library/Audio/Plug-Ins/VST/$(INSTALL_LIBDIR).vst
+  VST3_LIBDIR            := /Library/Audio/Plug-Ins/VST3/$(INSTALL_LIBDIR).vst3
+else
+  VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_LIBDIR).vst
+  VST3_LIBDIR            := $(LIBDIR)/vst3/$(INSTALL_LIBDIR).vst3
+endif
 DOC_SHAREDDIR          := $(SHAREDDIR)/doc/$($(ROOT_ARTIFACT_ID)_NAME)
 
 ifeq ($(PLATFORM),Linux)
@@ -256,6 +261,9 @@ else ifeq ($(PLATFORM),Windows)
   endif
   VST3_EXT               := .vst3
   VST3_LDFLAGS           := -Wl,--kill-at
+else ifeq ($(PLATFORM),MacOS)
+  VST3_ARCH              := MacOS
+  VST3_EXT               := 
 else
   VST3_ARCH              := $(shell uname -m)-${shell uname -s | tr '[:upper:]' '[:lower:]'}
   VST3_EXT               := $(LIBRARY_EXT)
@@ -280,7 +288,7 @@ VERSION_CFLAGS             := \
 #------------------------------------------------------------------------------
 # Framework settings for (cross) build
 LSP_PLUGIN_FW_SRC_RES               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
-LSP_PLUGIN_FW_SRC_RES_EXCL          = -x "fonts/**/:i18n/**/:models/**/:presets/**/:schema/**/:ui/**/"
+LSP_PLUGIN_FW_SRC_RES_EXCL          = -x "fonts/**/:i18n/**/:presets/**/:schema/**/:ui/**/"
 LSP_PLUGIN_FW_SRC_RES_CKSUM         = $(LSP_PLUGIN_FW_BIN)/res-checksum.json
 
 LSP_PLUGIN_FW_SRC_UI_RES            = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui-res.cpp
@@ -1490,7 +1498,10 @@ install_vst3: vst3
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
-	$($(HOST)UTL_VST3_MODINFO) "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$($(HOST)UTL_VST3_MODINFO) -m "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$(if $(findstring MacOS, $(PLATFORM)), \
+	  $($(HOST)UTL_VST3_MODINFO) -i "$(DESTDIR)$(VST3_LIBDIR)/Contents/Info.plist" -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/PkgInfo" \
+    )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
 
 install_xdg_msg:
@@ -1629,7 +1640,10 @@ package_vst3: vst3 $(BIN_PACKAGE)
 	-rm -rf  "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
-	$($(HOST)UTL_VST3_MODINFO) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$($(HOST)UTL_VST3_MODINFO) -m "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$(if $(findstring MacOS, $(PLATFORM)), \
+	  $($(HOST)UTL_VST3_MODINFO) -i "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Info.plist" -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/PkgInfo" \
+    )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
 	$(foreach target,$(BIN_PACKAGE_VST3), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 16 дек. 2022 г.
@@ -263,7 +263,7 @@ namespace lsp
             set_localized("sample_format", sfmt_key.get_utf8());
             set_localized("duration", lc_key, &tparams);
 
-            // Check the auyo-play option and trigger DSP backend for the file playback
+            // Check the auto-play option and trigger DSP backend for the file playback
             ui::IPort *p    = pWrapper->port(UI_PREVIEW_AUTO_PLAY_PORT);
             nPlayPosition   = 0;
             nFileLength     = info.frames;

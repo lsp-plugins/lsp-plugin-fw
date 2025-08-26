@@ -63,6 +63,7 @@ namespace lsp
 
             protected:
                 void                sync_state();
+                void                sync_auto_play();
                 void                set_activity(bool active);
                 void                update_styles();
                 void                apply_action();
@@ -82,8 +83,10 @@ namespace lsp
                 ctl::Boolean                sHover;
                 ctl::Padding                sTextPad;
                 ctl::LCString               sText;
+                ctl::Expression             sAutoPlay;
 
                 bool                        bActive;        // Navigator is active
+                bool                        bAutoPlay;      // Automatically play sample when navigating
                 action_t                    enAction;       // Actual action
                 ctl::DirController          sDirController; // Directory controller
 

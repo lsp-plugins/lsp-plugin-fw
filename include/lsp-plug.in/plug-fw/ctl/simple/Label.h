@@ -83,6 +83,7 @@ namespace lsp
                 ctl::Padding        sIPadding;
 
                 ctl::LCString       sText;
+                ctl::Boolean        sTextClip;
                 ui::IPort          *pPort;
                 ui::IPort          *pLangPort;
                 float               fValue;

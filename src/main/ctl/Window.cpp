@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
+#include <lsp-plug.in/common/debug.h>
 
 namespace lsp
 {
@@ -88,6 +89,26 @@ namespace lsp
         void Window::end(ui::UIContext *ctx)
         {
             Widget::end(ctx);
+        }
+
+        tk::handler_id_t Window::bind_slot(const char *widget_id, tk::slot_t id, tk::event_handler_t handler)
+        {
+            tk::Widget *w = sWidgets.find(widget_id);
+            if (w == NULL)
+            {
+                lsp_warn("Not found widget: ui:id=%s", widget_id);
+                return -STATUS_NOT_FOUND;
+            }
+
+            return w->slots()->bind(id, handler, self());
+        }
+
+        tk::handler_id_t Window::bind_shortcut(tk::Window *wnd, ws::code_t key, size_t mod, tk::event_handler_t handler)
+        {
+            tk::Shortcut *scut = wnd->shortcuts()->append(key, mod);
+            if (scut == NULL)
+                return -STATUS_NO_MEM;
+            return scut->slot()->bind(handler, self());
         }
 
         void Window::reloaded(const tk::StyleSheet *sheet)

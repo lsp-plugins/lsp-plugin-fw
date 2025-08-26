@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 нояб. 2020 г.
@@ -46,11 +46,12 @@ namespace lsp
 {
     namespace jack
     {
-        class Port;
-        class DataPort;
         class AudioBufferPort;
-        class StringPort;
+        class DataPort;
         class Factory;
+        class MeterPort;
+        class Port;
+        class StringPort;
 
         /**
          * Wrapper for the plugin module
@@ -93,6 +94,7 @@ namespace lsp
             private:
                 jack::Factory                  *pFactory;           // Factory for shared resources
                 jack_client_t                  *pClient;            // JACK connection client
+                char                           *sClientName;        // JACK client name
                 state_t                         nState;             // Connection state to JACK server
                 bool                            bUpdateSettings;    // Plugin settings are required to be updated
                 ssize_t                         nLatency;           // The actual latency of device
@@ -107,12 +109,14 @@ namespace lsp
                 uatomic_t                       nQueryDrawResp;     // QueryDraw response
                 uatomic_t                       nDumpReq;           // Dump state to file request
                 uatomic_t                       nDumpResp;          // Dump state to file response
+                uatomic_t                       nLockMeters;        // Meters lock
 
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
                 core::ShmClient                *pShmClient;         // Shared memory client
 
                 lltl::parray<jack::Port>        vAllPorts;          // All ports
                 lltl::parray<jack::Port>        vParams;            // All input parameters
+                lltl::parray<jack::MeterPort>   vMeters;            // Meters
                 lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
                 lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
                 lltl::parray<jack::AudioBufferPort> vAudioBuffers;  // Audio buffers
@@ -139,7 +143,7 @@ namespace lsp
                 static bool     set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
-                explicit Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader);
+                explicit Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader, const wrapper_info_t *info);
                 Wrapper(const Wrapper &) = delete;
                 Wrapper(Wrapper &&) = delete;
                 virtual ~Wrapper() override;
@@ -149,6 +153,7 @@ namespace lsp
 
                 status_t                            init();
                 void                                destroy();
+
 
             public: // plug::IWrapper
                 virtual ipc::IExecutor             *executor() override;
@@ -173,6 +178,10 @@ namespace lsp
                 status_t                            connect();
                 void                                set_routing(const lltl::darray<connection_t> *routing);
                 status_t                            disconnect();
+
+                bool                                lock_meters();
+                bool                                lock_meters_soft();
+                void                                unlock_meters();
 
                 jack::Port                         *port_by_id(const char *id);
                 jack::Port                         *port_by_idx(size_t index);

@@ -325,7 +325,7 @@ namespace lsp
             mesh->nBufCap           = bcap;
             mesh->nFrameCap         = fcap;
 
-            mesh->nFrameId          = 0;
+            atomic_store(&mesh->nFrameId, 0);
 
             mesh->vFrames           = reinterpret_cast<frame_t *>(ptr);
             ptr                    += sz_frm;
@@ -333,7 +333,7 @@ namespace lsp
             for (size_t i=0; i<fcap; ++i)
             {
                 frame_t *f              = &mesh->vFrames[i];
-                f->id                   = 0;
+                atomic_store(&f->id, 0);
                 f->head                 = 0;
                 f->tail                 = 0;
                 f->size                 = 0;
@@ -359,19 +359,20 @@ namespace lsp
             for (size_t i=0; i<nFrameCap; ++i)
             {
                 f                       = &vFrames[i];
-                f->id                   = 0;
+                atomic_store(&f->id, 0);
                 f->head                 = 0;
                 f->tail                 = 0;
                 f->size                 = 0;
                 f->length               = 0;
             }
 
-            nFrameId                = current;
+            atomic_store(&nFrameId, current);
         }
 
         void stream_t::clear()
         {
-            clear(nFrameId + 1);
+            const uint32_t frame_id = atomic_load(&nFrameId);
+            clear(frame_id + 1);
         }
 
         void stream_t::destroy(stream_t *buf)
@@ -391,21 +392,21 @@ namespace lsp
         {
             const frame_t *f = &vFrames[frame & (nFrameCap - 1)];
             size_t tail = f->tail;
-            return (f->id == frame) ? tail : -STATUS_NOT_FOUND;
+            return (atomic_load(&f->id) == frame) ? tail : -STATUS_NOT_FOUND;
         }
 
         ssize_t stream_t::get_head(uint32_t frame) const
         {
             const frame_t *f = &vFrames[frame & (nFrameCap - 1)];
             size_t head = f->head;
-            return (f->id == frame) ? head : -STATUS_NOT_FOUND;
+            return (atomic_load(&f->id) == frame) ? head : -STATUS_NOT_FOUND;
         }
 
         ssize_t stream_t::get_frame_size(uint32_t frame) const
         {
             const frame_t *f = &vFrames[frame & (nFrameCap - 1)];
             ssize_t size = f->size;
-            return (f->id == frame) ? size : -STATUS_NOT_FOUND;
+            return (atomic_load(&f->id) == frame) ? size : -STATUS_NOT_FOUND;
         }
 
         ssize_t stream_t::get_position(uint32_t frame) const
@@ -414,19 +415,19 @@ namespace lsp
             ssize_t pos = f->tail - f->length;
             if (pos < 0)
                 pos        += nBufCap;
-            return (f->id == frame) ? pos : -STATUS_NOT_FOUND;
+            return (atomic_load(&f->id) == frame) ? pos : -STATUS_NOT_FOUND;
         }
 
         ssize_t stream_t::get_length(uint32_t frame) const
         {
             const frame_t *f = &vFrames[frame & (nFrameCap - 1)];
             size_t size = f->length;
-            return (f->id == frame) ? size : -STATUS_NOT_FOUND;
+            return (atomic_load(&f->id) == frame) ? size : -STATUS_NOT_FOUND;
         }
 
         size_t stream_t::add_frame(size_t size)
         {
-            size_t prev_id  = nFrameId;
+            size_t prev_id  = atomic_load(&nFrameId);
             size_t frame_id = prev_id + 1;
             frame_t *curr   = &vFrames[prev_id & (nFrameCap - 1)];
             frame_t *next   = &vFrames[frame_id & (nFrameCap - 1)];
@@ -434,7 +435,7 @@ namespace lsp
             size            = lsp_min(size, size_t(STREAM_MAX_FRAME_SIZE));
 
             // Write data for new frame
-            next->id        = frame_id;
+            atomic_store(&next->id, frame_id);
             next->head      = curr->tail;
             next->tail      = next->head + size;
             next->size      = size;
@@ -469,9 +470,9 @@ namespace lsp
             if (channel >= nChannels)
                 return -STATUS_INVALID_VALUE;
 
-            size_t frame_id = nFrameId + 1;
-            frame_t *next   = &vFrames[frame_id & (nFrameCap - 1)];
-            if (next->id != frame_id)
+            const size_t frame_id   = atomic_load(&nFrameId) + 1;
+            frame_t *next           = &vFrames[frame_id & (nFrameCap - 1)];
+            if (atomic_load(&next->id) != frame_id)
                 return -STATUS_BAD_STATE;
 
             // Estimate number of items to copy
@@ -502,9 +503,9 @@ namespace lsp
             if (channel >= nChannels)
                 return NULL;
 
-            size_t frame_id = nFrameId + 1;
-            frame_t *next   = &vFrames[frame_id & (nFrameCap - 1)];
-            if (next->id != frame_id)
+            const size_t frame_id   = atomic_load(&nFrameId) + 1;
+            frame_t *next           = &vFrames[frame_id & (nFrameCap - 1)];
+            if (atomic_load(&next->id) != frame_id)
                 return NULL;
 
             // Estimate number of items to copy
@@ -532,7 +533,7 @@ namespace lsp
             if (channel >= nChannels)
                 return -STATUS_INVALID_VALUE;
             frame_t *frame = &vFrames[frame_id & (nFrameCap - 1)];
-            if (frame->id != frame_id)
+            if (atomic_load(&frame->id) != frame_id)
                 return -STATUS_BAD_STATE;
 
             // Estimate number of items to copy
@@ -564,9 +565,9 @@ namespace lsp
                 return -STATUS_INVALID_VALUE;
 
             // Check that we're reading proper frame
-            size_t frame_id     = nFrameId;
-            frame_t *frm        = &vFrames[frame_id & (nFrameCap - 1)];
-            if (frm->id != frame_id)
+            const size_t frame_id       = atomic_load(&nFrameId);
+            frame_t *frm                = &vFrames[frame_id & (nFrameCap - 1)];
+            if (atomic_load(&frm->id) != frame_id)
                 return -STATUS_BAD_STATE;
 
             // Estimate the offset and number of items to read
@@ -594,16 +595,16 @@ namespace lsp
 
         bool stream_t::commit_frame()
         {
-            size_t prev_id  = nFrameId;
-            size_t frame_id = prev_id + 1;
-            frame_t *curr   = &vFrames[prev_id & (nFrameCap - 1)];
-            frame_t *next   = &vFrames[frame_id & (nFrameCap - 1)];
-            if (next->id != frame_id)
+            const size_t prev_id    = atomic_load(&nFrameId);
+            const size_t frame_id   = prev_id + 1;
+            frame_t *curr           = &vFrames[prev_id & (nFrameCap - 1)];
+            frame_t *next           = &vFrames[frame_id & (nFrameCap - 1)];
+            if (atomic_load(&next->id) != frame_id)
                 return false;
 
             // Commit new frame size and update frame identifier
-            next->length    = lsp_min(curr->length + next->length, nBufMax);
-            nFrameId        = frame_id;
+            next->length            = lsp_min(curr->length + next->length, nBufMax);
+            atomic_store(&nFrameId, frame_id);
 
             return true;
         }
@@ -615,7 +616,8 @@ namespace lsp
                 return false;
 
             // Estimate what to do
-            uint32_t src_frm = src->nFrameId, dst_frm = nFrameId;
+            uint32_t src_frm = atomic_load(&src->nFrameId);
+            uint32_t dst_frm = atomic_load(&nFrameId);
             uint32_t delta = src_frm - dst_frm;
             if (delta == 0)
                 return false; // No changes
@@ -626,7 +628,7 @@ namespace lsp
                 frame_t *df         = &vFrames[src_frm & (nFrameCap - 1)];
                 frame_t sf          = src->vFrames[src_frm & (src->nFrameCap - 1)];
 
-                df->id              = src_frm;
+                atomic_store(&df->id, src_frm);
                 df->length          = lsp_min(sf.length, nBufMax);
                 df->tail            = df->length;
 
@@ -678,7 +680,7 @@ namespace lsp
                     if (fsize < 0)
                         fsize              += src->nBufCap;
 
-                    df->id          = dst_frm;
+                    atomic_store(&df->id, dst_frm);
                     df->head        = pf->tail;
                     df->tail        = df->head;
                     df->length      = fsize;
@@ -718,7 +720,7 @@ namespace lsp
             }
 
             // Update current frame
-            nFrameId    = src_frm;
+            atomic_store(&nFrameId, src_frm);
 
             return true;
         }

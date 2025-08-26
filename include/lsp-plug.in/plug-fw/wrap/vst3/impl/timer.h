@@ -53,7 +53,7 @@ namespace lsp
             // Cast to the requested interface
             if (Steinberg::iidEqual(_iid, Steinberg::FUnknown::iid))
                 return cast_interface<Steinberg::FUnknown>(this, obj);
-            if (Steinberg::iidEqual(_iid, Steinberg::IPluginFactory::iid))
+            if (Steinberg::iidEqual(_iid, Steinberg::Linux::ITimerHandler::iid))
                 return cast_interface<Steinberg::Linux::ITimerHandler>(this, obj);
 
             return no_interface(obj);

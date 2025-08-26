@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 3 янв. 2024 г.
@@ -53,6 +53,9 @@ namespace lsp
             public Steinberg::IPlugView,
             public Steinberg::IPlugViewContentScaleSupport
         {
+            private:
+                friend class Controller;
+
             protected:
                 uatomic_t                           nRefCounter;            // Reference counter
                 vst3::Controller                   *pController;            // Controller
@@ -67,6 +70,7 @@ namespace lsp
             #ifdef VST_USE_RUNLOOP_IFACE
                 Steinberg::Linux::IRunLoop         *pRunLoop;               // Run loop interface
                 Steinberg::Linux::ITimerHandler    *pTimer;                 // Timer handler
+                Steinberg::Linux::IEventHandler    *pEventHandler;          // Event handler
             #endif /* VST_USE_RUNLOOP_IFACE */
 
             protected:
@@ -113,6 +117,7 @@ namespace lsp
                 virtual void                        main_iteration() override;
                 virtual meta::plugin_format_t       plugin_format() const override;
                 virtual const core::ShmState       *shm_state() override;
+                virtual void                        send_preset_state(const core::preset_state_t *state) override;
 
             public: // vst3::IUISync
                 virtual void                        sync_ui() override;

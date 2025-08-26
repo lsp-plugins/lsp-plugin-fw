@@ -37,30 +37,31 @@ namespace lsp
          */
         class Registry
         {
-            private:
-                Registry & operator = (const Registry &);
-                Registry(const Registry &);
+            protected:
+                lltl::parray<Controller>    vControllers; // List of registered controllers
 
             protected:
-                lltl::parray<Widget>    vControllers; // List of registered controllers
-
-            protected:
-                void                    do_destroy();
+                void                        do_destroy();
 
             public:
                 explicit Registry();
+                Registry(const Registry &) = delete;
+                Registry(Registry &&) = delete;
                 virtual ~Registry();
 
-                virtual void            destroy();
+                Registry & operator = (const Registry &) = delete;
+                Registry & operator = (Registry &&) = delete;
+
+                virtual void                destroy();
 
             public:
-                virtual status_t        add(ctl::Widget *w);
+                virtual status_t            add(ctl::Controller *ctl);
 
             public:
-                inline size_t           size() const                { return vControllers.size();       }
-                inline Widget          *get(size_t index)           { return vControllers.get(index);   }
+                inline size_t               size() const                { return vControllers.size();       }
+                inline Controller          *get(size_t index)           { return vControllers.get(index);   }
         };
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IREGISTRY_H_ */

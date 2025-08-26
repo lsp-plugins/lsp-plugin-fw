@@ -255,7 +255,7 @@ namespace lsp
                 const meta::port_t *port = &latency_port;
                 if ((port->id != NULL) && (port->name != NULL))
                 {
-                    pLatency = new lv2::UIFloatPort(port, pExt, NULL);
+                    pLatency    = new lv2::UIMeterPort(port, pExt, NULL);
                     vPorts.add(pLatency);
                     nLatencyID  = vExtPorts.size();
                     if (pExt->atom_supported())
@@ -410,7 +410,7 @@ namespace lsp
                     break;
 
                 case meta::R_CONTROL:
-                    result = new lv2::UIFloatPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
+                    result = new lv2::UIControlPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL, this);
                     if (postfix == NULL)
                     {
                         result->set_id(vExtPorts.size());
@@ -428,7 +428,7 @@ namespace lsp
                     }
                     break;
                 case meta::R_METER:
-                    result = new lv2::UIPeakPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
+                    result = new lv2::UIMeterPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
                     if (postfix == NULL)
                     {
                         result->set_id(vExtPorts.size());
@@ -438,7 +438,7 @@ namespace lsp
                     break;
                 case meta::R_PATH:
                     if (pExt->atom_supported())
-                        result = new lv2::UIPathPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
+                        result = new lv2::UIPathPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL, this);
                     else
                         result = new lv2::UIPort(p, pExt); // Stub port
                     lsp_trace("Added path port id=%", p->id);
@@ -447,7 +447,7 @@ namespace lsp
                 case meta::R_SEND_NAME:
                 case meta::R_RETURN_NAME:
                     if (pExt->atom_supported())
-                        result = new lv2::UIStringPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
+                        result = new lv2::UIStringPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL, this);
                     else
                         result = new lv2::UIPort(p, pExt); // Stub port
                 #ifdef LSP_TRACE
@@ -492,7 +492,7 @@ namespace lsp
                 case meta::R_PORT_SET:
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES];
-                    lv2::UIPortGroup *pg    = new lv2::UIPortGroup(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
+                    lv2::UIPortGroup *pg    = new lv2::UIPortGroup(p, pExt, (w != NULL) ? w->port(p->id) : NULL, this);
                     vPorts.add(pg);
                     lsp_trace("Added port_set port id=%", pg->metadata()->id);
 
@@ -866,6 +866,18 @@ namespace lsp
                 {
                     sShmState.push(state);
                     lsp_trace("Submitted new shm_state");
+                }
+            }
+            else if (obj->body.otype == pExt->uridPresetStateType)
+            {
+                core::preset_state_t state;
+
+                if (pExt->deserialize_preset_state(&state, &obj->body, obj->atom.type, obj->atom.size))
+                {
+                    lsp_trace("Received preset state name='%s', flags=0x%x, tab=%d",
+                        state.name, int(state.flags), int(state.tab));
+
+                    receive_preset_state(&state);
                 }
             }
             else
@@ -1255,6 +1267,13 @@ namespace lsp
         const core::ShmState *UIWrapper::shm_state()
         {
             return sShmState.get();
+        }
+
+        void UIWrapper::send_preset_state(const core::preset_state_t *state)
+        {
+            // Send preset state to DSP
+            if (!pExt->ui_send_preset_state(state))
+                lsp_warn("failed to send preset state");
         }
 
     } /* namespace lv2 */

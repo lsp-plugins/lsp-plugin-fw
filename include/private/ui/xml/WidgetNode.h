@@ -42,7 +42,6 @@ namespace lsp
                 private:
                     ctl::Widget            *pWidget;
                     WidgetNode             *pChild;
-                    Node                   *pSpecial;
 
                 public:
                     explicit WidgetNode(UIContext *ctx, Node *parent, ctl::Widget *widget);

@@ -1,0 +1,74 @@
+/*
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *
+ * This file is part of lsp-plugin-fw
+ * Created on: 24 июн. 2025 г.
+ *
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * any later version.
+ *
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef LSP_PLUG_IN_PLUG_FW_UI_PRESETS_H_
+#define LSP_PLUG_IN_PLUG_FW_UI_PRESETS_H_
+
+#include <lsp-plug.in/plug-fw/version.h>
+
+#ifndef LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
+    #error "Use #include <lsp-plug.in/plug-fw/ui/ui.h>"
+#endif /* LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_ */
+
+#include <lsp-plug.in/runtime/LSPString.h>
+
+namespace lsp
+{
+    namespace ui
+    {
+        enum preset_flags_t
+        {
+            PRESET_FLAG_NONE        = 0,
+            PRESET_FLAG_USER        = 1 << 0,   // User-defined preset
+            PRESET_FLAG_PATCH       = 1 << 1,   // Preset is modified by user
+            PRESET_FLAG_FAVOURITE   = 1 << 2,   // Preset marked as a favourite
+        };
+
+        enum preset_tab_t
+        {
+            PRESET_TAB_ALL,
+            PRESET_TAB_FACTORY,
+            PRESET_TAB_USER,
+            PRESET_TAB_FAVOURITES,
+
+            PRESET_TAB_TOTAL
+        };
+
+        typedef struct preset_t
+        {
+            LSPString       name;       // Name of the preset
+            LSPString       path;       // Location of the preset
+            uint32_t        flags;      // Preset flags
+        } preset_t;
+
+        typedef bool (*preset_filter_t)(const ui::preset_t *preset);
+
+        ssize_t preset_compare_function(const preset_t *a, const preset_t *b);
+
+        bool is_any_preset(const ui::preset_t *preset);
+        bool is_factory_preset(const ui::preset_t *preset);
+        bool is_user_preset(const ui::preset_t *preset);
+        bool is_favourite_preset(const ui::preset_t *preset);
+
+    } /* namespace ui */
+} /* namespace lsp */
+
+#endif /* LSP_PLUG_IN_PLUG_FW_UI_PRESETS_H_ */

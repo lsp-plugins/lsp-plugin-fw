@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 апр. 2021 г.
@@ -72,7 +72,7 @@ namespace lsp
                  * @param name name of the node
                  * @return status of operation, STATUS_NOT_FOUND if there is no supported node for this factory
                  */
-                virtual status_t    create(Widget **ctl, ui::UIContext *context, const LSPString *name);
+                virtual status_t    create(Controller **ctl, ui::UIContext *context, const LSPString *name);
         };
 
         #define CTL_FACTORY_IMPL_START(fname) \
@@ -83,7 +83,7 @@ namespace lsp
                     virtual ~fname ## Factory() {} \
                 \
                 public: \
-                    virtual status_t create(Widget **ctl, ui::UIContext *context, const LSPString *name) \
+                    virtual status_t create(Controller **ctl, ui::UIContext *context, const LSPString *name) \
                     {
 
         #define CTL_FACTORY_IMPL_END(fname) \
@@ -91,7 +91,8 @@ namespace lsp
             }; \
             \
             static fname ## Factory  fname ## FactoryInstance; /* Variable */
-    }
-}
+
+    } /* namespace lsp */
+} /* namespace ctl */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_FACTORY_H_ */

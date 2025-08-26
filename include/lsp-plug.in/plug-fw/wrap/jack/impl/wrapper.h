@@ -31,10 +31,12 @@ namespace lsp
 {
     namespace jack
     {
-        Wrapper::Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader): IWrapper(plugin, loader)
+        Wrapper::Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader, const wrapper_info_t *info):
+            IWrapper(plugin, loader)
         {
             pFactory        = factory;
             pClient         = NULL;
+            sClientName     = (info->client_name != NULL) ? strdup(info->client_name) : NULL;
             nState          = S_CREATED;
             bUpdateSettings = true;
             nLatency        = 0;
@@ -48,6 +50,8 @@ namespace lsp
             atomic_store(&nDumpReq, 0);
             nDumpResp       = 0;
 
+            atomic_init(nLockMeters);
+
             pSamplePlayer   = NULL;
             pShmClient      = NULL;
 
@@ -57,6 +61,11 @@ namespace lsp
         Wrapper::~Wrapper()
         {
             pClient         = NULL;
+            if (sClientName != NULL)
+            {
+                free(sClientName);
+                sClientName     = NULL;
+            }
             nState          = S_CREATED;
             nLatency        = 0;
             pExecutor       = NULL;
@@ -213,11 +222,24 @@ namespace lsp
 
         status_t Wrapper::connect()
         {
-            // Ensure that client identifier is not longer than jack_client_name_size()
-            size_t max_client_size  = jack_client_name_size();
-            char *client_name       = static_cast<char *>(alloca(max_client_size));
-            strncpy(client_name, pPlugin->metadata()->uid, max_client_size);
-            client_name[max_client_size-1] = '\0';
+            // Init client identifier and ensure that it is not longer than jack_client_name_size()
+            char *client_name       = NULL;
+            lsp_finally {
+                if (client_name != NULL)
+                    free(client_name);
+            };
+            {
+                const size_t max_client_size  = jack_client_name_size();
+                client_name         = static_cast<char *>(malloc(max_client_size));
+                if (client_name == NULL)
+                    return STATUS_NO_MEM;
+
+                strncpy(
+                    client_name,
+                    (sClientName != NULL) ? sClientName : pPlugin->metadata()->uid,
+                    max_client_size);
+                client_name[max_client_size-1] = '\0';
+            }
 
             // Check connection state
             switch (nState)
@@ -429,6 +451,19 @@ namespace lsp
                 if (dp != NULL)
                     dp->after_process(samples);
             }
+
+            // Commit meters
+            if (lock_meters())
+            {
+                lsp_finally { unlock_meters(); };
+                for (size_t i=0, n=vMeters.size(); i<n; ++i)
+                {
+                    jack::MeterPort *mp = vMeters.uget(i);
+                    if (mp != NULL)
+                        mp->commit();
+                }
+            }
+
             return 0;
         }
 
@@ -510,6 +545,7 @@ namespace lsp
                 delete p;
             }
             vParams.flush();
+            vMeters.flush();
             vAllPorts.flush();
             vSortedPorts.flush();
 
@@ -603,8 +639,12 @@ namespace lsp
                     break;
 
                 case meta::R_METER:
-                    jp      = new jack::MeterPort(port, this);
+                {
+                    jack::MeterPort *mp = new jack::MeterPort(port, this);
+                    vMeters.add(mp);
+                    jp      = mp;
                     break;
+                }
 
                 case meta::R_PORT_SET:
                 {
@@ -1157,6 +1197,35 @@ namespace lsp
                     return false;
             }
             return true;
+        }
+
+        bool Wrapper::lock_meters()
+        {
+            for (size_t i=0; i<10; ++i)
+            {
+                if (atomic_trylock(nLockMeters))
+                    return true;
+            }
+
+            return false;
+        }
+
+        bool Wrapper::lock_meters_soft()
+        {
+            for (size_t i=0; i<10; ++i)
+            {
+                if (atomic_trylock(nLockMeters))
+                    return true;
+                if (i & 1)
+                    ipc::Thread::yield();
+            }
+
+            return false;
+        }
+
+        void Wrapper::unlock_meters()
+        {
+            atomic_unlock(nLockMeters);
         }
 
         bool Wrapper::test_display_draw()

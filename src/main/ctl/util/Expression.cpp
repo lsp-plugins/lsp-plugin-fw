@@ -35,16 +35,16 @@ namespace lsp
             pListener   = NULL;
         }
 
-        void Expression::init(ui::IWrapper *wrapper, ui::IPortListener *listener)
+        void Expression::init(ui::IWrapper *wrapper, ui::IPortListener *listener, expr::Resolver *resolver)
         {
-            Property::init(wrapper);
+            Property::init(wrapper, resolver);
             pListener   = listener;
         }
 
-        void Expression::on_updated(ui::IPort *port)
+        void Expression::on_updated(ui::IPort *port, size_t flags)
         {
             if (pListener != NULL)
-                pListener->notify(port, ui::PORT_NONE);
+                pListener->notify(port, flags);
         }
         
         float Expression::evaluate_float(float dfl)

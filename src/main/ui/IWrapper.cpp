@@ -20,17 +20,23 @@
  */
 
 #include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/core/config.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
+#include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
-#include <lsp-plug.in/plug-fw/ctl.h>
-#include <lsp-plug.in/plug-fw/core/config.h>
+#include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/io/InSequence.h>
 #include <lsp-plug.in/io/OutFileStream.h>
 #include <lsp-plug.in/io/OutSequence.h>
+#include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/common/new.h>
 #include <lsp-plug.in/dsp-units/units.h>
 #include <lsp-plug.in/fmt/config/Serializer.h>
+#include <lsp-plug.in/fmt/json/dom.h>
+#include <lsp-plug.in/fmt/json/Serializer.h>
 #include <lsp-plug.in/runtime/system.h>
 
 #include <private/ui/xml/Handler.h>
@@ -84,16 +90,17 @@ namespace lsp
             CONTROL_ALL(UI_BUNDLE_SCALING_PORT_ID, "Manual Bundle UI scaling factor", NULL, U_PERCENT, 0.0f, 400.0f, 0.0f, 1.0f),
             PATH(UI_VISUAL_SCHEMA_FILE_ID, "Current visual schema file used by the UI"),
             SWITCH(UI_PREVIEW_AUTO_PLAY_ID, "Enable automatic playback of the audio file in the file preview part of the file open dialog", NULL, 0.0f),
-            SWITCH(UI_ENABLE_KNOB_SCALE_ACTIONS_ID, "Enable knob scale mouse actions", NULL, 1.0f),
+            SWITCH(UI_ENABLE_KNOB_SCALE_ACTIONS_ID, "Enable setting knob value by clicking on its scale feature", NULL, 1.0f),
             PATH(UI_USER_HYDROGEN_KIT_PATH_ID, "User Hydrogen kits path"),
             PATH(UI_OVERRIDE_HYDROGEN_KIT_PATH_ID, "Override Hydrogen kits path"),
             SWITCH(UI_OVERRIDE_HYDROGEN_KITS_ID, "Override Hydrogen kits", NULL, 1.0f),
             SWITCH(UI_INVERT_VSCROLL_ID, "Invert global mouse vertical scroll behaviour", NULL, 0.0f),
             SWITCH(UI_GRAPH_DOT_INVERT_VSCROLL_ID, "Invert mouse vertical scroll behaviour for graph dot widget", NULL, 0.0f),
-            SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Enables the automatic scaling mode of the frequency graph", NULL, 1.0f),
+            SWITCH(UI_ZOOMABLE_SPECTRUM_GRAPH_ID, "Zoom slider affects the frequency graph", NULL, 1.0f),
             COMBO(UI_FILTER_POINT_THICK_ID, "Thickness of the filter point", NULL, 1.0f, filter_point_thickness_modes),
             PATH(UI_DOCUMENTATION_PATH_ID, "Path to the local documentation installation"),
-            SWITCH(UI_FILELIST_NAVIGAION_AUTOLOAD_ID, "Automatically load files when navigating over file list", NULL, 0.0f),
+            SWITCH(UI_FILELIST_NAVIGATION_AUTOLOAD_ID, "Automatically load files when navigating over file list", NULL, 1.0f),
+            SWITCH(UI_FILELIST_NAVIGATION_AUTOPLAY_ID, "Enable automatic playback of the audio file in the file navigator when selected", NULL, 0.0f),
             SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", NULL, 0.0f),
             PORTS_END
         };
@@ -115,6 +122,63 @@ namespace lsp
 
     namespace ui
     {
+        static constexpr ssize_t INVALID_PRESET_INDEX       = -1;
+
+        static void mark_presets_as_favourite(lltl::darray<preset_t> *list, json::Array array, bool user)
+        {
+            const uint32_t mask = (user) ? PRESET_FLAG_USER : PRESET_FLAG_NONE;
+            LSPString prest_name;
+
+            for (size_t i=0, n=array.size(); i<n; ++i)
+            {
+                json::String node = array.get(i);
+                if (node.get(&prest_name) != STATUS_OK)
+                    continue;
+
+                // Set the favourite flag for the associated preset
+                for (size_t j=0, m=list->size(); j<m; ++j)
+                {
+                    preset_t *preset    = list->uget(j);
+                    if (preset == NULL)
+                        continue;
+                    if ((preset->flags & PRESET_FLAG_USER) != mask)
+                        continue;
+
+                    if (preset->name.equals_nocase(&prest_name))
+                    {
+                        preset->flags      |= PRESET_FLAG_FAVOURITE;
+                        break;
+                    }
+                }
+            }
+        }
+
+        static status_t save_favourites_list(json::Serializer & json, const char *key, lltl::darray<preset_t> *list, size_t flags)
+        {
+            flags |= ui::PRESET_FLAG_FAVOURITE;
+
+            status_t res = json.write_property(key);
+            if (res != STATUS_OK)
+                return res;
+            if ((res = json.start_array()) != STATUS_OK)
+                return res;
+            {
+                for (size_t i=0, n=list->size(); i<n; ++i)
+                {
+                    const preset_t *preset = list->uget(i);
+                    if (preset == NULL)
+                        continue;
+                    if ((preset->flags & (ui::PRESET_FLAG_FAVOURITE | ui::PRESET_FLAG_USER)) != flags)
+                        continue;
+
+                    if ((res = json.write_string(&preset->name)) != STATUS_OK)
+                        return res;
+                }
+            }
+
+            return json.end_array();
+        }
+
         IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
         {
             pDisplay        = NULL;
@@ -125,6 +189,8 @@ namespace lsp
             nFlags          = 0;
             nPlayPosition   = 0;
             nPlayLength     = 0;
+            nActivePreset   = INVALID_PRESET_INDEX;
+            enPresetTab     = PRESET_TAB_ALL;
 
             plug::position_t::init(&sPosition);
         }
@@ -141,6 +207,10 @@ namespace lsp
         {
             // Flush list of playback listeners
             vPlayListeners.flush();
+
+            // Flush list of preset listeners
+            vPresetListeners.flush();
+            destroy_presets(&vPresets);
 
             // Flush list of 'Schema reloaded' handlers
             vSchemaListeners.flush();
@@ -312,10 +382,9 @@ namespace lsp
 
             // Load the global configuration file
             io::Path gconfig;
-            if ((res = system::get_user_config_path(&gconfig)) == STATUS_OK)
+            if ((res = get_user_config_path(&gconfig)) == STATUS_OK)
             {
                 lsp_trace("User config path: %s", gconfig.as_utf8());
-                res = gconfig.append_child("lsp-plugins");
                 if (res == STATUS_OK)
                     res = gconfig.append_child("lsp-plugins.cfg");
                 if (res == STATUS_OK)
@@ -325,6 +394,48 @@ namespace lsp
                 lsp_warn("Failed to obtain plugin configuration: error=%d", int(res));
 
             return STATUS_OK;
+        }
+
+        status_t IWrapper::get_user_config_path(io::Path *path)
+        {
+            io::Path tmp;
+            status_t res    = system::get_user_config_path(&tmp);
+            if (res == STATUS_OK)
+                res             = tmp.append_child("lsp-plugins");
+            if (res == STATUS_OK)
+                tmp.swap(path);
+
+            return res;
+        }
+
+        status_t IWrapper::get_user_presets_path(io::Path *path)
+        {
+            io::Path tmp;
+            status_t res    = get_user_config_path(&tmp);
+            if (res == STATUS_OK)
+                res             = tmp.append_child("presets");
+            if (res == STATUS_OK)
+                tmp.swap(path);
+
+            return res;
+        }
+
+        status_t IWrapper::get_plugin_presets_path(io::Path *path)
+        {
+            const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
+            if (meta == NULL)
+                return STATUS_BAD_STATE;
+
+            // File name format: <config>/presets/<plugin-uid>/<preset-name>.[preset|patch]
+            io::Path tmp;
+            status_t res    = get_user_presets_path(&tmp);
+            if (res == STATUS_OK)
+                res             = tmp.append_child(meta->uid);
+
+            if (res == STATUS_OK)
+                tmp.swap(path);
+
+            return res;
         }
 
         void IWrapper::notify_all()
@@ -668,9 +779,7 @@ namespace lsp
             {
                 // Save global configuration
                 io::Path path;
-                status_t res = system::get_user_config_path(&path);
-                if (res == STATUS_OK)
-                    res = path.append_child("lsp-plugins");
+                status_t res = get_user_config_path(&path);
                 if (res == STATUS_OK)
                     res = path.mkdir(true);
                 if (res == STATUS_OK)
@@ -682,6 +791,55 @@ namespace lsp
 
                 // Reset flags
                 nFlags     &= ~F_CONFIG_DIRTY;
+            }
+
+            if (nFlags & F_FAVOURITES_DIRTY)
+            {
+                // Save favourites list
+                io::Path path;
+                status_t res = get_plugin_presets_path(&path);
+                if (res == STATUS_OK)
+                    res = path.mkdir(true);
+                if (res == STATUS_OK)
+                    res = path.append_child("favourites.json");
+                if (res == STATUS_OK)
+                    res = save_favourites(&path);
+
+                lsp_trace("Save favourites to %s: result=%d", path.as_native(), int(res));
+
+                // Reset flags
+                nFlags     &= ~F_FAVOURITES_DIRTY;
+            }
+
+            if (nFlags & F_PRESET_SYNC)
+            {
+                lsp_trace("Synchronizing preset state with backend");
+                // Send new state to DSP
+                core::preset_state_t state;
+                init_preset_state(&state);
+
+                state.flags     = core::PRESET_FLAG_NONE;
+                state.tab       = enPresetTab;
+
+                const preset_t *preset  = active_preset();
+                const char *name        = (preset != NULL) ? preset->name.get_utf8() : NULL;
+                if (name != NULL)
+                {
+                    const size_t bytes      = lsp_min(strlen(name), core::PRESET_NAME_BYTES - 1);
+                    memcpy(state.name, name, bytes);
+                    state.name[bytes]       = '\0';
+
+                    if (preset->flags & ui::PRESET_FLAG_USER)
+                        state.flags            |= core::PRESET_FLAG_USER;
+                    if (nFlags & F_PRESET_DIRTY)
+                        state.flags            |= core::PRESET_FLAG_DIRTY;
+                }
+                else
+                    state.name[0]           = '\0';
+
+                // Commit preset state
+                send_preset_state(&state);
+                nFlags     &= ~F_PRESET_SYNC;
             }
         }
 
@@ -731,10 +889,10 @@ namespace lsp
                 return res;
 
             // Create window controller
-            pWindow     = new ctl::PluginWindow(this, wWindow);
-            if (pWindow == NULL)
+            ctl::PluginWindow *wnd  = new ctl::PluginWindow(this, wWindow);
+            if (wnd == NULL)
                 return STATUS_NO_MEM;
-            if ((res = pWindow->init()) != STATUS_OK)
+            if ((res = wnd->init()) != STATUS_OK)
                 return res;
 
             // Form the location of the resource
@@ -743,12 +901,12 @@ namespace lsp
                 return STATUS_NO_MEM;
 
             // Create context
-            UIContext ctx(this, pWindow->controllers(), pWindow->widgets());
+            UIContext ctx(this, wnd->controllers(), wnd->widgets());
             if ((res = ctx.init()) != STATUS_OK)
                 return res;
 
             // Parse the XML document
-            xml::RootNode root(&ctx, "plugin", pWindow);
+            xml::RootNode root(&ctx, "plugin", wnd);
             xml::Handler handler(resources());
             if ((res = handler.parse_resource(&xpath, &root)) != STATUS_OK)
                 return res;
@@ -761,11 +919,16 @@ namespace lsp
                 if (ov == NULL)
                     continue;
 
-                if ((res = pWindow->add(&ctx, ov)) != STATUS_OK)
+                if ((res = wnd->add(&ctx, ov)) != STATUS_OK)
                     return res;
             }
 
-            return res;
+            // Call post-initialization
+            if ((res = wnd->post_init()) != STATUS_OK)
+                return res;
+
+            pWindow     = wnd;
+            return STATUS_OK;
         }
 
         status_t IWrapper::export_settings(const char *file, bool relative)
@@ -2113,6 +2276,12 @@ namespace lsp
                 p->notify_all(ui::PORT_NONE);
             }
 
+            // Update preset settings
+            nActivePreset       = -1;
+            nFlags              = (nFlags & ~(F_PRESET_DIRTY)) | F_PRESET_SYNC;
+            notify_presets_updated();
+
+            // Notify UI
             if (pUI != NULL)
                 pUI->reset_settings();
 
@@ -2215,6 +2384,605 @@ namespace lsp
             }
 
             return "Unknown";
+        }
+
+        status_t IWrapper::add_preset_listener(IPresetListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            if (vPresetListeners.contains(listener))
+                return STATUS_ALREADY_EXISTS;
+
+            const bool first_listener = vPresetListeners.is_empty();
+            if (!vPresetListeners.add(listener))
+                return STATUS_NO_MEM;
+
+            if (first_listener)
+                update_preset_list();
+
+            // Notify listener about containing presets
+            listener->presets_updated();
+
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::remove_preset_listener(IPresetListener *listener)
+        {
+            if (listener == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            return (vPresetListeners.qpremove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
+        }
+
+        status_t IWrapper::select_active_preset(const preset_t *preset)
+        {
+            const ssize_t preset_id = vPresets.index_of(preset);
+            if ((preset_id < 0) && (nActivePreset < 0))
+            {
+                nFlags              = (nFlags & (~F_PRESET_DIRTY));
+                return STATUS_OK;
+            }
+
+            // Change current preset
+            preset_t *pold  = (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
+            preset_t *pnew  = const_cast<ui::preset_t *>(preset);
+            if (pold == pnew)
+                return STATUS_OK;
+
+            // Import preset settings
+            status_t res        = STATUS_OK;
+            if (preset != NULL)
+            {
+                const size_t flags  = (preset->flags & ui::PRESET_FLAG_PATCH) ? IMPORT_FLAG_PATCH : IMPORT_FLAG_PRESET;
+                res                 = import_settings(&pnew->path, flags);
+            }
+
+            nActivePreset       = (pnew != NULL) ? preset_id : INVALID_PRESET_INDEX;
+            nFlags              = (nFlags & (~F_PRESET_DIRTY)) | F_PRESET_SYNC;
+
+            if (pold != NULL)
+                notify_preset_deactivated(pold);
+            if (pnew != NULL)
+                notify_preset_activated(pnew);
+            return res;
+        }
+
+        const preset_t *IWrapper::active_preset() const
+        {
+            return (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
+        }
+
+        const preset_t *IWrapper::all_presets() const
+        {
+            return vPresets.array();
+        }
+
+        size_t IWrapper::num_presets() const
+        {
+            return vPresets.size();
+        }
+
+        void IWrapper::destroy_presets(lltl::darray<preset_t> *list)
+        {
+            for (size_t i=0, n=list->size(); i<n; ++i)
+            {
+                preset_t *preset = list->uget(i);
+                if (preset != NULL)
+                {
+                    preset->name.~LSPString();
+                    preset->path.~LSPString();
+                }
+            }
+            list->flush();
+        }
+
+        preset_t *IWrapper::add_preset(lltl::darray<preset_t> *list)
+        {
+            preset_t *preset    = list->add();
+            if (preset == NULL)
+                return NULL;
+
+            new (&preset->name, inplace_new_tag_t()) LSPString();
+            new (&preset->path, inplace_new_tag_t()) LSPString();
+            preset->flags       = 0;
+
+            return preset;
+        }
+
+        void IWrapper::scan_factory_presets(lltl::darray<preset_t> *list)
+        {
+            const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
+            if ((meta == NULL) || (meta->ui_presets == NULL))
+                return;
+
+            lltl::darray<resource::resource_t> presets;
+            if (core::scan_presets(&presets, resources(), meta->ui_presets) != STATUS_OK)
+                return;
+
+            io::Path path;
+            LSPString tmp;
+            preset_t tmp_preset;
+
+            for (size_t i=0, n=presets.size(); i<n; ++i)
+            {
+                // Enumerate next backend information
+                const resource::resource_t *preset = presets.uget(i);
+                if (preset == NULL)
+                    continue;
+
+                if (path.set(preset->name) != STATUS_OK)
+                    continue;
+
+                // Get name of the preset/patch without an extension
+                if (path.get_last_noext(&tmp_preset.name) != STATUS_OK)
+                    continue;
+                if (tmp_preset.path.fmt_utf8(LSP_BUILTIN_PREFIX "presets/%s/%s", meta->ui_presets, preset->name) <= 0)
+                    continue;
+                if (path.get_ext(&tmp) != STATUS_OK)
+                    continue;
+
+                // Fill flags
+                tmp_preset.flags    = PRESET_FLAG_NONE;
+                if (tmp.equals_ascii_nocase("patch"))
+                    tmp_preset.flags   |= PRESET_FLAG_PATCH;
+                else if (!tmp.equals_ascii_nocase("preset"))
+                    continue;
+
+                // Create preset item
+                preset_t *item      = add_preset(list);
+                if (item == NULL)
+                    continue;
+
+                item->name.swap(tmp_preset.name);
+                item->path.swap(tmp_preset.path);
+                item->flags     = tmp_preset.flags;
+            }
+        }
+
+        void IWrapper::scan_user_presets(lltl::darray<preset_t> *list)
+        {
+            // File name format: <config>/presets/<plugin-uid>/<preset-name>.[preset|patch]
+            io::Path path;
+            if (get_plugin_presets_path(&path) != STATUS_OK)
+                return;
+
+            io::Dir dir;
+            if (dir.open(&path) != STATUS_OK)
+                return;
+            lsp_finally { dir.close(); };
+
+            io::Path preset;
+            io::fattr_t fattr;
+            LSPString tmp;
+            preset_t tmp_preset;
+
+            while (dir.reads(&preset, &fattr, true) == STATUS_OK)
+            {
+                // We process only regular files
+                if (fattr.type != io::fattr_t::FT_REGULAR)
+                    continue;
+
+                // Get name of the preset/patch without an extension
+                if (preset.get_last_noext(&tmp_preset.name) != STATUS_OK)
+                    continue;
+                if (preset.get(&tmp_preset.path) != STATUS_OK)
+                    continue;
+                if (preset.get_ext(&tmp) != STATUS_OK)
+                    continue;
+
+                // Fill flags
+                tmp_preset.flags    = PRESET_FLAG_USER;
+                if (tmp.equals_ascii_nocase("patch"))
+                    tmp_preset.flags   |= PRESET_FLAG_PATCH;
+                else if (!tmp.equals_ascii_nocase("preset"))
+                    continue;
+
+                // Create preset item
+                preset_t *item      = add_preset(list);
+                if (item == NULL)
+                    continue;
+
+                item->name.swap(tmp_preset.name);
+                item->path.swap(tmp_preset.path);
+                item->flags     = tmp_preset.flags;
+            }
+        }
+
+        void IWrapper::scan_favourite_presets(lltl::darray<preset_t> *list)
+        {
+            const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
+            if ((meta == NULL) || (meta->ui_presets == NULL))
+                return;
+
+            // File name format: <config>/presets/<plugin-uid>/favourites.json
+            io::Path path;
+            if (get_plugin_presets_path(&path) != STATUS_OK)
+                return;
+            if (path.append_child("favourites.json") != STATUS_OK)
+                return;
+
+            // Load configuration file
+            json::Object config;
+            if (json::dom_load(&path, &config, json::JSON_VERSION5) != STATUS_OK)
+                return;
+            if (!config.valid())
+                return;
+
+            json::Array factory = config.get("factory");
+            if (factory.valid())
+                mark_presets_as_favourite(list, factory, false);
+
+            json::Array user = config.get("user");
+            if (user.valid())
+                mark_presets_as_favourite(list, user, true);
+        }
+
+        status_t IWrapper::save_favourites(const io::Path *path)
+        {
+            json::Serializer json;
+            json::serial_flags_t flags;
+
+            flags.version       = json::JSON_VERSION5;
+            flags.identifiers   = false;
+            flags.ident         = ' ';
+            flags.padding       = 4;
+            flags.separator     = true;
+            flags.multiline     = true;
+
+            status_t res = json.open(path, &flags);
+            if (res != STATUS_OK)
+                return res;
+            lsp_finally {
+                json.close();
+            };
+
+            if ((res = json.start_object()) != STATUS_OK)
+                return res;
+            {
+                if ((res = save_favourites_list(json, "factory", &vPresets, ui::PRESET_FLAG_NONE)) != STATUS_OK)
+                    return res;
+                if ((res = save_favourites_list(json, "user", &vPresets, ui::PRESET_FLAG_USER)) != STATUS_OK)
+                    return res;
+            }
+            if ((res = json.end_object()) != STATUS_OK)
+                return res;
+
+            return STATUS_OK;
+        }
+
+        void IWrapper::select_presets(lltl::darray<preset_t> *list, const preset_t *active)
+        {
+            list->qsort(preset_compare_function);
+            nActivePreset       = INVALID_PRESET_INDEX;
+
+            for (size_t i=0, n=list->size(); i<n; ++i)
+            {
+                preset_t *preset    = list->uget(i);
+                if ((active != NULL) && (preset_compare_function(preset, active) == 0))
+                    nActivePreset       = i;
+            }
+        }
+
+        void IWrapper::update_preset_list()
+        {
+            const preset_t *active = active_preset();
+
+            lltl::darray<preset_t> presets;
+            lsp_finally { destroy_presets(&presets); };
+
+            scan_factory_presets(&presets);
+            scan_user_presets(&presets);
+            scan_favourite_presets(&presets);
+            select_presets(&presets, active);
+
+            presets.swap(&vPresets);
+        }
+
+        void IWrapper::scan_presets()
+        {
+            // First, update the list of presets
+            update_preset_list();
+            notify_presets_updated();
+        }
+
+        void IWrapper::notify_presets_updated()
+        {
+            // Notify listeners about the change of whole list of presets
+            lltl::parray<IPresetListener> listeners;
+            if (listeners.add(vPresetListeners))
+            {
+                for (size_t i=0, n=listeners.size(); i<n; ++i)
+                {
+                    IPresetListener *listener = listeners.uget(i);
+                    if (listener != NULL)
+                        listener->presets_updated();
+                }
+            }
+        }
+
+        void IWrapper::notify_preset_deactivated(const ui::preset_t *preset)
+        {
+            // Notify listeners about the activation of the preset
+            lltl::parray<IPresetListener> listeners;
+            if (listeners.add(vPresetListeners))
+            {
+                for (size_t i=0, n=listeners.size(); i<n; ++i)
+                {
+                    IPresetListener *listener = listeners.uget(i);
+                    if (listener != NULL)
+                        listener->preset_deactivated(preset);
+                }
+            }
+        }
+
+        void IWrapper::notify_preset_activated(const ui::preset_t *preset)
+        {
+            // Notify listeners about the activation of the preset
+            lltl::parray<IPresetListener> listeners;
+            if (listeners.add(vPresetListeners))
+            {
+                for (size_t i=0, n=listeners.size(); i<n; ++i)
+                {
+                    IPresetListener *listener = listeners.uget(i);
+                    if (listener != NULL)
+                        listener->preset_activated(preset);
+                }
+            }
+        }
+
+        void IWrapper::mark_active_preset_dirty()
+        {
+            // Set flag only when there is an active preset
+            const preset_t *preset = active_preset();
+            if ((preset != NULL) && (!(nFlags & F_PRESET_DIRTY)))
+            {
+                nFlags         |= F_PRESET_DIRTY | F_PRESET_SYNC;
+                notify_presets_updated();
+            }
+        }
+
+        bool IWrapper::active_preset_dirty() const
+        {
+            if (!(nFlags & F_PRESET_DIRTY))
+                return false;
+            return active_preset() != NULL;
+        }
+
+        preset_tab_t IWrapper::preset_tab() const
+        {
+            return enPresetTab;
+        }
+
+        void IWrapper::set_preset_tab(preset_tab_t tab)
+        {
+            enPresetTab         = tab;
+            nFlags             |= F_PRESET_SYNC;
+        }
+
+        status_t IWrapper::mark_preset_favourite(const preset_t *src_preset, bool favourite)
+        {
+            if (!vPresets.contains(src_preset))
+                return STATUS_NOT_FOUND;
+            preset_t *preset = const_cast<preset_t *>(src_preset);
+            if (preset == NULL)
+                return STATUS_NOT_FOUND;
+
+            const uint32_t new_flags    = lsp_setflag(preset->flags, PRESET_FLAG_FAVOURITE, favourite);
+            if (new_flags == preset->flags)
+                return STATUS_OK;
+
+            preset->flags   = new_flags;
+            nFlags         |= F_FAVOURITES_DIRTY; // Favourites list needs to be synchronized
+
+            notify_presets_updated();
+
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::remove_preset(const preset_t *src_preset)
+        {
+            ssize_t preset_id = vPresets.index_of(src_preset);
+            if (preset_id < 0)
+                return STATUS_NOT_FOUND;
+
+            preset_t *preset = const_cast<preset_t *>(src_preset);
+            if (preset == NULL)
+                return STATUS_NOT_FOUND;
+
+            if (!(preset->flags & PRESET_FLAG_USER))
+                return STATUS_INVALID_VALUE;
+
+            // Delete original file
+            io::Path path;
+            status_t res    = path.set(&preset->path);
+            if (res == STATUS_OK)
+                res         = path.remove();
+            if (res != STATUS_OK)
+                return res;
+
+            // Remove preset from list
+            const uint32_t flags = preset->flags;
+            if (!vPresets.remove(preset_id))
+                return STATUS_NO_MEM;
+
+            // Update related state
+            if (flags & PRESET_FLAG_FAVOURITE)
+                nFlags             |= F_FAVOURITES_DIRTY; // Favourites list needs to be synchronized
+
+            if (nActivePreset == ssize_t(preset_id))
+            {
+                nActivePreset       = INVALID_PRESET_INDEX;
+                nFlags             |= F_PRESET_SYNC;
+            }
+
+            // Notify listeners
+            notify_presets_updated();
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::allocate_temp_file(io::Path *dst, const io::Path *src)
+        {
+            const char *spath = src->as_utf8();
+            for (int i=0; ; ++i)
+            {
+                if (dst->fmt("%s.%d", spath, i) <= 0)
+                    return STATUS_NO_MEM;
+                if (!dst->exists())
+                    break;
+            }
+
+            return STATUS_OK;
+        }
+
+        preset_t *IWrapper::find_preset(const LSPString *name, bool user)
+        {
+            const bool mask = (user) ? ui::PRESET_FLAG_USER : ui::PRESET_FLAG_NONE;
+            for (size_t i=0, n=vPresets.size(); i<n; ++i)
+            {
+                preset_t *p = vPresets.uget(i);
+                if (p == NULL)
+                    continue;
+                if (((p->flags & ui::PRESET_FLAG_USER) == mask) && (p->name.equals_nocase(name)))
+                    return p;
+            }
+
+            return NULL;
+        }
+
+        status_t IWrapper::save_preset(const LSPString *name, size_t flags)
+        {
+            // Check preset name
+            if (!(flags & ui::PRESET_FLAG_USER))
+                return STATUS_INVALID_VALUE;
+
+            // Get location of presets
+            io::Path base;
+            status_t res = get_plugin_presets_path(&base);
+            if (res != STATUS_OK)
+                return res;
+
+            res = base.mkdir(true);
+            if ((res != STATUS_OK) && (res != STATUS_ALREADY_EXISTS))
+                return res;
+
+            // Find the previous preset
+            io::Path old_file, new_file, temp_file;
+
+            preset_t *preset = find_preset(name, true);
+            bool was_favourite = false;
+            if (preset != NULL)
+            {
+                if ((res = old_file.set(&preset->path)) != STATUS_OK)
+                    return res;
+                was_favourite   = preset->flags & ui::PRESET_FLAG_FAVOURITE;
+            }
+
+            // Create new preset item
+            if (new_file.fmt("%s/%s.preset", base.as_utf8(), name->get_utf8()) <= 0)
+                return STATUS_NO_MEM;
+            if (!old_file.is_empty())
+            {
+                res = allocate_temp_file(&temp_file, &new_file);
+                if (res != STATUS_OK)
+                    return res;
+            }
+
+            ui::preset_t create;
+            if (!create.name.set(name))
+                return STATUS_NO_MEM;
+            if ((res = new_file.get(&create.path)) != STATUS_OK)
+                return res;
+            create.flags        = (flags & ui::PRESET_FLAG_FAVOURITE) | ui::PRESET_FLAG_USER;
+
+            // Now we are ready to export configuration
+            if (!old_file.is_empty())
+            {
+                // Export settings
+                lsp_trace("Write preset to temporary file %s", temp_file.as_utf8());
+                if ((res = export_settings(&temp_file, true)) != STATUS_OK)
+                    return res;
+
+                // Replace previous file with new
+                lsp_trace("Remove old preset file %s", old_file.as_utf8());
+                if ((res = old_file.remove()) != STATUS_OK)
+                    return res;
+
+                lsp_trace("Rename temporary file %s to %s", temp_file.as_utf8(), new_file.as_utf8());
+                if ((res = temp_file.rename(&new_file)) != STATUS_OK)
+                    return res;
+            }
+            else
+            {
+                // Export settings
+                lsp_trace("Write preset to new file %s", new_file.as_utf8());
+                if ((res = export_settings(&new_file, true)) != STATUS_OK)
+                    return res;
+
+                // Allocate new record
+                const preset_t *base = vPresets.array();
+                preset = add_preset(&vPresets);
+                if (preset == NULL)
+                {
+                    // The internal data structure of vPresets may change address,
+                    // so we need to notify clients
+                    if (base != vPresets.array())
+                        notify_presets_updated();
+                    return STATUS_NO_MEM;
+                }
+            }
+
+            // Fill data structure
+            preset->flags   = create.flags;
+            preset->name.swap(create.name);
+            preset->path.swap(create.path);
+
+            const bool is_favourite = flags & ui::PRESET_FLAG_FAVOURITE;
+            if (was_favourite != is_favourite)
+                nFlags         |= F_FAVOURITES_DIRTY;       // Favourites list needs to be synchronized
+
+            // Sort list of presets
+            vPresets.qsort(preset_compare_function);
+            preset = find_preset(name, true);
+            if (preset == NULL)
+                return STATUS_UNKNOWN_ERR;
+
+            nActivePreset   = vPresets.index_of(preset);
+            nFlags          = (nFlags & (~F_PRESET_DIRTY)) | F_PRESET_SYNC;
+
+            // Notify listeners about presets changes
+            notify_presets_updated();
+
+            return STATUS_OK;
+        }
+
+        void IWrapper::send_preset_state(const core::preset_state_t *state)
+        {
+            // Implement for wrapper
+        }
+
+        void IWrapper::receive_preset_state(const core::preset_state_t *state)
+        {
+            LSPString name;
+            if (!name.set_utf8(state->name))
+                return;
+
+            size_t flags    = nFlags & ~(F_PRESET_DIRTY | F_PRESET_SYNC);
+            if (state->flags & core::PRESET_FLAG_DIRTY)
+                flags          |= F_PRESET_DIRTY;
+
+            const preset_t *preset  = (name.is_empty()) ? NULL : find_preset(&name, state->flags & core::PRESET_FLAG_USER);
+            const ssize_t active    = (preset != NULL) ? vPresets.index_of(preset) : INVALID_PRESET_INDEX;
+
+            if ((flags == nFlags) && (active == nActivePreset) && (state->tab == uint32_t(enPresetTab)))
+                return;
+
+            nFlags          = flags;
+            nActivePreset   = active;
+            enPresetTab     = preset_tab_t(lsp_min(state->tab, uint32_t(ui::PRESET_TAB_TOTAL - 1)));
+
+            // Notify listeners about presets changes
+            notify_presets_updated();
         }
 
     } /* namespace ui */

@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -170,6 +171,13 @@ namespace lsp
 
                 LV2_URID                uridMaxBlockLength;
                 LV2_URID                uridScaleFactor;
+
+                // Preset-related URIDs
+                LV2_URID                uridPresetState;
+                LV2_URID                uridPresetStateType;
+                LV2_URID                uridPresetName;
+                LV2_URID                uridPresetFlags;
+                LV2_URID                uridPresetTab;
 
                 // OSC-related URIDs
                 LV2_URID                uridOscBundle;
@@ -355,6 +363,13 @@ namespace lsp
 
                     uridMaxBlockLength          = map_uri(LV2_BUF_SIZE__maxBlockLength);
                     uridScaleFactor             = map_uri(LV2_UI__scaleFactor);
+
+                    // Preset-related URIDs
+                    uridPresetState             = map_primitive("preset_state");
+                    uridPresetStateType         = map_type("PresetState");
+                    uridPresetName              = map_field("PresetState", "name");
+                    uridPresetFlags             = map_field("PresetState", "flags");
+                    uridPresetTab               = map_field("PresetState", "tab");
 
                     // OSC-related URIDs
                     uridOscBundle               = map_uri(LV2_OSC__Bundle);
@@ -904,6 +919,85 @@ namespace lsp
                     forge_bool(release);
                     forge_pop(&frame);
 
+                    write_data(nAtomOut, lv2_atom_total_size(msg), uridEventTransfer, msg);
+                    return true;
+                }
+
+                LV2_Atom *ui_serialize_preset_state(LV2_Atom_Forge_Frame *frame, const core::preset_state_t *state)
+                {
+                    LV2_Atom *obj = forge_object(frame, uridPresetState, uridPresetStateType);
+                    {
+                        forge_key(uridPresetName);
+                        forge_string(state->name);
+                        forge_key(uridPresetFlags);
+                        forge_int(int32_t(state->flags));
+                        forge_key(uridPresetTab);
+                        forge_int(int32_t(state->tab));
+                    }
+                    forge_pop(frame);
+
+                    return obj;
+                }
+
+                bool deserialize_preset_state(core::preset_state_t *state, const LV2_Atom_Object_Body *obody, uint32_t p_type, size_t p_size)
+                {
+                    if ((p_type != forge.Object) && (p_type != uridBlank))
+                    {
+                        lsp_warn("Invalid preset atom type: %d = %s", int(p_type), unmap_urid(p_type));
+                        return false;
+                    }
+
+                    if (obody->otype != uridPresetStateType)
+                    {
+                        lsp_warn("Unsupported preset state object type: %d = %s", int(obody->otype), unmap_urid(obody->otype));
+                        return false;
+                    }
+
+                    state->name[0]    = '\0';
+                    state->flags      = core::PRESET_FLAG_NONE;
+                    state->tab        = 0;
+
+                    // Parse preset object
+                    for (
+                        LV2_Atom_Property_Body *item = lv2_atom_object_begin(obody) ;
+                        !lv2_atom_object_is_end(obody, p_size, item) ;
+                        item = lv2_atom_object_next(item)
+                    )
+                    {
+                        lsp_trace("item->key (%d) = %s", int(item->key), unmap_urid(item->key));
+                        lsp_trace("item->value.type (%d) = %s", int(item->value.type), unmap_urid(item->value.type));
+
+                        // Analyze type of value
+                        if ((item->key == uridPresetName) && (item->value.type == forge.String))
+                        {
+                            const LV2_Atom_String *value = reinterpret_cast<const LV2_Atom_String *>(&item->value);
+                            const char *name    = reinterpret_cast<const char *>(&value[1]);
+                            const size_t len    = lsp_min(strnlen(name, value->atom.size), core::PRESET_NAME_BYTES - 1);
+                            memcpy(state->name, name, len);
+                            state->name[len]    = '\0';
+                        }
+                        else if ((item->key == uridPresetFlags) && (item->value.type == forge.Int))
+                            state->flags        = reinterpret_cast<const LV2_Atom_Int *>(&item->value)->body;
+                        else if ((item->key == uridPresetTab) && (item->value.type == forge.Int))
+                            state->tab          = reinterpret_cast<const LV2_Atom_Int *>(&item->value)->body;
+                        else
+                            lsp_warn("Unknown preset state property: %d (%s)", item->key, unmap_urid(item->key));
+                    } // for (object body)
+
+                    return true;
+                }
+
+                bool ui_send_preset_state(const core::preset_state_t *state)
+                {
+                    if (map == NULL)
+                        return false;
+
+                    // Forge PATCH SET message
+                    LV2_Atom_Forge_Frame    frame;
+                    forge_set_buffer(pBuffer, nBufSize);
+
+                    forge_frame_time(0);
+                    LV2_Atom *msg = ui_serialize_preset_state(&frame, state);
                     write_data(nAtomOut, lv2_atom_total_size(msg), uridEventTransfer, msg);
                     return true;
                 }

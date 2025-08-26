@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 дек. 2021 г.
@@ -63,12 +63,14 @@ namespace lsp
         class UIPortGroup: public UIPort
         {
             private:
+                ui::IPresetManager     *pManager;
                 vst2::PortGroup        *pPG;
                 uatomic_t               nSID;
 
             public:
-                explicit UIPortGroup(vst2::PortGroup *port) : UIPort(port->metadata(), port)
+                explicit UIPortGroup(vst2::PortGroup *port, ui::IPresetManager *manager) : UIPort(port->metadata(), port)
                 {
+                    pManager            = manager;
                     pPG                 = port;
                     nSID                = port->sid() - 1;
                 }
@@ -86,7 +88,13 @@ namespace lsp
 
                 virtual void set_value(float value) override
                 {
+                    value               = limit_value(pMetadata, value);
+                    if (value == pPort->value())
+                        return;
+
                     pPort->set_value(value);
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual bool sync() override
@@ -107,13 +115,15 @@ namespace lsp
         class UIParameterPort: public UIPort
         {
             protected:
-                float           fValue;
-                uatomic_t       nSID;
+                ui::IPresetManager     *pManager;
+                float                   fValue;
+                uatomic_t               nSID;
 
             public:
-                explicit UIParameterPort(const meta::port_t *meta, vst2::ParameterPort *port):
+                explicit UIParameterPort(const meta::port_t *meta, vst2::ParameterPort *port, ui::IPresetManager *manager):
                     UIPort(meta, port)
                 {
+                    pManager    = manager;
                     fValue      = meta->start;
                     nSID        = port->sid() - 1;
                 }
@@ -137,9 +147,15 @@ namespace lsp
 
                 virtual void set_value(float value) override
                 {
-                    fValue = meta::limit_value(pMetadata, value);
+                    value = meta::limit_value(pMetadata, value);
+                    if (value == fValue)
+                        return;
+
+					fValue = value;
                     if (pPort != NULL)
                         pPort->write_value(value);
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual bool sync() override
@@ -327,11 +343,13 @@ namespace lsp
         class UIPathPort: public UIPort
         {
             private:
-                vst2::path_t   *pPath;
+                ui::IPresetManager *pManager;
+                vst2::path_t       *pPath;
 
             public:
-                explicit UIPathPort(const meta::port_t *meta, vst2::Port *port): UIPort(meta, port)
+                explicit UIPathPort(const meta::port_t *meta, vst2::Port *port, ui::IPresetManager *manager): UIPort(meta, port)
                 {
+                    pManager            = manager;
                     plug::path_t *path  = pPort->buffer<plug::path_t>();
                     if (path != NULL)
                         pPath               = static_cast<vst2::path_t *>(path);
@@ -368,8 +386,12 @@ namespace lsp
 
                 virtual void write(const void *buffer, size_t size, size_t flags) override
                 {
-                    if (pPath != NULL)
-                        pPath->submit(static_cast<const char *>(buffer), size, true, flags);
+                    if (pPath == NULL)
+                        return;
+
+                    pPath->submit(static_cast<const char *>(buffer), size, true, flags);
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual void set_default() override
@@ -381,13 +403,16 @@ namespace lsp
         class UIStringPort: public UIPort
         {
             private:
-                plug::string_t     *pValue;
-                char               *pData;
-                uint32_t            nSerial;
+                ui::IPresetManager     *pManager;
+                plug::string_t         *pValue;
+                char                   *pData;
+                uint32_t                nSerial;
 
             public:
-                explicit UIStringPort(const meta::port_t *meta, vst2::Port *port): UIPort(meta, port)
+                explicit UIStringPort(const meta::port_t *meta, vst2::Port *port, ui::IPresetManager *manager): UIPort(meta, port)
                 {
+                    pManager                = manager;
+
                     vst2::StringPort *sp    = static_cast<vst2::StringPort *>(port);
                     pValue                  = sp->data();
                     pData                   = (pValue != NULL) ? reinterpret_cast<char *>(malloc(pValue->max_bytes() + 1)) : NULL;
@@ -447,6 +472,9 @@ namespace lsp
                     const size_t count = lsp_min(size, pValue->nCapacity);
                     plug::utf8_strncpy(pData, count, buffer, size);
                     nSerial = pValue->submit(buffer, size, flags & plug::PF_STATE_RESTORE);
+
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual void set_default() override

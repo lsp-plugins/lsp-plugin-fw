@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
@@ -192,6 +193,7 @@ namespace lsp
                 sInactiveHoverColor.init(pWrapper, lbl->inactive_hover_color());
 
                 sText.init(pWrapper, lbl->text());
+                sTextClip.init(pWrapper, lbl->text_clip());
                 sIPadding.init(pWrapper, lbl->ipadding());
 
                 lbl->slot(tk::SLOT_MOUSE_DBL_CLICK)->bind(slot_dbl_click, this);
@@ -357,6 +359,7 @@ namespace lsp
                 bind_port(&pPort, "id", name, value);
 
                 set_text_layout(lbl->text_layout(), name, value);
+                set_text_layout(lbl->clip_text_layout(), "text.clip", name, value);
                 set_font(lbl->font(), "font", name, value);
                 set_constraints(lbl->constraints(), name, value);
                 set_param(lbl->text_adjust(), "text.adjust", name, value);
@@ -385,6 +388,7 @@ namespace lsp
                 sInactiveHoverColor.set("inactive.hcolor", name, value);
                 sIPadding.set("ipadding", name, value);
                 sIPadding.set("ipad", name, value);
+                sTextClip.set("text.clip", name, value);
             }
 
             Widget::set(ctx, name, value);

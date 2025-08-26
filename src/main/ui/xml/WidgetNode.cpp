@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/common/debug.h>
 
+#include <private/ui/xml/DOMControllerNode.h>
 #include <private/ui/xml/WidgetNode.h>
 
 namespace lsp
@@ -33,7 +34,6 @@ namespace lsp
             {
                 pWidget     = widget;
                 pChild      = NULL;
-                pSpecial    = NULL;
             }
 
             WidgetNode::~WidgetNode()
@@ -50,17 +50,32 @@ namespace lsp
                 if (*child != NULL)
                     return STATUS_OK;
 
-                // Create and initialize widget
-                ctl::Widget *widget         = pContext->create_controller(name);
-                if (widget == NULL)
-                    return STATUS_OK;       // No handler
+                // Create controller
+                ctl::Controller *ctl    = pContext->create_controller(name);
 
-                // Create handler
-                pChild = new WidgetNode(pContext, this, widget);
-                if (pChild == NULL)
-                    return STATUS_NO_MEM;
+                // Process it as widget if it is a widget
+                ctl::Widget *widget     = ctl::ctl_cast<ctl::Widget>(ctl);
+                if (widget != NULL)
+                {
+                    // Create widget handler
+                    pChild = new WidgetNode(pContext, this, widget);
+                    if (pChild == NULL)
+                        return STATUS_NO_MEM;
 
-                *child = pChild;
+                    *child = pChild;
+                    return STATUS_OK;
+                }
+
+                // Process it as a DOM controller if it is a DOM controller
+                ctl::DOMController *dom_ctl = ctl::ctl_cast<ctl::DOMController>(ctl);
+                if (dom_ctl != NULL)
+                {
+                    // Create DOM controller handler
+                    DOMControllerNode *node = new DOMControllerNode(pContext, this, dom_ctl);
+                    *child = node;
+                    return (node != NULL) ? STATUS_OK : STATUS_NO_MEM;
+                }
+
                 return STATUS_OK;
             }
 

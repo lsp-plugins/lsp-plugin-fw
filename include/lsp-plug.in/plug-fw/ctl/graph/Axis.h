@@ -47,13 +47,13 @@ namespace lsp
                 ctl::Float          sMin;
                 ctl::Float          sMax;
                 ctl::Float          sZero;
+                ctl::Boolean        sLogScale;
                 ctl::Expression     sDx;
                 ctl::Expression     sDy;
                 ctl::Expression     sAngle;
                 ctl::Expression     sLength;
                 ctl::Integer        sWidth;
                 ctl::Color          sColor;
-                bool                bLogSet;
 
             protected:
                 static status_t     slot_graph_resize(tk::Widget *sender, void *ptr, void *data);

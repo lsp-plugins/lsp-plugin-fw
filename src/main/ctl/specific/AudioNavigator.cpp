@@ -69,6 +69,7 @@ namespace lsp
 
             pPort           = NULL;
             bActive         = false;
+            bAutoPlay       = false;
             enAction        = A_NEXT;
         }
 
@@ -94,9 +95,13 @@ namespace lsp
                 sEditable.init(pWrapper, btn->editable());
                 sTextPad.init(pWrapper, btn->text_padding());
                 sText.init(pWrapper, btn->text());
+                sAutoPlay.init(pWrapper, this);
 
                 // Bind slots
                 btn->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
+
+                // Set default auto-play flag
+                sAutoPlay.parse(":" UI_FILELIST_NAVIGATION_AUTOPLAY_PORT);
             }
 
             return STATUS_OK;
@@ -171,6 +176,7 @@ namespace lsp
                 sTextPad.set("tpad", name, value);
                 sHover.set("hover", name, value);
                 sText.set("text", name, value);
+                set_expr(&sAutoPlay, "autoplay", name, value);
 
                 set_font(btn->font(), "font", name, value);
                 set_constraints(btn->constraints(), name, value);
@@ -237,8 +243,14 @@ namespace lsp
             set_activity(sDirController.valid());
         }
 
+        void AudioNavigator::sync_auto_play()
+        {
+            bAutoPlay   = (sAutoPlay.valid()) ? sAutoPlay.evaluate() >= 0.5f : false;
+        }
+
         void AudioNavigator::end(ui::UIContext *ctx)
         {
+            sync_auto_play();
             update_styles();
             sync_state();
             Widget::end(ctx);
@@ -301,7 +313,10 @@ namespace lsp
                 if (buf == NULL)
                     return;
 
+                pWrapper->play_file(NULL, 0, false);
                 pPort->write(buf, strlen(buf));
+                if (bAutoPlay)
+                    pWrapper->play_file(buf, 0, true);
             }
             else
                 pPort->write("", 0);
@@ -312,6 +327,8 @@ namespace lsp
         {
             if ((pPort != NULL) && (port == pPort))
                 sync_state();
+            if (sAutoPlay.depends(port))
+                sync_auto_play();
         }
 
         status_t AudioNavigator::slot_change(tk::Widget *sender, void *ptr, void *data)

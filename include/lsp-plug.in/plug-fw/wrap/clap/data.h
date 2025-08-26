@@ -36,7 +36,9 @@ namespace lsp
     namespace clap
     {
         constexpr uint32_t LSP_CLAP_MAGIC   = 0x2050534C;
-        constexpr uint32_t LSP_CLAP_VERSION = 0x1;
+        constexpr uint32_t LSP_CLAP_VERSION_1 = 0x1;
+        constexpr uint32_t LSP_CLAP_VERSION_2 = 0x2;
+        constexpr uint32_t LSP_CLAP_VERSION_CURRENT = LSP_CLAP_VERSION_2;
 
         enum serial_flags_t
         {

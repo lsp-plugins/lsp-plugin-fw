@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 9 апр. 2021 г.
@@ -37,17 +37,20 @@ namespace lsp
          */
         class PortResolver: public expr::Resolver
         {
-            private:
-                PortResolver & operator = (const PortResolver &);
-
             protected:
                 ui::IWrapper       *pWrapper;
 
             public:
                 explicit PortResolver();
                 explicit PortResolver(ui::IWrapper *wrapper);
+                explicit PortResolver(const PortResolver &) = delete;
+                explicit PortResolver(PortResolver &&) = delete;
                 virtual ~PortResolver() override;
 
+                PortResolver & operator = (const PortResolver &) = delete;
+                PortResolver & operator = (PortResolver &&) = delete;
+
+            public:
                 void                init(ui::IWrapper *wrapper);
 
             public:

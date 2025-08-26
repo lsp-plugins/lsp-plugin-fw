@@ -46,12 +46,18 @@
     #include <lsp-plug.in/plug-fw/ctl/util/IChildSync.h>
     #include <lsp-plug.in/plug-fw/ctl/util/DirController.h>
 
-    // Widget controllers
+    // Controllers
+    #include <lsp-plug.in/plug-fw/ctl/Controller.h>
+    #include <lsp-plug.in/plug-fw/ctl/DOMController.h>
     #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Registry.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
     #include <lsp-plug.in/plug-fw/ctl/Window.h>
+    #include <lsp-plug.in/plug-fw/ctl/PresetsWindow.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
+    #include <lsp-plug.in/plug-fw/ctl/SavePresetDialog.h>
+
+    #include <lsp-plug.in/plug-fw/ctl/headless/PortLink.h>
 
     #include <lsp-plug.in/plug-fw/ctl/simple/Void.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Bevel.h>
@@ -74,6 +80,7 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/Cell.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/MultiLabel.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/Overlay.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/Tab.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/TabControl.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/TabGroup.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/ListBox.h>
@@ -101,6 +108,7 @@
     #include <lsp-plug.in/plug-fw/ctl/3d/Capture3D.h>
     #include <lsp-plug.in/plug-fw/ctl/3d/Model3D.h>
 
+    #include <lsp-plug.in/plug-fw/ctl/specific/AudioEnvelope.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioFolder.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioNavigator.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/AudioSample.h>

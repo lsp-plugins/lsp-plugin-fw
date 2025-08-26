@@ -44,13 +44,16 @@ namespace lsp
 
             protected:
                 ui::IPort          *pPort;
-                ui::IPort          *pAutoload;
                 tk::ListBoxItem    *wActive;
 
                 ctl::Enum           sHScroll;
                 ctl::Enum           sVScroll;
+                ctl::Expression     sAutoLoad;
+                ctl::Expression     sAutoPlay;
 
                 bool                bActive;        // Navigator is active
+                bool                bAutoLoad;      // Automatically load samples
+                bool                bAutoPlay;      // Automatically play samples
                 ctl::DirController  sDirController; // Directory controller
 
             protected:
@@ -59,6 +62,8 @@ namespace lsp
 
             protected:
                 void                sync_state();
+                void                sync_auto_load();
+                void                sync_auto_play();
                 void                set_activity(bool active);
                 void                update_styles();
                 void                apply_action();

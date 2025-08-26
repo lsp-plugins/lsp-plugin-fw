@@ -39,6 +39,8 @@ namespace lsp
 {
     namespace ctl
     {
+        class Controller;
+        class DOMController;
         class Widget;
         class Overlay;
         class Registry;
@@ -198,20 +200,20 @@ namespace lsp
                 status_t    eval_int(ssize_t *value, const LSPString *expr);
 
                 /**
-                 * Create widget controller by the tag name
+                 * Create widget controller by the controller's tag name
                  *
                  * @param name the tag name of the widget
                  * @return pointer to widget controller
                  */
-                ctl::Widget *create_controller(const LSPString *name);
+                ctl::Controller *create_controller(const LSPString *name);
 
                 /**
-                 * Set attributes to widget
+                 * Set attributes to controller
                  * @param widget widget to set attributes
                  * @param atts attributes to set
                  * @return status of operation
                  */
-                status_t    set_attributes(ctl::Widget *widget, const LSPString * const *atts);
+                status_t    set_attributes(ctl::DOMController *ctl, const LSPString * const *atts);
         };
 
     } /* namespace ui */

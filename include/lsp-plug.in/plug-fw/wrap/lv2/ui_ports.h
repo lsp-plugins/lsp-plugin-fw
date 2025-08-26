@@ -66,18 +66,21 @@ namespace lsp
         class UIPortGroup: public UIPort
         {
             protected:
-                size_t          nRows;
-                size_t          nCols;
-                size_t          nCurrRow;
-                lv2::Port      *pPort;
+                size_t              nRows;
+                size_t              nCols;
+                size_t              nCurrRow;
+                lv2::Port          *pPort;
+                ui::IPresetManager *pManager;
 
             public:
-                UIPortGroup(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *port) : UIPort(meta, ext)
+                UIPortGroup(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *port, ui::IPresetManager *manager):
+                    UIPort(meta, ext)
                 {
                     nCurrRow            = meta->start;
                     nRows               = list_size(meta->items);
                     nCols               = port_list_size(meta->members);
                     pPort               = port;
+                    pManager            = manager;
 
                     if (port != NULL)
                     {
@@ -100,11 +103,14 @@ namespace lsp
                 virtual void set_value(float value) override
                 {
                     size_t new_value = meta::limit_value(pMetadata, value);
-                    if ((new_value >= 0) && (new_value < nRows) && (new_value != nCurrRow))
+                    if ((new_value < nRows) && (new_value != nCurrRow))
                     {
                         nCurrRow        = new_value;
                         lsp_trace("writing patch event id=%s, value=%d", pMetadata->id, int(new_value));
                         pExt->ui_write_patch(this);
+
+                        if (pManager != NULL)
+                            pManager->mark_active_preset_dirty();
                     }
                 }
 
@@ -131,37 +137,39 @@ namespace lsp
                 inline size_t cols() const  { return nCols; }
         };
 
-        class UIFloatPort: public UIPort
+        class UIControlPort: public UIPort
         {
             protected:
-                float           fValue;
-                bool            bForce;
-                lv2::Port      *pPort;
+                ui::IPresetManager *pManager;
+                float               fValue;
+                bool                bForce;
+                lv2::Port          *pPort;
 
             public:
-                explicit UIFloatPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *port) :
+                explicit UIControlPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *port, ui::IPresetManager *manager) :
                     UIPort(meta, ext)
                 {
-                    fValue      = meta->start;
-                    pPort       = port;
+                    pManager        = manager;
+                    fValue          = meta->start;
+                    pPort           = port;
                     if (port != NULL)
                     {
-                        lsp_trace("Connected direct float port id=%s", port->metadata()->id);
+                        lsp_trace("Connected direct control port id=%s", port->metadata()->id);
                         fValue      = port->value();
                     }
-                    bForce      = port != NULL;
+                    bForce          = port != NULL;
                 }
 
-                UIFloatPort(const UIFloatPort &) = delete;
-                UIFloatPort(UIFloatPort &&) = delete;
+                UIControlPort(const UIControlPort &) = delete;
+                UIControlPort(UIControlPort &&) = delete;
 
-                virtual ~UIFloatPort() override
+                virtual ~UIControlPort() override
                 {
                     fValue  =   pMetadata->start;
                 }
 
-                UIFloatPort & operator = (const UIFloatPort &) = delete;
-                UIFloatPort & operator = (UIFloatPort &&) = delete;
+                UIControlPort & operator = (const UIControlPort &) = delete;
+                UIControlPort & operator = (UIControlPort &&) = delete;
 
             public:
                 virtual float value() override
@@ -171,7 +179,11 @@ namespace lsp
 
                 virtual void set_value(float value) override
                 {
-                    fValue      = meta::limit_value(pMetadata, value);
+                    value = meta::limit_value(pMetadata, value);
+                    if (fValue == value)
+                        return;
+
+                    fValue  = value;
                     if (nID >= 0)
                     {
                         // Use standard mechanism to access port
@@ -183,9 +195,12 @@ namespace lsp
                         lsp_trace("writing patch event id=%s, value=%f", pMetadata->id, fValue);
                         pExt->ui_write_patch(this);
                     }
+
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
-                virtual LV2_URID        get_type_urid() const override
+                virtual LV2_URID get_type_urid() const override
                 {
                     return pExt->forge.Float;
                 }
@@ -226,11 +241,11 @@ namespace lsp
                 }
         };
 
-        class UIBypassPort: public UIFloatPort
+        class UIBypassPort: public UIControlPort
         {
             public:
                 explicit UIBypassPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *port) :
-                    UIFloatPort(meta, ext, port)
+                    UIControlPort(meta, ext, port, NULL)
                 {
                 }
 
@@ -242,7 +257,11 @@ namespace lsp
             public:
                 virtual void set_value(float value) override
                 {
-                    fValue      = meta::limit_value(pMetadata, value);
+                    value       = meta::limit_value(pMetadata, value);
+                    if (value == fValue)
+                        return;
+
+                    fValue      = value;
                     if (nID >= 0)
                     {
                         // Use standard mechanism to access port
@@ -276,27 +295,74 @@ namespace lsp
                 }
         };
 
-        class UIPeakPort: public UIFloatPort
+        class UIMeterPort: public UIPort
         {
-            public:
-                explicit UIPeakPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *port) :
-                    UIFloatPort(meta, ext, port) {}
-
-                UIPeakPort(const UIPeakPort &) = delete;
-                UIPeakPort(UIPeakPort &&) = delete;
-                UIPeakPort & operator = (const UIPeakPort &) = delete;
-                UIPeakPort & operator = (UIPeakPort &&) = delete;
+            protected:
+                float               fValue;
+                bool                bForce;
+                lv2::Port          *pPort;
 
             public:
+                explicit UIMeterPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *port) :
+                    UIPort(meta, ext)
+                {
+                    fValue          = meta->start;
+                    pPort           = port;
+                    if (port != NULL)
+                    {
+                        lsp_trace("Connected direct meter port id=%s", port->metadata()->id);
+                        fValue      = port->value();
+                    }
+                    bForce          = port != NULL;
+                }
+
+                UIMeterPort(const UIMeterPort &) = delete;
+                UIMeterPort(UIMeterPort &&) = delete;
+                UIMeterPort & operator = (const UIMeterPort &) = delete;
+                UIMeterPort & operator = (UIMeterPort &&) = delete;
+
+            public:
+                virtual float value() override
+                {
+                    return fValue;
+                }
+
+                virtual LV2_URID get_type_urid() const override
+                {
+                    return pExt->forge.Float;
+                }
+
+                virtual void deserialize(const void *data) override
+                {
+                    const LV2_Atom_Float *atom = reinterpret_cast<const LV2_Atom_Float *>(data);
+                    fValue      = meta::limit_value(pMetadata, atom->body);
+                }
+
                 virtual void notify(const void *buffer, size_t protocol, size_t size) override
                 {
                     if (size == sizeof(LV2UI_Peak_Data))
-                    {
                         fValue = meta::limit_value(pMetadata, (reinterpret_cast<const LV2UI_Peak_Data *>(buffer))->peak);
-                        return;
-                    }
-                    UIFloatPort::notify(buffer, protocol, size);
+                    else if (size == sizeof(float))
+                        fValue = meta::limit_value(pMetadata, *(reinterpret_cast<const float *>(buffer)));
     //                lsp_trace("id=%s, value=%f", pMetadata->id, fValue);
+                }
+
+                virtual bool sync() override
+                {
+                    if ((pPort == NULL) || (nID >= 0))
+                        return false;
+
+                    float old   = fValue;
+                    fValue      = meta::limit_value(pMetadata, pPort->value());
+                    bool synced = (fValue != old) || bForce;
+                    bForce      = false;
+
+                #ifdef LSP_TRACE
+                    if (synced)
+                        lsp_trace("Directly received float port id=%s, value=%f",
+                            pPort->metadata()->id, fValue);
+                #endif
+                    return synced;
                 }
         };
 
@@ -777,13 +843,15 @@ namespace lsp
         class UIPathPort: public UIPort
         {
             protected:
+                ui::IPresetManager *pManager;
                 lv2::PathPort      *pPort;
                 char                sPath[PATH_MAX];
 
             public:
-                explicit UIPathPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *xport):
+                explicit UIPathPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *xport, ui::IPresetManager *manager):
                     UIPort(meta, ext)
                 {
+                    pManager    = manager;
                     sPath[0]    = '\0';
                     pPort       = NULL;
 
@@ -858,6 +926,9 @@ namespace lsp
                         "writing patch event id=%s, path=%s (%d)",
                         pMetadata->id, static_cast<const char *>(buffer), int(size));
                     pExt->ui_write_patch(this);
+
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual void write(const void* buffer, size_t size) override
@@ -895,15 +966,18 @@ namespace lsp
         class UIStringPort: public UIPort
         {
             protected:
+                ui::IPresetManager *pManager;
                 plug::string_t     *pValue;
                 char               *pData;
                 uint32_t            nCapacity;
                 uint32_t            nSerial;
 
             public:
-                explicit UIStringPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *xport):
+                explicit UIStringPort(const meta::port_t *meta, lv2::Extensions *ext, lv2::Port *xport, ui::IPresetManager *manager):
                     UIPort(meta, ext)
                 {
+                    pManager                = manager;
+
                     lv2::StringPort *sp     = (xport != NULL) ? static_cast<lv2::StringPort *>(xport) : NULL;
                     if (sp != NULL)
                     {
@@ -973,6 +1047,9 @@ namespace lsp
                         "writing patch event id=%s, value=%s (%d)",
                         pMetadata->id, static_cast<const char *>(buffer), int(size));
                     pExt->ui_write_patch(this);
+
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual void write(const void* buffer, size_t size) override

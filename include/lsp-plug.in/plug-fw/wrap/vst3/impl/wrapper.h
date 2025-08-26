@@ -93,11 +93,15 @@ namespace lsp
             nDirtyResp          = 0;
             nDumpReq            = 0;
             nDumpResp           = 0;
+            atomic_store(&nPresetFlags, PT_NONE);
+
             nMaxSamplesPerBlock = 0;
             bUpdateSettings     = true;
             bStateManage        = false;
             bMidiMapping        = false;
             bMsgWorkaround      = false;
+
+            core::init_preset_state(&sPresetState);
 
             nLatency            = 0;
         }
@@ -1286,7 +1290,7 @@ namespace lsp
         status_t Wrapper::save_state(Steinberg::IBStream *os)
         {
             status_t res;
-            const uint16_t version      = 1;
+            const uint16_t version      = 2;
 
             // Set-up DSP context
             dsp::context_t ctx;
@@ -1319,7 +1323,7 @@ namespace lsp
                     lsp_trace("Saving state of path parameter: %s = %s", meta->id, path->path());
 
                     const char *path_value = path->path();
-                    if ((res = write_value(os, meta->id, path_value)) != STATUS_OK)
+                    if ((res = write_value(os, meta->id, 's', path_value)) != STATUS_OK)
                     {
                         lsp_trace("write_value failed for id=%s", meta->id);
                         return res;
@@ -1335,7 +1339,7 @@ namespace lsp
                     }
 
                     lsp_trace("Saving state of string parameter: %s = %s", meta->id, str);
-                    if ((res = write_value(os, meta->id, str)) != STATUS_OK)
+                    if ((res = write_value(os, meta->id, 's', str)) != STATUS_OK)
                     {
                         lsp_trace("write_value failed for id=%s", meta->id);
                         return res;
@@ -1351,12 +1355,19 @@ namespace lsp
                             p->value())
                     );
 
-                    if ((res = write_value(os, meta->id, p->value())) != STATUS_OK)
+                    if ((res = write_value(os, meta->id, 'f', p->value())) != STATUS_OK)
                     {
                         lsp_trace("write_value failed for id=%s", meta->id);
                         return res;
                     }
                 }
+            }
+
+            // Write special variables
+            if ((res = serialize_preset_state(os)) != STATUS_OK)
+            {
+                lsp_warn("Error serializing preset state, error=%d", int(res));
+                return res;
             }
 
             // Save state of all KVT parameters
@@ -1401,7 +1412,11 @@ namespace lsp
                 lsp_warn("Failed to read serial version");
                 return STATUS_CORRUPTED;
             }
-            if (version != 1)
+
+            bool param_types = false;
+            if (version == 2)
+                param_types     = true;
+            else if (version != 1)
             {
                 lsp_warn("Unsupported serial version %d", int(version));
                 return STATUS_CORRUPTED;
@@ -1439,54 +1454,7 @@ namespace lsp
 
                 lsp_trace("Parameter name: %s", name);
 
-                if (name[0] != '/')
-                {
-                    // Try to find virtual port
-                    vst3::Port *p           = vParamMapping.get(name);
-                    if (p != NULL)
-                    {
-                        const meta::port_t *meta = p->metadata();
-                        if (meta::is_path_port(meta))
-                        {
-                            path_t *xp  = p->buffer<path_t>();
-
-                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
-                            {
-                                lsp_warn("Failed to deserialize port id=%s", meta->id);
-                                return res;
-                            }
-                            lsp_trace("  %s = %s", meta->id, name);
-                            xp->submit(name, strlen(name), plug::PF_STATE_RESTORE);
-                        }
-                        else if (meta::is_string_holding_port(meta))
-                        {
-                            vst3::StringPort *sp    = static_cast<vst3::StringPort *>(p);
-                            plug::string_t *xs      = sp->data();
-                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
-                            {
-                                lsp_warn("Failed to deserialize port id=%s", meta->id);
-                                return res;
-                            }
-                            lsp_trace("  %s = %s", meta->id, name);
-                            xs->submit(name, strlen(name), true);
-                        }
-                        else
-                        {
-                            vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);
-                            float v = 0.0f;
-                            if ((res = read_fully(is, &v)) != STATUS_OK)
-                            {
-                                lsp_warn("Failed to deserialize port id=%s", name);
-                                return res;
-                            }
-                            lsp_trace("  %s = %f", meta->id, v);
-                            pp->submit(v);
-                        }
-                    }
-                    else
-                        lsp_warn("Missing port id=%s, skipping", name);
-                }
-                else
+                if (name[0] == '/')
                 {
                     // Read the KVT parameter flags
                     uint8_t flags = 0;
@@ -1512,6 +1480,134 @@ namespace lsp
 
                         kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
                         sKVT.put(name, &p, kflags);
+                    }
+                }
+                else if (name[0] == '!')
+                {
+                    if (strcmp(name, "!preset_state") == 0)
+                    {
+                        core::preset_state_t state;
+                        if ((res = deserialize_preset_state(&state, is)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to deserialize preset state, error code=%d", int(res));
+                            return res;
+                        }
+
+                        set_preset_state(&state, PT_STATE);
+                    }
+                    else
+                    {
+                        lsp_warn("Unknown special variable: %s, skipping", name);
+                        if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to skip special variable", int(res));
+                            return res;
+                        }
+                    }
+                }
+                else
+                {
+                    // Read parameter type
+                    uint8_t param_type      = '?';
+                    if (param_types)
+                    {
+                        if ((res = read_fully(is, &param_type)) != STATUS_OK)
+                        {
+                            lsp_warn("Failed to deserialize parameter type, error code=%d", int(res));
+                            return res;
+                        }
+                    }
+
+                    // Try to find virtual port
+                    vst3::Port *p           = vParamMapping.get(name);
+                    if (p != NULL)
+                    {
+                        const meta::port_t *meta = p->metadata();
+                        if (meta::is_path_port(meta))
+                        {
+                            if ((param_type != '?') && (param_type != 's'))
+                            {
+                                lsp_warn("Failed to deserialize port id=%s: invalid parameter type '%c'", meta->id, char(param_type));
+                                return res;
+                            }
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
+
+                            path_t *xp  = p->buffer<path_t>();
+                            lsp_trace("  %s = %s", meta->id, name);
+                            xp->submit(name, strlen(name), plug::PF_STATE_RESTORE);
+                        }
+                        else if (meta::is_string_holding_port(meta))
+                        {
+                            if ((param_type != '?') && (param_type != 's'))
+                            {
+                                lsp_warn("Failed to deserialize port id=%s: invalid parameter type '%c'", meta->id, char(param_type));
+                                return res;
+                            }
+                            if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", meta->id);
+                                return res;
+                            }
+
+                            vst3::StringPort *sp    = static_cast<vst3::StringPort *>(p);
+                            plug::string_t *xs      = sp->data();
+                            lsp_trace("  %s = %s", meta->id, name);
+                            xs->submit(name, strlen(name), true);
+                        }
+                        else
+                        {
+                            if ((param_type != '?') && (param_type != 'f'))
+                            {
+                                lsp_warn("Failed to deserialize port id=%s: invalid parameter type '%c'", meta->id, char(param_type));
+                                return res;
+                            }
+
+                            float v = 0.0f;
+                            if ((res = read_fully(is, &v)) != STATUS_OK)
+                            {
+                                lsp_warn("Failed to deserialize port id=%s", name);
+                                return res;
+                            }
+
+                            vst3::ParameterPort *pp = static_cast<vst3::ParameterPort *>(p);
+                            lsp_trace("  %s = %f", meta->id, v);
+                            pp->submit(v);
+                        }
+                    }
+                    else
+                    {
+                        lsp_warn("Missing port id=%s, skipping", name);
+                        switch (param_type)
+                        {
+                            case 'f':
+                            {
+                                float v;
+                                if ((res = read_fully(is, &v)) != STATUS_OK)
+                                {
+                                    lsp_warn("Failed to skip floating-point parameter");
+                                    return res;
+                                }
+                                break;
+                            }
+                            case 's':
+                            {
+                                if ((res = read_string(is, &name, &name_cap)) != STATUS_OK)
+                                {
+                                    lsp_warn("Failed to skip string");
+                                    return res;
+                                }
+                                break;
+                            }
+                            case '?':
+                                break;
+                            default:
+                                lsp_warn("Unknown parameter type: '%c'", param_type);
+                                return STATUS_CORRUPTED;
+                        }
                     }
                 }
             }
@@ -2012,7 +2108,7 @@ namespace lsp
 
         void Wrapper::toggle_ui_state()
         {
-            uatomic_t counter   = nUICounterReq;
+            uatomic_t counter   = atomic_load(&nUICounterReq);
             if (counter == nUICounterResp)
                 return;
 
@@ -2950,6 +3046,7 @@ namespace lsp
             else if (!strcmp(message_id, vst3::ID_MSG_ACTIVATE_UI))
             {
                 atomic_add(&nUICounterReq, 1);
+                request_preset_state();
             }
             else if (!strcmp(message_id, vst3::ID_MSG_DEACTIVATE_UI))
             {
@@ -3019,6 +3116,40 @@ namespace lsp
                     osc::parse_destroy(&parser);
                 }
             }
+            else if (!strcmp(message_id, ID_MSG_PRESET_STATE))
+            {
+                // Get endianess
+                if (atts->getInt("endian", byte_order) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                Steinberg::int64 flags = 0, tab = 0;
+
+                if (atts->getInt("flags", flags) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+                if (atts->getInt("tab", tab) != Steinberg::kResultOk)
+                    return Steinberg::kResultFalse;
+
+                // Read identifier of the mesh port
+                const char *name = sRxNotifyBuf.get_string(atts, "name", byte_order);
+                if (name == NULL)
+                    return Steinberg::kResultFalse;
+
+                lsp_trace("Received preset state flags=0x%x, tab=%d, name='%s'",
+                    int(flags), int(tab), name);
+
+                // Commit state
+                core::preset_state_t state;
+                core::init_preset_state(&state);
+
+                state.flags  = uint32_t(flags);
+                state.tab    = uint32_t(tab);
+                const size_t length = lsp_min(strnlen(name, core::PRESET_NAME_BYTES), core::PRESET_NAME_BYTES - 1);
+                memcpy(state.name, name, length);
+                state.name[length]   = '\0';
+
+                // Set preset state
+                set_preset_state(&state, PT_UI);
+            }
 
             return Steinberg::kResultOk;
         }
@@ -3052,7 +3183,7 @@ namespace lsp
         void Wrapper::report_state_change()
         {
             // Report state change
-            uatomic_t dirty_req = nDirtyReq;
+            uatomic_t dirty_req = atomic_load(&nDirtyReq);
             if (dirty_req == nDirtyResp)
                 return;
 
@@ -3586,6 +3717,7 @@ namespace lsp
             // Do not synchronize other data until there is no UI visible
             if (nUICounterResp > 0)
             {
+                transmit_preset_state();
                 transmit_meter_values();
                 transmit_mesh_states();
                 transmit_frame_buffers();
@@ -3594,6 +3726,173 @@ namespace lsp
                 transmit_strings();
                 transmit_shm_state();
             }
+        }
+
+        void Wrapper::set_preset_state(const core::preset_state_t *state, uint32_t mode)
+        {
+            lsp_trace("this=%p, name=%s, flags=0x%x, tab=%d, mode=%d",
+                this, state->name, state->flags, state->tab, int(mode));
+
+            {
+                // Lock the state
+                while (true)
+                {
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if ((flags & PT_TYPE) > mode) // Leave if data has greater priority than submitted
+                    {
+                        lsp_trace("preset state not updated, flags=0x%x, mode=%d", int(flags), int(mode));
+                        return;
+                    }
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // State is locked
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, mode & (~PT_LOCK))) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                core::copy_preset_state(&sPresetState, state);
+            }
+
+            // Mark state changed if data was transferred from UI
+            if (mode == PT_UI)
+                state_changed();
+
+            lsp_trace("this=%p, mode=0x%x", this, int(mode));
+        }
+
+
+        void Wrapper::request_preset_state()
+        {
+            // Set the 'PT_FORCE' flag
+            while (true)
+            {
+                const uatomic_t flags = atomic_load(&nPresetFlags);
+                if (flags & PT_FORCE)
+                    return;
+                if (atomic_cas(&nPresetFlags, flags, flags | PT_FORCE))
+                    break;
+
+                ipc::Thread::yield();
+            }
+        }
+
+        void Wrapper::transmit_preset_state()
+        {
+            core::preset_state_t state;
+
+            {
+                // Lock the state
+                while (true)
+                {
+                    // We can fetch data only if it is in PT_STATE state or fetch is forced
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if ((!(flags & PT_FORCE)) && ((flags & PT_TYPE) != PT_STATE))
+                        return;
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // State is locked
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, flags & (~(PT_LOCK | PT_TYPE)))) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                // Now we have locked state
+                core::copy_preset_state(&state, &sPresetState);
+            }
+
+            // Now we can form message and transmit it
+            // Allocate new message
+            Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);
+            if (msg == NULL)
+                return;
+            lsp_finally { safe_release(msg); };
+
+            // Initialize and send the message
+            msg->setMessageID(vst3::ID_MSG_PRESET_STATE);
+            Steinberg::Vst::IAttributeList *list = msg->getAttributes();
+
+            if (list->setInt("endian", VST3_BYTEORDER) != Steinberg::kResultOk)
+                return;
+            if (list->setInt("flags", state.flags) != Steinberg::kResultOk)
+                return;
+            if (list->setInt("tab", state.tab) != Steinberg::kResultOk)
+                return;
+
+            // Write identifier of the mesh port
+            if (!sTxNotifyBuf.set_string(list, "name", state.name))
+                return ;
+
+            // Notify peer
+            pPeerConnection->notify(msg);
+        }
+
+        status_t Wrapper::serialize_preset_state(Steinberg::IBStream *os)
+        {
+            core::preset_state_t state;
+            {
+                // Lock the state
+                while (true)
+                {
+                    // We can fetch data only if it is in PT_STATE state or fetch is forced
+                    const uatomic_t flags = atomic_load(&nPresetFlags);
+                    if (!(flags & PT_LOCK))
+                    {
+                        if (atomic_cas(&nPresetFlags, flags, flags | PT_LOCK))
+                            break;
+                    }
+                    ipc::Thread::yield();
+                }
+
+                // State is locked
+                lsp_finally {
+                    while (true)
+                    {
+                        const uatomic_t flags = atomic_load(&nPresetFlags);
+                        if (atomic_cas(&nPresetFlags, flags, flags & (~PT_LOCK))) // Unlock the state
+                            break;
+                        ipc::Thread::yield();
+                    }
+                };
+
+                // Now we have locked state
+                core::copy_preset_state(&state, &sPresetState);
+            }
+
+            // Serialize obtained preset state
+            lsp_trace("preset state: flags=0x%x, tab=%d, name=%s", int(state.flags), int(state.tab), state.name);
+            return vst3::serialize_preset_state(os, &state);
+        }
+
+        status_t Wrapper::deserialize_preset_state(core::preset_state_t *state, Steinberg::IBStream *is)
+        {
+            status_t res = vst3::deserialize_preset_state(state, is);
+            if (res == STATUS_OK)
+                lsp_trace("preset state: flags=0x%x, tab=%d, name=%s", int(state->flags), int(state->tab), state->name);
+
+            return res;
         }
 
     } /* namespace vst3 */

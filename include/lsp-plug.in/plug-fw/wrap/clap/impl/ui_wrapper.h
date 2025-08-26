@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins-comp-delay
  * Created on: 5 янв. 2023 г.
@@ -44,6 +44,7 @@ namespace lsp
             fScaling        = -100.0f;
             pParent         = NULL;
             pTransientFor   = NULL;
+
             bUIInitialized  = false;
             bRequestProcess = false;
             bUIActive       = false;
@@ -304,40 +305,44 @@ namespace lsp
 
                 case meta::R_PATH:
                     lsp_trace("creating path port %s", port->id);
-                    cup = new clap::UIPathPort(cp);
+                    cup = new clap::UIPathPort(cp, this);
                     break;
 
                 case meta::R_STRING:
                     lsp_trace("creating string port %s", port->id);
-                    cup = new clap::UIStringPort(cp);
+                    cup = new clap::UIStringPort(cp, this);
                     break;
 
                 case meta::R_SEND_NAME:
                     lsp_trace("creating send name port %s", port->id);
-                    cup = new clap::UIStringPort(cp);
+                    cup = new clap::UIStringPort(cp, this);
                     break;
 
                 case meta::R_RETURN_NAME:
                     lsp_trace("creating return name port %s", port->id);
-                    cup = new clap::UIStringPort(cp);
+                    cup = new clap::UIStringPort(cp, this);
                     break;
 
                 case meta::R_CONTROL:
-                case meta::R_METER:
+                    lsp_trace("creating parameter port %s", port->id);
+                    cup     = new clap::UIParameterPort(static_cast<clap::ParameterPort *>(cp), &bRequestProcess, this);
+                    break;
+
                 case meta::R_BYPASS:
-                    lsp_trace("creating regular port %s", port->id);
-                    // VST specifies only INPUT parameters, output should be read in different way
-                    if (meta::is_out_port(port))
-                        cup     = new clap::UIMeterPort(cp);
-                    else
-                        cup     = new clap::UIParameterPort(static_cast<clap::ParameterPort *>(cp), &bRequestProcess);
+                    lsp_trace("creating bypass port %s", port->id);
+                    cup     = new clap::UIParameterPort(static_cast<clap::ParameterPort *>(cp), &bRequestProcess, NULL);
+                    break;
+
+                case meta::R_METER:
+                    lsp_trace("creating meter port %s", port->id);
+                    cup     = new clap::UIMeterPort(cp);
                     break;
 
                 case meta::R_PORT_SET:
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES], param_name[MAX_PARAM_ID_BYTES];
                     lsp_trace("creating port group %s", port->id);
-                    UIPortGroup *upg = new clap::UIPortGroup(static_cast<clap::PortGroup *>(cp), &bRequestProcess);
+                    UIPortGroup *upg = new clap::UIPortGroup(static_cast<clap::PortGroup *>(cp), &bRequestProcess, this);
 
                     // Add immediately port group to list
                     vPorts.add(upg);
@@ -650,6 +655,10 @@ namespace lsp
                     *height = lsp_min(sr.nMinHeight, 32);
             }
 
+            lsp_trace("return width = %d, height = %d",
+                (width != NULL) ? int(*width) : 0,
+                (height != NULL) ? int(*height) : 0);
+
             return true;
         }
 
@@ -680,7 +689,7 @@ namespace lsp
             ws::size_limit_t sr;
             wnd->get_padded_size_limits(&sr);
 
-            hints->can_resize_horizontally = (sr.nMaxWidth < 0) || (sr.nMaxWidth  > sr.nMinWidth);
+            hints->can_resize_horizontally  = (sr.nMaxWidth < 0) || (sr.nMaxWidth  > sr.nMinWidth);
             hints->can_resize_vertically    = (sr.nMaxHeight< 0) || (sr.nMaxHeight > sr.nMinHeight);
 
             hints->preserve_aspect_ratio    = false;
@@ -711,6 +720,13 @@ namespace lsp
 
             tk::SizeConstraints::apply(&r, &sr);
 
+            lsp_trace("adjust size width = %d -> %d, height = %d -> %d",
+                *width, int(r.nWidth),
+                *height, int(r.nHeight));
+
+            if ((r.nWidth > ssize_t(*width)) || (r.nHeight > ssize_t(*height)))
+                return false;
+
             *width      = r.nWidth;
             *height     = r.nHeight;
 
@@ -727,13 +743,26 @@ namespace lsp
                 return false;
             lsp_finally { sMutex.unlock(); };
 
+            // Ensure that we can resize the window to the desired size
             ws::rectangle_t r;
-            wnd->get_padded_screen_rectangle(&r);
+            ws::size_limit_t sr;
+            wnd->get_padded_size_limits(&sr);
 
+            r.nLeft     = 0;
+            r.nTop      = 0;
+            r.nWidth    = width;
+            r.nHeight   = height;
+
+            tk::SizeConstraints::apply(&r, &sr);
+            if ((r.nWidth > ssize_t(width)) || (r.nHeight > ssize_t(height)))
+                return false;
+
+            // Check that we need to resize window
+            wnd->get_padded_screen_rectangle(&r);
             if ((r.nWidth != ssize_t(width)) && (r.nHeight != ssize_t(height)))
             {
-                lsp_trace("width = {%d, %d}, height = {%d, %d}, call for resize",
-                    int(r.nWidth), int(width), int(r.nHeight), int(height));
+                lsp_trace("width = %d -> %d, height = %d -> %d, call for resize",
+                    int(width), int(r.nWidth), int(height), int(r.nHeight));
                 wnd->resize_window(width, height);
             }
 
@@ -836,8 +865,12 @@ namespace lsp
                 return;
 
             // Perform main data transfers and state sync
+            core::preset_state_t state;
             tranfet_ui_to_dsp();
             transfer_dsp_to_ui();
+            if (pWrapper->fetch_preset_state(&state, false))
+                receive_preset_state(&state);
+
             IWrapper::main_iteration();
         }
 
@@ -873,6 +906,11 @@ namespace lsp
                 lsp_trace("request_resize(%d, %d)", int(sr.nMinWidth), int(sr.nMinHeight));
                 pExt->gui->request_resize(pExt->host, sr.nMinWidth, sr.nMinHeight);
             }
+
+            // Fetch preset state
+            core::preset_state_t state;
+            if (pWrapper->fetch_preset_state(&state, true))
+                receive_preset_state(&state);
 
             // Update UI status
             bUIActive       = true;
@@ -911,6 +949,12 @@ namespace lsp
                 self->main_iteration();
 
             return STATUS_OK;
+        }
+
+        void UIWrapper::send_preset_state(const core::preset_state_t *state)
+        {
+            if (pWrapper != NULL)
+                pWrapper->set_preset_state(state, clap::Wrapper::PT_STATE);
         }
 
     } /* namespace clap */

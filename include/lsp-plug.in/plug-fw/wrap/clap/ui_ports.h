@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins-comp-delay
  * Created on: 5 янв. 2023 г.
@@ -68,14 +68,16 @@ namespace lsp
         class UIParameterPort: public UIPort
         {
             protected:
-                float           fValue;
-                uatomic_t       nSID;
-                bool           *bRqFlag;
+                ui::IPresetManager *pManager;
+                float               fValue;
+                uatomic_t           nSID;
+                bool               *bRqFlag;
 
             public:
-                explicit UIParameterPort(clap::ParameterPort *port, bool *rq_flag):
+                explicit UIParameterPort(clap::ParameterPort *port, bool *rq_flag, ui::IPresetManager *manager):
                     UIPort(port->metadata(), port)
                 {
+                    pManager    = manager;
                     fValue      = pMetadata->start;
                     nSID        = port->sid() - 1;
                     bRqFlag     = rq_flag;
@@ -100,15 +102,25 @@ namespace lsp
 
                 virtual void set_value(float value) override
                 {
-                    fValue = meta::limit_value(pMetadata, value);
+                    lsp_trace("this=%p, id=%s, value=%f", this, id(), value);
+                    value = meta::limit_value(pMetadata, value);
+                    if (value == fValue)
+                        return;
+
+					fValue	= value;
                     if (bRqFlag != NULL)
                         *bRqFlag    = true;
-
                     if (pPort == NULL)
                         return;
 
                     clap::ParameterPort *port = static_cast<clap::ParameterPort *>(pPort);
                     port->write_value(value);
+
+                    if (pManager != NULL)
+                    {
+                        pManager->mark_active_preset_dirty();
+                        lsp_trace("mark_active_preset_dirty");
+                    }
                 }
 
                 virtual bool sync() override
@@ -135,7 +147,8 @@ namespace lsp
         class UIPortGroup: public UIParameterPort
         {
             public:
-                explicit UIPortGroup(clap::PortGroup *port, bool *rq_flag) : UIParameterPort(port, rq_flag)
+                explicit UIPortGroup(clap::PortGroup *port, bool *rq_flag, ui::IPresetManager *manager):
+                    UIParameterPort(port, rq_flag, manager)
                 {
                 }
 
@@ -330,11 +343,13 @@ namespace lsp
         class UIPathPort: public UIPort
         {
             private:
-                clap::path_t   *pPath;
+                ui::IPresetManager *pManager;
+                clap::path_t       *pPath;
 
             public:
-                explicit UIPathPort(clap::Port *port): UIPort(port->metadata(), port)
+                explicit UIPathPort(clap::Port *port, ui::IPresetManager *manager): UIPort(port->metadata(), port)
                 {
+                    pManager            = manager;
                     plug::path_t *path  = pPort->buffer<plug::path_t>();
                     if (path != NULL)
                         pPath               = static_cast<clap::path_t *>(path);
@@ -371,8 +386,12 @@ namespace lsp
 
                 virtual void write(const void *buffer, size_t size, size_t flags) override
                 {
-                    if (pPath != NULL)
-                        pPath->submit(static_cast<const char *>(buffer), size, true, flags);
+                    if (pPath == NULL)
+                        return;
+
+                    pPath->submit(static_cast<const char *>(buffer), size, true, flags);
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual void set_default() override
@@ -384,13 +403,16 @@ namespace lsp
         class UIStringPort: public UIPort
         {
             private:
+                ui::IPresetManager *pManager;
                 plug::string_t     *pValue;
                 char               *pData;
                 uint32_t            nSerial;
 
             public:
-                explicit UIStringPort(clap::Port *port): UIPort(port->metadata(), port)
+                explicit UIStringPort(clap::Port *port, ui::IPresetManager *manager): UIPort(port->metadata(), port)
                 {
+                    pManager                = manager;
+
                     clap::StringPort *sp    = static_cast<clap::StringPort *>(port);
                     pValue                  = sp->data();
                     pData                   = (pValue != NULL) ? reinterpret_cast<char *>(malloc(pValue->max_bytes() + 1)) : NULL;
@@ -455,6 +477,9 @@ namespace lsp
                     nSerial = pValue->submit(buffer, size, flags & plug::PF_STATE_RESTORE);
                     lsp_trace("Submitted id=%s, count=%d, buffer=%s, size=%d, value=%s",
                         id(), int(count), buffer, int(size), pData);
+
+                    if (pManager != NULL)
+                        pManager->mark_active_preset_dirty();
                 }
 
                 virtual void set_default() override
