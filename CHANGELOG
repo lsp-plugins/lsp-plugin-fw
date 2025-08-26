@@ -13,6 +13,7 @@
 * Implemented ctl:link controller that allows to link values together in the UI.
 * Implemented ctl::AudioEnvelope controller.
 * Implemented pre-compression of OBJ files before adding to built-in resources.
+* Updated module versions in dependencies.
 
 === 1.0.30 ===
 * Refactored support of activity property.
