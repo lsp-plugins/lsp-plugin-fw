@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.32 ===
+
+
 === 1.0.31 ===
 * Added command line option for JACK that allows to specify client name.
 * Implemented preset management in the UI of the plugin.
