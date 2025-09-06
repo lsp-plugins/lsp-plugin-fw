@@ -150,7 +150,7 @@ namespace lsp
                 void                sync_preset_lists();
                 void                sync_preset_tab();
                 void                do_destroy();
-                void                select_active_preset(const ui::preset_t *preset);
+                void                select_active_preset(const ui::preset_t *preset, bool force);
                 bool                has_path_ports();
                 bool                request_change_preset_conrifmation(const ui::preset_t *preset);
                 bool                request_reset_state_confirmation();

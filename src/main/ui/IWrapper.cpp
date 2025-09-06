@@ -2415,7 +2415,7 @@ namespace lsp
             return (vPresetListeners.qpremove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
         }
 
-        status_t IWrapper::select_active_preset(const preset_t *preset)
+        status_t IWrapper::select_active_preset(const preset_t *preset, bool force)
         {
             const ssize_t preset_id = vPresets.index_of(preset);
             if ((preset_id < 0) && (nActivePreset < 0))
@@ -2427,7 +2427,7 @@ namespace lsp
             // Change current preset
             preset_t *pold  = (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
             preset_t *pnew  = const_cast<ui::preset_t *>(preset);
-            if (pold == pnew)
+            if ((pold == pnew) && (!force))
                 return STATUS_OK;
 
             // Import preset settings

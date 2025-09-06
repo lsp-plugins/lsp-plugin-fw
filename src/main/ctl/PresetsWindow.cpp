@@ -929,7 +929,7 @@ namespace lsp
             return true;
         }
 
-        void PresetsWindow::select_active_preset(const ui::preset_t *preset)
+        void PresetsWindow::select_active_preset(const ui::preset_t *preset, bool force)
         {
             const ui::preset_t *dirty = (pWrapper->active_preset_dirty()) ? pWrapper->active_preset() : NULL;
 
@@ -944,7 +944,9 @@ namespace lsp
             else
             {
                 pNewPreset          = NULL;
-                pWrapper->select_active_preset(preset);
+                pWrapper->select_active_preset(preset, force);
+                if (force)
+                    hide();
             }
         }
 
@@ -1021,7 +1023,7 @@ namespace lsp
                 return;
 
             // Select new active preset
-            select_active_preset(preset);
+            select_active_preset(preset, true);
         }
 
         //-----------------------------------------------------------------
@@ -1336,7 +1338,7 @@ namespace lsp
                 const size_t index = list->vItems.index_of(item);
                 const ui::preset_t *preset = list->vPresets.get(index);
 
-                self->select_active_preset(preset);
+                self->select_active_preset(preset, false);
             }
 
             return STATUS_OK;
@@ -1349,9 +1351,23 @@ namespace lsp
                 return STATUS_OK;
 
             const ws::event_t *ev = static_cast<ws::event_t *>(data);
+            if (ev->nCode != ws::MCB_LEFT)
+                return STATUS_OK;
 
-            if (ev->nCode == ws::MCB_LEFT)
-                self->hide();
+            // Find the related list and select the preset
+            for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
+            {
+                preset_list_t *list = &self->vPresetsLists[i];
+                if (list->wList != sender)
+                    continue;
+
+                // Determine new preset
+                tk::ListBoxItem *item = (list->wList != NULL) ? list->wList->selected()->any() : NULL;
+                const size_t index = list->vItems.index_of(item);
+                const ui::preset_t *preset = list->vPresets.get(index);
+
+                self->select_active_preset(preset, true);
+            }
 
             return STATUS_OK;
         }
@@ -1372,7 +1388,7 @@ namespace lsp
             if (self == NULL)
                 return STATUS_OK;
 
-            self->pWrapper->select_active_preset(self->pNewPreset);
+            self->pWrapper->select_active_preset(self->pNewPreset, false);
             self->pNewPreset = NULL;
             if (self->wWConfirm != NULL)
                 self->wWConfirm->hide();

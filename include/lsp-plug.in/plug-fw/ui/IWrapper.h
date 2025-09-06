@@ -544,9 +544,10 @@ namespace lsp
                 /**
                  * Select active preset
                  * @param preset_id preset identifier, negative value for deselection of any preset
+                 * @param force force to re-load preset if selected preset matches active preset
                  * @return status of operation
                  */
-                virtual status_t                select_active_preset(const preset_t *preset);
+                virtual status_t                select_active_preset(const preset_t *preset, bool force);
 
                 /**
                  * Get active preset
