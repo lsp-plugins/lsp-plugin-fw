@@ -87,6 +87,8 @@ namespace lsp
                 void                                sync_with_dsp();
                 void                                sync_kvt_state(core::KVTStorage *kvt);
                 void                                do_destroy();
+                void                                unregister_run_loop();
+                void                                register_run_loop();
 
             public:
                 explicit UIWrapper(vst3::Controller *controller, ui::Module *ui, resource::ILoader *loader);
