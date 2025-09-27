@@ -144,7 +144,8 @@ namespace lsp
                 bool                            parse_kvt_flags(size_t *flags, const LV2_Atom *value);
                 bool                            parse_kvt_value(core::kvt_param_t *param, const LV2_Atom *value);
 
-                void                            transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req);
+                void                            transmit_responses_to_clients(bool sync_req, bool patch_req, bool state_req);
+                void                            transmit_port_data_to_clients(bool sync_req);
                 void                            transmit_time_position_to_clients();
                 void                            transmit_play_position_to_clients();
                 void                            transmit_shm_state_to_clients();

@@ -1120,7 +1120,10 @@ namespace lsp
                 emit_prefix(out, LV2TTL_PLUGIN_UI_PREFIX, get_module_prefix(fname, sizeof(fname), m.uids.lv2ui));
             emit_prefix(out, LV2TTL_DEVELOPERS_PREFIX, LSP_LV2_BASE_URI "developers/");
             if (requirements & REQ_PATCH)
-                emit_prefix(out, LV2TTL_PORTS_PREFIX, LSP_LV2_BASE_URI "/ports#");
+            {
+                snprintf(fname, sizeof(fname), "%s/ports#", m.uids.lv2);
+                emit_prefix(out, LV2TTL_PORTS_PREFIX, fname);
+            }
             fprintf(out, "\n\n");
 
             fprintf(out, "hcid:queue_draw\n\ta lv2:Feature\n\t.\n");

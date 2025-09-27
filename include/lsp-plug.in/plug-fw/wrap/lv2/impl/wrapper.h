@@ -914,6 +914,9 @@ namespace lsp
                     if ((key != NULL) && (value != NULL))
                     {
                         lv2::Port *p    = port_by_urid(key->body);
+                        if (p != NULL)
+                            lsp_trace("found port id=%s, type_urid=%d", p->metadata()->id, p->get_type_urid());
+
                         if ((p != NULL) && (p->get_type_urid() == value->type))
                         {
                             if (p->deserialize(value, 0)) // No flags for simple PATCH message
@@ -921,6 +924,10 @@ namespace lsp
                                 // Change state if it is a virtual port
                                 if (p->is_virtual())
                                     state_changed();
+                            }
+                            else
+                            {
+                                lsp_trace("failed to deserialize port id=%s", p->metadata()->id);
                             }
                         }
 
@@ -1241,7 +1248,7 @@ namespace lsp
             lsp_trace("Transmitted shared memory state of %d records", int(state->size()));
         }
 
-        void Wrapper::transmit_port_data_to_clients(bool sync_req, bool patch_req, bool state_req)
+        void Wrapper::transmit_responses_to_clients(bool sync_req, bool patch_req, bool state_req)
         {
             // Serialize time/position of plugin
             LV2_Atom_Forge_Frame    frame;
@@ -1275,7 +1282,7 @@ namespace lsp
                             break;
                         if (state_req) // State request pending?
                             break;
-                        if ((p->get_id() >= 0) && (patch_req)) // Global port and patch request pending?
+                        if (patch_req) // Global port and patch request pending?
                             break;
                         continue;
                     default:
@@ -1287,7 +1294,7 @@ namespace lsp
                 }
 
                 // Check that we need to transmit the value
-                if ((!state_req) && (!p->tx_pending()))
+                if ((!patch_req) && (!state_req) && (!p->tx_pending()))
                     continue;
 
                 // Create patch message containing valule of the port
@@ -1304,6 +1311,12 @@ namespace lsp
                 // Reset pending transfer flag
                 p->reset_tx_pending();
             }
+        }
+
+        void Wrapper::transmit_port_data_to_clients(bool sync_req)
+        {
+            // Serialize time/position of plugin
+            LV2_Atom_Forge_Frame    frame;
 
             // Serialize meshes (it's own primitive MESH)
             for (size_t i=0, n=vMeshPorts.size(); i<n; ++i)
@@ -1527,14 +1540,17 @@ namespace lsp
             }
 
             // Check that patch request is pending
-            bool patch_req  = nPatchReqs > 0;
+            const bool patch_req  = nPatchReqs > 0;
             if (patch_req)
-                nPatchReqs      --;
+            {
+                lsp_trace("Patch request is pending");
+                --nPatchReqs;
+            }
 
             // Check that state request is pending
-            bool state_req  = nStateReqs > 0;
+            const bool state_req  = nStateReqs > 0;
             if (state_req)
-                nStateReqs      --;
+                --nStateReqs;
 
             // Initialize forge
             LV2_Atom_Sequence *sequence = reinterpret_cast<LV2_Atom_Sequence *>(pAtomOut);
@@ -1578,9 +1594,10 @@ namespace lsp
             {
                 transmit_kvt_events();
                 transmit_time_position_to_clients();
-                transmit_port_data_to_clients(sync_req, patch_req, state_req);
+                transmit_port_data_to_clients(sync_req);
             }
 
+            transmit_responses_to_clients(sync_req, patch_req, state_req);
             transmit_preset_settings_to_clients(&sPresetState);
             transmit_play_position_to_clients();
             transmit_shm_state_to_clients();
