@@ -393,6 +393,9 @@ namespace lsp
             else
                 lsp_warn("Failed to obtain plugin configuration: error=%d", int(res));
 
+            // Bind custom functions
+            ctl::bind_functions(&sGlobalVars);
+
             return STATUS_OK;
         }
 
@@ -2134,7 +2137,7 @@ namespace lsp
             status_t res;
 
             // Cleanup variables
-            sGlobalVars.clear();
+            sGlobalVars.clear_vars();
 
             // Evaluate global constants
             lltl::parray<LSPString> constants;

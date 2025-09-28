@@ -1026,7 +1026,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t parse_note_frequency(float *dst, const char *text, const port_t *meta)
+        status_t parse_note_number(ssize_t *dst, const char *text)
         {
             text = skip_blank(text);
 
@@ -1097,6 +1097,20 @@ namespace lsp
             if (*text != '\0')
                 return STATUS_INVALID_VALUE;
 
+            *dst                = midi_code;
+
+            return STATUS_OK;
+        }
+
+        status_t parse_note_frequency(float *dst, const char *text, const port_t *meta)
+        {
+            // Parse MIDI code
+            ssize_t midi_code = 0;
+            status_t res = parse_note_number(&midi_code, text);
+            if (res != STATUS_OK)
+                return res;
+
+            // Convert MIDI code to frequency
             float value = dspu::midi_note_to_frequency(midi_code);
             if (meta->unit == meta::U_KHZ)
                 value  *= 1e-3f;

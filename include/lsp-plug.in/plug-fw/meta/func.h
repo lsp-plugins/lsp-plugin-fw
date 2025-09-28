@@ -506,6 +506,16 @@ namespace lsp
         status_t        parse_note_frequency(float *dst, const char *text, const port_t *meta);
 
         /**
+         * Try to convert the string to the note name and compute it's main tone frequency considering
+         * the A2 being 440 Hz.
+         *
+         * @param dst destination pointer to store note number
+         * @param text text to parse
+         * @return status of operation
+         */
+        status_t        parse_note_number(ssize_t *dst, const char *text);
+
+        /**
          * Parse frequency value. Allows to pass note name considering the A2 being 440 Hz.
          *
          * @param dst destination pointer to store parsed value
