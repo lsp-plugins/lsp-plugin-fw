@@ -57,6 +57,8 @@ namespace lsp
                         virtual status_t on_resolved(const LSPString *name, ui::IPort *p) override;
                         virtual status_t resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes) override;
                         virtual status_t resolve(expr::value_t *value, const LSPString *name, size_t num_indexes, const ssize_t *indexes) override;
+                        virtual status_t call(expr::value_t *value, const char *name, size_t num_args, const expr::value_t *args) override;
+                        virtual status_t call(expr::value_t *value, const LSPString *name, size_t num_args, const expr::value_t *args) override;
                 };
 
             protected:

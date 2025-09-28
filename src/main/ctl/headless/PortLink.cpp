@@ -208,9 +208,9 @@ namespace lsp
             }
         }
 
-        status_t PortLink::resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes)
+        status_t PortLink::do_resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes)
         {
-            if (num_indexes > 0)
+            if ((name == NULL) || (num_indexes > 0))
                 return STATUS_NOT_FOUND;
             if (strncmp(name, "_old_", 5) != 0)
                 return STATUS_NOT_FOUND;
@@ -231,9 +231,54 @@ namespace lsp
             return STATUS_NOT_FOUND;
         }
 
+        status_t PortLink::resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes)
+        {
+            status_t res    = do_resolve(value, name, num_indexes, indexes);
+            if (res == STATUS_NOT_FOUND)
+            {
+                expr::Resolver *vars = (pWrapper != NULL) ? pWrapper->global_variables() : NULL;
+                if (vars != NULL)
+                    res     = vars->resolve(value, name, num_indexes, indexes);
+            }
+
+            return res;
+        }
+
         status_t PortLink::resolve(expr::value_t *value, const LSPString *name, size_t num_indexes, const ssize_t *indexes)
         {
-            return resolve(value, name->get_utf8(), num_indexes, indexes);
+            status_t res    = do_resolve(value, name->get_utf8(), num_indexes, indexes);
+            if (res == STATUS_NOT_FOUND)
+            {
+                expr::Resolver *vars = (pWrapper != NULL) ? pWrapper->global_variables() : NULL;
+                if (vars != NULL)
+                    res     = vars->resolve(value, name, num_indexes, indexes);
+            }
+
+            return res;
+        }
+
+        status_t PortLink::call(expr::value_t *value, const char *name, size_t num_args, const expr::value_t *args)
+        {
+            status_t res = Resolver::call(value, name, num_args, args);
+            if (res == STATUS_NOT_FOUND)
+            {
+                expr::Resolver *vars = (pWrapper != NULL) ? pWrapper->global_variables() : NULL;
+                if (vars != NULL)
+                    res     = vars->call(value, name, num_args, args);
+            }
+            return res;
+        }
+
+        status_t PortLink::call(expr::value_t *value, const LSPString *name, size_t num_args, const expr::value_t *args)
+        {
+            status_t res = Resolver::call(value, name, num_args, args);
+            if (res == STATUS_NOT_FOUND)
+            {
+                expr::Resolver *vars = (pWrapper != NULL) ? pWrapper->global_variables() : NULL;
+                if (vars != NULL)
+                    res     = vars->call(value, name, num_args, args);
+            }
+            return res;
         }
 
     } /* namespace ctl */

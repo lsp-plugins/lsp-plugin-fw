@@ -58,6 +58,7 @@ namespace lsp
 
             protected:
                 static void         destroy_binding(binding_t *b);
+                status_t            do_resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes);
 
             protected:
                 binding_t          *get_binding(const char *id);
@@ -72,8 +73,10 @@ namespace lsp
                 PortLink & operator = (PortLink &&) = delete;
 
             public: // expr::Resolver
-                virtual status_t resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes) override;
-                virtual status_t resolve(expr::value_t *value, const LSPString *name, size_t num_indexes, const ssize_t *indexes) override;
+                virtual status_t    resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes) override;
+                virtual status_t    resolve(expr::value_t *value, const LSPString *name, size_t num_indexes, const ssize_t *indexes) override;
+                virtual status_t    call(expr::value_t *value, const char *name, size_t num_args, const expr::value_t *args) override;
+                virtual status_t    call(expr::value_t *value, const LSPString *name, size_t num_args, const expr::value_t *args) override;
 
             public: // ctl::Controller
                 virtual status_t    init() override;
