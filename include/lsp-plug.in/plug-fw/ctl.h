@@ -93,6 +93,7 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/Graph.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Origin.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Axis.h>
+    #include <lsp-plug.in/plug-fw/ctl/graph/Embed.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Marker.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Text.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Dot.h>
