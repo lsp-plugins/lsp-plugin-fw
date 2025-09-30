@@ -1021,6 +1021,11 @@ namespace lsp
                     UI_TAKE_INST_NAME_FROM_FILE_PORT,
                     "actions.ui_behavior.take_instrument_name_from_file"));
 
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT,
+                    "actions.ui_behavior.show_piano_layout_on_graph"));
+
             // Thickness of the enum menu item
             wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
 
