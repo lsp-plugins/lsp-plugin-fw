@@ -182,30 +182,38 @@ namespace lsp
 
         IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
         {
-            pDisplay        = NULL;
-            wWindow         = NULL;
-            pWindow         = NULL;
-            pUI             = ui;
-            pLoader         = loader;
-            nFlags          = 0;
-            nPlayPosition   = 0;
-            nPlayLength     = 0;
-            nActivePreset   = INVALID_PRESET_INDEX;
-            enPresetTab     = PRESET_TAB_ALL;
+            pDisplay            = NULL;
+            wWindow             = NULL;
+            pWindow             = NULL;
+            pUI                 = ui;
+            pLoader             = loader;
+            nFlags              = 0;
+            nPlayPosition       = 0;
+            nPlayLength         = 0;
+            nActivePreset       = INVALID_PRESET_INDEX;
+            nActivePresetData   = 0;
+            enPresetTab         = PRESET_TAB_ALL;
 
             plug::position_t::init(&sPosition);
+
+            for (size_t i=0; i<2; ++i)
+                core::init_preset_data(&vPresetData[i]);
         }
 
         IWrapper::~IWrapper()
         {
-            pDisplay    = NULL;
-            pUI         = NULL;
-            pLoader     = NULL;
-            nFlags      = 0;
+            pDisplay            = NULL;
+            pUI                 = NULL;
+            pLoader             = NULL;
+            nFlags              = 0;
         }
 
         void IWrapper::destroy()
         {
+            // Destroy preset data
+            for (size_t i=0; i<2; ++i)
+                core::destroy_preset_data(&vPresetData[i]);
+
             // Flush list of playback listeners
             vPlayListeners.flush();
 
@@ -2744,6 +2752,9 @@ namespace lsp
                 nFlags         |= F_PRESET_DIRTY | F_PRESET_SYNC;
                 notify_presets_updated();
             }
+
+            // Mark currently selected A/B preset state as dirty
+            vPresetData[nActivePreset].dirty        = true;
         }
 
         bool IWrapper::active_preset_dirty() const
@@ -2987,6 +2998,63 @@ namespace lsp
 
             // Notify listeners about presets changes
             notify_presets_updated();
+        }
+
+        size_t IWrapper::active_preset_data() const
+        {
+            return nActivePresetData;
+        }
+
+        status_t IWrapper::copy_preset_data()
+        {
+            core::preset_data_t *inactive   = &vPresetData[(nActivePresetData + 1) % 2];
+            return serialize_state(inactive);
+        }
+
+        status_t IWrapper::switch_preset_data()
+        {
+            status_t res;
+            core::preset_data_t *active     = &vPresetData[nActivePresetData];
+            core::preset_data_t *inactive   = &vPresetData[(nActivePresetData + 1) % 2];
+
+            // Check if we need to serialize current state
+            if ((active->empty) || (active->dirty))
+            {
+                if ((res = serialize_state(active)) != STATUS_OK)
+                    return res;
+            }
+
+            // Now load new state
+            if (!inactive->empty)
+            {
+                if ((res = deserialize_state(inactive)) != STATUS_OK)
+                    return res;
+            }
+
+            // Switch preset state
+            nActivePresetData   = (nActivePresetData + 1) % 2;
+
+            // Set preset dirty flag only when there is an active preset
+            const preset_t *preset = active_preset();
+            if ((preset != NULL) && (!(nFlags & F_PRESET_DIRTY)))
+            {
+                nFlags         |= F_PRESET_DIRTY | F_PRESET_SYNC;
+                notify_presets_updated();
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::serialize_state(core::preset_data_t *dst)
+        {
+            // TODO
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::deserialize_state(const core::preset_data_t *src)
+        {
+            // TODO
+            return STATUS_OK;
         }
 
     } /* namespace ui */
