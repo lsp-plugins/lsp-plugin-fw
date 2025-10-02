@@ -182,6 +182,7 @@ namespace lsp
                 void            notify_presets_updated();
                 void            notify_preset_deactivated(const preset_t *preset);
                 void            notify_preset_activated(const preset_t *preset);
+                void            notify_write_to_kvt(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value);
                 status_t        serialize_state(core::preset_data_t *dst);
                 status_t        deserialize_state(const core::preset_data_t *src);
 

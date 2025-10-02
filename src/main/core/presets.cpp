@@ -144,7 +144,7 @@ namespace lsp
 
         status_t add_preset_data_param(preset_data_t *dst, const char *name, const kvt_param_t * value)
         {
-            const size_t param_len  = strlen(name + 1);
+            const size_t param_len  = strlen(name) + 1;
             const size_t to_alloc   = sizeof(kvt_param_t) + align_size(param_len, DEFAULT_ALIGN);
 
             // Allocate and initialize parameter
@@ -153,7 +153,7 @@ namespace lsp
                 return STATUS_NO_MEM;
 
             kvt_init_parameter(&param->value);
-            memcpy(&param->name, name, param_len);
+            memcpy(param->name, name, param_len);
             lsp_finally { destroy_preset_param(param); };
 
             // Copy value to parameter
