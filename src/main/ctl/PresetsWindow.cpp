@@ -419,7 +419,7 @@ namespace lsp
             }
 
             wnd->show();
-            wnd->grab_events(ws::GRAB_DROPDOWN);
+//            wnd->grab_events(ws::GRAB_DROPDOWN);
 
             return STATUS_OK;
         }

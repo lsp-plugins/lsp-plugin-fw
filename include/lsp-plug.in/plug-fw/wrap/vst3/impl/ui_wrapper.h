@@ -403,7 +403,7 @@ namespace lsp
                         break;
 
                     kvt_dump_parameter("TX kvt param (DSP->UI): %s = ", kvt_value, kvt_name);
-                    kvt_notify_write(kvt, kvt_name, kvt_value);
+                    notify_write_to_kvt(kvt, kvt_name, kvt_value);
                     ++sync;
                 }
             } while (sync > 0);

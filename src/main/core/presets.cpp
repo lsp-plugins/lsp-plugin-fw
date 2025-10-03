@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/core/presets.h>
 
@@ -115,6 +116,90 @@ namespace lsp
             dst->flags          = src->flags;
             dst->tab            = src->tab;
             strcpy(dst->name, src->name);
+        }
+
+        void destroy_preset_param(preset_param_t *param)
+        {
+            if (param == NULL)
+                return;
+
+            kvt_destroy_parameter(&param->value);
+            free(param);
+        }
+
+        void destroy_preset_params(lltl::parray<preset_param_t> *list)
+        {
+            for (lltl::iterator<preset_param_t> it=list->values(); it; ++it)
+                destroy_preset_param(it.get());
+            list->flush();
+        }
+
+        void destroy_preset_data(preset_data_t *data)
+        {
+            if (data != NULL)
+                destroy_preset_params(&data->values);
+            data->empty         = true;
+            data->dirty         = false;
+        }
+
+        status_t add_preset_data_param(preset_data_t *dst, const char *name, const kvt_param_t * value)
+        {
+            const size_t param_len  = strlen(name) + 1;
+            const size_t to_alloc   = sizeof(kvt_param_t) + align_size(param_len, DEFAULT_ALIGN);
+
+            // Allocate and initialize parameter
+            preset_param_t *param   = static_cast<preset_param_t * >(malloc(to_alloc));
+            if (param == NULL)
+                return STATUS_NO_MEM;
+
+            kvt_init_parameter(&param->value);
+            memcpy(param->name, name, param_len);
+            lsp_finally { destroy_preset_param(param); };
+
+            // Copy value to parameter
+            status_t res = kvt_copy_parameter(&param->value, value);
+            if (res != STATUS_OK)
+                return res;
+
+            // Add parameter to the list
+            if (!dst->values.add(param))
+                return STATUS_NO_MEM;
+
+            param                   = NULL;
+            return STATUS_OK;
+        }
+
+        status_t copy_preset_data(preset_data_t *dst, const preset_data_t *src)
+        {
+            if ((src == NULL) || (dst == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            // Copy parameters
+            preset_data_t data;
+            if (!data.values.reserve(src->values.size()))
+                return STATUS_NO_MEM;
+
+            lsp_finally { destroy_preset_data(&data); };
+
+            for (lltl::iterator<preset_param_t> it = (const_cast<preset_data_t *>(src))->values.values(); it; ++it)
+            {
+                const preset_param_t *param     = it.get();
+                status_t res = add_preset_data_param(&data, param->name, &param->value);
+                if (res != STATUS_OK)
+                    return res;
+            }
+
+            // Now we are ready to commit result
+            dst->values.swap(&data.values);
+            dst->empty      = false;
+
+            return STATUS_OK;
+        }
+
+        void init_preset_data(preset_data_t *data)
+        {
+            data->empty         = true;
+            data->dirty         = false;
         }
 
     } /* namespace core */
