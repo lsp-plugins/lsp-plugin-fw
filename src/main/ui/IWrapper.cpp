@@ -3068,7 +3068,7 @@ namespace lsp
         status_t IWrapper::serialize_state(core::preset_data_t *dst)
         {
             // Write header
-            status_t res;
+            status_t res = STATUS_OK;
             core::preset_data_t data;
             core::init_preset_data(&data);
             lsp_finally {
