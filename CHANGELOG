@@ -5,6 +5,7 @@
 === 1.0.32 ===
 * Added ctl::PianoKeys controller for controlling piano keyboard layout.
 * Added ctl::Embed controller for placing widgets on the graph widget.
+* Implemented A/B preset switching support by plugins.
 * Fixed VST3 plugins crash under Ardour related to improper IRunLoop interface
   operations based on invalid API calls by the DAW.
 * Fixed setting paths for LV2 plugins using generic plugin interface.
