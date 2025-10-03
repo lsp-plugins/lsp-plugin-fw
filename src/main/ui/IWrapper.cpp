@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/lltl/ptrset.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/core/presets.h>
@@ -1540,9 +1541,7 @@ namespace lsp
                 }
             };
 
-            // Reset all ports to default values
-            if (!(flags & IMPORT_FLAG_PATCH))
-                reset_settings();
+            lltl::ptrset<ui::IPort> visited;
 
             while ((res = parser->next(&param)) == STATUS_OK)
             {
@@ -1646,6 +1645,21 @@ namespace lsp
                     {
                         if (set_port_value(p, &param, port_flags, basedir))
                             p->notify_all(ui::PORT_NONE);
+                        visited.put(p);
+                    }
+                }
+            }
+
+            // Reset non-visited ports to default values
+            if (!(flags & IMPORT_FLAG_PATCH))
+            {
+                for (lltl::iterator<ui::IPort> it = vPorts.values(); it; ++it)
+                {
+                    ui::IPort *p = it.get();
+                    if ((p != NULL) && (!visited.contains(p)))
+                    {
+                        p->set_default();
+                        p->notify_all(ui::PORT_NONE);
                     }
                 }
             }
