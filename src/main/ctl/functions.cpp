@@ -137,7 +137,7 @@ namespace lsp
             const float f_start = dspu::midi_note_to_frequency(start, base);
             const float f_end   = dspu::midi_note_to_frequency(end, base);
             const float count   = end - start;
-            const float delta   = expf(logf(f_end/f_start) / (1.0f - count));
+            const float delta   = expf(logf(f_end/f_start) / (2.0f - 2.0f * count)); // delta = half note range
 
             expr::set_value_float(result, f_start * delta);
 
@@ -157,7 +157,7 @@ namespace lsp
             const float f_start = dspu::midi_note_to_frequency(start, base);
             const float f_end   = dspu::midi_note_to_frequency(end, base);
             const float count   = end - start;
-            const float delta   = expf(logf(f_end/f_start) / (count - 1.0f));
+            const float delta   = expf(logf(f_end/f_start) / (count - 1.0f));       // delta = full note range
 
             expr::set_value_float(result, f_end * delta);
 
