@@ -29,6 +29,40 @@ namespace lsp
 {
     namespace ctl
     {
+        static constexpr uint32_t KEY_EXPAND_RIGHT  = 1 << 0; // binary: 01
+        static constexpr uint32_t KEY_EXPAND_LEFT   = 1 << 1; // binary: 10
+
+        static constexpr uint32_t KEY_BLACK         = 0;
+        static constexpr uint32_t KEY_WHITE_L       = KEY_EXPAND_RIGHT;
+        static constexpr uint32_t KEY_WHITE_R       = KEY_EXPAND_LEFT;
+        static constexpr uint32_t KEY_WHITE_M       = KEY_EXPAND_LEFT | KEY_EXPAND_RIGHT;
+
+        static constexpr uint32_t KEY_LAYOUT        = // Whole 12-note keyboard layout
+            (KEY_WHITE_L <<  0) |   // C
+            (KEY_BLACK   <<  2) |   // C#
+            (KEY_WHITE_M <<  4) |   // D
+            (KEY_BLACK   <<  6) |   // D#
+            (KEY_WHITE_R <<  8) |   // E
+            (KEY_WHITE_L << 10) |   // F
+            (KEY_BLACK   << 12) |   // F#
+            (KEY_WHITE_M << 14) |   // G
+            (KEY_BLACK   << 16) |   // G#
+            (KEY_WHITE_M << 18) |   // A
+            (KEY_BLACK   << 20) |   // A#
+            (KEY_WHITE_R << 22);    // B
+
+        static inline size_t left_expand(uint32_t note)
+        {
+            const uint32_t octave_note = note % 12;
+            return ((KEY_LAYOUT >> ((octave_note << 1) + 1)) & 1) + 1;
+        }
+
+        static inline size_t right_expand(uint32_t note)
+        {
+            const uint32_t octave_note = note % 12;
+            return ((KEY_LAYOUT >> (octave_note << 1)) & 1) + 1;
+        }
+
         static inline bool midi_note_valid(ssize_t value)
         {
             return (value >= 0) && (value <= 127);
@@ -134,10 +168,11 @@ namespace lsp
             if ((res = parse_midi_range(&start, &end, &base, num_args, args)) != STATUS_OK)
                 return res;
 
+            const float expand  = 0.5f * left_expand(start);
             const float f_start = dspu::midi_note_to_frequency(start, base);
             const float f_end   = dspu::midi_note_to_frequency(end, base);
             const float count   = end - start;
-            const float delta   = expf(logf(f_end/f_start) / (2.0f - 2.0f * count)); // delta = half note range
+            const float delta   = expf(logf(f_end/f_start) * expand / (1.0f - count));
 
             expr::set_value_float(result, f_start * delta);
 
@@ -154,10 +189,11 @@ namespace lsp
             if ((res = parse_midi_range(&start, &end, &base, num_args, args)) != STATUS_OK)
                 return res;
 
+            const float expand  = 0.5f * right_expand(end);
             const float f_start = dspu::midi_note_to_frequency(start, base);
             const float f_end   = dspu::midi_note_to_frequency(end, base);
             const float count   = end - start;
-            const float delta   = expf(logf(f_end/f_start) / (count - 1.0f));       // delta = full note range
+            const float delta   = expf(logf(f_end/f_start) * expand / (count - 1.0f));
 
             expr::set_value_float(result, f_end * delta);
 
