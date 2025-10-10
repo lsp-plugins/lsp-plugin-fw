@@ -68,6 +68,7 @@
     #include <lsp-plug.in/plug-fw/ctl/simple/Button.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Led.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Indicator.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/RangeSlider.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Separator.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Hyperlink.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Fader.h>
