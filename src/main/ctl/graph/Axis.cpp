@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 14 мая 2021 г.
@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
@@ -74,15 +75,15 @@ namespace lsp
             tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
             if (ga != NULL)
             {
-                sSmooth.init(pWrapper, ga->smooth());
-                sMin.init(pWrapper, ga->min());
-                sMax.init(pWrapper, ga->max());
-                sZero.init(pWrapper, ga->zero());
-                sLogScale.init(pWrapper, ga->log_scale());
-                sDx.init(pWrapper, this);
-                sDy.init(pWrapper, this);
-                sAngle.init(pWrapper, this);
-                sLength.init(pWrapper, this);
+                sSmooth.init(pWrapper, ga->smooth(), &sVariables);
+                sMin.init(pWrapper, ga->min(), &sVariables);
+                sMax.init(pWrapper, ga->max(), &sVariables);
+                sZero.init(pWrapper, ga->zero(), &sVariables);
+                sLogScale.init(pWrapper, ga->log_scale(), &sVariables);
+                sDx.init(pWrapper, this, &sVariables);
+                sDy.init(pWrapper, this, &sVariables);
+                sAngle.init(pWrapper, this, &sVariables);
+                sLength.init(pWrapper, this, &sVariables);
                 sWidth.init(pWrapper, ga->width());
                 sColor.init(pWrapper, ga->color());
 
@@ -125,35 +126,6 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        float Axis::eval_expr(ctl::Expression *expr)
-        {
-            tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
-            if (ga == NULL)
-                return 0.0f;
-
-            tk::Graph *g = ga->graph();
-            ws::rectangle_t r;
-            r.nLeft     = 0;
-            r.nTop      = 0;
-            r.nWidth    = 0;
-            r.nHeight   = 0;
-
-            if (g != NULL)
-            {
-                g->get_rectangle(&r);
-                r.nLeft = g->canvas_width();
-                r.nTop  = g->canvas_height();
-            }
-
-            expr->params()->clear();
-            expr->params()->set_int("_g_width", r.nWidth);
-            expr->params()->set_int("_g_height", r.nHeight);
-            expr->params()->set_int("_a_width", r.nLeft);
-            expr->params()->set_int("_a_height", r.nTop);
-
-            return expr->evaluate();
-        }
-
         void Axis::notify(ui::IPort *port, size_t flags)
         {
             Widget::notify(port, flags);
@@ -162,35 +134,41 @@ namespace lsp
             if (ga != NULL)
             {
                 if (sDx.depends(port))
-                    ga->direction()->set_dx(eval_expr(&sDx));
+                    ga->direction()->set_dx(sDx.evaluate_float());
                 if (sDy.depends(port))
-                    ga->direction()->set_dy(eval_expr(&sDy));
+                    ga->direction()->set_dy(sDy.evaluate_float());
                 if (sAngle.depends(port))
-                    ga->direction()->set_angle(eval_expr(&sAngle) * M_PI);
+                    ga->direction()->set_angle(sAngle.evaluate_float() * M_PI);
                 if (sLength.depends(port))
-                    ga->length()->set(eval_expr(&sLength));
+                    ga->length()->set(sLength.evaluate_float());
             }
         }
 
         void Axis::trigger_expr()
         {
-            tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
-            if (ga == NULL)
-                return;
+            sSmooth.apply_changes();
+            sMin.apply_changes();
+            sMax.apply_changes();
+            sZero.apply_changes();
+            sLogScale.apply_changes();
 
-            if (sDx.valid())
-                ga->direction()->set_dx(eval_expr(&sDx));
-            if (sDy.valid())
-                ga->direction()->set_dy(eval_expr(&sDy));
-            if (sAngle.valid())
-                ga->direction()->set_angle(eval_expr(&sAngle) * M_PI);
-            if (sLength.valid())
-                ga->length()->set(eval_expr(&sLength));
+            tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
+            if (ga != NULL)
+            {
+                if (sDx.valid())
+                    ga->direction()->set_dx(sDx.evaluate_float());
+                if (sDy.valid())
+                    ga->direction()->set_dy(sDy.evaluate_float());
+                if (sAngle.valid())
+                    ga->direction()->set_angle(sAngle.evaluate_float() * M_PI);
+                if (sLength.valid())
+                    ga->length()->set(sLength.evaluate_float());
+            }
         }
 
         void Axis::end(ui::UIContext *ctx)
         {
-            trigger_expr();
+            on_graph_resize();
 
             tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
             if (ga == NULL)
@@ -208,19 +186,49 @@ namespace lsp
                 ga->log_scale()->set(meta::is_log_rule(mdata));
         }
 
-        status_t Axis::slot_graph_resize(tk::Widget *sender, void *ptr, void *data)
-        {
-            ctl::Axis *_this    = static_cast<ctl::Axis *>(ptr);
-            if (_this != NULL)
-                _this->trigger_expr();
-            return STATUS_OK;
-        }
-
         void Axis::reloaded(const tk::StyleSheet *sheet)
         {
             Widget::reloaded(sheet);
             trigger_expr();
         }
+
+        void Axis::on_graph_resize()
+        {
+            tk::GraphAxis *ga = tk::widget_cast<tk::GraphAxis>(wWidget);
+            if (ga == NULL)
+                return;
+
+            tk::Graph *g = ga->graph();
+            ws::rectangle_t r;
+            r.nLeft     = 0;
+            r.nTop      = 0;
+            r.nWidth    = 0;
+            r.nHeight   = 0;
+
+            if (g != NULL)
+            {
+                g->get_rectangle(&r);
+                r.nLeft = g->canvas_width();
+                r.nTop  = g->canvas_height();
+            }
+
+            sVariables.set_int("_g_width", r.nWidth);
+            sVariables.set_int("_g_height", r.nHeight);
+            sVariables.set_int("_a_width", r.nLeft);
+            sVariables.set_int("_a_height", r.nTop);
+
+            trigger_expr();
+        }
+
+        status_t Axis::slot_graph_resize(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Axis *self     = static_cast<ctl::Axis *>(ptr);
+            if (self != NULL)
+                self->on_graph_resize();
+
+            return STATUS_OK;
+        }
+
     } /* namespace ctl */
 } /* namespace lsp */
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 14 мая 2021 г.
@@ -55,12 +55,14 @@ namespace lsp
                 ctl::Integer        sWidth;
                 ctl::Color          sColor;
 
+                expr::Variables     sVariables;
+
             protected:
                 static status_t     slot_graph_resize(tk::Widget *sender, void *ptr, void *data);
 
             protected:
-                float               eval_expr(ctl::Expression *expr);
                 void                trigger_expr();
+                void                on_graph_resize();
 
             public:
                 explicit Axis(ui::IWrapper *wrapper, tk::GraphAxis *widget);

@@ -44,9 +44,6 @@ namespace lsp
                 tk::Integer    *pProp;
 
             protected:
-                void            apply_changes();
-
-            protected:
                 virtual void    on_updated(ui::IPort *port, size_t flags) override;
 
             public:
@@ -58,12 +55,14 @@ namespace lsp
                 Integer & operator = (const Integer &) = delete;
                 Integer & operator = (Integer &&) = delete;
 
-                void            init(ui::IWrapper *wrapper, tk::Integer *prop);
+                void            init(ui::IWrapper *wrapper, tk::Integer *prop, expr::Resolver *resolver = NULL);
 
             public:
                 bool            set(const char *prop, const char *name, const char *value);
                 inline ssize_t  value() const   { return pProp->get();  }
+                void            apply_changes();
 
+            public:
                 virtual void    reloaded(const tk::StyleSheet *sheet) override;
         };
     } /* namespace ctl */

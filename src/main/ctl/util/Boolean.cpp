@@ -64,9 +64,9 @@ namespace lsp
         }
 
 
-        void Boolean::init(ui::IWrapper *wrapper, tk::Boolean *prop)
+        void Boolean::init(ui::IWrapper *wrapper, tk::Boolean *prop, expr::Resolver *resolver)
         {
-            Property::init(wrapper);
+            Property::init(wrapper, resolver);
             pProp       = prop;
 
             if (pWrapper != NULL)
@@ -85,6 +85,6 @@ namespace lsp
             return true;
         }
 
-    }
-}
+    } /* namespace lsp */
+} /* namespace ctl */
 
