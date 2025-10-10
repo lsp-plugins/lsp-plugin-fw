@@ -199,6 +199,8 @@ namespace lsp
                 return;
 
             tk::Graph *g = ga->graph();
+            const float r_scaling = (g != NULL) ? 1.0f / g->scaling()->get() : 1.0f;
+
             ws::rectangle_t r;
             r.nLeft     = 0;
             r.nTop      = 0;
@@ -216,6 +218,11 @@ namespace lsp
             sVariables.set_int("_g_height", r.nHeight);
             sVariables.set_int("_a_width", r.nLeft);
             sVariables.set_int("_a_height", r.nTop);
+
+            sVariables.set_float("_g_scaled_width", r.nWidth * r_scaling);
+            sVariables.set_float("_g_scaled_height", r.nHeight * r_scaling);
+            sVariables.set_float("_a_scaled_width", r.nLeft * r_scaling);
+            sVariables.set_float("_a_scaled_height", r.nTop * r_scaling);
 
             trigger_expr();
         }
