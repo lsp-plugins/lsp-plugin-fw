@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
@@ -125,33 +126,35 @@ namespace lsp
 
             bind_port(&rp->pPort, "id", name, value);
 
-            if (type == PT_MIN)
+            switch (type)
             {
-                if (!strcmp(name, ""))
-                    rp->sMin.parse(value);
-            }
-            else if (type == PT_MAX)
-            {
-                if (!strcmp(name, ""))
-                    rp->sMax.parse(value);
-            }
-            else if (type == PT_RANGE)
-            {
-                if (!strcmp(name, ""))
-                    rp->sMin.parse(value);
-            }
-            else
-            {
-                if (!strcmp(name, "min"))
-                    rp->sMin.parse(value);
-                if (!strcmp(name, "max"))
-                    rp->sMax.parse(value);
-            }
+                case PT_MIN:
+                    if (!strcmp(name, ""))
+                        rp->sMin.parse(value);
+                    break;
 
-            set_value(&rp->fDefault, "dfl", name, value);
-                rp->bHasDefault     = true;
-            if (set_value(&rp->fDefault, "default", name, value))
-                rp->bHasDefault     = true;
+                case PT_MAX:
+                    if (!strcmp(name, ""))
+                        rp->sMax.parse(value);
+                    break;
+
+                case PT_RANGE:
+                    if (!strcmp(name, ""))
+                        rp->sMin.parse(value);
+                    break;
+
+                default:
+                    if (!strcmp(name, "min"))
+                        rp->sMin.parse(value);
+                    if (!strcmp(name, "max"))
+                        rp->sMax.parse(value);
+
+                    if (set_value(&rp->fDefault, "dfl", name, value))
+                        rp->bHasDefault     = true;
+                    if (set_value(&rp->fDefault, "default", name, value))
+                        rp->bHasDefault     = true;
+                    break;
+            }
 
             return true;
         }
@@ -251,6 +254,8 @@ namespace lsp
         {
             Widget::notify(port, flags);
 
+            if (nFlags & GF_CHANGING)
+                return;
             nFlags |= GF_CHANGING;
             lsp_finally { nFlags &= ~GF_CHANGING; };
 
@@ -301,7 +306,7 @@ namespace lsp
             }
 
             // Commit new values
-            for (size_t i=PT_BEGIN; i<PT_END; ++i)
+            for (size_t i=PT_BEGIN; i<=PT_END; ++i)
             {
                 param_t * const rp = &vParams[i];
                 if (rp->sMin.depends(port))
@@ -314,11 +319,10 @@ namespace lsp
                     rp->fMax        = rp->sMax.evaluate_float();
                     nf_flags       |= NF_MAX;
                 }
+
+                rp->fValue      = rp->pPort->value();
                 if (rp->pPort == port)
-                {
-                    rp->fValue      = rp->pPort->value();
                     nf_flags       |= (i == PT_BEGIN) ? NF_BEGIN : NF_END;
-                }
             }
 
             // Commit and synchronize values
@@ -329,6 +333,8 @@ namespace lsp
                 bool changed[PT_TOTAL];
                 for (size_t i=PT_BEGIN; i<=PT_END; ++i)
                 {
+                    changed[i] = false;
+
                     param_t * const rp  = &vParams[i];
                     if ((rp->pPort != NULL) && (rp->pPort->value() != rp->fValue))
                     {
@@ -338,7 +344,7 @@ namespace lsp
                 }
 
                 // Notify about changes
-                for (size_t i=0; i<PT_TOTAL; ++i)
+                for (size_t i=PT_BEGIN; i<=PT_END; ++i)
                 {
                     if (changed[i])
                         vParams[i].pPort->notify_all(ui::PORT_USER_EDIT);
@@ -351,7 +357,7 @@ namespace lsp
             Widget::end(ctx);
 
             // Parse minimum and maximum for begin and end
-            for (size_t i=PT_BEGIN; i<PT_END; ++i)
+            for (size_t i=PT_BEGIN; i<=PT_END; ++i)
             {
                 param_t * const rp = &vParams[i];
                 if (rp->pPort != NULL)
@@ -379,7 +385,7 @@ namespace lsp
             // Parse absolute maximum
             {
                 param_t * const rp = &vParams[PT_MAX];
-                rp->fMax        = lsp_min(vParams[PT_BEGIN].fMax, vParams[PT_END].fMax);
+                rp->fMax        = lsp_max(vParams[PT_BEGIN].fMax, vParams[PT_END].fMax);
                 if (rp->sMax.valid())
                     rp->fMax        = rp->sMax.evaluate_float();
                 else if (rp->pPort != NULL)
@@ -389,7 +395,7 @@ namespace lsp
             {
                 param_t * const rp = &vParams[PT_RANGE];
                 rp->fMin        = 0.0f;
-                if (rp->sMax.valid())
+                if (rp->sMin.valid())
                     rp->fMin        = rp->sMin.evaluate_float();
                 else if (rp->pPort != NULL)
                     rp->fMin        = rp->pPort->value();
@@ -437,27 +443,23 @@ namespace lsp
             }
         }
 
-        void RangeSlider::submit_values()
+        void RangeSlider::submit_values(size_t flags)
         {
-            if (nFlags & GF_CHANGING)
-                return;
-
             tk::RangeSlider *rs = tk::widget_cast<tk::RangeSlider>(wWidget);
             if (rs == NULL)
                 return;
-
-            nFlags |= GF_CHANGING;
-            lsp_finally { nFlags &= ~GF_CHANGING; };
 
             // Process values
             bool changed[PT_TOTAL];
             for (size_t i=PT_BEGIN; i<=PT_END; ++i)
             {
-                param_t * const rp  = &vParams[i];
+                changed[i]              = false;
+                if (!(flags & (1u << i)))
+                    continue;
 
-                changed[i]      = false;
-                float value     = get_slider_value(rs, i);
-                const meta::port_t *p = (rp->pPort != NULL) ? rp->pPort->metadata() : NULL;
+                param_t * const rp      = &vParams[i];
+                float value             = get_slider_value(rs, i);
+                const meta::port_t *p   = (rp->pPort != NULL) ? rp->pPort->metadata() : NULL;
                 if (p == NULL)
                 {
                     if ((rp->pPort != NULL) && (rp->pPort->value() != value))
@@ -497,7 +499,7 @@ namespace lsp
             }
 
             // Notify about changes
-            for (size_t i=0; i<PT_TOTAL; ++i)
+            for (size_t i=PT_BEGIN; i<=PT_END; ++i)
             {
                 if (changed[i])
                     vParams[i].pPort->notify_all(ui::PORT_USER_EDIT);
@@ -520,8 +522,9 @@ namespace lsp
             bool changed[PT_TOTAL];
             for (size_t i=PT_BEGIN; i<=PT_END; ++i)
             {
-                param_t * const rp      = &vParams[i];
+                changed[i]              = false;
 
+                param_t * const rp      = &vParams[i];
                 const meta::port_t *p   = (rp->pPort != NULL) ? rp->pPort->metadata() : NULL;
                 const float dfl         = (rp->pPort != NULL) ? rp->pPort->default_value() : (rp->bHasDefault) ? rp->fDefault : p->start;
                 float value             = dfl;
@@ -554,6 +557,7 @@ namespace lsp
                 }
             }
 
+            // Notify about changes
             for (size_t i=PT_BEGIN; i<=PT_END; ++i)
             {
                 if (changed[i])
@@ -578,9 +582,6 @@ namespace lsp
 
         void RangeSlider::commit_values(size_t flags)
         {
-            if (nFlags & GF_CHANGING)
-                return;
-
             // Ensure that widget is set
             tk::RangeSlider *rs = tk::widget_cast<tk::RangeSlider>(wWidget);
             if (rs == NULL)
@@ -610,18 +611,18 @@ namespace lsp
                     if (flags & NF_BEGIN)
                     {
                         if (is_log_range(begin->pPort))
-                            end->fValue     = lsp_max(end->fValue * logf(abs_range), end->fValue);
+                            end->fValue     = lsp_max(begin->fValue * logf(abs_range), end->fValue);
                         else
-                            end->fValue     = lsp_max(end->fValue + abs_range, end->fValue);
+                            end->fValue     = lsp_max(begin->fValue + abs_range, end->fValue);
                         end->fValue     = lsp_xlimit(end->fValue, end->fMin, end->fMax);
                         end->fValue     = lsp_xlimit(end->fValue, abs_min, abs_max);
                     }
                     else if (flags & NF_END)
                     {
                         if (is_log_range(end->pPort))
-                            begin->fValue   = lsp_min(begin->fValue / logf(abs_range), begin->fValue);
+                            begin->fValue   = lsp_min(end->fValue / logf(abs_range), begin->fValue);
                         else
-                            begin->fValue   = lsp_min(begin->fValue - abs_range, begin->fValue);
+                            begin->fValue   = lsp_min(end->fValue - abs_range, begin->fValue);
                         begin->fValue   = lsp_xlimit(begin->fValue, begin->fMin, begin->fMax);
                         begin->fValue   = lsp_xlimit(begin->fValue, abs_min, abs_max);
                     }
@@ -665,8 +666,20 @@ namespace lsp
             }
 
             // Initialize fader
-            if (flags & (NF_MIN | NF_MAX))
-                rs->limits()->set(abs_min, abs_max);
+            switch (flags & (NF_MIN | NF_MAX))
+            {
+                case NF_MIN | NF_MAX:
+                    rs->limits()->set(abs_min, abs_max);
+                    break;
+                case NF_MIN:
+                    rs->limits()->set_min(abs_min);
+                    break;
+                case NF_MAX:
+                    rs->limits()->set_max(abs_max);
+                    break;
+                default:
+                    break;
+            }
             if (flags & NF_RANGE)
                 rs->distance()->set(abs_range);
             if (flags & (NF_BEGIN | NF_END))
@@ -676,9 +689,18 @@ namespace lsp
 
         status_t RangeSlider::slot_change(tk::Widget *sender, void *ptr, void *data)
         {
-            ctl::RangeSlider *_this   = static_cast<ctl::RangeSlider *>(ptr);
+            ctl::RangeSlider *_this = static_cast<ctl::RangeSlider *>(ptr);
+            const size_t *ev_flags  = static_cast<size_t *>(data);
+            size_t flags            = 0;
+            if (ev_flags != NULL)
+            {
+                flags                   = lsp_setflag(flags, 1 << PT_END, *ev_flags & tk::RangeSlider::CHANGE_MAX);
+                flags                   = lsp_setflag(flags, 1 << PT_BEGIN, *ev_flags & tk::RangeSlider::CHANGE_MIN);
+            }
+            else
+                flags                   = 1 << PT_END;
             if (_this != NULL)
-                _this->submit_values();
+                _this->submit_values(flags);
             return STATUS_OK;
         }
 

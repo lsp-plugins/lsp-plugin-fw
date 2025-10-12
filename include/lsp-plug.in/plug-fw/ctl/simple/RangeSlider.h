@@ -111,7 +111,7 @@ namespace lsp
                 static void         set_slider_value(tk::RangeSlider *rs, size_t type, float value);
 
             protected:
-                void                submit_values();
+                void                submit_values(size_t flags);
                 void                set_default_values();
                 void                commit_values(size_t flags);
                 bool                bind_params(size_t type, const char *prefix, const char *name, const char *value);
