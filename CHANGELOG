@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.32 ===
+* Added ctl::RangeSlider controller for controlling range of two parameters.
 * Added ctl::PianoKeys controller for controlling piano keyboard layout.
 * Added ctl::Embed controller for placing widgets on the graph widget.
 * Implemented A/B preset switching support by plugins.
