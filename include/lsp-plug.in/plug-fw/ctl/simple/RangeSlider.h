@@ -44,20 +44,13 @@ namespace lsp
             protected:
                 enum param_type_t
                 {
+                    PT_MIN,
+                    PT_MAX,
+                    PT_RANGE,
                     PT_BEGIN,
                     PT_END,
-                    PT_RANGE,
 
                     PT_TOTAL
-                };
-
-                enum param_flags_t
-                {
-                    PF_MIN          = 1 << 0,
-                    PF_MAX          = 1 << 1,
-                    PF_DFL          = 1 << 2,
-                    PF_VALUE        = 1 << 3,
-                    PF_STEP         = 1 << 4
                 };
 
                 enum notify_flags_t
@@ -65,26 +58,29 @@ namespace lsp
                     NF_MIN          = 1 << 0,
                     NF_MAX          = 1 << 1,
                     NF_RANGE        = 1 << 2,
-                    NF_VALUE        = 1 << 3,
-                    NF_DFL          = 1 << 4
+                    NF_BEGIN        = 1 << 3,
+                    NF_END          = 1 << 4
                 };
 
                 enum global_flags_t
                 {
                     GF_LOG          = 1 << 0,
                     GF_LOG_SET      = 1 << 1,
-                    GF_CHANGING     = 1 << 2
+                    GF_STEP         = 1 << 2,
+                    GF_CHANGING     = 1 << 3
                 };
 
                 typedef struct param_t
                 {
                     ui::IPort          *pPort;
-
-                    size_t              nFlags;
+                    float               fMin;
+                    float               fMax;
+                    float               fValue;
                     float               fDefault;
-                    float               fDefaultValue;
+                    bool                bHasDefault;
 
-                    ctl::Expression     sValue;
+                    ctl::Expression     sMin;
+                    ctl::Expression     sMax;
                 } param_t;
 
             protected:
@@ -99,32 +95,27 @@ namespace lsp
                 ctl::Color          sInactiveScaleBorderColor;
                 ctl::Color          sInactiveBalanceColor;
 
-//                prop::Range                     sLimits;
-//                prop::Range                     sValues;
-//                prop::Float                     sDistance;
                 param_t             vParams[PT_TOTAL];
-
-                ctl::Expression     sMin;
-                ctl::Expression     sMax;
-                ctl::Expression     sDistance;
 
                 size_t              nFlags;
                 float               fStep;
                 float               fAStep;
                 float               fDStep;
-                float               fMin;
-                float               fMax;
-                float               fDistance;
 
             protected:
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
 
             protected:
+                static float        get_slider_value(tk::RangeSlider *rs, size_t type);
+                static void         set_slider_value(tk::RangeSlider *rs, size_t type, float value);
+
+            protected:
                 void                submit_values();
                 void                set_default_values();
                 void                commit_values(size_t flags);
-                bool                bind_params(param_t *param, const char *prefix, const char *name, const char *value);
+                bool                bind_params(size_t type, const char *prefix, const char *name, const char *value);
+                bool                is_log_range(ui::IPort *p);
 
             public:
                 explicit RangeSlider(ui::IWrapper *wrapper, tk::RangeSlider *widget);
