@@ -111,6 +111,8 @@ namespace lsp
 
                 // Bind slots
                 rs->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
+                rs->slots()->bind(tk::SLOT_BEGIN_EDIT, slot_begin_edit, this);
+                rs->slots()->bind(tk::SLOT_END_EDIT, slot_end_edit, this);
                 rs->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_dbl_click, this);
             }
 
@@ -331,10 +333,18 @@ namespace lsp
                 commit_values(nf_flags);
 
                 bool changed[PT_TOTAL];
+
+                // Start port editing
                 for (size_t i=PT_BEGIN; i<=PT_END; ++i)
                 {
-                    changed[i] = false;
+                    param_t * const rp  = &vParams[i];
+                    if (rp->pPort != NULL)
+                        rp->pPort->begin_edit();
+                }
 
+                // Update port settings
+                for (size_t i=PT_BEGIN; i<=PT_END; ++i)
+                {
                     param_t * const rp  = &vParams[i];
                     if ((rp->pPort != NULL) && (rp->pPort->value() != rp->fValue))
                     {
@@ -348,6 +358,14 @@ namespace lsp
                 {
                     if (changed[i])
                         vParams[i].pPort->notify_all(ui::PORT_USER_EDIT);
+                }
+
+                // Notify about end of edit
+                for (size_t i=PT_BEGIN; i<=PT_END; ++i)
+                {
+                    param_t * const rp  = &vParams[i];
+                    if (rp->pPort != NULL)
+                        rp->pPort->end_edit();
                 }
             }
         }
@@ -449,7 +467,15 @@ namespace lsp
             if (rs == NULL)
                 return;
 
-            // Process values
+            // Start editing
+            for (size_t i=PT_BEGIN; i<=PT_END; ++i)
+            {
+                param_t * const rp      = &vParams[i];
+                if (rp->pPort != NULL)
+                    rp->pPort->begin_edit();
+            }
+
+            // Modify values
             bool changed[PT_TOTAL];
             for (size_t i=PT_BEGIN; i<=PT_END; ++i)
             {
@@ -504,6 +530,14 @@ namespace lsp
                 if (changed[i])
                     vParams[i].pPort->notify_all(ui::PORT_USER_EDIT);
             }
+
+            // Finish editing
+            for (size_t i=PT_BEGIN; i<=PT_END; ++i)
+            {
+                param_t * const rp      = &vParams[i];
+                if (rp->pPort != NULL)
+                    rp->pPort->end_edit();
+            }
         }
 
         void RangeSlider::set_default_values()
@@ -517,6 +551,14 @@ namespace lsp
 
             nFlags |= GF_CHANGING;
             lsp_finally { nFlags &= ~GF_CHANGING; };
+
+            // Start editing
+            for (size_t i=PT_BEGIN; i<=PT_END; ++i)
+            {
+                param_t * const rp      = &vParams[i];
+                if (rp->pPort != NULL)
+                    rp->pPort->begin_edit();
+            }
 
             // Process values
             bool changed[PT_TOTAL];
@@ -551,9 +593,10 @@ namespace lsp
                 set_slider_value(rs, i, value);
                 if ((rp->pPort != NULL) && (dfl != rp->pPort->value()))
                 {
+                    // Mark port for begin edit and apply new value
+                    rp->pPort->set_value(dfl);
                     rp->fValue              = dfl;
                     changed[i]              = true;
-                    rp->pPort->set_value(dfl);
                 }
             }
 
@@ -562,6 +605,14 @@ namespace lsp
             {
                 if (changed[i])
                     vParams[i].pPort->notify_all(ui::PORT_USER_EDIT);
+            }
+
+            // Finish editing
+            for (size_t i=PT_BEGIN; i<=PT_END; ++i)
+            {
+                param_t * const rp      = &vParams[i];
+                if (rp->pPort != NULL)
+                    rp->pPort->end_edit();
             }
         }
 
@@ -595,39 +646,34 @@ namespace lsp
             float abs_range         = vParams[PT_RANGE].fMin;
 
             // Apply value constraints
-            if (flags & (NF_MIN | NF_MAX))
+            for (size_t i=PT_BEGIN; i<=PT_END; ++i)
             {
-                for (size_t i=PT_BEGIN; i<=PT_END; ++i)
+                param_t * const rp      = &vParams[i];
+                rp->fValue              = lsp_xlimit(rp->fValue, rp->fMin, rp->fMax);
+                rp->fValue              = lsp_xlimit(rp->fValue, abs_min, abs_max);
+            }
+            if ((begin->pPort != NULL) && (end->pPort != NULL))
+            {
+                if (flags & NF_BEGIN)
                 {
-                    param_t * const rp      = &vParams[i];
-                    rp->fValue              = lsp_xlimit(rp->fValue, rp->fMin, rp->fMax);
-                    rp->fValue              = lsp_xlimit(rp->fValue, abs_min, abs_max);
+                    if (is_log_range(begin->pPort))
+                        end->fValue     = lsp_max(begin->fValue * logf(abs_range), end->fValue);
+                    else
+                        end->fValue     = lsp_max(begin->fValue + abs_range, end->fValue);
+                    end->fValue     = lsp_xlimit(end->fValue, end->fMin, end->fMax);
+                    end->fValue     = lsp_xlimit(end->fValue, abs_min, abs_max);
+                }
+                else if (flags & NF_END)
+                {
+                    if (is_log_range(end->pPort))
+                        begin->fValue   = lsp_min(end->fValue / logf(abs_range), begin->fValue);
+                    else
+                        begin->fValue   = lsp_min(end->fValue - abs_range, begin->fValue);
+                    begin->fValue   = lsp_xlimit(begin->fValue, begin->fMin, begin->fMax);
+                    begin->fValue   = lsp_xlimit(begin->fValue, abs_min, abs_max);
                 }
             }
-            if (flags & NF_RANGE)
-            {
-                if ((begin->pPort != NULL) && (end->pPort != NULL))
-                {
-                    if (flags & NF_BEGIN)
-                    {
-                        if (is_log_range(begin->pPort))
-                            end->fValue     = lsp_max(begin->fValue * logf(abs_range), end->fValue);
-                        else
-                            end->fValue     = lsp_max(begin->fValue + abs_range, end->fValue);
-                        end->fValue     = lsp_xlimit(end->fValue, end->fMin, end->fMax);
-                        end->fValue     = lsp_xlimit(end->fValue, abs_min, abs_max);
-                    }
-                    else if (flags & NF_END)
-                    {
-                        if (is_log_range(end->pPort))
-                            begin->fValue   = lsp_min(end->fValue / logf(abs_range), begin->fValue);
-                        else
-                            begin->fValue   = lsp_min(end->fValue - abs_range, begin->fValue);
-                        begin->fValue   = lsp_xlimit(begin->fValue, begin->fMin, begin->fMax);
-                        begin->fValue   = lsp_xlimit(begin->fValue, abs_min, abs_max);
-                    }
-                }
-            }
+
             float v_begin           = begin->fValue;
             float v_end             = end->fValue;
             const meta::port_t *p   = (begin->pPort != NULL) ? begin->pPort->metadata() : NULL;
@@ -665,7 +711,7 @@ namespace lsp
                 step                   *= 10.0f;
             }
 
-            // Initialize fader
+            // Initialize slider
             switch (flags & (NF_MIN | NF_MAX))
             {
                 case NF_MIN | NF_MAX:
@@ -701,6 +747,36 @@ namespace lsp
                 flags                   = 1 << PT_END;
             if (_this != NULL)
                 _this->submit_values(flags);
+            return STATUS_OK;
+        }
+
+        status_t RangeSlider::slot_begin_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::RangeSlider *self  = static_cast<ctl::RangeSlider *>(ptr);
+            if (self != NULL)
+            {
+                for (size_t i=PT_BEGIN; i<=PT_END; ++i)
+                {
+                    param_t * const rp  = &self->vParams[i];
+                    if (rp->pPort != NULL)
+                        rp->pPort->begin_edit();
+                }
+            }
+            return STATUS_OK;
+        }
+
+        status_t RangeSlider::slot_end_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::RangeSlider *self  = static_cast<ctl::RangeSlider *>(ptr);
+            if (self != NULL)
+            {
+                for (size_t i=PT_BEGIN; i<=PT_END; ++i)
+                {
+                    param_t * const rp  = &self->vParams[i];
+                    if (rp->pPort != NULL)
+                        rp->pPort->end_edit();
+                }
+            }
             return STATUS_OK;
         }
 

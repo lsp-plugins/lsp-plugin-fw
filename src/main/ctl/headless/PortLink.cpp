@@ -185,6 +185,15 @@ namespace lsp
                     b->fNewValue    = b->sValue.evaluate();
             }
 
+            // Mark ports as being edited
+            for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
+            {
+                binding_t *b = it.get();
+
+                if ((b->pPort != NULL) && (b->pPort != port))
+                    b->pPort->begin_edit();
+            }
+
             // Update port values without notification
             for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
             {
@@ -205,6 +214,14 @@ namespace lsp
                 binding_t *b = it.get();
                 if ((b->pPort != NULL) && (b->pPort != port))
                     b->pPort->notify_all(flags);
+            }
+
+            // Mark ports as being not edited
+            for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
+            {
+                binding_t *b = it.get();
+                if ((b->pPort != NULL) && (b->pPort != port))
+                    b->pPort->end_edit();
             }
         }
 

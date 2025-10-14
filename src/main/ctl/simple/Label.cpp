@@ -346,8 +346,10 @@ namespace lsp
             if (res != STATUS_OK)
                 return false;
 
+            pPort->begin_edit();
             pPort->set_value(fv);
             pPort->notify_all(ui::PORT_USER_EDIT);
+            pPort->end_edit();
             return true;
         }
 

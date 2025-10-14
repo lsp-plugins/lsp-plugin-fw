@@ -293,6 +293,13 @@ namespace lsp
         {
             lsp_trace("Apply value: %d", int(value));
 
+            // Notify about the start of edit
+            if (pNote != NULL)
+                pNote->begin_edit();
+            if (pOctave != NULL)
+                pOctave->begin_edit();
+
+            // Calculate and submit new values
             value           = lsp_limit(value, 0, 127);
             size_t note     = value % 12;
             size_t octave   = value / 12;
@@ -319,6 +326,12 @@ namespace lsp
                 pNote->notify_all(ui::PORT_USER_EDIT);
             if (pOctave != NULL)
                 pOctave->notify_all(ui::PORT_USER_EDIT);
+
+            // Notify about the end of edit
+            if (pNote != NULL)
+                pNote->end_edit();
+            if (pOctave != NULL)
+                pOctave->end_edit();
         }
 
         status_t MidiNote::slot_submit_value(tk::Widget *sender, void *ptr, void *data)

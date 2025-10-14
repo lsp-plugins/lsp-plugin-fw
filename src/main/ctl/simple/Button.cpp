@@ -276,8 +276,10 @@ namespace lsp
             if (pPort != NULL)
             {
                 lsp_trace("Setting %s = %f", pPort->id(), value);
+                pPort->begin_edit();
                 pPort->set_value(value);
                 pPort->notify_all(ui::PORT_USER_EDIT);
+                pPort->end_edit();
             }
         }
 

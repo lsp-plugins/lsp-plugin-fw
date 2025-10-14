@@ -168,6 +168,13 @@ namespace lsp
             if (pk == NULL)
                 return STATUS_OK;
 
+            // Notify about start of edit
+            if (self->pSelectionStart != NULL)
+                self->pSelectionStart->begin_edit();
+            if (self->pSelectionEnd != NULL)
+                self->pSelectionEnd->begin_edit();
+
+            // Modify values
             const ssize_t sel_start = pk->selection_start()->get();
             const ssize_t sel_end   = pk->selection_end()->get();
             bool notify_start       = false;
@@ -187,6 +194,12 @@ namespace lsp
                 self->pSelectionStart->notify_all(ui::PORT_USER_EDIT);
             if (notify_end)
                 self->pSelectionEnd->notify_all(ui::PORT_USER_EDIT);
+
+            // Notify about end of edit
+            if (self->pSelectionStart != NULL)
+                self->pSelectionStart->end_edit();
+            if (self->pSelectionEnd != NULL)
+                self->pSelectionEnd->end_edit();
 
             return STATUS_OK;
         }

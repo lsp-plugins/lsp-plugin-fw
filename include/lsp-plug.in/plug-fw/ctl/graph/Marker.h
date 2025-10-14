@@ -71,6 +71,8 @@ namespace lsp
             protected:
                 static status_t     slot_graph_resize(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_begin_edit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_end_edit(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                on_graph_resize();
@@ -79,7 +81,12 @@ namespace lsp
 
             public:
                 explicit Marker(ui::IWrapper *wrapper, tk::GraphMarker *widget);
+                Marker(const Marker &) = delete;
+                Marker(Marker &&) = delete;
                 virtual ~Marker() override;
+
+                Marker & operator = (const Marker &) = delete;
+                Marker & operator = (Marker &&) = delete;
 
                 virtual status_t    init() override;
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 17 авг. 2024 г.
@@ -383,8 +383,10 @@ namespace lsp
 
             lsp_trace("write value '%s' to port id=%s", c_name, port->id());
 
+            port->begin_edit();
             port->write(c_name, strlen(c_name));
             port->notify_all(ui::PORT_NONE);
+            port->end_edit();
         }
 
         void ShmLink::Selector::connect_by_filter()
@@ -408,8 +410,10 @@ namespace lsp
 
             lsp_trace("write value '%s' to port id=%s", c_name, port->id());
 
+            port->begin_edit();
             port->write(c_name, strlen(c_name));
             port->notify_all(ui::PORT_NONE);
+            port->end_edit();
         }
 
         void ShmLink::Selector::disconnect()
@@ -420,8 +424,10 @@ namespace lsp
             if (port == NULL)
                 return;
 
+            port->begin_edit();
             port->set_default();
             port->notify_all(ui::PORT_NONE);
+            port->end_edit();
         }
 
         status_t ShmLink::Selector::slot_filter_change(tk::Widget *sender, void *ptr, void *data)

@@ -101,6 +101,8 @@ namespace lsp
                 // Bind slots
                 fdr->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
                 fdr->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_dbl_click, this);
+                fdr->slots()->bind(tk::SLOT_BEGIN_EDIT, slot_begin_edit, this);
+                fdr->slots()->bind(tk::SLOT_END_EDIT, slot_end_edit, this);
             }
 
             return STATUS_OK;
@@ -311,6 +313,9 @@ namespace lsp
             fdr->value()->set(value);
             if (pPort != NULL)
             {
+                pPort->begin_edit();
+                lsp_finally { pPort->end_edit(); };
+
                 pPort->set_value(dfl);
                 pPort->notify_all(ui::PORT_USER_EDIT);
             }
@@ -442,17 +447,33 @@ namespace lsp
 
         status_t Fader::slot_change(tk::Widget *sender, void *ptr, void *data)
         {
-            ctl::Fader *_this   = static_cast<ctl::Fader *>(ptr);
-            if (_this != NULL)
-                _this->submit_value();
+            ctl::Fader *self    = static_cast<ctl::Fader *>(ptr);
+            if (self != NULL)
+                self->submit_value();
+            return STATUS_OK;
+        }
+
+        status_t Fader::slot_begin_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Fader *self    = static_cast<ctl::Fader *>(ptr);
+            if ((self != NULL) && (self->pPort != NULL))
+                self->pPort->begin_edit();
+            return STATUS_OK;
+        }
+
+        status_t Fader::slot_end_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Fader *self    = static_cast<ctl::Fader *>(ptr);
+            if ((self != NULL) && (self->pPort != NULL))
+                self->pPort->end_edit();
             return STATUS_OK;
         }
 
         status_t Fader::slot_dbl_click(tk::Widget *sender, void *ptr, void *data)
         {
-            ctl::Fader *_this   = static_cast<ctl::Fader *>(ptr);
-            if (_this != NULL)
-                _this->set_default_value();
+            ctl::Fader *self    = static_cast<ctl::Fader *>(ptr);
+            if (self != NULL)
+                self->set_default_value();
             return STATUS_OK;
         }
 

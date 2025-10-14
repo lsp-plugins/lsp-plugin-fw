@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 3 сент. 2021 г.
@@ -211,8 +211,10 @@ namespace lsp
             // Update port value
             if (pPort != NULL)
             {
+                pPort->begin_edit();
                 pPort->set_value(fTempo);
                 pPort->notify_all(ui::PORT_USER_EDIT);
+                pPort->end_edit();
             }
         }
 

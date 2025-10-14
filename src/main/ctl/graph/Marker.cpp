@@ -100,6 +100,8 @@ namespace lsp
 
                 gm->slots()->bind(tk::SLOT_RESIZE_PARENT, slot_graph_resize, this);
                 gm->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
+                gm->slots()->bind(tk::SLOT_BEGIN_EDIT, slot_begin_edit, this);
+                gm->slots()->bind(tk::SLOT_END_EDIT, slot_end_edit, this);
             }
 
             return STATUS_OK;
@@ -326,6 +328,22 @@ namespace lsp
             ctl::Marker *self       = static_cast<ctl::Marker *>(ptr);
             if (self != NULL)
                 self->submit_values();
+            return STATUS_OK;
+        }
+
+        status_t Marker::slot_begin_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Marker *self       = static_cast<ctl::Marker *>(ptr);
+            if ((self != NULL) && (self->pPort != NULL))
+                self->pPort->begin_edit();
+            return STATUS_OK;
+        }
+
+        status_t Marker::slot_end_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Marker *self       = static_cast<ctl::Marker *>(ptr);
+            if ((self != NULL) && (self->pPort != NULL))
+                self->pPort->end_edit();
             return STATUS_OK;
         }
 

@@ -308,8 +308,10 @@ namespace lsp
 
             if (bAutoLoad)
             {
+                pPort->begin_edit();
                 pPort->write(buf, strlen(buf));
                 pPort->notify_all(ui::PORT_USER_EDIT);
+                pPort->end_edit();
             }
         }
 

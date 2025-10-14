@@ -314,13 +314,19 @@ namespace lsp
                     return;
 
                 pWrapper->play_file(NULL, 0, false);
-                pPort->write(buf, strlen(buf));
+                pPort->begin_edit();
+                pPort->write(buf, strlen(buf), ui::PORT_USER_EDIT);
                 if (bAutoPlay)
                     pWrapper->play_file(buf, 0, true);
             }
             else
+            {
+                pPort->begin_edit();
                 pPort->write("", 0);
+            }
+
             pPort->notify_all(ui::PORT_USER_EDIT);
+            pPort->end_edit();
         }
 
         void AudioNavigator::notify(ui::IPort *port, size_t flags)

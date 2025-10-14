@@ -215,8 +215,10 @@ namespace lsp
                     const size_t length = strlen(path);
                     if (length < PATH_MAX)
                     {
+                        pPort->begin_edit();
                         pPort->write(path, length);
                         pPort->notify_all(ui::PORT_USER_EDIT);
+                        pPort->end_edit();
                     }
                 }
             }
@@ -225,8 +227,10 @@ namespace lsp
                 const char *str = value.get_utf8();
                 if ((str != NULL) && (value.length() <= size_t(meta->max)))
                 {
+                    pPort->begin_edit();
                     pPort->write(str, strlen(str));
                     pPort->notify_all(ui::PORT_USER_EDIT);
+                    pPort->end_edit();
                 }
             }
             else
@@ -234,8 +238,10 @@ namespace lsp
                 float v;
                 if (meta::parse_value(&v, value.get_utf8(), meta, false) == STATUS_OK)
                 {
+                    pPort->begin_edit();
                     pPort->set_value(v);
                     pPort->notify_all(ui::PORT_USER_EDIT);
+                    pPort->end_edit();
                 }
             }
         }

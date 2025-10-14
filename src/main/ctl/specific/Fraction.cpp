@@ -280,6 +280,13 @@ namespace lsp
             fSig        = float(nNum) / float(nDenom);
             sync_numerator();
 
+            // Notify ports being edited
+            if (pPort != NULL)
+                pPort->begin_edit();
+            if (pDen != NULL)
+                pDen->begin_edit();
+
+            // Change port values
             if (pPort != NULL)
                 pPort->set_value(fSig);
             if (pDen != NULL)
@@ -289,6 +296,12 @@ namespace lsp
                 pPort->notify_all(ui::PORT_USER_EDIT);
             if (pDen != NULL)
                 pDen->notify_all(ui::PORT_USER_EDIT);
+
+            // Notify ports being not edited
+            if (pPort != NULL)
+                pPort->end_edit();
+            if (pDen != NULL)
+                pDen->end_edit();
         }
 
         void Fraction::sync_numerator()

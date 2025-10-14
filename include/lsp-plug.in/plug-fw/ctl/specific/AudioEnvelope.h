@@ -102,13 +102,17 @@ namespace lsp
                 static float        get_normalized(ui::IPort *port);
                 static void         set_normalized(ui::IPort *port, float value);
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_begin_edit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_end_edit(tk::Widget *sender, void *ptr, void *data);
                 static void         curve_function(float *y, const float *x, size_t count, const tk::AudioEnvelope *sender, void *data);
 
             protected:
                 void                arrange_time_values();
-                void                sync_time_values(point_t *actor);
+                bool                sync_time_values(point_t *actor);
                 void                commit_values();
                 void                submit_ports();
+                void                begin_edit();
+                void                end_edit();
                 size_t              get_function(points_t point);
 
             public:

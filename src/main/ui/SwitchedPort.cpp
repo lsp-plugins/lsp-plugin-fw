@@ -102,6 +102,9 @@ namespace lsp
             // Unbind from referenced ports
             if (pReference != NULL)
             {
+                if (ui::IPort::editing())
+                    pReference->end_edit();
+
                 pReference->unbind(this);
                 pMetadata       = NULL;
             }
@@ -138,6 +141,9 @@ namespace lsp
             {
                 pMetadata       = pReference->metadata();
                 pReference->bind(this);
+
+                if (ui::IPort::editing())
+                    pReference->begin_edit();
             }
         }
 
@@ -287,6 +293,28 @@ namespace lsp
 
             // Notify all subscribers
             IPort::notify_all(flags);
+        }
+
+        bool SwitchedPort::begin_edit()
+        {
+            if (!ui::IPort::begin_edit())
+                return false;
+
+            ui::IPort *p  = current();
+            if (p != NULL)
+                p->begin_edit();
+            return true;
+        }
+
+        bool SwitchedPort::end_edit()
+        {
+            if (!ui::IPort::end_edit())
+                return false;
+
+            ui::IPort *p  = current();
+            if (p != NULL)
+                p->end_edit();
+            return true;
         }
 
     } /* namespace ctl */

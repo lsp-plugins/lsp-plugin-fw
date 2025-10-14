@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 авг. 2021 г.
@@ -106,10 +106,17 @@ namespace lsp
                 void                configure_param(param_t *p, bool axis);
                 void                submit_value(param_t *p, float value);
                 void                commit_value(param_t *p, ui::IPort *port, bool force);
+                void                begin_edit();
+                void                end_edit();
 
             public:
                 explicit Dot(ui::IWrapper *wrapper, tk::GraphDot *widget);
+                Dot(const Dot &) = delete;
+                Dot(Dot &&) = delete;
                 virtual ~Dot() override;
+
+                Dot & operator = (const Dot &) = delete;
+                Dot & operator = (Dot &&) = delete;
 
                 virtual status_t    init() override;
 
