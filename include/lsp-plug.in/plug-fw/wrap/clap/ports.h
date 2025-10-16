@@ -76,6 +76,16 @@ namespace lsp
                  * @param is input stream to perform deserialization
                  */
                 virtual status_t deserialize(const clap_istream_t *is) { return STATUS_OK; }
+
+                /**
+                 * Notify port started being edited
+                 */
+                virtual void begin_edit() {}
+
+                /**
+                 * Notify port finished being edited
+                 */
+                virtual void end_edit() {}
         };
 
         /**
@@ -311,22 +321,104 @@ namespace lsp
             protected:
                 float           fValue;         // The actual value of the port
                 float           fClapValue;     // The actual value in CLAP units scale
+                float           fPending;       // Pending value from the UI
                 clap_id         nID;            // Unique CLAP identifier of the port
                 uatomic_t       nSID;           // Serial ID of the parameter
-                float           fPending;       // Pending value from the UI
                 uatomic_t       nPendingSID;    // Serial ID of parameter for the UI request
-                volatile bool   bPending;       // There is pending for change request from the UI
+                atomic_t        nEditCount;     // Number of active edits
+                uint8_t         bPending;       // There is pending for change request from the UI
+                bool            bEditing;       // Current editing flag
+
+            protected:
+                bool            sync_value(const clap_output_events_t *out)
+                {
+                    if (!atomic_load(&bPending))
+                        return false;
+
+                    // Cleanup pending flags and read the requested value
+                    atomic_store(&bPending, 0);
+                    uatomic_t sid       = atomic_load(&nPendingSID);
+                    float pending       = fPending;
+
+                    // Do not perform anything if SID does not match
+                    if (sid != atomic_load(&nSID))
+                        return false;
+
+                    // Ensure that value has changed
+                    float old   = fValue;
+                    float res   = meta::limit_value(pMetadata, pending);
+                    if (old == res)
+                        return false;
+
+                    // Try to submit the value to the output event queue
+                    float clap_value    = to_clap_value(pMetadata, pending, NULL, NULL);
+                    clap_event_param_value_t ev;
+                    ev.header.size      = sizeof(ev);
+                    ev.header.time      = 0;
+                    ev.header.space_id  = CLAP_CORE_EVENT_SPACE_ID;
+                    ev.header.type      = CLAP_EVENT_PARAM_VALUE;
+                    ev.header.flags     = CLAP_EVENT_IS_LIVE;
+                    ev.param_id         = nID;
+                    ev.cookie           = this;
+                    ev.note_id          = -1;
+                    ev.port_index       = -1;
+                    ev.channel          = -1;
+                    ev.key              = -1;
+                    ev.value            = clap_value;
+
+                    // Submit the value to the output queue
+                    if (out->try_push(out, &ev.header))
+                    {
+                        fValue              = res;
+                        fClapValue          = clap_value;
+                        atomic_add(&nSID, 1);
+                        return true;
+                    }
+
+                    // Try to apply changes next time
+                    atomic_store(&bPending, 1);
+                    return false;
+                }
+
+                bool            sync_edit_state(const clap_output_events_t *out)
+                {
+                    const bool ed_pending = atomic_load(&nEditCount) > 0;
+                    if (ed_pending == bEditing)
+                        return true;
+
+                    clap_event_param_gesture_t ev;
+                    ev.header.size      = sizeof(ev);
+                    ev.header.time      = 0;
+                    ev.header.space_id  = CLAP_CORE_EVENT_SPACE_ID;
+                    ev.header.type      = (ed_pending) ? CLAP_EVENT_PARAM_GESTURE_BEGIN : CLAP_EVENT_PARAM_GESTURE_END;
+                    ev.header.flags     = CLAP_EVENT_IS_LIVE;
+                    ev.param_id         = nID;
+
+                    // Submit the value to the output queue
+                    if (out->try_push(out, &ev.header))
+                    {
+                        lsp_trace("submitted gesture event for parameter id=0x%x, down=%s",
+                            int(nID), (ed_pending) ? "true" : "false");
+
+                        bEditing            = ed_pending;
+                        return true;
+                    }
+
+                    return false;
+                }
 
             public:
                 explicit ParameterPort(const meta::port_t *meta) : Port(meta)
                 {
                     fValue              = meta->start;
                     fClapValue          = to_clap_value(meta, fValue, NULL, NULL);
-                    nID                 = clap_hash_string(meta->id);
-                    nSID                = 0;
                     fPending            = 0.0f;
-                    nPendingSID         = nSID;
-                    bPending            = false;
+                    nID                 = clap_hash_string(meta->id);
+                    atomic_store(&nSID, 0);
+                    atomic_store(&nPendingSID, 0);
+                    atomic_store(&nEditCount, 0);
+                    atomic_store(&bPending, 0);
+                    bEditing            = false;
                 }
 
                 ParameterPort(const ParameterPort &) = delete;
@@ -336,7 +428,7 @@ namespace lsp
 
             public:
                 inline clap_id uid() const      { return nID;       }
-                inline uatomic_t sid() const    { return nSID;      }
+                inline uatomic_t sid() const    { return atomic_load(&nSID);    }
 
                 bool clap_set_value(float value)
                 {
@@ -383,58 +475,15 @@ namespace lsp
                 void write_value(float value)
                 {
                     fPending            = value;
-                    nPendingSID         = nSID;
-                    bPending            = true;
+                    atomic_store(&nPendingSID, atomic_load(&nSID));
+                    atomic_store(&bPending, 1);
                 }
 
                 bool sync(const clap_output_events_t *out)
                 {
-                    if (!bPending)
+                    if (!sync_edit_state(out))
                         return false;
-
-                    // Cleanup pending flags and read the requested value
-                    bPending            = false;
-                    uatomic_t sid       = nPendingSID;
-                    float pending       = fPending;
-
-                    // Do not perform anything if SID does not match
-                    if (sid != nSID)
-                        return false;
-
-                    // Ensure that value has changed
-                    float old   = fValue;
-                    float res   = meta::limit_value(pMetadata, pending);
-                    if (old == res)
-                        return false;
-
-                    // Try to submit the value to the output event queue
-                    float clap_value    = to_clap_value(pMetadata, pending, NULL, NULL);
-                    clap_event_param_value_t ev;
-                    ev.header.size      = sizeof(ev);
-                    ev.header.time      = 0;
-                    ev.header.space_id  = CLAP_CORE_EVENT_SPACE_ID;
-                    ev.header.type      = CLAP_EVENT_PARAM_VALUE;
-                    ev.header.flags     = CLAP_EVENT_IS_LIVE;
-                    ev.param_id         = nID;
-                    ev.cookie           = this;
-                    ev.note_id          = -1;
-                    ev.port_index       = -1;
-                    ev.channel          = -1;
-                    ev.key              = -1;
-                    ev.value            = clap_value;
-
-                    // Submit the value to the output queue
-                    if (out->try_push(out, &ev.header))
-                    {
-                        fValue              = res;
-                        fClapValue          = clap_value;
-                        atomic_add(&nSID, 1);
-                        return true;
-                    }
-
-                    // Try to apply changes next time
-                    bPending            = true;
-                    return false;
+                    return sync_value(out);
                 }
 
             public:
@@ -478,6 +527,16 @@ namespace lsp
                         atomic_add(&nSID, 1);
 
                     return STATUS_OK;
+                }
+
+                virtual void begin_edit()
+                {
+                    atomic_add(&nEditCount, 1);
+                }
+
+                virtual void end_edit()
+                {
+                    atomic_add(&nEditCount, -1);
                 }
         };
 

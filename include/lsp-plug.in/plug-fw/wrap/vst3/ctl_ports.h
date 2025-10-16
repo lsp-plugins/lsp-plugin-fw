@@ -122,6 +122,16 @@ namespace lsp
                  */
                 virtual void        set_value(float value, size_t flags) { set_value(value); }
 
+                /**
+                 * Notify about port started being edited
+                 */
+                virtual void        begin_edit() {};
+
+                /**
+                 * Notify about port finished being edited
+                 */
+                virtual void        end_edit() {};
+
             public:
                 /**
                  * Get serial version of the port
@@ -165,6 +175,10 @@ namespace lsp
 
             public:
                 virtual void port_write(CtlPort *port, size_t flags) = 0;
+
+                virtual void begin_edit(Steinberg::Vst::ParamID param_id) = 0;
+
+                virtual void end_edit(Steinberg::Vst::ParamID param_id) = 0;
         };
 
         class CtlParamPort: public CtlPort
@@ -220,6 +234,19 @@ namespace lsp
                 #else
                     set_value(value, 0);
                 #endif /* WITH_UI_FEATURE */
+                }
+
+            public:
+                void begin_edit()
+                {
+                    if ((pHandler != NULL) && (nID >= 0) && (!bVirtual))
+                        pHandler->begin_edit(nID);
+                }
+
+                void end_edit()
+                {
+                    if ((pHandler != NULL) && (nID >= 0) && (!bVirtual))
+                        pHandler->end_edit(nID);
                 }
 
             public:

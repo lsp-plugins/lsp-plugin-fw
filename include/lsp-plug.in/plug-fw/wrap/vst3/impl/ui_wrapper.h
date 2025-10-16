@@ -856,7 +856,7 @@ namespace lsp
 
         void UIWrapper::sync_ui()
         {
-            lsp_trace("sync_ui this=%p, pDisplay=%p");
+//            lsp_trace("sync_ui this=%p, pDisplay=%p");
             if (pDisplay != NULL)
                 pDisplay->main_iteration();
         }
@@ -914,7 +914,7 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
+//            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             return STATUS_OK;
         }
 

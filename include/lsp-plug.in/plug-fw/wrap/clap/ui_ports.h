@@ -142,6 +142,28 @@ namespace lsp
                 {
                     return pPort->buffer();
                 }
+
+                virtual bool begin_edit() override
+                {
+                    const bool changed = ui::IPort::begin_edit();
+                    if ((changed) && (pPort != NULL))
+                    {
+                        clap::ParameterPort * const port = static_cast<clap::ParameterPort *>(pPort);
+                        port->begin_edit();
+                    }
+                    return changed;
+                }
+
+                virtual bool end_edit() override
+                {
+                    const bool changed = ui::IPort::end_edit();
+                    if ((changed) && (pPort != NULL))
+                    {
+                        clap::ParameterPort * const port = static_cast<clap::ParameterPort *>(pPort);
+                        port->end_edit();
+                    }
+                    return changed;
+                }
         };
 
         class UIPortGroup: public UIParameterPort

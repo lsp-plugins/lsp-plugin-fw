@@ -3813,7 +3813,7 @@ namespace lsp
                     while (true)
                     {
                         const uatomic_t flags = atomic_load(&nPresetFlags);
-                        if (atomic_cas(&nPresetFlags, flags, flags & (~(PT_LOCK | PT_TYPE)))) // Unlock the state
+                        if (atomic_cas(&nPresetFlags, flags, flags & (~(PT_LOCK | PT_FORCE | PT_TYPE)))) // Unlock the state
                             break;
                         ipc::Thread::yield();
                     }

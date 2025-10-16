@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 дек. 2021 г.
@@ -224,6 +224,24 @@ namespace lsp
                 inline VstIntPtr                masterCallback(VstInt32 opcode, VstInt32 index, VstIntPtr value, void* ptr, float opt)
                 {
                     return hCallback(pEffect, opcode, index, value, ptr, opt);
+                }
+
+                inline void                     begin_edit()
+                {
+                    if (nID >= 0)
+                    {
+                        lsp_trace("Call audioMasterBeginEdit param_id=0x%x", int(nID));
+                        masterCallback(audioMasterBeginEdit, VstInt32(nID), 0, NULL, 0.0f);
+                    }
+                }
+
+                inline void                     end_edit()
+                {
+                    if (nID >= 0)
+                    {
+                        lsp_trace("Call audioMasterEndEdit param_id=0x%x", int(nID));
+                        masterCallback(audioMasterEndEdit, VstInt32(nID), 0, NULL, 0.0f);
+                    }
                 }
         };
 

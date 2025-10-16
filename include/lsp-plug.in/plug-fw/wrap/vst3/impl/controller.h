@@ -2109,11 +2109,29 @@ namespace lsp
 
                     const float valueNormalized = to_vst_value(meta, ip->value());
                     const Steinberg::Vst::ParamID param_id = ip->parameter_id();
-                    pComponentHandler->beginEdit(param_id);
+                    port->begin_edit();
                     pComponentHandler->performEdit(param_id, valueNormalized);
-                    pComponentHandler->endEdit(param_id);
+                    port->end_edit();
                     notify_preset_changed();
                 }
+            }
+        }
+
+        void Controller::begin_edit(Steinberg::Vst::ParamID param_id)
+        {
+            if (pComponentHandler != NULL)
+            {
+                lsp_trace("Call pComponentHandler::beginEdit param_id=0x%x", int(param_id));
+                pComponentHandler->beginEdit(param_id);
+            }
+        }
+
+        void Controller::end_edit(Steinberg::Vst::ParamID param_id)
+        {
+            if (pComponentHandler != NULL)
+            {
+                lsp_trace("Call pComponentHandler::endEdit param_id=0x%x", int(param_id));
+                pComponentHandler->endEdit(param_id);
             }
         }
 

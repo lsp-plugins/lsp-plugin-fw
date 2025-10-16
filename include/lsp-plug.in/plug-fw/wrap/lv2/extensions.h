@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 нояб. 2021 г.
@@ -96,6 +96,7 @@ namespace lsp
                 LV2_Inline_Display     *iDisplay;
                 LV2_State_Map_Path     *mapPath;
                 LV2UI_Resize           *ui_resize;
+                LV2UI_Touch            *pTouch;
                 lv2::Wrapper           *pWrapper;
 
                 LV2UI_Controller        ctl;
@@ -246,6 +247,7 @@ namespace lsp
                     iDisplay            = NULL;
                     mapPath             = NULL;
                     ui_resize           = NULL;
+                    pTouch              = NULL;
                     pWrapper            = NULL;
 
                     ctl                 = lv2_ctl;
@@ -280,17 +282,19 @@ namespace lsp
                             lsp_trace("Host reported extension uri=%sp", f->URI);
 
                             if (!strcmp(f->URI, LV2_URID__map))
-                                map = reinterpret_cast<LV2_URID_Map *>(f->data);
+                                map             = reinterpret_cast<LV2_URID_Map *>(f->data);
                             else if (!strcmp(f->URI, LV2_URID__unmap))
-                                unmap = reinterpret_cast<LV2_URID_Unmap *>(f->data);
+                                unmap           = reinterpret_cast<LV2_URID_Unmap *>(f->data);
                             else if (!strcmp(f->URI, LV2_WORKER__schedule))
-                                sched = reinterpret_cast<LV2_Worker_Schedule *>(f->data);
+                                sched           = reinterpret_cast<LV2_Worker_Schedule *>(f->data);
                             else if (!strcmp(f->URI, LV2_UI__parent))
                                 pParentWindow   = f->data;
                             else if (!strcmp(f->URI, LV2_UI__resize))
-                                ui_resize = reinterpret_cast<LV2UI_Resize *>(f->data);
+                                ui_resize       = reinterpret_cast<LV2UI_Resize *>(f->data);
                             else if (!strcmp(f->URI, LV2_INLINEDISPLAY__queue_draw))
-                                iDisplay = reinterpret_cast<LV2_Inline_Display *>(f->data);
+                                iDisplay        = reinterpret_cast<LV2_Inline_Display *>(f->data);
+                            else if (!strcmp(f->URI, LV2_UI__touch))
+                                pTouch          = reinterpret_cast<LV2UI_Touch *>(f->data);
                         #if LSP_LV2_NO_INSTANCE_ACCESS != 1
                             else if (!strcmp(f->URI, LV2_INSTANCE_ACCESS_URI))
                                 pWrapper = reinterpret_cast<Wrapper *>(f->data);
@@ -692,6 +696,17 @@ namespace lsp
                     }
                     else
                         lsp_trace("ui_resize == NULL");
+                }
+
+                inline void touch_ui(uint32_t index, bool grabbed)
+                {
+                    if (pTouch != NULL)
+                    {
+                        lsp_trace("UI touch index=%d, grabbed=%s", int(index), (grabbed) ? "true" : "false");
+                        pTouch->touch(pTouch->handle, index, grabbed);
+                    }
+                    else
+                        lsp_trace("pTouch == NULL");
                 }
 
                 inline LV2_URID map_uri(const char *fmt...) const

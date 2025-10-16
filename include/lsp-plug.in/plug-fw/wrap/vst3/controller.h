@@ -155,6 +155,8 @@ namespace lsp
 
             public: // vst3::CtlPortChangeHandler
                 virtual void                        port_write(vst3::CtlPort *port, size_t flags) override;
+                virtual void                        begin_edit(Steinberg::Vst::ParamID param_id) override;
+                virtual void                        end_edit(Steinberg::Vst::ParamID param_id) override;
 
             public: // Steinberg::FUnknown
                 virtual Steinberg::tresult          PLUGIN_API queryInterface(const Steinberg::TUID _iid, void **obj) override;

@@ -405,7 +405,7 @@ namespace lsp
             fprintf(out, "\tlv2:requiredFeature urid:map ;\n");
             {
                 size_t count = 1;
-                fprintf(out, "\tlv2:optionalFeature ui:parent, ui:resize, ui:idleInterface");
+                fprintf(out, "\tlv2:optionalFeature ui:parent, ui:resize, ui:touch, ui:idleInterface");
                 emit_option(out, count, requirements & REQ_INSTANCE, "lv2ext:instance-access");
                 fprintf(out, " ;\n");
             }
