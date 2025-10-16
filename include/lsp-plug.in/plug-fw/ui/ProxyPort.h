@@ -78,7 +78,7 @@ namespace lsp
                 virtual void        notify_all(size_t flags) override;
                 virtual bool        begin_edit() override;
                 virtual bool        end_edit() override;
-                virtual bool        editing() const;
+                virtual bool        editing() const override;
                 virtual void        sync_metadata() override;
                 virtual void        sync_metadata(IPort *port) override;
                 virtual const char *id() const override;
