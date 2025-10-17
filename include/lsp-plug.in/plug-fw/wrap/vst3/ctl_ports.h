@@ -237,13 +237,13 @@ namespace lsp
                 }
 
             public:
-                void begin_edit()
+                void begin_edit() override
                 {
                     if ((pHandler != NULL) && (nID >= 0) && (!bVirtual))
                         pHandler->begin_edit(nID);
                 }
 
-                void end_edit()
+                void end_edit() override
                 {
                     if ((pHandler != NULL) && (nID >= 0) && (!bVirtual))
                         pHandler->end_edit(nID);
