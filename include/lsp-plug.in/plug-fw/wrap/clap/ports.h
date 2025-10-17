@@ -529,12 +529,12 @@ namespace lsp
                     return STATUS_OK;
                 }
 
-                virtual void begin_edit()
+                virtual void begin_edit() override
                 {
                     atomic_add(&nEditCount, 1);
                 }
 
-                virtual void end_edit()
+                virtual void end_edit() override
                 {
                     atomic_add(&nEditCount, -1);
                 }
