@@ -67,6 +67,38 @@ namespace lsp
             return res;
         }
 
+        status_t Property::PropResolver::call(expr::value_t *value, const char *name, size_t num_args, const expr::value_t *args)
+        {
+            status_t res    = pProp->sParams.call(value, name, num_args, args);
+            if (res == STATUS_NOT_FOUND)
+                res             = PortResolver::call(value, name, num_args, args);
+            if ((res == STATUS_NOT_FOUND) && (pProp->pResolver != NULL))
+                res             = pProp->pResolver->call(value, name, num_args, args);
+            if (res == STATUS_NOT_FOUND)
+            {
+                expr::Resolver *vars = (pProp->pWrapper != NULL) ? pProp->pWrapper->global_variables() : NULL;
+                if (vars != NULL)
+                    res     = vars->call(value, name, num_args, args);
+            }
+            return res;
+        }
+
+        status_t Property::PropResolver::call(expr::value_t *value, const LSPString *name, size_t num_args, const expr::value_t *args)
+        {
+            status_t res    = pProp->sParams.call(value, name, num_args, args);
+            if (res == STATUS_NOT_FOUND)
+                res             = PortResolver::call(value, name, num_args, args);
+            if ((res == STATUS_NOT_FOUND) && (pProp->pResolver != NULL))
+                res             = pProp->pResolver->call(value, name, num_args, args);
+            if (res == STATUS_NOT_FOUND)
+            {
+                expr::Resolver *vars = (pProp->pWrapper != NULL) ? pProp->pWrapper->global_variables() : NULL;
+                if (vars != NULL)
+                    res     = vars->call(value, name, num_args, args);
+            }
+            return res;
+        }
+
         Property::Property(): IPortListener(),
             sResolver(this)
         {

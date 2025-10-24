@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 14 нояб. 2022 г.
@@ -312,8 +312,10 @@ namespace lsp
             float value = fMin + fStep * index;
             lsp_trace("index = %d, value=%f", int(index), value);
 
+            pPort->begin_edit();
             pPort->set_value(value);
             pPort->notify_all(ui::PORT_USER_EDIT);
+            pPort->end_edit();
         }
 
     } /* namespace ctl */

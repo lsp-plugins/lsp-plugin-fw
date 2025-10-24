@@ -524,6 +524,34 @@ namespace lsp
             }
         }
 
+        void Area3D::begin_edit()
+        {
+            if (pPosX != NULL)
+                pPosX->begin_edit();
+            if (pPosY != NULL)
+                pPosY->begin_edit();
+            if (pPosZ != NULL)
+                pPosZ->begin_edit();
+            if (pYaw != NULL)
+                pYaw->begin_edit();
+            if (pPitch != NULL)
+                pPitch->begin_edit();
+        }
+
+        void Area3D::end_edit()
+        {
+            if (pPosX != NULL)
+                pPosX->end_edit();
+            if (pPosY != NULL)
+                pPosY->end_edit();
+            if (pPosZ != NULL)
+                pPosZ->end_edit();
+            if (pYaw != NULL)
+                pYaw->end_edit();
+            if (pPitch != NULL)
+                pPitch->end_edit();
+        }
+
         status_t Area3D::slot_draw3d(tk::Widget *sender, void *ptr, void *data)
         {
             if ((ptr == NULL) || (data == NULL))
@@ -538,18 +566,20 @@ namespace lsp
             if ((ptr == NULL) || (data == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            Area3D *_this       = static_cast<Area3D *>(ptr);
+            Area3D *self        = static_cast<Area3D *>(ptr);
             ws::event_t *ev     = static_cast<ws::event_t *>(data);
 
-            if (_this->nBMask == 0)
+            if (self->nBMask == 0)
             {
-                _this->nMouseX      = ev->nLeft;
-                _this->nMouseY      = ev->nTop;
-                _this->sOldAngles   = _this->sAngles;
-                _this->sOldPov      = _this->sPov;
+                self->begin_edit();
+
+                self->nMouseX       = ev->nLeft;
+                self->nMouseY       = ev->nTop;
+                self->sOldAngles    = self->sAngles;
+                self->sOldPov       = self->sPov;
             }
 
-            _this->nBMask      |= (1 << ev->nCode);
+            self->nBMask       |= (1 << ev->nCode);
 
             return STATUS_OK;
         }
@@ -559,21 +589,23 @@ namespace lsp
             if ((ptr == NULL) || (data == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            Area3D *_this       = static_cast<Area3D *>(ptr);
+            Area3D *self        = static_cast<Area3D *>(ptr);
             ws::event_t *ev     = static_cast<ws::event_t *>(data);
 
-            if (_this->nBMask == 0)
+            if (self->nBMask == 0)
                 return STATUS_OK;
 
-            _this->nBMask      &= ~(size_t(1) << ev->nCode);
-            if (_this->nBMask == 0)
+            self->nBMask      &= ~(size_t(1) << ev->nCode);
+            if (self->nBMask == 0)
             {
                 if (ev->nCode == ws::MCB_MIDDLE)
-                    _this->rotate_camera(ev->nLeft - _this->nMouseX, ev->nTop - _this->nMouseY);
+                    self->rotate_camera(ev->nLeft - self->nMouseX, ev->nTop - self->nMouseY);
                 else if (ev->nCode == ws::MCB_RIGHT)
-                    _this->move_camera(ev->nLeft - _this->nMouseX, ev->nTop - _this->nMouseY, 0);
+                    self->move_camera(ev->nLeft - self->nMouseX, ev->nTop - self->nMouseY, 0);
                 else if (ev->nCode == ws::MCB_LEFT)
-                    _this->move_camera(ev->nLeft - _this->nMouseX, 0, _this->nMouseY - ev->nTop);
+                    self->move_camera(ev->nLeft - self->nMouseX, 0, self->nMouseY - ev->nTop);
+
+                self->end_edit();
             }
 
             return STATUS_OK;
@@ -584,15 +616,15 @@ namespace lsp
             if ((ptr == NULL) || (data == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            Area3D *_this     = static_cast<Area3D *>(ptr);
+            Area3D *self        = static_cast<Area3D *>(ptr);
             ws::event_t *ev     = static_cast<ws::event_t *>(data);
 
-            if (_this->nBMask == (1 << ws::MCB_MIDDLE))
-                _this->rotate_camera(ev->nLeft - _this->nMouseX, ev->nTop - _this->nMouseY);
-            else if (_this->nBMask == (1 << ws::MCB_RIGHT))
-                _this->move_camera(ev->nLeft - _this->nMouseX, ev->nTop - _this->nMouseY, 0);
-            else if (_this->nBMask == (1 << ws::MCB_LEFT))
-                _this->move_camera(ev->nLeft - _this->nMouseX, 0, _this->nMouseY - ev->nTop);
+            if (self->nBMask == (1 << ws::MCB_MIDDLE))
+                self->rotate_camera(ev->nLeft - self->nMouseX, ev->nTop - self->nMouseY);
+            else if (self->nBMask == (1 << ws::MCB_RIGHT))
+                self->move_camera(ev->nLeft - self->nMouseX, ev->nTop - self->nMouseY, 0);
+            else if (self->nBMask == (1 << ws::MCB_LEFT))
+                self->move_camera(ev->nLeft - self->nMouseX, 0, self->nMouseY - ev->nTop);
 
             return STATUS_OK;
         }

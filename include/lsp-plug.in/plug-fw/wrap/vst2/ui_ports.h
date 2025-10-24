@@ -108,6 +108,23 @@ namespace lsp
                 }
 
             public:
+                virtual bool        begin_edit() override
+                {
+                    const bool changed = ui::IPort::begin_edit();
+                    if ((changed) && (pPort != NULL))
+                        pPort->begin_edit();
+                    return changed;
+                }
+
+                virtual bool        end_edit() override
+                {
+                    const bool changed = ui::IPort::end_edit();
+                    if ((changed) && (pPort != NULL))
+                        pPort->end_edit();
+                    return changed;
+                }
+
+            public:
                 inline size_t rows() const  { return pPG->rows(); }
                 inline size_t cols() const  { return pPG->cols(); }
         };
@@ -167,6 +184,22 @@ namespace lsp
                     fValue      = pPort->value();
                     nSID        = sid;
                     return true;
+                }
+
+                virtual bool        begin_edit() override
+                {
+                    const bool changed = UIPort::begin_edit();
+                    if ((changed) && (pPort != NULL))
+                        pPort->begin_edit();
+                    return changed;
+                }
+
+                virtual bool        end_edit() override
+                {
+                    const bool changed = UIPort::end_edit();
+                    if ((changed) && (pPort != NULL))
+                        pPort->end_edit();
+                    return changed;
                 }
 
                 virtual void *buffer() override

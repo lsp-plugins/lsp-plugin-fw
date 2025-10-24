@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 мар. 2023 г.
@@ -39,7 +39,12 @@ namespace lsp
 
             public:
                 explicit ProxyPort();
+                ProxyPort(const ProxyPort &) = delete;
+                ProxyPort(ProxyPort &&) = delete;
                 virtual ~ProxyPort() override;
+
+                ProxyPort & operator = (const ProxyPort &) = delete;
+                ProxyPort & operator = (ProxyPort &&) = delete;
 
             public:
                 /**
@@ -71,6 +76,9 @@ namespace lsp
                 virtual void        set_value(float value) override;
                 virtual void        set_value(float value, size_t flags) override;
                 virtual void        notify_all(size_t flags) override;
+                virtual bool        begin_edit() override;
+                virtual bool        end_edit() override;
+                virtual bool        editing() const override;
                 virtual void        sync_metadata() override;
                 virtual void        sync_metadata(IPort *port) override;
                 virtual const char *id() const override;

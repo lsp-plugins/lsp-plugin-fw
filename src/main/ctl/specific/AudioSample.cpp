@@ -81,13 +81,18 @@ namespace lsp
             if (p.wrap(text) != STATUS_OK)
                 return STATUS_OK;
 
+            lltl::parray<ui::IPort> changed;
+
             config::param_t param;
             while (p.next(&param) == STATUS_OK)
             {
                 if ((param.name.equals_ascii("file")) && (param.is_string()) && (pSample->pPort != NULL))
                 {
+                    pSample->pPort->begin_edit();
                     pSample->pPort->write(param.v.str, strlen(param.v.str));
                     pSample->pPort->notify_all(ui::PORT_USER_EDIT);
+
+                    changed.add(pSample->pPort);
                 }
                 else if (param.is_numeric())
                 {
@@ -95,10 +100,21 @@ namespace lsp
                     ui::IPort *port = pSample->vClipboardBind.get(pname);
                     if (port != NULL)
                     {
+                        port->begin_edit();
                         port->set_value(param.to_f32());
                         port->notify_all(ui::PORT_USER_EDIT);
+
+                        changed.add(port);
                     }
                 }
+            }
+
+            // Notify about the end of edit
+            for (lltl::iterator<ui::IPort> it=changed.values(); it; ++it)
+            {
+                ui::IPort *p = it.get();
+                if (p != NULL)
+                    p->end_edit();
             }
 
             return STATUS_OK;
@@ -157,8 +173,10 @@ namespace lsp
             lsp_trace("Set file path to %s", decoded.get_native());
             const char *path = decoded.get_utf8();
 
+            pSample->pPort->begin_edit();
             pSample->pPort->write(path, strlen(path));
             pSample->pPort->notify_all(ui::PORT_USER_EDIT);
+            pSample->pPort->end_edit();
 
             return STATUS_OK;
         }
@@ -961,6 +979,12 @@ namespace lsp
             if (pDialog == NULL)
                 return;
 
+            // Notify about begin of editing
+            if (pPathPort != NULL)
+                pPathPort->begin_edit();
+            if (pFileTypePort != NULL)
+                pFileTypePort->begin_edit();
+
             // Write new path as UTF-8 string
             if (pPathPort != NULL)
             {
@@ -972,6 +996,7 @@ namespace lsp
                     const char *u8path = path.get_utf8();
                     if (u8path == NULL)
                         u8path          = "";
+
                     pPathPort->write(u8path, strlen(u8path));
                     pPathPort->notify_all(ui::PORT_USER_EDIT);
                 }
@@ -983,6 +1008,12 @@ namespace lsp
                 pFileTypePort->set_value(pDialog->selected_filter()->get());
                 pFileTypePort->notify_all(ui::PORT_USER_EDIT);
             }
+
+            // Notify about end of editing
+            if (pPathPort != NULL)
+                pPathPort->end_edit();
+            if (pFileTypePort != NULL)
+                pFileTypePort->end_edit();
         }
 
         void AudioSample::preview_file()
@@ -1009,8 +1040,11 @@ namespace lsp
 
             // Write new path as UTF-8 string
             const char *u8path = path.get_utf8();
+
+            pPort->begin_edit();
             pPort->write(u8path, strlen(u8path));
             pPort->notify_all(ui::PORT_USER_EDIT);
+            pPort->end_edit();
         }
 
         status_t AudioSample::slot_audio_sample_submit(tk::Widget *sender, void *ptr, void *data)
@@ -1139,14 +1173,16 @@ namespace lsp
 
         status_t AudioSample::slot_popup_clear_action(tk::Widget *sender, void *ptr, void *data)
         {
-            AudioSample *_this  = static_cast<AudioSample *>(ptr);
-            if (_this == NULL)
+            AudioSample *self  = static_cast<AudioSample *>(ptr);
+            if (self == NULL)
                 return STATUS_BAD_ARGUMENTS;
-            if (_this->pPort != NULL)
+            if (self->pPort != NULL)
             {
                 // Write new path as UTF-8 string
-                _this->pPort->write("", 0);
-                _this->pPort->notify_all(ui::PORT_USER_EDIT);
+                self->pPort->begin_edit();
+                self->pPort->write("", 0);
+                self->pPort->notify_all(ui::PORT_USER_EDIT);
+                self->pPort->end_edit();
             }
 
             return STATUS_OK;

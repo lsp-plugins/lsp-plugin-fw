@@ -99,11 +99,12 @@ namespace lsp
 
             protected:
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_begin_edit(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_end_edit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                submit_value();
-                void                set_default_value();
                 void                commit_value(size_t flags);
                 void                sync_scale_state();
 

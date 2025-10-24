@@ -26,6 +26,7 @@
 
 #define LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #include <lsp-plug.in/plug-fw/ctl/types.h>
+    #include <lsp-plug.in/plug-fw/ctl/functions.h>
     #include <lsp-plug.in/plug-fw/ctl/parse.h>
     #include <lsp-plug.in/plug-fw/ctl/helpers.h>
 
@@ -67,6 +68,7 @@
     #include <lsp-plug.in/plug-fw/ctl/simple/Button.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Led.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Indicator.h>
+    #include <lsp-plug.in/plug-fw/ctl/simple/RangeSlider.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Separator.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Hyperlink.h>
     #include <lsp-plug.in/plug-fw/ctl/simple/Fader.h>
@@ -92,6 +94,7 @@
     #include <lsp-plug.in/plug-fw/ctl/graph/Graph.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Origin.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Axis.h>
+    #include <lsp-plug.in/plug-fw/ctl/graph/Embed.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Marker.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Text.h>
     #include <lsp-plug.in/plug-fw/ctl/graph/Dot.h>
@@ -117,6 +120,7 @@
     #include <lsp-plug.in/plug-fw/ctl/specific/LedChannel.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/LedMeter.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/MidiNote.h>
+    #include <lsp-plug.in/plug-fw/ctl/specific/PianoKeys.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/ShmLink.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/TempoTap.h>
     #include <lsp-plug.in/plug-fw/ctl/specific/ThreadComboBox.h>

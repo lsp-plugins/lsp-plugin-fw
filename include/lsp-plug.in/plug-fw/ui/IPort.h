@@ -38,8 +38,8 @@ namespace lsp
 
         enum notify_flags_t
         {
-            PORT_NONE       = 0,
-            PORT_USER_EDIT  = 1 << 0
+            PORT_NONE           = 0,
+            PORT_USER_EDIT      = 1 << 0
         };
 
         /**
@@ -49,6 +49,7 @@ namespace lsp
         {
             protected:
                 const meta::port_t             *pMetadata;
+                size_t                          nEditCounter;
                 lltl::ptrset<IPortListener>     vListeners;
 
             public:
@@ -118,12 +119,31 @@ namespace lsp
                  */
                 virtual void        notify_all(size_t flags);
 
-                /** Notify all that port metadata has been changed
-                 *
+                /**
+                 * Notify all that port metadata has been changed
                  */
                 virtual void        sync_metadata();
 
+                /**
+                 * Notify start of port being edited
+                 * @return true if port has entered edit state
+                 */
+                virtual bool        begin_edit();
+
+                /**
+                 * Notify end of port being edited
+                 * @return true if port has left edit state
+                 */
+                virtual bool        end_edit();
+
+                /**
+                 * Check that port is in editing state
+                 * @return true if port is in editing state
+                 */
+                virtual bool        editing() const;
+
              public:
+
                 /** Add listener to the port
                  *
                  * @param listener that listens port changes

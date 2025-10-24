@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 16 мая 2021 г.
@@ -74,22 +74,22 @@ namespace lsp
             tk::GraphMarker *gm = tk::widget_cast<tk::GraphMarker>(wWidget);
             if (gm != NULL)
             {
-                sMin.init(pWrapper, this);
-                sMax.init(pWrapper, this);
-                sValue.init(pWrapper, this);
-                sOffset.init(pWrapper, this);
-                sDx.init(pWrapper, this);
-                sDy.init(pWrapper, this);
-                sAngle.init(pWrapper, this);
+                sMin.init(pWrapper, this, &sVariables);
+                sMax.init(pWrapper, this, &sVariables);
+                sValue.init(pWrapper, this, &sVariables);
+                sOffset.init(pWrapper, this, &sVariables);
+                sDx.init(pWrapper, this, &sVariables);
+                sDy.init(pWrapper, this, &sVariables);
+                sAngle.init(pWrapper, this, &sVariables);
 
-                sSmooth.init(pWrapper, gm->smooth());
-                sWidth.init(pWrapper, gm->width());
-                sHoverWidth.init(pWrapper, gm->hover_width());
-                sEditable.init(pWrapper, gm->editable());
-                sLeftBorder.init(pWrapper, gm->left_border());
-                sRightBorder.init(pWrapper, gm->right_border());
-                sHoverLeftBorder.init(pWrapper, gm->hover_left_border());
-                sHoverRightBorder.init(pWrapper, gm->hover_right_border());
+                sSmooth.init(pWrapper, gm->smooth(), &sVariables);
+                sWidth.init(pWrapper, gm->width(), &sVariables);
+                sHoverWidth.init(pWrapper, gm->hover_width(), &sVariables);
+                sEditable.init(pWrapper, gm->editable(), &sVariables);
+                sLeftBorder.init(pWrapper, gm->left_border(), &sVariables);
+                sRightBorder.init(pWrapper, gm->right_border(), &sVariables);
+                sHoverLeftBorder.init(pWrapper, gm->hover_left_border(), &sVariables);
+                sHoverRightBorder.init(pWrapper, gm->hover_right_border(), &sVariables);
 
                 sColor.init(pWrapper, gm->color());
                 sHoverColor.init(pWrapper, gm->hover_color());
@@ -100,6 +100,8 @@ namespace lsp
 
                 gm->slots()->bind(tk::SLOT_RESIZE_PARENT, slot_graph_resize, this);
                 gm->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
+                gm->slots()->bind(tk::SLOT_BEGIN_EDIT, slot_begin_edit, this);
+                gm->slots()->bind(tk::SLOT_END_EDIT, slot_end_edit, this);
             }
 
             return STATUS_OK;
@@ -168,35 +170,6 @@ namespace lsp
             return Widget::set(ctx, name, value);
         }
 
-        float Marker::eval_expr(ctl::Expression *expr)
-        {
-            tk::GraphMarker *gm = tk::widget_cast<tk::GraphMarker>(wWidget);
-            if (gm == NULL)
-                return 0.0f;
-
-            tk::Graph *g = gm->graph();
-            ws::rectangle_t r;
-            r.nLeft     = 0;
-            r.nTop      = 0;
-            r.nWidth    = 0;
-            r.nHeight   = 0;
-
-            if (g != NULL)
-            {
-                g->get_rectangle(&r);
-                r.nLeft = g->canvas_width();
-                r.nTop  = g->canvas_height();
-            }
-
-            expr->params()->clear();
-            expr->params()->set_int("_g_width", r.nWidth);
-            expr->params()->set_int("_g_height", r.nHeight);
-            expr->params()->set_int("_a_width", r.nLeft);
-            expr->params()->set_int("_a_height", r.nTop);
-
-            return expr->evaluate();
-        }
-
         void Marker::submit_values()
         {
             if (pPort == NULL)
@@ -227,56 +200,64 @@ namespace lsp
                     gm->value()->set(pPort->value());
 
                 if (sMin.depends(port))
-                    gm->value()->set_min(eval_expr(&sMin));
+                    gm->value()->set_min(sMin.evaluate_float());
                 if (sMax.depends(port))
-                    gm->value()->set_min(eval_expr(&sMax));
+                    gm->value()->set_min(sMax.evaluate_float());
                 if (sValue.depends(port))
-                    gm->value()->set(eval_expr(&sValue));
+                    gm->value()->set(sValue.evaluate_float());
                 if (sOffset.depends(port))
-                    gm->offset()->set(eval_expr(&sOffset));
+                    gm->offset()->set(sOffset.evaluate_float());
                 if (sDx.depends(port))
-                    gm->direction()->set_dx(eval_expr(&sDx));
+                    gm->direction()->set_dx(sDx.evaluate_float());
                 if (sDy.depends(port))
-                    gm->direction()->set_dy(eval_expr(&sDy));
+                    gm->direction()->set_dy(sDy.evaluate_float());
                 if (sAngle.depends(port))
-                    gm->direction()->set_angle(eval_expr(&sAngle) * M_PI);
+                    gm->direction()->set_angle(sAngle.evaluate_float() * M_PI);
             }
         }
 
         void Marker::trigger_expr()
         {
-            tk::GraphMarker *gm = tk::widget_cast<tk::GraphMarker>(wWidget);
-            if (gm == NULL)
-                return;
+            sSmooth.apply_changes();
+            sWidth.apply_changes();
+            sHoverWidth.apply_changes();
+            sEditable.apply_changes();
+            sLeftBorder.apply_changes();
+            sRightBorder.apply_changes();
+            sHoverLeftBorder.apply_changes();
+            sHoverRightBorder.apply_changes();
 
-            if (sMin.valid())
-                gm->value()->set_min(eval_expr(&sMin));
-            if (sMax.valid())
-                gm->value()->set_min(eval_expr(&sMax));
-            if (sValue.valid())
+            tk::GraphMarker *gm = tk::widget_cast<tk::GraphMarker>(wWidget);
+            if (gm != NULL)
             {
-                float v = eval_expr(&sValue);
-                gm->value()->set(v);
-                if (!sMin.valid())
-                    gm->value()->set_min(v);
-                if (!sMax.valid())
-                    gm->value()->set_max(v);
+                if (sMin.valid())
+                    gm->value()->set_min(sMin.evaluate_float());
+                if (sMax.valid())
+                    gm->value()->set_min(sMax.evaluate_float());
+                if (sValue.valid())
+                {
+                    float v = sValue.evaluate_float();
+                    gm->value()->set(v);
+                    if (!sMin.valid())
+                        gm->value()->set_min(v);
+                    if (!sMax.valid())
+                        gm->value()->set_max(v);
+                }
+                if (sOffset.valid())
+                    gm->offset()->set(sOffset.evaluate_float());
+                if (sDx.valid())
+                    gm->direction()->set_dx(sDx.evaluate_float());
+                if (sDy.valid())
+                    gm->direction()->set_dy(sDy.evaluate_float());
+                if (sAngle.valid())
+                    gm->direction()->set_angle(sAngle.evaluate_float() * M_PI);
             }
-            if (sOffset.valid())
-                gm->offset()->set(eval_expr(&sOffset));
-            if (sDx.valid())
-                gm->direction()->set_dx(eval_expr(&sDx));
-            if (sDy.valid())
-                gm->direction()->set_dy(eval_expr(&sDy));
-            if (sAngle.valid())
-                gm->direction()->set_angle(eval_expr(&sAngle) * M_PI);
         }
 
         void Marker::end(ui::UIContext *ctx)
         {
             Widget::end(ctx);
-
-            trigger_expr();
+            on_graph_resize();
 
             tk::GraphMarker *gm = tk::widget_cast<tk::GraphMarker>(wWidget);
             if (gm == NULL)
@@ -298,19 +279,71 @@ namespace lsp
             trigger_expr();
         }
 
+        void Marker::on_graph_resize()
+        {
+            tk::GraphMarker *gm = tk::widget_cast<tk::GraphMarker>(wWidget);
+            if (gm == NULL)
+                return;
+
+            tk::Graph *g = gm->graph();
+            const float r_scaling = (g != NULL) ? 1.0f / g->scaling()->get() : 1.0f;
+
+            ws::rectangle_t r;
+            r.nLeft     = 0;
+            r.nTop      = 0;
+            r.nWidth    = 0;
+            r.nHeight   = 0;
+
+            if (g != NULL)
+            {
+                g->get_rectangle(&r);
+                r.nLeft = g->canvas_width();
+                r.nTop  = g->canvas_height();
+            }
+
+            sVariables.set_int("_g_width", r.nWidth);
+            sVariables.set_int("_g_height", r.nHeight);
+            sVariables.set_int("_a_width", r.nLeft);
+            sVariables.set_int("_a_height", r.nTop);
+
+
+            sVariables.set_float("_g_scaled_width", r.nWidth * r_scaling);
+            sVariables.set_float("_g_scaled_height", r.nHeight * r_scaling);
+            sVariables.set_float("_a_scaled_width", r.nLeft * r_scaling);
+            sVariables.set_float("_a_scaled_height", r.nTop * r_scaling);
+
+            trigger_expr();
+        }
+
         status_t Marker::slot_graph_resize(tk::Widget *sender, void *ptr, void *data)
         {
-            ctl::Marker *_this    = static_cast<ctl::Marker *>(ptr);
-            if (_this != NULL)
-                _this->trigger_expr();
+            ctl::Marker *self       = static_cast<ctl::Marker *>(ptr);
+            if (self != NULL)
+                self->on_graph_resize();
             return STATUS_OK;
         }
 
         status_t Marker::slot_change(tk::Widget *sender, void *ptr, void *data)
         {
-            ctl::Marker *_this    = static_cast<ctl::Marker *>(ptr);
-            if (_this != NULL)
-                _this->submit_values();
+            ctl::Marker *self       = static_cast<ctl::Marker *>(ptr);
+            if (self != NULL)
+                self->submit_values();
+            return STATUS_OK;
+        }
+
+        status_t Marker::slot_begin_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Marker *self       = static_cast<ctl::Marker *>(ptr);
+            if ((self != NULL) && (self->pPort != NULL))
+                self->pPort->begin_edit();
+            return STATUS_OK;
+        }
+
+        status_t Marker::slot_end_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Marker *self       = static_cast<ctl::Marker *>(ptr);
+            if ((self != NULL) && (self->pPort != NULL))
+                self->pPort->end_edit();
             return STATUS_OK;
         }
 

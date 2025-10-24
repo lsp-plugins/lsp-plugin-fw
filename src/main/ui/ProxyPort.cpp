@@ -154,6 +154,25 @@ namespace lsp
             IPort::notify_all(flags);
         }
 
+        bool ProxyPort::begin_edit()
+        {
+            const status_t res = pPort->begin_edit();
+            IPort::begin_edit();
+            return res;
+        }
+
+        bool ProxyPort::end_edit()
+        {
+            const status_t res = pPort->end_edit();
+            IPort::end_edit();
+            return res;
+        }
+
+        bool ProxyPort::editing() const
+        {
+            return pPort->editing();
+        }
+
         void ProxyPort::sync_metadata()
         {
             pPort->sync_metadata();

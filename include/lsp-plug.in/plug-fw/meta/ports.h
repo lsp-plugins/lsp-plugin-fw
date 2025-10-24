@@ -243,6 +243,7 @@
 
 #define IN_GAIN             AMP_GAIN("g_in", "Input gain", "Input gain", GAIN_AMP_0_DB, GAIN_AMP_P_60_DB)
 #define OUT_GAIN            AMP_GAIN("g_out", "Output gain", "Output gain", GAIN_AMP_0_DB, GAIN_AMP_P_60_DB)
+#define SC_GAIN             AMP_GAIN("g_sc", "Sidechain gain", "Sidechain gain", GAIN_AMP_0_DB, GAIN_AMP_P_60_DB)
 
 #define DRY_GAIN(g)         AMP_GAIN10("dry", "Dry amount", "Dry amount", g)
 #define DRY_GAIN_L(g)       AMP_GAIN10("dry_l", "Dry amount Left", "Dry amount L", g)

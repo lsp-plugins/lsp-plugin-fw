@@ -132,6 +132,22 @@ namespace lsp
                     return pExt->forge.Int;
                 }
 
+                virtual bool begin_edit() override
+                {
+                    const bool changed = ui::IPort::begin_edit();
+                    if ((changed) && (nID >= 0))
+                        pExt->touch_ui(uint32_t(nID), true);
+                    return changed;
+                }
+
+                virtual bool end_edit() override
+                {
+                    const bool changed = ui::IPort::end_edit();
+                    if ((changed) && (nID >= 0))
+                        pExt->touch_ui(uint32_t(nID), false);
+                    return changed;
+                }
+
             public:
                 inline size_t rows() const  { return nRows; }
                 inline size_t cols() const  { return nCols; }
@@ -238,6 +254,22 @@ namespace lsp
                             pPort->metadata()->id, fValue);
                 #endif
                     return synced;
+                }
+
+                virtual bool begin_edit() override
+                {
+                    const bool changed = ui::IPort::begin_edit();
+                    if ((changed) && (nID >= 0))
+                        pExt->touch_ui(uint32_t(nID), true);
+                    return changed;
+                }
+
+                virtual bool end_edit() override
+                {
+                    const bool changed = ui::IPort::end_edit();
+                    if ((changed) && (nID >= 0))
+                        pExt->touch_ui(uint32_t(nID), false);
+                    return changed;
                 }
         };
 

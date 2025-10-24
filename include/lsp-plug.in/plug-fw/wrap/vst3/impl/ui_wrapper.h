@@ -72,6 +72,7 @@ namespace lsp
             lsp_trace("this=%p", this);
 
         #ifdef VST_USE_RUNLOOP_IFACE
+            unregister_run_loop();
             safe_release(pTimer);
             safe_release(pEventHandler);
         #endif /* VST_USE_RUNLOOP_IFACE */
@@ -402,7 +403,7 @@ namespace lsp
                         break;
 
                     kvt_dump_parameter("TX kvt param (DSP->UI): %s = ", kvt_value, kvt_name);
-                    kvt_notify_write(kvt, kvt_name, kvt_value);
+                    notify_write_to_kvt(kvt, kvt_name, kvt_value);
                     ++sync;
                 }
             } while (sync > 0);
@@ -579,10 +580,16 @@ namespace lsp
                 {
                     int fd = 0;
                     if ((wWindow->display()->get_file_descriptor(&fd)) == STATUS_OK)
+                    {
+                        lsp_trace("RunLoop ptr=%p register event handler ptr=%p", pRunLoop, pEventHandler);
                         pRunLoop->registerEventHandler(pEventHandler, fd);
+                    }
                 }
                 if (pTimer != NULL)
+                {
+                    lsp_trace("RunLoop ptr=%p register timer ptr=%p", pRunLoop, pTimer);
                     pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
+                }
             }
         #endif /* VST_USE_RUNLOOP_IFACE */
 
@@ -604,23 +611,14 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
+            unregister_run_loop();
+
             // Hide the window
             if (wWindow == NULL)
                 return Steinberg::kResultFalse;
 
             wWindow->hide();
             wWindow->native()->set_parent(NULL);
-
-        #ifdef VST_USE_RUNLOOP_IFACE
-            // Unregister the timer for event loop
-            if (pRunLoop != NULL)
-            {
-                if (pEventHandler != NULL)
-                    pRunLoop->unregisterEventHandler(pEventHandler);
-                if (pTimer != NULL)
-                    pRunLoop->unregisterTimer(pTimer);
-            }
-        #endif /* VST_USE_RUNLOOP_IFACE */
 
             return Steinberg::kResultOk;
         }
@@ -734,44 +732,67 @@ namespace lsp
             return Steinberg::kResultOk;
         }
 
-        Steinberg::tresult PLUGIN_API UIWrapper::setFrame(Steinberg::IPlugFrame *frame)
+        void UIWrapper::unregister_run_loop()
         {
-            lsp_trace("this=%p, frame=%p", this, frame);
-
-            safe_release(pPlugFrame);
-            pPlugFrame  = safe_acquire(frame);
-
         #ifdef VST_USE_RUNLOOP_IFACE
-            // Release previous pointer of the run loop
-            if (pRunLoop != NULL)
-            {
-                // Unregister the timer for event loop
-                if (pEventHandler != NULL)
-                    pRunLoop->unregisterEventHandler(pEventHandler);
-                if (pTimer != NULL)
-                    pRunLoop->unregisterTimer(pTimer);
-                safe_release(pRunLoop);
-                pRunLoop    = NULL;
-            }
+            if (pRunLoop == NULL)
+                return;
 
-            // Acquire new pointer to the run loop
-            pRunLoop = safe_query_iface<Steinberg::Linux::IRunLoop>(frame);
+            // Unregister the timer for event loop
+            if (pEventHandler != NULL)
+            {
+                lsp_trace("RunLoop ptr=%p unregister event handler ptr=%p", pRunLoop, pEventHandler);
+                pRunLoop->unregisterEventHandler(pEventHandler);
+            }
+            if (pTimer != NULL)
+            {
+                lsp_trace("RunLoop ptr=%p unregister event timer ptr=%p", pRunLoop, pTimer);
+                pRunLoop->unregisterTimer(pTimer);
+            }
+            safe_release(pRunLoop);
+        #endif /* VST_USE_RUNLOOP_IFACE */
+        }
+
+        void UIWrapper::register_run_loop()
+        {
+        #ifdef VST_USE_RUNLOOP_IFACE
+            if (pPlugFrame == NULL)
+                return;
+
+            pRunLoop = safe_query_iface<Steinberg::Linux::IRunLoop>(pPlugFrame);
             if (pRunLoop == NULL)
                 pRunLoop    = pController->acquire_run_loop();
 
             lsp_trace("RUN LOOP object=%p", pRunLoop);
-            if (pRunLoop != NULL)
+            if (pRunLoop == NULL)
+                return;
+
+            if (pEventHandler != NULL)
             {
-                if (pEventHandler != NULL)
+                int fd = 0;
+                if ((wWindow->display()->get_file_descriptor(&fd)) == STATUS_OK)
                 {
-                    int fd = 0;
-                    if ((wWindow->display()->get_file_descriptor(&fd)) == STATUS_OK)
-                        pRunLoop->registerEventHandler(pEventHandler, fd);
+                    lsp_trace("RunLoop ptr=%p register event handler ptr=%p", pRunLoop, pEventHandler);
+                    pRunLoop->registerEventHandler(pEventHandler, fd);
                 }
-                if (pTimer != NULL)
-                    pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
+            }
+            if (pTimer != NULL)
+            {
+                lsp_trace("RunLoop ptr=%p register timer ptr=%p", pRunLoop, pTimer);
+                pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
             }
         #endif /* VST_USE_RUNLOOP_IFACE */
+        }
+
+        Steinberg::tresult PLUGIN_API UIWrapper::setFrame(Steinberg::IPlugFrame *frame)
+        {
+            lsp_trace("this=%p, frame=%p", this, frame);
+
+            unregister_run_loop();
+            safe_release(pPlugFrame);
+
+            pPlugFrame  = safe_acquire(frame);
+            register_run_loop();
 
             return Steinberg::kResultOk;
         }
@@ -835,7 +856,7 @@ namespace lsp
 
         void UIWrapper::sync_ui()
         {
-            lsp_trace("sync_ui this=%p, pDisplay=%p");
+//            lsp_trace("sync_ui this=%p, pDisplay=%p");
             if (pDisplay != NULL)
                 pDisplay->main_iteration();
         }
@@ -893,7 +914,7 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
         {
-            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
+//            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             return STATUS_OK;
         }
 

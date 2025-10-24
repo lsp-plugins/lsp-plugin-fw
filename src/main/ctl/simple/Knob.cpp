@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 
@@ -112,6 +113,8 @@ namespace lsp
                 // Bind slots
                 knob->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
                 knob->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_dbl_click, this);
+                knob->slots()->bind(tk::SLOT_BEGIN_EDIT, slot_begin_edit, this);
+                knob->slots()->bind(tk::SLOT_END_EDIT, slot_end_edit, this);
 
                 // Set value
                 pScaleEnablePort = pWrapper->port(UI_ENABLE_KNOB_SCALE_ACTIONS_PORT);
@@ -277,16 +280,6 @@ namespace lsp
                 pPort->set_value(value);
                 pPort->notify_all(ui::PORT_USER_EDIT);
             }
-        }
-
-        void Knob::set_default_value()
-        {
-            tk::Knob *knob = tk::widget_cast<tk::Knob>(wWidget);
-            if ((knob == NULL) || (pPort == NULL))
-                return;
-
-            pPort->set_default();
-            pPort->notify_all(ui::PORT_USER_EDIT);
         }
 
         void Knob::sync_scale_state()
@@ -490,17 +483,41 @@ namespace lsp
 
         status_t Knob::slot_change(tk::Widget *sender, void *ptr, void *data)
         {
-            ctl::Knob *_this    = static_cast<ctl::Knob *>(ptr);
-            if (_this != NULL)
-                _this->submit_value();
+            ctl::Knob *self     = static_cast<ctl::Knob *>(ptr);
+            if (self != NULL)
+                self->submit_value();
+            return STATUS_OK;
+        }
+
+        status_t Knob::slot_begin_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Knob *self     = static_cast<ctl::Knob *>(ptr);
+            if ((self != NULL) && (self->pPort != NULL))
+                self->pPort->begin_edit();
+            return STATUS_OK;
+        }
+
+        status_t Knob::slot_end_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::Knob *self     = static_cast<ctl::Knob *>(ptr);
+            if ((self != NULL) && (self->pPort != NULL))
+                self->pPort->end_edit();
             return STATUS_OK;
         }
 
         status_t Knob::slot_dbl_click(tk::Widget *sender, void *ptr, void *data)
         {
-            ctl::Knob *_this    = static_cast<ctl::Knob *>(ptr);
-            if (_this != NULL)
-                _this->set_default_value();
+            ctl::Knob *self     = static_cast<ctl::Knob *>(ptr);
+
+            if ((self != NULL) && (self->pPort != NULL))
+            {
+                lsp_trace("set_default value id=%s", self->pPort->id());
+
+                self->pPort->begin_edit();
+                self->pPort->set_default();
+                self->pPort->notify_all(ui::PORT_USER_EDIT);
+                self->pPort->end_edit();
+            }
             return STATUS_OK;
         }
     } /* namespace ctl */

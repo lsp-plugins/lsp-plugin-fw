@@ -122,6 +122,8 @@ namespace lsp
                 sBorderColor.init(pWrapper, ae->border_color());
 
                 ae->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
+                ae->slots()->bind(tk::SLOT_BEGIN_EDIT, slot_begin_edit, this);
+                ae->slots()->bind(tk::SLOT_END_EDIT, slot_end_edit, this);
                 ae->set_curve_function(curve_function, this);
             }
 
@@ -270,8 +272,9 @@ namespace lsp
                 }
         }
 
-        void AudioEnvelope::sync_time_values(point_t *actor)
+        bool AudioEnvelope::sync_time_values(point_t *actor)
         {
+            bool changed = false;
             for (size_t i=0; i<P_TOTAL; ++i)
             {
                 point_t *dst    = &vPoints[i][R_TIME];
@@ -279,15 +282,23 @@ namespace lsp
                     continue;
 
                 if ((dst < actor) && (dst->fNewValue > actor->fNewValue))
+                {
                     dst->fNewValue      = actor->fNewValue;
+                    changed             = true;
+                }
                 else if ((dst > actor) && (dst->fNewValue < actor->fNewValue))
+                {
                     dst->fNewValue      = actor->fNewValue;
+                    changed             = true;
+                }
             }
+            return changed;
         }
 
         void AudioEnvelope::notify(ui::IPort *port, size_t flags)
         {
             // Update state of points
+            bool changed = false;
             for (size_t i=0; i<P_TOTAL; ++i)
             {
                 for (size_t j=0; j<R_TOTAL; ++j)
@@ -298,7 +309,10 @@ namespace lsp
 
                     p->fNewValue    = get_normalized(p->pPort);
                     if (j == R_TIME)
+                    {
+                        changed         = true;
                         sync_time_values(p);
+                    }
                 }
 
                 // Query curve redraw if curve segment type port has changed
@@ -308,7 +322,12 @@ namespace lsp
 
             // Commit changes for points
             commit_values();
-            submit_ports();
+            if (changed)
+            {
+                begin_edit();
+                submit_ports();
+                end_edit();
+            }
         }
 
         void AudioEnvelope::submit_ports()
@@ -400,6 +419,51 @@ namespace lsp
             ctl::AudioEnvelope *self    = static_cast<ctl::AudioEnvelope *>(ptr);
             if (self != NULL)
                 self->submit_ports();
+            return STATUS_OK;
+        }
+
+        void AudioEnvelope::begin_edit()
+        {
+            // Notify about start of port editing
+            for (size_t i=0; i<P_TOTAL; ++i)
+                for (size_t j=0; j<R_TOTAL; ++j)
+                {
+                    point_t *p      = &vPoints[i][j];
+                    if ((p->pPort == NULL) || (p->pValue == NULL))
+                        continue;
+
+                    p->pPort->begin_edit();
+                }
+        }
+
+        void AudioEnvelope::end_edit()
+        {
+            // Notify about start of port editing
+            for (size_t i=0; i<P_TOTAL; ++i)
+                for (size_t j=0; j<R_TOTAL; ++j)
+                {
+                    point_t *p      = &vPoints[i][j];
+                    if ((p->pPort == NULL) || (p->pValue == NULL))
+                        continue;
+
+                    p->pPort->end_edit();
+                }
+        }
+
+        status_t AudioEnvelope::slot_begin_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::AudioEnvelope *self    = static_cast<ctl::AudioEnvelope *>(ptr);
+            if (self != NULL)
+                self->begin_edit();
+            return STATUS_OK;
+        }
+
+        status_t AudioEnvelope::slot_end_edit(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::AudioEnvelope *self    = static_cast<ctl::AudioEnvelope *>(ptr);
+            if (self != NULL)
+                self->end_edit();
+
             return STATUS_OK;
         }
 

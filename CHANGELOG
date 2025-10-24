@@ -2,6 +2,17 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.32 ===
+* Added support of BeginEdit and EndEdit events for CLAP, LV2, VST2 and VST3 formats.
+* Added ctl::RangeSlider controller for controlling range of two parameters.
+* Added ctl::PianoKeys controller for controlling piano keyboard layout.
+* Added ctl::Embed controller for placing widgets on the graph widget.
+* Implemented A/B preset switching support by plugins.
+* Fixed VST3 plugins crash under Ardour related to improper IRunLoop interface
+  operations based on invalid API calls by the DAW.
+* Fixed setting paths for LV2 plugins using generic plugin interface.
+* Updated module versions in dependencies.
+
 === 1.0.31 ===
 * Added command line option for JACK that allows to specify client name.
 * Implemented preset management in the UI of the plugin.

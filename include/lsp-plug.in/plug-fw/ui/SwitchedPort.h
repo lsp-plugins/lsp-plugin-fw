@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 апр. 2021 г.
@@ -74,7 +74,12 @@ namespace lsp
 
             public:
                 explicit SwitchedPort(IWrapper *wrapper);
+                SwitchedPort (const SwitchedPort &) = delete;
+                SwitchedPort (SwitchedPort &&) = delete;
                 virtual ~SwitchedPort() override;
+
+                SwitchedPort & operator = (const SwitchedPort &) = delete;
+                SwitchedPort & operator = (SwitchedPort &&) = delete;
 
                 void            destroy();
 
@@ -90,6 +95,8 @@ namespace lsp
                 virtual void    set_value(float value) override;
                 virtual void    notify_all(size_t flags) override;
                 virtual void    notify(IPort *port, size_t flags) override;
+                virtual bool    begin_edit() override;
+                virtual bool    end_edit() override;
         };
 
     } /* namespace ctl */

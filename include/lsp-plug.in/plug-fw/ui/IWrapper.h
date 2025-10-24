@@ -104,9 +104,11 @@ namespace lsp
                 wssize_t                        nPlayPosition;      // Playback position of the current file preview
                 wssize_t                        nPlayLength;        // Overall playback file length in samples
                 ssize_t                         nActivePreset;      // Active preset
+                size_t                          nActivePresetData;  // Active preset data
                 preset_tab_t                    enPresetTab;        // Active preset tab
                 expr::Variables                 sGlobalVars;        // Global variables
                 plug::position_t                sPosition;          // Melodic position
+                core::preset_data_t             vPresetData[2];     // Preset data
 
                 lltl::parray<ui::IPort>         vPorts;             // All possible ports
                 lltl::parray<ui::IPort>         vSortedPorts;       // Alphabetically-sorted ports
@@ -180,6 +182,9 @@ namespace lsp
                 void            notify_presets_updated();
                 void            notify_preset_deactivated(const preset_t *preset);
                 void            notify_preset_activated(const preset_t *preset);
+                void            notify_write_to_kvt(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value);
+                status_t        serialize_state(core::preset_data_t *dst);
+                status_t        deserialize_state(const core::preset_data_t *src);
 
             public:
                 explicit IWrapper(ui::Module *ui, resource::ILoader *loader);
@@ -544,9 +549,10 @@ namespace lsp
                 /**
                  * Select active preset
                  * @param preset_id preset identifier, negative value for deselection of any preset
+                 * @param force force to re-load preset if selected preset matches active preset
                  * @return status of operation
                  */
-                virtual status_t                select_active_preset(const preset_t *preset);
+                virtual status_t                select_active_preset(const preset_t *preset, bool force);
 
                 /**
                  * Get active preset
@@ -622,6 +628,25 @@ namespace lsp
                  */
                 void                            receive_preset_state(const core::preset_state_t *state);
 
+            public: // A/B state management
+
+                /**
+                 * Get currently active preset data
+                 * @return currently selected active preset data index (0 or 1)
+                 */
+                size_t                          active_preset_data() const;
+
+                /**
+                 * Copy preset data from active setup to inactive setup
+                 * @return status of operation
+                 */
+                status_t                        copy_preset_data();
+
+                /**
+                 * Select new active preset data and apply settings from it
+                 * @return status of operation
+                 */
+                status_t                        switch_preset_data();
         };
 
     } /* namespace ui */

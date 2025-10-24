@@ -3,7 +3,7 @@
  *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 14 мая 2021 г.
+ * Created on: 29 сент. 2025 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_AXIS_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_AXIS_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_PIANOKEYS_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_PIANOKEYS_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,56 +34,55 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Graph widget that contains another graphic elements
+         * Piano keyboard controller
          */
-        class Axis: public Widget
+        class PianoKeys: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                ui::IPort          *pPort;
-                ctl::Boolean        sSmooth;
-                ctl::Float          sMin;
-                ctl::Float          sMax;
-                ctl::Float          sZero;
-                ctl::Boolean        sLogScale;
-                ctl::Expression     sDx;
-                ctl::Expression     sDy;
-                ctl::Expression     sAngle;
-                ctl::Expression     sLength;
-                ctl::Integer        sWidth;
-                ctl::Color          sColor;
+                ui::IPort          *pSelectionStart;
+                ui::IPort          *pSelectionEnd;
 
-                expr::Variables     sVariables;
-
-            protected:
-                static status_t     slot_graph_resize(tk::Widget *sender, void *ptr, void *data);
+                ctl::Padding        sBorder;
+                ctl::Integer        sSplitSize;
+                ctl::Integer        sMinNote;
+                ctl::Integer        sMaxNote;
+                ctl::Integer        sAngle;
+                ctl::Float          sKeyAspect;
+                ctl::Boolean        sNatural;
+                ctl::Boolean        sEditable;
+                ctl::Boolean        sSelectable;
+                ctl::Boolean        sClearSelection;
 
             protected:
-                void                trigger_expr();
-                void                on_graph_resize();
+                static status_t     slot_submit_key(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_change_selection(tk::Widget *sender, void *ptr, void *data);
+
+            protected:
+                void                do_destroy();
 
             public:
-                explicit Axis(ui::IWrapper *wrapper, tk::GraphAxis *widget);
-                Axis(const Axis &) = delete;
-                Axis(Axis &&) = delete;
-                virtual ~Axis() override;
-
-                Axis & operator = (const Axis &) = delete;
-                Axis & operator = (Axis &&) = delete;
+                explicit PianoKeys(ui::IWrapper *wrapper, tk::PianoKeys *widget);
+                PianoKeys(const PianoKeys &) = delete;
+                PianoKeys(PianoKeys &&) = delete;
+                virtual ~PianoKeys() override;
+                PianoKeys & operator = (const PianoKeys &) = delete;
+                PianoKeys & operator = (PianoKeys &&) = delete;
 
                 virtual status_t    init() override;
+                virtual void        destroy() override;
 
             public:
                 virtual void        set(ui::UIContext *ctx, const char *name, const char *value) override;
                 virtual void        notify(ui::IPort *port, size_t flags) override;
                 virtual void        end(ui::UIContext *ctx) override;
-                virtual void        reloaded(const tk::StyleSheet *sheet) override;
         };
     } /* namespace ctl */
 } /* namespace lsp */
 
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_GRAPH_AXIS_H_ */
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SPECIFIC_PIANOKEYS_H_ */

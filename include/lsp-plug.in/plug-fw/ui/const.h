@@ -71,6 +71,7 @@
 #define UI_FILELIST_NAVIGATION_AUTOLOAD_ID      "file_list_navigation_autoload"
 #define UI_FILELIST_NAVIGATION_AUTOPLAY_ID      "file_list_navigation_auto_play"
 #define UI_TAKE_INST_NAME_FROM_FILE_ID          "take_instrument_name_from_file"
+#define UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID        "graph_piano_layout"
 
 #define MSTUD_PORT                              UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                            UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -113,6 +114,7 @@
 #define UI_DOCUMENTATION_PORT                   UI_CONFIG_PORT_PREFIX UI_DOCUMENTATION_PATH_ID
 #define UI_FILELIST_NAVIGATION_AUTOLOAD_PORT    UI_CONFIG_PORT_PREFIX UI_FILELIST_NAVIGATION_AUTOLOAD_ID
 #define UI_TAKE_INST_NAME_FROM_FILE_PORT        UI_CONFIG_PORT_PREFIX UI_TAKE_INST_NAME_FROM_FILE_ID
+#define UI_UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT   UI_CONFIG_PORT_PREFIX UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                          "main_menu"

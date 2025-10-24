@@ -118,6 +118,8 @@ namespace lsp
                 void                rotate_camera(ssize_t dx, ssize_t dy);
                 void                move_camera(ssize_t dx, ssize_t dy, ssize_t dz);
                 void                notify_view_changed();
+                void                begin_edit();
+                void                end_edit();
 
             public:
                 explicit Area3D(ui::IWrapper *wrapper, tk::Area3D *widget);

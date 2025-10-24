@@ -71,6 +71,8 @@ namespace lsp
                 virtual void        set_value(float value) override;
                 virtual void        notify_all(size_t flags) override;
                 virtual void        notify(IPort *port, size_t flags) override;
+                virtual bool        begin_edit() override;
+                virtual bool        end_edit() override;
         };
 
     } /* namespace ctl */

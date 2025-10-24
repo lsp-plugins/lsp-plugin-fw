@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/lltl/ptrset.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/core/presets.h>
@@ -102,6 +103,7 @@ namespace lsp
             SWITCH(UI_FILELIST_NAVIGATION_AUTOLOAD_ID, "Automatically load files when navigating over file list", NULL, 1.0f),
             SWITCH(UI_FILELIST_NAVIGATION_AUTOPLAY_ID, "Enable automatic playback of the audio file in the file navigator when selected", NULL, 0.0f),
             SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", NULL, 0.0f),
+            SWITCH(UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID, "Show piano keyboard layout on frequency graph", NULL, 1.0f),
             PORTS_END
         };
 
@@ -181,30 +183,38 @@ namespace lsp
 
         IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
         {
-            pDisplay        = NULL;
-            wWindow         = NULL;
-            pWindow         = NULL;
-            pUI             = ui;
-            pLoader         = loader;
-            nFlags          = 0;
-            nPlayPosition   = 0;
-            nPlayLength     = 0;
-            nActivePreset   = INVALID_PRESET_INDEX;
-            enPresetTab     = PRESET_TAB_ALL;
+            pDisplay            = NULL;
+            wWindow             = NULL;
+            pWindow             = NULL;
+            pUI                 = ui;
+            pLoader             = loader;
+            nFlags              = 0;
+            nPlayPosition       = 0;
+            nPlayLength         = 0;
+            nActivePreset       = INVALID_PRESET_INDEX;
+            nActivePresetData   = 0;
+            enPresetTab         = PRESET_TAB_ALL;
 
             plug::position_t::init(&sPosition);
+
+            for (size_t i=0; i<2; ++i)
+                core::init_preset_data(&vPresetData[i]);
         }
 
         IWrapper::~IWrapper()
         {
-            pDisplay    = NULL;
-            pUI         = NULL;
-            pLoader     = NULL;
-            nFlags      = 0;
+            pDisplay            = NULL;
+            pUI                 = NULL;
+            pLoader             = NULL;
+            nFlags              = 0;
         }
 
         void IWrapper::destroy()
         {
+            // Destroy preset data
+            for (size_t i=0; i<2; ++i)
+                core::destroy_preset_data(&vPresetData[i]);
+
             // Flush list of playback listeners
             vPlayListeners.flush();
 
@@ -393,6 +403,9 @@ namespace lsp
             else
                 lsp_warn("Failed to obtain plugin configuration: error=%d", int(res));
 
+            // Bind custom functions
+            ctl::bind_functions(&sGlobalVars);
+
             return STATUS_OK;
         }
 
@@ -458,7 +471,7 @@ namespace lsp
             return NULL;
         }
 
-        void IWrapper::kvt_notify_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value)
+        void IWrapper::notify_write_to_kvt(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value)
         {
             for (size_t i=0, n=vKvtListeners.size(); i<n; ++i)
             {
@@ -468,6 +481,12 @@ namespace lsp
             }
             if (pUI != NULL)
                 pUI->kvt_changed(storage, id, value);
+        }
+
+        void IWrapper::kvt_notify_write(core::KVTStorage *storage, const char *id, const core::kvt_param_t *value)
+        {
+            notify_write_to_kvt(storage, id, value);
+            mark_active_preset_dirty();
         }
 
         status_t IWrapper::kvt_subscribe(ui::IKVTListener *listener)
@@ -1066,6 +1085,10 @@ namespace lsp
             core::KVTStorage *kvt = kvt_lock();
             if (kvt != NULL)
             {
+                lsp_finally {
+                    kvt->gc();
+                    kvt_release();
+                };
                 // Write comment
                 res = s->writeln();
                 if (res == STATUS_OK)
@@ -1078,9 +1101,6 @@ namespace lsp
                     res = s->writeln();
                 if (res == STATUS_OK)
                     res = export_kvt(s, kvt, basedir);
-
-                kvt->gc();
-                kvt_release();
             }
 
             if (res == STATUS_OK)
@@ -1521,9 +1541,7 @@ namespace lsp
                 }
             };
 
-            // Reset all ports to default values
-            if (!(flags & IMPORT_FLAG_PATCH))
-                reset_settings();
+            lltl::ptrset<ui::IPort> visited;
 
             while ((res = parser->next(&param)) == STATUS_OK)
             {
@@ -1609,7 +1627,7 @@ namespace lsp
                     {
                         const char *id = param.name.get_utf8();
                         kvt->put(id, &kp, core::KVT_RX);
-                        kvt_notify_write(kvt, id, &kp);
+                        notify_write_to_kvt(kvt, id, &kp);
                     }
 
                     // Free previously allocated data
@@ -1621,18 +1639,27 @@ namespace lsp
                     size_t port_flags = (flags & (IMPORT_FLAG_PRESET | IMPORT_FLAG_PATCH)) ?
                                     plug::PF_PRESET_IMPORT : plug::PF_STATE_IMPORT;
 
-                    for (size_t i=0, n=vPorts.size(); i<n; ++i)
+                    const char *pname = param.name.get_utf8();
+                    ui::IPort *p = port_by_id(pname);
+                    if (p != NULL)
                     {
-                        ui::IPort *p = vPorts.uget(i);
-                        if (p == NULL)
-                            continue;
-                        const meta::port_t *meta = p->metadata();
-                        if ((meta != NULL) && (param.name.equals_ascii(meta->id)))
-                        {
-                            if (set_port_value(p, &param, port_flags, basedir))
-                                p->notify_all(ui::PORT_NONE);
-                            break;
-                        }
+                        if (set_port_value(p, &param, port_flags, basedir))
+                            p->notify_all(ui::PORT_NONE);
+                        visited.put(p);
+                    }
+                }
+            }
+
+            // Reset non-visited ports to default values
+            if (!(flags & IMPORT_FLAG_PATCH))
+            {
+                for (lltl::iterator<ui::IPort> it = vPorts.values(); it; ++it)
+                {
+                    ui::IPort *p = it.get();
+                    if ((p != NULL) && (!visited.contains(p)))
+                    {
+                        p->set_default();
+                        p->notify_all(ui::PORT_NONE);
                     }
                 }
             }
@@ -2134,7 +2161,7 @@ namespace lsp
             status_t res;
 
             // Cleanup variables
-            sGlobalVars.clear();
+            sGlobalVars.clear_vars();
 
             // Evaluate global constants
             lltl::parray<LSPString> constants;
@@ -2415,7 +2442,7 @@ namespace lsp
             return (vPresetListeners.qpremove(listener)) ? STATUS_OK : STATUS_NOT_FOUND;
         }
 
-        status_t IWrapper::select_active_preset(const preset_t *preset)
+        status_t IWrapper::select_active_preset(const preset_t *preset, bool force)
         {
             const ssize_t preset_id = vPresets.index_of(preset);
             if ((preset_id < 0) && (nActivePreset < 0))
@@ -2427,7 +2454,7 @@ namespace lsp
             // Change current preset
             preset_t *pold  = (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
             preset_t *pnew  = const_cast<ui::preset_t *>(preset);
-            if (pold == pnew)
+            if ((pold == pnew) && (!force))
                 return STATUS_OK;
 
             // Import preset settings
@@ -2740,6 +2767,9 @@ namespace lsp
                 nFlags         |= F_PRESET_DIRTY | F_PRESET_SYNC;
                 notify_presets_updated();
             }
+
+            // Mark currently selected A/B preset state as dirty
+            vPresetData[nActivePresetData].dirty    = true;
         }
 
         bool IWrapper::active_preset_dirty() const
@@ -2983,6 +3013,220 @@ namespace lsp
 
             // Notify listeners about presets changes
             notify_presets_updated();
+        }
+
+        size_t IWrapper::active_preset_data() const
+        {
+            return nActivePresetData;
+        }
+
+        status_t IWrapper::copy_preset_data()
+        {
+            core::preset_data_t *inactive   = &vPresetData[(nActivePresetData + 1) % 2];
+            return serialize_state(inactive);
+        }
+
+        status_t IWrapper::switch_preset_data()
+        {
+            status_t res;
+            core::preset_data_t *active     = &vPresetData[nActivePresetData];
+            core::preset_data_t *inactive   = &vPresetData[(nActivePresetData + 1) % 2];
+
+            // Check if we need to serialize current state
+            if ((active->empty) || (active->dirty))
+            {
+                if ((res = serialize_state(active)) != STATUS_OK)
+                    return res;
+            }
+
+            // Now load new state
+            if (!inactive->empty)
+            {
+                if ((res = deserialize_state(inactive)) != STATUS_OK)
+                    return res;
+            }
+            else
+            {
+                if ((res = reset_settings()) != STATUS_OK)
+                    return res;
+            }
+
+            // Switch preset state
+            nActivePresetData   = (nActivePresetData + 1) % 2;
+
+            // Set preset dirty flag only when there is an active preset
+            const preset_t *preset = active_preset();
+            if ((preset != NULL) && (!(nFlags & F_PRESET_DIRTY)))
+            {
+                nFlags         |= F_PRESET_DIRTY | F_PRESET_SYNC;
+                notify_presets_updated();
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t IWrapper::serialize_state(core::preset_data_t *dst)
+        {
+            // Write header
+            status_t res = STATUS_OK;
+            core::preset_data_t data;
+            core::init_preset_data(&data);
+            lsp_finally {
+                core::destroy_preset_data(&data);
+            };
+
+            // Serialize regular ports
+            for (lltl::iterator<ui::IPort> it=vPorts.values(); it; ++it)
+            {
+                ui::IPort *p    = it.get();
+                if (p == NULL)
+                    continue;
+
+                const meta::port_t *meta = p->metadata();
+                if ((meta == NULL) || (!meta::is_in_port(meta)))
+                    continue;
+
+                core::kvt_param_t param;
+                switch (meta->role)
+                {
+                    case meta::R_CONTROL:
+                    case meta::R_PORT_SET:
+                    case meta::R_BYPASS:
+                        param.type      = core::KVT_FLOAT32;
+                        param.f32       = p->value();
+                        break;
+
+                    case meta::R_SEND_NAME:
+                    case meta::R_RETURN_NAME:
+                    case meta::R_STRING:
+                    case meta::R_PATH:
+                        param.type      = core::KVT_STRING;
+                        param.str       = p->buffer<const char>();
+                        break;
+
+                    default:
+                        param.type      = core::KVT_ANY;
+                        break;
+                }
+                if (param.type == core::KVT_ANY)
+                    continue;
+
+                if ((res = core::add_preset_data_param(&data, meta->id, &param)) != STATUS_OK)
+                    return res;
+            }
+
+            // Serialize KVT data
+            core::KVTStorage *kvt = kvt_lock();
+            if (kvt != NULL)
+            {
+                lsp_finally {
+                    kvt->gc();
+                    kvt_release();
+                };
+
+                // Emit the whole list of KVT parameters
+                for (core::KVTIterator *iter = kvt->enum_all();
+                    (iter != NULL) && (iter->next() == STATUS_OK);)
+                {
+                    const core::kvt_param_t *kvt_param = NULL;
+
+                    // Get KVT parameter
+                    res = iter->get(&kvt_param);
+                    if (res == STATUS_NOT_FOUND)
+                        continue;
+                    else if (res != STATUS_OK)
+                    {
+                        lsp_warn("Could not get KVT parameter: code=%d", int(res));
+                        break;
+                    }
+
+                    // Skip transient and private parameters
+                    if ((iter->is_transient()) || (iter->is_private()))
+                        continue;
+
+
+                    if ((res = core::add_preset_data_param(&data, iter->name(), kvt_param)) != STATUS_OK)
+                        return res;
+                }
+            }
+
+            data.values.swap(dst->values);
+            dst->empty  = false;
+            dst->dirty  = false;
+
+            return res;
+        }
+
+        status_t IWrapper::deserialize_state(const core::preset_data_t *src)
+        {
+            // Apply regular parameters
+            lltl::parray<ui::IPort> notify;
+
+            for (lltl::iterator<const core::preset_param_t> it=src->values.values(); it; ++it)
+            {
+                const core::preset_param_t *param = it.get();
+                if (param->name[0] == '/')
+                    continue;
+
+                ui::IPort *p    = port_by_id(param->name);
+                if (p == NULL)
+                    continue;
+
+                const meta::port_t *meta = p->metadata();
+                if ((meta == NULL) || (!meta::is_in_port(meta)))
+                    continue;
+
+                switch (meta->role)
+                {
+                    case meta::R_CONTROL:
+                    case meta::R_PORT_SET:
+                    case meta::R_BYPASS:
+                        if (param->value.type != core::KVT_FLOAT32)
+                            continue;
+                        p->set_value(param->value.f32);
+                        p->notify_all(ui::PORT_NONE);
+                        break;
+
+                    case meta::R_SEND_NAME:
+                    case meta::R_RETURN_NAME:
+                    case meta::R_STRING:
+                    case meta::R_PATH:
+                        if (param->value.type != core::KVT_STRING)
+                            continue;
+
+                        p->write(param->value.str, strlen(param->value.str));
+                        p->notify_all(ui::PORT_NONE);
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            // Deserialize KVT data
+            core::KVTStorage *kvt = kvt_lock();
+            if (kvt != NULL)
+            {
+                lsp_finally {
+                    kvt->gc();
+                    kvt_release();
+                };
+
+                for (lltl::iterator<const core::preset_param_t> it=src->values.values(); it; ++it)
+                {
+                    const core::preset_param_t *param = it.get();
+                    if (param->name[0] != '/')
+                        continue;
+
+                    if (param->value.type != core::KVT_ANY)
+                    {
+                        kvt->put(param->name, &param->value, core::KVT_RX);
+                        notify_write_to_kvt(kvt, param->name, &param->value);
+                    }
+                }
+            }
+
+            return STATUS_OK;
         }
 
     } /* namespace ui */

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 авг. 2021 г.
@@ -388,7 +388,7 @@ namespace lsp
             if (gd == NULL)
                 return;
 
-            p->nFlags   = lsp_setflag(p->nFlags, DF_AXIS, axis);
+            p->nFlags       = lsp_setflag(p->nFlags, DF_AXIS, axis);
 
             meta::port_t xp;
 
@@ -501,40 +501,69 @@ namespace lsp
                 p->pStep->set_decel(p->fDStep);
         }
 
+        void Dot::begin_edit()
+        {
+            if (sX.pPort != NULL)
+                sX.pPort->begin_edit();
+            if (sY.pPort != NULL)
+                sY.pPort->begin_edit();
+            if (sZ.pPort != NULL)
+                sZ.pPort->begin_edit();
+        }
+
+        void Dot::end_edit()
+        {
+            if (sX.pPort != NULL)
+                sX.pPort->end_edit();
+            if (sY.pPort != NULL)
+                sY.pPort->end_edit();
+            if (sZ.pPort != NULL)
+                sZ.pPort->end_edit();
+        }
+
         status_t Dot::slot_change(tk::Widget *sender, void *ptr, void *data)
         {
-            Dot *_this          = static_cast<Dot *>(ptr);
-            if (_this != NULL)
-                _this->submit_values();
+            Dot *self           = static_cast<Dot *>(ptr);
+            if (self != NULL)
+                self->submit_values();
             return STATUS_OK;
         }
 
         status_t Dot::slot_begin_edit(tk::Widget *sender, void *ptr, void *data)
         {
-            Dot *_this          = static_cast<Dot *>(ptr);
-            if (_this != NULL)
-                _this->bEditing     = true;
+            Dot *self           = static_cast<Dot *>(ptr);
+            if (self != NULL)
+            {
+                self->bEditing      = true;
+                self->begin_edit();
+            }
             return STATUS_OK;
         }
 
         status_t Dot::slot_end_edit(tk::Widget *sender, void *ptr, void *data)
         {
-            Dot *_this          = static_cast<Dot *>(ptr);
-            if (_this != NULL)
+            Dot *self           = static_cast<Dot *>(ptr);
+            if (self != NULL)
             {
-                _this->bEditing     = false;
-                _this->commit_value(&_this->sX, NULL, true);
-                _this->commit_value(&_this->sY, NULL, true);
-                _this->commit_value(&_this->sZ, NULL, true);
+                self->bEditing     = false;
+                self->commit_value(&self->sX, NULL, true);
+                self->commit_value(&self->sY, NULL, true);
+                self->commit_value(&self->sZ, NULL, true);
+
+                self->end_edit();
             }
             return STATUS_OK;
         }
 
         status_t Dot::slot_dbl_click(tk::Widget *sender, void *ptr, void *data)
         {
-            Dot *_this          = static_cast<Dot *>(ptr);
-            if (_this != NULL)
-                _this->submit_default_values();
+            Dot *self           = static_cast<Dot *>(ptr);
+            if (self != NULL)
+            {
+                self->begin_edit();
+                self->submit_default_values();
+                self->end_edit();
+            }
             return STATUS_OK;
         }
     } /* namespace ctl */

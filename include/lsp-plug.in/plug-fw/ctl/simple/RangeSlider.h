@@ -3,7 +3,7 @@
  *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 5 июл. 2021 г.
+ * Created on: 8 окт. 2025 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_FADER_H_
-#define LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_FADER_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_RANGESLIDER_H_
+#define LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_RANGESLIDER_H_
 
 #ifndef LSP_PLUG_IN_PLUG_FW_CTL_IMPL_
     #error "Use #include <lsp-plug.in/plug-fw/ctl.h>"
@@ -34,25 +34,54 @@ namespace lsp
     namespace ctl
     {
         /**
-         * Fader control
+         * Range slider control
          */
-        class Fader: public Widget
+        class RangeSlider: public Widget
         {
             public:
                 static const ctl_class_t metadata;
 
             protected:
-                enum fader_flags_t
+                enum param_type_t
                 {
-                    FF_MIN          = 1 << 0,
-                    FF_MAX          = 1 << 1,
-                    FF_DFL          = 1 << 2,
-                    FF_VALUE        = 1 << 3,
-                    FF_STEP         = 1 << 4,
-                    FF_LOG          = 1 << 5,
-                    FF_LOG_SET      = 1 << 6,
-                    FF_BAL_SET      = 1 << 7
+                    PT_MIN,
+                    PT_MAX,
+                    PT_RANGE,
+                    PT_BEGIN,
+                    PT_END,
+
+                    PT_TOTAL
                 };
+
+                enum notify_flags_t
+                {
+                    NF_MIN          = 1 << 0,
+                    NF_MAX          = 1 << 1,
+                    NF_RANGE        = 1 << 2,
+                    NF_BEGIN        = 1 << 3,
+                    NF_END          = 1 << 4
+                };
+
+                enum global_flags_t
+                {
+                    GF_LOG          = 1 << 0,
+                    GF_LOG_SET      = 1 << 1,
+                    GF_STEP         = 1 << 2,
+                    GF_CHANGING     = 1 << 3
+                };
+
+                typedef struct param_t
+                {
+                    ui::IPort          *pPort;
+                    float               fMin;
+                    float               fMax;
+                    float               fValue;
+                    float               fDefault;
+                    bool                bHasDefault;
+
+                    ctl::Expression     sMin;
+                    ctl::Expression     sMax;
+                } param_t;
 
             protected:
                 ctl::Color          sBtnColor;
@@ -66,19 +95,12 @@ namespace lsp
                 ctl::Color          sInactiveScaleBorderColor;
                 ctl::Color          sInactiveBalanceColor;
 
-                ctl::Expression     sMin;
-                ctl::Expression     sMax;
-
-                ui::IPort          *pPort;
+                param_t             vParams[PT_TOTAL];
 
                 size_t              nFlags;
-                float               fDefault;
                 float               fStep;
                 float               fAStep;
                 float               fDStep;
-                float               fBalance;
-
-                float               fDefaultValue;
 
             protected:
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
@@ -87,18 +109,24 @@ namespace lsp
                 static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
 
             protected:
-                void                submit_value();
-                void                set_default_value();
-                void                commit_value(size_t flags);
+                static float        get_slider_value(tk::RangeSlider *rs, size_t type);
+                static void         set_slider_value(tk::RangeSlider *rs, size_t type, float value);
+
+            protected:
+                void                submit_values(size_t flags);
+                void                set_default_values();
+                void                commit_values(size_t flags);
+                bool                bind_params(size_t type, const char *prefix, const char *name, const char *value);
+                bool                is_log_range(ui::IPort *p);
 
             public:
-                explicit Fader(ui::IWrapper *wrapper, tk::Fader *widget);
-                Fader(const Fader &) = delete;
-                Fader(Fader &&) = delete;
-                virtual ~Fader() override;
+                explicit RangeSlider(ui::IWrapper *wrapper, tk::RangeSlider *widget);
+                RangeSlider(const RangeSlider &) = delete;
+                RangeSlider(RangeSlider &&) = delete;
+                virtual ~RangeSlider() override;
 
-                Fader & operator = (const Fader &) = delete;
-                Fader & operator = (Fader &&) = delete;
+                RangeSlider & operator = (const RangeSlider &) = delete;
+                RangeSlider & operator = (RangeSlider &&) = delete;
 
                 virtual status_t    init() override;
 
@@ -110,4 +138,7 @@ namespace lsp
     } /* namespace ctl */
 } /* namespace lsp */
 
-#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_FADER_H_ */
+
+
+
+#endif /* LSP_PLUG_IN_PLUG_FW_CTL_SIMPLE_RANGESLIDER_H_ */

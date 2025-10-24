@@ -97,6 +97,10 @@ namespace lsp
             wInvertVScroll              = NULL;
             wInvertGraphDotVScroll      = NULL;
 
+            for (size_t i=0; i<2; ++i)
+                wPresetSwitch[i]            = NULL;
+            wPresetCopy                 = NULL;
+
             pPVersion                   = NULL;
             pPBypass                    = NULL;
             pR3DBackend                 = NULL;
@@ -307,6 +311,16 @@ namespace lsp
 
         status_t PluginWindow::post_init()
         {
+            // Get presets widgets
+            wPresetSwitch[0]        = sWidgets.find("switch_preset_a");
+            wPresetSwitch[1]        = sWidgets.find("switch_preset_b");
+            wPresetCopy             = sWidgets.find("switch_preset_copy");
+
+            bind_slot("switch_preset_a", tk::SLOT_SUBMIT, slot_switch_ab_preset);
+            bind_slot("switch_preset_b", tk::SLOT_SUBMIT, slot_switch_ab_preset);
+            bind_slot("switch_preset_copy", tk::SLOT_SUBMIT, slot_copy_ab_preset);
+            sync_ab_state();
+
             // Bind as preset listener to the wrapper
             pWrapper->add_preset_listener(this);
             bind_slot("trg_prev_preset", tk::SLOT_SUBMIT, slot_select_next_preset);
@@ -1020,6 +1034,11 @@ namespace lsp
                 add_ui_flag(menu,
                     UI_TAKE_INST_NAME_FROM_FILE_PORT,
                     "actions.ui_behavior.take_instrument_name_from_file"));
+
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT,
+                    "actions.ui_behavior.show_piano_layout_on_graph"));
 
             // Thickness of the enum menu item
             wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
@@ -2402,6 +2421,43 @@ namespace lsp
             sync_preset_name();
         }
 
+        void PluginWindow::sync_ab_state()
+        {
+            const size_t active = pWrapper->active_preset_data();
+            for (size_t i=0; i<2; ++i)
+            {
+                tk::Widget *w       = wPresetSwitch[i];
+                if (w == NULL)
+                    continue;
+
+                const bool is_active = (i == active);
+
+                revoke_style(w, "PluginWindow::ABSwitch::Active");
+                revoke_style(w, "PluginWindow::ABSwitch::Inactive");
+                inject_style(w, (is_active) ? "PluginWindow::ABSwitch::Active" : "PluginWindow::ABSwitch::Inactive");
+
+                // Set editable
+                tk::Button *btn = tk::widget_cast<tk::Button>(w);
+                if (btn != NULL)
+                    btn->editable()->set(!is_active);
+            }
+
+            // Synchronize icon
+            tk::String *prop = NULL;
+            {
+                tk::Label *lbl = tk::widget_cast<tk::Label>(wPresetCopy);
+                if (lbl != NULL)
+                    prop = lbl->text();
+            }
+            {
+                tk::Button *btn = tk::widget_cast<tk::Button>(wPresetCopy);
+                if (btn != NULL)
+                    prop = btn->text();
+            }
+            if (prop != NULL)
+                prop->set((active == 0) ? "icons.arrow.right" : "icons.arrow.left");
+        }
+
         status_t PluginWindow::slot_scaling_toggle_prefer_host(tk::Widget *sender, void *ptr, void *data)
         {
             PluginWindow *_this = static_cast<PluginWindow *>(ptr);
@@ -2929,6 +2985,34 @@ namespace lsp
                 return STATUS_OK;
 
             _this->wUserPaths->visibility()->set(false);
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_switch_ab_preset(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            const size_t active = self->pWrapper->active_preset_data();
+            if (sender != self->wPresetSwitch[active])
+            {
+                status_t res = self->pWrapper->switch_preset_data();
+                if (res == STATUS_OK)
+                    self->sync_ab_state();
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_copy_ab_preset(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            self->pWrapper->copy_preset_data();
 
             return STATUS_OK;
         }

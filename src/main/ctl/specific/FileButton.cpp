@@ -124,8 +124,10 @@ namespace lsp
             lsp_trace("Set file path to %s", decoded.get_native());
             const char *path = decoded.get_utf8();
 
+            pButton->pPort->begin_edit();
             pButton->pPort->write(path, strlen(path));
             pButton->pPort->notify_all(ui::PORT_USER_EDIT);
+            pButton->pPort->end_edit();
 
             return STATUS_OK;
         }
@@ -462,6 +464,12 @@ namespace lsp
             if (pDialog == NULL)
                 return;
 
+            // Mark ports as being edited
+            if (pPathPort != NULL)
+                pPathPort->begin_edit();
+            if (pFileTypePort != NULL)
+                pFileTypePort->begin_edit();
+
             // Write new path as UTF-8 string
             if (pPathPort != NULL)
             {
@@ -484,6 +492,12 @@ namespace lsp
                 pFileTypePort->set_value(pDialog->selected_filter()->get());
                 pFileTypePort->notify_all(ui::PORT_USER_EDIT);
             }
+
+            // Mark ports as being not edited
+            if (pPathPort != NULL)
+                pPathPort->end_edit();
+            if (pFileTypePort != NULL)
+                pFileTypePort->end_edit();
         }
 
         void FileButton::commit_file()
@@ -494,6 +508,12 @@ namespace lsp
             LSPString path;
             if (pDialog->selected_file()->format(&path) != STATUS_OK)
                 return;
+
+            // Notify ports as being edited
+            if (pPort != NULL)
+                pPort->begin_edit();
+            if (pCommand != NULL)
+                pCommand->begin_edit();
 
             // Write new path as UTF-8 string
             if (pPort != NULL)
@@ -508,6 +528,12 @@ namespace lsp
                 pCommand->set_value(1.0f);
                 pCommand->notify_all(ui::PORT_USER_EDIT);
             }
+
+            // Notify ports as being not edited
+            if (pPort != NULL)
+                pPort->end_edit();
+            if (pCommand != NULL)
+                pCommand->end_edit();
         }
 
         status_t FileButton::slot_submit(tk::Widget *sender, void *ptr, void *data)

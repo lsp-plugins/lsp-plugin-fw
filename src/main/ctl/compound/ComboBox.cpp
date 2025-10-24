@@ -323,11 +323,11 @@ namespace lsp
             if (cbox == NULL)
                 return;
 
+            if (pPort == NULL)
+                return;
+
             if (!vItems.is_empty())
             {
-                if (pPort == NULL)
-                    return;
-
                 tk::ListBoxItem *li = cbox->selected()->get();
 
                 // Find the item that matches the list box
@@ -348,18 +348,22 @@ namespace lsp
                 float value = found->value();
                 lsp_trace("index = %d, value=%f", int(vItems.index_of(found)), value);
 
+                pPort->begin_edit();
                 pPort->set_value(value);
                 pPort->notify_all(ui::PORT_USER_EDIT);
+                pPort->end_edit();
             }
-            else if (pPort != NULL)
+            else
             {
                 ssize_t index = cbox->items()->index_of(cbox->selected()->get());
 
                 float value = fMin + fStep * index;
                 lsp_trace("index = %d, value=%f", int(index), value);
 
+                pPort->begin_edit();
                 pPort->set_value(value);
                 pPort->notify_all(ui::PORT_USER_EDIT);
+                pPort->end_edit();
             }
         }
 

@@ -195,8 +195,10 @@ namespace lsp
 
             if (pPort != NULL)
             {
+                pPort->begin_edit();
                 pPort->set_value(value);
                 pPort->notify_all(ui::PORT_USER_EDIT);
+                pPort->end_edit();
             }
         }
 

@@ -129,6 +129,8 @@ namespace lsp
                 tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
                 tk::Menu                   *wFilterPointThickness;      // Filter point thickness submenu
                 tk::Timer                   wGreetingTimer;             // Greeting window timer
+                tk::Widget                 *wPresetSwitch[2];           // Preset A, B
+                tk::Widget                 *wPresetCopy;                // Copy active to inactive preset
 
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
@@ -175,6 +177,9 @@ namespace lsp
                 static status_t slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_reset_settings(tk::Widget *sender, void *ptr, void *data);
+
+                static status_t slot_switch_ab_preset(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_copy_ab_preset(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
 
@@ -275,6 +280,7 @@ namespace lsp
                 void                bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler);
                 bool                open_manual_file(const char *fmt...);
                 void                sync_preset_name();
+                void                sync_ab_state();
 
                 void                set_preset_button_text(const char *text);
 

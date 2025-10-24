@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -409,31 +409,7 @@ namespace lsp
 
         void KVTStorage::destroy_parameter(kvt_gcparam_t *param)
         {
-            // Destroy extra data
-            if (param->type == KVT_STRING)
-            {
-                if (param->str != NULL)
-                    ::free(const_cast<char *>(param->str));
-                param->u64      = 0;
-            }
-            else if (param->type == KVT_BLOB)
-            {
-                if (param->blob.ctype != NULL)
-                {
-                    ::free(const_cast<char *>(param->blob.ctype));
-                    param->blob.ctype   = NULL;
-                }
-                if (param->blob.data != NULL)
-                {
-                    ::free(const_cast<void *>(param->blob.data));
-                    param->blob.data    = NULL;
-                }
-                param->blob.size    = 0;
-            }
-            else
-                param->u64      = 0;
-
-            param->type         = KVT_ANY;
+            kvt_destroy_parameter(param);
             ::free(param);
         }
 
@@ -558,45 +534,20 @@ namespace lsp
             gcp->flags          = flags & (KVT_PRIVATE | KVT_TRANSIENT);
             gcp->next           = NULL;
 
-            kvt_param_t *dst    = gcp;
-            *dst                = *src; // Make copy
-
             if (flags & KVT_DELEGATE)
+            {
+                // Make simple copy and return
+                kvt_param_t *dst    = gcp;
+                *dst                = *src;
                 return gcp;
-
-            // Need to override pointers
-            if (src->type == KVT_STRING)
-            {
-                if (src->str != NULL)
-                {
-                    if (!(dst->str = ::strdup(src->str)))
-                    {
-                        ::free(gcp);
-                        return NULL;
-                    }
-                }
             }
-            else if (src->type == KVT_BLOB)
+
+            // Make deep copy
+            status_t res        = kvt_copy_parameter(gcp, src);
+            if (res != STATUS_OK)
             {
-                if (src->blob.ctype != NULL)
-                {
-                    if (!(dst->blob.ctype = ::strdup(src->blob.ctype)))
-                    {
-                        ::free(gcp);
-                        return NULL;
-                    }
-                }
-                if (src->blob.data != NULL)
-                {
-                    if (!(dst->blob.data = ::malloc(src->blob.size)))
-                    {
-                        if (dst->blob.ctype != NULL)
-                            ::free(const_cast<char *>(dst->blob.ctype));
-                        ::free(gcp);
-                        return NULL;
-                    }
-                    ::memcpy(const_cast<void *>(dst->blob.data), src->blob.data, src->blob.size);
-                }
+                ::free(gcp);
+                return NULL;
             }
 
             return gcp;
@@ -2227,6 +2178,76 @@ namespace lsp
             va_end(vlst);
         }
     #endif /* LSP_TRACE */
+
+        void kvt_init_parameter(kvt_param_t *param)
+        {
+            param->type         = KVT_ANY;
+            param->u64          = 0;
+        }
+
+        void kvt_destroy_parameter(kvt_param_t *param)
+        {
+            // Destroy extra data
+            if (param->type == KVT_STRING)
+            {
+                if (param->str != NULL)
+                    ::free(const_cast<char *>(param->str));
+                param->u64      = 0;
+            }
+            else if (param->type == KVT_BLOB)
+            {
+                if (param->blob.ctype != NULL)
+                {
+                    ::free(const_cast<char *>(param->blob.ctype));
+                    param->blob.ctype   = NULL;
+                }
+                if (param->blob.data != NULL)
+                {
+                    ::free(const_cast<void *>(param->blob.data));
+                    param->blob.data    = NULL;
+                }
+                param->blob.size    = 0;
+            }
+            else
+                param->u64      = 0;
+
+            param->type         = KVT_ANY;
+        }
+
+        status_t kvt_copy_parameter(kvt_param_t *dst, const kvt_param_t *src)
+        {
+            *dst        = *src;
+
+            // Need to override pointers
+            if (src->type == KVT_STRING)
+            {
+                if (src->str != NULL)
+                {
+                    if (!(dst->str = ::strdup(src->str)))
+                        return STATUS_NO_MEM;
+                }
+            }
+            else if (src->type == KVT_BLOB)
+            {
+                if (src->blob.ctype != NULL)
+                {
+                    if (!(dst->blob.ctype = ::strdup(src->blob.ctype)))
+                        return STATUS_NO_MEM;
+                }
+                if (src->blob.data != NULL)
+                {
+                    if (!(dst->blob.data = ::malloc(src->blob.size)))
+                    {
+                        if (dst->blob.ctype != NULL)
+                            ::free(const_cast<char *>(dst->blob.ctype));
+                        return STATUS_NO_MEM;
+                    }
+                    ::memcpy(const_cast<void *>(dst->blob.data), src->blob.data, src->blob.size);
+                }
+            }
+
+            return STATUS_OK;
+        }
 
     } /* namespace core */
 } /* namespace lsp */

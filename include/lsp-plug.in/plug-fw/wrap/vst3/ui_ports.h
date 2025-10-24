@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 21 янв. 2024 г.
@@ -115,6 +115,23 @@ namespace lsp
                 {
                     nSerial             = pPort->mark_changed();
                     ui::IPort::notify_all(flags);
+                }
+
+            public:
+                virtual bool        begin_edit() override
+                {
+                    const bool changed = ui::IPort::begin_edit();
+                    if ((changed) && (pPort != NULL))
+                        pPort->begin_edit();
+                    return changed;
+                }
+
+                virtual bool        end_edit() override
+                {
+                    const bool changed = ui::IPort::end_edit();
+                    if ((changed) && (pPort != NULL))
+                        pPort->end_edit();
+                    return changed;
                 }
         };
 

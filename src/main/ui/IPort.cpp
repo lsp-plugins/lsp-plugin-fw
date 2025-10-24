@@ -19,6 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 
 namespace lsp
@@ -28,6 +29,7 @@ namespace lsp
         IPort::IPort(const meta::port_t *meta)
         {
             pMetadata       = meta;
+            nEditCounter    = 0;
         }
 
         IPort::~IPort()
@@ -124,6 +126,29 @@ namespace lsp
             for (size_t i=0; i<count; ++i)
                 listeners.uget(i)->sync_metadata(this);
         }
+
+        bool IPort::begin_edit()
+        {
+            lsp_trace("begin_edit id='%s', counter=%d", id(), int(nEditCounter + 1));
+            return nEditCounter++ <= 0;
+        }
+
+        bool IPort::end_edit()
+        {
+            lsp_trace("end_edit id='%s', counter=%d", id(), int(nEditCounter - 1));
+            if (nEditCounter <= 0)
+            {
+                lsp_warn("Mismatched number of begin_edit() and end_edit() calls");
+                return false;
+            }
+            return --nEditCounter <= 0;
+        }
+
+        bool IPort::editing() const
+        {
+            return nEditCounter > 0;
+        };
+
     } /* namespace ui */
 } /* namespace lsp */
 

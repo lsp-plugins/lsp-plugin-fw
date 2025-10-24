@@ -59,6 +59,9 @@ namespace lsp
             {
                 if (pPort != NULL)
                 {
+                    if (ui::IPort::editing())
+                       pPort->end_edit();
+
                     pPort->unbind(this);
                     pPort       = NULL;
                 }
@@ -73,6 +76,9 @@ namespace lsp
             // Change binding to the port
             if (pPort != NULL)
             {
+                if (ui::IPort::editing())
+                    pPort->end_edit();
+
                 pPort->unbind(this);
                 pPort       = NULL;
             }
@@ -85,6 +91,10 @@ namespace lsp
                 pPort           = port;
                 pMetadata       = pPort->metadata();
                 pPort->sync_metadata();
+
+                // Start editing if in editing mode
+                if (ui::IPort::editing())
+                    pPort->begin_edit();
             }
             else
                 pMetadata       = &fake_metadata;
@@ -164,6 +174,28 @@ namespace lsp
         float EvaluatedPort::default_value()
         {
             return (pPort != NULL) ? pPort->default_value() : 0.0f;
+        }
+
+        bool EvaluatedPort::begin_edit()
+        {
+            if (!ui::IPort::begin_edit())
+                return false;
+
+            if (pPort != NULL)
+                pPort->begin_edit();
+
+            return true;
+        }
+
+        bool EvaluatedPort::end_edit()
+        {
+            if (!ui::IPort::end_edit())
+                return false;
+
+            if (pPort != NULL)
+                pPort->end_edit();
+
+            return true;
         }
 
         void EvaluatedPort::set_value(float value)

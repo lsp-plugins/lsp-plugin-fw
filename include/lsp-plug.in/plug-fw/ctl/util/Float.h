@@ -44,9 +44,6 @@ namespace lsp
                 tk::Float      *pProp;
 
             protected:
-                void            apply_changes();
-
-            protected:
                 virtual void    on_updated(ui::IPort *port, size_t flags) override;
 
             public:
@@ -58,11 +55,14 @@ namespace lsp
                 Float & operator = (const Float &) = delete;
                 Float & operator = (Float &&) = delete;
 
-                void            init(ui::IWrapper *wrapper, tk::Float *prop);
+                void            init(ui::IWrapper *wrapper, tk::Float *prop, expr::Resolver *resolver = NULL);
 
             public:
                 bool            set(const char *prop, const char *name, const char *value);
                 inline float    value() const   { return pProp->get();  }
+                void            apply_changes();
+
+            public:
                 virtual void    reloaded(const tk::StyleSheet *sheet) override;
         };
     } /* namespace ctl */

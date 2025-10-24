@@ -49,9 +49,6 @@ namespace lsp
                 tk::Boolean    *pProp;
 
             protected:
-                void            apply_changes();
-
-            protected:
                 virtual void    on_updated(ui::IPort *port, size_t flags) override;
 
             public:
@@ -63,11 +60,14 @@ namespace lsp
                 Boolean & operator = (const Boolean &) = delete;
                 Boolean & operator = (Boolean &&) = delete;
 
-                void            init(ui::IWrapper *wrapper, tk::Boolean *prop);
+                void            init(ui::IWrapper *wrapper, tk::Boolean *prop, expr::Resolver *resolver = NULL);
 
             public:
                 bool            set(const char *prop, const char *name, const char *value);
                 inline bool     value() const   { return pProp->get();  }
+                void            apply_changes();
+
+            public:
                 virtual void    reloaded(const tk::StyleSheet *sheet) override;
         };
     } /* namespace ctl */

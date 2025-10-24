@@ -565,6 +565,10 @@ namespace lsp
         inline void     kvt_dump_parameter(const char *fmt, const kvt_param_t *param...) {}
     #endif
 
+        void                    kvt_init_parameter(kvt_param_t *p);
+        void                    kvt_destroy_parameter(kvt_param_t *p);
+        status_t                kvt_copy_parameter(kvt_param_t *dst, const kvt_param_t *src);
+
     } /* namespace core */
 } /* namespace lsp */
 
