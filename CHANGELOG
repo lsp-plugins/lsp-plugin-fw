@@ -11,6 +11,7 @@
 * Fixed VST3 plugins crash under Ardour related to improper IRunLoop interface
   operations based on invalid API calls by the DAW.
 * Fixed setting paths for LV2 plugins using generic plugin interface.
+* Updated module versions in dependencies.
 
 === 1.0.31 ===
 * Added command line option for JACK that allows to specify client name.
