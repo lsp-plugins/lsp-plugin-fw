@@ -82,6 +82,9 @@ namespace lsp
                 lltl::parray<lv2::Port>         vExtPorts;
                 lltl::parray<lv2::Port>         vAllPorts;      // List of all created ports, for garbage collection
                 lltl::parray<lv2::Port>         vPluginPorts;   // All plugin ports sorted in urid order
+                lltl::parray<lv2::ControlPort>  vControlPorts;
+                lltl::parray<lv2::MeterPort>    vMeterPorts;
+                lltl::parray<lv2::PortGroup>    vPortGroups;
                 lltl::parray<lv2::Port>         vMeshPorts;
                 lltl::parray<lv2::Port>         vFrameBufferPorts;
                 lltl::parray<lv2::Port>         vStreamPorts;
@@ -89,6 +92,7 @@ namespace lsp
                 lltl::parray<lv2::Port>         vOscPorts;
                 lltl::parray<lv2::AudioPort>    vAudioPorts;
                 lltl::parray<lv2::StringPort>   vStringPorts;
+                lltl::parray<lv2::Port>         vPatchPorts;
                 lltl::parray<lv2::AudioBufferPort> vAudioBuffers;
                 lltl::parray<meta::port_t>      vGenMetadata;   // Generated metadata
 
@@ -144,7 +148,7 @@ namespace lsp
                 bool                            parse_kvt_flags(size_t *flags, const LV2_Atom *value);
                 bool                            parse_kvt_value(core::kvt_param_t *param, const LV2_Atom *value);
 
-                void                            transmit_responses_to_clients(bool sync_req, bool patch_req, bool state_req);
+                void                            transmit_patch_state_to_clients(bool force);
                 void                            transmit_port_data_to_clients(bool sync_req);
                 void                            transmit_time_position_to_clients();
                 void                            transmit_play_position_to_clients();
@@ -153,6 +157,7 @@ namespace lsp
                 void                            transmit_osc_events(lv2::Port *p);
                 void                            transmit_kvt_events();
                 void                            transmit_atoms(size_t samples);
+                void                            transmit_port_state(bool force);
                 void                            transmit_preset_settings_to_clients(const core::preset_state_t *state);
 
                 void                            receive_midi_event(const LV2_Atom_Event *ev);

@@ -35,6 +35,10 @@ namespace lsp
 {
     namespace lv2
     {
+        #ifndef LSP_LV2_NO_INSTANCE_ACCESS
+            #define LSP_LV2_NO_INSTANCE_ACCESS  0
+        #endif /* LSP_LV2_NO_INSTANCE_ACCESS */
+
         #define LSP_LV2_BASE_URI            "http://lsp-plug.in/"
         #define LSP_LV2_KVT_URI             LSP_LV2_BASE_URI "kvt"
         #define LSP_LV2_TYPES_URI           LSP_LV2_BASE_URI "types/lv2"

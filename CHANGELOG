@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.33 ===
+* Fixed data transport for LV2 plugins.
 * Fixed VST3 crash on JUCE-based hosts.
 
 === 1.0.32 ===
