@@ -173,6 +173,10 @@ namespace lsp
                 LV2_URID                uridMaxBlockLength;
                 LV2_URID                uridScaleFactor;
 
+                // State-related URIDs
+                LV2_URID                uridFloatPorts;
+                LV2_URID                uridFloatPortState;
+
                 // Preset-related URIDs
                 LV2_URID                uridPresetState;
                 LV2_URID                uridPresetStateType;
@@ -367,6 +371,10 @@ namespace lsp
 
                     uridMaxBlockLength          = map_uri(LV2_BUF_SIZE__maxBlockLength);
                     uridScaleFactor             = map_uri(LV2_UI__scaleFactor);
+
+                    // State-related URIDs
+                    uridFloatPorts              = map_primitive("meters");
+                    uridFloatPortState          = map_type("legacyPortState");
 
                     // Preset-related URIDs
                     uridPresetState             = map_primitive("preset_state");

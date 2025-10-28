@@ -47,16 +47,14 @@ namespace lsp
             protected:
                 lv2::Extensions        *pExt;
                 LV2_URID                urid;
-                ssize_t                 nID;
-                bool                    bVirtual;
+                ssize_t                 nIndex;
 
             public:
-                explicit Port(const meta::port_t *meta, lv2::Extensions *ext, bool virt): IPort(meta)
+                explicit Port(const meta::port_t *meta, lv2::Extensions *ext): IPort(meta)
                 {
                     pExt            =   ext;
                     urid            =   (meta != NULL) ? pExt->map_port(meta->id) : -1;
-                    nID             =   -1;
-                    bVirtual        =   virt;
+                    nIndex          =   -1;
                 }
                 Port(const Port &) = delete;
                 Port(Port &&) = delete;
@@ -65,7 +63,7 @@ namespace lsp
                 {
                     pExt            =   NULL;
                     urid            =   -1;
-                    nID             =   -1;
+                    nIndex          =   -1;
                 }
 
                 Port & operator = (const Port &) = delete;
@@ -143,23 +141,23 @@ namespace lsp
                  */
                 inline const char      *get_uri() const     { return (pExt->unmap_urid(urid)); }
 
-                /** Get port ID
-                 *
-                 * @return poirt ID
+                /**
+                 * Get LV2 port index
+                 * @return LV2 port index
                  */
-                inline ssize_t          get_id() const      { return nID;   }
+                inline ssize_t          get_index() const   { return nIndex;   }
 
                 /** Set port ID
                  *
                  * @param id port ID
                  */
-                inline void             set_id(size_t id)   { nID = id;     }
+                inline void             set_index(size_t id)    { nIndex = id;     }
 
                 /**
                  * Check that port is virtual
                  * @return true if port is virtual (non controlled by DAW and stored in PLUGIN STATE)
                  */
-                inline bool             is_virtual() const  { return bVirtual; }
+                inline bool             is_virtual() const  { return nIndex < 0; }
         };
 
         class AudioPort: public Port
@@ -171,7 +169,7 @@ namespace lsp
                 bool       bZero;
 
             public:
-                explicit AudioPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext, false)
+                explicit AudioPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext)
                 {
                     pBuffer        = NULL;
                     pData          = NULL;
@@ -255,7 +253,7 @@ namespace lsp
                 core::AudioBuffer   sBuffer;
 
             public:
-                explicit AudioBufferPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext, false)
+                explicit AudioBufferPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext)
                 {
                     sBuffer.set_size(ext->nMaxBlockLength);
                 }
@@ -273,7 +271,7 @@ namespace lsp
                 }
         };
 
-        class InputPort: public Port
+        class ControlPort: public Port
         {
             protected:
                 const float    *pData;
@@ -281,25 +279,25 @@ namespace lsp
                 float           fPrev;
 
             public:
-                explicit InputPort(const meta::port_t *meta, lv2::Extensions *ext, bool virt) : Port(meta, ext, virt)
+                explicit ControlPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext)
                 {
                     pData       = NULL;
                     fValue      = meta->start;
                     fPrev       = meta->start;
                 }
 
-                InputPort(const InputPort &) = delete;
-                InputPort(InputPort &&) = delete;
+                ControlPort(const ControlPort &) = delete;
+                ControlPort(ControlPort &&) = delete;
 
-                virtual ~InputPort() override
+                virtual ~ControlPort() override
                 {
                     pData       = NULL;
                     fValue      = pMetadata->start;
                     fPrev       = pMetadata->start;
                 }
 
-                InputPort & operator = (const InputPort &) = delete;
-                InputPort & operator = (InputPort &&) = delete;
+                ControlPort & operator = (const ControlPort &) = delete;
+                ControlPort & operator = (ControlPort &&) = delete;
 
             public:
                 virtual float value() override
@@ -319,7 +317,7 @@ namespace lsp
 
                 virtual bool pre_process() override
                 {
-                    if ((nID >= 0) && (pData != NULL))
+                    if ((nIndex >= 0) && (pData != NULL))
                         fValue      = meta::limit_value(pMetadata, *pData);
 //                    lsp_trace("nID=%d, pData=%x, fPrev=%f, fValue=%f", int(nID), pData, fPrev, fValue);
 
@@ -330,7 +328,7 @@ namespace lsp
 
                 virtual void save() override
                 {
-                    if (nID >= 0)
+                    if (nIndex >= 0)
                         return;
                     lsp_trace("save port id=%s, urid=%d (%s), value=%f", pMetadata->id, urid, get_uri(), fValue);
                     pExt->store_value(urid, pExt->forge.Float, &fValue, sizeof(float));
@@ -338,7 +336,7 @@ namespace lsp
 
                 virtual void restore() override
                 {
-                    if (nID >= 0)
+                    if (nIndex >= 0)
                         return;
                     lsp_trace("restore port id=%s, urid=%d (%s)", pMetadata->id, urid, get_uri());
                     size_t count            = 0;
@@ -370,10 +368,10 @@ namespace lsp
                 }
         };
 
-        class BypassPort: public InputPort
+        class BypassPort: public ControlPort
         {
             public:
-                explicit BypassPort(const meta::port_t *meta, lv2::Extensions *ext) : InputPort(meta, ext, false) { }
+                explicit BypassPort(const meta::port_t *meta, lv2::Extensions *ext) : ControlPort(meta, ext) { }
 
                 BypassPort(const BypassPort &) = delete;
                 BypassPort(BypassPort &&) = delete;
@@ -393,7 +391,7 @@ namespace lsp
 
                 virtual void save() override
                 {
-                    if (nID >= 0)
+                    if (nIndex >= 0)
                         return;
                     float value = pMetadata->max - fValue;
                     lsp_trace("save port id=%s, urid=%d (%s), value=%f", pMetadata->id, urid, get_uri(), value);
@@ -402,7 +400,7 @@ namespace lsp
 
                 virtual void restore() override
                 {
-                    if (nID >= 0)
+                    if (nIndex >= 0)
                         return;
                     lsp_trace("restore port id=%s, urid=%d (%s)", pMetadata->id, urid, get_uri());
                     size_t count            = 0;
@@ -423,7 +421,7 @@ namespace lsp
                 }
         };
 
-        class OutputPort: public Port
+        class MeterPort: public Port
         {
             protected:
                 float  *pData;
@@ -431,19 +429,19 @@ namespace lsp
                 float   fValue;
 
             public:
-                explicit OutputPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext, false)
+                explicit MeterPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext)
                 {
                     pData       = NULL;
                     fPrev       = meta->start;
                     fValue      = meta->start;
                 }
 
-                OutputPort(const OutputPort &) = delete;
-                OutputPort(OutputPort &&) = delete;
-                OutputPort & operator = (const OutputPort &) = delete;
-                OutputPort & operator = (OutputPort &&) = delete;
+                MeterPort(const MeterPort &) = delete;
+                MeterPort(MeterPort &&) = delete;
+                MeterPort & operator = (const MeterPort &) = delete;
+                MeterPort & operator = (MeterPort &&) = delete;
 
-                virtual ~OutputPort() override
+                virtual ~MeterPort() override
                 {
                     pData = NULL;
                 };
@@ -490,9 +488,10 @@ namespace lsp
 
                 virtual bool tx_pending() override
                 {
-                    if (fValue != fPrev)
+                    const bool pending = (nIndex >= 0) && (fValue != fPrev);
+                    if (pending)
                         lsp_trace("pending_value id=%s, prev=%f, value=%f", pMetadata->id, fPrev, fValue);
-                    return fValue != fPrev;
+                    return pending;
                 }
 
                 virtual void serialize() override
@@ -501,7 +500,7 @@ namespace lsp
                     pExt->forge_float(fValue);
 
                     // Update data according to peak protocol, only for Atom transport ports
-                    if ((nID < 0) && (pMetadata->flags & meta::F_PEAK))
+                    if ((nIndex < 0) && (pMetadata->flags & meta::F_PEAK))
                         fValue      = 0.0f;
                 }
 
@@ -519,7 +518,7 @@ namespace lsp
                 size_t                  nRows;
 
             public:
-                explicit PortGroup(const meta::port_t *meta, lv2::Extensions *ext, bool virt) : Port(meta, ext, virt)
+                explicit PortGroup(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext)
                 {
                     nCurrRow            = meta->start;
                     nCols               = port_list_size(meta->members);
@@ -569,7 +568,7 @@ namespace lsp
 
                 virtual void save() override
                 {
-                    if (nID >= 0)
+                    if (nIndex >= 0)
                         return;
                     int32_t value   = nCurrRow;
                     lsp_trace("save port id=%s, urid=%d (%s), value=%d", pMetadata->id, urid, get_uri(), int(value));
@@ -578,7 +577,7 @@ namespace lsp
 
                 virtual void restore() override
                 {
-                    if (nID >= 0)
+                    if (nIndex >= 0)
                         return;
                     lsp_trace("restore port id=%s, urid=%d (%s)", pMetadata->id, urid, get_uri());
                     size_t count            = 0;
@@ -606,7 +605,7 @@ namespace lsp
                 lv2_mesh_t                 sMesh;
 
             public:
-                explicit MeshPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext, false)
+                explicit MeshPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext)
                 {
                     sMesh.init(meta);
                 }
@@ -669,7 +668,7 @@ namespace lsp
                 float              *pData;
 
             public:
-                explicit StreamPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext, false)
+                explicit StreamPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext)
                 {
                     pStream     = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
                     pData       = reinterpret_cast<float *>(::malloc(sizeof(float) * STREAM_MAX_FRAME_SIZE));
@@ -785,7 +784,7 @@ namespace lsp
                 size_t                 nRowID;
 
             public:
-                explicit FrameBufferPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext, false)
+                explicit FrameBufferPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext)
                 {
                     sFB.init(meta->start, meta->step);
                     nRowID = 0;
@@ -870,7 +869,7 @@ namespace lsp
                 }
 
             public:
-                explicit PathPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext, true)
+                explicit PathPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext)
                 {
                     sPath.init();
                     nLastChange = sPath.nChanges;
@@ -1042,7 +1041,7 @@ namespace lsp
                 }
 
             public:
-                explicit StringPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext, true)
+                explicit StringPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext)
                 {
                     pValue          = plug::string_t::allocate(size_t(meta->max));
                     nSerial         = pValue->serial();
@@ -1164,7 +1163,7 @@ namespace lsp
                 plug::midi_t           sQueue;
 
             public:
-                explicit MidiPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext, false)
+                explicit MidiPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext)
                 {
                     sQueue.clear();
                 }
@@ -1187,7 +1186,7 @@ namespace lsp
                 core::osc_buffer_t    *pFB;
 
             public:
-                explicit OscPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext, false)
+                explicit OscPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext)
                 {
                     pFB = core::osc_buffer_t::create(OSC_BUFFER_MAX);
                 }
