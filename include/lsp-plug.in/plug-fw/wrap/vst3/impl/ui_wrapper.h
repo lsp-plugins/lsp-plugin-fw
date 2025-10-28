@@ -571,27 +571,8 @@ namespace lsp
             if (isPlatformTypeSupported(type) != Steinberg::kResultTrue)
                 return Steinberg::kResultFalse;
 
-        #ifdef VST_USE_RUNLOOP_IFACE
-            // Register the timer for event loop
-            lsp_trace("this=%p, pRunLoop=%p, pTimer=%p", this, pRunLoop, pTimer);
-            if (pRunLoop != NULL)
-            {
-                if (pEventHandler != NULL)
-                {
-                    int fd = 0;
-                    if ((wWindow->display()->get_file_descriptor(&fd)) == STATUS_OK)
-                    {
-                        lsp_trace("RunLoop ptr=%p register event handler ptr=%p", pRunLoop, pEventHandler);
-                        pRunLoop->registerEventHandler(pEventHandler, fd);
-                    }
-                }
-                if (pTimer != NULL)
-                {
-                    lsp_trace("RunLoop ptr=%p register timer ptr=%p", pRunLoop, pTimer);
-                    pRunLoop->registerTimer(pTimer, 1000 / UI_FRAMES_PER_SECOND);
-                }
-            }
-        #endif /* VST_USE_RUNLOOP_IFACE */
+            unregister_run_loop();
+            register_run_loop();
 
             // Show the window
             if (wWindow == NULL)
