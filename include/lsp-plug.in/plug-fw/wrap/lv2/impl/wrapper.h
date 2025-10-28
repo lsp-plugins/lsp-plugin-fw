@@ -1316,8 +1316,8 @@ namespace lsp
                 {
                     // Create patch message containing valule of the port
                     lsp_trace(
-                        "Emit patchSet message for port id=%s, value=%f, urid=%s",
-                        p->id(), p->value(), p->get_urid());
+                        "Emit patchSet message for port id=%s, uri=%s",
+                        p->id(), p->get_uri());
 
                     pExt->forge_frame_time(0);
                     pExt->forge_object(&frame, pExt->uridPatchMessage, pExt->uridPatchSet);
@@ -1570,7 +1570,10 @@ namespace lsp
             // Check that state request is pending
             const bool state_req  = nStateReqs > 0;
             if (state_req)
+            {
+                lsp_trace("State request is pending");
                 --nStateReqs;
+            }
 
             // Initialize forge
             LV2_Atom_Sequence *sequence = reinterpret_cast<LV2_Atom_Sequence *>(pAtomOut);
@@ -1612,10 +1615,10 @@ namespace lsp
             // Transmit different data to clients
             if (nClients > 0)
             {
+                transmit_port_state(state_req);
                 transmit_kvt_events();
                 transmit_time_position_to_clients();
                 transmit_port_data_to_clients(sync_req);
-                transmit_legacy_port_state(state_req);
             }
 
             transmit_patch_state_to_clients(patch_req || state_req);
@@ -1624,13 +1627,13 @@ namespace lsp
             transmit_shm_state_to_clients();
         }
 
-        void Wrapper::transmit_legacy_port_state(bool force)
+        void Wrapper::transmit_port_state(bool force)
         {
             LV2_Atom_Forge_Frame frame;
-            bool frame_forged = false;
+            size_t records = 0;
 
             lsp_finally {
-                if (frame_forged)
+                if (records > 0)
                 {
                     lsp_trace("End serializing port state");
                     pExt->forge_pop(&frame);
@@ -1646,16 +1649,16 @@ namespace lsp
                     if (p == NULL)
                         continue;
 
-                    if (!frame_forged)
+                    if (records++ == 0)
                     {
                         lsp_trace("Begin serializing port state");
                         pExt->forge_frame_time(0);
-                        pExt->forge_object(&frame, pExt->uridFloatPorts, pExt->uridFloatPortState);
+                        pExt->forge_object(&frame, pExt->uridPortData, pExt->uridPortDataType);
                     }
 
                     lsp_trace(
-                        "Serialize control port id=%s, index=%d, value=%f, urid=%s",
-                        p->id(), int(p->get_index()), p->value(), p->get_urid());
+                        "Serialize control port id=%s, index=%d, value=%f, uri=%s",
+                        p->id(), int(p->get_index()), p->value(), p->get_uri());
 
                     pExt->forge_key(p->get_urid());
                     p->serialize();
@@ -1668,16 +1671,16 @@ namespace lsp
                     if (p == NULL)
                         continue;
 
-                    if (!frame_forged)
+                    if (records++ == 0)
                     {
                         lsp_trace("Begin serializing port state");
                         pExt->forge_frame_time(0);
-                        pExt->forge_object(&frame, pExt->uridFloatPorts, pExt->uridFloatPortState);
+                        pExt->forge_object(&frame, pExt->uridPortData, pExt->uridPortDataType);
                     }
 
                     lsp_trace(
-                        "Serialize port group port id=%s, index=%d, value=%f, urid=%s",
-                        p->id(), int(p->get_index()), p->value(), p->get_urid());
+                        "Serialize port group port id=%s, index=%d, value=%f, uri=%s",
+                        p->id(), int(p->get_index()), p->value(), p->get_uri());
 
                     pExt->forge_key(p->get_urid());
                     p->serialize();
@@ -1693,16 +1696,16 @@ namespace lsp
                 if ((!force) && (!p->tx_pending()))
                     continue;
 
-                if (!frame_forged)
+                if (records++ == 0)
                 {
                     lsp_trace("Begin serializing port state");
                     pExt->forge_frame_time(0);
-                    pExt->forge_object(&frame, pExt->uridFloatPorts, pExt->uridFloatPortState);
+                    pExt->forge_object(&frame, pExt->uridPortData, pExt->uridPortDataType);
                 }
 
                 lsp_trace(
-                    "Serialize meter port id=%s, index=%d, value=%f, urid=%s",
-                    p->id(), int(p->get_index()), p->value(), p->get_urid());
+                    "Serialize meter port id=%s, index=%d, value=%f, uri=%s",
+                    p->id(), int(p->get_index()), p->value(), p->get_uri());
 
                 pExt->forge_key(p->get_urid());
                 p->serialize();

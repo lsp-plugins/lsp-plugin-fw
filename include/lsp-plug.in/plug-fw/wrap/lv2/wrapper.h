@@ -157,7 +157,7 @@ namespace lsp
                 void                            transmit_osc_events(lv2::Port *p);
                 void                            transmit_kvt_events();
                 void                            transmit_atoms(size_t samples);
-                void                            transmit_legacy_port_state(bool force);
+                void                            transmit_port_state(bool force);
                 void                            transmit_preset_settings_to_clients(const core::preset_state_t *state);
 
                 void                            receive_midi_event(const LV2_Atom_Event *ev);

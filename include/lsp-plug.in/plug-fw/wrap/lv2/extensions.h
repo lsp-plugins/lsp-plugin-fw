@@ -174,8 +174,8 @@ namespace lsp
                 LV2_URID                uridScaleFactor;
 
                 // State-related URIDs
-                LV2_URID                uridFloatPorts;
-                LV2_URID                uridFloatPortState;
+                LV2_URID                uridPortData;
+                LV2_URID                uridPortDataType;
 
                 // Preset-related URIDs
                 LV2_URID                uridPresetState;
@@ -299,7 +299,7 @@ namespace lsp
                                 iDisplay        = reinterpret_cast<LV2_Inline_Display *>(f->data);
                             else if (!strcmp(f->URI, LV2_UI__touch))
                                 pTouch          = reinterpret_cast<LV2UI_Touch *>(f->data);
-                        #if LSP_LV2_NO_INSTANCE_ACCESS != 1
+                        #if !LSP_LV2_NO_INSTANCE_ACCESS
                             else if (!strcmp(f->URI, LV2_INSTANCE_ACCESS_URI))
                                 pWrapper = reinterpret_cast<Wrapper *>(f->data);
                         #endif
@@ -373,8 +373,8 @@ namespace lsp
                     uridScaleFactor             = map_uri(LV2_UI__scaleFactor);
 
                     // State-related URIDs
-                    uridFloatPorts              = map_primitive("meters");
-                    uridFloatPortState          = map_type("legacyPortState");
+                    uridPortData                = map_primitive("port_data");
+                    uridPortDataType            = map_type("PortData");
 
                     // Preset-related URIDs
                     uridPresetState             = map_primitive("preset_state");

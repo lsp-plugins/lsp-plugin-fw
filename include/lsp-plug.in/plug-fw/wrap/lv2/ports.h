@@ -488,7 +488,7 @@ namespace lsp
 
                 virtual bool tx_pending() override
                 {
-                    const bool pending = (nIndex >= 0) && (fValue != fPrev);
+                    const bool pending = (nIndex < 0) && (fValue != fPrev);
                     if (pending)
                         lsp_trace("pending_value id=%s, prev=%f, value=%f", pMetadata->id, fPrev, fValue);
                     return pending;
