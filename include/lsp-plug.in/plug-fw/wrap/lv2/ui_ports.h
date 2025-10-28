@@ -106,8 +106,8 @@ namespace lsp
                     if ((new_value < nRows) && (new_value != nCurrRow))
                     {
                         nCurrRow        = new_value;
-                        lsp_trace("writing patch event id=%s, value=%d", pMetadata->id, int(new_value));
-                        pExt->ui_write_patch(this);
+                        lsp_trace("writing change event id=%s, value=%d", pMetadata->id, int(new_value));
+                        pExt->ui_write_port_change(this);
 
                         if (pManager != NULL)
                             pManager->mark_active_preset_dirty();
@@ -208,8 +208,8 @@ namespace lsp
                     }
                     else
                     {
-                        lsp_trace("writing patch event id=%s, value=%f", pMetadata->id, fValue);
-                        pExt->ui_write_patch(this);
+                        lsp_trace("writing change event id=%s, value=%f", pMetadata->id, fValue);
+                        pExt->ui_write_port_change(this);
                     }
 
                     if (pManager != NULL)
@@ -303,8 +303,8 @@ namespace lsp
                     }
                     else
                     {
-                        lsp_trace("writing patch event id=%s, value=%f", pMetadata->id, fValue);
-                        pExt->ui_write_patch(this);
+                        lsp_trace("writing change event id=%s, value=%f", pMetadata->id, fValue);
+                        pExt->ui_write_port_change(this);
                     }
                 }
 

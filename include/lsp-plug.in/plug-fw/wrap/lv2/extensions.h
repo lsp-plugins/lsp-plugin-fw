@@ -923,6 +923,25 @@ namespace lsp
                     return true;
                 }
 
+                bool ui_write_port_change(lv2::Serializable *p)
+                {
+                    if ((map == NULL) || (p->get_urid() <= 0))
+                        return false;
+
+                    // Forge PATCH SET message
+                    LV2_Atom_Forge_Frame    frame;
+                    forge_set_buffer(pBuffer, nBufSize);
+
+                    forge_frame_time(0);
+                    LV2_Atom *msg = forge_object(&frame, uridPortData, uridPortDataType);
+                    forge_key(p->get_urid());
+                    p->serialize();
+                    forge_pop(&frame);
+
+                    write_data(nAtomOut, lv2_atom_total_size(msg), uridEventTransfer, msg);
+                    return true;
+                }
+
                 bool ui_play_sample(const char *name, wsize_t position, bool release)
                 {
                     if (map == NULL)

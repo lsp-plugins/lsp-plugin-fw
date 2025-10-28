@@ -977,13 +977,40 @@ namespace lsp
                                     state_changed();
                             }
                             else
-                            {
                                 lsp_trace("failed to deserialize port id=%s", p->metadata()->id);
-                            }
                         }
 
                         key     = NULL;
                         value   = NULL;
+                    }
+                }
+            }
+            else if (obj->body.otype == pExt->uridPortDataType)
+            {
+                // Parse atom body
+                for (
+                    LV2_Atom_Property_Body *body = lv2_atom_object_begin(&obj->body) ;
+                    !lv2_atom_object_is_end(&obj->body, obj->atom.size, body) ;
+                    body = lv2_atom_object_next(body)
+                )
+                {
+                    lsp_trace("body->key (%d) = %s", int(body->key), pExt->unmap_urid(body->key));
+                    lsp_trace("body->value.type (%d) = %s", int(body->value.type), pExt->unmap_urid(body->value.type));
+
+                    lv2::Port *p    = port_by_urid(body->key);
+                    if (p != NULL)
+                        lsp_trace("found port id=%s, type_urid=%d", p->metadata()->id, p->get_type_urid());
+
+                    if ((p != NULL) && (p->get_type_urid() == body->value.type))
+                    {
+                        if (p->deserialize(&body->value, 0))
+                        {
+                            // Change state if it is a virtual port
+                            if (p->is_virtual())
+                                state_changed();
+                        }
+                        else
+                            lsp_trace("failed to deserialize port id=%s", p->metadata()->id);
                     }
                 }
             }
