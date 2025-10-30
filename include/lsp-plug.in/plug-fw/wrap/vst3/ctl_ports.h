@@ -47,12 +47,14 @@ namespace lsp
         {
             protected:
                 const meta::port_t             *pMetadata;
+                size_t                          nEditCounter;
                 mutable uatomic_t               nSerial;
 
             public:
                 explicit CtlPort(const meta::port_t *meta)
                 {
                     pMetadata           = meta;
+                    nEditCounter        = 0;
                     atomic_store(&nSerial, 0);
                 }
 
@@ -125,12 +127,18 @@ namespace lsp
                 /**
                  * Notify about port started being edited
                  */
-                virtual void        begin_edit() {};
+                virtual bool        begin_edit()
+                {
+                    return nEditCounter++ == 0;
+                }
 
                 /**
                  * Notify about port finished being edited
                  */
-                virtual void        end_edit() {};
+                virtual bool        end_edit()
+                {
+                    return --nEditCounter == 0;
+                }
 
             public:
                 /**
@@ -237,16 +245,20 @@ namespace lsp
                 }
 
             public:
-                void begin_edit() override
+                bool begin_edit() override
                 {
-                    if ((pHandler != NULL) && (nID >= 0) && (!bVirtual))
+                    const bool changed = CtlPort::begin_edit();
+                    if ((changed) && (pHandler != NULL) && (nID >= 0) && (!bVirtual))
                         pHandler->begin_edit(nID);
+                    return changed;
                 }
 
-                void end_edit() override
+                bool end_edit() override
                 {
-                    if ((pHandler != NULL) && (nID >= 0) && (!bVirtual))
+                    const bool changed = CtlPort::end_edit();
+                    if ((changed) && (pHandler != NULL) && (nID >= 0) && (!bVirtual))
                         pHandler->end_edit(nID);
+                    return changed;
                 }
 
             public:
