@@ -29,15 +29,9 @@
 #include <lsp-plug.in/io/charset.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/defs.h>
 
 #include <steinberg/vst3.h>
-
-#if (defined(PLATFORM_WINDOWS)) || (defined(PLATFORM_MACOSX))
-    #define IF_VST_RUNLOOP_IFACE(...)
-#else
-    #define VST_USE_RUNLOOP_IFACE
-    #define IF_VST_RUNLOOP_IFACE(...)       __VA_ARGS__
-#endif
 
 namespace lsp
 {
