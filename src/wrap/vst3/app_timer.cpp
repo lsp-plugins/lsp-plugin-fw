@@ -218,7 +218,7 @@ namespace lsp
                 timer->run_loop->unregisterTimer(timer->timer);
 
             // Stop the timer thread
-            ipc::Thread *thread     = release_ptr(thread);
+            ipc::Thread *thread     = release_ptr(timer->thread);
             if (thread != NULL)
             {
                 thread->cancel();
