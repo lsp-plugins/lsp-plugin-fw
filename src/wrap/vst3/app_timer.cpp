@@ -341,7 +341,7 @@ namespace lsp
             // Add timer to the run loop
             const Steinberg::tresult result = run_loop->registerTimer(timer, Steinberg::Linux::TimerInterval(interval));
             if (result != Steinberg::kResultOk)
-                return NULL;
+                return create_thread_app_timer(app_timer, handler, interval);
 
             // Fill structure fields
             app_timer->run_loop = safe_acquire(run_loop);
@@ -351,9 +351,9 @@ namespace lsp
                 app_timer, app_timer->timer, app_timer->run_loop);
 
             return release_ptr(app_timer);
-        #endif /* VST_USE_RUNLOOP_IFACE */
-
+        #else
             return create_thread_app_timer(app_timer, handler, interval);
+        #endif /* VST_USE_RUNLOOP_IFACE */
         }
 
         void destroy_app_timer(AppTimer *timer)
