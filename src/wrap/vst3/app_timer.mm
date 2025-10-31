@@ -34,7 +34,7 @@ namespace lsp
             NSTimer *timer;
         };
 
-        AppTimer *create_timer(Steinberg::FUnknown *object, IAppTimerHandler *handler, size_t interval)
+        AppTimer *create_app_timer(Steinberg::FUnknown *object, IAppTimerHandler *handler, size_t interval)
         {
 			AppTimer * app_timer;
 			
@@ -71,7 +71,7 @@ namespace lsp
 			return app_timer;
         }
 
-        void destroy_timer(AppTimer *timer)
+        void destroy_app_timer(AppTimer *timer)
         {
             if (timer == NULL)
                 return;

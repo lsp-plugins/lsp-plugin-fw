@@ -142,7 +142,7 @@ namespace lsp
             )
         };
 
-        AppTimer *create_timer(Steinberg::FUnknown *object, IAppTimerHandler *handler, size_t interval)
+        AppTimer *create_app_timer(Steinberg::FUnknown *object, IAppTimerHandler *handler, size_t interval)
         {
             // Create AppTimer structure
             AppTimer *app_timer     = new AppTimer;
@@ -208,7 +208,7 @@ namespace lsp
             return release_ptr(app_timer);
         }
 
-        void destroy_timer(AppTimer *timer)
+        void destroy_app_timer(AppTimer *timer)
         {
             if (timer == NULL)
                 return;

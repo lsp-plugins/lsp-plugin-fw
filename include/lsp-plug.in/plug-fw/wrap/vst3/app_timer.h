@@ -42,19 +42,21 @@ namespace lsp
         };
 
         /**
-         * Create periodic timer that executes in the main UI thread
+         * Create periodic application timer that executes in the main UI thread, mostly in run loop.
+         * If it was not possible to create run loop timer, the thread that emulates timer is created.
+         *
          * @param object object that can provide IRunLoop interface
          * @param handler timer handler
          * @param interval timer repeat interval in milliseconds
          * @return pointer to the timer or NULL on error.
          */
-        AppTimer *create_timer(Steinberg::FUnknown *object, IAppTimerHandler *handler, size_t interval);
+        AppTimer *create_app_timer(Steinberg::FUnknown *object, IAppTimerHandler *handler, size_t interval);
 
         /**
-         * Destroy timer
+         * Destroy periodic application timer timer
          * @param timer timer to destoy, may be NULL
          */
-        void destroy_timer(AppTimer *timer);
+        void destroy_app_timer(AppTimer *timer);
     } /* namespace vst3 */
 } /* namespace lsp */
 
