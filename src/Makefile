@@ -371,9 +371,9 @@ CXX_SRC_WRAP_VST2           = wrap/vst2.cpp
 CXX_SRC_WRAP_VST3           = wrap/vst3.cpp
 MM_SRC_WRAP_VST3            =
 ifeq ($(PLATFORM),MacOS)
-  MM_SRC_WRAP_VST3           += wrap/vst3/ui_timer.mm
+  MM_SRC_WRAP_VST3           += wrap/vst3/app_timer.mm
 else
-  CXX_SRC_WRAP_VST3          += wrap/vst3/ui_timer.cpp
+  CXX_SRC_WRAP_VST3          += wrap/vst3/app_timer.cpp
 endif
 CXX_SRC_WRAP_CLAP           = wrap/clap.cpp
 CXX_SRC_WRAP_CAIRO          = $(call rwildcard, wrap/cairo, *.cpp)

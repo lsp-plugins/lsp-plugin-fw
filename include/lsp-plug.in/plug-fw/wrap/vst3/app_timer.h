@@ -30,12 +30,12 @@ namespace lsp
 {
     namespace vst3
     {
-        struct UITimer;
+        struct AppTimer;
 
-        class IUITimerHandler
+        class IAppTimerHandler
         {
             public:
-                virtual ~IUITimerHandler() = default;
+                virtual ~IAppTimerHandler() = default;
 
             public:
                 virtual void on_timer() = 0;
@@ -48,13 +48,13 @@ namespace lsp
          * @param interval timer repeat interval in milliseconds
          * @return pointer to the timer or NULL on error.
          */
-        UITimer *create_timer(Steinberg::FUnknown *object, IUITimerHandler *handler, size_t interval);
+        AppTimer *create_timer(Steinberg::FUnknown *object, IAppTimerHandler *handler, size_t interval);
 
         /**
          * Destroy timer
          * @param timer timer to destoy, may be NULL
          */
-        void destroy_timer(UITimer *timer);
+        void destroy_timer(AppTimer *timer);
     } /* namespace vst3 */
 } /* namespace lsp */
 

@@ -29,14 +29,14 @@ namespace lsp
 {
     namespace vst3
     {
-        struct UITimer
+        struct AppTimer
         {
             NSTimer *timer;
         };
 
-        UITimer *create_timer(Steinberg::FUnknown *object, IUITimerHandler *handler, size_t interval)
+        AppTimer *create_timer(Steinberg::FUnknown *object, IAppTimerHandler *handler, size_t interval)
         {
-			UITimer * ui_timer;
+			AppTimer * app_timer;
 			
 			@autoreleasepool {
 				// Get run loop
@@ -45,7 +45,7 @@ namespace lsp
 			    	return NULL;
 
 				// Create timer handler
-			    IUITimerHandler * __block handler_ptr = handler;
+			    IAppTimerHandler * __block handler_ptr = handler;
 			    NSTimer *timer = [NSTimer
 			        timerWithTimeInterval: interval * 0.001
 			        repeats:YES
@@ -60,18 +60,18 @@ namespace lsp
     			[runner addTimer: timer forMode: NSDefaultRunLoopMode];
 
 				// Create and fill structure
-				ui_timer = new UITimer;
-				if (ui_timer == NULL)
+				app_timer = new AppTimer;
+				if (app_timer == NULL)
 					return NULL;
 				
 				// Store timer
-				ui_timer.timer = timer;
+				app_timer.timer = timer;
 			}
 			
-			return ui_timer;
+			return app_timer;
         }
 
-        void destroy_timer(UITimer *timer)
+        void destroy_timer(AppTimer *timer)
         {
             if (timer == NULL)
                 return;
