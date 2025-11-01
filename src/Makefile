@@ -415,7 +415,7 @@ OBJ_WRAP_LV2                = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_
 OBJ_WRAP_LV2_UI             = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_LV2_UI))
 OBJ_WRAP_VST2               = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_VST2))
 CXX_OBJ_WRAP_VST3           = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_VST3))
-MM_OBJ_WRAP_VST3            = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(MM_SRC_WRAP_VST3))
+MM_OBJ_WRAP_VST3            = $(patsubst %.mm, $(LSP_PLUGIN_FW_BIN)/%.o, $(MM_SRC_WRAP_VST3))
 OBJ_WRAP_CAIRO              = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_CAIRO))
 OBJ_UTIL                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UTIL))
 OBJ_TEST                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_TEST))
@@ -461,7 +461,7 @@ HOST_OBJ_WRAP_LV2           = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $
 HOST_OBJ_WRAP_LV2_UI        = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_LV2_UI))
 HOST_OBJ_WRAP_VST2          = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_VST2))
 HOST_CXX_OBJ_WRAP_VST3      = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_VST3))
-HOST_MM_OBJ_WRAP_VST3       = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_MM_SRC_WRAP_VST3))
+HOST_MM_OBJ_WRAP_VST3       = $(patsubst %.mm, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_MM_SRC_WRAP_VST3))
 HOST_OBJ_WRAP_CAIRO         = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_CAIRO))
 HOST_OBJ_UTIL               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_UTIL))
 HOST_OBJ_TEST               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_TEST))
@@ -1126,7 +1126,7 @@ $(OBJ_EXPORT): EXT_FLAGS=$(OBJ_EXPORT_CFLAGS)
 
 ifeq ($(CROSS_COMPILE),1)
 
-$(HOST_OBJ):
+$(HOST_CXX_OBJ):
 	echo "  $(HOST_CXX)  [$(LSP_PLUGIN_FW_NAME)] $(HOST_CXX_FILE)"
 	mkdir -p $(dir $@)
 	$(HOST_CXX) -o $(@) -c $(HOST_CXX_FILE) -fPIC $(HOST_CXXFLAGS) $(HOST_LSP_PLUGIN_FW_ALL_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)

@@ -20,8 +20,10 @@
  */
 
 #include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/app_timer.h>
 
-#if defined(PLATFORM_MACOS)
+#if defined(PLATFORM_MACOSX)
 
 #include <Foundation/Foundation.h>
 
@@ -36,39 +38,41 @@ namespace lsp
 
         AppTimer *create_app_timer(Steinberg::FUnknown *object, IAppTimerHandler *handler, size_t interval)
         {
-			AppTimer * app_timer;
-			
-			@autoreleasepool {
-				// Get run loop
-			    NSRunLoop *runner = [NSRunLoop currentRunLoop];
-			    if (runner == NULL)
-			    	return NULL;
+            AppTimer * app_timer;
 
-				// Create timer handler
-			    IAppTimerHandler * __block handler_ptr = handler;
-			    NSTimer *timer = [NSTimer
-			        timerWithTimeInterval: interval * 0.001
-			        repeats:YES
-			        block:^(NSTimer *timer) {
-			            ++runs;
-			            printf("Timer event runs=%d\n", runs);
-			        }];
-		        if (timer == NULL)
-		        	return NULL;
+            @autoreleasepool {
+                // Get run loop
+                NSRunLoop *runner = [NSRunLoop currentRunLoop];
+                if (runner == NULL)
+                    return NULL;
+
+                // Create timer handler
+                IAppTimerHandler * __block handler_ptr = handler;
+                NSTimer *timer = [NSTimer
+                    timerWithTimeInterval: interval * 0.001
+                    repeats:YES
+                    block:^(NSTimer *timer) {
+                        handler_ptr->on_timer();
+                    }
+                ];
+
+                if (timer == NULL)
+                    return NULL;
     
-    			// Attach timer to the run loop
-    			[runner addTimer: timer forMode: NSDefaultRunLoopMode];
+                // Create and fill structure
+                app_timer = new AppTimer;
+                if (app_timer == NULL)
+                    return NULL;
 
-				// Create and fill structure
-				app_timer = new AppTimer;
-				if (app_timer == NULL)
-					return NULL;
-				
-				// Store timer
-				app_timer.timer = timer;
-			}
-			
-			return app_timer;
+                // Attach timer to the run loop
+                [runner addTimer: timer forMode: NSDefaultRunLoopMode];
+
+                // Store timer
+                app_timer->timer = timer;
+                
+                lsp_trace("Created NSTimer application timer ptr=%p", app_timer);
+            }
+            return app_timer;
         }
 
         void destroy_app_timer(AppTimer *timer)
@@ -77,19 +81,21 @@ namespace lsp
                 return;
 
             @autoreleasepool {
-				// Invalidate timer and remove from run loop
-				if (timer->timer != NULL)
-				{
-					[timer->timer invalidate];
-					timer->timer = NULL;
-				}
+                // Invalidate timer and remove from run loop
+                if (timer->timer != NULL)
+                {
+                    [timer->timer invalidate];
+                    timer->timer = NULL;
+                }
 
-				// Destroy timer structure
-				delete timer;
-			}
+                // Destroy timer structure
+                delete timer;
+            }
+
+            lsp_trace("Destroyed application timer ptr=%p", timer);
         }
 
     } /* namespace vst3 */
 } /* namespace lsp */
 
-#endif /* PLATFORM_MACOS */
+#endif /* PLATFORM_MACOSX */
