@@ -52,6 +52,8 @@ namespace lsp
 {
     namespace vst3
     {
+        static constexpr size_t LOOP_INTERVAL = 40;
+
         PluginFactory::PluginFactory()
         {
             lsp_trace("this=%p", this);
@@ -60,13 +62,9 @@ namespace lsp
             nRefExecutor        = 0;
             pLoader             = NULL;
             pExecutor           = NULL;
-            pDataSync           = NULL;
+            pAppTimer           = NULL;
             pPackage            = NULL;
             atomic_store(&pActiveSync, NULL);
-
-        #ifdef VST_USE_RUNLOOP_IFACE
-            pRunLoop            = NULL;
-        #endif /* VST_USE_RUNLOOP_IFACE */
 
             sFactoryInfo.vendor[0]  = '\0';
             sFactoryInfo.url[0]     = '\0';
@@ -341,9 +339,7 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
-        #ifdef VST_USE_RUNLOOP_IFACE
-            safe_release(pRunLoop);
-        #endif /* VST_USE_RUNLOOP_IFACE */
+            safe_release(pHostContext);
 
             if (pLoader != NULL)
             {
@@ -462,13 +458,7 @@ namespace lsp
         Steinberg::tresult PLUGIN_API PluginFactory::setHostContext(Steinberg::FUnknown *context)
         {
             lsp_trace("this=%p, context=%p", this, context);
-
-        #ifdef VST_USE_RUNLOOP_IFACE
-            // Acquire new pointer to the run loop
-            pRunLoop = safe_query_iface<Steinberg::Linux::IRunLoop>(context);
-
-            lsp_trace("RUN LOOP object=%p", pRunLoop);
-        #endif /* VST_USE_RUNLOOP_IFACE */
+            pHostContext = safe_acquire(context);
 
             return Steinberg::kResultOk;
         }
@@ -644,28 +634,19 @@ namespace lsp
             {
                 sMutex.lock();
                 lsp_finally { sMutex.unlock(); };
-                if (pDataSync != NULL)
+                if (pAppTimer != NULL)
                 {
-                    lsp_trace("data_sync thread %p is already running, clients=%d", pDataSync);
+                    lsp_trace("data_sync timer %p is already running, clients=%d", pAppTimer);
                     sync        = NULL;
                     return STATUS_OK;
                 }
 
                 // Start data synchronization thread
-                pDataSync       = new ipc::Thread(this);
-                if (pDataSync == NULL)
+                pAppTimer       = create_app_timer(pHostContext, this, LOOP_INTERVAL);
+                if (pAppTimer == NULL)
                     return STATUS_NO_MEM;
 
-                lsp_trace("Starting data sync thread %p", pDataSync);
-                status_t res    = pDataSync->start();
-                if (res != STATUS_OK)
-                {
-                    delete pDataSync;
-                    pDataSync       = NULL;
-                    return STATUS_UNKNOWN_ERR;
-                }
-
-                lsp_trace("Data sync thread %p started", pDataSync);
+                lsp_trace("Data sync timer %p started", pAppTimer);
                 sync            = NULL;
             }
 
@@ -703,76 +684,53 @@ namespace lsp
             // Need to stop synchronization thread
             sMutex.lock();
             lsp_finally { sMutex.unlock(); };
-            if (pDataSync == NULL)
+            if (pAppTimer == NULL)
             {
-                lsp_trace("no data sync thread is running");
+                lsp_trace("no data_sync timer is running");
                 return STATUS_OK;
             }
 
-            lsp_trace("terminating data_sync thread %p", pDataSync);
-            pDataSync->cancel();
-            pDataSync->join();
-            delete pDataSync;
-
-            lsp_trace("terminated data_sync thread %p", pDataSync);
-            pDataSync       = NULL;
+            destroy_app_timer(pAppTimer);
+            lsp_trace("terminated data_sync timer %p", pAppTimer);
+            pAppTimer   = NULL;
 
             return STATUS_OK;
         }
 
-        status_t PluginFactory::run()
+        void PluginFactory::on_timer()
         {
-            lsp_trace("enter main loop this=%p", this);
-
-            static constexpr size_t LOOP_INTERVAL = 40;
-
             lltl::parray<IDataSync> list;
 
-            while (!ipc::Thread::is_cancelled())
+            // Form the list of items for processing
             {
-                // Measure the start time
-                system::time_millis_t time = system::get_time_millis();
+                sDataMutex.lock();
+                lsp_finally { sDataMutex.unlock(); };
+                vDataSync.values(&list);
+            }
 
-                // Form the list of items for processing
+            // Process each item
+            for (lltl::iterator<IDataSync> it=list.values(); it; ++it)
+            {
+                // Obtain the sync object
+                IDataSync *dsync    = it.get();
+                if (dsync == NULL)
+                    continue;
+
+                // Ensure that item is still valid and lock it
                 {
                     sDataMutex.lock();
                     lsp_finally { sDataMutex.unlock(); };
-                    vDataSync.values(&list);
-                }
-
-                // Process each item
-                for (lltl::iterator<IDataSync> it=list.values(); it; ++it)
-                {
-                    // Obtain the sync object
-                    IDataSync *dsync    = it.get();
-                    if (dsync == NULL)
+                    if (!vDataSync.contains(dsync))
                         continue;
-
-                    // Ensure that item is still valid and lock it
-                    {
-                        sDataMutex.lock();
-                        lsp_finally { sDataMutex.unlock(); };
-                        if (!vDataSync.contains(dsync))
-                            continue;
-                        atomic_store(&pActiveSync, dsync);
-                    }
-
-                    // Now dsync object is locked, perform processing
-                    dsync->sync_data();
-
-                    // Finally, unlock the data sync
-                    atomic_store(&pActiveSync, NULL);
+                    atomic_store(&pActiveSync, dsync);
                 }
 
-                // Wait for a while
-                const system::time_millis_t consumed = system::get_time_millis() - time;
-                if (consumed < LOOP_INTERVAL)
-                    ipc::Thread::sleep(LOOP_INTERVAL - consumed);
+                // Now dsync object is locked, perform processing
+                dsync->sync_data();
+
+                // Finally, unlock the data sync
+                atomic_store(&pActiveSync, NULL);
             }
-
-            lsp_trace("leave main loop this=%p", this);
-
-            return STATUS_OK;
         }
 
         core::Catalog *PluginFactory::acquire_catalog()
@@ -788,7 +746,7 @@ namespace lsp
     #ifdef VST_USE_RUNLOOP_IFACE
         Steinberg::Linux::IRunLoop *PluginFactory::acquire_run_loop()
         {
-            return safe_acquire(pRunLoop);
+            return safe_query_iface<Steinberg::Linux::IRunLoop>(pHostContext);
         }
     #endif /* VST_USE_RUNLOOP_IFACE */
 

@@ -39,6 +39,7 @@
 
 #include <steinberg/vst3.h>
 
+#include <lsp-plug.in/plug-fw/wrap/vst3/app_timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/data.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/sync.h>
 
@@ -55,7 +56,7 @@ namespace lsp
         class PluginFactory:
             public Steinberg::IPluginFactory3,
             public Steinberg::IPluginCompatibility,
-            public ipc::IRunnable,
+            public IAppTimerHandler,
             public core::ICatalogFactory
         {
             protected:
@@ -65,7 +66,7 @@ namespace lsp
                 ipc::Mutex                              sDataMutex;     // Mutex for managing data synchronization primitives
                 resource::ILoader                      *pLoader;        // Resource loader
                 ipc::IExecutor                         *pExecutor;      // Offline task executor
-                ipc::Thread                            *pDataSync;      // Synchronization thread
+                AppTimer                               *pAppTimer;      // Application timer
                 meta::package_t                        *pPackage;       // Package manifest
                 void                                   *pActiveSync;    // Active data sync
                 lltl::ptrset<IDataSync>                 vDataSync;      // List of objects for synchronization
@@ -76,9 +77,7 @@ namespace lsp
                 lltl::darray<Steinberg::PClassInfo2>    vClassInfo2;
                 lltl::darray<Steinberg::PClassInfoW>    vClassInfoW;
 
-            #ifdef VST_USE_RUNLOOP_IFACE
-                Steinberg::Linux::IRunLoop             *pRunLoop;       // Run loop interface
-            #endif /* VST_USE_RUNLOOP_IFACE */
+                Steinberg::FUnknown                    *pHostContext;   // Host context
 
             protected:
                 void fill_factory_info(const meta::package_t *manifest);
@@ -110,8 +109,8 @@ namespace lsp
                 Steinberg::Linux::IRunLoop             *acquire_run_loop();
             #endif /* VST_USE_RUNLOOP_IFACE */
 
-            public: // ipc::IRunnable
-                virtual status_t                        run() override;
+            public: // ipc::IAppTimerHandler
+                virtual void                            on_timer() override;
 
             public: // core::ICatalogFactory
                 virtual core::Catalog                  *acquire_catalog() override;
