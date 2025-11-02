@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/util/validator/validator.h>
+#include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
 namespace lsp
@@ -29,6 +30,36 @@ namespace lsp
     {
         namespace ladspa
         {
+            inline bool port_supported(const meta::port_t *port)
+            {
+                switch (port->role)
+                {
+                    case meta::R_AUDIO_IN:
+                    case meta::R_AUDIO_OUT:
+                    case meta::R_CONTROL:
+                    case meta::R_METER:
+                    case meta::R_BYPASS:
+                        return true;
+                    default:
+                        break;
+                }
+                return false;
+            }
+
+            inline bool is_ladspa_optional_port(const meta::port_t *port)
+            {
+                switch (port->role)
+                {
+                    case meta::R_MESH:
+                    case meta::R_STREAM:
+                    case meta::R_FBUFFER:
+                        return true;
+                    default:
+                        break;
+                }
+                return false;
+            }
+
             void validate_package(context_t *ctx, const meta::package_t *pkg)
             {
             }
@@ -76,58 +107,17 @@ namespace lsp
                 if ((meta->uids.ladspa_id <= 0) || (meta->uids.ladspa_lbl == NULL))
                     return;
 
-                switch (port->role)
+                // Check that port is supported by LADSPA
+                if (!port_supported(port))
                 {
-                    case meta::R_PATH:
-                        if (!meta::is_optional_port(port))
-                        {
-                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support PATH port, "
-                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
-                                meta->uid, port->id);
-                        }
-                        break;
-                    case meta::R_STRING:
-                        if (!meta::is_optional_port(port))
-                        {
-                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support STRING port, "
-                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
-                                meta->uid, port->id);
-                        }
-                        break;
-                    case meta::R_SEND_NAME:
-                        if (!meta::is_optional_port(port))
-                        {
-                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support SEND_NAME port, "
-                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
-                                meta->uid, port->id);
-                        }
-                        break;
-                    case meta::R_RETURN_NAME:
-                        if (!meta::is_optional_port(port))
-                        {
-                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support RETURN_NAME port, "
-                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
-                                meta->uid, port->id);
-                        }
-                        break;
-                    case meta::R_AUDIO_SEND:
-                        if (!meta::is_optional_port(port))
-                        {
-                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support AUDIO_SEND port, "
-                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
-                                meta->uid, port->id);
-                        }
-                        break;
-                    case meta::R_AUDIO_RETURN:
-                        if (!meta::is_optional_port(port))
-                        {
-                            validation_error(ctx, "LADSPA support problem for plugin uid='%s': LADSPA does not support AUDIO_RETURN port, "
-                                "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
-                                meta->uid, port->id);
-                        }
-                        break;
-                    default:
-                        break;
+                    if ((!is_ladspa_optional_port(port)) && (!meta::is_optional_port(port)))
+                    {
+                        validation_error(ctx, "LADSPA support problem for plugin uid='%s' port='%s': LADSPA does not support port of type '%s', "
+                            "to make plugin compatible with LADSPA, the port='%s' should be marked and handled as optional",
+                            meta->uid, port->id,
+                            meta::port_role_name(port->role),
+                            port->id);
+                    }
                 }
             }
         } /* namespace ladspa */

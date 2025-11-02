@@ -348,13 +348,22 @@ namespace lsp
                             p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MAXIMUM;
                         else
                         {
-                            float factor = (p->flags & meta::F_LOG) ?
-                                (logf(p->start) - logf(p->min)) / (logf(p->max) - logf(p->min)) :
-                                (p->start - p->min) / (p->max - p->min);
+                            float factor = 0.0f;
+                            if (p->flags & meta::F_LOG)
+                            {
+                                const float thresh      = ((p->flags & meta::F_EXT)     ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
+                                const float step        = logf((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f);
+                                const float min         = (fabsf(p->min) < thresh)      ? logf(thresh) - step : logf(p->min);
+                                const float max         = (fabsf(p->max) < thresh)      ? logf(thresh) - step : logf(p->max);
+                                const float dfl         = (fabsf(p->start) < thresh)    ? logf(thresh) - step : logf(p->start);
+                                factor                  = (dfl - min) / (max - min);
+                            }
+                            else if (p->max != p->min)
+                                factor = (p->start - p->min) / (p->max - p->min);
 
-                            if (factor <= 0.33)
+                            if (factor <= 0.33f)
                                 p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_LOW;
-                            else if (factor >= 0.66)
+                            else if (factor >= 0.66f)
                                 p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_HIGH;
                             else
                                 p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MIDDLE;

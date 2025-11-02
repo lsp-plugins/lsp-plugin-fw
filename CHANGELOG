@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.33 ===
+* Fixed SIGFPE crash on LADSPA descriptor generation.
 * VST3 data synchronization now is performed in the UI thread if possible.
 * Fixed data transport for LV2 plugins.
 * Fixed VST3 crash on JUCE-based hosts.
