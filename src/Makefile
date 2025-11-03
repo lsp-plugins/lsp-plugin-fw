@@ -369,31 +369,16 @@ CXX_SRC_WRAP_LV2            = wrap/lv2.cpp
 CXX_SRC_WRAP_LV2_UI         = wrap/lv2ui.cpp
 CXX_SRC_WRAP_VST2           = wrap/vst2.cpp
 CXX_SRC_WRAP_VST3           = wrap/vst3.cpp
+MM_SRC_WRAP_VST3            =
+ifeq ($(PLATFORM),MacOS)
+  MM_SRC_WRAP_VST3           += wrap/vst3/app_timer.mm
+else
+  CXX_SRC_WRAP_VST3          += wrap/vst3/app_timer.cpp
+endif
 CXX_SRC_WRAP_CLAP           = wrap/clap.cpp
 CXX_SRC_WRAP_CAIRO          = $(call rwildcard, wrap/cairo, *.cpp)
 CXX_SRC_UTIL                = $(call rwildcard, util, *.cpp)
 CXX_SRC_TEST                = $(call rwildcard, test, *.cpp)
-CXX_SRC                     = \
-  $(CXX_SRC_CORE) \
-  $(CXX_SRC_EXPORT) \
-  $(CXX_SRC_META) \
-  $(CXX_SRC_DSP) \
-  $(call fcheck,ui test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
-    $(CXX_SRC_UI) \
-    $(CXX_SRC_CTL) \
-  ) \
-  $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(CXX_SRC_WRAP_JACK)) \
-  $(call fcheck,gst,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_GST)) \
-  $(call fcheck,ladspa,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_LADSPA)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES), \
-    $(CXX_SRC_WRAP_LV2) \
-    $(call fcheck,ui,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_LV2_UI)) \
-  ) \
-  $(call fcheck,vst2,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_VST2)) \
-  $(call fcheck,vst3,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_VST3)) \
-  $(call fcheck,clap,$(ENABLED_FEATURES),$(CXX_SRC_WRAP_CLAP)) \
-  $(if $(LIBCAIRO_VERSION),$(CXX_SRC_WRAP_CAIRO)) \
-  $(CXX_SRC_UTIL)
 
 # Source code location for host
 HOST_CXX_SRC_CORE           = $(CXX_SRC_CORE)
@@ -408,31 +393,11 @@ HOST_CXX_SRC_WRAP_LV2       = $(CXX_SRC_WRAP_LV2)
 HOST_CXX_SRC_WRAP_LV2_UI    = $(CXX_SRC_WRAP_LV2_UI)
 HOST_CXX_SRC_WRAP_VST2      = $(CXX_SRC_WRAP_VST2)
 HOST_CXX_SRC_WRAP_VST3      = $(CXX_SRC_WRAP_VST3)
+HOST_MM_SRC_WRAP_VST3       = $(MM_SRC_WRAP_VST3)
 HOST_CXX_SRC_WRAP_CLAP      = $(CXX_SRC_WRAP_CLAP)
 HOST_CXX_SRC_WRAP_CAIRO     = $(CXX_SRC_WRAP_CAIRO)
 HOST_CXX_SRC_UTIL           = $(CXX_SRC_UTIL)
 HOST_CXX_SRC_TEST           = $(CXX_SRC_TEST)
-HOST_CXX_SRC                = \
-  $(HOST_CXX_SRC_CORE) \
-  $(HOST_CXX_SRC_EXPORT) \
-  $(HOST_CXX_SRC_META) \
-  $(HOST_CXX_SRC_DSP) \
-  $(call fcheck,ui test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES), \
-    $(HOST_CXX_SRC_UI) \
-    $(HOST_CXX_SRC_CTL) \
-  ) \
-  $(call fcheck,jack test,$(ENABLED_FEATURES) $(INTERNAL_FEATURES),$(HOST_CXX_SRC_WRAP_JACK)) \
-  $(call fcheck,gst,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_GST)) \
-  $(call fcheck,ladspa,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_LADSPA)) \
-  $(call fcheck,lv2,$(ENABLED_FEATURES), \
-    $(HOST_CXX_SRC_WRAP_LV2) \
-    $(call fcheck,ui,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_LV2_UI)) \
-  ) \
-  $(call fcheck,vst2,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_VST2)) \
-  $(call fcheck,vst3,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_VST3)) \
-  $(call fcheck,clap,$(ENABLED_FEATURES),$(HOST_CXX_SRC_WRAP_CLAP)) \
-  $(if $(LIBCAIRO_VERSION),$(HOST_CXX_SRC_WRAP_CAIRO)) \
-  $(HOST_CXX_SRC_UTIL)
 
 # Object files for (cross) build
 OBJ_STUB                    = $(patsubst %.cpp, %.o, $(CXX_SRC_STUB))
@@ -449,11 +414,13 @@ OBJ_WRAP_LADSPA             = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_
 OBJ_WRAP_LV2                = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_LV2))
 OBJ_WRAP_LV2_UI             = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_LV2_UI))
 OBJ_WRAP_VST2               = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_VST2))
-OBJ_WRAP_VST3               = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_VST3))
+CXX_OBJ_WRAP_VST3           = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_VST3))
+MM_OBJ_WRAP_VST3            = $(patsubst %.mm, $(LSP_PLUGIN_FW_BIN)/%.o, $(MM_SRC_WRAP_VST3))
 OBJ_WRAP_CAIRO              = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_WRAP_CAIRO))
 OBJ_UTIL                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_UTIL))
 OBJ_TEST                    = $(patsubst %.cpp, $(LSP_PLUGIN_FW_BIN)/%.o, $(CXX_SRC_TEST))
-OBJ                         = \
+
+CXX_OBJ                         = \
   $(OBJ_CORE) \
   $(OBJ_EXPORT) \
   $(OBJ_META) \
@@ -472,8 +439,11 @@ OBJ                         = \
     $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_WRAP_LV2_UI)) \
   ) \
   $(call fcheck,vst2,$(ENABLED_FEATURES),$(OBJ_WRAP_VST2)) \
-  $(call fcheck,vst3,$(ENABLED_FEATURES),$(OBJ_WRAP_VST3)) \
+  $(call fcheck,vst3,$(ENABLED_FEATURES),$(CXX_OBJ_WRAP_VST3)) \
   $(if $(LIBCAIRO_VERSION),$(OBJ_WRAP_CAIRO))
+  
+MM_OBJ                         = \
+  $(call fcheck,vst3,$(ENABLED_FEATURES),$(MM_OBJ_WRAP_VST3))
 
 # Object files for host build
 HOST_OBJ_STUB               = $(patsubst %.cpp, %.o, $(HOST_CXX_SRC_STUB))
@@ -490,11 +460,13 @@ HOST_OBJ_WRAP_LADSPA        = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $
 HOST_OBJ_WRAP_LV2           = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_LV2))
 HOST_OBJ_WRAP_LV2_UI        = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_LV2_UI))
 HOST_OBJ_WRAP_VST2          = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_VST2))
-HOST_OBJ_WRAP_VST3          = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_VST3))
+HOST_CXX_OBJ_WRAP_VST3      = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_VST3))
+HOST_MM_OBJ_WRAP_VST3       = $(patsubst %.mm, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_MM_SRC_WRAP_VST3))
 HOST_OBJ_WRAP_CAIRO         = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_WRAP_CAIRO))
 HOST_OBJ_UTIL               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_UTIL))
 HOST_OBJ_TEST               = $(patsubst %.cpp, $(HOST_LSP_PLUGIN_FW_BIN)/%.o, $(HOST_CXX_SRC_TEST))
-HOST_OBJ                    = \
+
+HOST_CXX_OBJ                = \
   $(HOST_OBJ_CORE) \
   $(HOST_OBJ_EXPORT) \
   $(HOST_OBJ_META) \
@@ -513,16 +485,19 @@ HOST_OBJ                    = \
     $(call fcheck,ui,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2_UI)) \
   ) \
   $(call fcheck,vst2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_VST2)) \
-  $(call fcheck,vst3,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_VST3)) \
+  $(call fcheck,vst3,$(ENABLED_FEATURES),$(HOST_CXX_OBJ_WRAP_VST3)) \
   $(if $(LIBCAIRO_VERSION),$(HOST_OBJ_WRAP_CAIRO))
+
+HOST_MM_OBJ                = \
+  $(call fcheck,vst3,$(ENABLED_FEATURES),$(HOST_MM_OBJ_WRAP_VST3))
 
 ifeq ($(TEST),1)
   CXX_SRC                    += $(CXX_SRC_TEST)
-  OBJ                        += $(OBJ_TEST)
+  CXX_OBJ                    += $(OBJ_TEST)
   LSP_PLUGIN_FW_OBJ          += $(LSP_PLUGIN_FW_OBJ_TEST)
   
   HOST_CXX_SRC               += $(HOST_CXX_SRC_TEST)
-  HOST_OBJ                   += $(HOST_OBJ_TEST)
+  HOST_CXX_OBJ               += $(HOST_OBJ_TEST)
   HOST_LSP_PLUGIN_FW_OBJ     += $(HOST_LSP_PLUGIN_FW_OBJ_TEST)
 endif
 
@@ -902,7 +877,8 @@ ARTIFACT_LIB_VST3_OBJS      = \
   $(OBJ_PLUG_DSP) \
   $(OBJ_PLUG_SHARED) \
   $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_PLUG_UI)) \
-  $(OBJ_WRAP_VST3)
+  $(CXX_OBJ_WRAP_VST3) \
+  $(MM_OBJ_WRAP_VST3)
 
 ifeq ($(TEST),1)
   ARTIFACT_BIN_TEST           = $(HOST_LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-test$(EXECUTABLE_EXT)
@@ -933,7 +909,7 @@ ifeq ($(TEST),1)
       $(call fcheck,ui,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_LV2UI)) \
     ) \
     $(call fcheck,vst2,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_VST2)) \
-    $(call fcheck,vst3,$(ENABLED_FEATURES),$(HOST_OBJ_WRAP_VST3)) \
+    $(call fcheck,vst3,$(ENABLED_FEATURES),$(HOST_CXX_OBJ_WRAP_VST3) $(HOST_MM_OBJ_WRAP_VST3)) \
     $($(HOST)UTL_COMMON_OBJ) \
     $($(HOST)UTL_VALIDATOR_OBJ) \
     $($(HOST)UTL_JACK_MAKE_OBJ) \
@@ -1048,7 +1024,9 @@ PACKAGE_TARGETS             = $(foreach feature,$(call intersection,$(ENABLED_FE
 #------------------------------------------------------------------------------
 # Functional variables
 CXX_FILE                    = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.o,%.cpp, $(@))
+MM_FILE                     = $(patsubst $(LSP_PLUGIN_FW_BIN)/%.o,%.mm, $(@))
 HOST_CXX_FILE               = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.o,%.cpp, $(@))
+HOST_MM_FILE                = $(patsubst $(HOST_LSP_PLUGIN_FW_BIN)/%.o,%.mm, $(@))
 DEP_FILE                    = $(patsubst %.o,%.d, $(@))
 
 #------------------------------------------------------------------------------
@@ -1116,10 +1094,15 @@ $(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP) $(HOST_OBJ_PLUG_SHARED) $(HOST_OBJ_PL
 
 #------------------------------------------------------------------------------
 # Compilation
-$(OBJ):
+$(CXX_OBJ):
 	echo "  $(CXX)  [$(LSP_PLUGIN_FW_NAME)] $(CXX_FILE)"
 	mkdir -p $(dir $@)
 	$(CXX) -o $(@) -c $(CXX_FILE) -fPIC $(CXXFLAGS) $(CXXDEFS) $(LSP_PLUGIN_FW_ALL_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
+	
+$(MM_OBJ):
+	echo "  $(CXX)  [$(LSP_PLUGIN_FW_NAME)] $(MM_FILE)"
+	mkdir -p $(dir $@)
+	$(CXX) -o $(@) -c $(MM_FILE) -fPIC $(CXXFLAGS) $(CXXDEFS) $(LSP_PLUGIN_FW_ALL_MFLAGS) $(EXT_FLAGS) $(INCLUDE) $(LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
 
 $(OBJ_WRAP_JACK): EXT_FLAGS=$(WRAP_JACK_CFLAGS)
 
@@ -1133,7 +1116,7 @@ $(OBJ_WRAP_LV2_UI): EXT_FLAGS=$(WRAP_LV2_UI_CFLAGS)
 
 $(OBJ_WRAP_VST2): EXT_FLAGS=$(WRAP_VST2_CFLAGS)
 
-$(OBJ_WRAP_VST3): EXT_FLAGS=$(WRAP_VST3_CFLAGS)
+$(CXX_OBJ_WRAP_VST3) $(MM_OBJ_WRAP_VST3): EXT_FLAGS=$(WRAP_VST3_CFLAGS)
 
 $(OBJ_WRAP_CLAP): EXT_FLAGS=$(WRAP_CLAP_CFLAGS)
 
@@ -1143,10 +1126,15 @@ $(OBJ_EXPORT): EXT_FLAGS=$(OBJ_EXPORT_CFLAGS)
 
 ifeq ($(CROSS_COMPILE),1)
 
-$(HOST_OBJ):
+$(HOST_CXX_OBJ):
 	echo "  $(HOST_CXX)  [$(LSP_PLUGIN_FW_NAME)] $(HOST_CXX_FILE)"
 	mkdir -p $(dir $@)
 	$(HOST_CXX) -o $(@) -c $(HOST_CXX_FILE) -fPIC $(HOST_CXXFLAGS) $(HOST_LSP_PLUGIN_FW_ALL_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
+	
+$(HOST_MM_OBJ):
+	echo "  $(HOST_CXX)  [$(LSP_PLUGIN_FW_NAME)] $(HOST_MM_FILE)"
+	mkdir -p $(dir $@)
+	$(HOST_CXX) -o $(@) -c $(HOST_MM_FILE) -fPIC $(HOST_CXXFLAGS) $(HOST_LSP_PLUGIN_FW_ALL_MFLAGS) $(HOST_EXT_FLAGS) $(INCLUDE) $(HOST_LSP_PLUGIN_FW_ALL_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
 
 $(HOST_OBJ_WRAP_JACK): EXT_FLAGS=$(HOST_WRAP_JACK_CFLAGS)
 
@@ -1160,7 +1148,7 @@ $(HOST_OBJ_WRAP_LV2_UI): EXT_FLAGS=$(HOST_WRAP_LV2_UI_CFLAGS)
 
 $(HOST_OBJ_WRAP_VST2): EXT_FLAGS=$(HOST_WRAP_VST2_CFLAGS)
 
-$(HOST_OBJ_WRAP_VST3): EXT_FLAGS=$(HOST_WRAP_VST3_CFLAGS)
+$(HOST_CXX_OBJ_WRAP_VST3) $(HOST_MM_OBJ_WRAP_VST3): EXT_FLAGS=$(HOST_WRAP_VST3_CFLAGS)
 
 $(HOST_OBJ_WRAP_CLAP): EXT_FLAGS=$(HOST_WRAP_CLAP_CFLAGS)
 
@@ -1303,35 +1291,35 @@ $($(HOST)UTL_PLUGLIST_GEN): $($(HOST)UTL_PLUGLIST_GEN_DEPS) $($(HOST)UTL_PLUGLIS
 
 #------------------------------------------------------------------------------
 # Binaries
-$(ARTIFACT_LIB_CLAP): $(OBJ_WRAP_CLAP) $(ARTIFACT_LIB_CLAP_DEPS) $(ARTIFACT_LIB_CLAP_OBJS) $(PLUG_DEPS)
+$(ARTIFACT_LIB_CLAP): $(ARTIFACT_LIB_CLAP_DEPS) $(ARTIFACT_LIB_CLAP_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_CLAP))"
 	$(CXX) -o $(ARTIFACT_LIB_CLAP) $(ARTIFACT_LIB_CLAP_LIBS) $(ARTIFACT_LIB_CLAP_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_CLAP_LDFLAGS)
 
-$(ARTIFACT_LIB_GST): $(OBJ_WRAP_GST) $(ARTIFACT_LIB_GST_DEPS) $(ARTIFACT_LIB_GST_OBJS) $(PLUG_DEPS)
+$(ARTIFACT_LIB_GST): $(ARTIFACT_LIB_GST_DEPS) $(ARTIFACT_LIB_GST_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_GST))"
 	$(CXX) -o $(ARTIFACT_LIB_GST) $(ARTIFACT_LIB_GST_LIBS) $(ARTIFACT_LIB_GST_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_GST_LDFLAGS)
 	
-$(ARTIFACT_LIB_JACK): $(OBJ_WRAP_JACK) $(ARTIFACT_LIB_JACK_DEPS) $(ARTIFACT_LIB_JACK_OBJS) $(PLUG_DEPS)
+$(ARTIFACT_LIB_JACK): $(ARTIFACT_LIB_JACK_DEPS) $(ARTIFACT_LIB_JACK_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_JACK))"
 	$(CXX) -o $(ARTIFACT_LIB_JACK) $(ARTIFACT_LIB_JACK_LIBS) $(ARTIFACT_LIB_JACK_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_JACK_LDFLAGS)
 	
-$(ARTIFACT_LIB_LADSPA): $(OBJ_WRAP_LADSPA) $(ARTIFACT_LIB_LADSPA_DEPS) $(ARTIFACT_LIB_LADSPA_OBJS) $(PLUG_DEPS)
+$(ARTIFACT_LIB_LADSPA): $(ARTIFACT_LIB_LADSPA_DEPS) $(ARTIFACT_LIB_LADSPA_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_LADSPA))"
 	$(CXX) -o $(ARTIFACT_LIB_LADSPA) $(ARTIFACT_LIB_LADSPA_LIBS) $(ARTIFACT_LIB_LADSPA_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LADSPA_LDFLAGS)
 	
-$(ARTIFACT_LIB_LV2): $(OBJ_WRAP_LV2) $(ARTIFACT_LIB_LV2_DEPS) $(ARTIFACT_LIB_LV2_OBJS) $(PLUG_DEPS)
+$(ARTIFACT_LIB_LV2): $(ARTIFACT_LIB_LV2_DEPS) $(ARTIFACT_LIB_LV2_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_LV2))"
 	$(CXX) -o $(ARTIFACT_LIB_LV2) $(ARTIFACT_LIB_LV2_LIBS) $(ARTIFACT_LIB_LV2_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LV2_LDFLAGS)
 	
-$(ARTIFACT_LIB_LV2_UI): $(OBJ_WRAP_LV2_UI) $(ARTIFACT_LIB_LV2_UI_DEPS) $(ARTIFACT_LIB_LV2_UI_OBJS) $(PLUG_DEPS)
+$(ARTIFACT_LIB_LV2_UI): $(ARTIFACT_LIB_LV2_UI_DEPS) $(ARTIFACT_LIB_LV2_UI_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_LV2_UI))"
 	$(CXX) -o $(ARTIFACT_LIB_LV2_UI) $(ARTIFACT_LIB_LV2_UI_LIBS) $(ARTIFACT_LIB_LV2_UI_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_LV2_UI_LDFLAGS)
 	
-$(ARTIFACT_LIB_VST2): $(OBJ_WRAP_VST2) $(ARTIFACT_LIB_VST2_DEPS) $(ARTIFACT_LIB_VST2_OBJS) $(PLUG_DEPS)
+$(ARTIFACT_LIB_VST2): $(ARTIFACT_LIB_VST2_DEPS) $(ARTIFACT_LIB_VST2_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_VST2))"
 	$(CXX) -o $(ARTIFACT_LIB_VST2) $(ARTIFACT_LIB_VST2_LIBS) $(ARTIFACT_LIB_VST2_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_VST2_LDFLAGS)
 	
-$(ARTIFACT_LIB_VST3): $(OBJ_WRAP_VST3) $(ARTIFACT_LIB_VST3_DEPS) $(ARTIFACT_LIB_VST3_OBJS) $(PLUG_DEPS)
+$(ARTIFACT_LIB_VST3): $(ARTIFACT_LIB_VST3_DEPS) $(ARTIFACT_LIB_VST3_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_VST3))"
 	$(CXX) -o $(ARTIFACT_LIB_VST3) $(ARTIFACT_LIB_VST3_LIBS) $(ARTIFACT_LIB_VST3_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_VST3_LDFLAGS)
 	
@@ -1712,4 +1700,4 @@ uninstall_xdg_msg:
 uninstall_xdg: uninstall_xdg_msg $(ARTIFACT_XDG_UNINST)
 
 # Dependencies
--include $(foreach objfile,$(OBJ) $(HOST_OBJ),$(patsubst %.o,%.d,$(objfile)))
+-include $(foreach objfile,$(CXX_OBJ) $(MM_OBJ) $(HOST_CXX_OBJ) $(HOST_MM_OBJ),$(patsubst %.o,%.d,$(objfile)))

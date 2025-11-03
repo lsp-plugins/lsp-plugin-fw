@@ -629,6 +629,13 @@ namespace lsp
          * @return plugin format name
          */
         const char     *plugin_format_name(plugin_format_t format);
+
+        /**
+         * Get port role name from the enumeration constant
+         * @param role port role
+         * @return port role name from enumeration constant
+         */
+        const char     *port_role_name(role_t role);
     } /* namespace meta */
 } /* namespace lsp */
 

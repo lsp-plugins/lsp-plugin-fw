@@ -46,6 +46,7 @@ namespace lsp
             lltl::pphash<char, meta::plugin_t>      vst2_ids;
             lltl::pphash<char, meta::plugin_t>      vst3_ids;
             lltl::pphash<char, meta::plugin_t>      clap_ids;
+            lltl::pphash<char, meta::plugin_t>      lv2_ids;
             lltl::pphash<char, meta::plugin_t>      gst_ids;
             lltl::pphash<uint32_t, meta::plugin_t>  ladspa_ids;
             lltl::pphash<char, meta::plugin_t>      ladspa_labels;

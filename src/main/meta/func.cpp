@@ -1440,6 +1440,35 @@ namespace lsp
             return "unknown";
         }
 
+        const char *port_role_name(role_t role)
+        {
+            switch (role)
+            {
+                case R_AUDIO_IN:        return "AUDIO_IN";
+                case R_AUDIO_OUT:       return "AUDIO_OUT";
+                case R_CONTROL:         return "CONTROL";
+                case R_METER:           return "METER";
+                case R_MESH:            return "MESH";
+                case R_FBUFFER:         return "FBUFFER";
+                case R_PATH:            return "PATH";
+                case R_STRING:          return "STRING";
+                case R_MIDI_IN:         return "MIDI_IN";
+                case R_MIDI_OUT:        return "MIDI_OUT";
+                case R_PORT_SET:        return "PORT_SET";
+                case R_OSC_IN:          return "OSC_IN";
+                case R_OSC_OUT:         return "OSC_OUT";
+                case R_AUDIO_SEND:      return "AUDIO_SEND";
+                case R_AUDIO_RETURN:    return "AUDIO_RETURN";
+                case R_SEND_NAME:       return "SEND_NAME";
+                case R_RETURN_NAME:     return "RETURN_NAME";
+                case R_BYPASS:          return "BYPASS";
+                case R_STREAM:          return "STREAM";
+                default:
+                    break;
+            }
+            return "unknown";
+        }
+
         char *uid_vst2_to_vst3(char *buf, const char *vst2_uid, const char *name, bool for_controller)
         {
             char *dst = buf;

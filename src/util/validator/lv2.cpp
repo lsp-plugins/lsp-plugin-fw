@@ -41,6 +41,25 @@ namespace lsp
                             meta->uid, meta->uids.lv2ui);
                     return;
                 }
+
+                // Check conflicts for LV2 UID
+                const meta::plugin_t *clash = ctx->lv2_ids.get(meta->uids.lv2);
+                if (clash != NULL)
+                    validation_error(ctx, "Plugin uid='%s' clashes plugin uid='%s': duplicate LV2 URI identifier '%s'",
+                        meta->uid, clash->uid, meta->uids.lv2);
+                else if (!ctx->lv2_ids.create(meta->uids.lv2, const_cast<meta::plugin_t *>(meta)))
+                    allocation_error(ctx);
+
+                if (meta->uids.lv2ui != NULL)
+                {
+                    // Check conflicts for LV2 UID
+                    clash = ctx->lv2_ids.get(meta->uids.lv2ui);
+                    if (clash != NULL)
+                        validation_error(ctx, "Plugin uid='%s' clashes plugin uid='%s': duplicate LV2 UI URI identifier '%s'",
+                            meta->uid, clash->uid, meta->uids.lv2ui);
+                    else if (!ctx->lv2_ids.create(meta->uids.lv2ui, const_cast<meta::plugin_t *>(meta)))
+                        allocation_error(ctx);
+                }
             }
 
             void validate_port(context_t *ctx, const meta::plugin_t *meta, const meta::port_t *port)

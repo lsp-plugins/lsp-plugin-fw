@@ -880,6 +880,29 @@ namespace lsp
                     receive_preset_state(&state);
                 }
             }
+            else if (obj->body.otype == pExt->uridPortDataType)
+            {
+                lsp_trace("received PORT_DATA message");
+
+                // Parse atom body
+                LV2_Atom_Property_Body *body    = lv2_atom_object_begin(&obj->body);
+
+                while (!lv2_atom_object_is_end(&obj->body, obj->atom.size, body))
+                {
+                    lsp_trace("  body->key (%d) = %s", int(body->key), pExt->unmap_urid(body->key));
+                    lsp_trace("  body->value.type (%d) = %s", int(body->value.type), pExt->unmap_urid(body->value.type));
+
+                    lv2::UIPort *p      = find_by_urid(vPorts, body->key);
+                    if ((p != NULL) && (body->value.type == p->get_type_urid()))
+                    {
+                        p->deserialize(&body->value);
+                        lsp_trace("  deserialized port id=%s, value=%f", p->id(), p->value());
+                        p->notify_all(ui::PORT_NONE);
+                    }
+
+                    body = lv2_atom_object_next(body);
+                }
+            }
             else
             {
                 lsp_trace("Received object");

@@ -119,6 +119,21 @@ namespace lsp
             return count > 0;
         }
 
+        static bool is_float_value_port(const meta::port_t *port)
+        {
+            switch (port->role)
+            {
+                case meta::R_CONTROL:
+                case meta::R_METER:
+                case meta::R_BYPASS:
+                case meta::R_PORT_SET:
+                    return true;
+                default:
+                    break;
+            }
+            return false;
+        }
+
         static void validate_classes(context_t *ctx, const meta::plugin_t *meta)
         {
             // Ensure that classes are defined
@@ -284,6 +299,21 @@ namespace lsp
                     validation_error(ctx, "Unknown port type %d for port='%s', plugin uid='%s'",
                         int(port->role), port->id, meta->uid);
                     return;
+            }
+
+
+            // Check that port range is valid
+            if (is_float_value_port(port))
+            {
+                if (((port->flags & (meta::F_LOWER | meta::F_UPPER))  == (meta::F_LOWER | meta::F_UPPER)) &&
+                    (port->min == port->max))
+                {
+                    validation_error(ctx, "Plugin uid='%s': port='%s' type='%s' defined value range is zero: "
+                        "min=%f, max=%f",
+                        meta->uid, port->id,
+                        meta::port_role_name(port->role),
+                        port->min, port->max);
+                }
             }
         }
 
@@ -745,7 +775,19 @@ namespace lsp
                 validation_error(ctx, "Plugin plugin uid='%s' has no developer specified", meta->uid);
 
             // Validate that plugin has specified unique identifier
-            if (meta->uid == NULL)
+            if (meta->uid != NULL)
+            {
+                // Check conflicts for UID
+                const meta::plugin_t *clash = ctx->lsp_ids.get(meta->uid);
+                if (clash != NULL)
+                    validation_error(ctx, "Plugin uid='%s' (name='%s', acronym='%s') clashes plugin uid='%s' (name='%s', acronym='%s'): duplicate plugin UID '%s'",
+                        meta->uid, meta->name, meta->acronym,
+                        clash->uid, clash->name, clash->acronym,
+                        meta->uid);
+                else if (!ctx->lsp_ids.create(meta->uid, const_cast<meta::plugin_t *>(meta)))
+                    allocation_error(ctx);
+            }
+            else
                 validation_error(ctx, "Not specified plugin unique identifier for plugin name='%s', description='%s', acronym='%s'",
                     meta->name, meta->description, meta->acronym);
 

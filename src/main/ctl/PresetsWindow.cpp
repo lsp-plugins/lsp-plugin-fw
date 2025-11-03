@@ -28,6 +28,11 @@
 #include <private/ui/xml/RootNode.h>
 #include <private/ui/xml/Handler.h>
 
+#ifdef LSP_IDE_DEBUG
+//    Uncomment this for debug
+//    #define PRESET_NO_GRAB_EVENTS
+#endif /* LSP_IDE_DEBUG */
+
 namespace lsp
 {
     namespace ctl
@@ -419,7 +424,10 @@ namespace lsp
             }
 
             wnd->show();
-//            wnd->grab_events(ws::GRAB_DROPDOWN);
+
+#ifndef PRESET_NO_GRAB_EVENTS
+            wnd->grab_events(ws::GRAB_DROPDOWN);
+#endif /* PRESET_NO_GRAB_EVENTS */
 
             return STATUS_OK;
         }

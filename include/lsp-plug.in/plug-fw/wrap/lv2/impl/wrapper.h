@@ -309,12 +309,15 @@ namespace lsp
 
             vAllPorts.flush();
             vExtPorts.flush();
+            vPluginPorts.flush();
+            vControlPorts.flush();
+            vPortGroups.flush();
+            vMeterPorts.flush();
             vMeshPorts.flush();
             vStreamPorts.flush();
             vMidiPorts.flush();
             vOscPorts.flush();
             vFrameBufferPorts.flush();
-            vPluginPorts.flush();
             vGenMetadata.flush();
 
             // Delete temporary buffer for OSC serialization
@@ -345,7 +348,7 @@ namespace lsp
                         vMeshPorts.add(result);
                     }
                     else
-                        result = new lv2::Port(p, pExt, false);
+                        result = new lv2::Port(p, pExt);
 
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
@@ -359,7 +362,7 @@ namespace lsp
                         vStreamPorts.add(result);
                     }
                     else
-                        result = new lv2::Port(p, pExt, false);
+                        result = new lv2::Port(p, pExt);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
                     lsp_trace("Added stream port id=%s", result->metadata()->id);
@@ -372,7 +375,7 @@ namespace lsp
                         vFrameBufferPorts.add(result);
                     }
                     else
-                        result = new lv2::Port(p, pExt, false);
+                        result = new lv2::Port(p, pExt);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
                     lsp_trace("Added framebuffer port id=%s", result->metadata()->id);
@@ -380,9 +383,12 @@ namespace lsp
 
                 case meta::R_PATH:
                     if (pExt->atom_supported())
+                    {
                         result      = new lv2::PathPort(p, pExt);
+                        vPatchPorts.add(result);
+                    }
                     else
-                        result      = new lv2::Port(p, pExt, false);
+                        result      = new lv2::Port(p, pExt);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
                     lsp_trace("Added path port id=%s", result->metadata()->id);
@@ -395,10 +401,11 @@ namespace lsp
                     {
                         lv2::StringPort *sp     = new lv2::StringPort(p, pExt);
                         vStringPorts.add(sp);
+                        vPatchPorts.add(sp);
                         result      = sp;
                     }
                     else
-                        result      = new lv2::Port(p, pExt, false);
+                        result      = new lv2::Port(p, pExt);
                     vPluginPorts.add(result);
                     plugin_ports->add(result);
                 #ifdef LSP_TRACE
@@ -419,7 +426,7 @@ namespace lsp
                         vMidiPorts.add(result);
                     }
                     else
-                        result = new lv2::Port(p, pExt, false);
+                        result = new lv2::Port(p, pExt);
                     plugin_ports->add(result);
 
                     lsp_trace("Added midi port id=%s", result->metadata()->id);
@@ -433,7 +440,7 @@ namespace lsp
                         vOscPorts.add(result);
                     }
                     else
-                        result = new lv2::Port(p, pExt, false);
+                        result = new lv2::Port(p, pExt);
                     plugin_ports->add(result);
 
                     lsp_trace("Added osc port id=%s", result->metadata()->id);
@@ -450,7 +457,7 @@ namespace lsp
 
                     if (postfix == NULL)
                     {
-                        result->set_id(vExtPorts.size());
+                        result->set_index(vExtPorts.size());
                         vExtPorts.add(result);
                         lsp_trace("Added external audio port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
@@ -483,52 +490,96 @@ namespace lsp
                 }
 
                 case meta::R_CONTROL:
-                case meta::R_METER:
-                    if (meta::is_out_port(p))
-                        result      = new lv2::OutputPort(p, pExt);
-                    else
-                        result      = new lv2::InputPort(p, pExt, virt);
+                {
+                    lv2::ControlPort *cp = new lv2::ControlPort(p, pExt);
 
-                    vPluginPorts.add(result);
-                    plugin_ports->add(result);
+                    vPluginPorts.add(cp);
+                    vControlPorts.add(cp);
+                    plugin_ports->add(cp);
 
                     if (postfix == NULL)
                     {
-                        result->set_id(vExtPorts.size());
-                        vExtPorts.add(result);
-                        lsp_trace("Added external control port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                        cp->set_index(vExtPorts.size());
+                        vExtPorts.add(cp);
+                        lsp_trace("Added external control port id=%s, external_id=%d",
+                            cp->id(),
+                            int(vExtPorts.size() - 1),
+                            pExt->unmap_urid(cp->get_urid()));
                     }
                     else
-                        lsp_trace("Added control port id=%s", result->metadata()->id);
+                        lsp_trace("Added virtual control port id=%s, urid=%s",
+                            cp->id(),
+                            pExt->unmap_urid(cp->get_urid()));
+
+                    result = cp;
                     break;
+                }
+
+                case meta::R_METER:
+                {
+                    lv2::MeterPort *mp = new lv2::MeterPort(p, pExt);
+
+                    vPluginPorts.add(mp);
+                    vMeterPorts.add(mp);
+                    plugin_ports->add(mp);
+
+                    if (postfix == NULL)
+                    {
+                        mp->set_index(vExtPorts.size());
+                        vExtPorts.add(mp);
+                        lsp_trace(
+                            "Added external meter port id=%s, external_id=%d, urid=%s",
+                            mp->id(),
+                            int(vExtPorts.size() - 1),
+                            pExt->unmap_urid(mp->get_urid()));
+                    }
+                    else
+                        lsp_trace(
+                            "Added virtual meter port id=%s, urid=%s",
+                            mp->id(),
+                            pExt->unmap_urid(mp->get_urid()));
+
+                    result = mp;
+                    break;
+                }
 
                 case meta::R_BYPASS:
-                    if (meta::is_out_port(p))
-                        result      = new lv2::Port(p, pExt, false);
-                    else
-                        result      = new lv2::BypassPort(p, pExt);
+                {
+                    lv2::BypassPort *bp = new lv2::BypassPort(p, pExt);
 
-                    vPluginPorts.add(result);
-                    plugin_ports->add(result);
+                    vPluginPorts.add(bp);
+                    vControlPorts.add(bp);
+                    plugin_ports->add(bp);
 
                     if (postfix == NULL)
                     {
-                        result->set_id(vExtPorts.size());
-                        vExtPorts.add(result);
-                        lsp_trace("Added bypass port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
+                        bp->set_index(vExtPorts.size());
+                        vExtPorts.add(bp);
+                        lsp_trace(
+                            "Added external bypass port id=%s, external_id=%d",
+                            bp->id(),
+                            int(vExtPorts.size() - 1),
+                            pExt->unmap_urid(bp->get_urid()));
                     }
                     else
-                        lsp_trace("Added bypass port id=%s", result->metadata()->id);
+                        lsp_trace(
+                            "Added virtual bypass port id=%s",
+                            bp->id(),
+                            pExt->unmap_urid(bp->get_urid()));
+
+                    result = bp;
                     break;
+                }
 
                 case meta::R_PORT_SET:
                 {
                     char postfix_buf[MAX_PARAM_ID_BYTES];
-                    lv2::PortGroup   *pg    = new lv2::PortGroup(p, pExt, virt);
+                    lv2::PortGroup   *pg    = new lv2::PortGroup(p, pExt);
 
                     // Add Port Set immediately
                     vPluginPorts.add(pg);
                     vAllPorts.add(pg);
+                    vPortGroups.add(pg);
                     plugin_ports->add(pg);
                     lsp_trace("Added port_set port id=%s", pg->metadata()->id);
 
@@ -574,7 +625,7 @@ namespace lsp
 
         void Wrapper::connect(size_t id, void *data)
         {
-            size_t ports_count  = vExtPorts.size();
+            const size_t ports_count  = vExtPorts.size();
             if (id < ports_count)
             {
                 lv2::Port *p        = vExtPorts.get(id);
@@ -926,13 +977,40 @@ namespace lsp
                                     state_changed();
                             }
                             else
-                            {
                                 lsp_trace("failed to deserialize port id=%s", p->metadata()->id);
-                            }
                         }
 
                         key     = NULL;
                         value   = NULL;
+                    }
+                }
+            }
+            else if (obj->body.otype == pExt->uridPortDataType)
+            {
+                // Parse atom body
+                for (
+                    LV2_Atom_Property_Body *body = lv2_atom_object_begin(&obj->body) ;
+                    !lv2_atom_object_is_end(&obj->body, obj->atom.size, body) ;
+                    body = lv2_atom_object_next(body)
+                )
+                {
+                    lsp_trace("body->key (%d) = %s", int(body->key), pExt->unmap_urid(body->key));
+                    lsp_trace("body->value.type (%d) = %s", int(body->value.type), pExt->unmap_urid(body->value.type));
+
+                    lv2::Port *p    = port_by_urid(body->key);
+                    if (p != NULL)
+                        lsp_trace("found port id=%s, type_urid=%d", p->metadata()->id, p->get_type_urid());
+
+                    if ((p != NULL) && (p->get_type_urid() == body->value.type))
+                    {
+                        if (p->deserialize(&body->value, 0))
+                        {
+                            // Change state if it is a virtual port
+                            if (p->is_virtual())
+                                state_changed();
+                        }
+                        else
+                            lsp_trace("failed to deserialize port id=%s", p->metadata()->id);
                     }
                 }
             }
@@ -1248,68 +1326,37 @@ namespace lsp
             lsp_trace("Transmitted shared memory state of %d records", int(state->size()));
         }
 
-        void Wrapper::transmit_responses_to_clients(bool sync_req, bool patch_req, bool state_req)
+        void Wrapper::transmit_patch_state_to_clients(bool force)
         {
             // Serialize time/position of plugin
             LV2_Atom_Forge_Frame    frame;
 
             // Serialize pending for transmission ports
-            for (size_t i=0, n = vPluginPorts.size(); i<n; ++i)
+            for (size_t i=0, n = vPatchPorts.size(); i<n; ++i)
             {
                 // Get port
-                lv2::Port *p = vPluginPorts[i];
+                lv2::Port *p = vPatchPorts.uget(i);
                 if (p == NULL)
                     continue;
 
-                // Skip MESH, FBUFFER, PATH ports visible in global space
-                switch (p->metadata()->role)
+                if ((force) || (p->tx_pending()))
                 {
-                    case meta::R_AUDIO_IN:
-                    case meta::R_AUDIO_OUT:
-                    case meta::R_MIDI_IN:
-                    case meta::R_MIDI_OUT:
-                    case meta::R_OSC_IN:
-                    case meta::R_OSC_OUT:
-                    case meta::R_MESH:
-                    case meta::R_STREAM:
-                    case meta::R_FBUFFER:
-                        continue;
-                    case meta::R_STRING:
-                    case meta::R_SEND_NAME:
-                    case meta::R_RETURN_NAME:
-                    case meta::R_PATH:
-                        if (p->tx_pending()) // Tranmission request pending?
-                            break;
-                        if (state_req) // State request pending?
-                            break;
-                        if (patch_req) // Global port and patch request pending?
-                            break;
-                        continue;
-                    default:
-                        if (p->tx_pending()) // Transmission request pending?
-                            break;
-                        if (state_req) // State request pending?
-                            break;
-                        continue;
+                    // Create patch message containing valule of the port
+                    lsp_trace(
+                        "Emit patchSet message for port id=%s, uri=%s",
+                        p->id(), p->get_uri());
+
+                    pExt->forge_frame_time(0);
+                    pExt->forge_object(&frame, pExt->uridPatchMessage, pExt->uridPatchSet);
+                    pExt->forge_key(pExt->uridPatchProperty);
+                    pExt->forge_urid(p->get_urid());
+                    pExt->forge_key(pExt->uridPatchValue);
+                    p->serialize();
+                    pExt->forge_pop(&frame);
+
+                    // Reset pending transfer flag
+                    p->reset_tx_pending();
                 }
-
-                // Check that we need to transmit the value
-                if ((!patch_req) && (!state_req) && (!p->tx_pending()))
-                    continue;
-
-                // Create patch message containing valule of the port
-                lsp_trace("Serialize port id=%s, value=%f", p->metadata()->id, p->value());
-
-                pExt->forge_frame_time(0);
-                pExt->forge_object(&frame, pExt->uridPatchMessage, pExt->uridPatchSet);
-                pExt->forge_key(pExt->uridPatchProperty);
-                pExt->forge_urid(p->get_urid());
-                pExt->forge_key(pExt->uridPatchValue);
-                p->serialize();
-                pExt->forge_pop(&frame);
-
-                // Reset pending transfer flag
-                p->reset_tx_pending();
             }
         }
 
@@ -1550,7 +1597,10 @@ namespace lsp
             // Check that state request is pending
             const bool state_req  = nStateReqs > 0;
             if (state_req)
+            {
+                lsp_trace("State request is pending");
                 --nStateReqs;
+            }
 
             // Initialize forge
             LV2_Atom_Sequence *sequence = reinterpret_cast<LV2_Atom_Sequence *>(pAtomOut);
@@ -1592,15 +1642,101 @@ namespace lsp
             // Transmit different data to clients
             if (nClients > 0)
             {
+                transmit_port_state(state_req);
                 transmit_kvt_events();
                 transmit_time_position_to_clients();
                 transmit_port_data_to_clients(sync_req);
             }
 
-            transmit_responses_to_clients(sync_req, patch_req, state_req);
+            transmit_patch_state_to_clients(patch_req || state_req);
             transmit_preset_settings_to_clients(&sPresetState);
             transmit_play_position_to_clients();
             transmit_shm_state_to_clients();
+        }
+
+        void Wrapper::transmit_port_state(bool force)
+        {
+            LV2_Atom_Forge_Frame frame;
+            size_t records = 0;
+
+            lsp_finally {
+                if (records > 0)
+                {
+                    lsp_trace("End serializing port state");
+                    pExt->forge_pop(&frame);
+                }
+            };
+
+            if (force)
+            {
+                // Serialize control ports
+                for (size_t i=0, n=vControlPorts.size(); i < n; ++i)
+                {
+                    lv2::ControlPort *p = vControlPorts.uget(i);
+                    if (p == NULL)
+                        continue;
+
+                    if (records++ == 0)
+                    {
+                        lsp_trace("Begin serializing port state");
+                        pExt->forge_frame_time(0);
+                        pExt->forge_object(&frame, pExt->uridPortData, pExt->uridPortDataType);
+                    }
+
+                    lsp_trace(
+                        "Serialize control port id=%s, index=%d, value=%f, uri=%s",
+                        p->id(), int(p->get_index()), p->value(), p->get_uri());
+
+                    pExt->forge_key(p->get_urid());
+                    p->serialize();
+                }
+
+                // Serialize port groups
+                for (size_t i=0, n=vPortGroups.size(); i < n; ++i)
+                {
+                    lv2::PortGroup *p = vPortGroups.uget(i);
+                    if (p == NULL)
+                        continue;
+
+                    if (records++ == 0)
+                    {
+                        lsp_trace("Begin serializing port state");
+                        pExt->forge_frame_time(0);
+                        pExt->forge_object(&frame, pExt->uridPortData, pExt->uridPortDataType);
+                    }
+
+                    lsp_trace(
+                        "Serialize port group port id=%s, index=%d, value=%f, uri=%s",
+                        p->id(), int(p->get_index()), p->value(), p->get_uri());
+
+                    pExt->forge_key(p->get_urid());
+                    p->serialize();
+                }
+            }
+
+            // Serialize meter ports
+            for (size_t i=0, n=vMeterPorts.size(); i < n; ++i)
+            {
+                lv2::MeterPort *p = vMeterPorts.uget(i);
+                if (p == NULL)
+                    continue;
+                if ((!force) && (!p->tx_pending()))
+                    continue;
+
+                if (records++ == 0)
+                {
+                    lsp_trace("Begin serializing port state");
+                    pExt->forge_frame_time(0);
+                    pExt->forge_object(&frame, pExt->uridPortData, pExt->uridPortDataType);
+                }
+
+                lsp_trace(
+                    "Serialize meter port id=%s, index=%d, value=%f, uri=%s",
+                    p->id(), int(p->get_index()), p->value(), p->get_uri());
+
+                pExt->forge_key(p->get_urid());
+                p->serialize();
+            }
         }
 
         void Wrapper::transmit_osc_events(lv2::Port *p)

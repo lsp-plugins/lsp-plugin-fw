@@ -173,6 +173,10 @@ namespace lsp
                 LV2_URID                uridMaxBlockLength;
                 LV2_URID                uridScaleFactor;
 
+                // State-related URIDs
+                LV2_URID                uridPortData;
+                LV2_URID                uridPortDataType;
+
                 // Preset-related URIDs
                 LV2_URID                uridPresetState;
                 LV2_URID                uridPresetStateType;
@@ -295,7 +299,7 @@ namespace lsp
                                 iDisplay        = reinterpret_cast<LV2_Inline_Display *>(f->data);
                             else if (!strcmp(f->URI, LV2_UI__touch))
                                 pTouch          = reinterpret_cast<LV2UI_Touch *>(f->data);
-                        #if LSP_LV2_NO_INSTANCE_ACCESS != 1
+                        #if !LSP_LV2_NO_INSTANCE_ACCESS
                             else if (!strcmp(f->URI, LV2_INSTANCE_ACCESS_URI))
                                 pWrapper = reinterpret_cast<Wrapper *>(f->data);
                         #endif
@@ -367,6 +371,10 @@ namespace lsp
 
                     uridMaxBlockLength          = map_uri(LV2_BUF_SIZE__maxBlockLength);
                     uridScaleFactor             = map_uri(LV2_UI__scaleFactor);
+
+                    // State-related URIDs
+                    uridPortData                = map_primitive("port_data");
+                    uridPortDataType            = map_type("PortData");
 
                     // Preset-related URIDs
                     uridPresetState             = map_primitive("preset_state");
@@ -908,6 +916,25 @@ namespace lsp
                     forge_key(uridPatchProperty);
                     forge_urid(p->get_urid());
                     forge_key(uridPatchValue);
+                    p->serialize();
+                    forge_pop(&frame);
+
+                    write_data(nAtomOut, lv2_atom_total_size(msg), uridEventTransfer, msg);
+                    return true;
+                }
+
+                bool ui_write_port_change(lv2::Serializable *p)
+                {
+                    if ((map == NULL) || (p->get_urid() <= 0))
+                        return false;
+
+                    // Forge PATCH SET message
+                    LV2_Atom_Forge_Frame    frame;
+                    forge_set_buffer(pBuffer, nBufSize);
+
+                    forge_frame_time(0);
+                    LV2_Atom *msg = forge_object(&frame, uridPortData, uridPortDataType);
+                    forge_key(p->get_urid());
                     p->serialize();
                     forge_pop(&frame);
 
