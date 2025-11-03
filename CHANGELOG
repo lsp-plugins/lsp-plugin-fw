@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.34 ===
+
+
 === 1.0.33 ===
 * Improved plugin metadata validation tool.
 * Fixed SIGFPE crash on LADSPA descriptor generation.
