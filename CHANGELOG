@@ -8,6 +8,7 @@
 * VST3 data synchronization now is performed in the UI thread if possible.
 * Fixed data transport for LV2 plugins.
 * Fixed VST3 crash on JUCE-based hosts.
+* Updated module versions in dependencies.
 
 === 1.0.32 ===
 * Added support of BeginEdit and EndEdit events for CLAP, LV2, VST2 and VST3 formats.
