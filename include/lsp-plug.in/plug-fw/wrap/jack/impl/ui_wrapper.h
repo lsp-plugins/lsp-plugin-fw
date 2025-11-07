@@ -51,6 +51,15 @@ namespace lsp
 
         status_t UIWrapper::init(void *root_widget)
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin UI initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("UI initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             status_t res = STATUS_OK;
 
             // Force position sync at startup

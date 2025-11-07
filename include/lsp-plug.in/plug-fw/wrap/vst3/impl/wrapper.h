@@ -38,6 +38,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/debug.h>
+#include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -833,6 +834,15 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::initialize(Steinberg::FUnknown *context)
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             lsp_trace("this=%p, context=%p", this, context);
 
             // Check that host context is already set

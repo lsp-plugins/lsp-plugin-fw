@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/ladspa/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/ladspa/ports.h>
+#include <lsp-plug.in/runtime/system.h>
 
 namespace lsp
 {
@@ -48,6 +49,15 @@ namespace lsp
 
         status_t Wrapper::init(unsigned long sr)
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             status_t res;
 
             // Load package information

@@ -28,6 +28,7 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/helpers.h>
+#include <lsp-plug.in/runtime/system.h>
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/endian.h>
@@ -97,6 +98,15 @@ namespace lsp
 
         status_t Wrapper::init()
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             AEffect *e                      = pEffect;
             const meta::plugin_t *m         = pPlugin->metadata();
 

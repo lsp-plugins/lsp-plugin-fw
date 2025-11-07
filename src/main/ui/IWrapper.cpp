@@ -345,6 +345,15 @@ namespace lsp
         {
             status_t res;
 
+        #ifdef LSP_TRACE
+            lsp_trace("Begin UI wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("UI wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             // Create additional ports (ui)
             for (const meta::port_t *p = meta::config_metadata; p->id != NULL; ++p)
             {
@@ -899,6 +908,15 @@ namespace lsp
         status_t IWrapper::build_ui(const char *path, void *handle, ssize_t screen)
         {
             status_t res;
+
+        #ifdef LSP_TRACE
+            lsp_trace("Begin UI build");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("UI build time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
 
             // Create window widget
             wWindow     = new tk::Window(pDisplay, handle, screen);

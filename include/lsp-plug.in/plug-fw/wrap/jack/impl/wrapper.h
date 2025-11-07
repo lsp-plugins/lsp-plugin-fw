@@ -84,9 +84,17 @@ namespace lsp
 
         status_t Wrapper::init()
         {
-            status_t res;
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
 
             // Load package information
+            status_t res;
             io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
             if (is == NULL)
             {

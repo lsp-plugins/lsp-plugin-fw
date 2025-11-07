@@ -27,6 +27,7 @@
 #include <clap/clap.h>
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
+#include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
 namespace lsp
@@ -644,6 +645,15 @@ namespace lsp
 
         status_t Wrapper::init()
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             // Obtain the plugin metadata
             const meta::plugin_t *meta = pPlugin->metadata();
             if (meta == NULL)

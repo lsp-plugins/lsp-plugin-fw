@@ -29,6 +29,7 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/factory.h>
+#include <lsp-plug.in/runtime/system.h>
 
 #define LSP_LEGACY_KVT_URI          LSP_LV2_BASE_URI "ui/lv2"
 
@@ -170,6 +171,15 @@ namespace lsp
 
         status_t Wrapper::init(float srate)
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             // Update sample rate
             fSampleRate = srate;
 
