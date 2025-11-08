@@ -697,18 +697,6 @@ namespace lsp
             if (jp != NULL)
             {
                 jp->init();
-                #ifdef LSP_DEBUG
-                    const char *src_id = jp->metadata()->id;
-                    for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
-                    {
-                        jack::Port *p = vAllPorts.uget(i);
-                        if (!strcmp(src_id, p->metadata()->id))
-                        {
-                            lsp_error("ERROR: port %s already defined", src_id);
-                        }
-                    }
-                #endif /* LSP_DEBUG */
-
                 vAllPorts.add(jp);
                 plugin_ports->add(jp);
             }

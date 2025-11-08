@@ -763,16 +763,6 @@ namespace lsp
 
             if (cp != NULL)
             {
-                #ifdef LSP_DEBUG
-                    const char *src_id = cp->metadata()->id;
-                    for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
-                    {
-                        plug::IPort *p = vAllPorts.uget(i);
-                        if (!strcmp(src_id, p->metadata()->id))
-                            lsp_error("ERROR: port %s already defined", src_id);
-                    }
-                #endif /* LSP_DEBUG */
-
                 vAllPorts.add(cp);
                 plugin_ports->add(cp);
             }

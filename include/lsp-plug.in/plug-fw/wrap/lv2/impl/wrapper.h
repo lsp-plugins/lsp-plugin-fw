@@ -59,6 +59,11 @@ namespace lsp
             return ssize_t(a->get_urid()) - ssize_t(b->get_urid());
         }
 
+        ssize_t Wrapper::compare_ports_by_id(const lv2::Port *a, const lv2::Port *b)
+        {
+            return strcmp(a->id(), b->id());
+        }
+
         Wrapper::Wrapper(plug::Module *plugin, lv2::Factory *factory, lv2::Extensions *ext):
             plug::IWrapper(plugin, factory->resources()),
             sKVTListener(this)
@@ -141,29 +146,40 @@ namespace lsp
             ssize_t first = 0, last = vPluginPorts.size() - 1;
             while (first <= last)
             {
-                size_t center   = size_t(first + last) >> 1;
-                lv2::Port *p    = vPluginPorts.uget(center);
-                if (urid == p->get_urid())
-                    return p;
-                else if (urid < p->get_urid())
+                size_t center           = size_t(first + last) >> 1;
+                lv2::Port *p            = vPluginPorts.uget(center);
+                const LV2_URID p_urid   = p->get_urid();
+
+                if (urid < p_urid)
                     last    = center - 1;
-                else
+                else if (urid > p_urid)
                     first   = center + 1;
+                else
+                    return p;
             }
             return NULL;
         }
 
         lv2::Port *Wrapper::port(const char *id)
         {
-            for (size_t i=0, n = vPluginPorts.size(); i<n; ++i)
+            // Try to find the corresponding port
+            ssize_t first = 0, last = vSortedPorts.size() - 1;
+            while (first <= last)
             {
-                lv2::Port *p = vPluginPorts.uget(i);
+                size_t center   = size_t(first + last) >> 1;
+                lv2::Port *p    = vSortedPorts.uget(center);
                 if (p == NULL)
                     continue;
                 const meta::port_t *meta = p->metadata();
                 if (meta == NULL)
                     continue;
-                if (!strcmp(meta->id, id))
+
+                const int cmp   = strcmp(id, meta->id);
+                if (cmp < 0)
+                    last    = center - 1;
+                else if (cmp > 0)
+                    first   = center + 1;
+                else
                     return p;
             }
             return NULL;
@@ -193,7 +209,10 @@ namespace lsp
                 create_port(&plugin_ports, meta, NULL, false);
 
             // Sort port lists
+            vSortedPorts.add(vPluginPorts);
+
             vPluginPorts.qsort(compare_ports_by_urid);
+            vSortedPorts.qsort(compare_ports_by_id);
             vMeshPorts.qsort(compare_ports_by_urid);
             vStreamPorts.qsort(compare_ports_by_urid);
             vFrameBufferPorts.qsort(compare_ports_by_urid);
@@ -320,6 +339,7 @@ namespace lsp
             vAllPorts.flush();
             vExtPorts.flush();
             vPluginPorts.flush();
+            vSortedPorts.flush();
             vControlPorts.flush();
             vPortGroups.flush();
             vMeterPorts.flush();
