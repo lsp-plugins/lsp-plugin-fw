@@ -175,9 +175,11 @@ namespace lsp
                 idx         = C_VALUE;
             else if (!strncmp(name, prefix, len))
             {
-                name       += strlen(prefix);
+                if (name[len] != '.')
+                    return false;
+                name       += len + 1;
 
-                if (!strncmp(name, ".rgb", 4))
+                if (!strncmp(name, "rgb", 4))
                 {
                     // '.rgb' sub-prefix
                     name       += 4;
@@ -188,7 +190,7 @@ namespace lsp
                     else if (!strcmp(name, ".blue"))        idx = C_RGB_B;
                     else if (!strcmp(name, ".b"))           idx = C_RGB_B;
                 }
-                else if (!strncmp(name, ".hsl", 4))
+                else if (!strncmp(name, "hsl", 4))
                 {
                     // '.hsl' sub-prefix
                     name       += 4;
@@ -201,7 +203,7 @@ namespace lsp
                     else if (!strcmp(name, ".light"))       idx = C_HSL_L;
                     else if (!strcmp(name, ".l"))           idx = C_HSL_L;
                 }
-                else if (!strncmp(name, ".xyz", 4))
+                else if (!strncmp(name, "xyz", 4))
                 {
                     // '.xyz' sub-prefix
                     name       += 4;
@@ -211,7 +213,7 @@ namespace lsp
                     else if (!strcmp(name, ".y"))           idx = C_XYZ_Y;
                     else if (!strcmp(name, ".z"))           idx = C_XYZ_Z;
                 }
-                else if (!strncmp(name, ".lab", 4))
+                else if (!strncmp(name, "lab", 4))
                 {
                     // '.lab' sub-prefix
                     name       += 4;
@@ -221,7 +223,7 @@ namespace lsp
                     else if (!strcmp(name, ".a"))           idx = C_LAB_A;
                     else if (!strcmp(name, ".b"))           idx = C_LAB_B;
                 }
-                else if ((!strncmp(name, ".lch", 4)) || (!strncmp(name, ".hcl", 4)))
+                else if ((!strncmp(name, "lch", 4)) || (!strncmp(name, "hcl", 4)))
                 {
                     // '.lch' sub-prefix
                     name       += 4;
@@ -235,7 +237,7 @@ namespace lsp
                     else if (!strcmp(name, ".hue"))         idx = C_LCH_H;
                     else if (!strcmp(name, ".h"))           idx = C_LCH_H;
                 }
-                else if (!strncmp(name, ".cmyk", 5))
+                else if (!strncmp(name, "cmyk", 5))
                 {
                     // '.cmyk' sub-prefix
                     name       += 5;
@@ -251,31 +253,68 @@ namespace lsp
                 }
                 else
                 {
-                    // No sub-prefix
-                    if      (!strcmp(name, ".red"))         idx = C_RGB_R;
-                    else if (!strcmp(name, ".r"))           idx = C_RGB_R;
-                    else if (!strcmp(name, ".green"))       idx = C_RGB_G;
-                    else if (!strcmp(name, ".g"))           idx = C_RGB_G;
-                    else if (!strcmp(name, ".blue"))        idx = C_RGB_B;
-                    else if (!strcmp(name, ".b"))           idx = C_RGB_B;
+                    switch (name[0])
+                    {
+                        case 'r':
+                            ++name;
+                            if (name[0] == '\0')                    idx = C_RGB_R;
+                            else if  (!strcmp(name, "ed"))          idx = C_RGB_R;
+                            else return false;
+                            break;
 
-                    else if (!strcmp(name, ".hue"))         idx = C_CTL_HUE;
-                    else if (!strcmp(name, ".h"))           idx = C_CTL_HUE;
+                        case 'g':
+                            ++name;
+                            if (name[0] == '\0')                    idx = C_RGB_G;
+                            else if  (!strcmp(name, "reen"))        idx = C_RGB_G;
+                            else return false;
+                            break;
 
-                    else if (!strcmp(name, ".sat"))         idx = C_CTL_SAT;
-                    else if (!strcmp(name, ".saturation"))  idx = C_CTL_SAT;
-                    else if (!strcmp(name, ".s"))           idx = C_CTL_SAT;
-                    else if (!strcmp(name, ".lightness"))   idx = C_CTL_LIGHT;
-                    else if (!strcmp(name, ".light"))       idx = C_CTL_LIGHT;
-                    else if (!strcmp(name, ".l"))           idx = C_CTL_LIGHT;
+                        case 'b':
+                            ++name;
+                            if (name[0] == '\0')                    idx = C_RGB_B;
+                            else if  (!strcmp(name, "lue"))         idx = C_RGB_B;
+                            else return false;
+                            break;
 
-                    else if (!strcmp(name, ".luminance"))   idx = C_CTL_LIGHT;
-                    else if (!strcmp(name, ".lum"))         idx = C_CTL_LIGHT;
-                    else if (!strcmp(name, ".chroma"))      idx = C_CTL_SAT;
-                    else if (!strcmp(name, ".c"))           idx = C_CTL_SAT;
+                        case 'h':
+                            ++name;
+                            if (name[0] == '\0')                    idx = C_CTL_HUE;
+                            else if  (!strcmp(name, "ue"))          idx = C_CTL_HUE;
+                            else return false;
+                            break;
 
-                    else if (!strcmp(name, ".alpha"))       idx = C_ALPHA;
-                    else if (!strcmp(name, ".a"))           idx = C_ALPHA;
+                        case 's':
+                            ++name;
+                            if (name[0] == '\0')                    idx = C_CTL_SAT;
+                            else if  (!strcmp(name, "at"))          idx = C_CTL_SAT;
+                            else if  (!strcmp(name, "aturation"))   idx = C_CTL_SAT;
+                            else return false;
+                            break;
+
+                        case 'l':
+                            ++name;
+                            if (name[0] == '\0')                    idx = C_CTL_LIGHT;
+                            else if  (!strcmp(name, "ight"))        idx = C_CTL_LIGHT;
+                            else if  (!strcmp(name, "ightness"))    idx = C_CTL_LIGHT;
+                            else if  (!strcmp(name, "um"))          idx = C_CTL_LIGHT;
+                            else if  (!strcmp(name, "uminance"))    idx = C_CTL_LIGHT;
+                            else return false;
+                            break;
+
+                        case 'c':
+                            ++name;
+                            if (name[0] == '\0')                    idx = C_CTL_SAT;
+                            else if  (!strcmp(name, "hroma"))       idx = C_CTL_SAT;
+                            else return false;
+                            break;
+
+                        case 'a':
+                            ++name;
+                            if (name[0] == '\0')                    idx = C_ALPHA;
+                            else if  (!strcmp(name, "lpha"))        idx = C_ALPHA;
+                            else return false;
+                            break;
+                    }
                 }
             }
 

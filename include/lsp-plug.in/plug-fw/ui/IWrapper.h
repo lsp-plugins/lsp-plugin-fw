@@ -126,6 +126,8 @@ namespace lsp
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
+
+            protected:
                 size_t          rebuild_sorted_ports();
                 void            global_config_changed(IPort *src);
                 status_t        create_alias(const LSPString *id, const LSPString *name);
@@ -155,7 +157,11 @@ namespace lsp
 
                 void            notify_play_position(wssize_t position, wssize_t length);
 
-                IPort          *port_by_id(const char *id);
+                IPort          *switched_port_by_id(const char *id);
+                IPort          *config_port_by_id(const char *id);
+                IPort          *time_port_by_id(const char *id);
+                IPort          *custom_port_by_id(const char *id);
+                IPort          *plugin_port_by_id(const char *id);
 
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);

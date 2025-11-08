@@ -48,6 +48,16 @@ static const char *config_separator = "-----------------------------------------
 
 namespace lsp
 {
+#ifdef TRACE_STRCMP_CALLS
+    size_t wrapper_strcmp_calls = 0;
+    size_t wrapper_switched_strcmp_calls = 0;
+    size_t wrapper_config_strcmp_calls = 0;
+    size_t wrapper_time_strcmp_calls = 0;
+    size_t wrapper_custom_strcmp_calls = 0;
+    size_t wrapper_search_strcmp_calls = 0;
+    size_t wrapper_sort_strcmp_calls = 0;
+#endif /* TRACE_STRCMP_CALLS */
+
     // Metadata for the wrapper
     namespace meta
     {
@@ -354,7 +364,7 @@ namespace lsp
             };
         #endif /* LSP_TRACE */
 
-            // Create additional ports (ui)
+            // Create additional ports (global configuration)
             for (const meta::port_t *p = meta::config_metadata; p->id != NULL; ++p)
             {
                 switch (p->role)
@@ -380,6 +390,7 @@ namespace lsp
                         break;
                 }
             }
+            vConfigPorts.qsort(compare_ports);
 
             // Create additional ports (time)
             for (const meta::port_t *p = meta::time_metadata; p->id != NULL; ++p)
@@ -552,89 +563,191 @@ namespace lsp
 
             // Check that port name contains index
             if (strchr(id, '[') != NULL)
-            {
-                // Try to find switched port
-                size_t count = vSwitchedPorts.size();
-                for (size_t i=0; i<count; ++i)
-                {
-                    SwitchedPort *p  = vSwitchedPorts.uget(i);
-                    if (p == NULL)
-                        continue;
-                    const char *p_id    = p->id();
-                    if (p_id == NULL)
-                        continue;
-                    if (!strcmp(id, p_id))
-                        return p;
-                }
-
-                // Create new switched port (lazy initialization)
-                SwitchedPort *s     = new SwitchedPort(this);
-                if (s == NULL)
-                    return NULL;
-
-                if (s->compile(id))
-                {
-                    if (vSwitchedPorts.add(s))
-                        return s;
-                }
-
-                delete s;
-                return NULL;
-            }
+                return switched_port_by_id(id);
 
             // Check that port name contains "_ui_" prefix
             if (strstr(id, UI_CONFIG_PORT_PREFIX) == id)
-            {
-                const char *ui_id = &id[strlen(UI_CONFIG_PORT_PREFIX)];
-
-                // Try to find configuration port
-                size_t count = vConfigPorts.size();
-                for (size_t i=0; i<count; ++i)
-                {
-                    IPort *p            = vConfigPorts.uget(i);
-                    if (p == NULL)
-                        continue;
-                    const char *p_id    = p->metadata()->id;
-                    if (p_id == NULL)
-                        continue;
-                    if (!strcmp(p_id, ui_id))
-                        return p;
-                }
-            }
+                return config_port_by_id(&id[UI_CONFIG_PORT_PREFIX_LEN]);
 
             // Check that port name contains "_time_" prefix
             if (strstr(id, TIME_PORT_PREFIX) == id)
-            {
-                const char *ui_id = &id[strlen(TIME_PORT_PREFIX)];
+                return time_port_by_id(&id[TIME_PORT_PREFIX_LEN]);
 
-                // Try to find configuration port
-                size_t count = vTimePorts.size();
-                for (size_t i=0; i<count; ++i)
-                {
-                    IPort *p            = vTimePorts.uget(i);
-                    if (p == NULL)
-                        continue;
-                    const char *p_id    = p->metadata()->id;
-                    if (p_id == NULL)
-                        continue;
-                    if (!strcmp(p_id, ui_id))
-                        return p;
-                }
-            }
+            // Look for custom ports and plugin ports
+            port = custom_port_by_id(id);
+            if (port == NULL)
+                port = plugin_port_by_id(id);
 
-            // Look to custom ports
-            for (size_t i=0, n=vCustomPorts.size(); i<n; ++i)
+            return port;
+        }
+
+        ui::IPort *IWrapper::switched_port_by_id(const char *id)
+        {
+//            // Try to find switched port
+//            size_t count = vSwitchedPorts.size();
+//            for (size_t i=0; i<count; ++i)
+//            {
+//                SwitchedPort *p  = vSwitchedPorts.uget(i);
+//                if (p == NULL)
+//                    continue;
+//                const char *p_id    = p->id();
+//                if (p_id == NULL)
+//                    continue;
+//                if (!strcmp(id, p_id))
+//                    return p;
+//            }
+//
+//            // Create new switched port (lazy initialization)
+//            SwitchedPort *s     = new SwitchedPort(this);
+//            if (s == NULL)
+//                return NULL;
+//
+//            if (s->compile(id))
+//            {
+//                if (vSwitchedPorts.add(s))
+//                    return s;
+//            }
+//
+//            delete s;
+//            return NULL;
+
+            // Try to find the corresponding port
+            const ssize_t count = vSwitchedPorts.size();
+            ssize_t first = 0, last = count - 1;
+            while (first <= last)
             {
-                IPort *p = vCustomPorts.get(i);
-                const meta::port_t *ctl = (p != NULL) ? p->metadata() : NULL;
-                if ((ctl != NULL) && (!strcmp(id, ctl->id)))
+                size_t center           = (first + last) >> 1;
+                IPort *p                = vSwitchedPorts.uget(center);
+                const char *p_id        = p->id();
+                if (p_id == NULL)
+                    break;
+
+#ifdef TRACE_STRCMP_CALLS
+                ++wrapper_strcmp_calls;
+                ++wrapper_switched_strcmp_calls;
+#endif
+                int cmp     = strcmp(id, p_id);
+                if (cmp < 0)
+                    last    = center - 1;
+                else if (cmp > 0)
+                    first   = center + 1;
+                else
                     return p;
             }
 
-            return port_by_id(id);
+            // Find the right place to insert
+            if (first < count)
+            {
+                IPort *p                = vSwitchedPorts.uget(first);
+                const char *p_id        = p->id();
+                if (p_id == NULL)
+                    return NULL;
+                if (strcmp(id, p_id) > 0)
+                    ++first;
+            }
+
+            // Create new switched port (lazy initialization)
+            SwitchedPort *port      = new SwitchedPort(this);
+            if (port == NULL)
+                return NULL;
+
+            if (port->compile(id))
+            {
+                if (vSwitchedPorts.insert(first, port))
+                    return port;
+            }
+
+            delete port;
+
+            return NULL;
         }
 
-        ui::IPort *IWrapper::port_by_id(const char *id)
+        ui::IPort *IWrapper::time_port_by_id(const char *id)
+        {
+            // Try to find configuration port
+            const size_t count = vTimePorts.size();
+            for (size_t i=0; i<count; ++i)
+            {
+                IPort *p            = vTimePorts.uget(i);
+                if (p == NULL)
+                    continue;
+                const char *p_id    = p->metadata()->id;
+                if (p_id == NULL)
+                    continue;
+#ifdef TRACE_STRCMP_CALLS
+                ++wrapper_strcmp_calls;
+                ++wrapper_time_strcmp_calls;
+#endif
+                if (!strcmp(p_id, id))
+                    return p;
+            }
+
+            return NULL;
+        }
+
+        ui::IPort *IWrapper::config_port_by_id(const char *id)
+        {
+            // Try to find the corresponding port
+            const size_t count = vConfigPorts.size();
+            ssize_t first = 0, last = count - 1;
+            while (first <= last)
+            {
+                size_t center           = (first + last) >> 1;
+                IPort *p                = vConfigPorts.uget(center);
+                if (p == NULL)
+                    break;
+                const meta::port_t *ctl = p->metadata();
+                if (ctl == NULL)
+                    break;
+
+#ifdef TRACE_STRCMP_CALLS
+                ++wrapper_strcmp_calls;
+                ++wrapper_config_strcmp_calls;
+#endif
+                int cmp     = strcmp(id, ctl->id);
+                if (cmp < 0)
+                    last    = center - 1;
+                else if (cmp > 0)
+                    first   = center + 1;
+                else
+                    return p;
+            }
+
+            return NULL;
+        }
+
+        ui::IPort *IWrapper::custom_port_by_id(const char *id)
+        {
+            // Try to find the corresponding port
+            const size_t count = vCustomPorts.size();
+            ssize_t first = 0, last = count - 1;
+            while (first <= last)
+            {
+                size_t center           = (first + last) >> 1;
+                IPort *p                = vCustomPorts.uget(center);
+                if (p == NULL)
+                    break;
+                const meta::port_t *ctl = p->metadata();
+                if (ctl == NULL)
+                    break;
+
+#ifdef TRACE_STRCMP_CALLS
+                ++wrapper_strcmp_calls;
+                ++wrapper_custom_strcmp_calls;
+#endif
+                int cmp     = strcmp(id, ctl->id);
+                if (cmp < 0)
+                    last    = center - 1;
+                else if (cmp > 0)
+                    first   = center + 1;
+                else
+                    return p;
+            }
+
+            return NULL;
+        }
+
+        ui::IPort *IWrapper::plugin_port_by_id(const char *id)
         {
             // Do usual stuff
             size_t count = vPorts.size();
@@ -653,6 +766,10 @@ namespace lsp
                 if (ctl == NULL)
                     break;
 
+#ifdef TRACE_STRCMP_CALLS
+                ++wrapper_strcmp_calls;
+                ++wrapper_search_strcmp_calls;
+#endif
                 int cmp     = strcmp(id, ctl->id);
                 if (cmp < 0)
                     last    = center - 1;
@@ -759,6 +876,10 @@ namespace lsp
             else if (pb == NULL)
                 return 1;
 
+#ifdef TRACE_STRCMP_CALLS
+            ++wrapper_strcmp_calls;
+            ++wrapper_sort_strcmp_calls;
+#endif
             return strcmp(pa->id, pb->id);
         }
 
@@ -898,10 +1019,58 @@ namespace lsp
 
         status_t IWrapper::bind_custom_port(ui::IPort *port)
         {
-            if (!vCustomPorts.add(port))
+            // Try to find the place to insert the custom port
+            const char *id = port->metadata()->id;
+            const ssize_t count = vCustomPorts.size();
+            ssize_t first = 0, last = count - 1;
+            while (first <= last)
+            {
+                size_t center           = (first + last) >> 1;
+                IPort *p                = vCustomPorts.uget(center);
+                const meta::port_t *ctl = (p != NULL) ? p->metadata() : NULL;
+                if (ctl == NULL)
+                    return STATUS_BAD_STATE;
+
+#ifdef TRACE_STRCMP_CALLS
+                ++wrapper_strcmp_calls;
+                ++wrapper_custom_strcmp_calls;
+#endif
+                int cmp     = strcmp(id, ctl->id);
+                if (cmp > 0)
+                    first   = center + 1;
+                else if (cmp < 0)
+                    last    = center - 1;
+                else
+                {
+                    lsp_warn("Duplicated custom port id=%s", id);
+                    return STATUS_ALREADY_BOUND;
+                }
+            }
+
+            // Find the right place to insert
+            if (first < count)
+            {
+                IPort *p                = vCustomPorts.uget(first);
+                const meta::port_t *ctl = (p != NULL) ? p->metadata() : NULL;
+                if (ctl == NULL)
+                    return STATUS_BAD_STATE;
+                if (strcmp(id, ctl->id) > 0)
+                    ++ first;
+            }
+
+            if (!vCustomPorts.insert(first, port))
                 return STATUS_NO_MEM;
 
-            lsp_trace("added custom port id=%s", port->metadata()->id);
+            lsp_trace("added custom port id=%s at index %d", id, int(first));
+//            lsp_trace("Custom ports:");
+//            for (size_t i=0, n=vCustomPorts.size(); i<n; ++i)
+//            {
+//                ui::IPort *p = vCustomPorts.uget(i);
+//                lsp_trace("  %s", p->id());
+//            }
+//
+//            lsp_trace("");
+
             return STATUS_OK;
         }
 
@@ -915,6 +1084,18 @@ namespace lsp
             lsp_finally {
                 const system::time_millis_t end = system::get_time_millis();
                 lsp_trace("UI build time: %d ms", int(end - start));
+
+#ifdef TRACE_STRCMP_CALLS
+                lsp_trace("controller_strcmp_calls = %d", int(controller_strcmp_calls));
+                lsp_trace("wrapper_strcmp_calls = %d", int(wrapper_strcmp_calls));
+                lsp_trace("wrapper_switched_strcmp_calls = %d", int(wrapper_switched_strcmp_calls));
+                lsp_trace("wrapper_config_strcmp_calls = %d", int(wrapper_config_strcmp_calls));
+                lsp_trace("wrapper_time_strcmp_calls = %d", int(wrapper_time_strcmp_calls));
+                lsp_trace("wrapper_custom_strcmp_calls = %d", int(wrapper_custom_strcmp_calls));
+                lsp_trace("wrapper_search_strcmp_calls = %d", int(wrapper_search_strcmp_calls));
+                lsp_trace("wrapper_sort_strcmp_calls = %d", int(wrapper_sort_strcmp_calls));
+#endif
+                lsp_trace("");
             };
         #endif /* LSP_TRACE */
 
@@ -1658,7 +1839,7 @@ namespace lsp
                                     plug::PF_PRESET_IMPORT : plug::PF_STATE_IMPORT;
 
                     const char *pname = param.name.get_utf8();
-                    ui::IPort *p = port_by_id(pname);
+                    ui::IPort *p = plugin_port_by_id(pname);
                     if (p != NULL)
                     {
                         if (set_port_value(p, &param, port_flags, basedir))
@@ -3186,7 +3367,7 @@ namespace lsp
                 if (param->name[0] == '/')
                     continue;
 
-                ui::IPort *p    = port_by_id(param->name);
+                ui::IPort *p    = plugin_port_by_id(param->name);
                 if (p == NULL)
                     continue;
 

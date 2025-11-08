@@ -28,9 +28,17 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
-// UI configuration ports
+// Different port prefixes
 #define UI_CONFIG_PORT_PREFIX                   "_ui_"
+#define UI_CONFIG_PORT_PREFIX_LEN               4
+
 #define UI_KVT_PORT_PREFIX                      "_kvt_"
+#define UI_KVT_PORT_PREFIX_LEN                  5
+
+#define TIME_PORT_PREFIX                        "_time_"
+#define TIME_PORT_PREFIX_LEN                    6
+
+// UI configuration ports
 #define UI_LAST_VERSION_PORT_ID                 "last_version"
 #define UI_DLG_DEFAULT_PATH_ID                  "dlg_default_path"
 #define UI_DLG_DEFAULT_FTYPE_ID                 "dlg_default_ftype"
@@ -125,7 +133,6 @@
 #define WUID_RESET_SETTINGS_MENU                "reset_settings_menu"
 
 // Special ports for handling current time
-#define TIME_PORT_PREFIX                        "_time_"
 #define TIME_SAMPLE_RATE_PORT                   "sr"
 #define TIME_SPEED_PORT                         "speed"
 #define TIME_FRAME_PORT                         "frame"
