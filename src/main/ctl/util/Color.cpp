@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 апр. 2021 г.
@@ -140,10 +140,7 @@ namespace lsp
             switch (index)
             {
                 case C_VALUE:
-                    if (value->v_str != NULL)
-                        pColor->set(value->v_str);
-                    else
-                        lsp_warn("Null value passed as value argument");
+                    pColor->set(value->v_str);
                     break;
                 case C_RGB_R:       pColor->red(value->v_float);            break;
                 case C_RGB_G:       pColor->green(value->v_float);          break;
