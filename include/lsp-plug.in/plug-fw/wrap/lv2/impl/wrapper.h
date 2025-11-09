@@ -59,11 +59,6 @@ namespace lsp
             return ssize_t(a->get_urid()) - ssize_t(b->get_urid());
         }
 
-        ssize_t Wrapper::compare_ports_by_id(const lv2::Port *a, const lv2::Port *b)
-        {
-            return strcmp(a->id(), b->id());
-        }
-
         Wrapper::Wrapper(plug::Module *plugin, lv2::Factory *factory, lv2::Extensions *ext):
             plug::IWrapper(plugin, factory->resources()),
             sKVTListener(this)
@@ -162,27 +157,7 @@ namespace lsp
 
         lv2::Port *Wrapper::port(const char *id)
         {
-            // Try to find the corresponding port
-            ssize_t first = 0, last = vSortedPorts.size() - 1;
-            while (first <= last)
-            {
-                size_t center   = size_t(first + last) >> 1;
-                lv2::Port *p    = vSortedPorts.uget(center);
-                if (p == NULL)
-                    continue;
-                const meta::port_t *meta = p->metadata();
-                if (meta == NULL)
-                    continue;
-
-                const int cmp   = strcmp(id, meta->id);
-                if (cmp < 0)
-                    last    = center - 1;
-                else if (cmp > 0)
-                    first   = center + 1;
-                else
-                    return p;
-            }
-            return NULL;
+            return vPortIndex.get(id);
         }
 
         status_t Wrapper::init(float srate)
@@ -208,11 +183,14 @@ namespace lsp
             for (const meta::port_t *meta = m->ports ; meta->id != NULL; ++meta)
                 create_port(&plugin_ports, meta, NULL, false);
 
-            // Sort port lists
-            vSortedPorts.add(vPluginPorts);
-
+            // Sort and index port lists
             vPluginPorts.qsort(compare_ports_by_urid);
-            vSortedPorts.qsort(compare_ports_by_id);
+            for (lltl::iterator<lv2::Port> it = vPluginPorts.values(); it; ++it)
+            {
+                lv2::Port *p = it.get();
+                if (p != NULL)
+                    vPortIndex.create(p->id(), p);
+            }
             vMeshPorts.qsort(compare_ports_by_urid);
             vStreamPorts.qsort(compare_ports_by_urid);
             vFrameBufferPorts.qsort(compare_ports_by_urid);
@@ -338,8 +316,8 @@ namespace lsp
 
             vAllPorts.flush();
             vExtPorts.flush();
+            vPortIndex.flush();
             vPluginPorts.flush();
-            vSortedPorts.flush();
             vControlPorts.flush();
             vPortGroups.flush();
             vMeterPorts.flush();

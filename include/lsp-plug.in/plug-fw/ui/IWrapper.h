@@ -30,6 +30,7 @@
 #include <lsp-plug.in/resource/PrefixLoader.h>
 #include <lsp-plug.in/resource/Environment.h>
 #include <lsp-plug.in/tk/tk.h>
+#include <lsp-plug.in/lltl/hash_index.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/lltl/ptrset.h>
@@ -111,11 +112,12 @@ namespace lsp
                 core::preset_data_t             vPresetData[2];     // Preset data
 
                 lltl::parray<ui::IPort>         vPorts;             // All possible ports
-                lltl::parray<ui::IPort>         vSortedPorts;       // Alphabetically-sorted ports
-                lltl::parray<ui::SwitchedPort>  vSwitchedPorts;     // Switched ports
+                lltl::hash_index<const char, ui::IPort> vPluginPorts; // Port mapping
+                lltl::hash_index<const char, ui::IPort> vCustomPorts; // Port mapping
+                lltl::hash_index<const char, ui::SwitchedPort> vSwitchedPorts; // Switched ports
+                lltl::hash_index<const char, ui::IPort> vConfigMapping; // Config port mapping
                 lltl::parray<ui::IPort>         vConfigPorts;       // Configuration ports
                 lltl::parray<ui::ValuePort>     vTimePorts;         // Time-related ports
-                lltl::parray<ui::IPort>         vCustomPorts;       // Custom-defined ports
                 lltl::pphash<LSPString, LSPString> vAliases;        // Port aliases
                 lltl::pphash<LSPString, ui::IPort> vEvaluated;      // Evaluated ports
                 lltl::parray<IKVTListener>      vKvtListeners;      // KVT listeners
@@ -128,7 +130,6 @@ namespace lsp
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
 
             protected:
-                size_t          rebuild_sorted_ports();
                 void            global_config_changed(IPort *src);
                 status_t        create_alias(const LSPString *id, const LSPString *name);
                 status_t        register_evaluated_port(const LSPString *id, ui::IPort *port);
