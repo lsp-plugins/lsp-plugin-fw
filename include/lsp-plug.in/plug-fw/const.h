@@ -33,6 +33,7 @@
 #define TEMP_ABS_ZERO                       LSP_DSP_UNITS_TEMP_ABS_ZERO
 #define SPEC_FREQ_MIN                       LSP_DSP_UNITS_SPEC_FREQ_MIN
 #define SPEC_FREQ_MAX                       LSP_DSP_UNITS_SPEC_FREQ_MAX
+#define SPEC_FREQ_CENTER                    LSP_DSP_UNITS_SPEC_FREQ_CENTER
 #define MAX_SHM_SEGMENT_NAME_BYTES          0x40
 #define MAX_SHM_SEGMENT_NAME_CHARS          0x20
 
