@@ -697,7 +697,7 @@ namespace lsp
 
                 step                   *= 10.0f;
             }
-            else if (meta::is_log_rule(p))  // Float and other values, logarithmic
+            else if ((p != NULL) && (meta::is_log_rule(p)))  // Float and other values, logarithmic
             {
                 const float thresh      = ((p->flags & meta::F_EXT) ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
 
