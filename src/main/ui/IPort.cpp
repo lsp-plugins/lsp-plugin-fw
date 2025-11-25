@@ -129,13 +129,13 @@ namespace lsp
 
         bool IPort::begin_edit()
         {
-            lsp_trace("begin_edit id='%s', counter=%d", id(), int(nEditCounter + 1));
+//            lsp_trace("begin_edit id='%s', counter=%d", id(), int(nEditCounter + 1));
             return nEditCounter++ <= 0;
         }
 
         bool IPort::end_edit()
         {
-            lsp_trace("end_edit id='%s', counter=%d", id(), int(nEditCounter - 1));
+//            lsp_trace("end_edit id='%s', counter=%d", id(), int(nEditCounter - 1));
             if (nEditCounter <= 0)
             {
                 lsp_warn("Mismatched number of begin_edit() and end_edit() calls");
