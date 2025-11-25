@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.34 ===
-
+* Fixed moduleinfo.json generation and validation for VST3.
 
 === 1.0.33 ===
 * Improved plugin metadata validation tool.
