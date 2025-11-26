@@ -4,6 +4,7 @@
 
 === 1.0.34 ===
 * Fixed moduleinfo.json generation and validation for VST3.
+* Fixed duplicate filter point settings in UI behavior.
 
 === 1.0.33 ===
 * Improved plugin metadata validation tool.
