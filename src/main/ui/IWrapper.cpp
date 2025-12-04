@@ -1447,6 +1447,7 @@ namespace lsp
                                 size_t dst_left = dst_size, src_left = p->blob.size;
                                 dsp::base64_enc(blob.data, &dst_left, p->blob.data, &src_left);
                                 blob.length = p->blob.size;
+                                blob.data[dst_size - dst_left] = '\0'; // Put terminating NULL character
                             }
                         }
 

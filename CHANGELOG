@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.34 ===
+* Fixed possible garbage at the end of KVT BLOB serialization.
 * Fixed moduleinfo.json generation and validation for VST3.
 * Fixed duplicate filter point settings in UI behavior.
 
