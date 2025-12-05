@@ -580,9 +580,9 @@ namespace lsp
         status_t FileButton::slot_dialog_submit(tk::Widget *sender, void *ptr, void *data)
         {
             // Get controller and display
-            FileButton *_this   = static_cast<FileButton *>(ptr);
-            if (_this != NULL)
-                _this->commit_file();
+            FileButton *self    = static_cast<FileButton *>(ptr);
+            if (self != NULL)
+                self->commit_file();
 
             return STATUS_OK;
         }
@@ -590,9 +590,9 @@ namespace lsp
         status_t FileButton::slot_dialog_hide(tk::Widget *sender, void *ptr, void *data)
         {
             // Get controller and display
-            FileButton *_this   = static_cast<FileButton *>(ptr);
-            if (_this != NULL)
-                _this->update_path();
+            FileButton *self    = static_cast<FileButton *>(ptr);
+            if (self != NULL)
+                self->update_path();
             return STATUS_OK;
         }
 
