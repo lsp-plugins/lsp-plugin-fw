@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 нояб. 2021 г.
@@ -63,7 +63,7 @@ namespace lsp
                 Executor(const Executor &) = delete;
                 Executor(Executor &&) = delete;
 
-                ~Executor()
+                virtual ~Executor() override
                 {
                     sched       = NULL;
                 }
@@ -75,12 +75,11 @@ namespace lsp
                 virtual bool submit(ipc::ITask *task) override
                 {
                     // Check state of task
-                    if (!task->idle())
+                    if (!change_task_state(task, ipc::ITask::TS_IDLE, ipc::ITask::TS_SUBMITTED))
                         return false;
 
                     // Try to submit task
                     task_descriptor_t descr = { magic, task };
-                    change_task_state(task, ipc::ITask::TS_SUBMITTED);
                     if (sched->schedule_work(sched->handle, sizeof(task_descriptor_t), &descr) == LV2_WORKER_SUCCESS)
                     {
 //                        atomic_add(&queued, 1);
@@ -88,7 +87,7 @@ namespace lsp
                     }
 
                     // Failed to submit task, return status back
-                    change_task_state(task, ipc::ITask::TS_IDLE);
+                    set_task_state(task, ipc::ITask::TS_IDLE);
                     return false;
                 }
 
