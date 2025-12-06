@@ -318,7 +318,25 @@ namespace lsp
                 }
             }
 
-            vPlainParams.add(vParams);
+            // Form the list of plain params ordered by port revision
+            if (!vPlainParams.reserve(vParams.size()))
+                return STATUS_NO_MEM;
+
+            const int max_revision = meta::max_revision(pUIMetadata->ports);
+            for (int revision = 0; revision <= max_revision; ++revision)
+            {
+                for (lltl::iterator<vst3::CtlParamPort> it=vParams.values(); it; ++it)
+                {
+                    vst3::CtlParamPort * const p = it.get();
+                    if (p->metadata()->revision == revision)
+                    {
+                        lsp_trace("external port index=%d, id=%s", int(vPlainParams.size()), it->id());
+                        vPlainParams.add(p);
+                    }
+                }
+            }
+
+            // Sort ports and parameters by integer identifier and text identifier
             vParams.qsort(compare_param_ports);
             vPorts.qsort(compare_ports_by_id);
 

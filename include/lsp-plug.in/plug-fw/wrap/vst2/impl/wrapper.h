@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 дек. 2021 г.
@@ -116,6 +116,38 @@ namespace lsp
             for (const meta::port_t *port = m->ports ; port->id != NULL; ++port)
                 create_port(&plugin_ports, port, NULL);
 
+            // Re-order external parameters ports according to the port revision
+            const int max_revision = meta::max_revision(m->ports);
+            if (max_revision > 0)
+            {
+                lltl::parray<vst2::ParameterPort> ext_params;
+                if (!ext_params.reserve(vExtParams.size()))
+                    return STATUS_NO_MEM;
+
+                // Iterate over all revisions and add ports to the new list
+                for (int revision = 0; revision <= max_revision; ++revision)
+                {
+                    for (lltl::iterator<vst2::ParameterPort> it=vExtParams.values(); it; ++it)
+                    {
+                        vst2::ParameterPort * const p = it.get();
+                        if (p->metadata()->revision == revision)
+                        {
+                            ext_params.add(p);
+                        }
+                    }
+                }
+
+                // Commit new list sorted by port revision
+                vExtParams.swap(&ext_params);
+            }
+
+            // Generate IDs for parameter ports
+            for (lltl::iterator<vst2::ParameterPort> it=vExtParams.values(); it; ++it)
+            {
+                lsp_trace("external port index=%d, id=%s", int(it.index()), it->id());
+                it->set_param_id(it.index());
+            }
+
             if (!vSortedPorts.add(&vPorts))
                 return STATUS_NO_MEM;
             vSortedPorts.qsort(cmp_port_identifiers);
@@ -138,11 +170,6 @@ namespace lsp
                 else
                     ++e->numOutputs;
             }
-
-
-            // Generate IDs for parameter ports
-            for (ssize_t id=0; id < e->numParams; ++id)
-                vExtParams[id]->set_id(id);
 
             // Initialize state chunk
             pEffect->flags                 |= effFlagsProgramChunks;

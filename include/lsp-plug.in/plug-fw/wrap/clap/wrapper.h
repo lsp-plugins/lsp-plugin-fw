@@ -109,6 +109,7 @@ namespace lsp
                 lltl::parray<audio_group_t>     vAudioIn;           // Input audio ports
                 lltl::parray<audio_group_t>     vAudioOut;          // Output audio ports
                 lltl::parray<clap::AudioBufferPort> vAudioBuffers;  // Audio sends and returns
+                lltl::parray<ParameterPort>     vExtParamPorts;     // List of parameters sorted by port revision
                 lltl::parray<ParameterPort>     vParamPorts;        // List of parameters sorted by clap_id
                 lltl::parray<MidiInputPort>     vMidiIn;            // Midi input ports
                 lltl::parray<MidiOutputPort>    vMidiOut;           // Midi output ports

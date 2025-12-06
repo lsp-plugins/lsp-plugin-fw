@@ -52,16 +52,26 @@
     { id, label, NULL, U_NONE, R_FBUFFER, 0, 0, 0.0, 0.0, rows, cols, NULL, NULL, NULL }
 #define PATH(id, label) \
     { id, label, NULL, U_STRING, R_PATH, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL }
-#define TRIGGER(id, label, alias)  \
-    { id, label, alias, U_BOOL, R_CONTROL, 0, F_TRG, 0, 0, 0.0f, 0, NULL, NULL, NULL }
-#define SWITCH(id, label, alias, dfl)  \
-    { id, label, alias, U_BOOL, R_CONTROL, 0, 0, 0, 0, dfl, 0, NULL, NULL, NULL }
-#define COMBO(id, label, alias, dfl, list) \
-    { id, label, alias, U_ENUM, R_CONTROL, 0, 0, 0, 0, dfl, 0, list, NULL, NULL }
-#define COMBO_START(id, label, dfl, list, min) \
-    { id, label, NULL, U_ENUM, R_CONTROL, 0, F_MIN, min, 0, dfl, 0, list, NULL, NULL }
-#define BLINK(id, label) \
-    { id, label, NULL, U_BOOL, R_METER, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL }
+
+#define ADDON_TRIGGER(revision, id, label, alias)  \
+    { id, label, alias, U_BOOL, R_CONTROL, revision, F_TRG, 0, 0, 0.0f, 0, NULL, NULL, NULL }
+#define TRIGGER(id, label, alias)  ADDON_TRIGGER(0, id, label, alias)
+
+#define ADDON_SWITCH(revision, id, label, alias, dfl)  \
+    { id, label, alias, U_BOOL, R_CONTROL, revision, 0, 0, 0, dfl, 0, NULL, NULL, NULL }
+#define SWITCH(id, label, alias, dfl)  ADDON_SWITCH(0, id, label, alias, dfl)
+
+#define ADDON_COMBO_START(revision, id, label, alias, dfl, list, min) \
+    { id, label, alias, U_ENUM, R_CONTROL, revision, F_MIN, min, 0, dfl, 0, list, NULL, NULL }
+#define COMBO_START(id, label, alias, dfl, list, min) ADDON_COMBO_START(0, id, label, alias, dfl, list, min)
+
+#define ADDON_COMBO(revision, id, label, alias, dfl, list) \
+    { id, label, alias, U_ENUM, R_CONTROL, revision, 0, 0, 0, dfl, 0, list, NULL, NULL }
+#define COMBO(id, label, alias, dfl, list) ADDON_COMBO(0, id, label, alias, dfl, list)
+
+#define ADDON_BLINK(revision, id, label) \
+    { id, label, NULL, U_BOOL, R_METER, revision, 0, 0, 0, 0, 0, NULL, NULL, NULL }
+#define BLINK(id, label) ADDON_BLINK(0, id, label)
 
 #define CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
     { id, label, alias, units, R_CONTROL, 0, F_LOWER | F_UPPER | F_STEP, min, max, dfl, step, NULL, NULL, NULL }

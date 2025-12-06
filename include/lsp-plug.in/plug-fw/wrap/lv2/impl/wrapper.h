@@ -183,6 +183,36 @@ namespace lsp
             for (const meta::port_t *meta = m->ports ; meta->id != NULL; ++meta)
                 create_port(&plugin_ports, meta, NULL, false);
 
+            // Re-order external ports according to the port revision
+            const int max_revision = meta::max_revision(m->ports);
+            if (max_revision > 0)
+            {
+                lltl::parray<lv2::Port> ext_ports;
+                if (!ext_ports.reserve(vExtPorts.size()))
+                    return STATUS_NO_MEM;
+
+                // Iterate over all revisions and add ports to the new list
+                for (int revision = 0; revision <= max_revision; ++revision)
+                {
+                    for (lltl::iterator<lv2::Port> it=vExtPorts.values(); it; ++it)
+                    {
+                        lv2::Port * const p = it.get();
+                        if (p->metadata()->revision == revision)
+                            ext_ports.add(p);
+                    }
+                }
+
+                // Commit new list sorted by port revision
+                vExtPorts.swap(&ext_ports);
+            }
+
+            // Map external port indices
+            for (lltl::iterator<lv2::Port> it=vExtPorts.values(); it; ++it)
+            {
+                lsp_trace("external port index=%d, id=%s", int(it.index()), it->id());
+                it->set_index(it.index());
+            }
+
             // Sort and index port lists
             vPluginPorts.qsort(compare_ports_by_urid);
             for (lltl::iterator<lv2::Port> it = vPluginPorts.values(); it; ++it)
@@ -465,7 +495,6 @@ namespace lsp
 
                     if (postfix == NULL)
                     {
-                        result->set_index(vExtPorts.size());
                         vExtPorts.add(result);
                         lsp_trace("Added external audio port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
@@ -507,7 +536,6 @@ namespace lsp
 
                     if (postfix == NULL)
                     {
-                        cp->set_index(vExtPorts.size());
                         vExtPorts.add(cp);
                         lsp_trace("Added external control port id=%s, external_id=%d",
                             cp->id(),
@@ -533,7 +561,6 @@ namespace lsp
 
                     if (postfix == NULL)
                     {
-                        mp->set_index(vExtPorts.size());
                         vExtPorts.add(mp);
                         lsp_trace(
                             "Added external meter port id=%s, external_id=%d, urid=%s",
@@ -561,7 +588,6 @@ namespace lsp
 
                     if (postfix == NULL)
                     {
-                        bp->set_index(vExtPorts.size());
                         vExtPorts.add(bp);
                         lsp_trace(
                             "Added external bypass port id=%s, external_id=%d",
