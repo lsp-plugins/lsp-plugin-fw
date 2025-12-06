@@ -272,6 +272,40 @@ namespace lsp
             for (const meta::port_t *port = meta->ports; (port != NULL) && (port->id != NULL); ++port)
                 create_port(&plugin_ports, port, NULL);
 
+            // Re-order port mapping according to the revision order
+            const int max_revision = meta::max_revision(meta->ports);
+            if (max_revision > 0)
+            {
+                lltl::parray<plug::IPort> ext_ports;
+                if (!ext_ports.reserve(vPortMapping.size()))
+                    return STATUS_NO_MEM;
+
+                // Iterate over all revisions and add ports to the new list
+                for (int revision = 0; revision <= max_revision; ++revision)
+                {
+                    for (lltl::iterator<plug::IPort> it=vPortMapping.values(); it; ++it)
+                    {
+                        plug::IPort * const p = it.get();
+                        if (p->metadata()->revision == revision)
+                        {
+                            lsp_trace("external port index=%d, id=%s", int(ext_ports.size()), p->id());
+                            ext_ports.add(p);
+                        }
+                    }
+                }
+
+                // Commit new list sorted by port revision
+                vPortMapping.swap(&ext_ports);
+            }
+
+        #ifdef LSP_TRACE
+            // Log port indices
+            for (lltl::iterator<plug::IPort> it=vPortMapping.values(); it; ++it)
+            {
+                lsp_trace("external port index=%d, id=%s", int(it.index()), it->id());
+            }
+        #endif /* LSP_TRACE */
+
             // Create audio port mapping
             make_audio_mapping(vSink, vAudioIn, meta, false);
             make_audio_mapping(vSource, vAudioOut, meta, true);

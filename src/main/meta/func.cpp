@@ -308,7 +308,7 @@ namespace lsp
 
             // Calculate the overall allocation size
             size_t to_copy          = sizeof(port_t);
-            size_t string_bytes     = align_size(id_bytes + name_bytes, DEFAULT_ALIGN);
+            size_t string_bytes     = align_size(id_bytes + name_bytes + sname_bytes, DEFAULT_ALIGN);
             size_t allocate         = to_copy + string_bytes;
 
             uint8_t *ptr            = static_cast<uint8_t *>(malloc(allocate));
@@ -1684,6 +1684,18 @@ namespace lsp
             }
 
             return res;
+        }
+
+        int max_revision(const meta::port_t *ports)
+        {
+            int revision = 0;
+            if (ports == NULL)
+                return revision;
+
+            for ( ; (ports->id != NULL) && (ports->name != NULL); ++ports)
+                revision = lsp_max(revision, ports->revision);
+
+            return revision;
         }
 
     } /* namespace meta */

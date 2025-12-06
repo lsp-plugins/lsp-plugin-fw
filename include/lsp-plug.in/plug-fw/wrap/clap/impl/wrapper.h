@@ -608,27 +608,32 @@ namespace lsp
             lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(plugin_ports, port, NULL);
+
+            // Form the list of plain metadata parameters ordered by port revision
+            if (!vExtParamPorts.reserve(vParamPorts.size()))
+                return STATUS_NO_MEM;
+
+            const int max_revision = meta::max_revision(meta->ports);
+            for (int revision = 0; revision <= max_revision; ++revision)
+            {
+                for (lltl::iterator<clap::ParameterPort> it=vParamPorts.values(); it; ++it)
+                {
+                    clap::ParameterPort * const p = it.get();
+                    if (p->metadata()->revision == revision)
+                    {
+                        lsp_trace("external port index=%d, id=%s", int(vExtParamPorts.size()), it->id());
+                        vExtParamPorts.add(p);
+                    }
+                }
+            }
+
+            // Sort parameter ports by unique CLAP identifier
             vParamPorts.qsort(compare_ports_by_clap_id);
 
             // Create sorted copy of all ports
             if (!vSortedPorts.add(vAllPorts))
                 return STATUS_NO_MEM;
             vSortedPorts.qsort(compare_ports_by_id);
-
-        #ifdef LSP_TRACE
-            // Validate that we don't have conflicts between uinque port identifiers
-            for (size_t i=1, n=vParamPorts.size(); i<n; ++i)
-            {
-                clap::ParameterPort *curr = vParamPorts.uget(i);
-                clap::ParameterPort *prev = vParamPorts.uget(i-1);
-                if (curr->uid() == prev->uid())
-                {
-                    lsp_error("Conflicting clap_id hash=0x%08lx for ports '%s' and '%s', consider choosing another port identifier",
-                        long(curr->uid()), prev->metadata()->id, curr->metadata()->id);
-                    return STATUS_BAD_STATE;
-                }
-            }
-        #endif /* LSP_TRACE */
 
             return STATUS_OK;
         }
@@ -1988,16 +1993,16 @@ namespace lsp
 
         size_t Wrapper::params_count() const
         {
-            return vParamPorts.size();
+            return vExtParamPorts.size();
         }
 
         status_t Wrapper::param_info(clap_param_info_t *info, size_t index)
         {
             // Get the port and it's metadata
-            plug::IPort *p = vParamPorts.get(index);
+            plug::IPort *p = vExtParamPorts.get(index);
             if (p == NULL)
             {
-                lsp_warn("Port with index=%d not found out of %d ports", int(index), int(vParamPorts.size()));
+                lsp_warn("Port with index=%d not found out of %d ports", int(index), int(vExtParamPorts.size()));
                 return STATUS_NOT_FOUND;
             }
             const meta::port_t *meta = p->metadata();

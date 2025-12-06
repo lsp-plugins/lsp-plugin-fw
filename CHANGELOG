@@ -3,6 +3,8 @@
 *******************************************************************************
 
 === 1.0.34 ===
+* Added support of revisioned Add-on controls to not to change the order of
+  previously defined controls for the host.
 * Fixed possible garbage at the end of KVT BLOB serialization.
 * Fixed moduleinfo.json generation and validation for VST3.
 * Fixed duplicate filter point settings in UI behavior.

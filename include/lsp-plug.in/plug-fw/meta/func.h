@@ -636,6 +636,13 @@ namespace lsp
          * @return port role name from enumeration constant
          */
         const char     *port_role_name(role_t role);
+
+        /**
+         * Get the maximum revision number for list of ports
+         * @param ports list of port metadata terminated by element with NULL port identifier
+         * @return the maximum revision (0 by default)
+         */
+        int             max_revision(const meta::port_t *ports);
     } /* namespace meta */
 } /* namespace lsp */
 

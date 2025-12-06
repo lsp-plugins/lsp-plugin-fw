@@ -378,6 +378,7 @@ namespace lsp
             const char             *short_name;     // Short name of the port
             unit_t                  unit;           // Units
             role_t                  role;           // Role
+            int                     revision;       // Port revision, default 0, should increase when port is added in the middle of port list of a plugin
             int                     flags;          // Flags
             float                   min;            // Minimum value
             float                   max;            // Maximum value

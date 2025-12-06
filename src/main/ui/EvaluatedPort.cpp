@@ -22,19 +22,18 @@
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
+#include <lsp-plug.in/plug-fw/meta/ports.h>
 
 namespace lsp
 {
+    namespace meta
+    {
+        static const meta::port_t fake_port_metadata =
+            CONTROL_ALL("", "", "", U_NONE, 0.0f, 0.0f, 0.0f, 0.0f);
+    } /* namespace meta */
+
     namespace ui
     {
-        static const meta::port_t fake_metadata =
-        {
-            "", "", "",
-            meta::U_NONE, meta::R_CONTROL, meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
-            0.0f, 0.0f, 0.0f, 0.0f,
-            NULL, NULL, NULL
-        };
-
         EvaluatedPort::EvaluatedPort(IWrapper *wrapper): IPort(NULL)
         {
             pWrapper        = wrapper;
@@ -97,7 +96,7 @@ namespace lsp
                     pPort->begin_edit();
             }
             else
-                pMetadata       = &fake_metadata;
+                pMetadata       = &meta::fake_port_metadata;
         }
 
         void EvaluatedPort::destroy()
