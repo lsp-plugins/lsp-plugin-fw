@@ -64,6 +64,7 @@ namespace lsp
             pExecutor           = NULL;
             pAppTimer           = NULL;
             pPackage            = NULL;
+            pHostContext        = NULL;
             atomic_store(&pActiveSync, NULL);
 
             sFactoryInfo.vendor[0]  = '\0';
@@ -339,8 +340,7 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
-            safe_release(pHostContext);
-
+            pHostContext        = NULL;
             if (pLoader != NULL)
             {
                 delete pLoader;
@@ -458,7 +458,7 @@ namespace lsp
         Steinberg::tresult PLUGIN_API PluginFactory::setHostContext(Steinberg::FUnknown *context)
         {
             lsp_trace("this=%p, context=%p", this, context);
-            pHostContext = safe_acquire(context);
+            pHostContext = context;
 
             return Steinberg::kResultOk;
         }
