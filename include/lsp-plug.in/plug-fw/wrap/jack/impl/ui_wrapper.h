@@ -522,7 +522,7 @@ namespace lsp
             set_connection_status(bJackConnected);
         }
 
-        status_t UIWrapper::export_settings(config::Serializer *s, const io::Path *basedir)
+        status_t UIWrapper::export_settings(config::Serializer *s, size_t flags, const io::Path *basedir)
         {
             // Notify the plugin the state is about to be saved
             pPlugin->before_state_save();
@@ -537,7 +537,7 @@ namespace lsp
             }
 
             // Do the usual stuff
-            status_t res = ui::IWrapper::export_settings(s, basedir);
+            status_t res = ui::IWrapper::export_settings(s, flags, basedir);
 
             // Notify the plugin that the state has been just saved
             if (res == STATUS_OK)

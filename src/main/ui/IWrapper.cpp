@@ -160,6 +160,7 @@ namespace lsp
             SWITCH(UI_FILELIST_NAVIGATION_AUTOPLAY_ID, "Enable automatic playback of the audio file in the file navigator when selected", NULL, 0.0f),
             SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", NULL, 0.0f),
             SWITCH(UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID, "Show piano keyboard layout on frequency graph", NULL, 1.0f),
+            SWITCH(UI_CONFIG_USER_FRIENDLY_VALUES_ID, "User-friendly values in configuration file", NULL, 1.0f),
             PORTS_END
         };
 
@@ -1015,27 +1016,27 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::export_settings(const char *file, bool relative)
+        status_t IWrapper::export_settings(const char *file, size_t flags)
         {
             io::Path path;
             status_t res = path.set(file);
             if (res != STATUS_OK)
                 return res;
 
-            return export_settings(&path, relative);
+            return export_settings(&path, flags);
         }
 
-        status_t IWrapper::export_settings(const LSPString *file, bool relative)
+        status_t IWrapper::export_settings(const LSPString *file, size_t flags)
         {
             io::Path path;
             status_t res = path.set(file);
             if (res != STATUS_OK)
                 return res;
 
-            return export_settings(&path, relative);
+            return export_settings(&path, flags);
         }
 
-        status_t IWrapper::export_settings(const io::Path *file, bool relative)
+        status_t IWrapper::export_settings(const io::Path *file, size_t flags)
         {
             io::OutFileStream os;
             io::OutSequence o;
@@ -1053,46 +1054,20 @@ namespace lsp
 
             // Obtain the parent directory if needed
             io::Path dir;
-            if (relative)
+            if (flags & ui::EXPORT_FLAG_RELATIVE_PATHS)
             {
                 if ((res = file->get_parent(&dir)) != STATUS_OK)
-                    relative = false;
+                    flags &= ~ui::EXPORT_FLAG_RELATIVE_PATHS;
             }
 
             // Export settings
-            res = export_settings(&o, (relative) ? &dir : NULL);
+            res = export_settings(&o, flags, (flags & ui::EXPORT_FLAG_RELATIVE_PATHS) ? &dir : NULL);
             status_t res2 = o.close();
 
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::export_settings(io::IOutSequence *os, const char *basedir)
-        {
-            if (basedir == NULL)
-                return export_settings(os, static_cast<io::Path *>(NULL));
-
-            io::Path path;
-            status_t res = path.set(basedir);
-            if (res != STATUS_OK)
-                return res;
-
-            return export_settings(os, &path);
-        }
-
-        status_t IWrapper::export_settings(io::IOutSequence *os, const LSPString *basedir)
-        {
-            if (basedir == NULL)
-                return export_settings(os, static_cast<io::Path *>(NULL));
-
-            io::Path path;
-            status_t res = path.set(basedir);
-            if (res != STATUS_OK)
-                return res;
-
-            return export_settings(os, &path);
-        }
-
-        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *basedir)
+        status_t IWrapper::export_settings(io::IOutSequence *os, size_t flags, const io::Path *basedir)
         {
             // Create configuration serializer
             config::Serializer s;
@@ -1100,39 +1075,20 @@ namespace lsp
             if (res != STATUS_OK)
                 return res;
 
-            res = export_settings(&s, basedir);
+            res = export_settings(&s, flags, basedir);
             status_t res2 = s.close();
             return (res != STATUS_OK) ? res : res2;
         }
 
-        status_t IWrapper::export_settings(config::Serializer *s, const char *basedir)
+        status_t IWrapper::export_settings(config::Serializer *s, size_t flags, const io::Path *basedir)
         {
-            if (basedir == NULL)
-                return export_settings(s, static_cast<io::Path *>(NULL));
+            // Check parameters
+            if (flags & ui::EXPORT_FLAG_RELATIVE_PATHS)
+            {
+                if (basedir == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+            }
 
-            io::Path path;
-            status_t res = path.set(basedir);
-            if (res != STATUS_OK)
-                return res;
-
-            return export_settings(s, &path);
-        }
-
-        status_t IWrapper::export_settings(config::Serializer *s, const LSPString *basedir)
-        {
-            if (basedir == NULL)
-                return export_settings(s, static_cast<io::Path *>(NULL));
-
-            io::Path path;
-            status_t res = path.set(basedir);
-            if (res != STATUS_OK)
-                return res;
-
-            return export_settings(s, &path);
-        }
-
-        status_t IWrapper::export_settings(config::Serializer *s, const io::Path *basedir)
-        {
             // Write header
             status_t res;
             LSPString comment;
@@ -1143,7 +1099,7 @@ namespace lsp
                 return res;
 
             // Export regular ports
-            if ((res = export_ports(s, NULL, &vPorts, basedir)) != STATUS_OK)
+            if ((res = export_ports(s, NULL, &vPorts, flags, basedir)) != STATUS_OK)
                 return res;
 
             // Export KVT data
@@ -1315,12 +1271,18 @@ namespace lsp
             config::Serializer *s,
             lltl::pphash<LSPString, config::param_t> *parameters,
             lltl::parray<IPort> *ports,
+            size_t flags,
             const io::Path *basedir)
         {
             status_t res;
             float buf;
             const void *data;
             LSPString key;
+
+            // Compute serialization flags
+            size_t serialize_flags = 0;
+            if (flags & ui::EXPORT_FLAG_USER_FRIENDLY)
+                serialize_flags    |= config::SF_FRIENDLY;
 
             // Write port data
             for (size_t i=0, n=ports->size(); i<n; ++i)
@@ -1353,7 +1315,7 @@ namespace lsp
                 }
 
                 // Format the port value
-                res     = core::serialize_port_value(s, meta, data, basedir, 0);
+                res     = core::serialize_port_value(s, meta, data, basedir, serialize_flags);
                 if (res != STATUS_BAD_TYPE)
                 {
                     if (res != STATUS_OK)
@@ -1983,7 +1945,7 @@ namespace lsp
                 return res;
 
             // Export regular ports
-            if ((res = export_ports(&s, parameters, &vConfigPorts, NULL)) != STATUS_OK)
+            if ((res = export_ports(&s, parameters, &vConfigPorts, ui::EXPORT_FLAG_USER_FRIENDLY, NULL)) != STATUS_OK)
                 return res;
 
             // Export bundle versions

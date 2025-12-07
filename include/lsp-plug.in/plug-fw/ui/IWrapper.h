@@ -68,9 +68,16 @@ namespace lsp
 
         enum import_flags_t
         {
-            IMPORT_FLAG_NONE   = 0,
-            IMPORT_FLAG_PRESET = 1 << 0,
-            IMPORT_FLAG_PATCH  = 1 << 1
+            IMPORT_FLAG_NONE            = 0,
+            IMPORT_FLAG_PRESET          = 1 << 0,
+            IMPORT_FLAG_PATCH           = 1 << 1
+        };
+
+        enum export_flags_t
+        {
+            EXPORT_FLAG_NONE            = 0,        // No export flags
+            EXPORT_FLAG_RELATIVE_PATHS  = 1 << 0,   // Use relative paths
+            EXPORT_FLAG_USER_FRIENDLY   = 1 << 1,   // User-friendly values (db instead of gain, etc)
         };
 
         /**
@@ -144,7 +151,8 @@ namespace lsp
                     config::Serializer *s,
                     lltl::pphash<LSPString, config::param_t> *parameters,
                     lltl::parray<IPort> *ports,
-                    const io::Path *relative);
+                    size_t flags,
+                    const io::Path *basedir);
                 bool            update_parameters(lltl::pphash<LSPString, config::param_t> *parameters, ui::IPort *port);
                 status_t        export_kvt(config::Serializer *s, core::KVTStorage *kvt, const io::Path *relative);
                 status_t        export_parameters(config::Serializer *s, lltl::pphash<LSPString, config::param_t> *parameters);
@@ -362,9 +370,9 @@ namespace lsp
                  * @param file file name
                  * @param relative use relative paths to the exported file
                  */
-                status_t                        export_settings(const char *file, bool relative = false);
-                status_t                        export_settings(const io::Path *file, bool relative = false);
-                status_t                        export_settings(const LSPString *file, bool relative = false);
+                status_t                        export_settings(const char *file, size_t flags);
+                status_t                        export_settings(const io::Path *file, size_t flags);
+                status_t                        export_settings(const LSPString *file, size_t flags);
 
                 /**
                  * Export settings
@@ -372,9 +380,7 @@ namespace lsp
                  * @param basedir the directory the config file will be written, can be NULL
                  * @return status of operation
                  */
-                status_t                        export_settings(io::IOutSequence *os, const char *basedir);
-                status_t                        export_settings(io::IOutSequence *os, const LSPString *basedir);
-                status_t                        export_settings(io::IOutSequence *os, const io::Path *basedir = NULL);
+                status_t                        export_settings(io::IOutSequence *os, size_t flags, const io::Path *basedir = NULL);
 
                 /**
                  * Export settings
@@ -382,9 +388,7 @@ namespace lsp
                  * @param basedir the directory the config file will be written, can be NULL
                  * @return status of operation
                  */
-                status_t                        export_settings(config::Serializer *s, const char *basedir);
-                status_t                        export_settings(config::Serializer *s, const LSPString *basedir);
-                virtual status_t                export_settings(config::Serializer *s, const io::Path *basedir = NULL);
+                virtual status_t                export_settings(config::Serializer *s, size_t flags, const io::Path *basedir = NULL);
 
                 /**
                  * Import settings
