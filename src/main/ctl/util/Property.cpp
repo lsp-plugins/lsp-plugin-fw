@@ -35,6 +35,11 @@ namespace lsp
             return pProp->on_resolved(name, p);
         }
 
+        status_t Property::PropResolver::on_not_resolved(const LSPString *name, status_t result)
+        {
+            return pProp->on_not_resolved(name, result);
+        }
+
         status_t Property::PropResolver::resolve(expr::value_t *value, const char *name, size_t num_indexes, const ssize_t *indexes)
         {
             status_t res = pProp->sParams.resolve(value, name, num_indexes, indexes);
@@ -136,6 +141,7 @@ namespace lsp
 
         void Property::drop_dependencies()
         {
+            // Remove resolved ports
             for (size_t i=0, n=vDependencies.size(); i<n; ++i)
             {
                 ui::IPort *p = vDependencies.uget(i);
@@ -143,6 +149,15 @@ namespace lsp
                     p->unbind(this);
             }
             vDependencies.clear();
+
+            // Remove unresolved names
+            for (size_t i=0, n=vUnresolved.size(); i<n; ++i)
+            {
+                LSPString *item = vUnresolved.uget(i);
+                if (item != NULL)
+                    delete item;
+            }
+            vUnresolved.clear();
         }
 
         void Property::notify(ui::IPort *port, size_t flags)
@@ -217,9 +232,60 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t Property::on_not_resolved(const LSPString *name, status_t status)
+        {
+            if (status != STATUS_NOT_FOUND)
+                return status;
+
+            // Lookup for duplicates
+            for (size_t i=0, n=vUnresolved.size(); i<n; ++i)
+            {
+                LSPString *item = vUnresolved.uget(i);
+                if (item->equals(name))
+                    return status;
+            }
+
+            // Add new item
+            LSPString *tmp = name->clone();
+            if (tmp == NULL)
+                return STATUS_NO_MEM;
+
+            if (!vUnresolved.add(tmp))
+            {
+                delete tmp;
+                return STATUS_NO_MEM;
+            }
+
+            return status;
+        }
+
         void Property::on_updated(ui::IPort *port, size_t flags)
         {
             // Nothing
+        }
+
+        bool Property::depends(const LSPString *name) const
+        {
+            // Lookup for duplicates
+            for (size_t i=0, n=vUnresolved.size(); i<n; ++i)
+            {
+                const LSPString *item = vUnresolved.uget(i);
+                if (item->equals(name))
+                    return true;
+            }
+            return false;
+        }
+
+        bool Property::depends(const char *name) const
+        {
+            // Lookup for duplicates
+            for (size_t i=0, n=vUnresolved.size(); i<n; ++i)
+            {
+                const LSPString *item = vUnresolved.uget(i);
+                if (item->equals_utf8(name))
+                    return true;
+            }
+            return false;
         }
 
     } /* namespace ctl */

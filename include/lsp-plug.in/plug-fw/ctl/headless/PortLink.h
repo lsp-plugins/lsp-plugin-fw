@@ -53,6 +53,8 @@ namespace lsp
             protected:
                 lltl::parray<binding_t>         vBindings;      // List of port bindings
                 ctl::Expression                 sActivity;      // Activity expression
+                binding_t                      *pCurrentBinding;// Current binding
+                binding_t                      *pThisBinding;   // 'This' binding
                 bool                            bEnabled;       // Enabled flag
                 bool                            bChanging;      // Changing mode (avoid recursive calls)
 
