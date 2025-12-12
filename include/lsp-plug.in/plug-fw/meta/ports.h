@@ -73,12 +73,18 @@
     { id, label, NULL, U_BOOL, R_METER, revision, 0, 0, 0, 0, 0, NULL, NULL, NULL }
 #define BLINK(id, label) ADDON_BLINK(0, id, label)
 
+#define ADDON_CONTROL_ALL(revision, id, label, alias, units, min, max, dfl, step) \
+    { id, label, alias, units, R_CONTROL, revision, F_LOWER | F_UPPER | F_STEP, min, max, dfl, step, NULL, NULL, NULL }
+#define ADDON_CONTROL(revision, id, label, alias, units, limits) \
+    ADDON_CONTROL_ALL(revision, id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+#define ADDON_CONTROL_DFL(revision, id, label, alias, units, limits, dfl) \
+    ADDON_CONTROL_ALL(revision, id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 #define CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
-    { id, label, alias, units, R_CONTROL, 0, F_LOWER | F_UPPER | F_STEP, min, max, dfl, step, NULL, NULL, NULL }
+    ADDON_CONTROL_ALL(0, id, label, alias, units, min, max, dfl, step)
 #define CONTROL(id, label, alias, units, limits) \
-    CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+    ADDON_CONTROL(0, id, label, alias, units, limits)
 #define CONTROL_DFL(id, label, alias, units, limits, dfl) \
-    CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
+    ADDON_CONTROL_DFL(0, id, label, alias, units, limits, dfl)
 
 #define LOW_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
     { id, label, NULL, units, R_CONTROL, 0, F_LOWER | F_UPPER | F_STEP | F_LOWERING, min, max, dfl, step, NULL, NULL, NULL }
