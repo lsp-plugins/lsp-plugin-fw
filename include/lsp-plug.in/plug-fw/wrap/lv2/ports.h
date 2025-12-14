@@ -969,6 +969,8 @@ namespace lsp
 
                                 count = ::strnlen(path, PATH_MAX-1);
                             }
+                            else
+                                lsp_warn("Failed to unmap path '%s', keeping it being as is", path);
                         }
 
                         // Restore the actual value of the path
