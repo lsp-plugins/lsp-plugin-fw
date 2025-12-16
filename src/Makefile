@@ -696,7 +696,8 @@ HOST_OBJ_PLUG               = $(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP) $(HOST_
 
 #------------------------------------------------------------------------------
 # Binaries
-ARTIFACT_LIB_CLAP           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME).clap
+ARTIFACT_BIN_CLAP           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME).clap
+ARTIFACT_LIB_CLAP           = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-clap$(LIBRARY_EXT)
 ARTIFACT_LIB_CLAP_DEPS_FULL = \
   $(DEPENDENCIES_CLAP) \
   $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_CLAP_UI)) \
@@ -1294,6 +1295,7 @@ $($(HOST)UTL_PLUGLIST_GEN): $($(HOST)UTL_PLUGLIST_GEN_DEPS) $($(HOST)UTL_PLUGLIS
 $(ARTIFACT_LIB_CLAP): $(ARTIFACT_LIB_CLAP_DEPS) $(ARTIFACT_LIB_CLAP_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_CLAP))"
 	$(CXX) -o $(ARTIFACT_LIB_CLAP) $(ARTIFACT_LIB_CLAP_LIBS) $(ARTIFACT_LIB_CLAP_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_CLAP_LDFLAGS)
+	cp -f $(ARTIFACT_LIB_CLAP) $(ARTIFACT_BIN_CLAP)
 
 $(ARTIFACT_LIB_GST): $(ARTIFACT_LIB_GST_DEPS) $(ARTIFACT_LIB_GST_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_GST))"
@@ -1439,7 +1441,7 @@ install: validate $(BIN_INSTALL) $(INSTALL_TARGETS)
 install_clap: clap
 	echo "Install clap"
 	mkdir -p "$(DESTDIR)$(CLAP_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(DESTDIR)$(CLAP_LIBDIR)/"
+	$(INSTALL) $(ARTIFACT_BIN_CLAP) "$(DESTDIR)$(CLAP_LIBDIR)/"
 
 install_doc: doc
 	echo "Install doc"
@@ -1508,7 +1510,7 @@ package_clap: clap $(BIN_PACKAGE)
 	echo "Package clap"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)/"
+	$(INSTALL) $(ARTIFACT_BIN_CLAP) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)/"
 	$(foreach target,$(BIN_PACKAGE_CLAP), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
@@ -1659,7 +1661,7 @@ uninstall: $(BIN_UNINSTALL) $(UNINSTALL_TARGETS)
 
 uninstall_clap:
 	echo "Uninstall clap"
-	-rm -f "$(DESTDIR)$(CLAP_LIBDIR)/$(notdir $(ARTIFACT_LIB_CLAP))"
+	-rm -f "$(DESTDIR)$(CLAP_LIBDIR)/$(notdir $(ARTIFACT_BIN_CLAP))"
 	
 uninstall_doc:
 	echo "Uninstall doc"
