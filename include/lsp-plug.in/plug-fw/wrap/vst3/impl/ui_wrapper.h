@@ -624,7 +624,7 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API UIWrapper::getSize(Steinberg::ViewRect *size)
         {
-            lsp_trace("this=%p, size=%p", this, size);
+//            lsp_trace("this=%p, size=%p", this, size);
 
             if (wWindow == NULL)
             {
@@ -635,7 +635,7 @@ namespace lsp
             // Obtain the window parameters
             if (wWindow->visibility()->get())
             {
-                lsp_trace("window is visible");
+//                lsp_trace("window is visible");
 
                 ws::rectangle_t rr;
                 rr.nLeft        = 0;
@@ -668,8 +668,8 @@ namespace lsp
                 size->bottom    = lsp_max(sr.nMinHeight, 32);
             }
 
-            lsp_trace("this=%p, size={left=%d, top=%d, right=%d, bottom=%d}",
-                this, int(size->left), int(size->top), int(size->right), int(size->bottom));
+//            lsp_trace("this=%p, size={left=%d, top=%d, right=%d, bottom=%d}",
+//                this, int(size->left), int(size->top), int(size->right), int(size->bottom));
 
             return Steinberg::kResultOk;
         }

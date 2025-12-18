@@ -3255,7 +3255,7 @@ namespace lsp
                     case STATUS_OK:
                     {
                         lsp_trace("Sending DSP->UI KVT message of %d bytes", int(size));
-                        osc::dump_packet(pOscPacket, size);
+//                        osc::dump_packet(pOscPacket, size);
 
                         // Allocate new message
                         Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);

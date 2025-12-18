@@ -1112,8 +1112,8 @@ namespace lsp
                 if (res != STATUS_OK)
                     return;
 
-                lsp_trace("Received OSC message, address=%s, size=%d", msg_addr, int(msg_size));
-                osc::dump_packet(msg_start, msg_size);
+//                lsp_trace("Received OSC message, address=%s, size=%d", msg_addr, int(msg_size));
+//                osc::dump_packet(msg_start, msg_size);
 
                 // Try to parse KVT message
                 core::KVTDispatcher::parse_message(&sKVT, msg_start, msg_size, core::KVT_TX);
