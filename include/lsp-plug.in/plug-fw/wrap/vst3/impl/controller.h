@@ -1226,7 +1226,7 @@ namespace lsp
                     {
                         size_t kflags = core::KVT_TX;
                         kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
-                        sKVT.put(name, &p, kflags);
+                        sKVT.put(name, &p, kflags | core::KVT_STATE);
                     }
                 }
                 else if (name[0] == '!')

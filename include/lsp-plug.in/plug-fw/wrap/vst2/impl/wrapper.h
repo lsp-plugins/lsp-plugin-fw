@@ -1528,7 +1528,7 @@ namespace lsp
                             kflags     |= core::KVT_PRIVATE;
 
                         kvt_dump_parameter("Fetched parameter %s = ", &p, name);
-                        sKVT.put(name, &p, kflags);
+                        sKVT.put(name, &p, kflags | core::KVT_STATE);
                     }
 
                     // Move to next parameter

@@ -1913,7 +1913,7 @@ namespace lsp
                             kflags     |= core::KVT_PRIVATE;
 
                         kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
-                        sKVT.put(name, &p, kflags);
+                        sKVT.put(name, &p, kflags | core::KVT_STATE);
                     }
                 }
                 else if ((name[0] == '!') && (has_preset_settings))

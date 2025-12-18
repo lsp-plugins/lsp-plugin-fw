@@ -2205,7 +2205,7 @@ namespace lsp
                 else
                 {
                     kvt_dump_parameter("Fetched parameter %s = ", &p, key);
-                    status_t res = sKVT.put(key, &p, flags);
+                    status_t res = sKVT.put(key, &p, flags | core::KVT_STATE);
                     if (res != STATUS_OK)
                         lsp_warn("Could not store parameter to KVT, error: %d", int(res));
                 }
@@ -2299,7 +2299,7 @@ namespace lsp
                 if ((p.type != core::KVT_ANY) && (mask & KP_VALUE))
                 {
                     kvt_dump_parameter("Fetched parameter %s = ", &p, name);
-                    status_t res = sKVT.put(name, &p, flags);
+                    status_t res = sKVT.put(name, &p, flags | core::KVT_STATE);
                     if (res != STATUS_OK)
                         lsp_warn("Could not store parameter to KVT, error: %d", int(res));
                 }
