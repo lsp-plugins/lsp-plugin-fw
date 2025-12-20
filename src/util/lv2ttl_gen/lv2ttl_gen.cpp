@@ -416,55 +416,63 @@ namespace lsp
             size_t ports        = 0;
             size_t port_id      = 0;
 
-            for (const meta::port_t *p = m.ports; (p->id != NULL); ++p)
+            // Output ports in ascending revision order
+            for (int revision = 0, max_revision = meta::max_revision(m.ports); revision <= max_revision; ++revision)
             {
-                // Skip virtual ports
-                switch (p->role)
+                for (const meta::port_t *p = m.ports; (p->id != NULL); ++p)
                 {
-                    case meta::R_MESH:
-                    case meta::R_STREAM:
-                    case meta::R_FBUFFER:
-                    case meta::R_PATH:
-                    case meta::R_STRING:
-                    case meta::R_SEND_NAME:
-                    case meta::R_RETURN_NAME:
-                    case meta::R_PORT_SET:
-                    case meta::R_MIDI_IN:
-                    case meta::R_MIDI_OUT:
-                    case meta::R_AUDIO_SEND:
-                    case meta::R_AUDIO_RETURN:
-                    case meta::R_OSC_IN:
-                    case meta::R_OSC_OUT:
+                    // Skip ports that do not match current revision
+                    if (p->revision != revision)
                         continue;
-                    case meta::R_AUDIO_IN:
-                    case meta::R_AUDIO_OUT:
-                        port_id++;
-                        continue;
-                    default:
-                        break;
-                }
 
-                fprintf(out, "%s [\n", (ports == 0) ? "\tui:portNotification" : " ,");
-                fprintf(out, "\t\tui:plugin %s:%s ;\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.uids.lv2));
-                fprintf(out, "\t\tui:portIndex %d ;\n", int(port_id));
+                    // Skip virtual ports
+                    switch (p->role)
+                    {
+                        case meta::R_MESH:
+                        case meta::R_STREAM:
+                        case meta::R_FBUFFER:
+                        case meta::R_PATH:
+                        case meta::R_STRING:
+                        case meta::R_SEND_NAME:
+                        case meta::R_RETURN_NAME:
+                        case meta::R_PORT_SET:
+                        case meta::R_MIDI_IN:
+                        case meta::R_MIDI_OUT:
+                        case meta::R_AUDIO_SEND:
+                        case meta::R_AUDIO_RETURN:
+                        case meta::R_OSC_IN:
+                        case meta::R_OSC_OUT:
+                            continue;
+                        case meta::R_AUDIO_IN:
+                        case meta::R_AUDIO_OUT:
+                            port_id++;
+                            continue;
+                        default:
+                            break;
+                    }
 
-                switch (p->role)
-                {
-                    case meta::R_METER:
-                        if (p->flags & meta::F_PEAK)
-                            fprintf(out, "\t\tui:protocol ui:peakProtocol ;\n");
-                        else
+                    fprintf(out, "%s [\n", (ports == 0) ? "\tui:portNotification" : " ,");
+                    fprintf(out, "\t\tui:plugin %s:%s ;\n", LV2TTL_PLUGIN_PREFIX, get_module_uid(m.uids.lv2));
+                    fprintf(out, "\t\tui:portIndex %d ;\n", int(port_id));
+
+                    switch (p->role)
+                    {
+                        case meta::R_METER:
+                            if (p->flags & meta::F_PEAK)
+                                fprintf(out, "\t\tui:protocol ui:peakProtocol ;\n");
+                            else
+                                fprintf(out, "\t\tui:protocol ui:floatProtocol ;\n");
+                            break;
+                        default:
                             fprintf(out, "\t\tui:protocol ui:floatProtocol ;\n");
-                        break;
-                    default:
-                        fprintf(out, "\t\tui:protocol ui:floatProtocol ;\n");
-                        break;
+                            break;
+                    }
+
+                    fprintf(out, "\t]");
+
+                    ports++;
+                    port_id++;
                 }
-
-                fprintf(out, "\t]");
-
-                ports++;
-                port_id++;
             }
 
             // Add atom ports for state serialization
@@ -803,170 +811,178 @@ namespace lsp
                 }
             }
 
-            for (const meta::port_t *p = m.ports; p->id != NULL; ++p)
+            // Write ports sorted by ascending revision number
+            for (int revision = 0, max_revision = meta::max_revision(m.ports); revision <= max_revision; ++revision)
             {
-                // Skip virtual ports
-                switch (p->role)
+                for (const meta::port_t *p = m.ports; p->id != NULL; ++p)
                 {
-                    case meta::R_MESH:
-                    case meta::R_STREAM:
-                    case meta::R_FBUFFER:
-                    case meta::R_PATH:
-                    case meta::R_STRING:
-                    case meta::R_SEND_NAME:
-                    case meta::R_RETURN_NAME:
-                    case meta::R_AUDIO_SEND:
-                    case meta::R_AUDIO_RETURN:
-                    case meta::R_PORT_SET:
-                    case meta::R_MIDI_IN:
-                    case meta::R_MIDI_OUT:
-                    case meta::R_OSC_IN:
-                    case meta::R_OSC_OUT:
+                    // Skip ports that do not match current revision.
+                    if (p->revision != revision)
                         continue;
-                    default:
-                        break;
-                }
 
-                fprintf(out, "%s [\n", (port_id == 0) ? "\tlv2:port" : " ,");
-                fprintf(out, "\t\ta lv2:%s, ", meta::is_out_port(p) ? "OutputPort" : "InputPort");
-
-                switch (p->role)
-                {
-                    case meta::R_AUDIO_IN:
-                    case meta::R_AUDIO_OUT:
-                        fprintf(out, "lv2:AudioPort ;\n");
-                        break;
-                    case meta::R_CONTROL:
-                    case meta::R_BYPASS:
-                    case meta::R_METER:
-                        fprintf(out, "lv2:ControlPort ;\n");
-                        break;
-                    default:
-                        break;
-                }
-
-                fprintf(out, "\t\tlv2:index %d ;\n", (int)port_id);
-                fprintf(out, "\t\tlv2:symbol \"%s\" ;\n", (p->role == meta::R_BYPASS) ? "enabled" : p->id);
-                fprintf(out, "\t\tlv2:name \"%s\" ;\n", (p->role == meta::R_BYPASS) ? "Enabled" : p->name);
-                if (p->short_name != NULL)
-                    fprintf(out, "\t\tlv2:shortName \"%s\" ;\n", p->short_name);
-                if (p->role == meta::R_BYPASS)
-                    fprintf(out, "\t\tlv2:designation lv2:enabled ;\n");
-
-                print_units(out, p->unit);
-
-                size_t p_prop = 0;
-
-                if ((meta::is_audio_in_port(p)) && (sidechain_ports.contains(p->id)))
-                {
-                    emit_header(out, p_prop, "\t\tlv2:portProperty");
-                    emit_option(out, p_prop, true, "lv2:connectionOptional");
-                    emit_option(out, p_prop, true, "lv2:isSideChain");
-                }
-
-                if (p->flags & meta::F_LOG)
-                {
-                    emit_header(out, p_prop, "\t\tlv2:portProperty");
-                    emit_option(out, p_prop, true, "pp:logarithmic");
-                }
-
-                if (p->unit == meta::U_BOOL)
-                {
-                    emit_header(out, p_prop, "\t\tlv2:portProperty");
-                    emit_option(out, p_prop, true, "lv2:toggled");
-                    emit_end(out, p_prop);
-
-                    fprintf(out, "\t\tlv2:minimum %d ;\n", 0);
-                    fprintf(out, "\t\tlv2:maximum %d ;\n", 1);
-                    fprintf(out, "\t\tlv2:default %d ;\n", (p->role == meta::R_BYPASS) ? (1 - int(p->start)) : int(p->start));
-                }
-                else if (p->unit == meta::U_ENUM)
-                {
-                    emit_header(out, p_prop, "\t\tlv2:portProperty");
-                    emit_option(out, p_prop, true, "lv2:integer");
-                    emit_option(out, p_prop, true, "lv2:enumeration");
-                    emit_option(out, p_prop, true, "pp:hasStrictBounds");
-                    emit_end(out, p_prop);
-
-                    int min  = (p->flags & meta::F_LOWER) ? p->min : 0;
-                    int curr = min;
-                    size_t count = list_size(p->items);
-                    int max  = min + list_size(p->items) - 1;
-
-                    const meta::port_item_t *list = p->items;
-                    if (count > 1)
+                    // Skip virtual ports
+                    switch (p->role)
                     {
-                        fprintf(out, "\t\tlv2:scalePoint\n");
-                        for ( ; list->text != NULL; ++list)
-                        {
-                            fprintf(out, "\t\t\t[ rdfs:label \"%s\"; rdf:value %d ]", list->text, curr);
-                            if (--count)
-                                fprintf(out, " ,\n");
-                            else
-                                fprintf(out, " ;\n");
-                            curr ++;
-                        }
-                    } else if (count > 0)
-                        fprintf(out, "\t\tlv2:scalePoint [ rdfs:label \"%s\"; rdf:value %d ] ;\n", list->text, curr);
+                        case meta::R_MESH:
+                        case meta::R_STREAM:
+                        case meta::R_FBUFFER:
+                        case meta::R_PATH:
+                        case meta::R_STRING:
+                        case meta::R_SEND_NAME:
+                        case meta::R_RETURN_NAME:
+                        case meta::R_AUDIO_SEND:
+                        case meta::R_AUDIO_RETURN:
+                        case meta::R_PORT_SET:
+                        case meta::R_MIDI_IN:
+                        case meta::R_MIDI_OUT:
+                        case meta::R_OSC_IN:
+                        case meta::R_OSC_OUT:
+                            continue;
+                        default:
+                            break;
+                    }
 
-                    fprintf(out, "\t\tlv2:minimum %d ;\n", min);
-                    fprintf(out, "\t\tlv2:maximum %d ;\n", max);
-                    fprintf(out, "\t\tlv2:default %d ;\n", int(p->start));
-                }
-                else if (p->unit == meta::U_SAMPLES)
-                {
-                    emit_header(out, p_prop, "\t\tlv2:portProperty");
-                    emit_option(out, p_prop, true, "lv2:integer");
-                    if ((p->flags & (meta::F_LOWER | meta::F_UPPER)) == (meta::F_LOWER | meta::F_UPPER))
-                        emit_option(out, p_prop, true, "pp:hasStrictBounds");
-                    emit_end(out, p_prop);
+                    fprintf(out, "%s [\n", (port_id == 0) ? "\tlv2:port" : " ,");
+                    fprintf(out, "\t\ta lv2:%s, ", meta::is_out_port(p) ? "OutputPort" : "InputPort");
 
-                    if (p->flags & meta::F_LOWER)
-                        fprintf(out, "\t\tlv2:minimum %d ;\n", int(p->min));
-                    if (p->flags & meta::F_UPPER)
-                        fprintf(out, "\t\tlv2:maximum %d ;\n", int(p->max));
-                    fprintf(out, "\t\tlv2:default %d ;\n", int(p->start));
-                }
-                else if (p->flags & meta::F_INT)
-                {
-                    emit_header(out, p_prop, "\t\tlv2:portProperty");
-                    emit_option(out, p_prop, true, "lv2:integer");
-                    if ((p->flags & (meta::F_LOWER | meta::F_UPPER)) == (meta::F_LOWER | meta::F_UPPER))
-                        emit_option(out, p_prop, true, "pp:hasStrictBounds");
-                    emit_end(out, p_prop);
+                    switch (p->role)
+                    {
+                        case meta::R_AUDIO_IN:
+                        case meta::R_AUDIO_OUT:
+                            fprintf(out, "lv2:AudioPort ;\n");
+                            break;
+                        case meta::R_CONTROL:
+                        case meta::R_BYPASS:
+                        case meta::R_METER:
+                            fprintf(out, "lv2:ControlPort ;\n");
+                            break;
+                        default:
+                            break;
+                    }
 
-                    if (p->flags & meta::F_LOWER)
-                        fprintf(out, "\t\tlv2:minimum %d ;\n", int(p->min));
-                    if (p->flags & meta::F_UPPER)
-                        fprintf(out, "\t\tlv2:maximum %d ;\n", int(p->max));
-                    if ((p->role == meta::R_CONTROL) || (p->role == meta::R_METER))
-                        fprintf(out, "\t\tlv2:default %d ;\n", int(p->start));
-                }
-                else
-                {
-                    if ((p->flags & (meta::F_LOWER | meta::F_UPPER)) == (meta::F_LOWER | meta::F_UPPER))
+                    fprintf(out, "\t\tlv2:index %d ;\n", (int)port_id);
+                    fprintf(out, "\t\tlv2:symbol \"%s\" ;\n", (p->role == meta::R_BYPASS) ? "enabled" : p->id);
+                    fprintf(out, "\t\tlv2:name \"%s\" ;\n", (p->role == meta::R_BYPASS) ? "Enabled" : p->name);
+                    if (p->short_name != NULL)
+                        fprintf(out, "\t\tlv2:shortName \"%s\" ;\n", p->short_name);
+                    if (p->role == meta::R_BYPASS)
+                        fprintf(out, "\t\tlv2:designation lv2:enabled ;\n");
+
+                    print_units(out, p->unit);
+
+                    size_t p_prop = 0;
+
+                    if ((meta::is_audio_in_port(p)) && (sidechain_ports.contains(p->id)))
                     {
                         emit_header(out, p_prop, "\t\tlv2:portProperty");
-                        emit_option(out, p_prop, true, "pp:hasStrictBounds");
+                        emit_option(out, p_prop, true, "lv2:connectionOptional");
+                        emit_option(out, p_prop, true, "lv2:isSideChain");
                     }
+
+                    if (p->flags & meta::F_LOG)
+                    {
+                        emit_header(out, p_prop, "\t\tlv2:portProperty");
+                        emit_option(out, p_prop, true, "pp:logarithmic");
+                    }
+
+                    if (p->unit == meta::U_BOOL)
+                    {
+                        emit_header(out, p_prop, "\t\tlv2:portProperty");
+                        emit_option(out, p_prop, true, "lv2:toggled");
+                        emit_end(out, p_prop);
+
+                        fprintf(out, "\t\tlv2:minimum %d ;\n", 0);
+                        fprintf(out, "\t\tlv2:maximum %d ;\n", 1);
+                        fprintf(out, "\t\tlv2:default %d ;\n", (p->role == meta::R_BYPASS) ? (1 - int(p->start)) : int(p->start));
+                    }
+                    else if (p->unit == meta::U_ENUM)
+                    {
+                        emit_header(out, p_prop, "\t\tlv2:portProperty");
+                        emit_option(out, p_prop, true, "lv2:integer");
+                        emit_option(out, p_prop, true, "lv2:enumeration");
+                        emit_option(out, p_prop, true, "pp:hasStrictBounds");
+                        emit_end(out, p_prop);
+
+                        int min  = (p->flags & meta::F_LOWER) ? p->min : 0;
+                        int curr = min;
+                        size_t count = list_size(p->items);
+                        int max  = min + list_size(p->items) - 1;
+
+                        const meta::port_item_t *list = p->items;
+                        if (count > 1)
+                        {
+                            fprintf(out, "\t\tlv2:scalePoint\n");
+                            for ( ; list->text != NULL; ++list)
+                            {
+                                fprintf(out, "\t\t\t[ rdfs:label \"%s\"; rdf:value %d ]", list->text, curr);
+                                if (--count)
+                                    fprintf(out, " ,\n");
+                                else
+                                    fprintf(out, " ;\n");
+                                curr ++;
+                            }
+                        } else if (count > 0)
+                            fprintf(out, "\t\tlv2:scalePoint [ rdfs:label \"%s\"; rdf:value %d ] ;\n", list->text, curr);
+
+                        fprintf(out, "\t\tlv2:minimum %d ;\n", min);
+                        fprintf(out, "\t\tlv2:maximum %d ;\n", max);
+                        fprintf(out, "\t\tlv2:default %d ;\n", int(p->start));
+                    }
+                    else if (p->unit == meta::U_SAMPLES)
+                    {
+                        emit_header(out, p_prop, "\t\tlv2:portProperty");
+                        emit_option(out, p_prop, true, "lv2:integer");
+                        if ((p->flags & (meta::F_LOWER | meta::F_UPPER)) == (meta::F_LOWER | meta::F_UPPER))
+                            emit_option(out, p_prop, true, "pp:hasStrictBounds");
+                        emit_end(out, p_prop);
+
+                        if (p->flags & meta::F_LOWER)
+                            fprintf(out, "\t\tlv2:minimum %d ;\n", int(p->min));
+                        if (p->flags & meta::F_UPPER)
+                            fprintf(out, "\t\tlv2:maximum %d ;\n", int(p->max));
+                        fprintf(out, "\t\tlv2:default %d ;\n", int(p->start));
+                    }
+                    else if (p->flags & meta::F_INT)
+                    {
+                        emit_header(out, p_prop, "\t\tlv2:portProperty");
+                        emit_option(out, p_prop, true, "lv2:integer");
+                        if ((p->flags & (meta::F_LOWER | meta::F_UPPER)) == (meta::F_LOWER | meta::F_UPPER))
+                            emit_option(out, p_prop, true, "pp:hasStrictBounds");
+                        emit_end(out, p_prop);
+
+                        if (p->flags & meta::F_LOWER)
+                            fprintf(out, "\t\tlv2:minimum %d ;\n", int(p->min));
+                        if (p->flags & meta::F_UPPER)
+                            fprintf(out, "\t\tlv2:maximum %d ;\n", int(p->max));
+                        if ((p->role == meta::R_CONTROL) || (p->role == meta::R_METER))
+                            fprintf(out, "\t\tlv2:default %d ;\n", int(p->start));
+                    }
+                    else
+                    {
+                        if ((p->flags & (meta::F_LOWER | meta::F_UPPER)) == (meta::F_LOWER | meta::F_UPPER))
+                        {
+                            emit_header(out, p_prop, "\t\tlv2:portProperty");
+                            emit_option(out, p_prop, true, "pp:hasStrictBounds");
+                        }
+                        emit_end(out, p_prop);
+
+                        if (p->flags & meta::F_LOWER)
+                            fprintf(out, "\t\tlv2:minimum %.6f ;\n", p->min);
+                        if (p->flags & meta::F_UPPER)
+                            fprintf(out, "\t\tlv2:maximum %.6f ;\n", p->max);
+                        if ((p->role == meta::R_CONTROL) || (p->role == meta::R_METER))
+                            fprintf(out, "\t\tlv2:default %.6f ;\n", p->start);
+                    }
+
                     emit_end(out, p_prop);
 
-                    if (p->flags & meta::F_LOWER)
-                        fprintf(out, "\t\tlv2:minimum %.6f ;\n", p->min);
-                    if (p->flags & meta::F_UPPER)
-                        fprintf(out, "\t\tlv2:maximum %.6f ;\n", p->max);
-                    if ((p->role == meta::R_CONTROL) || (p->role == meta::R_METER))
-                        fprintf(out, "\t\tlv2:default %.6f ;\n", p->start);
+                    // Output all port groups of the port
+                    if (requirements & REQ_PORT_GROUPS)
+                        print_port_groups(out, p, m.port_groups);
+
+                    fprintf(out, "\t]");
+                    port_id++;
                 }
-
-                emit_end(out, p_prop);
-
-                // Output all port groups of the port
-                if (requirements & REQ_PORT_GROUPS)
-                    print_port_groups(out, p, m.port_groups);
-
-                fprintf(out, "\t]");
-                port_id++;
             }
 
             // Add atom ports for state serialization

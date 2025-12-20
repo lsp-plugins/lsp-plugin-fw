@@ -76,15 +76,41 @@ namespace lsp
 
         bool TextLayout::set(const char *name, const char *value)
         {
-            if ((!strcmp(name, "htext")) ||
-                (!strcmp(name, "text.halign")) ||
-                (!strcmp(name, "text.h")))
-                return parse_and_apply(&sHAlign, value);
+            switch (name[0])
+            {
+                case 'h':
+                    if (!strncmp(&name[1], "text", 4))
+                        return parse_and_apply(&sHAlign, value);
+                    break;
 
-            if ((!strcmp(name, "vtext")) ||
-                 (!strcmp(name, "text.valign")) ||
-                 (!strcmp(name, "text.v")))
-                return parse_and_apply(&sVAlign, value);
+                case 'v':
+                    if (!strncmp(&name[1], "text", 4))
+                        return parse_and_apply(&sVAlign, value);
+                    break;
+
+                case 't':
+                    if (strncmp(&name[1], "ext.", 4) != 0)
+                        return false;
+                    name += 5;
+                    break;
+                default:
+                    return false;
+            }
+
+            switch (name[0])
+            {
+                case 'h':
+                    if ((name[1] == '\0') || (!strncmp(&name[1], "align", 5)))
+                        return parse_and_apply(&sHAlign, value);
+                    break;
+
+                case 'v':
+                    if ((name[1] == '\0') || (!strncmp(&name[1], "align", 5)))
+                        return parse_and_apply(&sVAlign, value);
+                    break;
+                default:
+                    break;
+            }
 
             return false;
         }

@@ -556,6 +556,7 @@ namespace lsp
         status_t KVTStorage::commit_parameter(const char *name, kvt_node_t *node, const kvt_param_t *value, size_t flags)
         {
             kvt_gcparam_t *copy, *curr = node->param;
+            const size_t state = flags & KVT_STATE;
 
             // There is no current parameter?
             if (curr == NULL)
@@ -570,7 +571,7 @@ namespace lsp
                 node->param     = copy;
                 ++nValues;
 
-                notify_created(name, copy, pending);
+                notify_created(name, copy, state | pending);
                 return STATUS_OK;
             }
 
@@ -578,7 +579,7 @@ namespace lsp
             // Do we need to keep old value?
             if (flags & KVT_KEEP)
             {
-                notify_rejected(name, value, curr, node->pending);
+                notify_rejected(name, value, curr, state | node->pending);
                 return STATUS_ALREADY_EXISTS;
             }
 
@@ -592,7 +593,7 @@ namespace lsp
             pTrash              = curr;
             node->param         = copy;
 
-            notify_changed(name, curr, copy, pending);
+            notify_changed(name, curr, copy, state | pending);
             return STATUS_OK;
         }
 
@@ -817,10 +818,11 @@ namespace lsp
             size_t op = node->pending;
             size_t np = set_pending_state(node, op | flags);
 
+            const size_t state = flags & KVT_STATE;
             if ((op ^ np) & KVT_TX) // TX flag has set?
-                notify_changed(name, param, param, KVT_TX);
+                notify_changed(name, param, param, state | KVT_TX);
             if ((op ^ np) & KVT_RX) // RX flag has set?
-                notify_changed(name, param, param, KVT_RX);
+                notify_changed(name, param, param, state | KVT_RX);
 
             return STATUS_OK;
         }
@@ -839,10 +841,11 @@ namespace lsp
             size_t op = node->pending;
             size_t np = set_pending_state(node, op & (~flags));
 
+            const size_t state = flags & KVT_STATE;
             if ((op ^ np) & KVT_TX) // TX flag has been reset?
-                notify_commit(name, param, KVT_TX);
+                notify_commit(name, param, state | KVT_TX);
             if ((op ^ np) & KVT_RX) // RX flag has been reset?
-                notify_commit(name, param, KVT_RX);
+                notify_commit(name, param, state | KVT_RX);
 
             return STATUS_OK;
         }
@@ -898,6 +901,7 @@ namespace lsp
             size_t capacity = 0;
 
     //        lsp_trace("kvt items: %d", int(nValues));
+            const size_t state = flags & KVT_STATE;
 
             for (kvt_link_t *lnk = sValid.next; lnk != NULL; lnk = lnk->next)
             {
@@ -927,9 +931,9 @@ namespace lsp
 
                     // TX flag changed?
                     if ((op ^ np) & KVT_TX) // TX flag has been set?
-                        notify_changed(path, node->param, node->param, KVT_TX);
+                        notify_changed(path, node->param, node->param, state | KVT_TX);
                     if ((op ^ np) & KVT_RX) // RX flag has been set?
-                        notify_changed(path, node->param, node->param, KVT_RX);
+                        notify_changed(path, node->param, node->param, state | KVT_RX);
                 }
             }
 
@@ -944,6 +948,7 @@ namespace lsp
             kvt_node_t *node;
             char *str = NULL, *path;
             size_t capacity = 0;
+            const size_t state = flags & KVT_STATE;
 
             if (flags & KVT_TX)
             {
@@ -966,7 +971,7 @@ namespace lsp
                                 ::free(str);
                             return STATUS_NO_MEM;
                         }
-                        notify_commit(path, node->param, KVT_TX);
+                        notify_commit(path, node->param, state | KVT_TX);
                     }
                 }
             }
@@ -993,7 +998,7 @@ namespace lsp
                             return STATUS_NO_MEM;
                         }
 
-                        notify_commit(path, node->param, KVT_RX);
+                        notify_commit(path, node->param, state | KVT_RX);
                     }
                 }
             }

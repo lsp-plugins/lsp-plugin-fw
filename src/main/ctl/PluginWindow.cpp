@@ -1040,9 +1040,6 @@ namespace lsp
                     UI_UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT,
                     "actions.ui_behavior.show_piano_layout_on_graph"));
 
-            // Thickness of the enum menu item
-            wFilterPointThickness = create_enum_menu(&sFilterPointThickness, menu, "actions.ui_behavior.filter_point_thickness");
-
             return STATUS_OK;
         }
 

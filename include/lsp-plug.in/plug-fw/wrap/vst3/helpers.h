@@ -808,11 +808,14 @@ namespace lsp
                 }
                 case core::KVT_BLOB:
                 {
-                    if ((p->blob.size > 0) && (p->blob.data == NULL))
+                    const uint32_t size = p->blob.size;
+                    if ((size > 0) && (p->blob.data == NULL))
                     {
                         lsp_warn("Non-empty blob with NULL data pointer for KVT parameter");
                         return STATUS_INVALID_VALUE;
                     }
+                    if ((res = write_single(os, size)) != STATUS_OK)
+                        return res;
 
                     const char *ctype = (p->blob.ctype != NULL) ? p->blob.ctype : "";
                     res = write_string(os, ctype);
@@ -826,7 +829,7 @@ namespace lsp
                     return STATUS_BAD_TYPE;
             }
 
-            return STATUS_OK;
+            return res;
         }
 
         inline void destroy_kvt_value(core::kvt_param_t *p)
@@ -877,7 +880,7 @@ namespace lsp
                 return res;
             }
 
-            lsp_trace("Parameter type: '%c'", char(p->type));
+            lsp_trace("Parameter type: '%c' (0x%x)", char(type), int(type));
 
             switch (type)
             {

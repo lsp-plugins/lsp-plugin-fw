@@ -33,11 +33,13 @@
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/data.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/debug.h>
+#include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/stdlib/string.h>
 
@@ -762,16 +764,6 @@ namespace lsp
 
             if (cp != NULL)
             {
-                #ifdef LSP_DEBUG
-                    const char *src_id = cp->metadata()->id;
-                    for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
-                    {
-                        plug::IPort *p = vAllPorts.uget(i);
-                        if (!strcmp(src_id, p->metadata()->id))
-                            lsp_error("ERROR: port %s already defined", src_id);
-                    }
-                #endif /* LSP_DEBUG */
-
                 vAllPorts.add(cp);
                 plugin_ports->add(cp);
             }
@@ -787,18 +779,11 @@ namespace lsp
             // Create MIDI CC mapping ports
             if (bMidiMapping)
             {
-                char port_id[32], port_desc[32];
-                meta::port_t meta =
-                {
-                    port_id,
-                    port_desc,
-                    NULL,
-                    meta::U_NONE,
-                    meta::R_CONTROL,
-                    meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
-                    0.0f, 1.0f, 0.0f, 0.00001f,
-                    NULL, NULL
-                };
+                char port_id[32], port_desc[32], short_desc[32];
+                meta::port_t meta = meta::vst3_control_port_template;
+                meta.id = port_id;
+                meta.name = port_desc;
+                meta.short_name = short_desc;
 
                 // Generate ports for all possible control codes
                 Steinberg::Vst::ParamID id = MIDI_MAPPING_PARAM_BASE;
@@ -808,7 +793,8 @@ namespace lsp
                     for (size_t j=0; j<Steinberg::Vst::kCountCtrlNumber; ++j, ++id)
                     {
                         snprintf(port_id, sizeof(port_id), "midicc_%d_%d", int(j), int(i));
-                        snprintf(port_desc, sizeof(port_id), "MIDI CC=%d | C=%d", int(j), int(i));
+                        snprintf(port_desc, sizeof(port_desc), "MIDI CC=%d | C=%d", int(j), int(i));
+                        snprintf(short_desc, sizeof(short_desc), "CC=%d,C=%d", int(j), int(i));
 
                         meta::port_t *cm    = clone_single_port_metadata(&meta);
                         if (cm == NULL)
@@ -833,6 +819,15 @@ namespace lsp
 
         Steinberg::tresult PLUGIN_API Wrapper::initialize(Steinberg::FUnknown *context)
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             lsp_trace("this=%p, context=%p", this, context);
 
             // Check that host context is already set
@@ -1479,7 +1474,7 @@ namespace lsp
                             kflags     |= core::KVT_PRIVATE;
 
                         kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
-                        sKVT.put(name, &p, kflags);
+                        sKVT.put(name, &p, kflags | core::KVT_STATE);
                     }
                 }
                 else if (name[0] == '!')
@@ -3260,7 +3255,7 @@ namespace lsp
                     case STATUS_OK:
                     {
                         lsp_trace("Sending DSP->UI KVT message of %d bytes", int(size));
-                        osc::dump_packet(pOscPacket, size);
+//                        osc::dump_packet(pOscPacket, size);
 
                         // Allocate new message
                         Steinberg::Vst::IMessage *msg = alloc_message(pHostApplication, bMsgWorkaround);

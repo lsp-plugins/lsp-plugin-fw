@@ -132,19 +132,31 @@ namespace lsp
                     {
                         if (is_bool_unit(meta->unit))
                         {
-                            LSP_STATUS_ASSERT(s->write_bool(meta->id, (v >= 0.5f), flags));
+                            // Boolean value
+                            if (flags & config::SF_FRIENDLY)
+                            {
+                                LSP_STATUS_ASSERT(s->write_bool(meta->id, (v >= 0.5f), flags));
+                            }
+                            else
+                            {
+                                LSP_STATUS_ASSERT(s->write_i32(meta->id, (v >= 0.5f) ? 1 : 0, flags));
+                            }
                         }
                         else
                         {
+                            // Integer value or enumeration
                             LSP_STATUS_ASSERT(s->write_i32(meta->id, int(v), flags));
                         }
                     }
                     else
                     {
+                        // Floating-point value
                         if (meta->flags & meta::F_EXT)
                             flags  |= config::SF_PREC_LONG;
+
                         if (meta::is_decibel_unit(meta->unit))
                         {
+                            // Decibels and gain values
                             if (meta->unit == meta::U_DB)
                             {
                                 if (v < -250.0f)
@@ -152,7 +164,7 @@ namespace lsp
                                 else if (v > 250.0f)
                                     v   = +INFINITY;
                             }
-                            else
+                            else if (flags & config::SF_FRIENDLY)
                             {
                                 flags  |= config::SF_DECIBELS;
 
@@ -164,6 +176,7 @@ namespace lsp
                                     v   = (meta->unit == meta::U_GAIN_AMP) ? dspu::gain_to_db(v) : dspu::power_to_db(v);
                             }
                         }
+
                         LSP_STATUS_ASSERT(s->write_f32(meta->id, v, flags));
                     }
 

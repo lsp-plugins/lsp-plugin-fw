@@ -30,6 +30,7 @@
 #include <lsp-plug.in/resource/PrefixLoader.h>
 #include <lsp-plug.in/resource/Environment.h>
 #include <lsp-plug.in/tk/tk.h>
+#include <lsp-plug.in/lltl/hash_index.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/lltl/ptrset.h>
@@ -67,9 +68,16 @@ namespace lsp
 
         enum import_flags_t
         {
-            IMPORT_FLAG_NONE   = 0,
-            IMPORT_FLAG_PRESET = 1 << 0,
-            IMPORT_FLAG_PATCH  = 1 << 1
+            IMPORT_FLAG_NONE            = 0,
+            IMPORT_FLAG_PRESET          = 1 << 0,
+            IMPORT_FLAG_PATCH           = 1 << 1
+        };
+
+        enum export_flags_t
+        {
+            EXPORT_FLAG_NONE            = 0,        // No export flags
+            EXPORT_FLAG_RELATIVE_PATHS  = 1 << 0,   // Use relative paths
+            EXPORT_FLAG_USER_FRIENDLY   = 1 << 1,   // User-friendly values (db instead of gain, etc)
         };
 
         /**
@@ -111,11 +119,12 @@ namespace lsp
                 core::preset_data_t             vPresetData[2];     // Preset data
 
                 lltl::parray<ui::IPort>         vPorts;             // All possible ports
-                lltl::parray<ui::IPort>         vSortedPorts;       // Alphabetically-sorted ports
-                lltl::parray<ui::SwitchedPort>  vSwitchedPorts;     // Switched ports
+                lltl::hash_index<const char, ui::IPort> vPluginPorts; // Port mapping
+                lltl::hash_index<const char, ui::IPort> vCustomPorts; // Port mapping
+                lltl::hash_index<const char, ui::SwitchedPort> vSwitchedPorts; // Switched ports
+                lltl::hash_index<const char, ui::IPort> vConfigMapping; // Config port mapping
                 lltl::parray<ui::IPort>         vConfigPorts;       // Configuration ports
                 lltl::parray<ui::ValuePort>     vTimePorts;         // Time-related ports
-                lltl::parray<ui::IPort>         vCustomPorts;       // Custom-defined ports
                 lltl::pphash<LSPString, LSPString> vAliases;        // Port aliases
                 lltl::pphash<LSPString, ui::IPort> vEvaluated;      // Evaluated ports
                 lltl::parray<IKVTListener>      vKvtListeners;      // KVT listeners
@@ -126,7 +135,8 @@ namespace lsp
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
-                size_t          rebuild_sorted_ports();
+
+            protected:
                 void            global_config_changed(IPort *src);
                 status_t        create_alias(const LSPString *id, const LSPString *name);
                 status_t        register_evaluated_port(const LSPString *id, ui::IPort *port);
@@ -141,7 +151,8 @@ namespace lsp
                     config::Serializer *s,
                     lltl::pphash<LSPString, config::param_t> *parameters,
                     lltl::parray<IPort> *ports,
-                    const io::Path *relative);
+                    size_t flags,
+                    const io::Path *basedir);
                 bool            update_parameters(lltl::pphash<LSPString, config::param_t> *parameters, ui::IPort *port);
                 status_t        export_kvt(config::Serializer *s, core::KVTStorage *kvt, const io::Path *relative);
                 status_t        export_parameters(config::Serializer *s, lltl::pphash<LSPString, config::param_t> *parameters);
@@ -155,7 +166,11 @@ namespace lsp
 
                 void            notify_play_position(wssize_t position, wssize_t length);
 
-                IPort          *port_by_id(const char *id);
+                IPort          *switched_port_by_id(const char *id);
+                IPort          *config_port_by_id(const char *id);
+                IPort          *time_port_by_id(const char *id);
+                IPort          *custom_port_by_id(const char *id);
+                IPort          *plugin_port_by_id(const char *id);
 
             protected:
                 static bool     set_port_value(ui::IPort *port, const config::param_t *param, size_t flags, const io::Path *base);
@@ -355,9 +370,9 @@ namespace lsp
                  * @param file file name
                  * @param relative use relative paths to the exported file
                  */
-                status_t                        export_settings(const char *file, bool relative = false);
-                status_t                        export_settings(const io::Path *file, bool relative = false);
-                status_t                        export_settings(const LSPString *file, bool relative = false);
+                status_t                        export_settings(const char *file, size_t flags);
+                status_t                        export_settings(const io::Path *file, size_t flags);
+                status_t                        export_settings(const LSPString *file, size_t flags);
 
                 /**
                  * Export settings
@@ -365,9 +380,7 @@ namespace lsp
                  * @param basedir the directory the config file will be written, can be NULL
                  * @return status of operation
                  */
-                status_t                        export_settings(io::IOutSequence *os, const char *basedir);
-                status_t                        export_settings(io::IOutSequence *os, const LSPString *basedir);
-                status_t                        export_settings(io::IOutSequence *os, const io::Path *basedir = NULL);
+                status_t                        export_settings(io::IOutSequence *os, size_t flags, const io::Path *basedir = NULL);
 
                 /**
                  * Export settings
@@ -375,9 +388,7 @@ namespace lsp
                  * @param basedir the directory the config file will be written, can be NULL
                  * @return status of operation
                  */
-                status_t                        export_settings(config::Serializer *s, const char *basedir);
-                status_t                        export_settings(config::Serializer *s, const LSPString *basedir);
-                virtual status_t                export_settings(config::Serializer *s, const io::Path *basedir = NULL);
+                virtual status_t                export_settings(config::Serializer *s, size_t flags, const io::Path *basedir = NULL);
 
                 /**
                  * Import settings

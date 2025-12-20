@@ -60,6 +60,8 @@ namespace lsp
             public:
                 virtual status_t    on_resolved(const LSPString *name, ui::IPort *p);
                 virtual status_t    on_resolved(const char *name, ui::IPort *p);
+                virtual status_t    on_not_resolved(const LSPString *name, status_t result);
+                virtual status_t    on_not_resolved(const char *name, status_t result);
         };
     } /* namespace ui */
 } /* namespace lsp */

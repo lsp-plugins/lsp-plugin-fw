@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 4 февр. 2024 г.
@@ -211,7 +211,6 @@ namespace lsp
                         constexpr Steinberg::int32 flags = Steinberg::Vst::kDefaultFactoryFlags;
 
                         SA(s->prop_bool("Classes Discardable", flags & Steinberg::PFactoryInfo::kClassesDiscardable));
-                        SA(s->prop_bool("License Check", flags & Steinberg::PFactoryInfo::kLicenseCheck));
                         SA(s->prop_bool("Component Non Discardable", flags & Steinberg::PFactoryInfo::kComponentNonDiscardable));
                         SA(s->prop_bool("Unicode", flags & Steinberg::PFactoryInfo::kUnicode));
                     }
@@ -243,7 +242,7 @@ namespace lsp
                                 int(plug_meta->version.micro));
 
                             SA(s->prop_string("CID", meta::uid_tuid_to_vst3(vst3_uid, cid)));
-                            SA(s->prop_string("Catetory", kVstAudioEffectClass));
+                            SA(s->prop_string("Category", kVstAudioEffectClass));
                             SA(s->prop_string("Name", plug_meta->description));
                             SA(s->prop_string("Vendor", &vendor));
                             SA(s->prop_string("Version", &plugver));
@@ -307,7 +306,7 @@ namespace lsp
                                 int(ui_meta->version.micro));
 
                             SA(s->prop_string("CID", meta::uid_tuid_to_vst3(vst3_uid, cid)));
-                            SA(s->prop_string("Catetory", kVstComponentControllerClass));
+                            SA(s->prop_string("Category", kVstComponentControllerClass));
                             SA(s->prop_string("Name", ui_meta->description));
                             SA(s->prop_string("Vendor", &vendor));
                             SA(s->prop_string("Version", &plugver));

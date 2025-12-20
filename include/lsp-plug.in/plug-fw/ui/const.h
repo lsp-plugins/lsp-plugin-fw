@@ -28,9 +28,17 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
-// UI configuration ports
+// Different port prefixes
 #define UI_CONFIG_PORT_PREFIX                   "_ui_"
+#define UI_CONFIG_PORT_PREFIX_LEN               4
+
 #define UI_KVT_PORT_PREFIX                      "_kvt_"
+#define UI_KVT_PORT_PREFIX_LEN                  5
+
+#define TIME_PORT_PREFIX                        "_time_"
+#define TIME_PORT_PREFIX_LEN                    6
+
+// UI configuration ports
 #define UI_LAST_VERSION_PORT_ID                 "last_version"
 #define UI_DLG_DEFAULT_PATH_ID                  "dlg_default_path"
 #define UI_DLG_DEFAULT_FTYPE_ID                 "dlg_default_ftype"
@@ -72,6 +80,7 @@
 #define UI_FILELIST_NAVIGATION_AUTOPLAY_ID      "file_list_navigation_auto_play"
 #define UI_TAKE_INST_NAME_FROM_FILE_ID          "take_instrument_name_from_file"
 #define UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID        "graph_piano_layout"
+#define UI_CONFIG_USER_FRIENDLY_VALUES_ID       "config_user_friendly_values"
 
 #define MSTUD_PORT                              UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                            UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -115,6 +124,7 @@
 #define UI_FILELIST_NAVIGATION_AUTOLOAD_PORT    UI_CONFIG_PORT_PREFIX UI_FILELIST_NAVIGATION_AUTOLOAD_ID
 #define UI_TAKE_INST_NAME_FROM_FILE_PORT        UI_CONFIG_PORT_PREFIX UI_TAKE_INST_NAME_FROM_FILE_ID
 #define UI_UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT   UI_CONFIG_PORT_PREFIX UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID
+#define CONFIG_USER_FRIENDLY_VALUES_PORT        UI_CONFIG_PORT_PREFIX UI_CONFIG_USER_FRIENDLY_VALUES_ID
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                          "main_menu"
@@ -125,7 +135,6 @@
 #define WUID_RESET_SETTINGS_MENU                "reset_settings_menu"
 
 // Special ports for handling current time
-#define TIME_PORT_PREFIX                        "_time_"
 #define TIME_SAMPLE_RATE_PORT                   "sr"
 #define TIME_SPEED_PORT                         "speed"
 #define TIME_FRAME_PORT                         "frame"

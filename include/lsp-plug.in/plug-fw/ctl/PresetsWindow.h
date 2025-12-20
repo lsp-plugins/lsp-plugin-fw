@@ -85,6 +85,7 @@ namespace lsp
                 tk::FileDialog         *wExport;                    // Export settings dialog
                 tk::FileDialog         *wImport;                    // Import settings dialog
                 tk::CheckBox           *wRelPaths;                  // Relative path checkbox
+                tk::CheckBox           *wUserFriendlyValues;        // User-friendly values checkbox
                 tk::Edit               *wPresetPattern;             // Preset pattern
                 tk::Button             *vButtons[BTN_TOTAL];        // Preset management buttons
                 tk::MessageBox         *wWConfirm;                  // Confirmation message box
@@ -101,7 +102,7 @@ namespace lsp
                 ui::IPort              *pPath;                      // Location of user's export/import directory
                 ui::IPort              *pFileType;                  // Import/export configuration file type selection
                 ui::IPort              *pRelPaths;                  // Relative paths configuration option
-
+                ui::IPort              *pUserFriendlyValues;        // User-friendly values configuration option
 
             protected:
                 // Slots
@@ -128,6 +129,8 @@ namespace lsp
                 static status_t     slot_exec_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_relative_path_changed(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_filter_changed(tk::Widget *sender, void *ptr, void *data);
+
+                static status_t     slot_user_friendly_values_changed(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t     slot_accept_preset_selection(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_reject_preset_selection(tk::Widget *sender, void *ptr, void *data);

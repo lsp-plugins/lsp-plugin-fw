@@ -96,36 +96,38 @@ namespace lsp
         PresetsWindow::PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow):
             ctl::Window(src, widget)
         {
-            pClass          = &metadata;
+            pClass              = &metadata;
 
-            pPluginWindow   = pluginWindow;
-            pSavePresetDlg  = NULL;
-            wLastActor      = NULL;
-            wExport         = NULL;
-            wImport         = NULL;
-            wRelPaths       = NULL;
-            wPresetPattern  = NULL;
+            pPluginWindow       = pluginWindow;
+            pSavePresetDlg      = NULL;
+            wLastActor          = NULL;
+            wExport             = NULL;
+            wImport             = NULL;
+            wRelPaths           = NULL;
+            wUserFriendlyValues = NULL;
+            wPresetPattern      = NULL;
 
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
             {
                 preset_list_t *plist = &vPresetsLists[i];
-                plist->wList    = NULL;
+                plist->wList        = NULL;
             }
             for (size_t i=0; i<BTN_TOTAL; ++i)
-                vButtons[i]     = NULL;
-            wWConfirm       = NULL;
-            wRstConfirm     = NULL;
-            wRemoveConfirm  = NULL;
-            wPresetTabs     = NULL;
-            bWasVisible     = false;
+                vButtons[i]         = NULL;
+            wWConfirm           = NULL;
+            wRstConfirm         = NULL;
+            wRemoveConfirm      = NULL;
+            wPresetTabs         = NULL;
+            bWasVisible         = false;
 
-            pConfigSink     = NULL;
+            pConfigSink         = NULL;
 
-            pNewPreset      = NULL;
+            pNewPreset          = NULL;
 
-            pPath           = NULL;
-            pFileType       = NULL;
-            pRelPaths       = NULL;
+            pPath               = NULL;
+            pFileType           = NULL;
+            pRelPaths           = NULL;
+            pUserFriendlyValues = NULL;
         }
 
         PresetsWindow::~PresetsWindow()
@@ -182,6 +184,7 @@ namespace lsp
             BIND_PORT(pWrapper, pPath, CONFIG_PATH_PORT);
             BIND_PORT(pWrapper, pFileType, CONFIG_FTYPE_PORT);
             BIND_PORT(pWrapper, pRelPaths, REL_PATHS_PORT);
+            BIND_PORT(pWrapper, pUserFriendlyValues, CONFIG_USER_FRIENDLY_VALUES_PORT);
 
             return STATUS_OK;
         }
@@ -491,24 +494,27 @@ namespace lsp
                 wc->orientation()->set_vertical();
                 wc->allocation()->set_hfill(true);
 
+                // Options grid
+                tk::Grid *options       = new tk::Grid(dpy);
+                widgets()->add(options);
+                options->init();
+                options->columns()->set(2);
+                options->hspacing()->set(4);
+                options->vspacing()->set(4);
+                size_t rows             = 0;
+
                 if (has_path_ports())
                 {
-                    tk::Box *op_rpath       = new tk::Box(dpy);
-                    widgets()->add(op_rpath);
-                    op_rpath->init();
-                    op_rpath->orientation()->set_horizontal();
-                    op_rpath->spacing()->set(4);
-
                     // Add switch button
-                    tk::CheckBox *ck_rpath  = new tk::CheckBox(dpy);
+                    tk::CheckBox *ck_rpath      = new tk::CheckBox(dpy);
                     widgets()->add(ck_rpath);
                     ck_rpath->init();
                     ck_rpath->slots()->bind(tk::SLOT_SUBMIT, slot_relative_path_changed, self());
                     wRelPaths               = ck_rpath;
-                    op_rpath->add(ck_rpath);
+                    options->add(ck_rpath);
 
                     // Add label
-                    tk::Label *lbl_rpath     = new tk::Label(dpy);
+                    tk::Label *lbl_rpath        = new tk::Label(dpy);
                     widgets()->add(lbl_rpath);
                     lbl_rpath->init();
 
@@ -516,11 +522,37 @@ namespace lsp
                     lbl_rpath->allocation()->set_hfill(true);
                     lbl_rpath->text_layout()->set_halign(-1.0f);
                     lbl_rpath->text()->set("labels.relative_paths");
-                    op_rpath->add(lbl_rpath);
+                    options->add(lbl_rpath);
 
-                    // Add option to dialog
-                    wc->add(op_rpath);
+                    ++rows;
                 }
+
+                // Add 'User-friendly values' option
+                {
+                    tk::CheckBox *ck_uf_values  = new tk::CheckBox(dpy);
+                    widgets()->add(ck_uf_values);
+                    ck_uf_values->init();
+                    ck_uf_values->slots()->bind(tk::SLOT_SUBMIT, slot_user_friendly_values_changed, self());
+                    wUserFriendlyValues     = ck_uf_values;
+                    options->add(ck_uf_values);
+
+                    // Add label
+                    tk::Label *lbl_uf_values    = new tk::Label(dpy);
+                    widgets()->add(lbl_uf_values);
+                    lbl_uf_values->init();
+
+                    lbl_uf_values->allocation()->set_hexpand(true);
+                    lbl_uf_values->allocation()->set_hfill(true);
+                    lbl_uf_values->text_layout()->set_halign(-1.0f);
+                    lbl_uf_values->text()->set("labels.user_friendly_values");
+                    options->add(lbl_uf_values);
+
+                    ++rows;
+                }
+
+                // Add options to dialog
+                options->rows()->set(rows);
+                wc->add(options);
 
                 // Bind actions
                 if (wc->items()->size() > 0)
@@ -532,10 +564,11 @@ namespace lsp
 
             // Initialize and show the window
             if ((wRelPaths != NULL) && (pRelPaths != NULL))
-            {
-                bool checked = pRelPaths->value() >= 0.5f;
-                wRelPaths->checked()->set(checked);
-            }
+                wRelPaths->checked()->set(pRelPaths->value() >= 0.5f);
+
+            // Initialize and show the window
+            if ((wUserFriendlyValues!= NULL) && (pUserFriendlyValues != NULL))
+                wUserFriendlyValues->checked()->set(pUserFriendlyValues->value() >= 0.5f);
 
             dlg->show(pPluginWindow->widget());
             return STATUS_OK;
@@ -605,7 +638,7 @@ namespace lsp
 
             // Export settings to text buffer
             io::OutStringSequence sq(&buf);
-            if ((res = pWrapper->export_settings(&sq)) != STATUS_OK)
+            if ((res = pWrapper->export_settings(&sq, ui::EXPORT_FLAG_NONE, NULL)) != STATUS_OK)
                 return STATUS_OK;
             sq.close();
 
@@ -1116,6 +1149,25 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PresetsWindow::slot_user_friendly_values_changed(tk::Widget *sender, void *ptr, void *data)
+        {
+            PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+            if (self->pUserFriendlyValues == NULL)
+                return STATUS_OK;
+
+            tk::CheckBox *ck_box    = tk::widget_cast<tk::CheckBox>(sender);
+            if (ck_box == NULL)
+                return STATUS_OK;
+
+            const float value       = ck_box->checked()->get() ? 1.0f : 0.0f;
+            self->pUserFriendlyValues->set_value(value);
+            self->pUserFriendlyValues->notify_all(ui::PORT_USER_EDIT);
+
+            return STATUS_OK;
+        }
+
         status_t PresetsWindow::slot_exec_export_settings_to_file(tk::Widget *sender, void *ptr, void *data)
         {
             PresetsWindow *self = static_cast<PresetsWindow *>(ptr);
@@ -1128,8 +1180,13 @@ namespace lsp
             status_t res = self->wExport->selected_file()->format(&path);
             if (res == STATUS_OK)
             {
-                bool relative = (self->pRelPaths != NULL) ? self->pRelPaths->value() >= 0.5f : false;
-                self->pWrapper->export_settings(&path, relative);
+                size_t flags    = 0;
+                if ((self->pRelPaths != NULL) && (self->pRelPaths->value() >= 0.5f))
+                    flags          |= ui::EXPORT_FLAG_RELATIVE_PATHS;
+                if ((self->pUserFriendlyValues != NULL) && (self->pUserFriendlyValues->value() >= 0.5f))
+                    flags          |= ui::EXPORT_FLAG_USER_FRIENDLY;
+
+                self->pWrapper->export_settings(&path, flags);
             }
 
             return STATUS_OK;

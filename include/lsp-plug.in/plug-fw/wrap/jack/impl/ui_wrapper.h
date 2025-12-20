@@ -51,6 +51,15 @@ namespace lsp
 
         status_t UIWrapper::init(void *root_widget)
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin UI initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("UI initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             status_t res = STATUS_OK;
 
             // Force position sync at startup
@@ -513,7 +522,7 @@ namespace lsp
             set_connection_status(bJackConnected);
         }
 
-        status_t UIWrapper::export_settings(config::Serializer *s, const io::Path *basedir)
+        status_t UIWrapper::export_settings(config::Serializer *s, size_t flags, const io::Path *basedir)
         {
             // Notify the plugin the state is about to be saved
             pPlugin->before_state_save();
@@ -528,7 +537,7 @@ namespace lsp
             }
 
             // Do the usual stuff
-            status_t res = ui::IWrapper::export_settings(s, basedir);
+            status_t res = ui::IWrapper::export_settings(s, flags, basedir);
 
             // Notify the plugin that the state has been just saved
             if (res == STATUS_OK)

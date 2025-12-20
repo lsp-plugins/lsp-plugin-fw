@@ -33,9 +33,11 @@
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
+#include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
 #include <lsp-plug.in/plug-fw/core/ShmStateBuilder.h>
 #include <lsp-plug.in/plug-fw/core/ShmState.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/data.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/controller.h>
@@ -285,18 +287,11 @@ namespace lsp
             // Create MIDI CC mapping ports if we have MIDI mapping
             if (bMidiMapping)
             {
-                char port_id[32], port_desc[32];
-                meta::port_t meta =
-                {
-                    port_id,
-                    port_desc,
-                    NULL,
-                    meta::U_NONE,
-                    meta::R_CONTROL,
-                    meta::F_LOWER | meta::F_UPPER | meta::F_STEP,
-                    0.0f, 1.0f, 0.0f, 0.00001f,
-                    NULL, NULL, NULL
-                };
+                char port_id[32], port_desc[32], short_desc[32];
+                meta::port_t meta = meta::vst3_control_port_template;
+                meta.id = port_id;
+                meta.name = port_desc;
+                meta.short_name = short_desc;
 
                 // Generate ports for all possible control codes
                 Steinberg::Vst::ParamID id = MIDI_MAPPING_PARAM_BASE;
@@ -306,7 +301,8 @@ namespace lsp
                     for (size_t j=0; j<Steinberg::Vst::kCountCtrlNumber; ++j, ++id)
                     {
                         snprintf(port_id, sizeof(port_id), "midicc_%d_%d", int(j), int(i));
-                        snprintf(port_desc, sizeof(port_id), "MIDI CC=%d | C=%d", int(j), int(i));
+                        snprintf(port_desc, sizeof(port_desc), "MIDI CC=%d | C=%d", int(j), int(i));
+                        snprintf(short_desc, sizeof(short_desc), "CC=%d,%d", int(j), int(i));
 
                         meta::port_t *cm    = clone_single_port_metadata(&meta);
                         if (cm == NULL)
@@ -322,7 +318,25 @@ namespace lsp
                 }
             }
 
-            vPlainParams.add(vParams);
+            // Form the list of plain params ordered by port revision
+            if (!vPlainParams.reserve(vParams.size()))
+                return STATUS_NO_MEM;
+
+            const int max_revision = meta::max_revision(pUIMetadata->ports);
+            for (int revision = 0; revision <= max_revision; ++revision)
+            {
+                for (lltl::iterator<vst3::CtlParamPort> it=vParams.values(); it; ++it)
+                {
+                    vst3::CtlParamPort * const p = it.get();
+                    if (p->metadata()->revision == revision)
+                    {
+                        lsp_trace("external port index=%d, id=%s", int(vPlainParams.size()), it->id());
+                        vPlainParams.add(p);
+                    }
+                }
+            }
+
+            // Sort ports and parameters by integer identifier and text identifier
             vParams.qsort(compare_param_ports);
             vPorts.qsort(compare_ports_by_id);
 
@@ -1098,8 +1112,8 @@ namespace lsp
                 if (res != STATUS_OK)
                     return;
 
-                lsp_trace("Received OSC message, address=%s, size=%d", msg_addr, int(msg_size));
-                osc::dump_packet(msg_start, msg_size);
+//                lsp_trace("Received OSC message, address=%s, size=%d", msg_addr, int(msg_size));
+//                osc::dump_packet(msg_start, msg_size);
 
                 // Try to parse KVT message
                 core::KVTDispatcher::parse_message(&sKVT, msg_start, msg_size, core::KVT_TX);
@@ -1212,7 +1226,7 @@ namespace lsp
                     {
                         size_t kflags = core::KVT_TX;
                         kvt_dump_parameter("Fetched KVT parameter %s = ", &p, name);
-                        sKVT.put(name, &p, kflags);
+                        sKVT.put(name, &p, kflags | core::KVT_STATE);
                     }
                 }
                 else if (name[0] == '!')

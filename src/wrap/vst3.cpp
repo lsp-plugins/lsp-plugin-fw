@@ -37,6 +37,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst3/helpers.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/timer.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/vst3/impl/meta.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/string_buf.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/message.h>
 #include <lsp-plug.in/plug-fw/wrap/vst3/impl/executor.h>

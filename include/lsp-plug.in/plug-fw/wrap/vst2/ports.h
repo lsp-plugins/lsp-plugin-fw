@@ -218,8 +218,8 @@ namespace lsp
             public:
                 inline AEffect                 *effect()            { return pEffect;               };
                 inline audioMasterCallback      callback()          { return hCallback;             };
-                inline ssize_t                  id() const          { return nID;                   };
-                inline void                     set_id(ssize_t id)  { nID = id;                     };
+                inline ssize_t                  param_id() const    { return nID;                   };
+                inline void                     set_param_id(ssize_t id){ nID = id;                     };
 
                 inline VstIntPtr                masterCallback(VstInt32 opcode, VstInt32 index, VstIntPtr value, void* ptr, float opt)
                 {

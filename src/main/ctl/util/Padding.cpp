@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 13 мая 2021 г.
@@ -103,20 +103,57 @@ namespace lsp
             // Decode the attribute
             ssize_t idx     = -1;
             if (name[0] == '\0')                    idx = PAD_ALL;
-            else if (!strcmp(name, ".l"))           idx = PAD_LEFT;
-            else if (!strcmp(name, ".left"))        idx = PAD_LEFT;
-            else if (!strcmp(name, ".r"))           idx = PAD_RIGHT;
-            else if (!strcmp(name, ".right"))       idx = PAD_RIGHT;
-            else if (!strcmp(name, ".t"))           idx = PAD_TOP;
-            else if (!strcmp(name, ".top"))         idx = PAD_TOP;
-            else if (!strcmp(name, ".b"))           idx = PAD_BOTTOM;
-            else if (!strcmp(name, ".bottom"))      idx = PAD_BOTTOM;
-            else if (!strcmp(name, ".h"))           idx = PAD_HORIZONTAL;
-            else if (!strcmp(name, ".hor"))         idx = PAD_HORIZONTAL;
-            else if (!strcmp(name, ".horizontal"))  idx = PAD_HORIZONTAL;
-            else if (!strcmp(name, ".v"))           idx = PAD_VERTICAL;
-            else if (!strcmp(name, ".vert"))        idx = PAD_VERTICAL;
-            else if (!strcmp(name, ".vertical"))    idx = PAD_VERTICAL;
+            else if (name[0] == '.')
+            {
+                ++name;
+
+                switch (name[0])
+                {
+                    case 'l':
+                        ++name;
+                        if (name[0] == '\0')                    idx = PAD_LEFT;
+                        else if (!strcmp(name, "eft"))          idx = PAD_LEFT;
+                        else return false;
+                        break;
+
+                    case 'r':
+                        ++name;
+                        if (name[0] == '\0')                    idx = PAD_RIGHT;
+                        else if (!strcmp(name, "ight"))         idx = PAD_RIGHT;
+                        else return false;
+                        break;
+
+                    case 't':
+                        ++name;
+                        if (name[0] == '\0')                    idx = PAD_TOP;
+                        else if (!strcmp(name, "op"))           idx = PAD_TOP;
+                        else return false;
+                        break;
+
+                    case 'b':
+                        ++name;
+                        if (name[0] == '\0')                    idx = PAD_BOTTOM;
+                        else if (!strcmp(name, "ottom"))        idx = PAD_BOTTOM;
+                        else return false;
+                        break;
+
+                    case 'h':
+                        ++name;
+                        if (name[0] == '\0')                    idx = PAD_HORIZONTAL;
+                        else if (!strcmp(name, "or"))           idx = PAD_HORIZONTAL;
+                        else if (!strcmp(name, "orizontal"))    idx = PAD_HORIZONTAL;
+                        else return false;
+                        break;
+
+                    case 'v':
+                        ++name;
+                        if (name[0] == '\0')                    idx = PAD_VERTICAL;
+                        else if (!strcmp(name, "ert"))          idx = PAD_VERTICAL;
+                        else if (!strcmp(name, "ertical"))      idx = PAD_VERTICAL;
+                        else return false;
+                        break;
+                }
+            }
             else return false;
 
             // Create the corresponding expression
@@ -189,7 +226,7 @@ namespace lsp
 
             expr::destroy_value(&value);
         }
-    }
-}
+    } /* namespace ctl */
+} /* namespace lsp */
 
 

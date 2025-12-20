@@ -43,6 +43,8 @@ namespace lsp
         PortLink::PortLink(ui::IWrapper *wrapper):
             DOMController(wrapper)
         {
+            pCurrentBinding = NULL;
+            pThisBinding    = NULL;
             bEnabled        = false;
             bChanging       = false;
         }
@@ -172,17 +174,48 @@ namespace lsp
             }
 
             // Now we're ready to apply changes to all ports
+            // Set up current binding
             bChanging = true;
-            lsp_finally { bChanging = false; };
-
-            // Compute new value for each binding depending on it's port's role
             for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
             {
                 binding_t *b = it.get();
                 if ((b->pPort != NULL) && (b->pPort == port))
-                    b->fNewValue    = b->pPort->value();
-                else if (b->sValue.depends(port))
+                {
+                    pCurrentBinding = b;
+                    break;
+                }
+            }
+            lsp_finally {
+                pCurrentBinding = NULL;
+                pThisBinding = NULL;
+                bChanging = false;
+            };
+
+            // Compute new value for each binding depending on it's port's role
+            if (pCurrentBinding != NULL)
+                pCurrentBinding->fNewValue      = pCurrentBinding->pPort->value();
+
+            for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
+            {
+                binding_t *b = it.get();
+                if (b == pCurrentBinding)
+                    continue;
+
+                pThisBinding    = b;
+                if (b->sValue.depends(port))
+                {
                     b->fNewValue    = b->sValue.evaluate();
+                    lsp_trace("%s new_value = %f", b->pId, b->fNewValue);
+                }
+                else if (pCurrentBinding != NULL)
+                {
+                    if ((b->sValue.depends("_current")) ||
+                        (b->sValue.depends("_old_current")))
+                    {
+                        b->fNewValue    = b->sValue.evaluate();
+                        lsp_trace("%s new_value = %f", b->pId, b->fNewValue);
+                    }
+                }
             }
 
             // Mark ports as being edited
@@ -198,15 +231,21 @@ namespace lsp
             for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
             {
                 binding_t *b = it.get();
+                if (b == pCurrentBinding)
+                    continue;
 
-                if ((b->pPort != NULL) && (b->pPort != port))
+                if ((b->pPort != NULL) && (b->fNewValue != b->fOldValue))
                 {
                     b->pPort->set_value(b->fNewValue);
                     b->fNewValue = b->pPort->value();
                     lsp_trace("set %s = %f", b->pPort->id(), b->fNewValue);
+
+                    b->fOldValue = b->fNewValue;
                 }
-                b->fOldValue = b->fNewValue;
             }
+
+            if (pCurrentBinding != NULL)
+                pCurrentBinding->fOldValue      = pCurrentBinding->pPort->value();
 
             // Notify changed ports
             for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
@@ -229,11 +268,48 @@ namespace lsp
         {
             if ((name == NULL) || (num_indexes > 0))
                 return STATUS_NOT_FOUND;
-            if (strncmp(name, "_old_", 5) != 0)
-                return STATUS_NOT_FOUND;
 
-            // Lookup for previous values
+            // Requested '_current' value?
+            if (strcmp(name, "_current") == 0)
+            {
+                const float v = (pCurrentBinding != NULL) ? pCurrentBinding->fNewValue : 0.0f;
+                expr::set_value_float(value, v);
+                lsp_trace("resolve _current -> %f", v);
+                return STATUS_OK;
+            }
+            else if (strcmp(name, "_this") == 0)
+            {
+                const float v = (pThisBinding != NULL) ? pThisBinding->fNewValue : 0.0f;
+                expr::set_value_float(value, v);
+                lsp_trace("resolve _this (%s) -> %f", (pThisBinding != NULL) ? pThisBinding->pId : "<unknown>", v);
+                return STATUS_OK;
+            }
+
+            // Check for '_old_' prefix
+            if (strncmp(name, "_old_", 5) != 0)
+            {
+                lsp_trace("Can not resolve: %s", name);
+                return STATUS_NOT_FOUND;
+            }
             name += 5;
+
+            // Requested '_old_current' value?
+            if (strcmp(name, "current") == 0)
+            {
+                const float v = (pCurrentBinding != NULL) ? pCurrentBinding->fOldValue : 0.0f;
+                expr::set_value_float(value, v);
+                lsp_trace("resolve _old_current -> %f", v);
+                return STATUS_OK;
+            }
+            else if (strcmp(name, "this") == 0)
+            {
+                const float v = (pThisBinding != NULL) ? pThisBinding->fOldValue : 0.0f;
+                expr::set_value_float(value, v);
+                lsp_trace("resolve _old_this (_old_%s) -> %f", (pThisBinding != NULL) ? pThisBinding->pId : "<unknown>", v);
+                return STATUS_OK;
+            }
+
+            // Lookup for previous values around
             for (lltl::iterator<binding_t> it = vBindings.values(); it; ++it)
             {
                 binding_t *b = it.get();

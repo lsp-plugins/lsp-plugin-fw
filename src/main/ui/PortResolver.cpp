@@ -49,14 +49,14 @@ namespace lsp
         {
             LSPString path;
             if (!path.set_utf8(name))
-                return STATUS_NO_MEM;
+                return on_not_resolved(name, STATUS_NO_MEM);
             for (size_t i=0; i<num_indexes; ++i)
                 if (!path.fmt_append_utf8("_%d", int(indexes[i])))
-                    return STATUS_NO_MEM;
+                    return on_not_resolved(name, STATUS_NO_MEM);
 
             ui::IPort *p    = (pWrapper != NULL) ? pWrapper->port(path.get_utf8()) : NULL;
             if (p == NULL)
-                return STATUS_NOT_FOUND;
+                return on_not_resolved(name, STATUS_NOT_FOUND);
 
             value->type     = expr::VT_FLOAT;
             value->v_float  = p->value();
@@ -70,16 +70,16 @@ namespace lsp
             if (num_indexes > 0)
             {
                 if (!path.set(name))
-                    return STATUS_NO_MEM;
+                    return on_not_resolved(name, STATUS_NO_MEM);
                 for (size_t i=0; i<num_indexes; ++i)
                     if (!path.fmt_append_utf8("_%d", int(indexes[i])))
-                        return STATUS_NO_MEM;
+                        return on_not_resolved(name, STATUS_NO_MEM);
                 name = &path;
             }
 
             ui::IPort *p    = (pWrapper != NULL) ? pWrapper->port(name->get_utf8()) : NULL;
             if (p == NULL)
-                return STATUS_NOT_FOUND;
+                return on_not_resolved(name, STATUS_NOT_FOUND);
 
             value->type     = expr::VT_FLOAT;
             value->v_float  = p->value();
@@ -95,6 +95,16 @@ namespace lsp
         status_t PortResolver::on_resolved(const char *name, ui::IPort *p)
         {
             return STATUS_OK;
+        }
+
+        status_t PortResolver::on_not_resolved(const LSPString *name, status_t result)
+        {
+            return on_not_resolved(name->get_utf8(), result);
+        }
+
+        status_t PortResolver::on_not_resolved(const char *name, status_t result)
+        {
+            return result;
         }
 
     } /* namespace ui */

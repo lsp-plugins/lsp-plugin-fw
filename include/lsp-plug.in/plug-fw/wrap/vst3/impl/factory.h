@@ -64,6 +64,7 @@ namespace lsp
             pExecutor           = NULL;
             pAppTimer           = NULL;
             pPackage            = NULL;
+            pHostContext        = NULL;
             atomic_store(&pActiveSync, NULL);
 
             sFactoryInfo.vendor[0]  = '\0';
@@ -129,8 +130,8 @@ namespace lsp
 
         void PluginFactory::fill_factory_info(const meta::package_t *manifest)
         {
-            const char *site = (manifest->site != NULL) ? manifest->site : NULL;
-            const char *email = (manifest->email != NULL) ? manifest->email : NULL;
+            const char *site = (manifest->site != NULL) ? manifest->site : "";
+            const char *email = (manifest->email != NULL) ? manifest->email : "";
 
             snprintf(static_cast<char *>(sFactoryInfo.vendor), Steinberg::PFactoryInfo::kNameSize, "%s VST3", manifest->brand);
             sFactoryInfo.vendor[Steinberg::PFactoryInfo::kNameSize-1] = '\0';
@@ -203,7 +204,7 @@ namespace lsp
         {
             status_t res;
             LSPString tmp;
-            char version_str[32];
+            char version_str[Steinberg::PClassInfo2::kVersionSize];
             snprintf(
                 version_str,
                 sizeof(version_str),
@@ -247,7 +248,7 @@ namespace lsp
                 Steinberg::strncpy8(ci->category, kVstComponentControllerClass, Steinberg::PClassInfo::kCategorySize);
                 Steinberg::strncpy8(ci->name, meta->description, Steinberg::PClassInfo::kNameSize);
 
-                ci->classFlags = 0;
+                ci->classFlags = Steinberg::Vst::kDistributable;
                 Steinberg::strncpy8(ci->subCategories, "", Steinberg::PClassInfo2::kSubCategoriesSize);
                 snprintf(static_cast<char *>(ci->vendor), Steinberg::PClassInfo2::kVendorSize, "%s VST3", manifest->brand);
                 ci->vendor[Steinberg::PClassInfo2::kVendorSize-1] = '\0';
@@ -262,7 +263,7 @@ namespace lsp
         {
             status_t res;
             LSPString tmp;
-            char version_str[32];
+            char version_str[Steinberg::PClassInfoW::kVersionSize];
             snprintf(
                 version_str,
                 sizeof(version_str),
@@ -320,7 +321,7 @@ namespace lsp
                     reinterpret_cast<const Steinberg::char16 *>(tmp.get_utf16()),
                     Steinberg::PClassInfo::kNameSize);
 
-                ci->classFlags = 0;
+                ci->classFlags = Steinberg::Vst::kDistributable;
                 Steinberg::strncpy8(ci->subCategories, "", Steinberg::PClassInfo2::kSubCategoriesSize);
                 if (!tmp.fmt_utf8("%s VST3", manifest->brand))
                     return STATUS_NO_MEM;
@@ -339,8 +340,7 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
-            safe_release(pHostContext);
-
+            pHostContext        = NULL;
             if (pLoader != NULL)
             {
                 delete pLoader;
@@ -458,7 +458,7 @@ namespace lsp
         Steinberg::tresult PLUGIN_API PluginFactory::setHostContext(Steinberg::FUnknown *context)
         {
             lsp_trace("this=%p, context=%p", this, context);
-            pHostContext = safe_acquire(context);
+            pHostContext = context;
 
             return Steinberg::kResultOk;
         }

@@ -84,9 +84,17 @@ namespace lsp
 
         status_t Wrapper::init()
         {
-            status_t res;
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
 
             // Load package information
+            status_t res;
             io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
             if (is == NULL)
             {
@@ -689,18 +697,6 @@ namespace lsp
             if (jp != NULL)
             {
                 jp->init();
-                #ifdef LSP_DEBUG
-                    const char *src_id = jp->metadata()->id;
-                    for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
-                    {
-                        jack::Port *p = vAllPorts.uget(i);
-                        if (!strcmp(src_id, p->metadata()->id))
-                        {
-                            lsp_error("ERROR: port %s already defined", src_id);
-                        }
-                    }
-                #endif /* LSP_DEBUG */
-
                 vAllPorts.add(jp);
                 plugin_ports->add(jp);
             }

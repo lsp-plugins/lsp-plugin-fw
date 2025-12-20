@@ -29,6 +29,7 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/factory.h>
+#include <lsp-plug.in/runtime/system.h>
 
 #define LSP_LEGACY_KVT_URI          LSP_LV2_BASE_URI "ui/lv2"
 
@@ -140,36 +141,36 @@ namespace lsp
             ssize_t first = 0, last = vPluginPorts.size() - 1;
             while (first <= last)
             {
-                size_t center   = size_t(first + last) >> 1;
-                lv2::Port *p    = vPluginPorts.uget(center);
-                if (urid == p->get_urid())
-                    return p;
-                else if (urid < p->get_urid())
+                size_t center           = size_t(first + last) >> 1;
+                lv2::Port *p            = vPluginPorts.uget(center);
+                const LV2_URID p_urid   = p->get_urid();
+
+                if (urid < p_urid)
                     last    = center - 1;
-                else
+                else if (urid > p_urid)
                     first   = center + 1;
+                else
+                    return p;
             }
             return NULL;
         }
 
         lv2::Port *Wrapper::port(const char *id)
         {
-            for (size_t i=0, n = vPluginPorts.size(); i<n; ++i)
-            {
-                lv2::Port *p = vPluginPorts.uget(i);
-                if (p == NULL)
-                    continue;
-                const meta::port_t *meta = p->metadata();
-                if (meta == NULL)
-                    continue;
-                if (!strcmp(meta->id, id))
-                    return p;
-            }
-            return NULL;
+            return vPortIndex.get(id);
         }
 
         status_t Wrapper::init(float srate)
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             // Update sample rate
             fSampleRate = srate;
 
@@ -182,8 +183,44 @@ namespace lsp
             for (const meta::port_t *meta = m->ports ; meta->id != NULL; ++meta)
                 create_port(&plugin_ports, meta, NULL, false);
 
-            // Sort port lists
+            // Re-order external ports according to the port revision
+            const int max_revision = meta::max_revision(m->ports);
+            if (max_revision > 0)
+            {
+                lltl::parray<lv2::Port> ext_ports;
+                if (!ext_ports.reserve(vExtPorts.size()))
+                    return STATUS_NO_MEM;
+
+                // Iterate over all revisions and add ports to the new list
+                for (int revision = 0; revision <= max_revision; ++revision)
+                {
+                    for (lltl::iterator<lv2::Port> it=vExtPorts.values(); it; ++it)
+                    {
+                        lv2::Port * const p = it.get();
+                        if (p->metadata()->revision == revision)
+                            ext_ports.add(p);
+                    }
+                }
+
+                // Commit new list sorted by port revision
+                vExtPorts.swap(&ext_ports);
+            }
+
+            // Map external port indices
+            for (lltl::iterator<lv2::Port> it=vExtPorts.values(); it; ++it)
+            {
+                lsp_trace("external port index=%d, id=%s", int(it.index()), it->id());
+                it->set_index(it.index());
+            }
+
+            // Sort and index port lists
             vPluginPorts.qsort(compare_ports_by_urid);
+            for (lltl::iterator<lv2::Port> it = vPluginPorts.values(); it; ++it)
+            {
+                lv2::Port *p = it.get();
+                if (p != NULL)
+                    vPortIndex.create(p->id(), p);
+            }
             vMeshPorts.qsort(compare_ports_by_urid);
             vStreamPorts.qsort(compare_ports_by_urid);
             vFrameBufferPorts.qsort(compare_ports_by_urid);
@@ -309,6 +346,7 @@ namespace lsp
 
             vAllPorts.flush();
             vExtPorts.flush();
+            vPortIndex.flush();
             vPluginPorts.flush();
             vControlPorts.flush();
             vPortGroups.flush();
@@ -457,7 +495,6 @@ namespace lsp
 
                     if (postfix == NULL)
                     {
-                        result->set_index(vExtPorts.size());
                         vExtPorts.add(result);
                         lsp_trace("Added external audio port id=%s, external_id=%d", result->metadata()->id, int(vExtPorts.size() - 1));
                     }
@@ -499,7 +536,6 @@ namespace lsp
 
                     if (postfix == NULL)
                     {
-                        cp->set_index(vExtPorts.size());
                         vExtPorts.add(cp);
                         lsp_trace("Added external control port id=%s, external_id=%d",
                             cp->id(),
@@ -525,7 +561,6 @@ namespace lsp
 
                     if (postfix == NULL)
                     {
-                        mp->set_index(vExtPorts.size());
                         vExtPorts.add(mp);
                         lsp_trace(
                             "Added external meter port id=%s, external_id=%d, urid=%s",
@@ -553,7 +588,6 @@ namespace lsp
 
                     if (postfix == NULL)
                     {
-                        bp->set_index(vExtPorts.size());
                         vExtPorts.add(bp);
                         lsp_trace(
                             "Added external bypass port id=%s, external_id=%d",
@@ -2171,7 +2205,7 @@ namespace lsp
                 else
                 {
                     kvt_dump_parameter("Fetched parameter %s = ", &p, key);
-                    status_t res = sKVT.put(key, &p, flags);
+                    status_t res = sKVT.put(key, &p, flags | core::KVT_STATE);
                     if (res != STATUS_OK)
                         lsp_warn("Could not store parameter to KVT, error: %d", int(res));
                 }
@@ -2265,7 +2299,7 @@ namespace lsp
                 if ((p.type != core::KVT_ANY) && (mask & KP_VALUE))
                 {
                     kvt_dump_parameter("Fetched parameter %s = ", &p, name);
-                    status_t res = sKVT.put(name, &p, flags);
+                    status_t res = sKVT.put(name, &p, flags | core::KVT_STATE);
                     if (res != STATUS_OK)
                         lsp_warn("Could not store parameter to KVT, error: %d", int(res));
                 }

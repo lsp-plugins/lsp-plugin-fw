@@ -247,137 +247,144 @@ namespace lsp
             d->PortNames                        = p_name;
             d->PortRangeHints                   = p_hint;
 
-            for (const meta::port_t *p = m->ports; p->id != NULL; ++p)
+            for (int revision = 0, max_revision = meta::max_revision(m->ports); revision <= max_revision; ++revision)
             {
-                // Skip ports invisible for LADSPA
-                if (!port_supported(p))
-                    continue;
-
-                // Generate port descriptor
-                switch (p->role)
+                for (const meta::port_t *p = m->ports; p->id != NULL; ++p)
                 {
-                    case meta::R_AUDIO_IN:
-                        *p_descr = LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO;
-                        break;
-                    case meta::R_AUDIO_OUT:
-                        *p_descr = LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO;
-                        break;
-                    case meta::R_CONTROL:
-                    case meta::R_BYPASS:
-                        *p_descr = LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL;
-                        break;
-                    case meta::R_METER:
-                        *p_descr = LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL;
-                        break;
-                    default:
-                        *p_descr = (meta::is_out_port(p)) ? LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL : LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL;
-                        break;
-                }
+                    // Skip port if revision does not match
+                    if (p->revision != revision)
+                        continue;
 
-                *p_name                 = add_units(p->name, p->unit);
-                p_hint->HintDescriptor  = 0;
+                    // Skip ports invisible for LADSPA
+                    if (!port_supported(p))
+                        continue;
 
-                if (p->unit == meta::U_BOOL)
-                {
-                    p_hint->HintDescriptor |= LADSPA_HINT_TOGGLED | LADSPA_HINT_BOUNDED_BELOW | LADSPA_HINT_BOUNDED_BELOW;
-                    p_hint->HintDescriptor |= (p->start > 0) ? LADSPA_HINT_DEFAULT_1 : LADSPA_HINT_DEFAULT_0;
-                    p_hint->LowerBound      = 0.0f;
-                    p_hint->UpperBound      = 1.0f;
-                }
-                else if (p->unit == meta::U_ENUM)
-                {
-                    p_hint->HintDescriptor  |= LADSPA_HINT_INTEGER | LADSPA_HINT_BOUNDED_ABOVE | LADSPA_HINT_BOUNDED_BELOW;
-                    p_hint->LowerBound      = (p->flags & meta::F_LOWER) ? p->min : 0;
-                    p_hint->UpperBound      = p_hint->LowerBound + list_size(p->items) - 1;
-
-                    if (p->start == p_hint->LowerBound)
-                        p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MINIMUM;
-                    else if (p->start == p_hint->UpperBound)
-                        p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MAXIMUM;
-                    else if (p->start == 1.0f)
-                        p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_1;
-                    else if (p->start == 0.0f)
-                        p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_0;
-                }
-                else if (p->unit == meta::U_SAMPLES)
-                {
-//                    p_hint->HintDescriptor  |= LADSPA_HINT_INTEGER;
-                    if (p->flags & meta::F_LOWER)
+                    // Generate port descriptor
+                    switch (p->role)
                     {
-                        p_hint->HintDescriptor |= LADSPA_HINT_BOUNDED_BELOW;
-                        p_hint->LowerBound      = p->min;
+                        case meta::R_AUDIO_IN:
+                            *p_descr = LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO;
+                            break;
+                        case meta::R_AUDIO_OUT:
+                            *p_descr = LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO;
+                            break;
+                        case meta::R_CONTROL:
+                        case meta::R_BYPASS:
+                            *p_descr = LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL;
+                            break;
+                        case meta::R_METER:
+                            *p_descr = LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL;
+                            break;
+                        default:
+                            *p_descr = (meta::is_out_port(p)) ? LADSPA_PORT_OUTPUT | LADSPA_PORT_CONTROL : LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL;
+                            break;
                     }
-                    if (p->flags & meta::F_UPPER)
-                    {
-                        p_hint->HintDescriptor |= LADSPA_HINT_BOUNDED_ABOVE;
-                        p_hint->UpperBound      = p->max;
-                    }
-                }
-                else
-                {
-                    if (p->flags & meta::F_LOWER)
-                    {
-                        p_hint->HintDescriptor |= LADSPA_HINT_BOUNDED_BELOW;
-                        p_hint->LowerBound      = p->min;
-                    }
-                    if (p->flags & meta::F_UPPER)
-                    {
-                        p_hint->HintDescriptor |= LADSPA_HINT_BOUNDED_ABOVE;
-                        p_hint->UpperBound      = p->max;
-                    }
-                    if (p->flags & meta::F_LOG)
-                        p_hint->HintDescriptor |= LADSPA_HINT_LOGARITHMIC;
-                }
 
-                // Solve default value
-                if ((!meta::is_audio_port(p)) && ((p_hint->HintDescriptor & LADSPA_HINT_DEFAULT_MASK) == LADSPA_HINT_DEFAULT_NONE))
-                {
-                    if (p->start == 1.0f)
-                        p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_1;
-                    else if (p->start == 0.0f)
-                        p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_0;
-                    else if (p->start == 100.0f)
-                        p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_100;
-                    else if (p->start == 440.0f)
-                        p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_440;
-                    else if ((p->flags & (meta::F_LOWER | meta::F_UPPER))  == (meta::F_LOWER | meta::F_UPPER))
+                    *p_name                 = add_units(p->name, p->unit);
+                    p_hint->HintDescriptor  = 0;
+
+                    if (p->unit == meta::U_BOOL)
                     {
-                        if (p->start <= p->min)
+                        p_hint->HintDescriptor |= LADSPA_HINT_TOGGLED | LADSPA_HINT_BOUNDED_BELOW | LADSPA_HINT_BOUNDED_BELOW;
+                        p_hint->HintDescriptor |= (p->start > 0) ? LADSPA_HINT_DEFAULT_1 : LADSPA_HINT_DEFAULT_0;
+                        p_hint->LowerBound      = 0.0f;
+                        p_hint->UpperBound      = 1.0f;
+                    }
+                    else if (p->unit == meta::U_ENUM)
+                    {
+                        p_hint->HintDescriptor  |= LADSPA_HINT_INTEGER | LADSPA_HINT_BOUNDED_ABOVE | LADSPA_HINT_BOUNDED_BELOW;
+                        p_hint->LowerBound      = (p->flags & meta::F_LOWER) ? p->min : 0;
+                        p_hint->UpperBound      = p_hint->LowerBound + list_size(p->items) - 1;
+
+                        if (p->start == p_hint->LowerBound)
                             p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MINIMUM;
-                        else if (p->start >= p->max)
+                        else if (p->start == p_hint->UpperBound)
                             p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MAXIMUM;
-                        else
+                        else if (p->start == 1.0f)
+                            p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_1;
+                        else if (p->start == 0.0f)
+                            p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_0;
+                    }
+                    else if (p->unit == meta::U_SAMPLES)
+                    {
+    //                    p_hint->HintDescriptor  |= LADSPA_HINT_INTEGER;
+                        if (p->flags & meta::F_LOWER)
                         {
-                            float factor = 0.0f;
-                            if (p->flags & meta::F_LOG)
-                            {
-                                const float thresh      = ((p->flags & meta::F_EXT)     ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
-                                const float step        = logf((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f);
-                                const float min         = (fabsf(p->min) < thresh)      ? logf(thresh) - step : logf(p->min);
-                                const float max         = (fabsf(p->max) < thresh)      ? logf(thresh) - step : logf(p->max);
-                                const float dfl         = (fabsf(p->start) < thresh)    ? logf(thresh) - step : logf(p->start);
-                                factor                  = (dfl - min) / (max - min);
-                            }
-                            else if (p->max != p->min)
-                                factor = (p->start - p->min) / (p->max - p->min);
-
-                            if (factor <= 0.33f)
-                                p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_LOW;
-                            else if (factor >= 0.66f)
-                                p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_HIGH;
-                            else
-                                p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MIDDLE;
+                            p_hint->HintDescriptor |= LADSPA_HINT_BOUNDED_BELOW;
+                            p_hint->LowerBound      = p->min;
+                        }
+                        if (p->flags & meta::F_UPPER)
+                        {
+                            p_hint->HintDescriptor |= LADSPA_HINT_BOUNDED_ABOVE;
+                            p_hint->UpperBound      = p->max;
                         }
                     }
-                    else if (p->flags & meta::F_LOWER)
-                        p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MINIMUM;
-                    else if (p->flags & meta::F_UPPER)
-                        p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MAXIMUM;
-                }
+                    else
+                    {
+                        if (p->flags & meta::F_LOWER)
+                        {
+                            p_hint->HintDescriptor |= LADSPA_HINT_BOUNDED_BELOW;
+                            p_hint->LowerBound      = p->min;
+                        }
+                        if (p->flags & meta::F_UPPER)
+                        {
+                            p_hint->HintDescriptor |= LADSPA_HINT_BOUNDED_ABOVE;
+                            p_hint->UpperBound      = p->max;
+                        }
+                        if (p->flags & meta::F_LOG)
+                            p_hint->HintDescriptor |= LADSPA_HINT_LOGARITHMIC;
+                    }
 
-                p_descr++;
-                p_name++;
-                p_hint++;
+                    // Solve default value
+                    if ((!meta::is_audio_port(p)) && ((p_hint->HintDescriptor & LADSPA_HINT_DEFAULT_MASK) == LADSPA_HINT_DEFAULT_NONE))
+                    {
+                        if (p->start == 1.0f)
+                            p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_1;
+                        else if (p->start == 0.0f)
+                            p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_0;
+                        else if (p->start == 100.0f)
+                            p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_100;
+                        else if (p->start == 440.0f)
+                            p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_440;
+                        else if ((p->flags & (meta::F_LOWER | meta::F_UPPER))  == (meta::F_LOWER | meta::F_UPPER))
+                        {
+                            if (p->start <= p->min)
+                                p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MINIMUM;
+                            else if (p->start >= p->max)
+                                p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MAXIMUM;
+                            else
+                            {
+                                float factor = 0.0f;
+                                if (p->flags & meta::F_LOG)
+                                {
+                                    const float thresh      = ((p->flags & meta::F_EXT)     ? GAIN_AMP_M_140_DB : GAIN_AMP_M_80_DB);
+                                    const float step        = logf((p->flags & meta::F_STEP) ? p->step + 1.0f : 1.01f);
+                                    const float min         = (fabsf(p->min) < thresh)      ? logf(thresh) - step : logf(p->min);
+                                    const float max         = (fabsf(p->max) < thresh)      ? logf(thresh) - step : logf(p->max);
+                                    const float dfl         = (fabsf(p->start) < thresh)    ? logf(thresh) - step : logf(p->start);
+                                    factor                  = (dfl - min) / (max - min);
+                                }
+                                else if (p->max != p->min)
+                                    factor = (p->start - p->min) / (p->max - p->min);
+
+                                if (factor <= 0.33f)
+                                    p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_LOW;
+                                else if (factor >= 0.66f)
+                                    p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_HIGH;
+                                else
+                                    p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MIDDLE;
+                            }
+                        }
+                        else if (p->flags & meta::F_LOWER)
+                            p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MINIMUM;
+                        else if (p->flags & meta::F_UPPER)
+                            p_hint->HintDescriptor |= LADSPA_HINT_DEFAULT_MAXIMUM;
+                    }
+
+                    p_descr++;
+                    p_name++;
+                    p_hint++;
+                }
             }
 
             // Describe latency port

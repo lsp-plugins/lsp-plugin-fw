@@ -53,6 +53,7 @@ namespace lsp
             KVT_DELEGATE        = 1 << 3,       // Delegate the control over parameter's data to the storage
             KVT_PRIVATE         = 1 << 4,       // Private option (do not transfer)
             KVT_TRANSIENT       = 1 << 5,       // Transient option (do not serialize)
+            KVT_STATE           = 1 << 6,       // State restore of parameter
 
             // Special constants to not to be confused with KVT_RX and KVT_TX abbreviations
             KVT_TO_UI           = KVT_TX,
@@ -108,7 +109,7 @@ namespace lsp
                  * @param storage KVT storage that triggered the event
                  * @param id the full unique identifier of parameter
                  * @param param parameter
-                 * @param pending pending flags (KVT_TX or KVT_RX)
+                 * @param pending pending flags (KVT_TX, KVT_RX, KVT_STATE)
                  */
                 virtual void created(KVTStorage *storage, const char *id, const kvt_param_t *param, size_t pending);
 
@@ -119,7 +120,7 @@ namespace lsp
                  * @param id the full unique identifier of parameter
                  * @param rej the rejected parameter
                  * @param curr current value parameter
-                 * @param pending pending flags (KVT_TX or KVT_RX)
+                 * @param pending pending flags (KVT_TX, KVT_RX, KVT_STATE)
                  */
                 virtual void rejected(KVTStorage *storage, const char *id, const kvt_param_t *rej, const kvt_param_t *curr, size_t pending);
 
@@ -129,7 +130,7 @@ namespace lsp
                  * @param id the full unique identifier of parameter
                  * @param oval old value of parameter
                  * @param nval new value of parameter
-                 * @param pending pending flags (KVT_TX or KVT_RX)
+                 * @param pending pending flags (KVT_TX, KVT_RX, KVT_STATE)
                  */
                 virtual void changed(KVTStorage *storage, const char *id, const kvt_param_t *oval, const kvt_param_t *nval, size_t pending);
 
@@ -138,7 +139,7 @@ namespace lsp
                  * @param storage KVT storage that triggered the event
                  * @param id the full unique identifier of parameter
                  * @param param the value of removed parameter
-                 * @param pending pending flags (KVT_TX or KVT_RX)
+                 * @param pending pending flags (KVT_TX, KVT_RX)
                  */
                 virtual void removed(KVTStorage *storage, const char *id, const kvt_param_t *param, size_t pending);
 
@@ -147,7 +148,7 @@ namespace lsp
                  * @param storage KVT storage that triggered the event
                  * @param id parameter identifier
                  * @param param parameter
-                 * @param pending pending flags (KVT_TX or KVT_RX)
+                 * @param pending pending flags (KVT_TX, KVT_RX)
                  */
                 virtual void access(KVTStorage *storage, const char *id, const kvt_param_t *param, size_t pending);
 
@@ -155,7 +156,7 @@ namespace lsp
                  * The parameter has been committed (it's modification flag has been reset)
                  * @param storage KVT storage that triggered the event
                  * @param id parameter identifier
-                 * @param pending pending flags (KVT_TX or KVT_RX)
+                 * @param pending pending flags (KVT_TX, KVT_RX, KVT_STATE)
                  * @param param parameter parameter value
                  */
                 virtual void commit(KVTStorage *storage, const char *id, const kvt_param_t *param, size_t pending);

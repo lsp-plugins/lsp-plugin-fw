@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 янв. 2022 г.
@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/wrap/ladspa/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/ladspa/ports.h>
+#include <lsp-plug.in/runtime/system.h>
 
 namespace lsp
 {
@@ -48,6 +49,15 @@ namespace lsp
 
         status_t Wrapper::init(unsigned long sr)
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             status_t res;
 
             // Load package information
@@ -74,6 +84,37 @@ namespace lsp
             const meta::plugin_t *m = pPlugin->metadata();
             for (const meta::port_t *port = m->ports; port->id != NULL; ++port)
                 create_port(&plugin_ports, port);
+
+            // Re-order external ports according to the port revision
+            const int max_revision = meta::max_revision(m->ports);
+            if (max_revision > 0)
+            {
+                lltl::parray<ladspa::Port> ext_ports;
+                if (!ext_ports.reserve(vExtPorts.size()))
+                    return STATUS_NO_MEM;
+
+                // Iterate over all revisions and add ports to the new list
+                for (int revision = 0; revision <= max_revision; ++revision)
+                {
+                    for (lltl::iterator<ladspa::Port> it=vExtPorts.values(); it; ++it)
+                    {
+                        ladspa::Port * const p = it.get();
+                        if (p->metadata()->revision == revision)
+                            ext_ports.add(p);
+                    }
+                }
+
+                // Commit new list sorted by port revision
+                vExtPorts.swap(&ext_ports);
+            }
+
+        #ifdef LSP_TRACE
+            // Log port indices
+            for (lltl::iterator<ladspa::Port> it=vExtPorts.values(); it; ++it)
+            {
+                lsp_trace("external port index=%d, id=%s", int(it.index()), it->id());
+            }
+        #endif /* LSP_TRACE */
 
             // Store the latency ID port
             nLatencyID              = vExtPorts.size();

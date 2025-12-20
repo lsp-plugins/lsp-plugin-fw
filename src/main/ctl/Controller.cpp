@@ -95,6 +95,7 @@ namespace lsp
         {
             if (v == NULL)
                 return false;
+
             if (strcmp(param, name))
                 return false;
             PARSE_BOOL(value, *v = __);
@@ -105,6 +106,7 @@ namespace lsp
         {
             if (v == NULL)
                 return false;
+
             if (strcmp(param, name))
                 return false;
             PARSE_INT(value, *v = __);
@@ -115,6 +117,7 @@ namespace lsp
         {
             if (v == NULL)
                 return false;
+
             if (strcmp(param, name))
                 return false;
             PARSE_UINT(value, *v = __);
@@ -125,6 +128,7 @@ namespace lsp
         {
             if (v == NULL)
                 return false;
+
             if (strcmp(param, name))
                 return false;
             PARSE_FLOAT(value, *v = __);
@@ -135,6 +139,7 @@ namespace lsp
         {
             if (v == NULL)
                 return false;
+
             if (strcmp(param, name))
                 return false;
 
@@ -146,6 +151,7 @@ namespace lsp
         {
             if (expr == NULL)
                 return false;
+
             if (strcmp(name, param))
                 return false;
 

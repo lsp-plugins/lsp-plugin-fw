@@ -27,6 +27,7 @@
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/wrapper.h>
+#include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
 namespace lsp
@@ -254,6 +255,15 @@ namespace lsp
 
         status_t Wrapper::init()
         {
+        #ifdef LSP_TRACE
+            lsp_trace("Begin plugin wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("Plugin wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
             const meta::plugin_t *meta = pPlugin->metadata();
 
             // Create all possible ports for plugin
@@ -261,6 +271,40 @@ namespace lsp
             lsp_trace("Creating ports for %s - %s", meta->name, meta->description);
             for (const meta::port_t *port = meta->ports; (port != NULL) && (port->id != NULL); ++port)
                 create_port(&plugin_ports, port, NULL);
+
+            // Re-order port mapping according to the revision order
+            const int max_revision = meta::max_revision(meta->ports);
+            if (max_revision > 0)
+            {
+                lltl::parray<plug::IPort> ext_ports;
+                if (!ext_ports.reserve(vPortMapping.size()))
+                    return STATUS_NO_MEM;
+
+                // Iterate over all revisions and add ports to the new list
+                for (int revision = 0; revision <= max_revision; ++revision)
+                {
+                    for (lltl::iterator<plug::IPort> it=vPortMapping.values(); it; ++it)
+                    {
+                        plug::IPort * const p = it.get();
+                        if (p->metadata()->revision == revision)
+                        {
+                            lsp_trace("external port index=%d, id=%s", int(ext_ports.size()), p->id());
+                            ext_ports.add(p);
+                        }
+                    }
+                }
+
+                // Commit new list sorted by port revision
+                vPortMapping.swap(&ext_ports);
+            }
+
+        #ifdef LSP_TRACE
+            // Log port indices
+            for (lltl::iterator<plug::IPort> it=vPortMapping.values(); it; ++it)
+            {
+                lsp_trace("external port index=%d, id=%s", int(it.index()), it->id());
+            }
+        #endif /* LSP_TRACE */
 
             // Create audio port mapping
             make_audio_mapping(vSink, vAudioIn, meta, false);

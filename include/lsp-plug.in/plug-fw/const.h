@@ -33,6 +33,7 @@
 #define TEMP_ABS_ZERO                       LSP_DSP_UNITS_TEMP_ABS_ZERO
 #define SPEC_FREQ_MIN                       LSP_DSP_UNITS_SPEC_FREQ_MIN
 #define SPEC_FREQ_MAX                       LSP_DSP_UNITS_SPEC_FREQ_MAX
+#define SPEC_FREQ_CENTER                    LSP_DSP_UNITS_SPEC_FREQ_CENTER
 #define MAX_SHM_SEGMENT_NAME_BYTES          0x40
 #define MAX_SHM_SEGMENT_NAME_CHARS          0x20
 
@@ -45,8 +46,7 @@
 #define DEFAULT_TICKS_PER_BEAT              1920.0f             /* Default tick per beat resolution                 */
 #define MIDI_EVENTS_MAX                     4096                /* Maximum number of MIDI events per buffer         */
 #define OSC_BUFFER_MAX                      0x100000            /* Maximum size of the OSC messaging buffer (bytes) */
-#define OSC_PACKET_MAX                      0x10000             /* Maximum size of the OSC packet (bytes)           */
-#define OPTIMAL_ALIGN                       64                  /* Optimal data structure alignment                 */
+#define OSC_PACKET_MAX                      0x40000             /* Maximum size of the OSC packet (bytes)           */
 #define MAX_PARAM_ID_BYTES                  64
 #define FLOAT_CMP_PREC                      1e-6f               /* Float comparison precision                       */
 #define UI_FRAMES_PER_SECOND                25                  /* Preferred UI FPS                                 */

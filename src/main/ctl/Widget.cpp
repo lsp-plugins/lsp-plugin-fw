@@ -98,21 +98,54 @@ namespace lsp
             if (strncmp(name, param, len))
                 return false;
 
-            name += len;
+            if (name[len] != '.')
+                return false;
+            name += len + 1;
 
-            if      (!strcmp(name, ".name"))        f->set_name(value);
-            else if (!strcmp(name, ".size"))        PARSE_FLOAT(value, f->set_size(__));
-            else if (!strcmp(name, ".sz"))          PARSE_FLOAT(value, f->set_size(__));
-            else if (!strcmp(name, ".bold"))        PARSE_BOOL(value, f->set_bold(__));
-            else if (!strcmp(name, ".b"))           PARSE_BOOL(value, f->set_bold(__));
-            else if (!strcmp(name, ".italic"))      PARSE_BOOL(value, f->set_italic(__));
-            else if (!strcmp(name, ".i"))           PARSE_BOOL(value, f->set_italic(__));
-            else if (!strcmp(name, ".underline"))   PARSE_BOOL(value, f->set_underline(__));
-            else if (!strcmp(name, ".u"))           PARSE_BOOL(value, f->set_underline(__));
-            else if (!strcmp(name, ".antialiasing"))f->set_antialiasing(value);
-            else if (!strcmp(name, ".antialias"))   f->set_antialiasing(value);
-            else if (!strcmp(name, ".a"))           f->set_antialiasing(value);
-            else return false;
+            switch (name[0])
+            {
+                case 'a':
+                    ++name;
+                    if (name[0] == '\0')                    f->set_antialiasing(value);
+                    else if (!strcmp(name, "ntialiasing"))  f->set_antialiasing(value);
+                    else if (!strcmp(name, "ntialias"))     f->set_antialiasing(value);
+                    else return false;
+                    break;
+
+                case 'b':
+                    ++name;
+                    if (name[0] == '\0')                    PARSE_BOOL(value, f->set_bold(__));
+                    else if (!strcmp(name, "old"))          PARSE_BOOL(value, f->set_bold(__));
+                    else return false;
+                    break;
+
+                case 'i':
+                    ++name;
+                    if (name[0] == '\0')                    PARSE_BOOL(value, f->set_italic(__));
+                    else if (!strcmp(name, "talic"))        PARSE_BOOL(value, f->set_italic(__));
+                    else return false;
+                    break;
+
+                case 'u':
+                    ++name;
+                    if (name[0] == '\0')                    PARSE_BOOL(value, f->set_underline(__));
+                    else if (!strcmp(name, "nderline"))     PARSE_BOOL(value, f->set_underline(__));
+                    else return false;
+                    break;
+
+                case 'n':
+                    ++name;
+                    if (!strcmp(name, "ame"))               f->set_name(value);
+                    else return false;
+                    break;
+
+                case 's':
+                    ++name;
+                    if (!strcmp(name, "z"))                 PARSE_FLOAT(value, f->set_size(__));
+                    else if (!strcmp(name, "ize"))          PARSE_FLOAT(value, f->set_size(__));
+                    else return false;
+                    break;
+            }
 
             return true;
         }
@@ -154,16 +187,45 @@ namespace lsp
             if (alloc == NULL)
                 return false;
 
-            if      (!strcmp(name, "fill"))         PARSE_BOOL(value, alloc->set_fill(__));
-            else if (!strcmp(name, "hfill"))        PARSE_BOOL(value, alloc->set_hfill(__));
-            else if (!strcmp(name, "vfill"))        PARSE_BOOL(value, alloc->set_vfill(__));
-            else if (!strcmp(name, "expand"))       PARSE_BOOL(value, alloc->set_expand(__));
-            else if (!strcmp(name, "hexpand"))      PARSE_BOOL(value, alloc->set_hexpand(__));
-            else if (!strcmp(name, "vexpand"))      PARSE_BOOL(value, alloc->set_vexpand(__));
-            else if (!strcmp(name, "reduce"))       PARSE_BOOL(value, alloc->set_reduce(__));
-            else if (!strcmp(name, "hreduce"))      PARSE_BOOL(value, alloc->set_hreduce(__));
-            else if (!strcmp(name, "vreduce"))      PARSE_BOOL(value, alloc->set_vreduce(__));
-            else return false;
+            switch (name[0])
+            {
+                case 'h':
+                    ++name;
+                    if (!strcmp(name, "fill"))          PARSE_BOOL(value, alloc->set_hfill(__));
+                    else if (!strcmp(name, "expand"))   PARSE_BOOL(value, alloc->set_hexpand(__));
+                    else if (!strcmp(name, "reduce"))   PARSE_BOOL(value, alloc->set_hreduce(__));
+                    else return false;
+                    break;
+
+                case 'v':
+                    ++name;
+                    if (!strcmp(name, "fill"))          PARSE_BOOL(value, alloc->set_vfill(__));
+                    else if (!strcmp(name, "expand"))   PARSE_BOOL(value, alloc->set_vexpand(__));
+                    else if (!strcmp(name, "reduce"))   PARSE_BOOL(value, alloc->set_vreduce(__));
+                    else return false;
+                    break;
+
+                case 'e':
+                    ++name;
+                    if (!strcmp(name, "xpand"))         PARSE_BOOL(value, alloc->set_expand(__));
+                    else return false;
+                    break;
+
+                case 'r':
+                    ++name;
+                    if (!strcmp(name, "educe"))         PARSE_BOOL(value, alloc->set_reduce(__));
+                    else return false;
+                    break;
+
+                case 'f':
+                    ++name;
+                    if (!strcmp(name, "ill"))           PARSE_BOOL(value, alloc->set_fill(__));
+                    else return false;
+                    break;
+
+                default:
+                    return false;
+            }
 
             return true;
         }
@@ -173,24 +235,48 @@ namespace lsp
             if (c == NULL)
                 return false;
 
-            if      (!strcmp(name, "width"))        PARSE_INT(value, c->set_width(__));
-            else if (!strcmp(name, "wmin"))         PARSE_INT(value, c->set_min_width(__));
-            else if (!strcmp(name, "width.min"))    PARSE_INT(value, c->set_min_width(__));
-            else if (!strcmp(name, "wmax"))         PARSE_INT(value, c->set_max_width(__));
-            else if (!strcmp(name, "width.max"))    PARSE_INT(value, c->set_max_width(__));
-            else if (!strcmp(name, "min_width"))    PARSE_INT(value, c->set_min_width(__));
-            else if (!strcmp(name, "max_width"))    PARSE_INT(value, c->set_max_width(__));
-            else if (!strcmp(name, "height"))       PARSE_INT(value, c->set_height(__));
-            else if (!strcmp(name, "hmin"))         PARSE_INT(value, c->set_min_height(__));
-            else if (!strcmp(name, "height.min"))   PARSE_INT(value, c->set_min_height(__));
-            else if (!strcmp(name, "hmax"))         PARSE_INT(value, c->set_max_height(__));
-            else if (!strcmp(name, "height.max"))   PARSE_INT(value, c->set_max_height(__));
-            else if (!strcmp(name, "min_height"))   PARSE_INT(value, c->set_min_height(__));
-            else if (!strcmp(name, "max_height"))   PARSE_INT(value, c->set_max_height(__));
-            else if (!strcmp(name, "size"))         PARSE_INT(value, c->set_all(__));
-            else if (!strcmp(name, "size.min"))     PARSE_INT(value, c->set_min(__));
-            else if (!strcmp(name, "size.max"))     PARSE_INT(value, c->set_max(__));
-            else return false;
+            switch (name[0])
+            {
+                case 'w':
+                    ++name;
+                    if      (!strcmp(name, "idth"))         PARSE_INT(value, c->set_width(__));
+                    else if (!strcmp(name, "min"))          PARSE_INT(value, c->set_min_width(__));
+                    else if (!strcmp(name, "idth.min"))     PARSE_INT(value, c->set_min_width(__));
+                    else if (!strcmp(name, "max"))          PARSE_INT(value, c->set_max_width(__));
+                    else if (!strcmp(name, "idth.max"))     PARSE_INT(value, c->set_max_width(__));
+                    else return false;
+                    break;
+
+                case 'h':
+                    ++name;
+                    if (!strcmp(name, "eight"))             PARSE_INT(value, c->set_height(__));
+                    else if (!strcmp(name, "min"))          PARSE_INT(value, c->set_min_height(__));
+                    else if (!strcmp(name, "eight.min"))    PARSE_INT(value, c->set_min_height(__));
+                    else if (!strcmp(name, "max"))          PARSE_INT(value, c->set_max_height(__));
+                    else if (!strcmp(name, "eight.max"))    PARSE_INT(value, c->set_max_height(__));
+                    else return false;
+                    break;
+
+                case 'm':
+                    ++name;
+                    if (!strcmp(name, "in_width"))          PARSE_INT(value, c->set_min_width(__));
+                    else if (!strcmp(name, "ax_width"))     PARSE_INT(value, c->set_max_width(__));
+                    else if (!strcmp(name, "in_height"))    PARSE_INT(value, c->set_min_height(__));
+                    else if (!strcmp(name, "ax_height"))    PARSE_INT(value, c->set_max_height(__));
+                    else return false;
+                    break;
+
+                case 's':
+                    ++name;
+                    if (!strcmp(name, "ize"))               PARSE_INT(value, c->set_all(__));
+                    else if (!strcmp(name, "ize.min"))      PARSE_INT(value, c->set_min(__));
+                    else if (!strcmp(name, "ize.max"))      PARSE_INT(value, c->set_max(__));
+                    else return false;
+                    break;
+
+                default:
+                    return false;
+            }
 
             return true;
         }
@@ -249,13 +335,32 @@ namespace lsp
             if (l == NULL)
                 return false;
 
-            if      (!strcmp(name, "htext"))        PARSE_FLOAT(value, l->set_halign(__));
-            else if (!strcmp(name, "text.halign"))  PARSE_FLOAT(value, l->set_halign(__));
-            else if (!strcmp(name, "text.h"))       PARSE_FLOAT(value, l->set_halign(__));
-            else if (!strcmp(name, "vtext"))        PARSE_FLOAT(value, l->set_valign(__));
-            else if (!strcmp(name, "text.valign"))  PARSE_FLOAT(value, l->set_valign(__));
-            else if (!strcmp(name, "text.v"))       PARSE_FLOAT(value, l->set_valign(__));
-            else return false;
+            switch (name[0])
+            {
+                case 'h':
+                    ++name;
+                    if      (!strcmp(name, "text"))         PARSE_FLOAT(value, l->set_halign(__));
+                    else return false;
+                    break;
+
+                case 'v':
+                    ++name;
+                    if      (!strcmp(name, "text"))         PARSE_FLOAT(value, l->set_valign(__));
+                    else return false;
+                    break;
+
+                case 't':
+                    ++name;
+                    if (!strcmp(name, "text.halign"))       PARSE_FLOAT(value, l->set_halign(__));
+                    else if (!strcmp(name, "text.h"))       PARSE_FLOAT(value, l->set_halign(__));
+                    else if (!strcmp(name, "text.valign"))  PARSE_FLOAT(value, l->set_valign(__));
+                    else if (!strcmp(name, "text.v"))       PARSE_FLOAT(value, l->set_valign(__));
+                    else return false;
+
+                    break;
+                default:
+                    return false;
+            }
 
             return true;
         }
@@ -267,13 +372,27 @@ namespace lsp
             if (!(name = match_prefix(param, name)))
                 return false;
 
-            if      (!strcmp(name, "htext"))        PARSE_FLOAT(value, l->set_halign(__));
-            else if (!strcmp(name, "halign"))       PARSE_FLOAT(value, l->set_halign(__));
-            else if (!strcmp(name, "h"))            PARSE_FLOAT(value, l->set_halign(__));
-            else if (!strcmp(name, "vtext"))        PARSE_FLOAT(value, l->set_valign(__));
-            else if (!strcmp(name, "valign"))       PARSE_FLOAT(value, l->set_valign(__));
-            else if (!strcmp(name, "v"))            PARSE_FLOAT(value, l->set_valign(__));
-            else return false;
+            switch (name[0])
+            {
+                case 'h':
+                    ++name;
+                    if      (name[0] == '\0')               PARSE_FLOAT(value, l->set_halign(__));
+                    else if (!strcmp(name, "text"))         PARSE_FLOAT(value, l->set_halign(__));
+                    else if (!strcmp(name, "align"))        PARSE_FLOAT(value, l->set_halign(__));
+                    else return false;
+                    break;
+
+                case 'v':
+                    ++name;
+                    if      (name[0] == '\0')               PARSE_FLOAT(value, l->set_valign(__));
+                    else if (!strcmp(name, "text"))         PARSE_FLOAT(value, l->set_valign(__));
+                    else if (!strcmp(name, "align"))        PARSE_FLOAT(value, l->set_valign(__));
+                    else return false;
+                    break;
+
+                default:
+                    return false;
+            }
 
             return true;
         }

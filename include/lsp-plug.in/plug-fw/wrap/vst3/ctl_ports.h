@@ -381,9 +381,9 @@ namespace lsp
             public:
                 void commit_value(const char *text)
                 {
-                    size_t size = strnlen(text, MAX_PATH_LEN-1);
+                    size_t size = strnlen(text, MAX_PATH_LEN - 1);
                     memcpy(sPath, text, size);
-                    sPath[size-1] = '\0';
+                    sPath[size] = '\0';
                 }
         };
 

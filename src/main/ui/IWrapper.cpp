@@ -48,6 +48,62 @@ static const char *config_separator = "-----------------------------------------
 
 namespace lsp
 {
+#define TRACE_STRCMP_CALLS
+
+#ifdef TRACE_STRCMP_CALLS
+    size_t wrapper_strcmp_calls = 0;
+    size_t wrapper_switched_strcmp_calls = 0;
+    size_t wrapper_config_strcmp_calls = 0;
+    size_t wrapper_time_strcmp_calls = 0;
+    size_t wrapper_custom_strcmp_calls = 0;
+    size_t wrapper_search_strcmp_calls = 0;
+    size_t wrapper_sort_strcmp_calls = 0;
+#endif /* TRACE_STRCMP_CALLS */
+
+#define PORT_HASH_IFACE         lltl::hash_iface{ lltl::char_hash_func }
+#define PORT_COMPARE_IFACE      lltl::compare_iface { lltl::char_cmp_func }
+
+#ifdef TRACE_STRCMP_CALLS
+    static ssize_t trace_plugin_strcmp_func(const void *a, const void *b, size_t size)
+    {
+        ++wrapper_strcmp_calls;
+        ++wrapper_search_strcmp_calls;
+        return ::strcmp(static_cast<const char *>(a), static_cast<const char *>(b));
+    }
+
+    static ssize_t trace_custom_strcmp_func(const void *a, const void *b, size_t size)
+    {
+        ++wrapper_strcmp_calls;
+        ++wrapper_custom_strcmp_calls;
+        return ::strcmp(static_cast<const char *>(a), static_cast<const char *>(b));
+    }
+
+    static ssize_t trace_switched_strcmp_func(const void *a, const void *b, size_t size)
+    {
+        ++wrapper_strcmp_calls;
+        ++wrapper_switched_strcmp_calls;
+        return ::strcmp(static_cast<const char *>(a), static_cast<const char *>(b));
+    }
+
+    static ssize_t trace_config_strcmp_func(const void *a, const void *b, size_t size)
+    {
+        ++wrapper_strcmp_calls;
+        ++wrapper_config_strcmp_calls;
+        return ::strcmp(static_cast<const char *>(a), static_cast<const char *>(b));
+    }
+
+    #define PLUGIN_PORT_COMPARE_IFACE       lltl::compare_iface { trace_plugin_strcmp_func }
+    #define CUSTOM_PORT_COMPARE_IFACE       lltl::compare_iface { trace_custom_strcmp_func }
+    #define SWITCHED_PORT_COMPARE_IFACE     lltl::compare_iface { trace_switched_strcmp_func }
+    #define CONFIG_PORT_COMPARE_IFACE       lltl::compare_iface { trace_config_strcmp_func }
+
+#else
+    #define PLUGIN_PORT_COMPARE_IFACE       PORT_COMPARE_IFACE
+    #define CUSTOM_PORT_COMPARE_IFACE       PORT_COMPARE_IFACE
+    #define SWITCHED_PORT_COMPARE_IFACE     PORT_COMPARE_IFACE
+    #define CONFIG_PORT_COMPARE_IFACE       PORT_COMPARE_IFACE
+#endif /* TRACE_STRCMP_CALLS */
+
     // Metadata for the wrapper
     namespace meta
     {
@@ -104,6 +160,7 @@ namespace lsp
             SWITCH(UI_FILELIST_NAVIGATION_AUTOPLAY_ID, "Enable automatic playback of the audio file in the file navigator when selected", NULL, 0.0f),
             SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", NULL, 0.0f),
             SWITCH(UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID, "Show piano keyboard layout on frequency graph", NULL, 1.0f),
+            SWITCH(UI_CONFIG_USER_FRIENDLY_VALUES_ID, "User-friendly values in configuration file", NULL, 1.0f),
             PORTS_END
         };
 
@@ -181,7 +238,11 @@ namespace lsp
             return json.end_array();
         }
 
-        IWrapper::IWrapper(Module *ui, resource::ILoader *loader)
+        IWrapper::IWrapper(Module *ui, resource::ILoader *loader):
+            vPluginPorts(PORT_HASH_IFACE, PLUGIN_PORT_COMPARE_IFACE),
+            vCustomPorts(PORT_HASH_IFACE, CUSTOM_PORT_COMPARE_IFACE),
+            vSwitchedPorts(PORT_HASH_IFACE, SWITCHED_PORT_COMPARE_IFACE),
+            vConfigMapping(PORT_HASH_IFACE, CONFIG_PORT_COMPARE_IFACE)
         {
             pDisplay            = NULL;
             wWindow             = NULL;
@@ -272,20 +333,21 @@ namespace lsp
             evaluated.flush();
 
             // Clear sorted ports
-            vSortedPorts.flush();
+//            vSortedPorts.flush();
+            vPluginPorts.flush();
 
             // Destroy switched ports in two passes.
             // 1. Disconnect from dependent ports.
-            for (size_t i=0, n=vSwitchedPorts.size(); i<n; ++i)
+            for (lltl::iterator<SwitchedPort> it = vSwitchedPorts.values(); it; ++it)
             {
-                SwitchedPort *p = vSwitchedPorts.uget(i);
+                SwitchedPort *p = it.get();
                 if (p != NULL)
                     p->destroy();
             }
             // 2. Free memory allocated for the switched port.
-            for (size_t i=0, n=vSwitchedPorts.size(); i<n; ++i)
+            for (lltl::iterator<SwitchedPort> it = vSwitchedPorts.values(); it; ++it)
             {
-                IPort *p = vSwitchedPorts.uget(i);
+                ui::IPort *p = it.get();
                 if (p != NULL)
                 {
                     lsp_trace("Destroy switched port id=%s", p->id());
@@ -295,6 +357,7 @@ namespace lsp
             vSwitchedPorts.flush();
 
             // Destroy config ports
+            vConfigMapping.flush();
             for (size_t i=0, n=vConfigPorts.size(); i<n; ++i)
             {
                 IPort *p = vConfigPorts.uget(i);
@@ -319,9 +382,9 @@ namespace lsp
             vTimePorts.flush();
 
             // Destroy custom ports
-            for (size_t i=0, n=vCustomPorts.size(); i<n; ++i)
+            for (lltl::iterator<ui::IPort> it=vCustomPorts.values(); it; ++it)
             {
-                IPort *p = vCustomPorts.uget(i);
+                IPort *p = it.get();
                 if (p != NULL)
                 {
                     lsp_trace("Destroy custom port id=%s", p->metadata()->id);
@@ -345,7 +408,16 @@ namespace lsp
         {
             status_t res;
 
-            // Create additional ports (ui)
+        #ifdef LSP_TRACE
+            lsp_trace("Begin UI wrapper initialization");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("UI wrapper initialization time: %d ms", int(end - start));
+            };
+        #endif /* LSP_TRACE */
+
+            // Create additional ports (global configuration)
             for (const meta::port_t *p = meta::config_metadata; p->id != NULL; ++p)
             {
                 switch (p->role)
@@ -354,7 +426,10 @@ namespace lsp
                     {
                         IPort *up = new ControlPort(p, this);
                         if (up != NULL)
+                        {
                             vConfigPorts.add(up);
+                            vConfigMapping.create(up->id(), up);
+                        }
                         break;
                     }
 
@@ -362,7 +437,10 @@ namespace lsp
                     {
                         IPort *up = new PathPort(p, this);
                         if (up != NULL)
+                        {
                             vConfigPorts.add(up);
+                            vConfigMapping.create(up->id(), up);
+                        }
                         break;
                     }
 
@@ -543,117 +621,95 @@ namespace lsp
 
             // Check that port name contains index
             if (strchr(id, '[') != NULL)
-            {
-                // Try to find switched port
-                size_t count = vSwitchedPorts.size();
-                for (size_t i=0; i<count; ++i)
-                {
-                    SwitchedPort *p  = vSwitchedPorts.uget(i);
-                    if (p == NULL)
-                        continue;
-                    const char *p_id    = p->id();
-                    if (p_id == NULL)
-                        continue;
-                    if (!strcmp(id, p_id))
-                        return p;
-                }
-
-                // Create new switched port (lazy initialization)
-                SwitchedPort *s     = new SwitchedPort(this);
-                if (s == NULL)
-                    return NULL;
-
-                if (s->compile(id))
-                {
-                    if (vSwitchedPorts.add(s))
-                        return s;
-                }
-
-                delete s;
-                return NULL;
-            }
+                return switched_port_by_id(id);
 
             // Check that port name contains "_ui_" prefix
             if (strstr(id, UI_CONFIG_PORT_PREFIX) == id)
-            {
-                const char *ui_id = &id[strlen(UI_CONFIG_PORT_PREFIX)];
-
-                // Try to find configuration port
-                size_t count = vConfigPorts.size();
-                for (size_t i=0; i<count; ++i)
-                {
-                    IPort *p            = vConfigPorts.uget(i);
-                    if (p == NULL)
-                        continue;
-                    const char *p_id    = p->metadata()->id;
-                    if (p_id == NULL)
-                        continue;
-                    if (!strcmp(p_id, ui_id))
-                        return p;
-                }
-            }
+                return config_port_by_id(&id[UI_CONFIG_PORT_PREFIX_LEN]);
 
             // Check that port name contains "_time_" prefix
             if (strstr(id, TIME_PORT_PREFIX) == id)
-            {
-                const char *ui_id = &id[strlen(TIME_PORT_PREFIX)];
+                return time_port_by_id(&id[TIME_PORT_PREFIX_LEN]);
 
-                // Try to find configuration port
-                size_t count = vTimePorts.size();
-                for (size_t i=0; i<count; ++i)
-                {
-                    IPort *p            = vTimePorts.uget(i);
-                    if (p == NULL)
-                        continue;
-                    const char *p_id    = p->metadata()->id;
-                    if (p_id == NULL)
-                        continue;
-                    if (!strcmp(p_id, ui_id))
-                        return p;
-                }
-            }
+            // Look for custom ports ports
+            port = custom_port_by_id(id);
+            if (port == NULL)
+                port = plugin_port_by_id(id);
 
-            // Look to custom ports
-            for (size_t i=0, n=vCustomPorts.size(); i<n; ++i)
-            {
-                IPort *p = vCustomPorts.get(i);
-                const meta::port_t *ctl = (p != NULL) ? p->metadata() : NULL;
-                if ((ctl != NULL) && (!strcmp(id, ctl->id)))
-                    return p;
-            }
-
-            return port_by_id(id);
+            return port;
         }
 
-        ui::IPort *IWrapper::port_by_id(const char *id)
+        ui::IPort *IWrapper::switched_port_by_id(const char *id)
         {
-            // Do usual stuff
-            size_t count = vPorts.size();
-            if (vSortedPorts.size() != count)
-                count = rebuild_sorted_ports();
+            SwitchedPort *port      = vSwitchedPorts.get(id);
+            if (port != NULL)
+                return port;
 
-            // Try to find the corresponding port
-            ssize_t first = 0, last = count - 1;
-            while (first <= last)
+            // Create new switched port (lazy initialization)
+            port                    = new SwitchedPort(this);
+            if (port == NULL)
+                return NULL;
+
+            if (port->compile(id))
             {
-                size_t center           = (first + last) >> 1;
-                IPort *p                = vSortedPorts.uget(center);
-                if (p == NULL)
-                    break;
-                const meta::port_t *ctl = p->metadata();
-                if (ctl == NULL)
-                    break;
+                if (vSwitchedPorts.create(port->id(), port))
+                    return port;
+            }
 
-                int cmp     = strcmp(id, ctl->id);
-                if (cmp < 0)
-                    last    = center - 1;
-                else if (cmp > 0)
-                    first   = center + 1;
-                else
+            delete port;
+
+            return NULL;
+        }
+
+        ui::IPort *IWrapper::time_port_by_id(const char *id)
+        {
+            // Try to find configuration port
+            const size_t count = vTimePorts.size();
+            for (size_t i=0; i<count; ++i)
+            {
+                IPort *p            = vTimePorts.uget(i);
+                if (p == NULL)
+                    continue;
+                const char *p_id    = p->metadata()->id;
+                if (p_id == NULL)
+                    continue;
+#ifdef TRACE_STRCMP_CALLS
+                ++wrapper_strcmp_calls;
+                ++wrapper_time_strcmp_calls;
+#endif
+                if (!strcmp(p_id, id))
                     return p;
             }
 
             return NULL;
+        }
+
+        ui::IPort *IWrapper::config_port_by_id(const char *id)
+        {
+            return vConfigMapping.get(id);
+        }
+
+        ui::IPort *IWrapper::custom_port_by_id(const char *id)
+        {
+            return vCustomPorts.get(id);
+        }
+
+        ui::IPort *IWrapper::plugin_port_by_id(const char *id)
+        {
+            // Update port cache if it has changed
+            size_t count = vPorts.size();
+            if (vPluginPorts.size() != count)
+            {
+                vPluginPorts.clear();
+                for (size_t i=0, n=vPorts.size(); i<n; ++i)
+                {
+                    ui::IPort *port = vPorts.uget(i);
+                    vPluginPorts.create(port->id(), port);
+                }
+            }
+
+            // Return result
+            return vPluginPorts.get(id);
         }
 
         status_t IWrapper::set_port_alias(const char *alias, const char *id)
@@ -750,21 +806,11 @@ namespace lsp
             else if (pb == NULL)
                 return 1;
 
+#ifdef TRACE_STRCMP_CALLS
+            ++wrapper_strcmp_calls;
+            ++wrapper_sort_strcmp_calls;
+#endif
             return strcmp(pa->id, pb->id);
-        }
-
-        size_t IWrapper::rebuild_sorted_ports()
-        {
-            size_t count = vPorts.size();
-
-            if (!vSortedPorts.set(&vPorts))
-                return count;
-            if (count <= 1)
-                return count;
-
-            // Sort by port's ID
-            vSortedPorts.qsort(compare_ports);
-            return count;
         }
 
         void IWrapper::global_config_changed(IPort *src)
@@ -889,16 +935,36 @@ namespace lsp
 
         status_t IWrapper::bind_custom_port(ui::IPort *port)
         {
-            if (!vCustomPorts.add(port))
-                return STATUS_NO_MEM;
+            if (!vCustomPorts.create(port->id(), port))
+                return STATUS_ALREADY_BOUND;
 
-            lsp_trace("added custom port id=%s", port->metadata()->id);
+            lsp_trace("added custom port id=%s", port->id());
             return STATUS_OK;
         }
 
         status_t IWrapper::build_ui(const char *path, void *handle, ssize_t screen)
         {
             status_t res;
+
+        #ifdef LSP_TRACE
+            lsp_trace("Begin UI build");
+            const system::time_millis_t start = system::get_time_millis();
+            lsp_finally {
+                const system::time_millis_t end = system::get_time_millis();
+                lsp_trace("UI build time: %d ms", int(end - start));
+
+#ifdef TRACE_STRCMP_CALLS
+                lsp_trace("wrapper_strcmp_calls = %d", int(wrapper_strcmp_calls));
+                lsp_trace("wrapper_switched_strcmp_calls = %d", int(wrapper_switched_strcmp_calls));
+                lsp_trace("wrapper_config_strcmp_calls = %d", int(wrapper_config_strcmp_calls));
+                lsp_trace("wrapper_time_strcmp_calls = %d", int(wrapper_time_strcmp_calls));
+                lsp_trace("wrapper_custom_strcmp_calls = %d", int(wrapper_custom_strcmp_calls));
+                lsp_trace("wrapper_search_strcmp_calls = %d", int(wrapper_search_strcmp_calls));
+                lsp_trace("wrapper_sort_strcmp_calls = %d", int(wrapper_sort_strcmp_calls));
+#endif
+                lsp_trace("");
+            };
+        #endif /* LSP_TRACE */
 
             // Create window widget
             wWindow     = new tk::Window(pDisplay, handle, screen);
@@ -950,27 +1016,27 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::export_settings(const char *file, bool relative)
+        status_t IWrapper::export_settings(const char *file, size_t flags)
         {
             io::Path path;
             status_t res = path.set(file);
             if (res != STATUS_OK)
                 return res;
 
-            return export_settings(&path, relative);
+            return export_settings(&path, flags);
         }
 
-        status_t IWrapper::export_settings(const LSPString *file, bool relative)
+        status_t IWrapper::export_settings(const LSPString *file, size_t flags)
         {
             io::Path path;
             status_t res = path.set(file);
             if (res != STATUS_OK)
                 return res;
 
-            return export_settings(&path, relative);
+            return export_settings(&path, flags);
         }
 
-        status_t IWrapper::export_settings(const io::Path *file, bool relative)
+        status_t IWrapper::export_settings(const io::Path *file, size_t flags)
         {
             io::OutFileStream os;
             io::OutSequence o;
@@ -988,46 +1054,20 @@ namespace lsp
 
             // Obtain the parent directory if needed
             io::Path dir;
-            if (relative)
+            if (flags & ui::EXPORT_FLAG_RELATIVE_PATHS)
             {
                 if ((res = file->get_parent(&dir)) != STATUS_OK)
-                    relative = false;
+                    flags &= ~ui::EXPORT_FLAG_RELATIVE_PATHS;
             }
 
             // Export settings
-            res = export_settings(&o, (relative) ? &dir : NULL);
+            res = export_settings(&o, flags, (flags & ui::EXPORT_FLAG_RELATIVE_PATHS) ? &dir : NULL);
             status_t res2 = o.close();
 
             return (res == STATUS_OK) ? res2 : res;
         }
 
-        status_t IWrapper::export_settings(io::IOutSequence *os, const char *basedir)
-        {
-            if (basedir == NULL)
-                return export_settings(os, static_cast<io::Path *>(NULL));
-
-            io::Path path;
-            status_t res = path.set(basedir);
-            if (res != STATUS_OK)
-                return res;
-
-            return export_settings(os, &path);
-        }
-
-        status_t IWrapper::export_settings(io::IOutSequence *os, const LSPString *basedir)
-        {
-            if (basedir == NULL)
-                return export_settings(os, static_cast<io::Path *>(NULL));
-
-            io::Path path;
-            status_t res = path.set(basedir);
-            if (res != STATUS_OK)
-                return res;
-
-            return export_settings(os, &path);
-        }
-
-        status_t IWrapper::export_settings(io::IOutSequence *os, const io::Path *basedir)
+        status_t IWrapper::export_settings(io::IOutSequence *os, size_t flags, const io::Path *basedir)
         {
             // Create configuration serializer
             config::Serializer s;
@@ -1035,39 +1075,20 @@ namespace lsp
             if (res != STATUS_OK)
                 return res;
 
-            res = export_settings(&s, basedir);
+            res = export_settings(&s, flags, basedir);
             status_t res2 = s.close();
             return (res != STATUS_OK) ? res : res2;
         }
 
-        status_t IWrapper::export_settings(config::Serializer *s, const char *basedir)
+        status_t IWrapper::export_settings(config::Serializer *s, size_t flags, const io::Path *basedir)
         {
-            if (basedir == NULL)
-                return export_settings(s, static_cast<io::Path *>(NULL));
+            // Check parameters
+            if (flags & ui::EXPORT_FLAG_RELATIVE_PATHS)
+            {
+                if (basedir == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+            }
 
-            io::Path path;
-            status_t res = path.set(basedir);
-            if (res != STATUS_OK)
-                return res;
-
-            return export_settings(s, &path);
-        }
-
-        status_t IWrapper::export_settings(config::Serializer *s, const LSPString *basedir)
-        {
-            if (basedir == NULL)
-                return export_settings(s, static_cast<io::Path *>(NULL));
-
-            io::Path path;
-            status_t res = path.set(basedir);
-            if (res != STATUS_OK)
-                return res;
-
-            return export_settings(s, &path);
-        }
-
-        status_t IWrapper::export_settings(config::Serializer *s, const io::Path *basedir)
-        {
             // Write header
             status_t res;
             LSPString comment;
@@ -1078,7 +1099,7 @@ namespace lsp
                 return res;
 
             // Export regular ports
-            if ((res = export_ports(s, NULL, &vPorts, basedir)) != STATUS_OK)
+            if ((res = export_ports(s, NULL, &vPorts, flags, basedir)) != STATUS_OK)
                 return res;
 
             // Export KVT data
@@ -1250,12 +1271,18 @@ namespace lsp
             config::Serializer *s,
             lltl::pphash<LSPString, config::param_t> *parameters,
             lltl::parray<IPort> *ports,
+            size_t flags,
             const io::Path *basedir)
         {
             status_t res;
             float buf;
             const void *data;
             LSPString key;
+
+            // Compute serialization flags
+            size_t serialize_flags = 0;
+            if (flags & ui::EXPORT_FLAG_USER_FRIENDLY)
+                serialize_flags    |= config::SF_FRIENDLY;
 
             // Write port data
             for (size_t i=0, n=ports->size(); i<n; ++i)
@@ -1288,7 +1315,7 @@ namespace lsp
                 }
 
                 // Format the port value
-                res     = core::serialize_port_value(s, meta, data, basedir, 0);
+                res     = core::serialize_port_value(s, meta, data, basedir, serialize_flags);
                 if (res != STATUS_BAD_TYPE)
                 {
                     if (res != STATUS_OK)
@@ -1382,6 +1409,7 @@ namespace lsp
                                 size_t dst_left = dst_size, src_left = p->blob.size;
                                 dsp::base64_enc(blob.data, &dst_left, p->blob.data, &src_left);
                                 blob.length = p->blob.size;
+                                blob.data[dst_size - dst_left] = '\0'; // Put terminating NULL character
                             }
                         }
 
@@ -1640,7 +1668,7 @@ namespace lsp
                                     plug::PF_PRESET_IMPORT : plug::PF_STATE_IMPORT;
 
                     const char *pname = param.name.get_utf8();
-                    ui::IPort *p = port_by_id(pname);
+                    ui::IPort *p = plugin_port_by_id(pname);
                     if (p != NULL)
                     {
                         if (set_port_value(p, &param, port_flags, basedir))
@@ -1917,7 +1945,7 @@ namespace lsp
                 return res;
 
             // Export regular ports
-            if ((res = export_ports(&s, parameters, &vConfigPorts, NULL)) != STATUS_OK)
+            if ((res = export_ports(&s, parameters, &vConfigPorts, ui::EXPORT_FLAG_USER_FRIENDLY, NULL)) != STATUS_OK)
                 return res;
 
             // Export bundle versions
@@ -3168,7 +3196,7 @@ namespace lsp
                 if (param->name[0] == '/')
                     continue;
 
-                ui::IPort *p    = port_by_id(param->name);
+                ui::IPort *p    = plugin_port_by_id(param->name);
                 if (p == NULL)
                     continue;
 

@@ -25,6 +25,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/ipc/NativeExecutor.h>
+#include <lsp-plug.in/lltl/hash_index.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/core/KVTDispatcher.h>
@@ -82,6 +83,7 @@ namespace lsp
                 lltl::parray<lv2::Port>         vExtPorts;
                 lltl::parray<lv2::Port>         vAllPorts;      // List of all created ports, for garbage collection
                 lltl::parray<lv2::Port>         vPluginPorts;   // All plugin ports sorted in urid order
+                lltl::hash_index<const char, lv2::Port> vPortIndex; // Ports indexed by identifier
                 lltl::parray<lv2::ControlPort>  vControlPorts;
                 lltl::parray<lv2::MeterPort>    vMeterPorts;
                 lltl::parray<lv2::PortGroup>    vPortGroups;

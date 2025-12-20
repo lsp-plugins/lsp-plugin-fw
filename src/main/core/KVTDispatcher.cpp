@@ -140,7 +140,7 @@ namespace lsp
                 }
 
                 lsp_trace("Transmitting OSC message (%d bytes)", int(size));
-                osc::dump_packet(pPacket, size);
+//                osc::dump_packet(pPacket, size);
 
                 // Submit to queue
                 res = pTx->submit(pPacket, size);

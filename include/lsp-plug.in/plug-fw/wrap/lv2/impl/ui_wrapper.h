@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2021 г.
@@ -241,6 +241,36 @@ namespace lsp
             for (const meta::port_t *port = meta->ports ; port->id != NULL; ++port)
                 create_port(port, NULL);
 
+            // Re-order external ports according to the port revision
+            const int max_revision = meta::max_revision(meta->ports);
+            if (max_revision > 0)
+            {
+                lltl::parray<lv2::UIPort> ext_ports;
+                if (!ext_ports.reserve(vExtPorts.size()))
+                    return STATUS_NO_MEM;
+
+                // Iterate over all revisions and add ports to the new list
+                for (int revision = 0; revision <= max_revision; ++revision)
+                {
+                    for (lltl::iterator<lv2::UIPort> it=vExtPorts.values(); it; ++it)
+                    {
+                        lv2::UIPort * const p = it.get();
+                        if (p->metadata()->revision == revision)
+                            ext_ports.add(p);
+                    }
+                }
+
+                // Commit new list sorted by port revision
+                vExtPorts.swap(&ext_ports);
+            }
+
+            // Map external port indices
+            for (lltl::iterator<lv2::UIPort> it=vExtPorts.values(); it; ++it)
+            {
+                lsp_trace("external port index=%d, id=%s", int(it.index()), it->id());
+                it->set_id(it.index());
+            }
+
             // Create atom transport
             if (pExt->atom_supported())
             {
@@ -395,7 +425,6 @@ namespace lsp
                     result = new lv2::UIPort(p, pExt);
                     if (postfix == NULL)
                     {
-                        result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
                         lsp_trace("Added external audio port id=%s, external_id=%d", p->id, int(result->get_id()));
                     }
@@ -413,7 +442,6 @@ namespace lsp
                     result = new lv2::UIControlPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL, this);
                     if (postfix == NULL)
                     {
-                        result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
                         lsp_trace("Added external control port id=%s, external_id=%d", p->id, int(result->get_id()));
                     }
@@ -422,7 +450,6 @@ namespace lsp
                     result = new lv2::UIBypassPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
                     if (postfix == NULL)
                     {
-                        result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
                         lsp_trace("Added external bypass id=%s, external_id=%d", p->id, int(result->get_id()));
                     }
@@ -431,7 +458,6 @@ namespace lsp
                     result = new lv2::UIMeterPort(p, pExt, (w != NULL) ? w->port(p->id) : NULL);
                     if (postfix == NULL)
                     {
-                        result->set_id(vExtPorts.size());
                         vExtPorts.add(result);
                         lsp_trace("Added external metering port id=%s, external_id=%d", p->id, int(result->get_id()));
                     }

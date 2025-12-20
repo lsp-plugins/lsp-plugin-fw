@@ -2,6 +2,21 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.34 ===
+* Added support of revisioned Add-on controls to not to change the order of
+  previously defined controls for the host.
+* Added possibility to select host-friendly or user-frienfly values when
+  exporting configuration to the file.
+* Updated port link controller: added support of '_old_this', '_this',
+  '_old_current' and '_current' meta values.
+* Do not store VST3 host context as reference-counting pointer as it crashes
+  Ardour on exit.
+* Fixed possible garbage at the end of KVT BLOB serialization.
+* Fixed moduleinfo.json generation and validation for VST3.
+* Fixed duplicate filter point settings in UI behavior.
+* Fixed some bugs in VST3 plugin state deserialization
+* Updated module versions in dependencies.
+
 === 1.0.33 ===
 * Improved plugin metadata validation tool.
 * Fixed SIGFPE crash on LADSPA descriptor generation.
