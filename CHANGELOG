@@ -15,6 +15,7 @@
 * Fixed moduleinfo.json generation and validation for VST3.
 * Fixed duplicate filter point settings in UI behavior.
 * Fixed some bugs in VST3 plugin state deserialization
+* Updated module versions in dependencies.
 
 === 1.0.33 ===
 * Improved plugin metadata validation tool.
