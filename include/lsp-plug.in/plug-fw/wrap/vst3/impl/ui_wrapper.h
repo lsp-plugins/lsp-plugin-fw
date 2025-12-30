@@ -925,6 +925,22 @@ namespace lsp
             pController->send_preset_state(this, state);
         }
 
+        bool UIWrapper::accept_window_size(tk::Window *wnd, size_t width, size_t height)
+        {
+            if (pPlugFrame == NULL)
+                return false;
+
+            Steinberg::ViewRect newSize;
+            newSize.left        = 0;
+            newSize.top         = 0;
+            newSize.right       = width;
+            newSize.bottom      = height;
+
+            pPlugFrame->resizeView(this, &newSize);
+
+            return true;
+        }
+
     } /* namespace vst3 */
 } /* namespace lsp */
 

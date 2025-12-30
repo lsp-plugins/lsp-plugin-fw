@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.35 ===
-
+* Optimized plugin window sizing.
 
 === 1.0.34 ===
 * Added support of revisioned Add-on controls to not to change the order of

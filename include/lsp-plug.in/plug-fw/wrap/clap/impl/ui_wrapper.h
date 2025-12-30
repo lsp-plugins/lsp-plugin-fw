@@ -538,28 +538,6 @@ namespace lsp
             return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
         }
 
-        status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
-        {
-            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
-            const ws::rectangle_t *r = static_cast<ws::rectangle_t *>(data);
-            lsp_trace("resized.w = %d, resized.h = %d", int(r->nWidth), int(r->nHeight));
-
-            UIWrapper *this_    = static_cast<UIWrapper *>(ptr);
-            tk::Window *wnd     = this_->window();
-            if ((wnd == NULL) || (!wnd->visibility()->get()))
-                return STATUS_OK;
-
-            ws::size_limit_t sr;
-            wnd->get_padded_size_limits(&sr);
-            if (((sr.nMinWidth >= 0) && (r->nWidth < sr.nMinWidth)) ||
-                ((sr.nMinHeight >= 0) && (r->nHeight < sr.nMinHeight)))
-            {
-                this_->pExt->gui->request_resize(this_->pExt->host, sr.nMinWidth, sr.nMinHeight);
-            }
-
-            return STATUS_OK;
-        }
-
         status_t UIWrapper::slot_ui_show(tk::Widget *sender, void *ptr, void *data)
         {
             lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
@@ -737,7 +715,10 @@ namespace lsp
         {
             tk::Window *wnd     = window();
             if (wnd == NULL)
+            {
+                lsp_trace("no window");
                 return false;
+            }
 
             if (!sMutex.lock())
                 return false;
@@ -755,7 +736,11 @@ namespace lsp
 
             tk::SizeConstraints::apply(&r, &sr);
             if ((r.nWidth > ssize_t(width)) || (r.nHeight > ssize_t(height)))
+            {
+//                lsp_trace("failed size check: r.nWidth=%d, width=%d, r.nHeight=%d, height=%d",
+//                    int(r.nWidth), int(width), int(r.nHeight), int(height));
                 return false;
+            }
 
             // Check that we need to resize window
             wnd->get_padded_screen_rectangle(&r);
@@ -839,7 +824,6 @@ namespace lsp
             tk::Window *wnd  = window();
             if (wnd != NULL)
             {
-                wnd->slots()->bind(tk::SLOT_RESIZE, slot_ui_resize, this);
                 wnd->slots()->bind(tk::SLOT_SHOW, slot_ui_show, this);
                 wnd->slots()->bind(tk::SLOT_REALIZED, slot_ui_realized, this);
                 wnd->slots()->bind(tk::SLOT_CLOSE, slot_ui_close, this);

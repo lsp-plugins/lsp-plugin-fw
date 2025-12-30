@@ -120,6 +120,7 @@ namespace lsp
                 virtual meta::plugin_format_t       plugin_format() const override;
                 virtual const core::ShmState       *shm_state() override;
                 virtual void                        send_preset_state(const core::preset_state_t *state) override;
+                virtual bool                        accept_window_size(tk::Window *wnd, size_t width, size_t height) override;
 
             public: // vst3::IUISync
                 virtual void                        sync_ui() override;

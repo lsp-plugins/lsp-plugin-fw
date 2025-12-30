@@ -66,7 +66,6 @@ namespace lsp
             #endif /* LSP_CLAP_OWN_EVENT_LOOP */
 
             protected:
-                static status_t                 slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_realized(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_close(tk::Widget *sender, void *ptr, void *data);
