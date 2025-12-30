@@ -172,6 +172,7 @@ namespace lsp
                 static status_t slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_about(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_presets_window(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_scroll_over_presets(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_file(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_export_settings_to_clipboard(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_import_settings_from_file(tk::Widget *sender, void *ptr, void *data);
@@ -281,6 +282,7 @@ namespace lsp
                 bool                open_manual_file(const char *fmt...);
                 void                sync_preset_name();
                 void                sync_ab_state();
+                void                scroll_over_presets(const ws::event_t *ev);
 
                 void                set_preset_button_text(const char *text);
 

@@ -4,6 +4,7 @@
 
 === 1.0.35 ===
 * Added shortcuts for quickly closing some dialogs.
+* Added support to swtich presets with mouse scroll.
 * Optimized plugin window sizing.
 
 === 1.0.34 ===

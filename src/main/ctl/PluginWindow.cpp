@@ -1572,6 +1572,7 @@ namespace lsp
             // Header menu
             bind_trigger("trg_main_menu", tk::SLOT_SUBMIT, slot_show_main_menu);
             bind_trigger("trg_presets_menu", tk::SLOT_SUBMIT, slot_show_presets_window);
+            bind_trigger("trg_presets_menu", tk::SLOT_MOUSE_SCROLL, slot_scroll_over_presets);
             bind_trigger("trg_export_settings", tk::SLOT_SUBMIT, slot_export_settings_to_file);
             bind_trigger("trg_import_settings", tk::SLOT_SUBMIT, slot_import_settings_from_file);
             bind_trigger("trg_reset_settings", tk::SLOT_SUBMIT, slot_reset_settings);
@@ -1742,9 +1743,19 @@ namespace lsp
 
         status_t PluginWindow::slot_show_presets_window(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            if (__this != NULL)
-                __this->show_presets_window();
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
+            if (self != NULL)
+                self->show_presets_window();
+
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::slot_scroll_over_presets(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
+            const ws::event_t * const ev = static_cast<ws::event_t *>(data);
+            if ((self != NULL) && (ev != NULL))
+                self->scroll_over_presets(ev);
 
             return STATUS_OK;
         }
@@ -1954,6 +1965,33 @@ namespace lsp
             if (actor == NULL)
                 actor = widgets()->find("trg_presets_menu");
             return pPresetsWindow->toggle_visibility(actor);
+        }
+
+        void PluginWindow::scroll_over_presets(const ws::event_t *ev)
+        {
+            if (pPresetsWindow == NULL)
+                return;
+            if (ev->nType != ws::UIE_MOUSE_SCROLL)
+                return;
+
+            // Check whether next or previous preset should be selected
+            bool next = true;
+            if (ev->nCode == ws::MCD_UP)
+                next = false;
+            else if (ev->nCode != ws::MCD_DOWN)
+                return;
+
+            // Check that we needt to invert mouse scrolling
+            tk::Style * const style = (wWidget != NULL) ? wWidget->style() : NULL;
+            if (style == NULL)
+                return;
+
+            bool invert = false;
+            style->get_bool("mouse.vscroll.invert", &invert);
+            if (invert)
+                next    = !next;
+
+            pPresetsWindow->select_next_preset(next);
         }
 
         status_t PluginWindow::show_greeting_window()
