@@ -226,6 +226,9 @@ namespace lsp
                 bind_slot(list_id, tk::SLOT_CHANGE, slot_preset_select);
             }
 
+            // Bind shortcuts
+            bind_shortcut(wnd, ws::WSK_ESCAPE, tk::KM_NONE, slot_window_close);
+
             pWrapper->add_preset_listener(this);
             sync_preset_button_state();
             sync_preset_tab();

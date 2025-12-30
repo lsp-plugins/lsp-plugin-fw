@@ -1993,6 +1993,11 @@ namespace lsp
                 if (btn != NULL)
                     btn->slots()->bind(tk::SLOT_SUBMIT, slot_greeting_close, this);
                 wGreeting->slots()->bind(tk::SLOT_CLOSE, slot_greeting_close, this);
+
+                // Bind shortcuts
+                bind_shortcut(wGreeting, ws::WSK_ESCAPE, tk::KM_NONE, slot_greeting_close);
+                bind_shortcut(wGreeting, ws::WSK_RETURN, tk::KM_NONE, slot_greeting_close);
+                bind_shortcut(wGreeting, ws::WSK_KEYPAD_ENTER, tk::KM_NONE, slot_greeting_close);
             }
 
             wGreeting->show(wnd);
@@ -2146,6 +2151,11 @@ namespace lsp
                 if (btn != NULL)
                     btn->slots()->bind(tk::SLOT_SUBMIT, slot_about_close, this);
                 wAbout->slots()->bind(tk::SLOT_CLOSE, slot_about_close, this);
+
+                // Bind shortcuts
+                bind_shortcut(wAbout, ws::WSK_ESCAPE, tk::KM_NONE, slot_about_close);
+                bind_shortcut(wAbout, ws::WSK_RETURN, tk::KM_NONE, slot_about_close);
+                bind_shortcut(wAbout, ws::WSK_KEYPAD_ENTER, tk::KM_NONE, slot_about_close);
             }
 
             wAbout->show(wnd);
