@@ -22,10 +22,6 @@
 #ifndef LSP_PLUG_IN_PLUG_FW_UI_CONST_H_
 #define LSP_PLUG_IN_PLUG_FW_UI_CONST_H_
 
-#ifndef LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_
-    #error "Use #include <lsp-plug.in/plug-fw/ui.h>"
-#endif /* LSP_PLUG_IN_PLUG_FW_UI_IMPL_H_ */
-
 #include <lsp-plug.in/plug-fw/version.h>
 
 // Different port prefixes
@@ -81,6 +77,8 @@
 #define UI_TAKE_INST_NAME_FROM_FILE_ID          "take_instrument_name_from_file"
 #define UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID        "graph_piano_layout"
 #define UI_CONFIG_USER_FRIENDLY_VALUES_ID       "config_user_friendly_values"
+#define UI_LAUNCHER_WIDTH_ID                    "launcher_width"
+#define UI_LAUNCHER_HEIGHT_ID                   "launcher_height"
 
 #define MSTUD_PORT                              UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                            UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -125,6 +123,12 @@
 #define UI_TAKE_INST_NAME_FROM_FILE_PORT        UI_CONFIG_PORT_PREFIX UI_TAKE_INST_NAME_FROM_FILE_ID
 #define UI_UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT   UI_CONFIG_PORT_PREFIX UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID
 #define CONFIG_USER_FRIENDLY_VALUES_PORT        UI_CONFIG_PORT_PREFIX UI_CONFIG_USER_FRIENDLY_VALUES_ID
+#define UI_LAUNCHER_WIDTH_PORT                  UI_CONFIG_PORT_PREFIX UI_LAUNCHER_WIDTH_ID
+#define UI_LAUNCHER_HEIGHT_PORT                 UI_CONFIG_PORT_PREFIX UI_LAUNCHER_HEIGHT_ID
+
+// Some UI constants
+#define SCHEMA_PATH                             "schema"
+#define DEFAULT_SCHEMA_PATH                     SCHEMA_PATH "/modern.xml"
 
 // Special widget identifiers
 #define WUID_MAIN_MENU                          "main_menu"

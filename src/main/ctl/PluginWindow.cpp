@@ -909,6 +909,7 @@ namespace lsp
                     free(list);
                 return STATUS_OK;
             }
+            lsp_finally { free(list); };
 
             // Generate the 'Visual Schema' menu items
             schema_sel_t *sel;
@@ -921,20 +922,14 @@ namespace lsp
                 if (list[i].type != resource::RES_FILE)
                     continue;
 
-                if (!path.fmt_ascii(LSP_BUILTIN_PREFIX "schema/%s", list[i].name))
-                {
-                    free(list);
+                if (!path.fmt_ascii(LSP_BUILTIN_PREFIX SCHEMA_PATH "/%s", list[i].name))
                     return STATUS_NO_MEM;
-                }
 
                 // Try to load schema
                 if ((res = pWrapper->load_stylesheet(&sheet, &path)) != STATUS_OK)
                 {
                     if (res == STATUS_NO_MEM)
-                    {
-                        free(list);
                         return res;
-                    }
                     continue;
                 }
 
@@ -947,10 +942,7 @@ namespace lsp
 
                 // Append the shema to the menu
                 if ((sel = new schema_sel_t()) == NULL)
-                {
-                    free(list);
                     return STATUS_NO_MEM;
-                }
 
                 sel->ctl        = this;
                 sel->item       = item;
@@ -959,14 +951,12 @@ namespace lsp
                 if (!vSchemaSel.add(sel))
                 {
                     delete sel;
-                    free(list);
                     return STATUS_NO_MEM;
                 }
 
                 item->slots()->bind(tk::SLOT_SUBMIT, slot_visual_schema_select, sel);
             }
 
-            free(list);
             root->visibility()->set(vSchemaSel.size() > 0);
 
             return STATUS_OK;

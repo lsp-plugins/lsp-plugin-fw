@@ -1233,6 +1233,8 @@ namespace lsp
                     if (p != NULL)
                         delete p;
                 };
+                if (!p->set_name(&key))
+                    return false;
                 if (!p->set_string(value))
                     return false;
 
@@ -1258,6 +1260,8 @@ namespace lsp
                     if (p != NULL)
                         delete p;
                 };
+                if (!p->set_name(&key))
+                    return false;
                 p->set_float(value);
 
                 // Replace value
@@ -1436,46 +1440,11 @@ namespace lsp
         status_t IWrapper::export_parameters(config::Serializer *s, lltl::pphash<LSPString, config::param_t> *parameters)
         {
             status_t res;
+
             // Export all available bundle versions
             for (lltl::iterator<lltl::pair<LSPString, config::param_t>> it = parameters->items(); it; ++it)
             {
-                const LSPString *key = it->key;
-                const config::param_t *p = it->value;
-                switch (p->type())
-                {
-                    case config::SF_TYPE_I32:
-                        res     = s->write_i32(key, p->v.i32, p->flags);
-                        break;
-                    case config::SF_TYPE_U32:
-                        res     = s->write_u32(key, p->v.u32, p->flags);
-                        break;
-                    case config::SF_TYPE_I64:
-                        res     = s->write_i64(key, p->v.i64, p->flags);
-                        break;
-                    case config::SF_TYPE_U64:
-                        res     = s->write_u64(key, p->v.u64, p->flags);
-                        break;
-                    case config::SF_TYPE_F32:
-                        res     = s->write_f32(key, p->v.f32, p->flags);
-                        break;
-                    case config::SF_TYPE_F64:
-                        res     = s->write_f64(key, p->v.f64, p->flags);
-                        break;
-                    case config::SF_TYPE_BOOL:
-                        res     = s->write_bool(key, p->v.bval, p->flags);
-                        break;
-                    case config::SF_TYPE_STR:
-                        res     = s->write_string(key, p->v.str, p->flags);
-                        break;
-                    case config::SF_TYPE_BLOB:
-                        res     = s->write_blob(key, &p->v.blob, p->flags);
-                        break;
-                    default:
-                        res     = STATUS_UNKNOWN_ERR;
-                        break;
-                }
-
-                if (res != STATUS_OK)
+                if ((res = s->write(it->value)) != STATUS_OK)
                     return res;
             }
 
@@ -2115,7 +2084,7 @@ namespace lsp
             }
 
             // Load fallback schema
-            schema          = LSP_BUILTIN_PREFIX "schema/modern.xml";
+            schema          = LSP_BUILTIN_PREFIX DEFAULT_SCHEMA_PATH;
             if (s_port != NULL)
             {
                 s_port->write(schema, strlen(schema));
