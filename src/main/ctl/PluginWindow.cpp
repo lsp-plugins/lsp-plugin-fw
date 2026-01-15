@@ -293,7 +293,6 @@ namespace lsp
             wnd->set_class(meta->uid, "lsp-plugins");
             wnd->role()->set("audio-plugin");
             wnd->title()->set_raw(meta->name);
-            wnd->layout()->set_scale(1.0f);
 
             if (!wnd->nested())
                 wnd->actions()->deny(ws::WA_RESIZE);

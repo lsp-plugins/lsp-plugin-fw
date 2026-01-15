@@ -36,7 +36,17 @@ namespace lsp
 
         status_t Window::init()
         {
-            return ctl::Window::init();
+            status_t res = ctl::Window::init();
+            if (res != STATUS_OK)
+                return res;
+
+            // Initialize window
+            tk::Window * const wnd = tk::widget_cast<tk::Window>(wWidget);
+            wnd->set_class("launcher", "lsp-plugins");
+            wnd->role()->set("audio-plugin");
+            wnd->title()->set("labels.rack.plugin_launcher");
+
+            return STATUS_OK;
         }
 
         void Window::destroy()
