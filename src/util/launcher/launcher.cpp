@@ -25,18 +25,13 @@
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/util/launcher/plugin_metadata.h>
+#include <lsp-plug.in/plug-fw/util/launcher/ui.h>
 #include <lsp-plug.in/tk/tk.h>
 
 namespace lsp
 {
     namespace launcher
     {
-
-        status_t create_ui(tk::Display *dpy)
-        {
-            return STATUS_OK;
-        }
-
         int execute(int argc, const char **argv)
         {
             // Create the resource loader
@@ -48,44 +43,45 @@ namespace lsp
             }
             lsp_finally { delete loader; };
 
-            // Read plugin metadata from JSON
-            plugin_registry_t registry;
-            status_t res = read_plugin_metadata(registry, loader, LSP_BUILTIN_PREFIX "loader/plugins.json");
+            // Initialize display settings
+            tk::display_settings_t settings;
+            resource::Environment env;
+
+            settings.resources      = loader;
+            settings.environment    = &env;
+
+            tk::Display *dpy = new tk::Display();
+            if (dpy == NULL)
+            {
+                lsp_error("Could not initialize window graphics subsystem");
+                return STATUS_NO_MEM;
+            }
+
+            lsp_finally {
+                dpy->destroy();
+                delete dpy;
+            };
+
+            status_t res = dpy->init(argc, argv);
             if (res != STATUS_OK)
             {
-                lsp_error("Error obtaining plugin metadata");
-                return STATUS_NO_DATA;
+                lsp_error("Could not initialize display");
+                return STATUS_FAILED;
             }
-            lsp_finally { destroy_plugin_metadata(registry); };
 
-//            // Initialize display settings
-//            tk::display_settings_t settings;
-//            resource::Environment env;
-//
-//            settings.resources      = loader;
-//            settings.environment    = &env;
-//
-//            tk::Display *dpy = new tk::Display();
-//            if (dpy == NULL)
-//            {
-//                lsp_error("Can not initialize UI graphics subsystem");
-//                return STATUS_NO_MEM;
-//            }
-//
-//            lsp_finally {
-//                dpy->destroy();
-//                delete dpy;
-//            };
-//
-//            res = create_ui(dpy);
-//            if (res != STATUS_OK)
-//            {
-//
-//            }
-//
-//            status_t res = dpy->main();
+            // Create UI
+            UI ui(dpy, loader);
+            lsp_finally { ui.destroy(); };
 
-            return res;
+            res = ui.init();
+            if (res != STATUS_OK)
+            {
+                lsp_error("Could not initialize UI");
+                return STATUS_FAILED;
+            }
+
+            // Launch the main display loop
+            return dpy->main();
         }
     } /* namespace launcher */
 } /* namespace lsp */

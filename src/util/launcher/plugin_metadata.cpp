@@ -2,21 +2,21 @@
  * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins
+ * This file is part of lsp-plugin-fw
  * Created on: 13 янв. 2026 г.
  *
- * lsp-plugins is free software: you can redistribute it and/or modify
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * lsp-plugins is distributed in the hope that it will be useful,
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with lsp-plugins. If not, see <https://www.gnu.org/licenses/>.
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <lsp-plug.in/plug-fw/util/launcher/plugin_metadata.h>
@@ -435,11 +435,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t read_builtin_plugin_metadata(raw_content_t & out)
-        {
-            return STATUS_NOT_FOUND;
-        }
-
         void destroy_plugin_metadata(plugin_registry_t & metadata)
         {
             for (lltl::iterator<category_t> it = metadata.categories.values(); it; ++it)
@@ -461,9 +456,6 @@ namespace lsp
             lsp_finally { destroy_raw_content(raw_out); };
 
             status_t res = read_json_plugin_metadata(raw_out, loader, file);
-            if (res != STATUS_OK)
-                res     = read_builtin_plugin_metadata(raw_out);
-
             if (res == STATUS_OK)
                 res         = transform_plugin_metadata(metadata, raw_out);
 
