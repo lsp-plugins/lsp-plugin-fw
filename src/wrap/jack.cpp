@@ -777,9 +777,9 @@ namespace lsp
 
         #ifdef WITH_UI_FEATURE
             // Show the widget
-            if (pUI != NULL)
+            if (pUIWrapper != NULL)
             {
-                tk::Widget * wnd        = pUI->root();
+                tk::Widget * wnd        = pUIWrapper->window();
                 if (wnd != NULL)
                     wnd->show();
             }

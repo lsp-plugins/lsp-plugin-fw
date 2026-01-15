@@ -230,19 +230,19 @@ namespace lsp
                  * Get window controller
                  * @return window controller
                  */
-                inline ctl::Window             *controller()        { return pWindow;       }
+                inline ctl::Window             *controller() const  { return pWindow;       }
 
                 /**
                  * Get the display
                  * @return display
                  */
-                inline tk::Display             *display()           { return pDisplay;      }
+                inline tk::Display             *display() const     { return pDisplay;      }
 
                 /**
                  * Get root window widget
                  * @return root window widget
                  */
-                inline tk::Window              *window()            { return wWindow;       }
+                inline tk::Window              *window() const      { return wWindow;       }
 
                 /**
                  * Return port by it's identifier

@@ -484,6 +484,28 @@ namespace lsp
             // Bind custom functions
             ctl::bind_functions(&sGlobalVars);
 
+            // Initialize display settings
+            tk::display_settings_t settings;
+            resource::Environment env;
+
+            settings.resources      = pLoader;
+            settings.environment    = &env;
+
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
+
+            // Create the display
+            pDisplay = new tk::Display(&settings);
+            if (pDisplay == NULL)
+                return STATUS_NO_MEM;
+            if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
+                return res;
+
+            // Load visual schema
+            if ((res = init_visual_schema()) != STATUS_OK)
+                return res;
+
             return STATUS_OK;
         }
 

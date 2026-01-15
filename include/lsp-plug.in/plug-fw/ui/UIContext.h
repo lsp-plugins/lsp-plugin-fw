@@ -110,7 +110,7 @@ namespace lsp
                  * Get the display
                  * @return display
                  */
-                inline tk::Display     *display()           { return (pWrapper != NULL) ? pWrapper->ui()->display() : NULL; }
+                inline tk::Display     *display()           { return (pWrapper != NULL) ? pWrapper->display() : NULL;   }
 
                 /**
                  * Get the attribute overrides settings

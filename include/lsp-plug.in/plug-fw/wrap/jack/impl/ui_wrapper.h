@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 янв. 2022 г.
@@ -79,30 +79,8 @@ namespace lsp
             if ((res = IWrapper::init(root_widget)) != STATUS_OK)
                 return res;
 
-            // Initialize display settings
-            tk::display_settings_t settings;
-            resource::Environment env;
-
-            settings.resources      = pLoader;
-            settings.environment    = &env;
-
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
-
-            // Create the display
-            pDisplay = new tk::Display(&settings);
-            if (pDisplay == NULL)
-                return STATUS_NO_MEM;
-            if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
-                return res;
-
-            // Load visual schema
-            if ((res = init_visual_schema()) != STATUS_OK)
-                return res;
-
             // Initialize the UI
-            if ((res = pUI->init(this, pDisplay)) != STATUS_OK)
+            if ((res = pUI->init(this)) != STATUS_OK)
                 return res;
 
             // Build the UI
