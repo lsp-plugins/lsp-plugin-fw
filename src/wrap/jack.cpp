@@ -326,7 +326,7 @@ namespace lsp
                     printf("  -x, --connect <src>=<dst> Connect input/output JACK port to another\n");
                     printf("                            input/output JACK port when JACK connection\n");
                     printf("                            is estimated. Multiple options are allowed,\n");
-                    printf("                            the connection <src>=<dst> pais can be separated\n");
+                    printf("                            the connection <src>=<dst> pairs can be separated\n");
                     printf("                            by comma. Use backslash for escaping characters\n");
                     printf("\n");
 
