@@ -43,37 +43,37 @@ namespace lsp
             }
             lsp_finally { delete loader; };
 
-            // Initialize display settings
-            tk::display_settings_t settings;
-            resource::Environment env;
-
-            settings.resources      = loader;
-            settings.environment    = &env;
-
-            tk::Display *dpy = new tk::Display();
-            if (dpy == NULL)
-            {
-                lsp_error("Could not initialize window graphics subsystem");
-                return STATUS_NO_MEM;
-            }
-
-            lsp_finally {
-                dpy->destroy();
-                delete dpy;
-            };
-
-            status_t res = dpy->init(argc, argv);
-            if (res != STATUS_OK)
-            {
-                lsp_error("Could not initialize display");
-                return STATUS_FAILED;
-            }
+//            // Initialize display settings
+//            tk::display_settings_t settings;
+//            resource::Environment env;
+//
+//            settings.resources      = loader;
+//            settings.environment    = &env;
+//
+//            tk::Display *dpy = new tk::Display();
+//            if (dpy == NULL)
+//            {
+//                lsp_error("Could not initialize window graphics subsystem");
+//                return STATUS_NO_MEM;
+//            }
+//
+//            lsp_finally {
+//                dpy->destroy();
+//                delete dpy;
+//            };
+//
+//            status_t res = dpy->init(argc, argv);
+//            if (res != STATUS_OK)
+//            {
+//                lsp_error("Could not initialize display");
+//                return STATUS_FAILED;
+//            }
 
             // Create UI
-            UI ui(dpy, loader);
+            UI ui(loader);
             lsp_finally { ui.destroy(); };
 
-            res = ui.init();
+            status_t res = ui.init(NULL);
             if (res != STATUS_OK)
             {
                 lsp_error("Could not initialize UI");
@@ -81,7 +81,7 @@ namespace lsp
             }
 
             // Launch the main display loop
-            return dpy->main();
+            return ui.main_loop();
         }
     } /* namespace launcher */
 } /* namespace lsp */

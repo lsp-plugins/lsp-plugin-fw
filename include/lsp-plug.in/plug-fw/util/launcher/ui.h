@@ -24,6 +24,8 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/plug-fw/ui.h>
+#include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/util/launcher/plugin_metadata.h>
 #include <lsp-plug.in/plug-fw/util/launcher/ui_config.h>
 #include <lsp-plug.in/plug-fw/util/launcher/visual_schema.h>
@@ -34,46 +36,59 @@ namespace lsp
 {
     namespace launcher
     {
-        class UI
+        class UI: public ui::IWrapper
         {
             protected:
-                tk::Display                *pDisplay;
-                tk::Window                 *wWindow;
-
-                resource::ILoader          *pLoader;
-
-                plugin_registry_t           sRegistry;
-                visual_schemas_t            sSchemas;
-                ui_config_t                 sConfig;
-                bool                        bConfigDirty;
-
-            protected: // slots
-                static status_t             slot_display_idle(tk::Widget *sender, void *ptr, void *data);
-
+                meta::package_t                *pPackage;           // Package descriptor
+//            protected:
+//                tk::Display                *pDisplay;
+//                tk::Window                 *wWindow;
+//
+//                resource::ILoader          *pLoader;
+//
+//                plugin_registry_t           sRegistry;
+//                visual_schemas_t            sSchemas;
+//                ui_config_t                 sConfig;
+//                bool                        bConfigDirty;
+//
+//            protected: // slots
+//                static status_t             slot_display_idle(tk::Widget *sender, void *ptr, void *data);
+//
                 static status_t             slot_window_close(tk::Widget *sender, void *ptr, void *data);
-                static status_t             slot_window_resize(tk::Widget *sender, void *ptr, void *data);
+//                static status_t             slot_window_resize(tk::Widget *sender, void *ptr, void *data);
+//
+//            protected:
+//                status_t                    update_visual_schema();
+//                status_t                    apply_visual_schema(tk::StyleSheet *sheet);
+
+//            protected:
+//                template <typename T>
+//                void                        destroy(T * & w);
+//                template <typename T>
+//                status_t                    create(T * & widget);
 
             protected:
-                status_t                    update_visual_schema();
-                status_t                    apply_visual_schema(tk::StyleSheet *sheet);
-
-            protected:
-                template <typename T>
-                void                        destroy(T * & w);
-                template <typename T>
-                status_t                    create(T * & widget);
+                void                        do_destroy();
+                status_t                    build_ui();
+                status_t                    load_package_info();
 
             public:
-                UI(tk::Display *display, resource::ILoader * loader);
-                ~UI();
+                UI(resource::ILoader * loader);
+                virtual ~UI() override;
                 UI(const UI &) = delete;
                 UI(UI &&) = delete;
 
                 UI & operator = (const UI &) = delete;
                 UI & operator = (UI &&) = delete;
 
-                status_t                    init();
-                void                        destroy();
+                virtual status_t            init(void *root_widget) override;
+                virtual void                destroy() override;
+
+            public: // UI::IWrapper
+                virtual const meta::package_t      *package() const override;
+
+            public:
+                status_t                    main_loop();
         };
 
 
