@@ -87,6 +87,7 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/TabGroup.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/ListBox.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/ListBoxItem.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/ScrollArea.h>
 
     #include <lsp-plug.in/plug-fw/ctl/compound/ComboBox.h>
     #include <lsp-plug.in/plug-fw/ctl/compound/ComboGroup.h>
