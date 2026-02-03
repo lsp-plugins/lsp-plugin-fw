@@ -24,7 +24,6 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/ui/const.h>
 #include <lsp-plug.in/plug-fw/util/launcher/ui.h>
-#include <lsp-plug.in/plug-fw/util/launcher/ui_config.h>
 #include <lsp-plug.in/plug-fw/util/launcher/window.h>
 
 #include <private/ui/xml/Handler.h>
@@ -38,13 +37,6 @@ namespace lsp
             ui::IWrapper(NULL, loader)
         {
             pPackage            = NULL;
-//            pDisplay            = display;
-//            wWindow             = NULL;
-//
-//            pLoader             = loader;
-//
-//            init_config(sConfig);
-//            bConfigDirty        = false;
         }
 
         UI::~UI()

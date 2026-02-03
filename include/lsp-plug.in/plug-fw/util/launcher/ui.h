@@ -27,7 +27,6 @@
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/util/launcher/plugin_metadata.h>
-#include <lsp-plug.in/plug-fw/util/launcher/ui_config.h>
 #include <lsp-plug.in/plug-fw/util/launcher/visual_schema.h>
 
 #include <lsp-plug.in/tk/tk.h>

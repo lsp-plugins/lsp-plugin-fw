@@ -43,32 +43,6 @@ namespace lsp
             }
             lsp_finally { delete loader; };
 
-//            // Initialize display settings
-//            tk::display_settings_t settings;
-//            resource::Environment env;
-//
-//            settings.resources      = loader;
-//            settings.environment    = &env;
-//
-//            tk::Display *dpy = new tk::Display();
-//            if (dpy == NULL)
-//            {
-//                lsp_error("Could not initialize window graphics subsystem");
-//                return STATUS_NO_MEM;
-//            }
-//
-//            lsp_finally {
-//                dpy->destroy();
-//                delete dpy;
-//            };
-//
-//            status_t res = dpy->init(argc, argv);
-//            if (res != STATUS_OK)
-//            {
-//                lsp_error("Could not initialize display");
-//                return STATUS_FAILED;
-//            }
-
             // Create UI
             UI ui(loader);
             lsp_finally { ui.destroy(); };
