@@ -35,41 +35,23 @@ namespace lsp
 {
     namespace launcher
     {
-        class UI: public ui::IWrapper
+        class UI: public ui::IWrapper, public ui::IPortListener
         {
             protected:
-                meta::package_t                *pPackage;           // Package descriptor
-//            protected:
-//                tk::Display                *pDisplay;
-//                tk::Window                 *wWindow;
-//
-//                resource::ILoader          *pLoader;
-//
-//                plugin_registry_t           sRegistry;
-//                visual_schemas_t            sSchemas;
-//                ui_config_t                 sConfig;
-//                bool                        bConfigDirty;
-//
-//            protected: // slots
-//                static status_t             slot_display_idle(tk::Widget *sender, void *ptr, void *data);
-//
-                static status_t             slot_window_close(tk::Widget *sender, void *ptr, void *data);
-//                static status_t             slot_window_resize(tk::Widget *sender, void *ptr, void *data);
-//
-//            protected:
-//                status_t                    update_visual_schema();
-//                status_t                    apply_visual_schema(tk::StyleSheet *sheet);
+                meta::package_t            *pPackage;           // Package descriptor
+                ui::IPort                  *pWindowWidth;
+                ui::IPort                  *pWindowHeight;
 
-//            protected:
-//                template <typename T>
-//                void                        destroy(T * & w);
-//                template <typename T>
-//                status_t                    create(T * & widget);
+            protected:
+                static status_t             slot_display_idle(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_window_close(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_window_resize(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                        do_destroy();
                 status_t                    build_ui();
                 status_t                    load_package_info();
+                void                        on_window_resize();
 
             public:
                 UI(resource::ILoader * loader);
@@ -83,8 +65,11 @@ namespace lsp
                 virtual status_t            init(void *root_widget) override;
                 virtual void                destroy() override;
 
-            public: // UI::IWrapper
+            public: // ui::IWrapper
                 virtual const meta::package_t      *package() const override;
+
+            public: // ui::IPortListener
+                virtual void notify(ui::IPort *port, size_t flags);
 
             public:
                 status_t                    main_loop();

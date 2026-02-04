@@ -161,6 +161,8 @@ namespace lsp
             SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", NULL, 0.0f),
             SWITCH(UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID, "Show piano keyboard layout on frequency graph", NULL, 1.0f),
             SWITCH(UI_CONFIG_USER_FRIENDLY_VALUES_ID, "User-friendly values in configuration file", NULL, 1.0f),
+            INT_CONTROL_ALL(UI_LAUNCHER_WIDTH_ID, "Plugin launcher window width", NULL, U_NONE, 0, 65536, 400, 1),
+            INT_CONTROL_ALL(UI_LAUNCHER_HEIGHT_ID, "Plugin launcher window height", NULL, U_NONE, 0, 65536, 648, 1),
             PORTS_END
         };
 
@@ -427,6 +429,7 @@ namespace lsp
                         IPort *up = new ControlPort(p, this);
                         if (up != NULL)
                         {
+                            lsp_trace("Created config control port id=%s", up->id());
                             vConfigPorts.add(up);
                             vConfigMapping.create(up->id(), up);
                         }
@@ -438,6 +441,7 @@ namespace lsp
                         IPort *up = new PathPort(p, this);
                         if (up != NULL)
                         {
+                            lsp_trace("Created config path port id=%s", up->id());
                             vConfigPorts.add(up);
                             vConfigMapping.create(up->id(), up);
                         }
