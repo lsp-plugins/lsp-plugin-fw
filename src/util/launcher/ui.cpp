@@ -22,6 +22,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/meta/registry.h>
 #include <lsp-plug.in/plug-fw/ui/const.h>
 #include <lsp-plug.in/plug-fw/util/launcher/ui.h>
 #include <lsp-plug.in/plug-fw/util/launcher/window.h>
@@ -34,12 +35,57 @@ namespace lsp
 {
     namespace launcher
     {
+        static const uint8_t category_ordering[] =
+        {
+            meta::B_EQUALIZERS,
+            meta::B_DYNAMICS,
+            meta::B_MB_DYNAMICS,
+            meta::B_CONVOLUTION,
+            meta::B_DELAYS,
+            meta::B_ANALYZERS,
+            meta::B_MB_PROCESSING,
+            meta::B_SAMPLERS,
+            meta::B_EFFECTS,
+            meta::B_GENERATORS,
+            meta::B_UTILITIES,
+        };
+
+        static const char * const category_keys[] =
+        {
+            "analyzers",
+            "convolution",
+            "delays",
+            "dynamics",
+            "effects",
+            "equalizers",
+            "generators",
+            "mb_dynamics",
+            "mb_processing",
+            "samplers",
+            "utilities"
+        };
+
+        static ssize_t category_weight(meta::bundle_group_t g)
+        {
+            size_t i=0;
+            for (; i < sizeof(category_ordering) / sizeof(category_ordering[0]); ++i)
+            {
+                const uint8_t weight = category_ordering[i];
+                if (weight == g)
+                    return i;
+            }
+            return i;
+        }
+
         UI::UI(resource::ILoader * loader):
             ui::IWrapper(NULL, loader)
         {
             pPackage            = NULL;
             pWindowWidth        = NULL;
             pWindowHeight       = NULL;
+
+            wAllBundles         = NULL;
+            wFavourites         = NULL;
         }
 
         UI::~UI()
@@ -49,11 +95,40 @@ namespace lsp
 
         void UI::do_destroy()
         {
+            // Destroy manifest if present
             if (pPackage != NULL)
             {
                 meta::free_manifest(pPackage);
                 pPackage = NULL;
             }
+
+            // Destroy metadata if present
+            for (lltl::iterator<category_t> it = vCategories.values(); it; ++it)
+            {
+                category_t * const c = it.get();
+                if (c == NULL)
+                    continue;
+                delete c;
+            }
+            vCategories.flush();
+
+            for (lltl::iterator<bundle_t> it = vBundles.values(); it; ++it)
+            {
+                bundle_t * const b = it.get();
+                if (b == NULL)
+                    continue;
+                delete b;
+            }
+            vBundles.flush();
+
+            for (lltl::iterator<plugin_t> it = vPlugins.values(); it; ++it)
+            {
+                plugin_t * const p = it.get();
+                if (p == NULL)
+                    continue;
+                delete p;
+            }
+            vPlugins.flush();
         }
 
         void UI::destroy()
@@ -83,6 +158,124 @@ namespace lsp
             {
                 lsp_error("Error while reading manifest file, error: %d", int(res));
                 return res;
+            }
+
+            return STATUS_OK;
+        }
+
+        ssize_t UI::plugin_cmp_function(const plugin_t *a, const plugin_t *b)
+        {
+            ssize_t delta;
+            const meta::plugin_t *pa = a->pPlugin;
+            const meta::plugin_t *pb = b->pPlugin;
+
+            if ((delta = (category_weight(pa->bundle->group) - category_weight(pb->bundle->group))) != 0)
+                return delta;
+            if ((delta = strcmp(pa->bundle->name, pb->bundle->name)) != 0)
+                return delta;
+            if ((delta = (pa->bundle - pb->bundle)) != 0)
+                return delta;
+            return strcmp(pa->uid, pb->uid);
+        }
+
+        status_t UI::scan_metadata()
+        {
+            // Map plugins
+            for (const meta::Registry * r = meta::Registry::root(); r != NULL; r = r->next())
+            {
+                const meta::plugin_t * meta = r->plugin();
+                if ((meta == NULL) || (meta->bundle == NULL))
+                    continue;
+
+                plugin_t * const p = new plugin_t;
+                if (p == NULL)
+                    return STATUS_NO_MEM;
+
+                p->pPlugin      = meta;             // Plugin
+                p->pBundle      = NULL;
+                p->wImage       = NULL;
+                p->wButton      = NULL;
+
+                if (!vPlugins.add(p))
+                {
+                    delete p;
+                    return STATUS_NO_MEM;
+                }
+            }
+            vPlugins.qsort(plugin_cmp_function);
+
+            // Map bundles and categories
+            category_t *c = NULL;
+            bundle_t *b = NULL;
+            for (lltl::iterator<plugin_t> it = vPlugins.values(); it; ++it)
+            {
+                plugin_t * const p = it.get();
+                if (p == NULL)
+                    return STATUS_CORRUPTED;
+
+                const meta::plugin_t * const mp = p->pPlugin;
+                if (mp == NULL)
+                    return STATUS_CORRUPTED;
+
+                const meta::bundle_t * const mb = mp->bundle;
+                if (mb == NULL)
+                    return STATUS_CORRUPTED;
+
+                // Map category
+                if ((c == NULL) || (c->enCategory != mb->group))
+                {
+                    if (mb->group >= sizeof(category_keys) / sizeof(category_keys[0]))
+                    {
+                        lsp_error("Unsupported category identifier id=%d", int(c->enCategory));
+                        return STATUS_CORRUPTED;
+                    }
+
+                    c = new category_t;
+                    if (c == NULL)
+                        return STATUS_NO_MEM;
+
+                    c->wRoot        = NULL;
+                    c->enCategory   = mb->group;
+                    c->sUID         = category_keys[c->enCategory];
+                    c->nVisibiity   = 0;
+
+                    lsp_trace("Added category id=%d uid=%s", int(mb->group), c->sUID);
+
+                    if (!vCategories.add(c))
+                    {
+                        delete c;
+                        return STATUS_NO_MEM;
+                    }
+                }
+
+                // Map bundle
+                if ((b == NULL) || (b->pMeta != mp->bundle))
+                {
+                    b = new bundle_t;
+                    if (b == NULL)
+                        return STATUS_NO_MEM;
+
+                    b->pMeta        = mp->bundle;
+                    b->pCategory    = c;
+                    b->wRoot        = NULL;
+                    b->nVisibiity   = 0;
+
+                    lsp_trace("Added bundle uid=%s, name=%s", mb->uid, mb->name);
+
+                    if (!vBundles.add(b))
+                    {
+                        delete b;
+                        return STATUS_NO_MEM;
+                    }
+                    if (!c->vBundles.add(b))
+                        return STATUS_NO_MEM;
+                }
+
+                // Map plugin
+                if (!b->vPlugins.add(p))
+                    return STATUS_NO_MEM;
+
+                p->pBundle      = b;
             }
 
             return STATUS_OK;
@@ -143,6 +336,8 @@ namespace lsp
 
         status_t UI::init(void *root_widget)
         {
+            status_t res;
+
         #ifdef LSP_TRACE
             lsp_trace("Begin UI initialization");
             const system::time_millis_t start = system::get_time_millis();
@@ -153,8 +348,11 @@ namespace lsp
         #endif /* LSP_TRACE */
 
             // Load package information
-            status_t res = load_package_info();
-            if (res != STATUS_OK)
+            if ((res = load_package_info()) != STATUS_OK)
+                return res;
+
+            // Scan plugin metadata
+            if ((res = scan_metadata()) != STATUS_OK)
                 return res;
 
             // Initialize parent
@@ -174,6 +372,10 @@ namespace lsp
                 lsp_error("No root window present!");
                 return STATUS_BAD_STATE;
             }
+
+            // Bind widgets
+            wAllBundles = controller()->widgets()->get<tk::WidgetContainer>("all_plugins_list");
+            wFavourites = controller()->widgets()->get<tk::WidgetContainer>("favourites_list");
 
             // Bind ports
             BIND_PORT(this, pWindowWidth, UI_LAUNCHER_WIDTH_PORT);

@@ -267,10 +267,10 @@ namespace lsp
             B_DYNAMICS,
             B_EFFECTS,
             B_EQUALIZERS,
+            B_GENERATORS,
             B_MB_DYNAMICS,
             B_MB_PROCESSING,
             B_SAMPLERS,
-            B_GENERATORS,
             B_UTILITIES
         };
 

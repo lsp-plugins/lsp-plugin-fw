@@ -38,9 +38,47 @@ namespace lsp
         class UI: public ui::IWrapper, public ui::IPortListener
         {
             protected:
+                struct plugin_t;
+                struct bundle_t;
+                struct category_t;
+
+                typedef struct plugin_t
+                {
+                    const meta::plugin_t   *pPlugin;            // Plugin
+                    bundle_t               *pBundle;            // Plugin bundle
+                    tk::Image              *wImage;             // Plugin image
+                    tk::Button             *wButton;            // Launch button
+                } plugin_t;
+
+                typedef struct category_t
+                {
+                    tk::Widget             *wRoot;              // Root widget
+                    meta::bundle_group_t    enCategory;         // Bundle category
+                    const char             *sUID;               // Unique identifier
+                    size_t                  nVisibiity;         // Visibility counter
+                    lltl::parray<bundle_t>  vBundles;           // List of bundles
+                } category_t;
+
+                typedef struct bundle_t
+                {
+                    const meta::bundle_t   *pMeta;              // Bundle metadata
+                    category_t             *pCategory;          // Bundle category
+                    tk::Widget             *wRoot;              // Root widget
+                    size_t                  nVisibiity;         // Visibility counter
+                    lltl::parray<plugin_t>  vPlugins;           // List of plugins
+                } bundle_t;
+
+            protected:
                 meta::package_t            *pPackage;           // Package descriptor
                 ui::IPort                  *pWindowWidth;
                 ui::IPort                  *pWindowHeight;
+                tk::WidgetContainer        *wAllBundles;        // Container with full list of bundles
+                tk::WidgetContainer        *wFavourites;        // Container with favourites
+
+                lltl::parray<plugin_t>      vPlugins;
+                lltl::parray<bundle_t>      vBundles;
+                lltl::parray<category_t>    vCategories;
+//                plugin_registry_t           sMetadata;          // Plugin metadata registry
 
             protected:
                 static status_t             slot_display_idle(tk::Widget *sender, void *ptr, void *data);
@@ -48,9 +86,13 @@ namespace lsp
                 static status_t             slot_window_resize(tk::Widget *sender, void *ptr, void *data);
 
             protected:
+                static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);
+
+            protected:
                 void                        do_destroy();
                 status_t                    build_ui();
                 status_t                    load_package_info();
+                status_t                    scan_metadata();
                 void                        on_window_resize();
 
             public:

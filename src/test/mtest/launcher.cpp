@@ -22,10 +22,9 @@
 #include <lsp-plug.in/test-fw/mtest.h>
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/plug-fw/const.h>
-#include <lsp-plug.in/plug-fw/util/pluglist_gen/pluglist_gen.h>
 #include <lsp-plug.in/plug-fw/util/launcher/launcher.h>
-#include <lsp-plug.in/plug-fw/util/launcher/plugin_metadata.h>
 #include <lsp-plug.in/runtime/system.h>
+#include <private/test/repository.h>
 
 static const char * launcher_argv[] =
 {
@@ -39,19 +38,12 @@ MTEST_BEGIN("", launcher)
         // Pass the path to resource directory
         io::Path resources;
         resources.set(tempdir(), "resources");
+
+    #ifndef LSP_NO_BUILTIN_RESOURCES
+        make_repository(&resdir);
+    #endif /* LSP_NO_BUILTIN_RESOURCES */
+
         system::set_env_var(LSP_RESOURCE_PATH_VAR, resources.as_string());
-
-        // Call the pluglist_gen tool
-        MTEST_ASSERT(resources.append_child("loader") == STATUS_OK);
-        MTEST_ASSERT(resources.mkdir(true) == STATUS_OK);
-
-        MTEST_ASSERT(resources.append_child("plugins.json") == STATUS_OK);
-
-        pluglist_gen::cmdline_t cmd;
-        cmd.json_out = resources.as_native();
-        cmd.php_out = NULL;
-
-        MTEST_ASSERT(lsp::pluglist_gen::generate(&cmd) == 0);
 
         MTEST_ASSERT(launcher::execute(0, launcher_argv) == 0);
     }
