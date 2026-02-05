@@ -26,10 +26,10 @@ namespace lsp
     namespace ctl
     {
         //---------------------------------------------------------------------
-        CTL_FACTORY_IMPL_START(ListBox)
+        CTL_FACTORY_IMPL_START(ScrollArea)
             status_t res;
 
-            if ((!name->equals_ascii("sarea")) || (!name->equals_ascii("scrollarea")))
+            if ((!name->equals_ascii("sarea")) && (!name->equals_ascii("scrollarea")))
                 return STATUS_NOT_FOUND;
 
             tk::ScrollArea *w = new tk::ScrollArea(context->display());
@@ -50,7 +50,7 @@ namespace lsp
 
             *ctl = wc;
             return STATUS_OK;
-        CTL_FACTORY_IMPL_END(ListBox)
+        CTL_FACTORY_IMPL_END(ScrollArea)
 
         //-----------------------------------------------------------------
         const ctl_class_t ScrollArea::metadata      = { "ScrollArea", &Widget::metadata };
@@ -73,7 +73,6 @@ namespace lsp
             {
                 sHScroll.init(pWrapper, sa->hscroll_mode());
                 sVScroll.init(pWrapper, sa->vscroll_mode());
-                // TODO
             }
 
             return STATUS_OK;
@@ -88,6 +87,7 @@ namespace lsp
                 sVScroll.set(name, "vscroll", value);
 
                 set_constraints(sa->constraints(), name, value);
+                set_layout(sa->layout(), NULL, name, value);
             }
 
             return Widget::set(ctx, name, value);

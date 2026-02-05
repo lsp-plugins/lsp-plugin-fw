@@ -42,21 +42,16 @@ namespace lsp
                 struct bundle_t;
                 struct category_t;
 
-                typedef struct plugin_t
-                {
-                    const meta::plugin_t   *pPlugin;            // Plugin
-                    bundle_t               *pBundle;            // Plugin bundle
-                    tk::Image              *wImage;             // Plugin image
-                    tk::Button             *wButton;            // Launch button
-                } plugin_t;
-
                 typedef struct category_t
                 {
                     tk::Widget             *wRoot;              // Root widget
+                    tk::Label              *wHeading;           // Heading widget
                     meta::bundle_group_t    enCategory;         // Bundle category
                     const char             *sUID;               // Unique identifier
-                    size_t                  nVisibiity;         // Visibility counter
+                    size_t                  nVisibility;        // Visibility counter
                     lltl::parray<bundle_t>  vBundles;           // List of bundles
+                    LSPString               sNativeName;        // Native name
+                    LSPString               sDefaultName;       // Default name
                 } category_t;
 
                 typedef struct bundle_t
@@ -64,36 +59,70 @@ namespace lsp
                     const meta::bundle_t   *pMeta;              // Bundle metadata
                     category_t             *pCategory;          // Bundle category
                     tk::Widget             *wRoot;              // Root widget
-                    size_t                  nVisibiity;         // Visibility counter
+                    tk::Grid               *wBundle;            // Bundle grid
+                    tk::Label              *wHeading;           // Bundle heading
+                    tk::Label              *wDescription;       // Bundle description
+                    tk::Box                *wImages;            // Box with images
+                    tk::Grid               *wButtons;           // Grid with launch buttons
+                    tk::Button             *wFavouries;         // Favourites mark button
+                    tk::Button             *wHelp;              // Help button
+                    size_t                  nVisibility;        // Visibility counter
+                    size_t                  nActivePlugin;      // Active plugin index
                     lltl::parray<plugin_t>  vPlugins;           // List of plugins
+                    LSPString               sNativeName;        // Native name
+                    LSPString               sDefaultName;       // Default name
                 } bundle_t;
+
+                typedef struct plugin_t
+                {
+                    const meta::plugin_t   *pMeta;              // Plugin metadata
+                    bundle_t               *pBundle;            // Plugin bundle
+                    tk::Image              *wImage;             // Plugin image
+                    tk::Button             *wButton;            // Launch button
+                    tk::prop::String        sName;              // Plugin name
+                    LSPString               sNativeName;        // Native name
+                    LSPString               sDefaultName;       // Default name
+                } plugin_t;
 
             protected:
                 meta::package_t            *pPackage;           // Package descriptor
                 ui::IPort                  *pWindowWidth;
                 ui::IPort                  *pWindowHeight;
+                tk::Edit                   *wFilter;            // Filter edit
+                tk::TabControl             *wTabs;              // Tab control for tabs
                 tk::WidgetContainer        *wAllBundles;        // Container with full list of bundles
                 tk::WidgetContainer        *wFavourites;        // Container with favourites
 
                 lltl::parray<plugin_t>      vPlugins;
                 lltl::parray<bundle_t>      vBundles;
                 lltl::parray<category_t>    vCategories;
-//                plugin_registry_t           sMetadata;          // Plugin metadata registry
+
+            protected:
+                template <typename T>
+                T                          *create_widget(const char *style);
 
             protected:
                 static status_t             slot_display_idle(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_window_resize(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_filter_change(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_change_tab(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_plugin_mouse_in(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_plugin_mouse_out(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);
+                static bool                 match_filter(const plugin_t *p, const LSPString *filter);
 
             protected:
                 void                        do_destroy();
                 status_t                    build_ui();
                 status_t                    load_package_info();
                 status_t                    scan_metadata();
+                status_t                    create_catalog();
                 void                        on_window_resize();
+                void                        sync_widget_visibility();
+                void                        select_plugin_image(tk::Widget *sender, bool select);
 
             public:
                 UI(resource::ILoader * loader);

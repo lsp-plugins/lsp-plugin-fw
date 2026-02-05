@@ -84,6 +84,8 @@ namespace lsp
             pWindowWidth        = NULL;
             pWindowHeight       = NULL;
 
+            wFilter             = NULL;
+            wTabs               = NULL;
             wAllBundles         = NULL;
             wFavourites         = NULL;
         }
@@ -166,8 +168,8 @@ namespace lsp
         ssize_t UI::plugin_cmp_function(const plugin_t *a, const plugin_t *b)
         {
             ssize_t delta;
-            const meta::plugin_t *pa = a->pPlugin;
-            const meta::plugin_t *pb = b->pPlugin;
+            const meta::plugin_t *pa = a->pMeta;
+            const meta::plugin_t *pb = b->pMeta;
 
             if ((delta = (category_weight(pa->bundle->group) - category_weight(pb->bundle->group))) != 0)
                 return delta;
@@ -191,7 +193,7 @@ namespace lsp
                 if (p == NULL)
                     return STATUS_NO_MEM;
 
-                p->pPlugin      = meta;             // Plugin
+                p->pMeta        = meta;             // Plugin
                 p->pBundle      = NULL;
                 p->wImage       = NULL;
                 p->wButton      = NULL;
@@ -213,7 +215,7 @@ namespace lsp
                 if (p == NULL)
                     return STATUS_CORRUPTED;
 
-                const meta::plugin_t * const mp = p->pPlugin;
+                const meta::plugin_t * const mp = p->pMeta;
                 if (mp == NULL)
                     return STATUS_CORRUPTED;
 
@@ -235,9 +237,10 @@ namespace lsp
                         return STATUS_NO_MEM;
 
                     c->wRoot        = NULL;
+                    c->wHeading     = NULL;
                     c->enCategory   = mb->group;
                     c->sUID         = category_keys[c->enCategory];
-                    c->nVisibiity   = 0;
+                    c->nVisibility  = 0;
 
                     lsp_trace("Added category id=%d uid=%s", int(mb->group), c->sUID);
 
@@ -258,7 +261,15 @@ namespace lsp
                     b->pMeta        = mp->bundle;
                     b->pCategory    = c;
                     b->wRoot        = NULL;
-                    b->nVisibiity   = 0;
+                    b->wBundle      = NULL;
+                    b->wHeading     = NULL;
+                    b->wDescription = NULL;
+                    b->wImages      = NULL;
+                    b->wButtons     = NULL;
+                    b->wFavouries   = NULL;
+                    b->wHelp        = NULL;
+                    b->nVisibility  = 0;
+                    b->nActivePlugin= 0;
 
                     lsp_trace("Added bundle uid=%s, name=%s", mb->uid, mb->name);
 
@@ -374,8 +385,11 @@ namespace lsp
             }
 
             // Bind widgets
-            wAllBundles = controller()->widgets()->get<tk::WidgetContainer>("all_plugins_list");
-            wFavourites = controller()->widgets()->get<tk::WidgetContainer>("favourites_list");
+            tk::Registry * const registry = controller()->widgets();
+            wFilter = registry->get<tk::Edit>("search_input");
+            wTabs = registry->get<tk::TabControl>("tab_control");
+            wAllBundles = registry->get<tk::WidgetContainer>("all_plugins_list");
+            wFavourites = registry->get<tk::WidgetContainer>("favourites_list");
 
             // Bind ports
             BIND_PORT(this, pWindowWidth, UI_LAUNCHER_WIDTH_PORT);
@@ -388,6 +402,10 @@ namespace lsp
             // Bind events to the root window
             root->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
             root->slots()->bind(tk::SLOT_RESIZE, slot_window_resize, this);
+            if (wFilter != NULL)
+                wFilter->slots()->bind(tk::SLOT_CHANGE, slot_filter_change, this);
+            if (wTabs != NULL)
+                wTabs->slots()->bind(tk::SLOT_SUBMIT, slot_change_tab, this);
 
             // Notify port changes
             if (pWindowWidth != NULL)
@@ -395,10 +413,280 @@ namespace lsp
             if (pWindowHeight != NULL)
                 pWindowHeight->notify_all(ui::PORT_NONE);
 
+            // Create plugin catalog
+            if ((res = create_catalog()) != STATUS_OK)
+                return res;
+            sync_widget_visibility();
+
             // Show the window
             root->show();
 
             return res;
+        }
+
+        template <typename T>
+        T *UI::create_widget(const char *style)
+        {
+            T * const widget = new T(pDisplay);
+            if (widget == NULL)
+                return NULL;
+            if (controller()->widgets()->add(widget) != STATUS_OK)
+            {
+                delete widget;
+                return NULL;
+            }
+            if (widget->init() != STATUS_OK)
+                return NULL;
+            if (style != NULL)
+            {
+                tk::Style * const ws = pDisplay->schema()->get(style);
+                if (ws != NULL)
+                    widget->style()->add_parent(ws);
+                else
+                    lsp_warn("Could not inject non-existing style '%s'", style);
+            }
+
+            return widget;
+        }
+
+        status_t UI::create_catalog()
+        {
+            LSPString tmp;
+            LSPString path;
+
+            // Iterate over categories
+            for (lltl::iterator<category_t> ci = vCategories.values(); ci; ++ci)
+            {
+                category_t * const c = ci.get();
+
+                // Add category heading widget
+                tmp.fmt_ascii("bundles.groups.%s", c->sUID);
+                if ((c->wHeading = create_widget<tk::Label>("LauncherWindow::Category::Heading")) == NULL)
+                    return STATUS_NO_MEM;
+                LSP_STATUS_ASSERT(c->wHeading->text()->set(&tmp));
+
+                // Set root widget as heading
+                c->wRoot            = c->wHeading;
+            }
+
+            // Iterate over bundles
+            for (lltl::iterator<bundle_t> bi = vBundles.values(); bi; ++bi)
+            {
+                bundle_t * const b = bi.get();
+
+                // Add category heading widget
+                if ((b->wBundle = create_widget<tk::Grid>("LauncherWindow::Bundle::Grid")) == NULL)
+                    return STATUS_NO_MEM;
+
+                b->wBundle->rows()->set(3);
+                b->wBundle->columns()->set(3);
+
+                // Add box with plugin images
+                {
+                    tk::Align * const align = create_widget<tk::Align>("LauncherWindow::Bundle::Images::Align");
+                    if (align == NULL)
+                        return STATUS_NO_MEM;
+                    LSP_STATUS_ASSERT(b->wBundle->add(align, 3, 1));
+
+                    if ((b->wImages = create_widget<tk::Box>("LauncherWindow::Bundle::Images")) == NULL)
+                        return STATUS_NO_MEM;
+                    LSP_STATUS_ASSERT(align->add(b->wImages));
+                }
+
+                // Add plugin heading
+                tmp.fmt_ascii("bundles.%s.name", b->pMeta->uid);
+                if ((b->wHeading = create_widget<tk::Label>("LauncherWindow::Bundle::Heading")) == NULL)
+                    return STATUS_NO_MEM;
+                LSP_STATUS_ASSERT(b->wHeading->text()->set(&tmp));
+                LSP_STATUS_ASSERT(b->wBundle->add(b->wHeading));
+
+                // Add favourites and help buttons
+                {
+                    tk::Box * const btns = create_widget<tk::Box>(NULL);
+                    if (btns == NULL)
+                        return STATUS_NO_MEM;
+                    btns->allocation()->set_hreduce(true);
+                    LSP_STATUS_ASSERT(b->wBundle->add(btns));
+
+                    if ((b->wFavouries = create_widget<tk::Button>("LauncherWindow::Bundle::Favourites")) == NULL)
+                        return STATUS_NO_MEM;
+                    LSP_STATUS_ASSERT(b->wFavouries->text()->set("icons.actions.star"));
+                    LSP_STATUS_ASSERT(btns->add(b->wFavouries));
+
+                    if ((b->wHelp = create_widget<tk::Button>("LauncherWindow::Bundle::Help")) == NULL)
+                        return STATUS_NO_MEM;
+                    LSP_STATUS_ASSERT(b->wHelp->text()->set("icons.main.help"));
+                    LSP_STATUS_ASSERT(btns->add(b->wHelp));
+                }
+
+                // Add bundle description
+                tmp.fmt_ascii("bundles.%s.description", b->pMeta->uid);
+                if ((b->wDescription = create_widget<tk::Label>("LauncherWindow::Bundle::Description")) == NULL)
+                    return STATUS_NO_MEM;
+                b->wDescription->allocation()->set_expand(true);
+                LSP_STATUS_ASSERT(b->wDescription->text()->set(&tmp));
+                LSP_STATUS_ASSERT(b->wBundle->add(b->wDescription, 1, 2));
+
+                // Add launch button grid
+                if ((b->wButtons = create_widget<tk::Grid>("LauncherWindow::Bundle::Buttons")) == NULL)
+                    return STATUS_NO_MEM;
+                LSP_STATUS_ASSERT(b->wBundle->add(b->wButtons, 1, 2));
+                b->wButtons->rows()->set((b->vPlugins.size() + 1) / 2);
+                b->wButtons->columns()->set(2);
+
+                // Set up root widget
+                b->wRoot            = b->wBundle;
+            }
+
+            // Iterate over plugins
+            for (lltl::iterator<plugin_t> pi = vPlugins.values(); pi; ++pi)
+            {
+                plugin_t * const p = pi.get();
+                if (p->pBundle == NULL)
+                    return STATUS_CORRUPTED;
+
+                // Add image
+                if ((p->wImage = create_widget<tk::Image>("LauncherWindow::Plugin::Image")) == NULL)
+                    return STATUS_NO_MEM;
+                LSP_STATUS_ASSERT(p->pBundle->wImages->add(p->wImage));
+
+                // Load plugin icon
+                path.fmt_ascii(LSP_BUILTIN_PREFIX "icons/%s.xpm", p->pMeta->uid);
+                io::IInStream * is = pLoader->read_stream(&path);
+                if (is == NULL)
+                {
+                    is = pLoader->read_stream(LSP_BUILTIN_PREFIX "icons/default_icon.xpm");
+                    if (is == NULL)
+                        lsp_warn("Could not load icon for plugin uid='%s'", p->pMeta->uid);
+                }
+
+                if (is != NULL)
+                {
+                    lsp_finally {
+                        is->close();
+                        delete is;
+                    };
+                    LSP_STATUS_ASSERT(p->wImage->bitmap()->load(is, NULL));
+                }
+
+                // Add launch button
+                tmp.fmt_ascii("bundles.%s.description", p->pMeta->uid);
+                if ((p->wButton = create_widget<tk::Button>("LauncherWindow::Plugin::Button")) == NULL)
+                    return STATUS_NO_MEM;
+                p->sName.bind(pDisplay->schema()->root(), pDisplay->dictionary());
+                LSP_STATUS_ASSERT(p->wButton->text()->set_raw(p->pMeta->description));
+                p->wButton->slots()->bind(tk::SLOT_MOUSE_IN, slot_plugin_mouse_in, this);
+                p->wButton->slots()->bind(tk::SLOT_MOUSE_OUT, slot_plugin_mouse_out, this);
+                LSP_STATUS_ASSERT(p->sName.set(&tmp));
+                p->pBundle->wButtons->add(p->wButton);
+            }
+
+            return STATUS_OK;
+        }
+
+        bool UI::match_filter(const plugin_t *p, const LSPString *filter)
+        {
+            if (filter->is_empty())
+                return true;
+            if (p->sNativeName.index_of_nocase(filter) >= 0)
+                return true;
+            if (p->sDefaultName.index_of_nocase(filter) >= 0)
+                return true;
+
+            const bundle_t * const b = p->pBundle;
+            if (b->sNativeName.index_of_nocase(filter) >= 0)
+                return true;
+            if (b->sDefaultName.index_of_nocase(filter) >= 0)
+                return true;
+
+            const category_t * const c = b->pCategory;
+            if (c->sNativeName.index_of_nocase(filter) >= 0)
+                return true;
+            if (c->sDefaultName.index_of_nocase(filter) >= 0)
+                return true;
+
+            return false;
+        }
+
+        void UI::sync_widget_visibility()
+        {
+            if (wTabs == NULL)
+                return;
+
+            // Create query string
+            LSPString query, tmp;
+            if (wFilter != NULL)
+                wFilter->text()->format(&query);
+
+            // Iterate over categories
+            for (lltl::iterator<category_t> ci = vCategories.values(); ci; ++ci)
+            {
+                category_t * const c = ci.get();
+                c->nVisibility      = 0;
+                c->wHeading->text()->format(&c->sNativeName);
+                c->wHeading->text()->format(&c->sDefaultName, LSP_TK_PROP_DEFAULT_LANGUAGE);
+            }
+
+            // Iterate over bundles
+            for (lltl::iterator<bundle_t> bi = vBundles.values(); bi; ++bi)
+            {
+                bundle_t * const b = bi.get();
+                b->nVisibility      = 0;
+                b->wHeading->text()->format(&b->sNativeName);
+                b->wHeading->text()->format(&b->sDefaultName, LSP_TK_PROP_DEFAULT_LANGUAGE);
+            }
+
+            // Iterate over plugins
+            for (lltl::iterator<plugin_t> pi = vPlugins.values(); pi; ++pi)
+            {
+                plugin_t * const p = pi.get();
+
+                p->sName.format(&p->sNativeName);
+                p->sName.format(&p->sDefaultName, LSP_TK_PROP_DEFAULT_LANGUAGE);
+
+                // Apply filter
+                if (match_filter(p, &query))
+                {
+                    ++p->pBundle->nVisibility;
+                    ++p->pBundle->pCategory->nVisibility;
+                }
+            }
+
+            // Add widgets to the box
+            tk::Tab *tab = wTabs->selected()->get();
+            const size_t idx = (tab != NULL) ? wTabs->widgets()->index_of(tab) : 0;
+            tk::WidgetContainer * const wc = (idx == 0) ? wAllBundles : wFavourites;
+
+            wAllBundles->remove_all();
+            wFavourites->remove_all();
+
+            // Add all visible widgets to the list
+            for (lltl::iterator<category_t> ci = vCategories.values(); ci; ++ci)
+            {
+                category_t * const c = ci.get();
+                if (c->nVisibility <= 0)
+                    continue;
+
+                wc->add(c->wRoot);
+                lsp_trace("Added category id=%s", c->sUID);
+
+                for (lltl::iterator<bundle_t> bi = c->vBundles.values(); bi; ++bi)
+                {
+                    bundle_t * const b = bi.get();
+                    if (b->nVisibility <= 0)
+                        continue;
+
+                    lsp_trace("  Added bundle id=%s", b->pMeta->uid);
+                    wc->add(b->wRoot);
+
+                    for (lltl::iterator<plugin_t> pi = b->vPlugins.values(); pi; ++pi)
+                    {
+                        plugin_t * const p = pi.get();
+                        if (p->wImage != NULL)
+                            p->wImage->visibility()->set(pi.index() == b->nActivePlugin);
+                    }
+                }
+            }
         }
 
         const meta::package_t *UI::package() const
@@ -474,6 +762,35 @@ namespace lsp
                 pWindowHeight->notify_all(ui::PORT_USER_EDIT);
         }
 
+        void UI::select_plugin_image(tk::Widget *sender, bool select)
+        {
+            plugin_t *p = NULL;
+
+            for (lltl::iterator<plugin_t> pi = vPlugins.values(); pi; ++pi)
+            {
+                plugin_t * const xp = pi.get();
+                if (xp->wButton == sender)
+                {
+                    p = xp;
+                    break;
+                }
+            }
+
+            if (p == NULL)
+                return;
+
+            // Update image visibility
+            bundle_t * const b  = p->pBundle;
+            b->nActivePlugin    = b->vPlugins.index_of(p);
+
+            for (lltl::iterator<plugin_t> pi = b->vPlugins.values(); pi; ++pi)
+            {
+                plugin_t * const xp = pi.get();
+                if (xp->wImage != NULL)
+                    xp->wImage->visibility()->set(pi.index() == b->nActivePlugin);
+            }
+        }
+
         status_t UI::slot_display_idle(tk::Widget *sender, void *ptr, void *data)
         {
 //            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
@@ -489,6 +806,42 @@ namespace lsp
             UI * const self = static_cast<UI *>(ptr);
             if (self != NULL)
                 self->on_window_resize();
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_filter_change(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self != NULL)
+                self->sync_widget_visibility();
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_plugin_mouse_in(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self != NULL)
+                self->select_plugin_image(sender, true);
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_plugin_mouse_out(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self != NULL)
+                self->select_plugin_image(NULL, false);
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_change_tab(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self != NULL)
+                self->sync_widget_visibility();
 
             return STATUS_OK;
         }
