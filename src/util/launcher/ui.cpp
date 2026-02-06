@@ -531,8 +531,8 @@ namespace lsp
                 if ((b->wButtons = create_widget<tk::Grid>("LauncherWindow::Bundle::Buttons")) == NULL)
                     return STATUS_NO_MEM;
                 LSP_STATUS_ASSERT(b->wBundle->add(b->wButtons, 1, 2));
-                b->wButtons->rows()->set((b->vPlugins.size() + 1) / 2);
-                b->wButtons->columns()->set(2);
+                b->wButtons->rows()->set((b->vPlugins.size() + 4 - 1) / 4);
+                b->wButtons->columns()->set(4);
 
                 // Set up root widget
                 b->wRoot            = b->wBundle;
@@ -570,13 +570,14 @@ namespace lsp
                 }
 
                 // Add launch button
-                tmp.fmt_ascii("bundles.%s.description", p->pMeta->uid);
                 if ((p->wButton = create_widget<tk::Button>("LauncherWindow::Plugin::Button")) == NULL)
                     return STATUS_NO_MEM;
                 p->sName.bind(pDisplay->schema()->root(), pDisplay->dictionary());
-                LSP_STATUS_ASSERT(p->wButton->text()->set_raw(p->pMeta->description));
+                tmp.fmt_ascii("bundles.launcher.%s", p->pMeta->uid);
+                LSP_STATUS_ASSERT(p->wButton->text()->set(&tmp));
                 p->wButton->slots()->bind(tk::SLOT_MOUSE_IN, slot_plugin_mouse_in, this);
                 p->wButton->slots()->bind(tk::SLOT_MOUSE_OUT, slot_plugin_mouse_out, this);
+                tmp.fmt_ascii("bundles.%s.description", p->pMeta->uid);
                 LSP_STATUS_ASSERT(p->sName.set(&tmp));
                 p->pBundle->wButtons->add(p->wButton);
             }
