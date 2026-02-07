@@ -77,10 +77,11 @@ namespace lsp
             return i;
         }
 
-        UI::UI(resource::ILoader * loader):
+        UI::UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch):
             ui::IWrapper(NULL, loader)
         {
-            pPackage            = NULL;
+            pPackage            = package;
+            pLaunch             = launch;
             pWindowWidth        = NULL;
             pWindowHeight       = NULL;
 
@@ -97,12 +98,7 @@ namespace lsp
 
         void UI::do_destroy()
         {
-            // Destroy manifest if present
-            if (pPackage != NULL)
-            {
-                meta::free_manifest(pPackage);
-                pPackage = NULL;
-            }
+            pPackage = NULL;
 
             // Destroy metadata if present
             for (lltl::iterator<category_t> it = vCategories.values(); it; ++it)
@@ -137,32 +133,6 @@ namespace lsp
         {
             do_destroy();
             ui::IWrapper::destroy();
-        }
-
-        status_t UI::load_package_info()
-        {
-            // Load package information
-            status_t res;
-            io::IInStream *is = resources()->read_stream(LSP_BUILTIN_PREFIX "manifest.json");
-            if (is == NULL)
-            {
-                lsp_error("No manifest.json found in resources");
-                return STATUS_BAD_STATE;
-            }
-            lsp_finally {
-                is->close();
-                delete is;
-            };
-
-            res = meta::load_manifest(&pPackage, is);
-
-            if (res != STATUS_OK)
-            {
-                lsp_error("Error while reading manifest file, error: %d", int(res));
-                return res;
-            }
-
-            return STATUS_OK;
         }
 
         ssize_t UI::plugin_cmp_function(const plugin_t *a, const plugin_t *b)
@@ -357,10 +327,6 @@ namespace lsp
                 lsp_trace("UI initialization time: %d ms", int(end - start));
             };
         #endif /* LSP_TRACE */
-
-            // Load package information
-            if ((res = load_package_info()) != STATUS_OK)
-                return res;
 
             // Scan plugin metadata
             if ((res = scan_metadata()) != STATUS_OK)
@@ -577,6 +543,7 @@ namespace lsp
                 LSP_STATUS_ASSERT(p->wButton->text()->set(&tmp));
                 p->wButton->slots()->bind(tk::SLOT_MOUSE_IN, slot_plugin_mouse_in, this);
                 p->wButton->slots()->bind(tk::SLOT_MOUSE_OUT, slot_plugin_mouse_out, this);
+                p->wButton->slots()->bind(tk::SLOT_SUBMIT, slot_plugin_submit, this);
                 tmp.fmt_ascii("bundles.%s.description", p->pMeta->uid);
                 LSP_STATUS_ASSERT(p->sName.set(&tmp));
                 p->pBundle->wButtons->add(p->wButton);
@@ -598,12 +565,6 @@ namespace lsp
             if (b->sNativeName.index_of_nocase(filter) >= 0)
                 return true;
             if (b->sDefaultName.index_of_nocase(filter) >= 0)
-                return true;
-
-            const category_t * const c = b->pCategory;
-            if (c->sNativeName.index_of_nocase(filter) >= 0)
-                return true;
-            if (c->sDefaultName.index_of_nocase(filter) >= 0)
                 return true;
 
             return false;
@@ -843,6 +804,32 @@ namespace lsp
             UI * const self = static_cast<UI *>(ptr);
             if (self != NULL)
                 self->sync_widget_visibility();
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_plugin_submit(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self != NULL)
+            {
+                if (self->pLaunch != NULL)
+                {
+                    for (lltl::iterator<plugin_t> pi = self->vPlugins.values(); pi; ++pi)
+                    {
+                        const plugin_t *p = pi.get();
+                        if ((p != NULL) && (p->wButton == sender))
+                        {
+                            *self->pLaunch    = p->pMeta;
+                            break;
+                        }
+                    }
+                }
+
+                tk::Display * const dpy = self->display();
+                if (dpy != NULL)
+                    dpy->quit_main();
+            }
 
             return STATUS_OK;
         }

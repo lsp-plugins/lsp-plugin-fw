@@ -85,7 +85,8 @@ namespace lsp
                 } plugin_t;
 
             protected:
-                meta::package_t            *pPackage;           // Package descriptor
+                const meta::package_t       *pPackage;           // Package descriptor
+                const meta::plugin_t      **pLaunch;            // Pointer to store metadata of launched plugin
                 ui::IPort                  *pWindowWidth;
                 ui::IPort                  *pWindowHeight;
                 tk::Edit                   *wFilter;            // Filter edit
@@ -109,6 +110,7 @@ namespace lsp
                 static status_t             slot_change_tab(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_plugin_mouse_in(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_plugin_mouse_out(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_plugin_submit(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);
@@ -117,7 +119,6 @@ namespace lsp
             protected:
                 void                        do_destroy();
                 status_t                    build_ui();
-                status_t                    load_package_info();
                 status_t                    scan_metadata();
                 status_t                    create_catalog();
                 void                        on_window_resize();
@@ -125,7 +126,7 @@ namespace lsp
                 void                        select_plugin_image(tk::Widget *sender, bool select);
 
             public:
-                UI(resource::ILoader * loader);
+                UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch);
                 virtual ~UI() override;
                 UI(const UI &) = delete;
                 UI(UI &&) = delete;
