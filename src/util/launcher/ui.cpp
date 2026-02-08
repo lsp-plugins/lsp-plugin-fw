@@ -78,7 +78,8 @@ namespace lsp
         }
 
         UI::UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch):
-            ui::IWrapper(NULL, loader)
+            ui::IWrapper(NULL, loader),
+            sUIScaling(this)
         {
             pPackage            = package;
             pLaunch             = launch;
@@ -307,11 +308,12 @@ namespace lsp
                     return res;
             }
 
+            pWindow     = wnd;
+
             // Call post-initialization
             if ((res = wnd->post_init()) != STATUS_OK)
                 return res;
 
-            pWindow     = wnd;
             return STATUS_OK;
         }
 
@@ -343,12 +345,30 @@ namespace lsp
                 return STATUS_BAD_STATE;
             }
 
+            // Call post-initialization
+            if ((res = post_init()) != STATUS_OK)
+                return res;
+
+            // Show the window
+            window()->show();
+
+            return res;
+        }
+
+        status_t UI::post_init()
+        {
             tk::Window * const root    = window();
             if (root == NULL)
             {
                 lsp_error("No root window present!");
                 return STATUS_BAD_STATE;
             }
+
+            // Init UI scaling
+            LSP_STATUS_ASSERT(sUIScaling.init(false));
+            sUIScaling.bind_ui_scaling_show("trg_ui_scaling", tk::SLOT_SUBMIT);
+            sUIScaling.bind_ui_scaling_zoom_in("trg_ui_zoom_in", tk::SLOT_SUBMIT);
+            sUIScaling.bind_ui_scaling_zoom_out("trg_ui_zoom_out", tk::SLOT_SUBMIT);
 
             // Bind widgets
             tk::Registry * const registry = controller()->widgets();
@@ -380,14 +400,13 @@ namespace lsp
                 pWindowHeight->notify_all(ui::PORT_NONE);
 
             // Create plugin catalog
-            if ((res = create_catalog()) != STATUS_OK)
-                return res;
+            LSP_STATUS_ASSERT(create_catalog());
+
+            // Synchronize state
             sync_widget_visibility();
+            sUIScaling.host_scaling_changed();
 
-            // Show the window
-            root->show();
-
-            return res;
+            return STATUS_OK;
         }
 
         template <typename T>
@@ -654,6 +673,11 @@ namespace lsp
         const meta::package_t *UI::package() const
         {
             return pPackage;
+        }
+
+        void UI::host_scaling_changed()
+        {
+            sUIScaling.host_scaling_changed();
         }
 
         status_t UI::main_loop()

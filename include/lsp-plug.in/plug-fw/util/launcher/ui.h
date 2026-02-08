@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/util/launcher/plugin_metadata.h>
@@ -85,8 +86,10 @@ namespace lsp
                 } plugin_t;
 
             protected:
-                const meta::package_t       *pPackage;           // Package descriptor
+                const meta::package_t      *pPackage;           // Package descriptor
                 const meta::plugin_t      **pLaunch;            // Pointer to store metadata of launched plugin
+                ctl::UIScaling              sUIScaling;
+
                 ui::IPort                  *pWindowWidth;
                 ui::IPort                  *pWindowHeight;
                 tk::Edit                   *wFilter;            // Filter edit
@@ -124,6 +127,7 @@ namespace lsp
                 void                        on_window_resize();
                 void                        sync_widget_visibility();
                 void                        select_plugin_image(tk::Widget *sender, bool select);
+                status_t                    post_init();
 
             public:
                 UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch);
@@ -139,6 +143,7 @@ namespace lsp
 
             public: // ui::IWrapper
                 virtual const meta::package_t      *package() const override;
+                virtual void                host_scaling_changed() override;
 
             public: // ui::IPortListener
                 virtual void notify(ui::IPort *port, size_t flags);

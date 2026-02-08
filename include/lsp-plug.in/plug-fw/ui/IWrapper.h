@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2024 г.
@@ -541,6 +541,9 @@ namespace lsp
 
             public: // ui::IPresetManager
                 virtual void                    mark_active_preset_dirty() override;
+
+            public:
+                virtual void                    host_scaling_changed();
 
             public: // Preset management
                 /**

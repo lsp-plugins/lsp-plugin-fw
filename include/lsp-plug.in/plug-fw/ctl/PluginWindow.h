@@ -27,8 +27,9 @@
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/tk/tk.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/ctl/UIScaling.h>
+#include <lsp-plug.in/tk/tk.h>
 
 namespace lsp
 {
@@ -111,6 +112,7 @@ namespace lsp
             protected:
                 bool                        bResizable;
 
+                ctl::UIScaling              sUIScaling;                 // UI scaling controller
                 ctl::Window                *pUserPaths;                 // User paths controller
                 ctl::PresetsWindow         *pPresetsWindow;             // Presets window
 
@@ -120,10 +122,7 @@ namespace lsp
                 tk::Window                 *wUserPaths;                 // User paths configuration
                 tk::Menu                   *wMenu;                      // Menu
                 tk::Menu                   *wPresets;                   // Presets menu
-                tk::Menu                   *wUIScaling;                 // UI Scaling menu
-                tk::Menu                   *wBundleScaling;             // Bundle Scaling menu
                 tk::Menu                   *wFontScaling;               // UI Scaling menu
-                tk::MenuItem               *wPreferHost;                // Prefer host menu item
                 tk::CheckBox               *wRelPaths;                  // Relative path checkbox
                 tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
                 tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
@@ -136,9 +135,6 @@ namespace lsp
                 ui::IPort                  *pPBypass;
                 ui::IPort                  *pR3DBackend;
                 ui::IPort                  *pLanguage;
-                ui::IPort                  *pUIScaling;
-                ui::IPort                  *pUIScalingHost;
-                ui::IPort                  *pUIBundleScaling;
                 ui::IPort                  *pUIFontScaling;
                 ui::IPort                  *pVisualSchema;
                 ui::IPort                  *pInvertVScroll;
@@ -149,8 +145,6 @@ namespace lsp
 
                 lltl::parray<backend_sel_t> vBackendSel;
                 lltl::parray<lang_sel_t>    vLangSel;
-                lltl::parray<scaling_sel_t> vScalingSel;
-                lltl::parray<scaling_sel_t> vBundleScalingSel;
                 lltl::parray<scaling_sel_t> vFontScalingSel;
                 lltl::parray<schema_sel_t>  vSchemaSel;
                 lltl::parray<preset_sel_t>  vPresetSel;
@@ -164,7 +158,6 @@ namespace lsp
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_select_next_preset(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_bundle_scaling_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data);
 
@@ -256,14 +249,12 @@ namespace lsp
                 status_t            init_r3d_support(tk::Menu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);
                 status_t            init_scaling_support(tk::Menu *menu);
-                status_t            init_bundle_scaling_support(tk::Menu *menu);
                 status_t            init_font_scaling_support(tk::Menu *menu);
                 status_t            init_visual_schema_support(tk::Menu *menu);
                 status_t            init_ui_behaviour(tk::Menu *menu);
                 status_t            add_ui_flag(tk::Menu *menu, const char *port, const char *key);
                 status_t            init_presets(tk::Menu *menu, bool add_submenu);
                 status_t            create_main_menu();
-                void                sync_ui_scaling();
                 bool                has_path_ports();
                 void                sync_language_selection();
                 void                sync_font_scaling();
