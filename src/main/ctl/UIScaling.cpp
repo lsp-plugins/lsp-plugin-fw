@@ -2,21 +2,21 @@
  * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- * This file is part of lsp-plugins
+ * This file is part of lsp-plugin-fw
  * Created on: 8 февр. 2026 г.
  *
- * lsp-plugins is free software: you can redistribute it and/or modify
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * lsp-plugins is distributed in the hope that it will be useful,
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with lsp-plugins. If not, see <https://www.gnu.org/licenses/>.
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
@@ -162,7 +162,10 @@ namespace lsp
 
             // Generate the 'Set scaling' menu items
             for (size_t scale = SCALING_FACTOR_BEGIN; scale <= SCALING_FACTOR_END; scale += SCALING_FACTOR_STEP)
-                add_scaling_menu_item(vUIScalingSel, wUIScaling, "actions.ui_scaling.value:pc", scale, slot_ui_scaling_select);
+                LSP_STATUS_ASSERT(add_scaling_menu_item(
+                    vUIScalingSel, wUIScaling,
+                    "actions.ui_scaling.value:pc",
+                    scale, slot_ui_scaling_select));
 
             return STATUS_OK;
         }
@@ -356,6 +359,11 @@ namespace lsp
         }
 
         void UIScaling::host_scaling_changed()
+        {
+            sync_parameters();
+        }
+
+        void UIScaling::sync_parameters()
         {
             if (pUIScalingHost != NULL)
                 pUIScalingHost->notify_all(ui::PORT_NONE);

@@ -79,7 +79,8 @@ namespace lsp
 
         UI::UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch):
             ui::IWrapper(NULL, loader),
-            sUIScaling(this)
+            sUIScaling(this),
+            sFontScaling(this)
         {
             pPackage            = package;
             pLaunch             = launch;
@@ -370,6 +371,12 @@ namespace lsp
             sUIScaling.bind_ui_scaling_zoom_in("trg_ui_zoom_in", tk::SLOT_SUBMIT);
             sUIScaling.bind_ui_scaling_zoom_out("trg_ui_zoom_out", tk::SLOT_SUBMIT);
 
+            // Init Font scaling
+            LSP_STATUS_ASSERT(sFontScaling.init());
+            sFontScaling.bind_show("trg_font_scaling", tk::SLOT_SUBMIT);
+            sFontScaling.bind_zoom_in("trg_font_zoom_in", tk::SLOT_SUBMIT);
+            sFontScaling.bind_zoom_out("trg_font_zoom_out", tk::SLOT_SUBMIT);
+
             // Bind widgets
             tk::Registry * const registry = controller()->widgets();
             wFilter = registry->get<tk::Edit>("search_input");
@@ -404,7 +411,8 @@ namespace lsp
 
             // Synchronize state
             sync_widget_visibility();
-            sUIScaling.host_scaling_changed();
+            sUIScaling.sync_parameters();
+            sFontScaling.sync_parameters();
 
             return STATUS_OK;
         }

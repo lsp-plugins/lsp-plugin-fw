@@ -87,8 +87,8 @@ namespace lsp
 
             public:
                 explicit UIScaling(ui::IWrapper *src);
-                UIScaling(const SavePresetDialog &) = delete;
-                UIScaling(SavePresetDialog &&) = delete;
+                UIScaling(const UIScaling &) = delete;
+                UIScaling(UIScaling &&) = delete;
                 virtual ~UIScaling() override;
 
                 UIScaling & operator = (const UIScaling &) = delete;
@@ -104,6 +104,7 @@ namespace lsp
             public:
                 ssize_t             get_bundle_scaling();
                 void                host_scaling_changed();
+                void                sync_parameters();
 
                 inline tk::Menu    *ui_scaling_menu()                               { return wUIScaling; }
                 inline tk::Menu    *bundle_scaling_menu()                           { return wBundleScaling; }

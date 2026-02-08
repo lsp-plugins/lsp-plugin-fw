@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 13 апр. 2021 г.
@@ -28,6 +28,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/ctl/FontScaling.h>
 #include <lsp-plug.in/plug-fw/ctl/UIScaling.h>
 #include <lsp-plug.in/tk/tk.h>
 
@@ -113,6 +114,7 @@ namespace lsp
                 bool                        bResizable;
 
                 ctl::UIScaling              sUIScaling;                 // UI scaling controller
+                ctl::FontScaling            sFontScaling;               // Font scaling controller
                 ctl::Window                *pUserPaths;                 // User paths controller
                 ctl::PresetsWindow         *pPresetsWindow;             // Presets window
 
@@ -122,7 +124,6 @@ namespace lsp
                 tk::Window                 *wUserPaths;                 // User paths configuration
                 tk::Menu                   *wMenu;                      // Menu
                 tk::Menu                   *wPresets;                   // Presets menu
-                tk::Menu                   *wFontScaling;               // UI Scaling menu
                 tk::CheckBox               *wRelPaths;                  // Relative path checkbox
                 tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
                 tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
@@ -135,7 +136,6 @@ namespace lsp
                 ui::IPort                  *pPBypass;
                 ui::IPort                  *pR3DBackend;
                 ui::IPort                  *pLanguage;
-                ui::IPort                  *pUIFontScaling;
                 ui::IPort                  *pVisualSchema;
                 ui::IPort                  *pInvertVScroll;
                 ui::IPort                  *pInvertGraphDotVScroll;
@@ -145,7 +145,6 @@ namespace lsp
 
                 lltl::parray<backend_sel_t> vBackendSel;
                 lltl::parray<lang_sel_t>    vLangSel;
-                lltl::parray<scaling_sel_t> vFontScalingSel;
                 lltl::parray<schema_sel_t>  vSchemaSel;
                 lltl::parray<preset_sel_t>  vPresetSel;
                 lltl::darray<ui_flag_t>     vBoolFlags;
@@ -159,7 +158,6 @@ namespace lsp
                 static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_select_next_preset(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_bundle_scaling_menu(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
@@ -192,10 +190,6 @@ namespace lsp
                 static status_t slot_bundle_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_bundle_scaling_select(tk::Widget *sender, void *ptr, void *data);
 
-                static status_t slot_font_scaling_zoom_in(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_font_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_font_scaling_select(tk::Widget *sender, void *ptr, void *data);
-
                 static status_t slot_visual_schema_select(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_window_resize(tk::Widget *sender, void *ptr, void *data);
@@ -221,11 +215,6 @@ namespace lsp
                 static i18n::IDictionary   *get_default_dict(tk::Widget *src);
                 static ssize_t              compare_presets(const resource::resource_t *a, const resource::resource_t *b);
                 void                        init_enum_menu(enum_menu_t *menu);
-
-                status_t                    add_scaling_menu_item(
-                    lltl::parray<scaling_sel_t> & list,
-                    tk::Menu *menu, const char *key, size_t scale,
-                    tk::event_handler_t handler);
 
             protected:
                 void                do_destroy();
@@ -257,7 +246,6 @@ namespace lsp
                 status_t            create_main_menu();
                 bool                has_path_ports();
                 void                sync_language_selection();
-                void                sync_font_scaling();
                 void                sync_visual_schemas();
                 void                sync_invert_vscroll(ui::IPort *port);
                 void                sync_ui_behaviour_flags(ui::IPort *port);

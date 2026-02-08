@@ -89,6 +89,7 @@ namespace lsp
                 const meta::package_t      *pPackage;           // Package descriptor
                 const meta::plugin_t      **pLaunch;            // Pointer to store metadata of launched plugin
                 ctl::UIScaling              sUIScaling;
+                ctl::FontScaling            sFontScaling;
 
                 ui::IPort                  *pWindowWidth;
                 ui::IPort                  *pWindowHeight;
