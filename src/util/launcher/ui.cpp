@@ -548,6 +548,7 @@ namespace lsp
                 io::IInStream * is = pLoader->read_stream(&path);
                 if (is == NULL)
                 {
+                    path.set_ascii(LSP_BUILTIN_PREFIX "icons/default_icon.xpm");
                     is = pLoader->read_stream(LSP_BUILTIN_PREFIX "icons/default_icon.xpm");
                     if (is == NULL)
                         lsp_warn("Could not load icon for plugin uid='%s'", p->pMeta->uid);
@@ -559,7 +560,12 @@ namespace lsp
                         is->close();
                         delete is;
                     };
-                    LSP_STATUS_ASSERT(p->wImage->bitmap()->load(is, NULL));
+                    status_t res = p->wImage->bitmap()->load(is, NULL);
+                    if (res != STATUS_OK)
+                    {
+                        lsp_warn("Could not load icon for plugin uid='%s', path='%s'", p->pMeta->uid, path.get_utf8());
+                        return res;
+                    }
                 }
 
                 // Add launch button
