@@ -26,12 +26,12 @@
 #include <lsp-plug.in/resource/types.h>
 #include <lsp-plug.in/resource/ILoader.h>
 
-#define LSP_RESOURCE_BUFSZ      0x100000
-
 namespace lsp
 {
     namespace core
     {
+        static constexpr size_t LSP_RESOURCE_LOG_BUFSZ      = 20; // 0x100000
+
         /**
          * Resource factory
          */

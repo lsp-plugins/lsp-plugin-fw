@@ -59,7 +59,7 @@ namespace lsp
                 return NULL;
 
             // Initialize loader
-            status_t res = ldr->init(pData, nSize, vEnt, nEnt, LSP_RESOURCE_BUFSZ);
+            status_t res = ldr->init(pData, nSize, vEnt, nEnt, LSP_RESOURCE_LOG_BUFSZ);
             if (res == STATUS_OK)
                 return ldr;
 

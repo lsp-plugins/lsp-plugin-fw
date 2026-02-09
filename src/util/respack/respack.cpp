@@ -290,7 +290,7 @@ namespace lsp
             fprintf(fd, "\t{");
 
             // Initialize compressor
-            return ctx->c.init(LSP_RESOURCE_BUFSZ, ctx->os);
+            return ctx->c.init(core::LSP_RESOURCE_LOG_BUFSZ, ctx->os);
         }
 
         status_t compress_data(state_t *ctx, const io::Path *base)

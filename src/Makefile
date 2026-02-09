@@ -288,12 +288,12 @@ VERSION_CFLAGS             := \
 #------------------------------------------------------------------------------
 # Framework settings for (cross) build
 LSP_PLUGIN_FW_SRC_RES               = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-res.cpp
-LSP_PLUGIN_FW_SRC_RES_EXCL          = -x "fonts/**/:i18n/**/:presets/**/:schema/**/:ui/**/"
+LSP_PLUGIN_FW_SRC_RES_EXCL          = -x "fonts/**/:i18n/**/:presets/**/:schema/**/:ui/**/:icons/**/"
 LSP_PLUGIN_FW_SRC_RES_CKSUM         = $(LSP_PLUGIN_FW_BIN)/res-checksum.json
 
 LSP_PLUGIN_FW_SRC_UI_RES            = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-ui-res.cpp
 LSP_PLUGIN_FW_SRC_UI_RES_CKSUM      = $(LSP_PLUGIN_FW_BIN)/ui-res-checksum.json
-LSP_PLUGIN_FW_SRC_UI_RES_EXCL       = 
+LSP_PLUGIN_FW_SRC_UI_RES_EXCL       = -x "icons/**/"
 
 LSP_PLUGIN_FW_DEPS                  = $(filter-out $(ARTIFACT_ID), $(DEPENDENCIES))
 LSP_PLUGIN_FW_OBJ_CORE              = $(LSP_PLUGIN_FW_BIN)/$(LSP_PLUGIN_FW_NAME)-core.o
