@@ -1142,18 +1142,22 @@ namespace lsp
 
         status_t PluginWindow::slot_select_language(tk::Widget *sender, void *ptr, void *data)
         {
-            lang_sel_t *sel = reinterpret_cast<lang_sel_t *>(ptr);
+            lang_sel_t * const sel = reinterpret_cast<lang_sel_t *>(ptr);
             lsp_trace("sender=%p, sel=%p", sender, sel);
-            if ((sender == NULL) || (sel == NULL) || (sel->ctl == NULL) || (sel->item == NULL))
+            if ((sender == NULL) || (sel == NULL))
                 return STATUS_BAD_ARGUMENTS;
 
-            tk::Display *dpy = sender->display();
+            PluginWindow * const self = sel->ctl;
+            if ((self == NULL) || (sel->item == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            tk::Display * const dpy = sender->display();
             lsp_trace("dpy = %p", dpy);
             if (dpy == NULL)
                 return STATUS_BAD_STATE;
 
             // Select language
-            tk::Schema *schema  = dpy->schema();
+            tk::Schema * const schema  = dpy->schema();
             lsp_trace("Select language: \"%s\"", sel->lang.get_native());
             if ((schema->set_lanugage(&sel->lang)) != STATUS_OK)
             {
@@ -1162,13 +1166,15 @@ namespace lsp
             }
 
             // Update parameter
-            const char *dlang = sel->lang.get_utf8();
-            const char *slang = sel->ctl->pLanguage->buffer<char>();
+            const char * const dlang = sel->lang.get_utf8();
+            const char * const slang = self->pLanguage->buffer<char>();
             lsp_trace("Current language in settings: \"%s\"", slang);
             if ((slang == NULL) || (strcmp(slang, dlang)))
             {
-                sel->ctl->pLanguage->write(dlang, strlen(dlang));
-                sel->ctl->pLanguage->notify_all(ui::PORT_USER_EDIT);
+                self->pLanguage->begin_edit();
+                self->pLanguage->write(dlang, strlen(dlang));
+                self->pLanguage->notify_all(ui::PORT_USER_EDIT);
+                self->pLanguage->end_edit();
             }
 
             lsp_trace("Language has been selected");
@@ -1376,8 +1382,6 @@ namespace lsp
                 sync_visual_schemas();
 
                 // Notify other parameters
-                if (pLanguage != NULL)
-                    pLanguage->notify_all(flags);
                 if (pInvertVScroll != NULL)
                     pInvertVScroll->notify_all(flags);
                 if (pInvertGraphDotVScroll != NULL)
@@ -1388,6 +1392,7 @@ namespace lsp
                 sUIScaling.sync_parameters();
                 sFontScaling.sync_parameters();
                 notify_ui_behaviour_flags(flags);
+                sync_language_selection();
             }
             if ((port == pInvertVScroll) || (port == pInvertGraphDotVScroll))
                 sync_invert_vscroll(port);

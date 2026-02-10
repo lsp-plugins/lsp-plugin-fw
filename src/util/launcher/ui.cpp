@@ -105,10 +105,12 @@ namespace lsp
 
             pWindowWidth        = NULL;
             pWindowHeight       = NULL;
+            pLanguage           = NULL;
             nConfigChanges      = 0;
 
             wFilter             = NULL;
             wTabs               = NULL;
+            wLanguage           = NULL;
             wAllBundles         = NULL;
             wFavourites         = NULL;
         }
@@ -422,6 +424,7 @@ namespace lsp
             // Bind ports
             BIND_PORT(this, pWindowWidth, UI_LAUNCHER_WIDTH_ID);
             BIND_PORT(this, pWindowHeight, UI_LAUNCHER_HEIGHT_ID);
+            BIND_PORT(this, pLanguage, LANGUAGE_PORT);
 
             // Bind events to the display
             pDisplay->slots()->bind(tk::SLOT_IDLE, slot_display_idle, this);
@@ -437,6 +440,9 @@ namespace lsp
 
             // Deploy configuration values to ports
             deploy_config();
+
+            // Init language support
+            LSP_STATUS_ASSERT(init_i18n_support());
 
             // Create plugin catalog
             LSP_STATUS_ASSERT(create_catalog());
@@ -668,6 +674,99 @@ namespace lsp
             return STATUS_OK;
         }
 
+        i18n::IDictionary *UI::get_default_dict(tk::Widget *src)
+        {
+            i18n::IDictionary *dict = src->display()->dictionary();
+            if (dict == NULL)
+                return dict;
+
+            if (dict->lookup("default", &dict) != STATUS_OK)
+                dict = NULL;
+
+            return dict;
+        }
+
+        status_t UI::init_i18n_support()
+        {
+            wLanguage               = controller()->widgets()->get<tk::ComboBox>("trg_language_select");
+            if (wLanguage == NULL)
+                return STATUS_OK;
+
+            tk::Display * const dpy     = display();
+            i18n::IDictionary *dict     = get_default_dict(wLanguage);
+            if (dict == NULL)
+                return STATUS_OK;
+
+            // Perform lookup before loading list of languages
+            status_t res = dict->lookup("lang.target", &dict);
+            if (res != STATUS_OK)
+                return res;
+
+            // Iterate all children and add language keys
+            LSPString key, value;
+            lang_sel_t *lang;
+            size_t added = 0;
+            for (size_t i=0, n=dict->size(); i<n; ++i)
+            {
+                // Fetch placeholder for language selection key
+                if ((res = dict->get_value(i, &key, &value)) != STATUS_OK)
+                {
+                    // Skip nested dictionaries
+                    if (res == STATUS_BAD_TYPE)
+                        continue;
+                    return res;
+                }
+                lsp_trace("i18n: key=%s, value=%s", key.get_utf8(), value.get_utf8());
+
+                if ((lang = new lang_sel_t()) == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally {
+                    if (lang != NULL)
+                        delete lang;
+                };
+
+                if (!lang->sLang.set(&key))
+                    return STATUS_NO_MEM;
+
+                lang->wItem = create_widget<tk::ListBoxItem>(NULL);
+                if (lang->wItem == NULL)
+                    return STATUS_NO_MEM;
+                LSP_STATUS_ASSERT(wLanguage->items()->add(lang->wItem));
+
+                // Create list box item
+                lang->wItem->text()->set_raw(&value);
+
+                // Create closure and bind
+                if (!vLangSel.add(lang))
+                    return STATUS_NO_MEM;
+                lang        = NULL;
+
+                ++added;
+            }
+
+            wLanguage->slots()->bind(tk::SLOT_SUBMIT, slot_select_language, this);
+
+            // Set menu item visible only if there are available languages
+            if (pLanguage != NULL)
+            {
+                const char * const lang = pLanguage->buffer<char>();
+                if ((lang != NULL) && (strlen(lang) > 0))
+                {
+                    if ((dpy->schema()->set_lanugage(lang)) == STATUS_OK)
+                    {
+                        lsp_trace("System language set to: %s", lang);
+                        pLanguage->notify_all(ui::PORT_NONE);
+                    }
+                }
+
+                tk::Widget * const area = controller()->widgets()->get<tk::Widget>("trg_language_select_area");
+                if ((area != NULL) && (added > 0))
+                    area->visibility()->set(true);
+            }
+
+            return STATUS_OK;
+        }
+
         bool UI::match_filter(const plugin_t *p, const LSPString *filter, bool favourites)
         {
             // Filter favourite bundles
@@ -823,17 +922,28 @@ namespace lsp
             return (dpy != NULL) ? dpy->main() : STATUS_BAD_STATE;
         }
 
-        status_t UI::slot_window_close(tk::Widget *sender, void *ptr, void *data)
+        void UI::sync_language_selection()
         {
-            UI * const self = static_cast<UI *>(ptr);
-            if (self != NULL)
-            {
-                tk::Display * const dpy = self->display();
-                if (dpy != NULL)
-                    dpy->quit_main();
-            }
+            if (wLanguage == NULL)
+                return;
 
-            return STATUS_OK;
+            tk::Display *dpy    = display();
+            if (dpy == NULL)
+                return;
+
+            LSPString lang;
+            if ((dpy->schema()->get_language(&lang)) != STATUS_OK)
+                return;
+
+            for (size_t i=0, n=vLangSel.size(); i<n; ++i)
+            {
+                lang_sel_t *xsel    = vLangSel.uget(i);
+                if ((xsel->wItem != NULL) && (xsel->sLang.equals(&lang)))
+                {
+                    wLanguage->selected()->set(xsel->wItem);
+                    break;
+                }
+            }
         }
 
         void UI::notify(ui::IPort *port, size_t flags)
@@ -841,6 +951,8 @@ namespace lsp
             if (port == NULL)
                 return;
 
+            if (port == pLanguage)
+                sync_language_selection();
             if (port == pWindowWidth)
             {
                 sConfig.nWidth  = pWindowWidth->value();
@@ -932,6 +1044,20 @@ namespace lsp
 
             return STATUS_OK;
         }
+
+        status_t UI::slot_window_close(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self != NULL)
+            {
+                tk::Display * const dpy = self->display();
+                if (dpy != NULL)
+                    dpy->quit_main();
+            }
+
+            return STATUS_OK;
+        }
+
 
         status_t UI::slot_window_resize(tk::Widget *sender, void *ptr, void *data)
         {
@@ -1048,6 +1174,57 @@ namespace lsp
                     }
 
                     self->sync_favourites_state(b);
+                    break;
+                }
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_select_language(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            if (self->wLanguage == NULL)
+                return STATUS_OK;
+
+            tk::ListBoxItem * const item = self->wLanguage->selected()->get();
+            if (item == NULL)
+                return STATUS_OK;
+
+            tk::Display * const dpy = sender->display();
+            lsp_trace("dpy = %p", dpy);
+            if (dpy == NULL)
+                return STATUS_BAD_STATE;
+
+            for (lltl::iterator<lang_sel_t> it=self->vLangSel.values(); it; ++it)
+            {
+                const lang_sel_t * const sel = it.get();
+                if (sel->wItem == item)
+                {
+                    // Select language
+                    tk::Schema * const schema  = dpy->schema();
+                    lsp_trace("Select language: \"%s\"", sel->sLang.get_native());
+                    if ((schema->set_lanugage(&sel->sLang)) != STATUS_OK)
+                    {
+                        lsp_warn("Failed to select language \"%s\"", sel->sLang.get_native());
+                        return STATUS_OK;
+                    }
+
+                    // Update parameter
+                    const char * const dlang = sel->sLang.get_utf8();
+                    const char * const slang = self->pLanguage->buffer<char>();
+                    lsp_trace("Current language in settings: \"%s\"", slang);
+                    if ((slang == NULL) || (strcmp(slang, dlang)))
+                    {
+                        self->pLanguage->begin_edit();
+                        self->pLanguage->write(dlang, strlen(dlang));
+                        self->pLanguage->notify_all(ui::PORT_USER_EDIT);
+                        self->pLanguage->end_edit();
+                    }
+                    lsp_trace("Language has been selected");
                     break;
                 }
             }

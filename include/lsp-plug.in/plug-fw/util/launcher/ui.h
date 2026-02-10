@@ -86,6 +86,12 @@ namespace lsp
                     LSPString               sDefaultName;       // Default name
                 } plugin_t;
 
+                typedef struct lang_sel_t
+                {
+                    LSPString               sLang;
+                    tk::ListBoxItem        *wItem;
+                } lang_sel_t;
+
             protected:
                 const meta::package_t      *pPackage;           // Package descriptor
                 const meta::plugin_t      **pLaunch;            // Pointer to store metadata of launched plugin
@@ -94,16 +100,19 @@ namespace lsp
                 ctl::FontScaling            sFontScaling;
                 size_t                      nConfigChanges;     // Number of configuration changes
 
-                ui::IPort                  *pWindowWidth;
-                ui::IPort                  *pWindowHeight;
+                ui::IPort                  *pWindowWidth;       // Launcher window width
+                ui::IPort                  *pWindowHeight;      // Launcher window height
+                ui::IPort                  *pLanguage;          // Language select
                 tk::Edit                   *wFilter;            // Filter edit
                 tk::TabControl             *wTabs;              // Tab control for tabs
+                tk::ComboBox               *wLanguage;          // Language selector
                 tk::WidgetContainer        *wAllBundles;        // Container with full list of bundles
                 tk::WidgetContainer        *wFavourites;        // Container with favourites
 
                 lltl::parray<plugin_t>      vPlugins;
                 lltl::parray<bundle_t>      vBundles;
                 lltl::parray<category_t>    vCategories;
+                lltl::parray<lang_sel_t>    vLangSel;
 
             protected:
                 template <typename T>
@@ -119,9 +128,11 @@ namespace lsp
                 static status_t             slot_plugin_mouse_out(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_plugin_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_toggle_favourites(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_select_language(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);
+                static i18n::IDictionary   *get_default_dict(tk::Widget *src);
 
             protected:
                 void                        do_destroy();
@@ -131,11 +142,13 @@ namespace lsp
                 status_t                    create_launcher_ports();
                 void                        on_window_resize();
                 void                        sync_widget_visibility();
+                void                        sync_language_selection();
                 void                        select_plugin_image(tk::Widget *sender, bool select);
                 status_t                    post_init();
                 void                        deploy_config();
                 bool                        match_filter(const plugin_t *p, const LSPString *filter, bool favourites);
                 void                        sync_favourites_state(bundle_t *b);
+                status_t                    init_i18n_support();
 
             public:
                 UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch);
