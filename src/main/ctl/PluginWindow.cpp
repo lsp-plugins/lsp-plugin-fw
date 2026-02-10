@@ -1372,7 +1372,23 @@ namespace lsp
             if (port == pLanguage)
                 sync_language_selection();
             if (port == pVisualSchema)
+            {
                 sync_visual_schemas();
+
+                // Notify other parameters
+                if (pLanguage != NULL)
+                    pLanguage->notify_all(flags);
+                if (pInvertVScroll != NULL)
+                    pInvertVScroll->notify_all(flags);
+                if (pInvertGraphDotVScroll != NULL)
+                    pInvertGraphDotVScroll->notify_all(flags);
+                if (sFilterPointThickness.pPort != NULL)
+                    sFilterPointThickness.pPort->notify_all(flags);
+
+                sUIScaling.sync_parameters();
+                sFontScaling.sync_parameters();
+                notify_ui_behaviour_flags(flags);
+            }
             if ((port == pInvertVScroll) || (port == pInvertGraphDotVScroll))
                 sync_invert_vscroll(port);
 
@@ -2235,20 +2251,6 @@ namespace lsp
                     self->pVisualSchema->write(value, strlen(value));
                     self->pVisualSchema->notify_all(ui::PORT_USER_EDIT);
                 }
-
-                // Notify other parameters
-                if (self->pLanguage != NULL)
-                    self->pLanguage->notify_all(ui::PORT_USER_EDIT);
-                if (self->pInvertVScroll != NULL)
-                    self->pInvertVScroll->notify_all(ui::PORT_USER_EDIT);
-                if (self->pInvertGraphDotVScroll != NULL)
-                    self->pInvertGraphDotVScroll->notify_all(ui::PORT_USER_EDIT);
-                if (self->sFilterPointThickness.pPort != NULL)
-                    self->sFilterPointThickness.pPort->notify_all(ui::PORT_USER_EDIT);
-
-                self->sUIScaling.sync_parameters();
-                self->sFontScaling.sync_parameters();
-                self->notify_ui_behaviour_flags(ui::PORT_USER_EDIT);
             }
 
             return STATUS_OK;
