@@ -99,7 +99,7 @@ namespace lsp
                     else if (ev.sValue.equals_ascii("height"))
                         res = p.read_int(&tmp.nHeight);
                     else if (ev.sValue.equals_ascii("favourites"))
-                        res = read_favourites(config.vFavourites, p);
+                        res = read_favourites(tmp.vFavourites, p);
                     else
                         res = p.skip_current();
                 }

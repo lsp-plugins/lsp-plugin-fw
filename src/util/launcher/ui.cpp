@@ -265,7 +265,6 @@ namespace lsp
                     b->wHelp        = NULL;
                     b->nVisibility  = 0;
                     b->nActivePlugin= 0;
-                    b->bFavourite   = false;
 
                     lsp_trace("Added bundle uid=%s, name=%s", mb->uid, mb->name);
 
@@ -633,7 +632,7 @@ namespace lsp
                 if (is == NULL)
                 {
                     path.set_ascii(LSP_BUILTIN_PREFIX "icons/default_icon.xpm");
-                    is = pLoader->read_stream(LSP_BUILTIN_PREFIX "icons/default_icon.xpm");
+                    is = pLoader->read_stream(&path);
                     if (is == NULL)
                         lsp_warn("Could not load icon for plugin uid='%s'", p->pMeta->uid);
                 }
@@ -673,7 +672,7 @@ namespace lsp
         {
             // Filter favourite bundles
             const bundle_t * const b = p->pBundle;
-            if ((favourites) && (!b->bFavourite))
+            if ((favourites) && (!sConfig.vFavourites.contains(b->pMeta->uid)))
                 return false;
 
             // Match if filter is empty
@@ -700,9 +699,10 @@ namespace lsp
             if (b->wFavouries == NULL)
                 return;
 
-            if (b->wFavouries->down()->get() != b->bFavourite)
-                b->wFavouries->down()->set(b->bFavourite);
-            b->wFavouries->text()->set((b->bFavourite) ? "icons.markers.q_star_filled" : "icons.markers.q_star_blank");
+            const bool is_favourite = sConfig.vFavourites.contains(b->pMeta->uid);
+            if (b->wFavouries->down()->get() != is_favourite)
+                b->wFavouries->down()->set(is_favourite);
+            b->wFavouries->text()->set((is_favourite) ? "icons.markers.q_star_filled" : "icons.markers.q_star_blank");
         }
 
         void UI::sync_widget_visibility()
@@ -772,11 +772,12 @@ namespace lsp
                 for (lltl::iterator<bundle_t> bi = c->vBundles.values(); bi; ++bi)
                 {
                     bundle_t * const b = bi.get();
-                    if (b->nVisibility <= 0)
-                        continue;
 
                     // Sync favourites state
                     sync_favourites_state(b);
+
+                    if (b->nVisibility <= 0)
+                        continue;
 
                     lsp_trace("  Added bundle id=%s", b->pMeta->uid);
                     wc->add(b->wRoot);
@@ -999,6 +1000,10 @@ namespace lsp
                 }
             }
 
+            // Ensure that configuration files have been saved
+            self->main_iteration();
+
+            // Leave the main event loop
             tk::Display * const dpy = self->display();
             if (dpy != NULL)
                 dpy->quit_main();
@@ -1020,13 +1025,13 @@ namespace lsp
                 bundle_t * const b = bi.get();
                 if ((b != NULL) && (b->wFavouries == sender))
                 {
-                    b->bFavourite   = b->wFavouries->down()->get();
-                    char *id        = NULL;
+                    const bool favourite_on = b->wFavouries->down()->get();
+                    char *id                = NULL;
                     lsp_finally {
                         if (id != NULL)
                             free(id);
                     };
-                    if (b->bFavourite)
+                    if (favourite_on)
                     {
                         // Add to list
                         if ((id = strdup(b->pMeta->uid)) != NULL)
@@ -1042,7 +1047,7 @@ namespace lsp
                             ++self->nConfigChanges;
                     }
 
-                    sync_favourites_state(b);
+                    self->sync_favourites_state(b);
                     break;
                 }
             }

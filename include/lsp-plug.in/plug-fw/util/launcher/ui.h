@@ -70,7 +70,6 @@ namespace lsp
                     tk::Button             *wHelp;              // Help button
                     size_t                  nVisibility;        // Visibility counter
                     size_t                  nActivePlugin;      // Active plugin index
-                    bool                    bFavourite;         // Favourite marker
                     lltl::parray<plugin_t>  vPlugins;           // List of plugins
                     LSPString               sNativeName;        // Native name
                     LSPString               sDefaultName;       // Default name
@@ -123,8 +122,6 @@ namespace lsp
 
             protected:
                 static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);
-                static bool                 match_filter(const plugin_t *p, const LSPString *filter, bool favourites);
-                static void                 sync_favourites_state(bundle_t *b);
 
             protected:
                 void                        do_destroy();
@@ -137,6 +134,8 @@ namespace lsp
                 void                        select_plugin_image(tk::Widget *sender, bool select);
                 status_t                    post_init();
                 void                        deploy_config();
+                bool                        match_filter(const plugin_t *p, const LSPString *filter, bool favourites);
+                void                        sync_favourites_state(bundle_t *b);
 
             public:
                 UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch);
