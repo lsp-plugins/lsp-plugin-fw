@@ -22,6 +22,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/plug-fw/meta/registry.h>
 #include <lsp-plug.in/plug-fw/ui/const.h>
 #include <lsp-plug.in/plug-fw/util/launcher/ui.h>
@@ -31,8 +32,23 @@
 #include <private/ui/xml/Handler.h>
 #include <private/ui/xml/RootNode.h>
 
+// Launcher-specific ports
+#define UI_LAUNCHER_PREFIX                      "_launcher_"
+#define UI_LAUNCHER_WIDTH_ID                    UI_LAUNCHER_PREFIX "width"
+#define UI_LAUNCHER_HEIGHT_ID                   UI_LAUNCHER_PREFIX "height"
+
 namespace lsp
 {
+    namespace meta
+    {
+        static const meta::port_t launcher_config_metadata[] =
+        {
+            INT_CONTROL_ALL(UI_LAUNCHER_WIDTH_ID, "Plugin launcher window width", NULL, U_NONE, 0, 65536, 400, 1),
+            INT_CONTROL_ALL(UI_LAUNCHER_HEIGHT_ID, "Plugin launcher window height", NULL, U_NONE, 0, 65536, 648, 1),
+            PORTS_END
+        };
+    } /* namespace meta */
+
     namespace launcher
     {
         static const uint8_t category_ordering[] =
@@ -84,8 +100,12 @@ namespace lsp
         {
             pPackage            = package;
             pLaunch             = launch;
+
+            launcher::init_config(sConfig);
+
             pWindowWidth        = NULL;
             pWindowHeight       = NULL;
+            nConfigChanges      = 0;
 
             wFilter             = NULL;
             wTabs               = NULL;
@@ -129,6 +149,9 @@ namespace lsp
                 delete p;
             }
             vPlugins.flush();
+
+            // Destroy config
+            launcher::free_config(sConfig);
         }
 
         void UI::destroy()
@@ -242,6 +265,7 @@ namespace lsp
                     b->wHelp        = NULL;
                     b->nVisibility  = 0;
                     b->nActivePlugin= 0;
+                    b->bFavourite   = false;
 
                     lsp_trace("Added bundle uid=%s, name=%s", mb->uid, mb->name);
 
@@ -331,6 +355,18 @@ namespace lsp
             };
         #endif /* LSP_TRACE */
 
+            // Load configuration file
+            if ((res = launcher::load_config(sConfig)) != STATUS_OK)
+            {
+                if (res != STATUS_NOT_FOUND)
+                    lsp_warn("Error loading launcher config, error code: %d", int(res));
+                else
+                    ++nConfigChanges;
+            }
+
+            if ((res = create_launcher_ports()) != STATUS_OK)
+                return res;
+
             // Scan plugin metadata
             if ((res = scan_metadata()) != STATUS_OK)
                 return res;
@@ -385,8 +421,8 @@ namespace lsp
             wFavourites = registry->get<tk::WidgetContainer>("favourites_list");
 
             // Bind ports
-            BIND_PORT(this, pWindowWidth, UI_LAUNCHER_WIDTH_PORT);
-            BIND_PORT(this, pWindowHeight, UI_LAUNCHER_HEIGHT_PORT);
+            BIND_PORT(this, pWindowWidth, UI_LAUNCHER_WIDTH_ID);
+            BIND_PORT(this, pWindowHeight, UI_LAUNCHER_HEIGHT_ID);
 
             // Bind events to the display
             pDisplay->slots()->bind(tk::SLOT_IDLE, slot_display_idle, this);
@@ -400,11 +436,8 @@ namespace lsp
             if (wTabs != NULL)
                 wTabs->slots()->bind(tk::SLOT_SUBMIT, slot_change_tab, this);
 
-            // Notify port changes
-            if (pWindowWidth != NULL)
-                pWindowWidth->notify_all(ui::PORT_NONE);
-            if (pWindowHeight != NULL)
-                pWindowHeight->notify_all(ui::PORT_NONE);
+            // Deploy configuration values to ports
+            deploy_config();
 
             // Create plugin catalog
             LSP_STATUS_ASSERT(create_catalog());
@@ -440,6 +473,57 @@ namespace lsp
             }
 
             return widget;
+        }
+
+        status_t UI::create_launcher_ports()
+        {
+            // Create additional ports (launcher configuration)
+            for (const meta::port_t *p = meta::launcher_config_metadata; p->id != NULL; ++p)
+            {
+                switch (p->role)
+                {
+                    case meta::R_CONTROL:
+                    {
+                        ui::IPort *up = new ui::ControlPort(p, this);
+                        if (up != NULL)
+                        {
+                            lsp_trace("Created launcher configuration cotrol port id=%s", up->id());
+                            bind_custom_port(up);
+                        }
+                        break;
+                    }
+
+                    case meta::R_PATH:
+                    {
+                        ui::IPort *up = new ui::PathPort(p, this);
+                        if (up != NULL)
+                        {
+                            lsp_trace("Created launcher configuration path port id=%s", up->id());
+                            bind_custom_port(up);
+                        }
+                        break;
+                    }
+
+                    default:
+                        lsp_error("Could not instantiate configuration port id=%s", p->id);
+                        return STATUS_UNKNOWN_ERR;
+                }
+            }
+
+            return STATUS_OK;
+        }
+
+        void UI::deploy_config()
+        {
+            // Update configuration values
+            if (pWindowWidth != NULL)
+                pWindowWidth->set_value(sConfig.nWidth);
+            if (pWindowHeight != NULL)
+                pWindowHeight->set_value(sConfig.nHeight);
+            if (pWindowWidth != NULL)
+                pWindowWidth->notify_all(ui::PORT_NONE);
+            if (pWindowHeight != NULL)
+                pWindowHeight->notify_all(ui::PORT_NONE);
         }
 
         status_t UI::create_catalog()
@@ -503,8 +587,8 @@ namespace lsp
 
                     if ((b->wFavouries = create_widget<tk::Button>("LauncherWindow::Bundle::Favourites")) == NULL)
                         return STATUS_NO_MEM;
-                    LSP_STATUS_ASSERT(b->wFavouries->text()->set("icons.actions.star"));
                     LSP_STATUS_ASSERT(btns->add(b->wFavouries));
+                    b->wFavouries->slots()->bind(tk::SLOT_SUBMIT, slot_toggle_favourites, this);
 
                     if ((b->wHelp = create_widget<tk::Button>("LauncherWindow::Bundle::Help")) == NULL)
                         return STATUS_NO_MEM;
@@ -585,28 +669,50 @@ namespace lsp
             return STATUS_OK;
         }
 
-        bool UI::match_filter(const plugin_t *p, const LSPString *filter)
+        bool UI::match_filter(const plugin_t *p, const LSPString *filter, bool favourites)
         {
+            // Filter favourite bundles
+            const bundle_t * const b = p->pBundle;
+            if ((favourites) && (!b->bFavourite))
+                return false;
+
+            // Match if filter is empty
             if (filter->is_empty())
                 return true;
-            if (p->sNativeName.index_of_nocase(filter) >= 0)
-                return true;
-            if (p->sDefaultName.index_of_nocase(filter) >= 0)
-                return true;
 
-            const bundle_t * const b = p->pBundle;
+            // Match bundle name
             if (b->sNativeName.index_of_nocase(filter) >= 0)
                 return true;
             if (b->sDefaultName.index_of_nocase(filter) >= 0)
                 return true;
 
+            // Match plugin name
+            if (p->sNativeName.index_of_nocase(filter) >= 0)
+                return true;
+            if (p->sDefaultName.index_of_nocase(filter) >= 0)
+                return true;
+
             return false;
+        }
+
+        void UI::sync_favourites_state(bundle_t *b)
+        {
+            if (b->wFavouries == NULL)
+                return;
+
+            if (b->wFavouries->down()->get() != b->bFavourite)
+                b->wFavouries->down()->set(b->bFavourite);
+            b->wFavouries->text()->set((b->bFavourite) ? "icons.markers.q_star_filled" : "icons.markers.q_star_blank");
         }
 
         void UI::sync_widget_visibility()
         {
             if (wTabs == NULL)
                 return;
+
+            // Obtain active tab and it's index
+            tk::Tab *tab = wTabs->selected()->get();
+            const size_t idx = (tab != NULL) ? wTabs->widgets()->index_of(tab) : 0;
 
             // Create query string
             LSPString query, tmp;
@@ -640,7 +746,7 @@ namespace lsp
                 p->sName.format(&p->sDefaultName, LSP_TK_PROP_DEFAULT_LANGUAGE);
 
                 // Apply filter
-                if (match_filter(p, &query))
+                if (match_filter(p, &query, idx == 1))
                 {
                     ++p->pBundle->nVisibility;
                     ++p->pBundle->pCategory->nVisibility;
@@ -648,8 +754,6 @@ namespace lsp
             }
 
             // Add widgets to the box
-            tk::Tab *tab = wTabs->selected()->get();
-            const size_t idx = (tab != NULL) ? wTabs->widgets()->index_of(tab) : 0;
             tk::WidgetContainer * const wc = (idx == 0) ? wAllBundles : wFavourites;
 
             wAllBundles->remove_all();
@@ -670,6 +774,9 @@ namespace lsp
                     bundle_t * const b = bi.get();
                     if (b->nVisibility <= 0)
                         continue;
+
+                    // Sync favourites state
+                    sync_favourites_state(b);
 
                     lsp_trace("  Added bundle id=%s", b->pMeta->uid);
                     wc->add(b->wRoot);
@@ -692,6 +799,21 @@ namespace lsp
         void UI::host_scaling_changed()
         {
             sUIScaling.host_scaling_changed();
+        }
+
+        void UI::main_iteration()
+        {
+            IWrapper::main_iteration();
+
+            if (nConfigChanges > 0)
+            {
+                // Save changed config
+                status_t res = launcher::save_config(sConfig);
+                if (res != STATUS_OK)
+                    lsp_warn("Error saving launcher configuration file, error code=%d", int(res));
+
+                nConfigChanges = 0;
+            }
         }
 
         status_t UI::main_loop()
@@ -719,9 +841,15 @@ namespace lsp
                 return;
 
             if (port == pWindowWidth)
-                wWindow->size()->set_width(pWindowWidth->value());
+            {
+                sConfig.nWidth  = pWindowWidth->value();
+                wWindow->size()->set_width(sConfig.nWidth);
+            }
             if (port == pWindowHeight)
-                wWindow->size()->set_height(pWindowHeight->value());
+            {
+                sConfig.nHeight = pWindowHeight->value();
+                wWindow->size()->set_height(sConfig.nHeight);
+            }
         }
 
         void UI::on_window_resize()
@@ -732,29 +860,32 @@ namespace lsp
             size_t width, height;
             wWindow->size()->get(width, height);
 
-            if (pWindowWidth != NULL)
+            // Check that window parameters have changed
+            const bool notify_width     = (pWindowWidth != NULL) && (ssize_t(width) != ssize_t(pWindowWidth->value()));
+            const bool notify_height    = (pWindowHeight != NULL) && (ssize_t(height) != ssize_t(pWindowHeight->value()));
+            if ((!notify_width) && (!notify_height))
+                return;
+
+            // Mark configuration as changed
+            ++nConfigChanges;
+
+            // Wrap with begin_edit()/end_edit() stuff
+            if (notify_width)
                 pWindowWidth->begin_edit();
-            if (pWindowHeight != NULL)
+            if (notify_height)
                 pWindowHeight->begin_edit();
             lsp_finally {
-                if (pWindowHeight != NULL)
+                if (notify_width)
                     pWindowHeight->end_edit();
-                if (pWindowWidth != NULL)
+                if (notify_height)
                     pWindowWidth->end_edit();
             };
 
-            bool notify_width = false;
-            bool notify_height = false;
-            if ((pWindowWidth != NULL) && (ssize_t(width) != ssize_t(pWindowWidth->value())))
-            {
+            // Change values
+            if (notify_width)
                 pWindowWidth->set_value(width);
-                notify_width = true;
-            }
-            if ((pWindowHeight != NULL) && (ssize_t(height) != ssize_t(pWindowHeight->value())))
-            {
+            if (notify_height)
                 pWindowHeight->set_value(height);
-                notify_height = true;
-            }
 
             if (notify_width)
                 pWindowWidth->notify_all(ui::PORT_USER_EDIT);
@@ -848,25 +979,72 @@ namespace lsp
 
         status_t UI::slot_plugin_submit(tk::Widget *sender, void *ptr, void *data)
         {
+            if (sender == NULL)
+                return STATUS_OK;
+
             UI * const self = static_cast<UI *>(ptr);
-            if (self != NULL)
+            if (self == NULL)
+                return STATUS_OK;
+
+            if (self->pLaunch != NULL)
             {
-                if (self->pLaunch != NULL)
+                for (lltl::iterator<plugin_t> pi = self->vPlugins.values(); pi; ++pi)
                 {
-                    for (lltl::iterator<plugin_t> pi = self->vPlugins.values(); pi; ++pi)
+                    const plugin_t * const p = pi.get();
+                    if ((p != NULL) && (p->wButton == sender))
                     {
-                        const plugin_t *p = pi.get();
-                        if ((p != NULL) && (p->wButton == sender))
-                        {
-                            *self->pLaunch    = p->pMeta;
-                            break;
-                        }
+                        *self->pLaunch    = p->pMeta;
+                        break;
                     }
                 }
+            }
 
-                tk::Display * const dpy = self->display();
-                if (dpy != NULL)
-                    dpy->quit_main();
+            tk::Display * const dpy = self->display();
+            if (dpy != NULL)
+                dpy->quit_main();
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_toggle_favourites(tk::Widget *sender, void *ptr, void *data)
+        {
+            if (sender == NULL)
+                return STATUS_OK;
+
+            UI * const self = static_cast<UI *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            for (lltl::iterator<bundle_t> bi = self->vBundles.values(); bi; ++bi)
+            {
+                bundle_t * const b = bi.get();
+                if ((b != NULL) && (b->wFavouries == sender))
+                {
+                    b->bFavourite   = b->wFavouries->down()->get();
+                    char *id        = NULL;
+                    lsp_finally {
+                        if (id != NULL)
+                            free(id);
+                    };
+                    if (b->bFavourite)
+                    {
+                        // Add to list
+                        if ((id = strdup(b->pMeta->uid)) != NULL)
+                        {
+                            if (self->sConfig.vFavourites.put(id, &id))
+                                ++self->nConfigChanges;
+                        }
+                    }
+                    else
+                    {
+                        // Remove from list
+                        if (self->sConfig.vFavourites.remove(b->pMeta->uid, &id))
+                            ++self->nConfigChanges;
+                    }
+
+                    sync_favourites_state(b);
+                    break;
+                }
             }
 
             return STATUS_OK;

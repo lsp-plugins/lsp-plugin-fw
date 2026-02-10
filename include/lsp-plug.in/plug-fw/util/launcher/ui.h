@@ -27,6 +27,7 @@
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
+#include <lsp-plug.in/plug-fw/util/launcher/config.h>
 #include <lsp-plug.in/plug-fw/util/launcher/plugin_metadata.h>
 #include <lsp-plug.in/plug-fw/util/launcher/visual_schema.h>
 
@@ -69,6 +70,7 @@ namespace lsp
                     tk::Button             *wHelp;              // Help button
                     size_t                  nVisibility;        // Visibility counter
                     size_t                  nActivePlugin;      // Active plugin index
+                    bool                    bFavourite;         // Favourite marker
                     lltl::parray<plugin_t>  vPlugins;           // List of plugins
                     LSPString               sNativeName;        // Native name
                     LSPString               sDefaultName;       // Default name
@@ -88,8 +90,10 @@ namespace lsp
             protected:
                 const meta::package_t      *pPackage;           // Package descriptor
                 const meta::plugin_t      **pLaunch;            // Pointer to store metadata of launched plugin
+                config_t                    sConfig;            // Launcher configuration
                 ctl::UIScaling              sUIScaling;
                 ctl::FontScaling            sFontScaling;
+                size_t                      nConfigChanges;     // Number of configuration changes
 
                 ui::IPort                  *pWindowWidth;
                 ui::IPort                  *pWindowHeight;
@@ -115,20 +119,24 @@ namespace lsp
                 static status_t             slot_plugin_mouse_in(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_plugin_mouse_out(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_plugin_submit(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_toggle_favourites(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);
-                static bool                 match_filter(const plugin_t *p, const LSPString *filter);
+                static bool                 match_filter(const plugin_t *p, const LSPString *filter, bool favourites);
+                static void                 sync_favourites_state(bundle_t *b);
 
             protected:
                 void                        do_destroy();
                 status_t                    build_ui();
                 status_t                    scan_metadata();
                 status_t                    create_catalog();
+                status_t                    create_launcher_ports();
                 void                        on_window_resize();
                 void                        sync_widget_visibility();
                 void                        select_plugin_image(tk::Widget *sender, bool select);
                 status_t                    post_init();
+                void                        deploy_config();
 
             public:
                 UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch);
@@ -145,6 +153,7 @@ namespace lsp
             public: // ui::IWrapper
                 virtual const meta::package_t      *package() const override;
                 virtual void                host_scaling_changed() override;
+                virtual void                main_iteration() override;
 
             public: // ui::IPortListener
                 virtual void notify(ui::IPort *port, size_t flags);
