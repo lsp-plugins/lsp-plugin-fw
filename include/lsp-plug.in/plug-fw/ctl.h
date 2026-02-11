@@ -56,6 +56,7 @@
 
     // Controllers
     #include <lsp-plug.in/plug-fw/ctl/AboutWindow.h>
+    #include <lsp-plug.in/plug-fw/ctl/Documentation.h>
     #include <lsp-plug.in/plug-fw/ctl/FontScaling.h>
     #include <lsp-plug.in/plug-fw/ctl/Window.h>
     #include <lsp-plug.in/plug-fw/ctl/PresetsWindow.h>

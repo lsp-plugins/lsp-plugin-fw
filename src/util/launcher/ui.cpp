@@ -96,7 +96,8 @@ namespace lsp
         UI::UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch):
             ui::IWrapper(NULL, loader),
             sUIScaling(this),
-            sFontScaling(this)
+            sFontScaling(this),
+            sDocumentation(this)
         {
             pPackage            = package;
             pLaunch             = launch;
@@ -127,6 +128,10 @@ namespace lsp
 
         void UI::do_destroy()
         {
+            sUIScaling.destroy();
+            sFontScaling.destroy();
+            sDocumentation.destroy();
+
             pPackage = NULL;
 
             // Destroy metadata if present
@@ -464,6 +469,10 @@ namespace lsp
             LSP_STATUS_ASSERT(create_catalog());
             sync_widget_visibility();
 
+            // Initialize manuals
+            LSP_STATUS_ASSERT(sDocumentation.init());
+            bind_trigger("trg_show_manual", tk::SLOT_SUBMIT, slot_show_ui_manual);
+
             // Synchronize state
             sUIScaling.sync_parameters();
             sFontScaling.sync_parameters();
@@ -621,6 +630,7 @@ namespace lsp
 
                     if ((b->wHelp = create_widget<tk::Button>("LauncherWindow::Bundle::Help")) == NULL)
                         return STATUS_NO_MEM;
+                    b->wHelp->slots()->bind(tk::SLOT_SUBMIT, slot_show_bundle_manual, this);
                     LSP_STATUS_ASSERT(b->wHelp->text()->set("icons.main.help"));
                     LSP_STATUS_ASSERT(btns->add(b->wHelp));
                 }
@@ -688,7 +698,6 @@ namespace lsp
                 tmp.fmt_ascii("bundles.launcher.%s", p->pMeta->uid);
                 LSP_STATUS_ASSERT(p->wButton->text()->set(&tmp));
                 p->wButton->slots()->bind(tk::SLOT_MOUSE_IN, slot_plugin_mouse_in, this);
-                p->wButton->slots()->bind(tk::SLOT_MOUSE_OUT, slot_plugin_mouse_out, this);
                 p->wButton->slots()->bind(tk::SLOT_SUBMIT, slot_plugin_submit, this);
                 tmp.fmt_ascii("bundles.%s.description", p->pMeta->uid);
                 LSP_STATUS_ASSERT(p->sName.set(&tmp));
@@ -1212,15 +1221,6 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t UI::slot_plugin_mouse_out(tk::Widget *sender, void *ptr, void *data)
-        {
-            UI * const self = static_cast<UI *>(ptr);
-            if (self != NULL)
-                self->select_plugin_image(NULL, false);
-
-            return STATUS_OK;
-        }
-
         status_t UI::slot_change_tab(tk::Widget *sender, void *ptr, void *data)
         {
             UI * const self = static_cast<UI *>(ptr);
@@ -1422,6 +1422,47 @@ namespace lsp
             }
 
             self->pAboutWindow->show(self->window());
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_show_bundle_manual(tk::Widget *sender, void *ptr, void *data)
+        {
+            if (sender == NULL)
+                return STATUS_OK;
+
+            UI * const self = static_cast<UI *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            for (lltl::iterator<bundle_t> bi = self->vBundles.values(); bi; ++bi)
+            {
+                bundle_t * const b = bi.get();
+                if ((b != NULL) && (b->wHelp == sender))
+                {
+                    const plugin_t * const p = b->vPlugins.get(b->nActivePlugin);
+                    const meta::plugin_t * const meta = (p != NULL) ? p->pMeta : NULL;
+                    if (meta == NULL)
+                        break;
+
+                    self->sDocumentation.show_plugin_manual(meta);
+                    break;
+                }
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data)
+        {
+            if (sender == NULL)
+                return STATUS_OK;
+
+            UI * const self = static_cast<UI *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            self->sDocumentation.show_ui_manual();
+
             return STATUS_OK;
         }
 

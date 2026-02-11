@@ -98,6 +98,7 @@ namespace lsp
                 config_t                    sConfig;            // Launcher configuration
                 ctl::UIScaling              sUIScaling;         // UI scaling controller
                 ctl::FontScaling            sFontScaling;       // Font scaling controller
+                ctl::Documentation          sDocumentation;     // Documentation
                 ctl::AboutWindow           *pAboutWindow;       // About window
                 size_t                      nConfigChanges;     // Number of configuration changes
 
@@ -131,12 +132,13 @@ namespace lsp
                 static status_t             slot_filter_change(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_change_tab(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_plugin_mouse_in(tk::Widget *sender, void *ptr, void *data);
-                static status_t             slot_plugin_mouse_out(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_plugin_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_toggle_favourites(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_select_language(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_select_visual_schema(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_show_about(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_show_bundle_manual(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);

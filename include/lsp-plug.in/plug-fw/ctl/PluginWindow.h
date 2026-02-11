@@ -29,6 +29,7 @@
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/plug-fw/ctl/AboutWindow.h>
+#include <lsp-plug.in/plug-fw/ctl/Documentation.h>
 #include <lsp-plug.in/plug-fw/ctl/FontScaling.h>
 #include <lsp-plug.in/plug-fw/ctl/UIScaling.h>
 #include <lsp-plug.in/tk/tk.h>
@@ -116,6 +117,7 @@ namespace lsp
 
                 ctl::UIScaling              sUIScaling;                 // UI scaling controller
                 ctl::FontScaling            sFontScaling;               // Font scaling controller
+                ctl::Documentation          sDocumentation;             // Documentation controller
                 ctl::Window                *pUserPaths;                 // User paths controller
                 ctl::PresetsWindow         *pPresetsWindow;             // Presets window
                 ctl::AboutWindow           *pAboutWindow;               // About window

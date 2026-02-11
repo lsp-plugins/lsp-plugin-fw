@@ -56,6 +56,9 @@ namespace lsp
         bool assign_styles(tk::Widget *widget, const char *style_list, bool remove_parents);
 
         status_t init_ui_context(ui::UIContext *uctx, const meta::package_t *package, const meta::plugin_t *plugin);
+
+        status_t show_plugin_manual(const meta::plugin_t *plugin);
+        status_t show_ui_manual(const meta::plugin_t *plugin);
     } /* namespace ctl */
 } /* namespace lsp */
 

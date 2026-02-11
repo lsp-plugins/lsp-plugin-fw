@@ -38,20 +38,6 @@ namespace lsp
     namespace ctl
     {
         //-----------------------------------------------------------------
-        static const char * manual_prefixes[] =
-        {
-        #ifdef LSP_LIB_PREFIX
-            LSP_LIB_PREFIX("/share"),
-            LSP_LIB_PREFIX("/local/share"),
-            LSP_LIB_PREFIX("/usr/local/share"),
-        #endif /*  LSP_LIB_PREFIX */
-            "/usr/share",
-            "/usr/local/share",
-            "/share",
-            NULL
-        };
-
-        //-----------------------------------------------------------------
         // Plugin window
         const ctl_class_t PluginWindow::metadata = { "PluginWindow", &Window::metadata };
 
@@ -70,7 +56,8 @@ namespace lsp
         PluginWindow::PluginWindow(ui::IWrapper *src, tk::Window *widget):
             Window(src, widget),
             sUIScaling(src),
-            sFontScaling(src)
+            sFontScaling(src),
+            sDocumentation(src)
         {
             pClass                      = &metadata;
 
@@ -128,6 +115,7 @@ namespace lsp
         {
             sUIScaling.destroy();
             sFontScaling.destroy();
+            sDocumentation.destroy();
 
             // Cancel greeting timer
             wGreetingTimer.cancel();
@@ -484,6 +472,9 @@ namespace lsp
 
                 // Create UI behaviour menu
                 init_ui_behaviour(wMenu);
+
+                // Init documentation
+                LSP_STATUS_ASSERT(sDocumentation.init());
             }
 
             return STATUS_OK;
@@ -1472,14 +1463,14 @@ namespace lsp
 
         status_t PluginWindow::slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
             self->show_plugin_manual();
             return STATUS_OK;
         }
 
         status_t PluginWindow::slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
             self->show_ui_manual();
             return STATUS_OK;
         }
@@ -1926,66 +1917,12 @@ namespace lsp
 
         status_t PluginWindow::show_plugin_manual()
         {
-            const meta::plugin_t *meta = pWrapper->ui()->metadata();
-
-            io::Path path;
-            LSPString spath;
-            status_t res;
-
-            // Check that documentation path is present
-            read_path_param(&spath, UI_DOCUMENTATION_PORT);
-            if (!spath.is_empty())
-            {
-                if (open_manual_file("%s/html/plugins/%s.html", spath.get_utf8(), meta->uid))
-                    return STATUS_OK;
-            }
-
-            // Try to open local documentation
-            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
-            {
-                if (open_manual_file("%s/doc/%s/html/plugins/%s.html", *prefix, "lsp-plugins", meta->uid))
-                    return STATUS_OK;
-            }
-
-            // Follow the online documentation
-            if (spath.fmt_utf8("%s?page=manuals&section=%s", "https://lsp-plug.in/", meta->uid))
-            {
-                if ((res = system::follow_url(&spath)) == STATUS_OK)
-                    return res;
-            }
-
-            return STATUS_NOT_FOUND;
+            return sDocumentation.show_plugin_manual();
         }
 
         status_t PluginWindow::show_ui_manual()
         {
-            io::Path path;
-            LSPString spath;
-            status_t res;
-
-            // Check that documentation path is present
-            read_path_param(&spath, UI_DOCUMENTATION_PORT);
-            if (!spath.is_empty())
-            {
-                if (open_manual_file("%s/html/controls.html", spath.get_utf8()))
-                    return STATUS_OK;
-            }
-
-            // Try to open local documentation
-            for (const char **prefix = manual_prefixes; *prefix != NULL; ++prefix)
-            {
-                if (open_manual_file("%s/doc/%s/html/controls.html", *prefix, "lsp-plugins"))
-                    return STATUS_OK;
-            }
-
-            // Follow the online documentation
-            if (spath.fmt_utf8("%s?page=manuals&section=controls", "https://lsp-plug.in/"))
-            {
-                if ((res = system::follow_url(&spath)) == STATUS_OK)
-                    return res;
-            }
-
-            return STATUS_NOT_FOUND;
+            return sDocumentation.show_ui_manual();
         }
 
         status_t PluginWindow::create_dialog_window(ctl::Window **ctl, tk::Window **dst, const char *path)
