@@ -43,6 +43,7 @@ namespace lsp
         #ifdef LSP_LIB_PREFIX
             LSP_LIB_PREFIX("/share"),
             LSP_LIB_PREFIX("/local/share"),
+            LSP_LIB_PREFIX("/usr/local/share"),
         #endif /*  LSP_LIB_PREFIX */
             "/usr/share",
             "/usr/local/share",
@@ -77,10 +78,10 @@ namespace lsp
 
             pUserPaths                  = NULL;
             pPresetsWindow              = NULL;
+            pAboutWindow                = NULL;
 
             wContent                    = NULL;
             wGreeting                   = NULL;
-            wAbout                      = NULL;
             wUserPaths                  = NULL;
             wMenu                       = NULL;
             wPresets                    = NULL;
@@ -170,10 +171,10 @@ namespace lsp
             pUserPaths      = NULL;
 
             pPresetsWindow  = NULL;     // Destroyed by wrapper
+            pAboutWindow    = NULL;     // Destroyed by wrapper
 
             wContent        = NULL;
             wGreeting       = NULL;
-            wAbout          = NULL;
             wUserPaths      = NULL;
             wMenu           = NULL;
             wPresets        = NULL;
@@ -1321,7 +1322,7 @@ namespace lsp
 
             // Create context
             ui::UIContext uctx(pWrapper, controllers(), widgets());
-            if ((res = init_context(&uctx)) != STATUS_OK)
+            if ((res = init_ui_context(&uctx, pWrapper->package(), pWrapper->metadata())) != STATUS_OK)
                 return;
 
             // Parse the XML document
@@ -1575,14 +1576,6 @@ namespace lsp
             PluginWindow *__this = static_cast<PluginWindow *>(ptr);
             if (__this->wGreeting != NULL)
                 __this->wGreeting->visibility()->set(false);
-            return STATUS_OK;
-        }
-
-        status_t PluginWindow::slot_about_close(tk::Widget *sender, void *ptr, void *data)
-        {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            if (__this->wAbout != NULL)
-                __this->wAbout->visibility()->set(false);
             return STATUS_OK;
         }
 
@@ -1879,57 +1872,28 @@ namespace lsp
                 commit_bool_param(check->checked(), UI_OVERRIDE_HYDROGEN_KITS_PORT);
         }
 
-        status_t PluginWindow::init_context(ui::UIContext *uctx)
-        {
-            status_t res;
-            if ((res = uctx->init()) != STATUS_OK)
-                return res;
-
-            const meta::package_t *pkg = pWrapper->package();
-            if (pkg != NULL)
-                uctx->root()->set_string("package_id", pkg->artifact);
-
-            const meta::plugin_t *plug = pWrapper->metadata();
-            if (plug != NULL)
-            {
-                uctx->root()->set_string("plugin_id", plug->uid);
-                const meta::bundle_t *bundle = plug->bundle;
-                if (bundle != NULL)
-                    uctx->root()->set_string("bundle_id", bundle->uid);
-            }
-
-            return res;
-        }
-
         status_t PluginWindow::show_about_window()
         {
             lsp_trace("Showing about dialog");
-            status_t res;
 
-            tk::Window *wnd = tk::widget_cast<tk::Window>(wWidget);
-            if (wnd == NULL)
-                return STATUS_BAD_STATE;
-
-            if (wAbout == NULL)
+            if (pAboutWindow == NULL)
             {
-                ctl::Window *ctl = NULL;
-                res = create_dialog_window(&ctl, &wAbout, LSP_BUILTIN_PREFIX "ui/about.xml");
-                if (res != STATUS_OK)
-                    return res;
-
-                // Bind slots
-                tk::Widget *btn = ctl->widgets()->find("submit");
-                if (btn != NULL)
-                    btn->slots()->bind(tk::SLOT_SUBMIT, slot_about_close, this);
-                wAbout->slots()->bind(tk::SLOT_CLOSE, slot_about_close, this);
-
-                // Bind shortcuts
-                bind_shortcut(wAbout, ws::WSK_ESCAPE, tk::KM_NONE, slot_about_close);
-                bind_shortcut(wAbout, ws::WSK_RETURN, tk::KM_NONE, slot_about_close);
-                bind_shortcut(wAbout, ws::WSK_KEYPAD_ENTER, tk::KM_NONE, slot_about_close);
+                ctl::AboutWindow *ctl = new AboutWindow(pWrapper);
+                if (ctl == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally {
+                    if (ctl != NULL)
+                    {
+                        ctl->destroy();
+                        delete ctl;
+                    }
+                };
+                LSP_STATUS_ASSERT(ctl->init());
+                LSP_STATUS_ASSERT(controllers()->add(ctl));
+                pAboutWindow    = release_ptr(ctl);
             }
 
-            wAbout->show(wnd);
+            pAboutWindow->show(wWidget);
             return STATUS_OK;
         }
 
@@ -2046,7 +2010,7 @@ namespace lsp
             wc->init();
 
             ui::UIContext uctx(pWrapper, wc->controllers(), wc->widgets());
-            if ((res = init_context(&uctx)) != STATUS_OK)
+            if ((res = init_ui_context(&uctx, pWrapper->package(), pWrapper->metadata())) != STATUS_OK)
                 return res;
 
             // Parse the XML document
@@ -2069,33 +2033,17 @@ namespace lsp
 
             PluginWindow *self = this;
 
-            // Create window
-            tk::PopupWindow *w = new tk::PopupWindow(wWidget->display());
-            if (w == NULL)
-                return STATUS_NO_MEM;
-            widgets()->add(w);
-            w->init();
-            w->auto_close()->set(true);
-
             // Create controller
-            ctl::PresetsWindow *wc = new ctl::PresetsWindow(pWrapper, w, self);
+            ctl::PresetsWindow *wc = new ctl::PresetsWindow(pWrapper, self);
             if (wc == NULL)
                 return STATUS_NO_MEM;
-            controllers()->add(wc);
-            wc->init();
-
-            ui::UIContext uctx(pWrapper, wc->controllers(), wc->widgets());
-            if ((res = init_context(&uctx)) != STATUS_OK)
+            if ((res = controllers()->add(wc)) != STATUS_OK)
+            {
+                wc->destroy();
+                delete wc;
                 return res;
-
-            // Parse the XML document
-            ui::xml::RootNode root(&uctx, "window", wc);
-            ui::xml::Handler handler(pWrapper->resources());
-            if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/presets.xml", &root)) != STATUS_OK)
-                return res;
-
-            if ((res = wc->post_init()) != STATUS_OK)
-                return res;
+            }
+            LSP_STATUS_ASSERT(wc->init());
 
             pPresetsWindow  = wc;
 

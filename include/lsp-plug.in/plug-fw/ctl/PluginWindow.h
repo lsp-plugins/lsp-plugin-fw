@@ -28,6 +28,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/ctl/AboutWindow.h>
 #include <lsp-plug.in/plug-fw/ctl/FontScaling.h>
 #include <lsp-plug.in/plug-fw/ctl/UIScaling.h>
 #include <lsp-plug.in/tk/tk.h>
@@ -117,10 +118,10 @@ namespace lsp
                 ctl::FontScaling            sFontScaling;               // Font scaling controller
                 ctl::Window                *pUserPaths;                 // User paths controller
                 ctl::PresetsWindow         *pPresetsWindow;             // Presets window
+                ctl::AboutWindow           *pAboutWindow;               // About window
 
                 tk::WidgetContainer        *wContent;                   // The main box containing all widgets
                 tk::Window                 *wGreeting;                  // Greeting message window
-                tk::Window                 *wAbout;                     // About message window
                 tk::Window                 *wUserPaths;                 // User paths configuration
                 tk::Menu                   *wMenu;                      // Menu
                 tk::Menu                   *wPresets;                   // Presets menu
@@ -153,7 +154,6 @@ namespace lsp
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_window_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_greeting_close(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_about_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_select_next_preset(tk::Widget *sender, void *ptr, void *data);
@@ -264,8 +264,6 @@ namespace lsp
                 void                scroll_over_presets(const ws::event_t *ev);
 
                 void                set_preset_button_text(const char *text);
-
-                status_t            init_context(ui::UIContext *ctx);
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 апр. 2021 г.
@@ -29,9 +29,16 @@
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
 
 #include <lsp-plug.in/tk/tk.h>
+#include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/meta/types.h>
 
 namespace lsp
 {
+    namespace ui
+    {
+        class UIContext;
+    };
+
     namespace ctl
     {
         void inject_style(tk::Widget *widget, const char *style_name);
@@ -47,6 +54,8 @@ namespace lsp
         void add_parent_style(tk::Widget *widget, const LSPString &style_name);
 
         bool assign_styles(tk::Widget *widget, const char *style_list, bool remove_parents);
+
+        status_t init_ui_context(ui::UIContext *uctx, const meta::package_t *package, const meta::plugin_t *plugin);
     } /* namespace ctl */
 } /* namespace lsp */
 
