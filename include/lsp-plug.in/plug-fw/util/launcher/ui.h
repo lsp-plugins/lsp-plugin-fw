@@ -96,8 +96,9 @@ namespace lsp
                 const meta::package_t      *pPackage;           // Package descriptor
                 const meta::plugin_t      **pLaunch;            // Pointer to store metadata of launched plugin
                 config_t                    sConfig;            // Launcher configuration
-                ctl::UIScaling              sUIScaling;
-                ctl::FontScaling            sFontScaling;
+                ctl::UIScaling              sUIScaling;         // UI scaling controller
+                ctl::FontScaling            sFontScaling;       // Font scaling controller
+                ctl::AboutWindow           *pAboutWindow;       // About window
                 size_t                      nConfigChanges;     // Number of configuration changes
 
                 ui::IPort                  *pWindowWidth;       // Launcher window width
@@ -135,6 +136,7 @@ namespace lsp
                 static status_t             slot_toggle_favourites(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_select_language(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_select_visual_schema(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_show_about(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);
@@ -153,6 +155,7 @@ namespace lsp
                 status_t                    post_init();
                 void                        deploy_config();
                 bool                        match_filter(const plugin_t *p, const LSPString *filter, bool favourites);
+                void                        bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler);
                 void                        sync_favourites_state(bundle_t *b);
                 status_t                    init_i18n_support();
                 status_t                    init_visual_schema_support();

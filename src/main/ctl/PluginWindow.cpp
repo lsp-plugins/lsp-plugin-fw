@@ -1486,9 +1486,9 @@ namespace lsp
 
         status_t PluginWindow::slot_show_about(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            if (__this != NULL)
-                __this->show_about_window();
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
+            if (self != NULL)
+                self->show_about_window();
 
             return STATUS_OK;
         }

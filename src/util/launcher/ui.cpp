@@ -107,6 +107,7 @@ namespace lsp
             pWindowHeight       = NULL;
             pLanguage           = NULL;
             pVisualSchema       = NULL;
+            pAboutWindow        = NULL;
             nConfigChanges      = 0;
 
             wFilter             = NULL;
@@ -446,6 +447,8 @@ namespace lsp
             if (wTabs != NULL)
                 wTabs->slots()->bind(tk::SLOT_SUBMIT, slot_change_tab, this);
 
+            bind_trigger("trg_about", tk::SLOT_SUBMIT, slot_show_about);
+
             // Deploy configuration values to ports
             deploy_config();
 
@@ -466,6 +469,14 @@ namespace lsp
             sFontScaling.sync_parameters();
 
             return STATUS_OK;
+        }
+
+        void UI::bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler)
+        {
+            tk::Widget *w = controller()->widgets()->find(uid);
+            if (w == NULL)
+                return;
+            w->slots()->bind(ev, handler, this);
         }
 
         template <typename T>
@@ -1384,6 +1395,33 @@ namespace lsp
                 }
             }
 
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_show_about(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            if (self->pAboutWindow == NULL)
+            {
+                ctl::AboutWindow *ctl = new ctl::AboutWindow(self);
+                if (ctl == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally {
+                    if (ctl != NULL)
+                    {
+                        ctl->destroy();
+                        delete ctl;
+                    }
+                };
+                LSP_STATUS_ASSERT(ctl->init());
+                LSP_STATUS_ASSERT(self->controller()->controllers()->add(ctl));
+                self->pAboutWindow    = release_ptr(ctl);
+            }
+
+            self->pAboutWindow->show(self->window());
             return STATUS_OK;
         }
 
