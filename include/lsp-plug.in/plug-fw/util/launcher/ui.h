@@ -86,11 +86,11 @@ namespace lsp
                     LSPString               sDefaultName;       // Default name
                 } plugin_t;
 
-                typedef struct lang_sel_t
+                typedef struct res_sel_t
                 {
-                    LSPString               sLang;
-                    tk::ListBoxItem        *wItem;
-                } lang_sel_t;
+                    LSPString               sLocation;          // Location/name of resource
+                    tk::ListBoxItem        *wItem;              // Associated ListBox item
+                } res_sel_t;
 
             protected:
                 const meta::package_t      *pPackage;           // Package descriptor
@@ -102,17 +102,22 @@ namespace lsp
 
                 ui::IPort                  *pWindowWidth;       // Launcher window width
                 ui::IPort                  *pWindowHeight;      // Launcher window height
-                ui::IPort                  *pLanguage;          // Language select
+                ui::IPort                  *pLanguage;          // Language selection
+                ui::IPort                  *pVisualSchema;      // Visual schema selection
                 tk::Edit                   *wFilter;            // Filter edit
                 tk::TabControl             *wTabs;              // Tab control for tabs
+                tk::Widget                 *wLanguageArea;      // Language selector area
                 tk::ComboBox               *wLanguage;          // Language selector
+                tk::Widget                 *wSchemaArea;        // Visual schema selector area
+                tk::ComboBox               *wVisualSchema;      // Visual schema selector
                 tk::WidgetContainer        *wAllBundles;        // Container with full list of bundles
                 tk::WidgetContainer        *wFavourites;        // Container with favourites
 
                 lltl::parray<plugin_t>      vPlugins;
                 lltl::parray<bundle_t>      vBundles;
                 lltl::parray<category_t>    vCategories;
-                lltl::parray<lang_sel_t>    vLangSel;
+                lltl::parray<res_sel_t>     vLangSel;
+                lltl::parray<res_sel_t>     vSchemaSel;
 
             protected:
                 template <typename T>
@@ -129,10 +134,10 @@ namespace lsp
                 static status_t             slot_plugin_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_toggle_favourites(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_select_language(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_select_visual_schema(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);
-                static i18n::IDictionary   *get_default_dict(tk::Widget *src);
 
             protected:
                 void                        do_destroy();
@@ -143,12 +148,15 @@ namespace lsp
                 void                        on_window_resize();
                 void                        sync_widget_visibility();
                 void                        sync_language_selection();
+                void                        sync_visual_schema_selection();
                 void                        select_plugin_image(tk::Widget *sender, bool select);
                 status_t                    post_init();
                 void                        deploy_config();
                 bool                        match_filter(const plugin_t *p, const LSPString *filter, bool favourites);
                 void                        sync_favourites_state(bundle_t *b);
                 status_t                    init_i18n_support();
+                status_t                    init_visual_schema_support();
+                i18n::IDictionary          *get_default_dict();
 
             public:
                 UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch);

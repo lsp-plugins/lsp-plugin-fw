@@ -106,11 +106,15 @@ namespace lsp
             pWindowWidth        = NULL;
             pWindowHeight       = NULL;
             pLanguage           = NULL;
+            pVisualSchema       = NULL;
             nConfigChanges      = 0;
 
             wFilter             = NULL;
             wTabs               = NULL;
+            wLanguageArea       = NULL;
             wLanguage           = NULL;
+            wSchemaArea         = NULL;
+            wVisualSchema       = NULL;
             wAllBundles         = NULL;
             wFavourites         = NULL;
         }
@@ -151,6 +155,9 @@ namespace lsp
                 delete p;
             }
             vPlugins.flush();
+
+            vLangSel.flush();
+            vSchemaSel.flush();
 
             // Destroy config
             launcher::free_config(sConfig);
@@ -425,6 +432,7 @@ namespace lsp
             BIND_PORT(this, pWindowWidth, UI_LAUNCHER_WIDTH_ID);
             BIND_PORT(this, pWindowHeight, UI_LAUNCHER_HEIGHT_ID);
             BIND_PORT(this, pLanguage, LANGUAGE_PORT);
+            BIND_PORT(this, pVisualSchema, UI_VISUAL_SCHEMA_PORT);
 
             // Bind events to the display
             pDisplay->slots()->bind(tk::SLOT_IDLE, slot_display_idle, this);
@@ -443,12 +451,17 @@ namespace lsp
 
             // Init language support
             LSP_STATUS_ASSERT(init_i18n_support());
+            sync_language_selection();
+
+            // Init visual schema support
+            LSP_STATUS_ASSERT(init_visual_schema_support());
+            sync_visual_schema_selection();
 
             // Create plugin catalog
             LSP_STATUS_ASSERT(create_catalog());
+            sync_widget_visibility();
 
             // Synchronize state
-            sync_widget_visibility();
             sUIScaling.sync_parameters();
             sFontScaling.sync_parameters();
 
@@ -674,9 +687,9 @@ namespace lsp
             return STATUS_OK;
         }
 
-        i18n::IDictionary *UI::get_default_dict(tk::Widget *src)
+        i18n::IDictionary *UI::get_default_dict()
         {
-            i18n::IDictionary *dict = src->display()->dictionary();
+            i18n::IDictionary * dict = display()->dictionary();
             if (dict == NULL)
                 return dict;
 
@@ -688,24 +701,23 @@ namespace lsp
 
         status_t UI::init_i18n_support()
         {
+            wLanguageArea           = controller()->widgets()->get<tk::Widget>("trg_language_select_area");
             wLanguage               = controller()->widgets()->get<tk::ComboBox>("trg_language_select");
             if (wLanguage == NULL)
                 return STATUS_OK;
 
-            tk::Display * const dpy     = display();
-            i18n::IDictionary *dict     = get_default_dict(wLanguage);
+            i18n::IDictionary *dict     = get_default_dict();
             if (dict == NULL)
                 return STATUS_OK;
 
             // Perform lookup before loading list of languages
-            status_t res = dict->lookup("lang.target", &dict);
+            status_t res                = dict->lookup("lang.target", &dict);
             if (res != STATUS_OK)
                 return res;
 
             // Iterate all children and add language keys
             LSPString key, value;
-            lang_sel_t *lang;
-            size_t added = 0;
+            res_sel_t *lang;
             for (size_t i=0, n=dict->size(); i<n; ++i)
             {
                 // Fetch placeholder for language selection key
@@ -718,30 +730,26 @@ namespace lsp
                 }
                 lsp_trace("i18n: key=%s, value=%s", key.get_utf8(), value.get_utf8());
 
-                if ((lang = new lang_sel_t()) == NULL)
+                if ((lang = new res_sel_t()) == NULL)
                     return STATUS_NO_MEM;
                 lsp_finally {
                     if (lang != NULL)
                         delete lang;
                 };
 
-                if (!lang->sLang.set(&key))
-                    return STATUS_NO_MEM;
-
                 lang->wItem = create_widget<tk::ListBoxItem>(NULL);
                 if (lang->wItem == NULL)
                     return STATUS_NO_MEM;
                 LSP_STATUS_ASSERT(wLanguage->items()->add(lang->wItem));
 
-                // Create list box item
+                // Fill attributes
+                lang->sLocation.swap(&key);
                 lang->wItem->text()->set_raw(&value);
 
-                // Create closure and bind
+                // Add to list
                 if (!vLangSel.add(lang))
                     return STATUS_NO_MEM;
                 lang        = NULL;
-
-                ++added;
             }
 
             wLanguage->slots()->bind(tk::SLOT_SUBMIT, slot_select_language, this);
@@ -752,17 +760,86 @@ namespace lsp
                 const char * const lang = pLanguage->buffer<char>();
                 if ((lang != NULL) && (strlen(lang) > 0))
                 {
+                    tk::Display * const dpy     = display();
                     if ((dpy->schema()->set_lanugage(lang)) == STATUS_OK)
                     {
                         lsp_trace("System language set to: %s", lang);
                         pLanguage->notify_all(ui::PORT_NONE);
                     }
                 }
-
-                tk::Widget * const area = controller()->widgets()->get<tk::Widget>("trg_language_select_area");
-                if ((area != NULL) && (added > 0))
-                    area->visibility()->set(true);
             }
+
+            return STATUS_OK;
+        }
+
+        status_t UI::init_visual_schema_support()
+        {
+            wSchemaArea                 = controller()->widgets()->get<tk::ComboBox>("trg_visual_schema_select_area");
+            wVisualSchema               = controller()->widgets()->get<tk::ComboBox>("trg_visual_schema_select");
+            if (wLanguage == NULL)
+                return STATUS_OK;
+            if ((pLoader == NULL) || (pVisualSchema == NULL))
+                return STATUS_OK;
+
+            // For that we need to scan all available schemas in the resource directory
+            resource::resource_t *list = NULL;
+            ssize_t count = pLoader->enumerate(LSP_BUILTIN_PREFIX "schema", &list);
+            if ((count <= 0) || (list == NULL))
+            {
+                if (list != NULL)
+                    free(list);
+                return STATUS_OK;
+            }
+            lsp_finally { free(list); };
+
+            // Generate the 'Visual Schema' menu items
+            status_t res;
+            res_sel_t *schema;
+
+            for (ssize_t i=0; i<count; ++i)
+            {
+                tk::StyleSheet sheet;
+                LSPString path;
+
+                if (list[i].type != resource::RES_FILE)
+                    continue;
+
+                if (!path.fmt_ascii(LSP_BUILTIN_PREFIX SCHEMA_PATH "/%s", list[i].name))
+                    return STATUS_NO_MEM;
+
+                // Try to load schema
+                if ((res = load_stylesheet(&sheet, &path)) != STATUS_OK)
+                {
+                    if (res == STATUS_NO_MEM)
+                        return res;
+                    continue;
+                }
+
+                // Append schema to the list
+                if ((schema = new res_sel_t()) == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally {
+                    if (schema != NULL)
+                        delete schema;
+                };
+
+                schema->wItem = create_widget<tk::ListBoxItem>(NULL);
+                if (schema->wItem == NULL)
+                    return STATUS_NO_MEM;
+                LSP_STATUS_ASSERT(wVisualSchema->items()->add(schema->wItem));
+
+                // Fill attributes
+                schema->sLocation.swap(&path);
+                schema->wItem->text()->set_key(sheet.title());
+                schema->wItem->text()->params()->set_string("file", &schema->sLocation);
+
+                // Create closure and bind
+                if (!vSchemaSel.add(schema))
+                    return STATUS_NO_MEM;
+                schema          = NULL;
+            }
+
+            wVisualSchema->slots()->bind(tk::SLOT_SUBMIT, slot_select_visual_schema, this);
 
             return STATUS_OK;
         }
@@ -927,7 +1004,10 @@ namespace lsp
             if (wLanguage == NULL)
                 return;
 
-            tk::Display *dpy    = display();
+            if (wLanguageArea != NULL)
+                wLanguage->visibility()->set(wLanguage->items()->size() > 1);
+
+            tk::Display * const dpy    = display();
             if (dpy == NULL)
                 return;
 
@@ -937,10 +1017,38 @@ namespace lsp
 
             for (size_t i=0, n=vLangSel.size(); i<n; ++i)
             {
-                lang_sel_t *xsel    = vLangSel.uget(i);
-                if ((xsel->wItem != NULL) && (xsel->sLang.equals(&lang)))
+                res_sel_t *xsel    = vLangSel.uget(i);
+                if ((xsel->wItem != NULL) && (xsel->sLocation.equals(&lang)))
                 {
                     wLanguage->selected()->set(xsel->wItem);
+                    break;
+                }
+            }
+        }
+
+        void UI::sync_visual_schema_selection()
+        {
+            if (wVisualSchema == NULL)
+                return;
+
+            // Update area visibility
+            if (wSchemaArea != NULL)
+                wSchemaArea->visibility()->set(wVisualSchema->items()->size() > 1);
+
+            // Update selecetd item
+            const char *path = (pVisualSchema != NULL) ? pVisualSchema->buffer<const char>() : NULL;
+            if (path == NULL)
+                return;
+            LSPString xpath;
+            if (!xpath.set_utf8(path))
+                return;
+
+            for (size_t i=0, n=vSchemaSel.size(); i<n; ++i)
+            {
+                res_sel_t *xsel    = vSchemaSel.uget(i);
+                if ((xsel->wItem != NULL) && (xsel->sLocation.equals(&xpath)))
+                {
+                    wVisualSchema->selected()->set(xsel->wItem);
                     break;
                 }
             }
@@ -962,6 +1070,13 @@ namespace lsp
             {
                 sConfig.nHeight = pWindowHeight->value();
                 wWindow->size()->set_height(sConfig.nHeight);
+            }
+            if (port == pVisualSchema)
+            {
+                sync_visual_schema_selection();
+                sync_language_selection();
+                sUIScaling.sync_parameters();
+                sFontScaling.sync_parameters();
             }
         }
 
@@ -1199,22 +1314,22 @@ namespace lsp
             if (dpy == NULL)
                 return STATUS_BAD_STATE;
 
-            for (lltl::iterator<lang_sel_t> it=self->vLangSel.values(); it; ++it)
+            for (lltl::iterator<res_sel_t> it=self->vLangSel.values(); it; ++it)
             {
-                const lang_sel_t * const sel = it.get();
+                const res_sel_t * const sel = it.get();
                 if (sel->wItem == item)
                 {
                     // Select language
                     tk::Schema * const schema  = dpy->schema();
-                    lsp_trace("Select language: \"%s\"", sel->sLang.get_native());
-                    if ((schema->set_lanugage(&sel->sLang)) != STATUS_OK)
+                    lsp_trace("Select language: \"%s\"", sel->sLocation.get_native());
+                    if ((schema->set_lanugage(&sel->sLocation)) != STATUS_OK)
                     {
-                        lsp_warn("Failed to select language \"%s\"", sel->sLang.get_native());
+                        lsp_warn("Failed to select language \"%s\"", sel->sLocation.get_native());
                         return STATUS_OK;
                     }
 
                     // Update parameter
-                    const char * const dlang = sel->sLang.get_utf8();
+                    const char * const dlang = sel->sLocation.get_utf8();
                     const char * const slang = self->pLanguage->buffer<char>();
                     lsp_trace("Current language in settings: \"%s\"", slang);
                     if ((slang == NULL) || (strcmp(slang, dlang)))
@@ -1225,6 +1340,46 @@ namespace lsp
                         self->pLanguage->end_edit();
                     }
                     lsp_trace("Language has been selected");
+                    break;
+                }
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_select_visual_schema(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            if (self->wVisualSchema == NULL)
+                return STATUS_OK;
+
+            tk::ListBoxItem * const item = self->wVisualSchema->selected()->get();
+            if (item == NULL)
+                return STATUS_OK;
+
+            for (lltl::iterator<res_sel_t> it=self->vSchemaSel.values(); it; ++it)
+            {
+                const res_sel_t * const sel = it.get();
+                if (sel->wItem == item)
+                {
+                    // Try to load schema first
+                    if (self->load_visual_schema(&sel->sLocation) == STATUS_OK)
+                    {
+                        const char * const value = sel->sLocation.get_utf8();
+
+                        if (self->pVisualSchema != NULL)
+                        {
+                            self->pVisualSchema->begin_edit();
+                            self->pVisualSchema->write(value, strlen(value));
+                            self->pVisualSchema->notify_all(ui::PORT_USER_EDIT);
+                            self->pVisualSchema->end_edit();
+                        }
+                    }
+
+                    lsp_trace("Visual schema has changed");
                     break;
                 }
             }

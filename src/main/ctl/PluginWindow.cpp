@@ -2253,8 +2253,10 @@ namespace lsp
 
                 if (self->pVisualSchema != NULL)
                 {
+                    self->pVisualSchema->begin_edit();
                     self->pVisualSchema->write(value, strlen(value));
                     self->pVisualSchema->notify_all(ui::PORT_USER_EDIT);
+                    self->pVisualSchema->end_edit();
                 }
             }
 
