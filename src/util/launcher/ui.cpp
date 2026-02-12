@@ -632,7 +632,7 @@ namespace lsp
                     if ((b->wHelp = create_widget<tk::Button>("LauncherWindow::Bundle::Help")) == NULL)
                         return STATUS_NO_MEM;
                     b->wHelp->slots()->bind(tk::SLOT_SUBMIT, slot_show_bundle_manual, this);
-                    LSP_STATUS_ASSERT(b->wHelp->text()->set("icons.main.help"));
+                    LSP_STATUS_ASSERT(b->wHelp->text()->set("icons.main.help_nb"));
                     LSP_STATUS_ASSERT(btns->add(b->wHelp));
                 }
 
@@ -899,7 +899,7 @@ namespace lsp
             const bool is_favourite = sConfig.vFavourites.contains(b->pMeta->uid);
             if (b->wFavouries->down()->get() != is_favourite)
                 b->wFavouries->down()->set(is_favourite);
-            b->wFavouries->text()->set((is_favourite) ? "icons.markers.q_star_filled" : "icons.markers.q_star_blank");
+            b->wFavouries->text()->set((is_favourite) ? "icons.markers.star_filled_nb" : "icons.markers.star_blank_nb");
         }
 
         void UI::sync_widget_visibility()
