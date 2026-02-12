@@ -127,6 +127,7 @@ namespace lsp
 
             protected:
                 static status_t             slot_display_idle(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_window_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_window_resize(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_filter_change(tk::Widget *sender, void *ptr, void *data);
@@ -162,6 +163,7 @@ namespace lsp
                 status_t                    init_i18n_support();
                 status_t                    init_visual_schema_support();
                 i18n::IDictionary          *get_default_dict();
+                status_t                    locate_window();
 
             public:
                 UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch);

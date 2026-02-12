@@ -447,6 +447,7 @@ namespace lsp
             // Bind events to the root window
             root->slots()->bind(tk::SLOT_CLOSE, slot_window_close, this);
             root->slots()->bind(tk::SLOT_RESIZE, slot_window_resize, this);
+            root->slots()->bind(tk::SLOT_SHOW, slot_window_show, this);
             if (wFilter != NULL)
                 wFilter->slots()->bind(tk::SLOT_CHANGE, slot_filter_change, this);
             if (wTabs != NULL)
@@ -1170,6 +1171,59 @@ namespace lsp
             }
         }
 
+        status_t UI::locate_window()
+        {
+            tk::Window * const wnd = window();
+            if ((wnd == NULL) || (wnd->has_parent()))
+                return STATUS_OK;
+
+            ws::rectangle_t r;
+
+            // Estimate the real window size if it is still not known
+            {
+                ws::size_limit_t sr;
+                wnd->get_padded_screen_rectangle(&r);
+                wnd->get_padded_size_limits(&sr);
+                if ((sr.nMinWidth >= 0) && (r.nWidth < sr.nMinWidth))
+                    r.nWidth = sr.nMinWidth;
+                if ((sr.nMinHeight >= 0) && (r.nHeight < sr.nMinHeight))
+                    r.nHeight = sr.nMinHeight;
+            }
+
+            // Find the matching monitor (if it is present) and align window to the center
+            bool aligned = false;
+            {
+                size_t num_monitors = 0;
+                const ws::MonitorInfo * x = wnd->display()->enum_monitors(&num_monitors);
+                if (x != NULL)
+                {
+                    for (size_t i=0; i<num_monitors; ++i)
+                    {
+                        if (tk::Position::inside(&x->rect, r.nLeft, r.nHeight))
+                        {
+                            r.nLeft = (x->rect.nWidth  - r.nWidth)  >> 1;
+                            r.nTop  = (x->rect.nHeight - r.nHeight) >> 1;
+                            aligned = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!aligned)
+            {
+                ssize_t sw = 0, sh = 0;
+                wnd->display()->screen_size(wnd->screen(), &sw, &sh);
+
+                r.nLeft = (sw - r.nWidth)  >> 1;
+                r.nTop  = (sh - r.nHeight) >> 1;
+            }
+
+            // Set the actual position of the window
+            wnd->position()->set(r.nLeft, r.nTop);
+
+            return STATUS_OK;
+        }
+
         status_t UI::slot_display_idle(tk::Widget *sender, void *ptr, void *data)
         {
 //            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
@@ -1462,6 +1516,17 @@ namespace lsp
                 return STATUS_OK;
 
             self->sDocumentation.show_ui_manual();
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_window_show(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            self->locate_window();
 
             return STATUS_OK;
         }

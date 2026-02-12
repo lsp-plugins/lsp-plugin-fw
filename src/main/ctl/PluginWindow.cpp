@@ -193,7 +193,10 @@ namespace lsp
 
         status_t PluginWindow::slot_window_show(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
             self->locate_window();
             self->set_greeting_timer();
             return STATUS_OK;
