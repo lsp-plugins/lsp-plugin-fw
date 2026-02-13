@@ -22,12 +22,14 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/stdlib/stdio.h>
+#include <lsp-plug.in/expr/Tokenizer.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/io/IOutStream.h>
 #include <lsp-plug.in/io/InFileStream.h>
+#include <lsp-plug.in/io/InStringSequence.h>
 #include <lsp-plug.in/resource/Compressor.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/util/common/checksum.h>
@@ -251,7 +253,7 @@ namespace lsp
             return res;
         }
 
-        status_t create_resource_file(state_t *ctx, const char *dst)
+        status_t create_resource_file(state_t *ctx, const char *dst, size_t buf_size)
         {
             FILE *fd;
 
@@ -290,7 +292,7 @@ namespace lsp
             fprintf(fd, "\t{");
 
             // Initialize compressor
-            return ctx->c.init(core::LSP_RESOURCE_LOG_BUFSZ, ctx->os);
+            return ctx->c.init(buf_size, ctx->os);
         }
 
         status_t compress_data(state_t *ctx, const io::Path *base)
@@ -362,7 +364,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t write_entries(state_t *ctx)
+        status_t write_entries(state_t *ctx, size_t buf_size)
         {
             FILE *fd = ctx->fd;
 
@@ -392,10 +394,11 @@ namespace lsp
             fprintf(fd, "\n\t};\n\n");
 
             // Emit resource factory
-            fprintf(fd, "\tResources builtin(data, %ld, entries, %ld);\n\n",
-                    long(ctx->os->total()),
-                    long(ctx->c.num_entires())
-                );
+            fprintf(fd, "\tResources builtin(data, %d, %ld, entries, %ld);\n\n",
+                int(buf_size),
+                long(ctx->os->total()),
+                long(ctx->c.num_entires())
+            );
 
             // End of anonymous namespace
             fprintf(fd, "}\n");
@@ -581,11 +584,11 @@ namespace lsp
             // Skip file creation
             if ((res == STATUS_OK) && (!skip_file_creation))
             {
-                res     = create_resource_file(ctx, cfg->dst_file);
+                res     = create_resource_file(ctx, cfg->dst_file, cfg->buf_size);
                 if (res == STATUS_OK)
                     res     = compress_data(ctx, &path);
                 if (res == STATUS_OK)
-                    res     = write_entries(ctx);
+                    res     = write_entries(ctx, cfg->buf_size);
 
                 // Need to write checksums?
                 if ((res == STATUS_OK) && (cfg->checksums != NULL))
@@ -658,8 +661,41 @@ namespace lsp
             return add_pattern(list, &tmp);
         }
 
+        status_t parse_int(ssize_t * dst, const char *parameter, const char *value)
+        {
+            LSPString in;
+            if (!in.set_native(value))
+                return STATUS_NO_MEM;
+
+            io::InStringSequence is(&in);
+            expr::Tokenizer t(&is);
+            ssize_t ivalue;
+
+            switch (t.get_token(expr::TF_GET))
+            {
+                case expr::TT_IVALUE: ivalue = t.int_value(); break;
+                default:
+                    fprintf(stderr, "Bad '%s' value\n", parameter);
+                    return STATUS_INVALID_VALUE;
+            }
+
+            if (t.get_token(expr::TF_GET) != expr::TT_EOF)
+            {
+                fprintf(stderr, "Bad '%s' value\n", parameter);
+                return STATUS_INVALID_VALUE;
+            }
+
+            *dst = ivalue;
+
+            return STATUS_OK;
+        }
+
         status_t parse_cmdline(cmdline_t *cfg, int argc, const char **argv)
         {
+            status_t res;
+            bool has_buf_size = false;
+
+            cfg->buf_size   = core::LSP_RESOURCE_LOG_BUFSZ;
             cfg->dst_file   = NULL;
             cfg->src_dir    = NULL;
             cfg->checksums  = NULL;
@@ -674,6 +710,7 @@ namespace lsp
                 {
                     printf("Usage: %s [parameters] [resource-directories]\n\n", argv[0]);
                     printf("Available parameters:\n");
+                    printf("  -b, --bufsize <value>         Use specified buffer size\n");
                     printf("  -c, --checksums <file>        Write file checksums to the specified file\n");
                     printf("  -h, --help                    Show help\n");
                     printf("  -i, --input <dir>             The local resource directory\n");
@@ -728,9 +765,37 @@ namespace lsp
                         return STATUS_BAD_ARGUMENTS;
                     }
 
-                    status_t res = parse_pattern(&cfg->exclude, argv[i++]);
-                    if (res != STATUS_OK)
+                    if ((res = parse_pattern(&cfg->exclude, argv[i++])) != STATUS_OK)
                         return res;
+                }
+                else if ((!::strcmp(arg, "--bufsize")) || (!::strcmp(arg, "-b")))
+                {
+                    if (has_buf_size)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    has_buf_size    = true;
+
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified buffer size for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+
+                    if ((res = parse_int(&cfg->buf_size, "buffer size", argv[i++])) != STATUS_OK)
+                        return res;
+
+                    if (cfg->buf_size < 5)
+                    {
+                        fprintf(stderr, "Too small buffer size: %d\n", int(cfg->buf_size));
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    else if (cfg->buf_size > 24)
+                    {
+                        fprintf(stderr, "Too large buffer size: %d\n", int(cfg->buf_size));
+                        return STATUS_BAD_ARGUMENTS;
+                    }
                 }
             }
 

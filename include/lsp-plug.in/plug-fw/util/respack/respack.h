@@ -35,6 +35,7 @@ namespace lsp
          */
         typedef struct cmdline_t
         {
+            ssize_t             buf_size;           // Buffer size
             const char         *src_dir;            // Source directory
             const char         *dst_file;           // Destination file
             const char         *checksums;          // Output checksums file

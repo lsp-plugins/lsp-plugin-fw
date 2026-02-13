@@ -672,14 +672,16 @@ namespace lsp
                 io::IInStream * is = pLoader->read_stream(&path);
                 if (is == NULL)
                 {
+                    lsp_warn("Could not load reource file '%s' for plugin uid='%s': code=%d", int(pLoader->last_error()));
                     path.set_ascii(LSP_BUILTIN_PREFIX "icons/default_icon.xpm");
                     is = pLoader->read_stream(&path);
                     if (is == NULL)
-                        lsp_warn("Could not load icon for plugin uid='%s'", p->pMeta->uid);
+                        lsp_warn("Could not load default icon for plugin uid='%s': code=%d", p->pMeta->uid, int(pLoader->last_error()));
                 }
 
                 if (is != NULL)
                 {
+                    lsp_trace("Loading icon for plugin uid='%s'...", p->pMeta->uid);
                     lsp_finally {
                         is->close();
                         delete is;
@@ -687,7 +689,7 @@ namespace lsp
                     status_t res = p->wImage->bitmap()->load(is, NULL);
                     if (res != STATUS_OK)
                     {
-                        lsp_warn("Could not load icon for plugin uid='%s', path='%s'", p->pMeta->uid, path.get_utf8());
+                        lsp_warn("Could not load icon for plugin uid='%s', path='%s': code=%d", p->pMeta->uid, path.get_utf8(), int(res));
                         return res;
                     }
                 }

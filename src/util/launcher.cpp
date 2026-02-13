@@ -20,10 +20,12 @@
  */
 
 #include <lsp-plug.in/plug-fw/util/launcher/launcher.h>
+#include <lsp-plug.in/dsp/dsp.h>
 
 #ifndef LSP_IDE_DEBUG
 int main(int argc, const char **argv)
 {
+    lsp::dsp::init();
     return lsp::launcher::execute(argc, argv);
 }
 #endif /* LSP_IDE_DEBUG */
