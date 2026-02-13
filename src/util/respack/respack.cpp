@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 дек. 2021 г.
@@ -93,8 +93,8 @@ namespace lsp
                 resource::Compressor    c;                              // Resource compressor
                 FILE                   *fd;                             // File descriptor
                 OutFileStream          *os;                             // Output stream
+                size_t                  seg_bytes;                      // Segment bytes
                 wssize_t                in_bytes;                       // Overall size of input data
-
 
             public:
                 explicit inline state_t(const cmdline_t *cmd)
@@ -102,6 +102,7 @@ namespace lsp
                     cfg         = cmd;
                     fd          = NULL;
                     os          = NULL;
+                    seg_bytes   = 0;
                     in_bytes    = 0;
                 }
 
@@ -295,7 +296,7 @@ namespace lsp
             return ctx->c.init(buf_size, ctx->os);
         }
 
-        status_t compress_data(state_t *ctx, const io::Path *base)
+        status_t compress_data(state_t *ctx, const io::Path *base, ssize_t seg_size)
         {
             io::Path path;
             io::InFileStream ifs;
@@ -348,11 +349,23 @@ namespace lsp
                     // Close source file
                     if ((res = ifs.close()) != STATUS_OK)
                         return res;
+
+                    ctx->seg_bytes += bytes;
+                    if ((seg_size > 0) && (ctx->seg_bytes >= size_t(seg_size)))
+                    {
+                        // Flush the compressor
+                        if ((res = ctx->c.flush()) != STATUS_OK)
+                            return res;
+                        ctx->seg_bytes  = 0;
+                    }
                 }
 
                 // Flush the compressor
-                if ((res = ctx->c.flush()) != STATUS_OK)
-                    return res;
+                if (ctx->seg_bytes > 0)
+                {
+                    if ((res = ctx->c.flush()) != STATUS_OK)
+                        return res;
+                }
             }
 
             // Output statistics
@@ -586,7 +599,7 @@ namespace lsp
             {
                 res     = create_resource_file(ctx, cfg->dst_file, cfg->buf_size);
                 if (res == STATUS_OK)
-                    res     = compress_data(ctx, &path);
+                    res     = compress_data(ctx, &path, cfg->seg_size);
                 if (res == STATUS_OK)
                     res     = write_entries(ctx, cfg->buf_size);
 
@@ -694,8 +707,10 @@ namespace lsp
         {
             status_t res;
             bool has_buf_size = false;
+            bool has_seg_size = false;
 
             cfg->buf_size   = core::LSP_RESOURCE_LOG_BUFSZ;
+            cfg->seg_size   = -1;
             cfg->dst_file   = NULL;
             cfg->src_dir    = NULL;
             cfg->checksums  = NULL;
@@ -715,6 +730,7 @@ namespace lsp
                     printf("  -h, --help                    Show help\n");
                     printf("  -i, --input <dir>             The local resource directory\n");
                     printf("  -o, --output <file>           The name of the destination file to generate resources\n");
+                    printf("  -s, --segsize <bytes>         The segment size threshold\n");
                     printf("  -x, --exclude <file>[:<file>] Specify the exclude files that should be not packed\n");
                     printf("\n");
 
@@ -796,6 +812,24 @@ namespace lsp
                         fprintf(stderr, "Too large buffer size: %d\n", int(cfg->buf_size));
                         return STATUS_BAD_ARGUMENTS;
                     }
+                }
+                else if ((!::strcmp(arg, "--segsize")) || (!::strcmp(arg, "-s")))
+                {
+                    if (has_seg_size)
+                    {
+                        fprintf(stderr, "Duplicate parameter '%s'\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    has_seg_size    = true;
+
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified segment size for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+
+                    if ((res = parse_int(&cfg->seg_size, "segment size", argv[i++])) != STATUS_OK)
+                        return res;
                 }
             }
 
