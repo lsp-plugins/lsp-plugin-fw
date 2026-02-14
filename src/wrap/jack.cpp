@@ -127,6 +127,7 @@ namespace lsp
             const char     *cfg_file;
             const char     *plugin_id;
             const char     *client_name;
+            const char     *schema;
             void           *parent_id;
             bool            headless;
             bool            list;
@@ -294,6 +295,7 @@ namespace lsp
             cfg->cfg_file       = NULL;
             cfg->plugin_id      = NULL;
             cfg->client_name    = NULL;
+            cfg->schema         = NULL;
             cfg->parent_id      = NULL;
             cfg->headless       = false;
             cfg->list           = false;
@@ -320,6 +322,7 @@ namespace lsp
                     printf("  -hl, --headless           Launch in console only, without UI\n");
                     printf("  -mw, --minimized          Launch UI with minimized window\n");
                     printf("  -n, --name                Specify the client name for JACK\n");
+                    printf("  -s, --schema              Specify the UI schema name\n");
                     if (plugin_id == NULL)
                         printf("  -l, --list                List available plugin identifiers\n");
                     printf("  -v, --version             Output the version of the software\n");
@@ -343,12 +346,31 @@ namespace lsp
                 }
                 else if ((!::strcmp(arg, "--name")) || (!::strcmp(arg, "-n")))
                 {
+                    if (cfg->client_name != NULL)
+                    {
+                        fprintf(stderr, "Duplicate client name argument specified\n");
+                        return STATUS_BAD_ARGUMENTS;
+                    }
                     if (i >= argc)
                     {
                         fprintf(stderr, "Not specified JACK client for '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->client_name = argv[i++];
+                }
+                else if ((!::strcmp(arg, "--schema")) || (!::strcmp(arg, "-s")))
+                {
+                    if (cfg->schema != NULL)
+                    {
+                        fprintf(stderr, "Duplicate schema name argument specified\n");
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified UI schema name for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->schema = argv[i++];
                 }
                 else if ((!::strcmp(arg, "--headless")) || (!::strcmp(arg, "-hl")))
                     cfg->headless       = true;
@@ -757,6 +779,8 @@ namespace lsp
                     if (wnd != NULL)
                         wnd->state()->set_minimized();
                 }
+                if (sCmdLine.schema != NULL)
+                    pUIWrapper->select_ui_schema(sCmdLine.schema);
             }
         #endif /* WITH_UI_FEATURE */
 

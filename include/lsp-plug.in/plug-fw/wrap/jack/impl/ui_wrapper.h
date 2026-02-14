@@ -556,6 +556,32 @@ namespace lsp
             return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
         }
 
+        status_t UIWrapper::select_ui_schema(const char *name)
+        {
+            if (name == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            LSPString tmp;
+            if (!tmp.set_native(name))
+                return STATUS_NO_MEM;
+
+            return select_ui_schema(tmp);
+        }
+
+        status_t UIWrapper::select_ui_schema(const LSPString *name)
+        {
+            if (name == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            return select_ui_schema(*name);
+        }
+
+        status_t UIWrapper::select_ui_schema(const LSPString & name)
+        {
+            ctl::PluginWindow * const pwnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            if (pwnd == NULL)
+                return STATUS_NOT_IMPLEMENTED;
+            return pwnd->select_ui_schema(name);
+        }
+
     } /* namespace jack */
 } /* namespace lsp */
 
