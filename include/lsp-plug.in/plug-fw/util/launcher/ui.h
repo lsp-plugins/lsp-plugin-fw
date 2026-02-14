@@ -164,6 +164,7 @@ namespace lsp
                 status_t                    init_visual_schema_support();
                 i18n::IDictionary          *get_default_dict();
                 status_t                    locate_window();
+                status_t                    sync_icon_state(plugin_t *plugin, bool visible);
 
             public:
                 UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch);

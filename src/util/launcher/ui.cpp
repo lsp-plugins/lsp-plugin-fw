@@ -481,6 +481,50 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t UI::sync_icon_state(plugin_t *plugin, bool visible)
+        {
+            LSPString path;
+            if (plugin->wImage == NULL)
+                return STATUS_BAD_STATE;
+
+            plugin->wImage->visibility()->set(visible);
+            if (!visible)
+                return STATUS_OK;
+
+            // Check that bitmap is not loaded
+            if (!plugin->wImage->bitmap()->is_empty())
+                return STATUS_OK;
+
+            // Load plugin icon
+            path.fmt_ascii(LSP_BUILTIN_PREFIX "icons/%s.xpm", plugin->pMeta->uid);
+            io::IInStream * is = pLoader->read_stream(&path);
+            if (is == NULL)
+            {
+                lsp_warn("Could not load reource file '%s' for plugin uid='%s': code=%d", int(pLoader->last_error()));
+                path.set_ascii(LSP_BUILTIN_PREFIX "icons/default_icon.xpm");
+                is = pLoader->read_stream(&path);
+                if (is == NULL)
+                    lsp_warn("Could not load default icon for plugin uid='%s': code=%d", plugin->pMeta->uid, int(pLoader->last_error()));
+            }
+
+            if (is != NULL)
+            {
+                lsp_trace("Loading icon for plugin uid='%s'...", plugin->pMeta->uid);
+                lsp_finally {
+                    is->close();
+                    delete is;
+                };
+                status_t res = plugin->wImage->bitmap()->load(is, NULL);
+                if (res != STATUS_OK)
+                {
+                    lsp_warn("Could not load icon for plugin uid='%s', path='%s': code=%d", plugin->pMeta->uid, path.get_utf8(), int(res));
+                    return res;
+                }
+            }
+
+            return STATUS_OK;
+        }
+
         void UI::bind_trigger(const char *uid, tk::slot_t ev, tk::event_handler_t handler)
         {
             tk::Widget *w = controller()->widgets()->find(uid);
@@ -666,33 +710,6 @@ namespace lsp
                 if ((p->wImage = create_widget<tk::Image>("LauncherWindow::Plugin::Image")) == NULL)
                     return STATUS_NO_MEM;
                 LSP_STATUS_ASSERT(p->pBundle->wImages->add(p->wImage));
-
-                // Load plugin icon
-                path.fmt_ascii(LSP_BUILTIN_PREFIX "icons/%s.xpm", p->pMeta->uid);
-                io::IInStream * is = pLoader->read_stream(&path);
-                if (is == NULL)
-                {
-                    lsp_warn("Could not load reource file '%s' for plugin uid='%s': code=%d", int(pLoader->last_error()));
-                    path.set_ascii(LSP_BUILTIN_PREFIX "icons/default_icon.xpm");
-                    is = pLoader->read_stream(&path);
-                    if (is == NULL)
-                        lsp_warn("Could not load default icon for plugin uid='%s': code=%d", p->pMeta->uid, int(pLoader->last_error()));
-                }
-
-                if (is != NULL)
-                {
-                    lsp_trace("Loading icon for plugin uid='%s'...", p->pMeta->uid);
-                    lsp_finally {
-                        is->close();
-                        delete is;
-                    };
-                    status_t res = p->wImage->bitmap()->load(is, NULL);
-                    if (res != STATUS_OK)
-                    {
-                        lsp_warn("Could not load icon for plugin uid='%s', path='%s': code=%d", p->pMeta->uid, path.get_utf8(), int(res));
-                        return res;
-                    }
-                }
 
                 // Add launch button
                 if ((p->wButton = create_widget<tk::Button>("LauncherWindow::Plugin::Button")) == NULL)
@@ -984,8 +1001,7 @@ namespace lsp
                     for (lltl::iterator<plugin_t> pi = b->vPlugins.values(); pi; ++pi)
                     {
                         plugin_t * const p = pi.get();
-                        if (p->wImage != NULL)
-                            p->wImage->visibility()->set(pi.index() == b->nActivePlugin);
+                        sync_icon_state(p, pi.index() == b->nActivePlugin);
                     }
                 }
             }
@@ -1168,8 +1184,7 @@ namespace lsp
             for (lltl::iterator<plugin_t> pi = b->vPlugins.values(); pi; ++pi)
             {
                 plugin_t * const xp = pi.get();
-                if (xp->wImage != NULL)
-                    xp->wImage->visibility()->set(pi.index() == b->nActivePlugin);
+                sync_icon_state(xp, pi.index() == b->nActivePlugin);
             }
         }
 
