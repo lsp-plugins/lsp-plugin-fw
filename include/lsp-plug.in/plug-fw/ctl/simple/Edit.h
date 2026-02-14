@@ -45,6 +45,7 @@ namespace lsp
                 ui::IPort          *pPort;
                 tk::Timer           sTimer;
                 ssize_t             nInputDelay;
+                bool                bValidityCheck;
 
                 ctl::LCString       sEmptyText;
 
