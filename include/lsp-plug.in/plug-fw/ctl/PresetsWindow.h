@@ -161,9 +161,10 @@ namespace lsp
                 const ui::preset_t *current_preset();
                 status_t            create_save_preset_dialog();
                 void                sync_preset_name(tk::ListBoxItem *item, const ui::preset_t *preset, bool indicate);
+                status_t            post_init();
 
             public:
-                explicit PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow);
+                explicit PresetsWindow(ui::IWrapper *src, PluginWindow *pluginWindow);
                 PresetsWindow(const PresetsWindow &) = delete;
                 PresetsWindow(PresetsWindow &&) = delete;
                 virtual ~PresetsWindow() override;
@@ -180,7 +181,6 @@ namespace lsp
                 virtual void        presets_updated() override;
 
             public:
-                status_t            post_init();
                 status_t            show(tk::Widget *actor);
                 status_t            hide();
                 bool                visible() const;

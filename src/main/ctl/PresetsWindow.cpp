@@ -93,8 +93,8 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t PresetsWindow::metadata = { "PresetsWindow", &Window::metadata };
 
-        PresetsWindow::PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow):
-            ctl::Window(src, widget)
+        PresetsWindow::PresetsWindow(ui::IWrapper *src, PluginWindow *pluginWindow):
+            ctl::Window(src, NULL)
         {
             pClass              = &metadata;
 
@@ -177,16 +177,43 @@ namespace lsp
 
         status_t PresetsWindow::init()
         {
-            status_t res = ctl::Window::init();
-            if (res != STATUS_OK)
-                return res;
+            status_t res;
 
+            // Create window
+            tk::PopupWindow *w = new tk::PopupWindow(pWrapper->display());
+            if (w == NULL)
+                return STATUS_NO_MEM;
+            if ((res = pWrapper->controller()->widgets()->add(w)) != STATUS_OK)
+            {
+                w->destroy();
+                delete w;
+                return res;
+            }
+            LSP_STATUS_ASSERT(w->init());
+            w->auto_close()->set(true);
+            wWidget         = w;
+
+            // Initialize controller
+            LSP_STATUS_ASSERT(ctl::Window::init());
+
+            // Bind parameters
             BIND_PORT(pWrapper, pPath, CONFIG_PATH_PORT);
             BIND_PORT(pWrapper, pFileType, CONFIG_FTYPE_PORT);
             BIND_PORT(pWrapper, pRelPaths, REL_PATHS_PORT);
             BIND_PORT(pWrapper, pUserFriendlyValues, CONFIG_USER_FRIENDLY_VALUES_PORT);
 
-            return STATUS_OK;
+            // Derserialize state
+            ui::UIContext uctx(pWrapper, controllers(), widgets());
+            if ((res = init_ui_context(&uctx, pWrapper->package(), pWrapper->metadata())) != STATUS_OK)
+                return res;
+
+            // Parse the XML document
+            ui::xml::RootNode root(&uctx, "window", this);
+            ui::xml::Handler handler(pWrapper->resources());
+            if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/presets.xml", &root)) != STATUS_OK)
+                return res;
+
+            return post_init();
         }
 
         status_t PresetsWindow::post_init()

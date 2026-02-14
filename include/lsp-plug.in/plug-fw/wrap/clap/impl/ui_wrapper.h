@@ -565,9 +565,7 @@ namespace lsp
                 return false;
             lsp_finally { sMutex.unlock(); };
 
-            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
-            if (wnd != NULL)
-                wnd->host_scaling_changed();
+            host_scaling_changed();
 
             return true;
         }
@@ -917,6 +915,13 @@ namespace lsp
         {
             if (pWrapper != NULL)
                 pWrapper->set_preset_state(state, clap::Wrapper::PT_STATE);
+        }
+
+        void UIWrapper::host_scaling_changed()
+        {
+            ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            if (wnd != NULL)
+                wnd->host_scaling_changed();
         }
 
     } /* namespace clap */

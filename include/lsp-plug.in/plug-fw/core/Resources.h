@@ -42,6 +42,7 @@ namespace lsp
                 Resources              *pNext;
 
                 const void             *pData;
+                uint8_t                 nBufSize;
                 size_t                  nSize;
                 const resource::raw_resource_t *vEnt;
                 size_t                  nEnt;
@@ -50,11 +51,17 @@ namespace lsp
                 /**
                  * Constructor
                  * @param data the location of compressed resource data
+                 * @param log_buf_size buffer size used for compression/decompression
                  * @param size size of the compressed resource data
                  * @param entries the list of all resource entries
                  * @param count the number of resource entries
                  */
-                explicit Resources(const void *data, size_t size, const resource::raw_resource_t *entries, size_t count);
+                explicit Resources(
+                    const void *data,
+                    size_t log_buf_size,
+                    size_t size,
+                    const resource::raw_resource_t *entries,
+                    size_t count);
                 Resources(const Resources &) = delete;
                 Resources(Resources &&) = delete;
                 virtual ~Resources();

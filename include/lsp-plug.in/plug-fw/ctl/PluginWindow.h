@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 13 апр. 2021 г.
@@ -27,8 +27,12 @@
 #endif /* LSP_PLUG_IN_PLUG_FW_CTL_IMPL_ */
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/tk/tk.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/ctl/AboutWindow.h>
+#include <lsp-plug.in/plug-fw/ctl/Documentation.h>
+#include <lsp-plug.in/plug-fw/ctl/FontScaling.h>
+#include <lsp-plug.in/plug-fw/ctl/UIScaling.h>
+#include <lsp-plug.in/tk/tk.h>
 
 namespace lsp
 {
@@ -111,19 +115,18 @@ namespace lsp
             protected:
                 bool                        bResizable;
 
+                ctl::UIScaling              sUIScaling;                 // UI scaling controller
+                ctl::FontScaling            sFontScaling;               // Font scaling controller
+                ctl::Documentation          sDocumentation;             // Documentation controller
                 ctl::Window                *pUserPaths;                 // User paths controller
                 ctl::PresetsWindow         *pPresetsWindow;             // Presets window
+                ctl::AboutWindow           *pAboutWindow;               // About window
 
                 tk::WidgetContainer        *wContent;                   // The main box containing all widgets
                 tk::Window                 *wGreeting;                  // Greeting message window
-                tk::Window                 *wAbout;                     // About message window
                 tk::Window                 *wUserPaths;                 // User paths configuration
                 tk::Menu                   *wMenu;                      // Menu
                 tk::Menu                   *wPresets;                   // Presets menu
-                tk::Menu                   *wUIScaling;                 // UI Scaling menu
-                tk::Menu                   *wBundleScaling;             // Bundle Scaling menu
-                tk::Menu                   *wFontScaling;               // UI Scaling menu
-                tk::MenuItem               *wPreferHost;                // Prefer host menu item
                 tk::CheckBox               *wRelPaths;                  // Relative path checkbox
                 tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
                 tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
@@ -136,10 +139,6 @@ namespace lsp
                 ui::IPort                  *pPBypass;
                 ui::IPort                  *pR3DBackend;
                 ui::IPort                  *pLanguage;
-                ui::IPort                  *pUIScaling;
-                ui::IPort                  *pUIScalingHost;
-                ui::IPort                  *pUIBundleScaling;
-                ui::IPort                  *pUIFontScaling;
                 ui::IPort                  *pVisualSchema;
                 ui::IPort                  *pInvertVScroll;
                 ui::IPort                  *pInvertGraphDotVScroll;
@@ -149,9 +148,6 @@ namespace lsp
 
                 lltl::parray<backend_sel_t> vBackendSel;
                 lltl::parray<lang_sel_t>    vLangSel;
-                lltl::parray<scaling_sel_t> vScalingSel;
-                lltl::parray<scaling_sel_t> vBundleScalingSel;
-                lltl::parray<scaling_sel_t> vFontScalingSel;
                 lltl::parray<schema_sel_t>  vSchemaSel;
                 lltl::parray<preset_sel_t>  vPresetSel;
                 lltl::darray<ui_flag_t>     vBoolFlags;
@@ -160,13 +156,10 @@ namespace lsp
                 static status_t slot_window_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_window_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_greeting_close(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_about_close(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_select_next_preset(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_show_ui_scaling_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_bundle_scaling_menu(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_show_font_scaling_menu(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
@@ -199,10 +192,6 @@ namespace lsp
                 static status_t slot_bundle_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_bundle_scaling_select(tk::Widget *sender, void *ptr, void *data);
 
-                static status_t slot_font_scaling_zoom_in(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_font_scaling_zoom_out(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_font_scaling_select(tk::Widget *sender, void *ptr, void *data);
-
                 static status_t slot_visual_schema_select(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_window_resize(tk::Widget *sender, void *ptr, void *data);
@@ -229,11 +218,6 @@ namespace lsp
                 static ssize_t              compare_presets(const resource::resource_t *a, const resource::resource_t *b);
                 void                        init_enum_menu(enum_menu_t *menu);
 
-                status_t                    add_scaling_menu_item(
-                    lltl::parray<scaling_sel_t> & list,
-                    tk::Menu *menu, const char *key, size_t scale,
-                    tk::event_handler_t handler);
-
             protected:
                 void                do_destroy();
                 status_t            set_greeting_timer();
@@ -256,17 +240,14 @@ namespace lsp
                 status_t            init_r3d_support(tk::Menu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);
                 status_t            init_scaling_support(tk::Menu *menu);
-                status_t            init_bundle_scaling_support(tk::Menu *menu);
                 status_t            init_font_scaling_support(tk::Menu *menu);
                 status_t            init_visual_schema_support(tk::Menu *menu);
                 status_t            init_ui_behaviour(tk::Menu *menu);
                 status_t            add_ui_flag(tk::Menu *menu, const char *port, const char *key);
                 status_t            init_presets(tk::Menu *menu, bool add_submenu);
                 status_t            create_main_menu();
-                void                sync_ui_scaling();
                 bool                has_path_ports();
                 void                sync_language_selection();
-                void                sync_font_scaling();
                 void                sync_visual_schemas();
                 void                sync_invert_vscroll(ui::IPort *port);
                 void                sync_ui_behaviour_flags(ui::IPort *port);
@@ -285,8 +266,6 @@ namespace lsp
                 void                scroll_over_presets(const ws::event_t *ev);
 
                 void                set_preset_button_text(const char *text);
-
-                status_t            init_context(ui::UIContext *ctx);
 
             public:
                 explicit PluginWindow(ui::IWrapper *src, tk::Window *widget);

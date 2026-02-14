@@ -47,16 +47,22 @@
     #include <lsp-plug.in/plug-fw/ctl/util/IChildSync.h>
     #include <lsp-plug.in/plug-fw/ctl/util/DirController.h>
 
-    // Controllers
+    // Basic controllers
     #include <lsp-plug.in/plug-fw/ctl/Controller.h>
     #include <lsp-plug.in/plug-fw/ctl/DOMController.h>
-    #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Registry.h>
+    #include <lsp-plug.in/plug-fw/ctl/Widget.h>
     #include <lsp-plug.in/plug-fw/ctl/Factory.h>
+
+    // Controllers
+    #include <lsp-plug.in/plug-fw/ctl/AboutWindow.h>
+    #include <lsp-plug.in/plug-fw/ctl/Documentation.h>
+    #include <lsp-plug.in/plug-fw/ctl/FontScaling.h>
     #include <lsp-plug.in/plug-fw/ctl/Window.h>
     #include <lsp-plug.in/plug-fw/ctl/PresetsWindow.h>
     #include <lsp-plug.in/plug-fw/ctl/PluginWindow.h>
     #include <lsp-plug.in/plug-fw/ctl/SavePresetDialog.h>
+    #include <lsp-plug.in/plug-fw/ctl/UIScaling.h>
 
     #include <lsp-plug.in/plug-fw/ctl/headless/PortLink.h>
 
@@ -87,6 +93,7 @@
     #include <lsp-plug.in/plug-fw/ctl/containers/TabGroup.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/ListBox.h>
     #include <lsp-plug.in/plug-fw/ctl/containers/ListBoxItem.h>
+    #include <lsp-plug.in/plug-fw/ctl/containers/ScrollArea.h>
 
     #include <lsp-plug.in/plug-fw/ctl/compound/ComboBox.h>
     #include <lsp-plug.in/plug-fw/ctl/compound/ComboGroup.h>

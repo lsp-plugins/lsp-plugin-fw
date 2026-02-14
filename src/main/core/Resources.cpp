@@ -35,10 +35,16 @@ namespace lsp
         // Static variable
         Resources *Resources::pRoot  = NULL;
 
-        Resources::Resources(const void *data, size_t size, const resource::raw_resource_t *entries, size_t count)
+        Resources::Resources(
+            const void *data,
+            size_t log_buf_size,
+            size_t size,
+            const resource::raw_resource_t *entries,
+            size_t count)
         {
             pNext       = pRoot;
             pData       = data;
+            nBufSize    = log_buf_size;
             nSize       = size;
             vEnt        = entries;
             nEnt        = count;
@@ -59,7 +65,7 @@ namespace lsp
                 return NULL;
 
             // Initialize loader
-            status_t res = ldr->init(pData, nSize, vEnt, nEnt, LSP_RESOURCE_LOG_BUFSZ);
+            status_t res = ldr->init(pData, nSize, vEnt, nEnt, nBufSize);
             if (res == STATUS_OK)
                 return ldr;
 

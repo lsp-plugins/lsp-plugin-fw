@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 апр. 2021 г.
@@ -143,6 +143,23 @@ namespace lsp
             return true;
         }
 
+        status_t init_ui_context(ui::UIContext *uctx, const meta::package_t *package, const meta::plugin_t *plugin)
+        {
+            LSP_STATUS_ASSERT(uctx->init());
+
+            if (package != NULL)
+                LSP_STATUS_ASSERT(uctx->root()->set_string("package_id", package->artifact));
+
+            if (plugin != NULL)
+            {
+                LSP_STATUS_ASSERT(uctx->root()->set_string("plugin_id", plugin->uid));
+                const meta::bundle_t *bundle = plugin->bundle;
+                if (bundle != NULL)
+                    LSP_STATUS_ASSERT(uctx->root()->set_string("bundle_id", bundle->uid));
+            }
+
+            return STATUS_OK;
+        }
     } /* namespace ctl */
 } /* namespace lsp */
 

@@ -27,6 +27,14 @@
 
 #include <private/test/repository.h>
 
+#ifndef LSP_TEST_ARTIFACT_NAME
+    #define LSP_TEST_ARTIFACT_NAME test
+#endif /* LSP_TEST_ARTIFACT_NAME */
+
+#ifndef LSP_TEST_ARTIFACT_DESC
+    #define LSP_TEST_ARTIFACT_DESC TestCase
+#endif /* LSP_TEST_ARTIFACT_DESC */
+
 namespace lsp
 {
     namespace test
@@ -73,8 +81,8 @@ namespace lsp
 
             static const char *vars[]=
             {
-                "ARTIFACT_ID=test",
-                "ARTIFACT_DESC=Test Case",
+                "ARTIFACT_ID=" LSP_STRINGIFY(LSP_TEST_ARTIFACT_NAME),
+                "ARTIFACT_DESC=" LSP_STRINGIFY(LSP_TEST_ARTIFACT_DESC),
                 "ARTIFACT_VERSION=0.0.0-devel",
                 NULL
             };
