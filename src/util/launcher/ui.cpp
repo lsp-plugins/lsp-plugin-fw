@@ -162,7 +162,22 @@ namespace lsp
             }
             vPlugins.flush();
 
+            // Delete UI language selection bindings
+            for (lltl::iterator<res_sel_t> it = vLangSel.values(); it; ++it)
+            {
+                res_sel_t *s = it.get();
+                if (s != NULL)
+                    delete s;
+            }
             vLangSel.flush();
+
+            // Delete UI schema selection bindings
+            for (lltl::iterator<res_sel_t> it = vSchemaSel.values(); it; ++it)
+            {
+                res_sel_t *s = it.get();
+                if (s != NULL)
+                    delete s;
+            }
             vSchemaSel.flush();
 
             // Destroy config
