@@ -46,8 +46,10 @@ namespace lsp
 
                 typedef struct category_t
                 {
-                    tk::Widget             *wRoot;              // Root widget
+                    tk::Box                *wRoot;              // Root widget
                     tk::Label              *wHeading;           // Heading widget
+                    tk::Separator          *wSeparator;         // Heading separator widget
+                    tk::Widget             *wFooter;            // Footer widget
                     meta::bundle_group_t    enCategory;         // Bundle category
                     const char             *sUID;               // Unique identifier
                     size_t                  nVisibility;        // Visibility counter
@@ -60,14 +62,14 @@ namespace lsp
                 {
                     const meta::bundle_t   *pMeta;              // Bundle metadata
                     category_t             *pCategory;          // Bundle category
-                    tk::Widget             *wRoot;              // Root widget
-                    tk::Grid               *wBundle;            // Bundle grid
+                    tk::Grid               *wRoot;              // Root grid
                     tk::Label              *wHeading;           // Bundle heading
                     tk::Label              *wDescription;       // Bundle description
                     tk::Box                *wImages;            // Box with images
-                    tk::Grid               *wButtons;           // Grid with launch buttons
+                    tk::Grid               *wButtons;           // Launch buttons
                     tk::Button             *wFavouries;         // Favourites mark button
                     tk::Button             *wHelp;              // Help button
+                    tk::Widget             *wFooter;            // Footer widget
                     size_t                  nVisibility;        // Visibility counter
                     size_t                  nActivePlugin;      // Active plugin index
                     lltl::parray<plugin_t>  vPlugins;           // List of plugins

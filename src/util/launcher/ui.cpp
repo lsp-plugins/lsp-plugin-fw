@@ -81,6 +81,8 @@ namespace lsp
             "utilities"
         };
 
+        static constexpr size_t PLUGIN_BUTTONS_PER_ROW = 6;
+
         static ssize_t category_weight(meta::bundle_group_t g)
         {
             size_t i=0;
@@ -263,6 +265,8 @@ namespace lsp
 
                     c->wRoot        = NULL;
                     c->wHeading     = NULL;
+                    c->wSeparator   = NULL;
+                    c->wFooter      = NULL;
                     c->enCategory   = mb->group;
                     c->sUID         = category_keys[c->enCategory];
                     c->nVisibility  = 0;
@@ -286,13 +290,13 @@ namespace lsp
                     b->pMeta        = mp->bundle;
                     b->pCategory    = c;
                     b->wRoot        = NULL;
-                    b->wBundle      = NULL;
                     b->wHeading     = NULL;
                     b->wDescription = NULL;
                     b->wImages      = NULL;
                     b->wButtons     = NULL;
                     b->wFavouries   = NULL;
                     b->wHelp        = NULL;
+                    b->wFooter      = NULL;
                     b->nVisibility  = 0;
                     b->nActivePlugin= 0;
 
@@ -634,14 +638,25 @@ namespace lsp
             {
                 category_t * const c = ci.get();
 
+                // Create container for heading
+                if ((c->wRoot = create_widget<tk::Box>("LauncherWindow::Category")) == NULL)
+                    return STATUS_NO_MEM;
+
                 // Add category heading widget
                 tmp.fmt_ascii("bundles.groups.%s", c->sUID);
                 if ((c->wHeading = create_widget<tk::Label>("LauncherWindow::Category::Heading")) == NULL)
                     return STATUS_NO_MEM;
                 LSP_STATUS_ASSERT(c->wHeading->text()->set(&tmp));
+                LSP_STATUS_ASSERT(c->wRoot->add(c->wHeading));
 
-                // Set root widget as heading
-                c->wRoot            = c->wHeading;
+                // Add category separator widget
+                if ((c->wSeparator = create_widget<tk::Separator>("LauncherWindow::Category::Heading::Separator")) == NULL)
+                    return STATUS_NO_MEM;
+                LSP_STATUS_ASSERT(c->wRoot->add(c->wSeparator));
+
+                // Create footer widget
+                if ((c->wFooter = create_widget<tk::Separator>("LauncherWindow::Category::Separator")) == NULL)
+                    return STATUS_NO_MEM;
             }
 
             // Iterate over bundles
@@ -650,18 +665,18 @@ namespace lsp
                 bundle_t * const b = bi.get();
 
                 // Add category heading widget
-                if ((b->wBundle = create_widget<tk::Grid>("LauncherWindow::Bundle::Grid")) == NULL)
+                if ((b->wRoot = create_widget<tk::Grid>("LauncherWindow::Bundle::Grid")) == NULL)
                     return STATUS_NO_MEM;
 
-                b->wBundle->rows()->set(3);
-                b->wBundle->columns()->set(3);
+                b->wRoot->rows()->set(4);
+                b->wRoot->columns()->set(2);
 
                 // Add box with plugin images
                 {
                     tk::Align * const align = create_widget<tk::Align>("LauncherWindow::Bundle::Images::Align");
                     if (align == NULL)
                         return STATUS_NO_MEM;
-                    LSP_STATUS_ASSERT(b->wBundle->add(align, 3, 1));
+                    LSP_STATUS_ASSERT(b->wRoot->add(align, 3, 1));
 
                     if ((b->wImages = create_widget<tk::Box>("LauncherWindow::Bundle::Images")) == NULL)
                         return STATUS_NO_MEM;
@@ -673,15 +688,14 @@ namespace lsp
                 if ((b->wHeading = create_widget<tk::Label>("LauncherWindow::Bundle::Heading")) == NULL)
                     return STATUS_NO_MEM;
                 LSP_STATUS_ASSERT(b->wHeading->text()->set(&tmp));
-                LSP_STATUS_ASSERT(b->wBundle->add(b->wHeading));
+                LSP_STATUS_ASSERT(b->wRoot->add(b->wHeading));
 
-                // Add favourites and help buttons
+                // Add control buttons (favourites and help)
                 {
-                    tk::Box * const btns = create_widget<tk::Box>(NULL);
+                    tk::Box * const btns = create_widget<tk::Box>("LauncherWindow::Bundle::Controls");
                     if (btns == NULL)
                         return STATUS_NO_MEM;
-                    btns->allocation()->set_hreduce(true);
-                    LSP_STATUS_ASSERT(b->wBundle->add(btns));
+                    LSP_STATUS_ASSERT(b->wRoot->add(btns));
 
                     if ((b->wFavouries = create_widget<tk::Button>("LauncherWindow::Bundle::Favourites")) == NULL)
                         return STATUS_NO_MEM;
@@ -693,25 +707,38 @@ namespace lsp
                     b->wHelp->slots()->bind(tk::SLOT_SUBMIT, slot_show_bundle_manual, this);
                     LSP_STATUS_ASSERT(b->wHelp->text()->set("icons.main.help_nb"));
                     LSP_STATUS_ASSERT(btns->add(b->wHelp));
+
+                    tk::Void * const fill = create_widget<tk::Void>(NULL);
+                    if (fill == NULL)
+                        return STATUS_NO_MEM;
+                    fill->allocation()->set_expand(true);
+                    LSP_STATUS_ASSERT(btns->add(fill));
                 }
 
                 // Add bundle description
                 tmp.fmt_ascii("bundles.%s.description", b->pMeta->uid);
                 if ((b->wDescription = create_widget<tk::Label>("LauncherWindow::Bundle::Description")) == NULL)
                     return STATUS_NO_MEM;
-                b->wDescription->allocation()->set_expand(true);
                 LSP_STATUS_ASSERT(b->wDescription->text()->set(&tmp));
-                LSP_STATUS_ASSERT(b->wBundle->add(b->wDescription, 1, 2));
+                LSP_STATUS_ASSERT(b->wRoot->add(b->wDescription));
 
-                // Add launch button grid
-                if ((b->wButtons = create_widget<tk::Grid>("LauncherWindow::Bundle::Buttons")) == NULL)
+                // Add launch buttons grid
+                {
+                    tk::Align * const align = create_widget<tk::Align>("LauncherWindow::Bundle::Buttons::Align");
+                    if (align == NULL)
+                        return STATUS_NO_MEM;
+                    LSP_STATUS_ASSERT(b->wRoot->add(align, 1, 2));
+
+                    if ((b->wButtons = create_widget<tk::Grid>("LauncherWindow::Bundle::Buttons")) == NULL)
+                        return STATUS_NO_MEM;
+                    LSP_STATUS_ASSERT(align->add(b->wButtons));
+                    b->wButtons->columns()->set(PLUGIN_BUTTONS_PER_ROW);
+                    b->wButtons->rows()->set((b->vPlugins.size() + PLUGIN_BUTTONS_PER_ROW - 1) / PLUGIN_BUTTONS_PER_ROW);
+                }
+
+                // Create footer widget
+                if ((b->wFooter = create_widget<tk::Separator>("LauncherWindow::Bundle::Separator")) == NULL)
                     return STATUS_NO_MEM;
-                LSP_STATUS_ASSERT(b->wBundle->add(b->wButtons, 1, 2));
-                b->wButtons->rows()->set((b->vPlugins.size() + 4 - 1) / 4);
-                b->wButtons->columns()->set(4);
-
-                // Set up root widget
-                b->wRoot            = b->wBundle;
             }
 
             // Iterate over plugins
@@ -991,34 +1018,54 @@ namespace lsp
             wFavourites->remove_all();
 
             // Add all visible widgets to the list
+            category_t * cprev = NULL;
             for (lltl::iterator<category_t> ci = vCategories.values(); ci; ++ci)
             {
                 category_t * const c = ci.get();
                 if (c->nVisibility <= 0)
                     continue;
 
+                // Add separator if needed
+                if ((cprev != NULL) && (cprev->wFooter != NULL))
+                    wc->add(cprev->wFooter);
+
+                // Add category header
                 wc->add(c->wRoot);
                 lsp_trace("Added category id=%s", c->sUID);
 
+                // Add category body
+                bundle_t * bprev = NULL;
                 for (lltl::iterator<bundle_t> bi = c->vBundles.values(); bi; ++bi)
                 {
                     bundle_t * const b = bi.get();
 
                     // Sync favourites state
-                    sync_favourites_state(b);
-
                     if (b->nVisibility <= 0)
                         continue;
 
-                    lsp_trace("  Added bundle id=%s", b->pMeta->uid);
-                    wc->add(b->wRoot);
+                    sync_favourites_state(b);
 
+                    // Add separator if needed
+                    if ((bprev != NULL) && (bprev->wFooter != NULL))
+                        wc->add(bprev->wFooter);
+
+                    // Add bundle body
+                    wc->add(b->wRoot);
+                    lsp_trace("  Added bundle id=%s", b->pMeta->uid);
+
+                    // Update icon state
                     for (lltl::iterator<plugin_t> pi = b->vPlugins.values(); pi; ++pi)
                     {
                         plugin_t * const p = pi.get();
                         sync_icon_state(p, pi.index() == b->nActivePlugin);
                     }
+
+                    // Remember previous bundle
+                    bprev = b;
                 }
+
+                // Remember previous category
+                cprev   = c;
             }
         }
 
