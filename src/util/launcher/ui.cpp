@@ -204,6 +204,8 @@ namespace lsp
                 return delta;
             if ((delta = (pa->bundle - pb->bundle)) != 0)
                 return delta;
+            if ((delta = (pa->sort_order - pb->sort_order)) != 0)
+                return delta;
             return strcmp(pa->uid, pb->uid);
         }
 
@@ -668,7 +670,7 @@ namespace lsp
                 if ((b->wRoot = create_widget<tk::Grid>("LauncherWindow::Bundle::Grid")) == NULL)
                     return STATUS_NO_MEM;
 
-                b->wRoot->rows()->set(4);
+                b->wRoot->rows()->set(3);
                 b->wRoot->columns()->set(2);
 
                 // Add box with plugin images
@@ -676,19 +678,12 @@ namespace lsp
                     tk::Align * const align = create_widget<tk::Align>("LauncherWindow::Bundle::Images::Align");
                     if (align == NULL)
                         return STATUS_NO_MEM;
-                    LSP_STATUS_ASSERT(b->wRoot->add(align, 3, 1));
+                    LSP_STATUS_ASSERT(b->wRoot->add(align, 2, 1));
 
                     if ((b->wImages = create_widget<tk::Box>("LauncherWindow::Bundle::Images")) == NULL)
                         return STATUS_NO_MEM;
                     LSP_STATUS_ASSERT(align->add(b->wImages));
                 }
-
-                // Add plugin heading
-                tmp.fmt_ascii("bundles.%s.name", b->pMeta->uid);
-                if ((b->wHeading = create_widget<tk::Label>("LauncherWindow::Bundle::Heading")) == NULL)
-                    return STATUS_NO_MEM;
-                LSP_STATUS_ASSERT(b->wHeading->text()->set(&tmp));
-                LSP_STATUS_ASSERT(b->wRoot->add(b->wHeading));
 
                 // Add control buttons (favourites and help)
                 {
@@ -696,6 +691,13 @@ namespace lsp
                     if (btns == NULL)
                         return STATUS_NO_MEM;
                     LSP_STATUS_ASSERT(b->wRoot->add(btns));
+
+                    // Add plugin heading
+                    tmp.fmt_ascii("bundles.%s.name", b->pMeta->uid);
+                    if ((b->wHeading = create_widget<tk::Label>("LauncherWindow::Bundle::Heading")) == NULL)
+                        return STATUS_NO_MEM;
+                    LSP_STATUS_ASSERT(b->wHeading->text()->set(&tmp));
+                    LSP_STATUS_ASSERT(btns->add(b->wHeading));
 
                     if ((b->wFavouries = create_widget<tk::Button>("LauncherWindow::Bundle::Favourites")) == NULL)
                         return STATUS_NO_MEM;
