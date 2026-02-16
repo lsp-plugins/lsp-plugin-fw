@@ -121,6 +121,8 @@ namespace lsp
             wVisualSchema       = NULL;
             wAllBundles         = NULL;
             wFavourites         = NULL;
+            wAllArea            = NULL;
+            wFavouritesArea     = NULL;
         }
 
         UI::~UI()
@@ -452,8 +454,15 @@ namespace lsp
             tk::Registry * const registry = controller()->widgets();
             wFilter = registry->get<tk::Edit>("search_input");
             wTabs = registry->get<tk::TabControl>("tab_control");
-            wAllBundles = registry->get<tk::WidgetContainer>("all_plugins_list");
-            wFavourites = registry->get<tk::WidgetContainer>("favourites_list");
+            wAllBundles     = registry->get<tk::WidgetContainer>("all_plugins_list");
+            wFavourites     = registry->get<tk::WidgetContainer>("favourites_list");
+            wAllArea        = registry->get<tk::WidgetContainer>("all_plugins_area");
+            wFavouritesArea = registry->get<tk::WidgetContainer>("favourites_area");
+
+            if (wAllBundles != NULL)
+                wAllBundles->slots()->bind(tk::SLOT_MOUSE_SCROLL, slot_mouse_scroll, this);
+            if (wFavourites != NULL)
+                wFavourites->slots()->bind(tk::SLOT_MOUSE_SCROLL, slot_mouse_scroll, this);
 
             // Bind ports
             BIND_PORT(this, pWindowWidth, UI_LAUNCHER_WIDTH_ID);
@@ -575,6 +584,9 @@ namespace lsp
                 else
                     lsp_warn("Could not inject non-existing style '%s'", style);
             }
+
+            // Bind mouse scroll widget
+            widget->slots()->bind(tk::SLOT_MOUSE_SCROLL, slot_mouse_scroll, this);
 
             return widget;
         }
@@ -1610,6 +1622,23 @@ namespace lsp
             self->locate_window();
 
             return STATUS_OK;
+        }
+
+        status_t UI::slot_mouse_scroll(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            // Obtain active tab and it's index
+            tk::Tab * const tab = self->wTabs->selected()->get();
+            const size_t idx = (tab != NULL) ? self->wTabs->widgets()->index_of(tab) : 0;
+
+            tk::WidgetContainer * const wc = (idx == 0) ? self->wAllArea : self->wFavouritesArea;
+            if (wc == NULL)
+                return STATUS_OK;
+
+            return wc->handle_event(static_cast<ws::event_t *>(data));
         }
 
     } /* namespace launcher */

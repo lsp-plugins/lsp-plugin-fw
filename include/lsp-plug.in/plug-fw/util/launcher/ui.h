@@ -116,6 +116,8 @@ namespace lsp
                 tk::ComboBox               *wVisualSchema;      // Visual schema selector
                 tk::WidgetContainer        *wAllBundles;        // Container with full list of bundles
                 tk::WidgetContainer        *wFavourites;        // Container with favourites
+                tk::WidgetContainer        *wAllArea;           // Scroll area with all plugins
+                tk::WidgetContainer        *wFavouritesArea;    // Scroll area with favourites
 
                 lltl::parray<plugin_t>      vPlugins;
                 lltl::parray<bundle_t>      vBundles;
@@ -142,6 +144,7 @@ namespace lsp
                 static status_t             slot_show_about(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_show_bundle_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_mouse_scroll(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);
