@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 мая 2016 г.
@@ -37,6 +37,9 @@
 #include <lsp-plug.in/ws/ws.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/runtime/system.h>
+#include <lsp-plug.in/io/InFileStream.h>
+#include <lsp-plug.in/io/InStringSequence.h>
+#include <lsp-plug.in/io/InSequence.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ipc/Library.h>
 
@@ -127,6 +130,7 @@ namespace lsp
             const char     *cfg_file;
             const char     *plugin_id;
             const char     *client_name;
+            const char     *script_name;
             const char     *schema;
             void           *parent_id;
             bool            headless;
@@ -145,6 +149,7 @@ namespace lsp
                 plug::Module       *pPlugin;            // Plugin
                 jack::Wrapper      *pWrapper;           // Plugin wrapper
                 ws::timestamp_t     nLastReconnect;     // Last connection time
+                io::IInSequence    *pScript;            // Script sequence
             #ifdef WITH_UI_FEATURE
                 ui::Module         *pUI;                // Plugin UI
                 jack::UIWrapper    *pUIWrapper;         // Plugin UI wrapper
@@ -159,6 +164,10 @@ namespace lsp
                 status_t            init_modules();
                 status_t            sync_state(ws::timestamp_t sched, ws::timestamp_t ctime);
                 void                load_configuration_file(const char *cfg_file);
+
+            private:
+                status_t            execute_command(const LSPString & command);
+                status_t            set_visual_schema(expr::Tokenizer & tok);
 
             public:
                 PluginLoop();
@@ -295,6 +304,7 @@ namespace lsp
             cfg->cfg_file       = NULL;
             cfg->plugin_id      = NULL;
             cfg->client_name    = NULL;
+            cfg->script_name    = NULL;
             cfg->schema         = NULL;
             cfg->parent_id      = NULL;
             cfg->headless       = false;
@@ -318,13 +328,14 @@ namespace lsp
                     IF_XDND_PROXY_SUPPORT(
                         printf("  --dnd-proxy <id>          Create window as child and DnD proxy of specified window ID\n");
                     )
+                    printf("  -e, --exec <file>         Execute script (file may be appended at runtime)\n");
                     printf("  -h, --help                Output help\n");
                     printf("  -hl, --headless           Launch in console only, without UI\n");
+                    if (plugin_id == NULL)
+                        printf("  -l, --list                List available plugin identifiers\n");
                     printf("  -mw, --minimized          Launch UI with minimized window\n");
                     printf("  -n, --name                Specify the client name for JACK\n");
                     printf("  -s, --schema              Specify the UI schema name\n");
-                    if (plugin_id == NULL)
-                        printf("  -l, --list                List available plugin identifiers\n");
                     printf("  -v, --version             Output the version of the software\n");
                     printf("  -x, --connect <src>=<dst> Connect input/output JACK port to another\n");
                     printf("                            input/output JACK port when JACK connection\n");
@@ -337,6 +348,11 @@ namespace lsp
                 }
                 else if ((!::strcmp(arg, "--config")) || (!::strcmp(arg, "-c")))
                 {
+                    if (cfg->cfg_file != NULL)
+                    {
+                        fprintf(stderr, "Duplicate configuration file specified\n");
+                        return STATUS_BAD_ARGUMENTS;
+                    }
                     if (i >= argc)
                     {
                         fprintf(stderr, "Not specified file name for '%s' parameter\n", arg);
@@ -371,6 +387,20 @@ namespace lsp
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->schema = argv[i++];
+                }
+                else if ((!::strcmp(arg, "--exec")) || (!::strcmp(arg, "-e")))
+                {
+                    if (cfg->script_name)
+                    {
+                        fprintf(stderr, "Scirpt file name was already specified\n");
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified scipt file name for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->script_name = argv[i++];
                 }
                 else if ((!::strcmp(arg, "--headless")) || (!::strcmp(arg, "-hl")))
                     cfg->headless       = true;
@@ -575,10 +605,59 @@ namespace lsp
             return STATUS_OK;
         }
 
+        static status_t open_script(io::IInSequence * & s, const char *path)
+        {
+            status_t res;
+            LSPString fpath;
+            if (!fpath.set_native(path))
+                return STATUS_NO_MEM;
+
+            // Create input files stream
+            io::InFileStream *ifs = new io::InFileStream();
+            if (ifs == NULL)
+                return STATUS_NO_MEM;
+            lsp_finally {
+                if (ifs != NULL)
+                {
+                    ifs->close();
+                    delete ifs;
+                }
+            };
+
+            // Open file stream
+            if ((res = ifs->open(&fpath)) != STATUS_OK)
+                return res;
+
+            // Create input sequence
+            io::InSequence *is = new io::InSequence();
+            if (is == NULL)
+                return STATUS_NO_MEM;
+            lsp_finally {
+                if (is != NULL)
+                {
+                    is->close();
+                    delete is;
+                }
+            };
+
+            // Wrap file descriptor
+            if ((res = is->wrap(ifs, WRAP_CLOSE | WRAP_DELETE)) != STATUS_OK)
+                return res;
+
+            // Now file will be closed by the sequence
+            ifs                 = NULL;
+            s                   = release_ptr(is);
+
+            return STATUS_OK;
+        }
+
         PluginLoop::PluginLoop()
         {
             sCmdLine.cfg_file       = NULL;
             sCmdLine.plugin_id      = NULL;
+            sCmdLine.client_name    = NULL;
+            sCmdLine.script_name    = NULL;
+            sCmdLine.schema         = NULL;
             sCmdLine.parent_id      = NULL;
             sCmdLine.headless       = false;
             sCmdLine.list           = false;
@@ -590,6 +669,7 @@ namespace lsp
             pPlugin                 = NULL;
             pWrapper                = NULL;
             nLastReconnect          = 0;
+            pScript                 = NULL;
         #ifdef WITH_UI_FEATURE
             pUI                     = NULL;
             pUIWrapper              = NULL;
@@ -655,6 +735,14 @@ namespace lsp
                 pFactory        = NULL;
             }
 
+            // Destroy script sequence if present
+            if (pScript != NULL)
+            {
+                pScript->close();
+                delete pScript;
+                pScript         = NULL;
+            }
+
             // Destroy command line
             destroy_cmdline(&sCmdLine);
         }
@@ -690,6 +778,13 @@ namespace lsp
             {
                 fprintf(stderr, "Not specified plugin identifier, exiting\n");
                 return -STATUS_NOT_FOUND;
+            }
+
+            // Script file has ben specified?
+            if (sCmdLine.script_name != NULL)
+            {
+                if ((res = open_script(pScript, sCmdLine.script_name)) != STATUS_OK)
+                    lsp_warn("Could not open script file '%s': error code is %d\n", sCmdLine.script_name, int(res));
             }
 
             // Output routing if specified
@@ -791,8 +886,48 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginLoop::set_visual_schema(expr::Tokenizer & tok)
+        {
+            LSPString name;
+            expr::token_t t = tok.get_token(expr::TF_GET | expr::TF_XKEYWORDS);
+            if ((t != expr::TT_BAREWORD) && (t != expr::TT_STRING))
+                return STATUS_INVALID_VALUE;
+            if (!name.set(tok.text_value()))
+                return STATUS_NO_MEM;
+            if ((t = tok.get_token(expr::TF_GET)) != expr::TT_EOF)
+                return STATUS_INVALID_VALUE;
+
+            status_t res = STATUS_OK;
+        #ifdef WITH_UI_FEATURE
+            // Update visual schema
+            res = pUIWrapper->select_ui_schema(name);
+        #endif /* WITH_UI_FEATURE */
+
+            return res;
+        }
+
+        status_t PluginLoop::execute_command(const LSPString & command)
+        {
+            io::InStringSequence iss;
+            status_t res = iss.wrap(&command);
+            if (res != STATUS_OK)
+                return res;
+
+            expr::Tokenizer tok(&iss);
+            expr::token_t t = tok.get_token(expr::TF_GET | expr::TF_XKEYWORDS);
+            if (t != expr::TT_BAREWORD)
+                return STATUS_BAD_ARGUMENTS;
+
+            const LSPString * const cmd = tok.text_value();
+            if (cmd->equals_ascii("set_visual_schema"))
+                return set_visual_schema(tok);
+
+            return STATUS_NOT_FOUND;
+        }
+
         status_t PluginLoop::run()
         {
+            LSPString command;
             status_t res            = STATUS_OK;
             ws::timestamp_t period  = 40; // 40 ms period (25 frames per second)
 
@@ -821,6 +956,18 @@ namespace lsp
                     return res;
                 }
 
+                // Check command prompt provided
+                if (pScript != NULL)
+                {
+                    while ((res = pScript->read_line(&command)) == STATUS_OK)
+                    {
+                        if ((res = execute_command(command)) != STATUS_OK)
+                            fprintf(stdout, "ERROR %d: %s\n", int(res), command.get_native());
+                        else
+                            fprintf(stdout, "OK: %s\n", command.get_native());
+                    }
+                }
+
             #ifdef WITH_UI_FEATURE
                 // Perform main event loop for the UI
                 if (pUIWrapper != NULL)
@@ -844,7 +991,7 @@ namespace lsp
 
             fprintf(stderr, "\nPlugin execution interrupted\n");
 
-            return res;
+            return STATUS_OK;
         }
 
         void PluginLoop::load_configuration_file(const char *cfg_file)

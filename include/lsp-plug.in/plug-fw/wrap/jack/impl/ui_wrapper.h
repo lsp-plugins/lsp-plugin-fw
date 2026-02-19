@@ -579,7 +579,41 @@ namespace lsp
             ctl::PluginWindow * const pwnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
             if (pwnd == NULL)
                 return STATUS_NOT_IMPLEMENTED;
-            return pwnd->select_ui_schema(name);
+
+            // Form the right path to the schema
+            LSPString path;
+            size_t offset = 0;
+            if (!name.starts_with_ascii(LSP_BUILTIN_PREFIX, offset))
+            {
+                if (!path.append_ascii(LSP_BUILTIN_PREFIX))
+                    return STATUS_NO_MEM;
+            }
+            else
+                offset     += strlen(LSP_BUILTIN_PREFIX);
+            if ((!name.starts_with_ascii("schema/", offset)) &&
+                (!name.starts_with_ascii("schema\\", offset)))
+            {
+                if (!path.append_ascii("schema/"))
+                    return STATUS_NO_MEM;
+            }
+            if (!path.append(&name))
+                return STATUS_NO_MEM;
+            if (!path.ends_with_ascii_nocase(".xml"))
+            {
+                if (!path.append_ascii(".xml"))
+                    return STATUS_NO_MEM;
+            }
+
+            // Schema differs from current?
+            if (sVisualSchema.equals(&path))
+                return STATUS_OK;
+
+            // Load new visual schema
+            status_t res = pwnd->select_ui_schema(path);
+            if (res == STATUS_OK)
+                sVisualSchema.swap(path);
+
+            return res;
         }
 
     } /* namespace jack */

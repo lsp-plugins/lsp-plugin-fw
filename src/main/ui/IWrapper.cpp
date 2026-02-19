@@ -2106,18 +2106,27 @@ namespace lsp
             if ((schema != NULL) && (strlen(schema) > 0))
             {
                 if ((res = load_visual_schema(schema)) == STATUS_OK)
+                {
+                    sVisualSchema.set_native(schema);
                     return res;
+                }
             }
 
             // Load fallback schema
+            if ((res = load_visual_schema(schema)) != STATUS_OK)
+                return res;
+            sVisualSchema.set_native(schema);
+
             schema          = LSP_BUILTIN_PREFIX DEFAULT_SCHEMA_PATH;
             if (s_port != NULL)
             {
+                s_port->begin_edit();
                 s_port->write(schema, strlen(schema));
                 s_port->notify_all(ui::PORT_NONE);
+                s_port->end_edit();
             }
 
-            return load_visual_schema(schema);
+            return STATUS_OK;
         }
 
         status_t IWrapper::load_visual_schema(const char *file)

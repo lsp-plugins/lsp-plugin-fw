@@ -117,6 +117,7 @@ namespace lsp
                 expr::Variables                 sGlobalVars;        // Global variables
                 plug::position_t                sPosition;          // Melodic position
                 core::preset_data_t             vPresetData[2];     // Preset data
+                LSPString                       sVisualSchema;      // Current visual schema
 
                 lltl::parray<ui::IPort>         vPorts;             // All possible ports
                 lltl::hash_index<const char, ui::IPort> vPluginPorts; // Port mapping

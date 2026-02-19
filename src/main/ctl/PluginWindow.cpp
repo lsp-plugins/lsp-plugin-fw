@@ -465,6 +465,7 @@ namespace lsp
 
                 // Create schema selection support menu
                 init_visual_schema_support(wMenu);
+                sync_visual_schemas();
 
                 // Create language selection menu
                 init_i18n_support(wMenu);
@@ -2135,20 +2136,7 @@ namespace lsp
                 return STATUS_OK;
 
             // Try to load schema first
-            if (self->pWrapper->load_visual_schema(&sel->location) == STATUS_OK)
-            {
-                const char *value = sel->location.get_utf8();
-
-                if (self->pVisualSchema != NULL)
-                {
-                    self->pVisualSchema->begin_edit();
-                    self->pVisualSchema->write(value, strlen(value));
-                    self->pVisualSchema->notify_all(ui::PORT_USER_EDIT);
-                    self->pVisualSchema->end_edit();
-                }
-            }
-
-            return STATUS_OK;
+            return self->select_ui_schema(sel->location);
         }
 
         status_t PluginWindow::slot_window_resize(tk::Widget *sender, void *ptr, void *data)
@@ -2470,32 +2458,8 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t PluginWindow::select_ui_schema(const LSPString & name)
+        status_t PluginWindow::select_ui_schema(const LSPString & path)
         {
-            // Form the right path to the schema
-            LSPString path;
-            size_t offset = 0;
-            if (!name.starts_with_ascii(LSP_BUILTIN_PREFIX, offset))
-            {
-                if (!path.append_ascii(LSP_BUILTIN_PREFIX))
-                    return STATUS_NO_MEM;
-            }
-            else
-                offset     += strlen(LSP_BUILTIN_PREFIX);
-            if ((!name.starts_with_ascii("schema/", offset)) &&
-                (!name.starts_with_ascii("schema\\", offset)))
-            {
-                if (!path.append_ascii("schema/"))
-                    return STATUS_NO_MEM;
-            }
-            if (!path.append(&name))
-                return STATUS_NO_MEM;
-            if (!path.ends_with_ascii_nocase(".xml"))
-            {
-                if (!path.append_ascii(".xml"))
-                    return STATUS_NO_MEM;
-            }
-
             // Try to load schema first
             status_t res = pWrapper->load_visual_schema(&path);
             if (res != STATUS_OK)

@@ -292,7 +292,7 @@ namespace lsp
                 status_t            show_ui_manual();
                 void                host_scaling_changed();
                 status_t            post_init();
-                status_t            select_ui_schema(const LSPString & name);
+                status_t            select_ui_schema(const LSPString & path);
 
             public: // ui::IPresetListener
                 virtual void        preset_activated(const ui::preset_t *preset) override;
