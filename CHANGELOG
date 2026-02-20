@@ -5,7 +5,7 @@
 === 1.0.35 ===
 * Implemented plugin launcher tool.
 * Added shortcuts for quickly closing some dialogs.
-* Added support to swtich presets with mouse scroll.
+* Added support to switch presets with mouse scroll.
 * Optimized plugin window sizing.
 
 === 1.0.34 ===
