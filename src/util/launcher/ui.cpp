@@ -43,8 +43,8 @@ namespace lsp
     {
         static const meta::port_t launcher_config_metadata[] =
         {
-            INT_CONTROL_ALL(UI_LAUNCHER_WIDTH_ID, "Plugin launcher window width", NULL, U_NONE, 0, 65536, 400, 1),
-            INT_CONTROL_ALL(UI_LAUNCHER_HEIGHT_ID, "Plugin launcher window height", NULL, U_NONE, 0, 65536, 648, 1),
+            INT_CONTROL_ALL(UI_LAUNCHER_WIDTH_ID, "Plugin launcher window width", NULL, U_NONE, 0, 65536, 640, 1),
+            INT_CONTROL_ALL(UI_LAUNCHER_HEIGHT_ID, "Plugin launcher window height", NULL, U_NONE, 0, 65536, 800, 1),
             PORTS_END
         };
     } /* namespace meta */
