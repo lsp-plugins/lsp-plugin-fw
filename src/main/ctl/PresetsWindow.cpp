@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 мар. 2024 г.
@@ -284,7 +284,8 @@ namespace lsp
             return false;
         }
 
-        void PresetsWindow::make_preset_list(preset_list_t *list, const ui::preset_t *presets,
+        void PresetsWindow::make_preset_list(
+            preset_list_t *list, const ui::preset_t * const *presets,
             size_t count, ui::preset_filter_t filter, bool indicate)
         {
             tk::ListBox *lb = list->wList;
@@ -307,7 +308,7 @@ namespace lsp
             for (size_t i=0; i<count; ++i)
             {
                 // Get preset and filter
-                const ui::preset_t *p = &presets[i];
+                const ui::preset_t * const p = presets[i];
                 if (!filter(p))
                     continue;
 
@@ -812,7 +813,7 @@ namespace lsp
         {
             lsp_trace("presets updated");
 
-            const ui::preset_t *presets = pWrapper->all_presets();
+            const ui::preset_t * const *presets = pWrapper->all_presets();
             const size_t count = pWrapper->num_presets();
 
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)

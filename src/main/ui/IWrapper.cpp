@@ -183,7 +183,7 @@ namespace lsp
     {
         static constexpr ssize_t INVALID_PRESET_INDEX       = -1;
 
-        static void mark_presets_as_favourite(lltl::darray<preset_t> *list, json::Array array, bool user)
+        static void mark_presets_as_favourite(lltl::parray<preset_t> *list, json::Array array, bool user)
         {
             const uint32_t mask = (user) ? PRESET_FLAG_USER : PRESET_FLAG_NONE;
             LSPString prest_name;
@@ -212,7 +212,7 @@ namespace lsp
             }
         }
 
-        static status_t save_favourites_list(json::Serializer & json, const char *key, lltl::darray<preset_t> *list, size_t flags)
+        static status_t save_favourites_list(json::Serializer & json, const char *key, lltl::parray<preset_t> *list, size_t flags)
         {
             flags |= ui::PRESET_FLAG_FAVOURITE;
 
@@ -1553,6 +1553,9 @@ namespace lsp
 
         status_t IWrapper::import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir)
         {
+            nFlags             |= F_IMPORT_SETTINGS_ACTIVE;
+            lsp_finally { nFlags &= ~F_IMPORT_SETTINGS_ACTIVE; };
+
             status_t res;
             config::param_t param;
             core::KVTStorage *kvt = kvt_lock();
@@ -2512,7 +2515,7 @@ namespace lsp
             return (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
         }
 
-        const preset_t *IWrapper::all_presets() const
+        const preset_t * const *IWrapper::all_presets() const
         {
             return vPresets.array();
         }
@@ -2522,34 +2525,35 @@ namespace lsp
             return vPresets.size();
         }
 
-        void IWrapper::destroy_presets(lltl::darray<preset_t> *list)
+        void IWrapper::destroy_presets(lltl::parray<preset_t> *list)
         {
             for (size_t i=0, n=list->size(); i<n; ++i)
             {
-                preset_t *preset = list->uget(i);
+                preset_t * const preset = list->uget(i);
                 if (preset != NULL)
-                {
-                    preset->name.~LSPString();
-                    preset->path.~LSPString();
-                }
+                    delete preset;
             }
             list->flush();
         }
 
-        preset_t *IWrapper::add_preset(lltl::darray<preset_t> *list)
+        preset_t *IWrapper::add_preset(lltl::parray<preset_t> *list)
         {
-            preset_t *preset    = list->add();
+            preset_t * const preset     = new preset_t;
             if (preset == NULL)
                 return NULL;
 
-            new (&preset->name, inplace_new_tag_t()) LSPString();
-            new (&preset->path, inplace_new_tag_t()) LSPString();
             preset->flags       = 0;
+
+            if (!list->add(preset))
+            {
+                delete preset;
+                return NULL;
+            }
 
             return preset;
         }
 
-        void IWrapper::scan_factory_presets(lltl::darray<preset_t> *list)
+        void IWrapper::scan_factory_presets(lltl::parray<preset_t> *list)
         {
             const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
             if ((meta == NULL) || (meta->ui_presets == NULL))
@@ -2599,7 +2603,7 @@ namespace lsp
             }
         }
 
-        void IWrapper::scan_user_presets(lltl::darray<preset_t> *list)
+        void IWrapper::scan_user_presets(lltl::parray<preset_t> *list)
         {
             // File name format: <config>/presets/<plugin-uid>/<preset-name>.[preset|patch]
             io::Path path;
@@ -2648,7 +2652,7 @@ namespace lsp
             }
         }
 
-        void IWrapper::scan_favourite_presets(lltl::darray<preset_t> *list)
+        void IWrapper::scan_favourite_presets(lltl::parray<preset_t> *list)
         {
             const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
             if ((meta == NULL) || (meta->ui_presets == NULL))
@@ -2710,7 +2714,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void IWrapper::select_presets(lltl::darray<preset_t> *list, const preset_t *active)
+        void IWrapper::select_presets(lltl::parray<preset_t> *list, const preset_t *active)
         {
             list->qsort(preset_compare_function);
             nActivePreset       = INVALID_PRESET_INDEX;
@@ -2727,7 +2731,7 @@ namespace lsp
         {
             const preset_t *active = active_preset();
 
-            lltl::darray<preset_t> presets;
+            lltl::parray<preset_t> presets;
             lsp_finally { destroy_presets(&presets); };
 
             scan_factory_presets(&presets);
@@ -2792,6 +2796,10 @@ namespace lsp
 
         void IWrapper::mark_active_preset_dirty()
         {
+            // Skip dirty markers when we're currently importing active preset
+            if (nFlags & F_IMPORT_SETTINGS_ACTIVE)
+                return;
+
             // Set flag only when there is an active preset
             const preset_t *preset = active_preset();
             if ((preset != NULL) && (!(nFlags & F_PRESET_DIRTY)))
@@ -2982,16 +2990,9 @@ namespace lsp
                     return res;
 
                 // Allocate new record
-                const preset_t *base = vPresets.array();
                 preset = add_preset(&vPresets);
                 if (preset == NULL)
-                {
-                    // The internal data structure of vPresets may change address,
-                    // so we need to notify clients
-                    if (base != vPresets.array())
-                        notify_presets_updated();
                     return STATUS_NO_MEM;
-                }
             }
 
             // Fill data structure

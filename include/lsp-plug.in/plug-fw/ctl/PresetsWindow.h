@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 мар. 2024 г.
@@ -147,7 +147,7 @@ namespace lsp
 
             protected:
                 tk::FileFilters    *create_config_filters(tk::FileDialog *dlg);
-                void                make_preset_list(preset_list_t *list, const ui::preset_t *presets, size_t count, ui::preset_filter_t filter, bool indicate);
+                void                make_preset_list(preset_list_t *list, const ui::preset_t * const *presets, size_t count, ui::preset_filter_t filter, bool indicate);
                 void                sync_preset_button_state();
                 void                sync_preset_button_state(const ui::preset_t *preset);
                 void                sync_preset_lists();

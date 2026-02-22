@@ -94,12 +94,13 @@ namespace lsp
             protected:
                 enum flags_t
                 {
-                    F_QUIT              = 1 << 0,       // Quit main loop flag
-                    F_CONFIG_DIRTY      = 1 << 1,       // The configuration needs to be saved
-                    F_CONFIG_LOCK       = 1 << 2,       // The configuration file is locked for update
-                    F_PRESET_SYNC       = 1 << 3,       // New preset has been selected and we need to synchronize state
-                    F_PRESET_DIRTY      = 1 << 4,       // Active preset is dirty
-                    F_FAVOURITES_DIRTY  = 1 << 5,       // List of favourites had been updated
+                    F_QUIT                      = 1 << 0,       // Quit main loop flag
+                    F_CONFIG_DIRTY              = 1 << 1,       // The configuration needs to be saved
+                    F_CONFIG_LOCK               = 1 << 2,       // The configuration file is locked for update
+                    F_PRESET_SYNC               = 1 << 3,       // New preset has been selected and we need to synchronize state
+                    F_PRESET_DIRTY              = 1 << 4,       // Active preset is dirty
+                    F_FAVOURITES_DIRTY          = 1 << 5,       // List of favourites had been updated
+                    F_IMPORT_SETTINGS_ACTIVE    = 1 << 6,       // Settings import is active at this moment
                 };
 
             protected:
@@ -132,7 +133,7 @@ namespace lsp
                 lltl::ptrset<ISchemaListener>   vSchemaListeners;   // Schema change listeners
                 lltl::parray<IPlayListener>     vPlayListeners;     // List of playback listeners
                 lltl::parray<IPresetListener>   vPresetListeners;   // List of preset listeners
-                lltl::darray<preset_t>          vPresets;           // List of available presets
+                lltl::parray<preset_t>          vPresets;           // List of available presets
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
@@ -182,17 +183,17 @@ namespace lsp
                 virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
 
             protected:
-                static preset_t *add_preset(lltl::darray<preset_t> *list);
-                static void     destroy_presets(lltl::darray<preset_t> *list);
+                static preset_t *add_preset(lltl::parray<preset_t> *list);
+                static void     destroy_presets(lltl::parray<preset_t> *list);
 
             protected:
                 status_t        get_user_presets_path(io::Path *path);
                 status_t        get_plugin_presets_path(io::Path *path);
-                void            scan_factory_presets(lltl::darray<preset_t> *list);
-                void            scan_user_presets(lltl::darray<preset_t> *list);
-                void            scan_favourite_presets(lltl::darray<preset_t> *list);
+                void            scan_factory_presets(lltl::parray<preset_t> *list);
+                void            scan_user_presets(lltl::parray<preset_t> *list);
+                void            scan_favourite_presets(lltl::parray<preset_t> *list);
                 status_t        save_favourites(const io::Path *path);
-                void            select_presets(lltl::darray<preset_t> *list, const preset_t *active);
+                void            select_presets(lltl::parray<preset_t> *list, const preset_t *active);
                 void            update_preset_list();
                 preset_t       *find_preset(const LSPString *name, bool user);
                 void            notify_presets_updated();
@@ -585,7 +586,7 @@ namespace lsp
                  * Get list of all available presets
                  * @return list of all available presets
                  */
-                const preset_t                 *all_presets() const;
+                const preset_t * const         *all_presets() const;
 
                 /**
                  * Get number of all presets

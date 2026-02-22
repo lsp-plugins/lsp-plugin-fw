@@ -2044,7 +2044,7 @@ namespace lsp
             }
 
             // Otherwise, fill esimation list
-            const ui::preset_t *list = pWrapper->all_presets();
+            const ui::preset_t * const *list = pWrapper->all_presets();
             if (lbl != NULL)
                 lbl->clear_text_estimations();
             if (btn != NULL)
@@ -2052,7 +2052,7 @@ namespace lsp
 
             for (size_t i=0, n=pWrapper->num_presets(); i<n; ++i)
             {
-                const ui::preset_t *item = &list[i];
+                const ui::preset_t * const item = list[i];
 
                 // Determine how to format the prest name
                 const char *key = "labels.presets.name.normal";
