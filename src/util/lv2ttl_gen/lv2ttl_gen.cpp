@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 дек. 2021 г.
@@ -735,7 +735,12 @@ namespace lsp
             fprintf(out, "\tlv2:requiredFeature urid:map ;\n");
 
             // Emit optional features
-            fprintf(out, "\tlv2:optionalFeature lv2:hardRTCapable, hcid:queue_draw, work:schedule, opts:options, state:mapPath ;\n");
+            fprintf(out, "\tlv2:optionalFeature lv2:hardRTCapable, work:schedule, opts:options");
+            if (requirements & REQ_IDISPLAY)
+                fprintf(out, ", hcid:queue_draw");
+            if (requirements & REQ_MAP_PATH)
+                fprintf(out, ", state:mapPath, state:freePath");
+            fprintf(out, " ;\n");
 
             // Emit extension data
             fprintf(out, "\tlv2:extensionData state:interface, work:interface, hcid:interface ;\n");

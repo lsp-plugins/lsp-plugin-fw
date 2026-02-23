@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 нояб. 2021 г.
@@ -891,27 +891,37 @@ namespace lsp
 
                     lsp_trace("save port id=%s, urid=%d (%s), value=%s", pMetadata->id, urid, get_uri(), path);
 
-                    if (::strlen(path) > 0)
-                    {
-                        char *mapped = NULL;
+                    if (::strlen(path) <= 0)
+                        return;
 
-                        // We need to translate absolute path to relative path?
-                        if ((pExt->mapPath != NULL) && (::strstr(path, LSP_BUILTIN_PREFIX) != path))
-                        {
-                            mapped = pExt->mapPath->abstract_path(pExt->mapPath->handle, path);
-                            if (mapped != NULL)
-                            {
-                                lsp_trace("mapped path: %s -> %s", path, mapped);
-                                path = mapped;
-                            }
-                        }
-
-                        // Store the actual value of the path
-                        pExt->store_value(urid, pExt->uridPathType, path, ::strlen(path) + sizeof(char));
-
+                    char *mapped = NULL;
+                    lsp_finally {
                         if (mapped != NULL)
-                            ::free(mapped);
+                        {
+                            // Destroy mapped path. On Windows, the library by itself should free the allocated memory
+                            // https://github.com/lv2/lilv/issues/14
+                            if (pExt->freePath)
+                                pExt->freePath->free_path(pExt->freePath->handle, mapped);
+                        #ifndef PLATFORM_WINDOWS
+                            else
+                                ::free(mapped);
+                        #endif /* PLATFORM_WINDOWS */
+                        }
+                    };
+
+                    // We need to translate absolute path to relative path?
+                    if ((pExt->mapPath != NULL) && (::strstr(path, LSP_BUILTIN_PREFIX) != path))
+                    {
+                        mapped = pExt->mapPath->abstract_path(pExt->mapPath->handle, path);
+                        if (mapped != NULL)
+                        {
+                            lsp_trace("mapped path: %s -> %s", path, mapped);
+                            path = mapped;
+                        }
                     }
+
+                    // Store the actual value of the path
+                    pExt->store_value(urid, pExt->uridPathType, path, ::strlen(path) + sizeof(char));
                 }
 
                 virtual void restore() override

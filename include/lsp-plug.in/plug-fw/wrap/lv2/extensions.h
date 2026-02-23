@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 12 нояб. 2021 г.
@@ -95,6 +95,7 @@ namespace lsp
                 LV2_Worker_Schedule    *sched;
                 LV2_Inline_Display     *iDisplay;
                 LV2_State_Map_Path     *mapPath;
+                LV2_State_Free_Path    *freePath;
                 LV2UI_Resize           *ui_resize;
                 LV2UI_Touch            *pTouch;
                 lv2::Wrapper           *pWrapper;
@@ -250,6 +251,7 @@ namespace lsp
                     sched               = NULL;
                     iDisplay            = NULL;
                     mapPath             = NULL;
+                    freePath            = NULL;
                     ui_resize           = NULL;
                     pTouch              = NULL;
                     pWrapper            = NULL;
@@ -783,6 +785,8 @@ namespace lsp
 
                         if (!::strcmp(f->URI, LV2_STATE__mapPath))
                             mapPath = reinterpret_cast<LV2_State_Map_Path *>(f->data);
+                        if (!::strcmp(f->URI, LV2_STATE__freePath))
+                            freePath = reinterpret_cast<LV2_State_Free_Path *>(f->data);
                     }
                 }
 
@@ -828,6 +832,7 @@ namespace lsp
                     hRetrieve       = NULL;
                     hHandle         = NULL;
                     mapPath         = NULL;
+                    freePath        = NULL;
                 }
 
                 inline bool ui_create_atom_transport(size_t port, size_t buf_size)
