@@ -735,12 +735,7 @@ namespace lsp
             fprintf(out, "\tlv2:requiredFeature urid:map ;\n");
 
             // Emit optional features
-            fprintf(out, "\tlv2:optionalFeature lv2:hardRTCapable, work:schedule, opts:options");
-            if (requirements & REQ_IDISPLAY)
-                fprintf(out, ", hcid:queue_draw");
-            if (requirements & REQ_MAP_PATH)
-                fprintf(out, ", state:mapPath, state:freePath");
-            fprintf(out, " ;\n");
+            fprintf(out, "\tlv2:optionalFeature lv2:hardRTCapable, hcid:queue_draw, work:schedule, opts:options, state:mapPath ;\n");
 
             // Emit extension data
             fprintf(out, "\tlv2:extensionData state:interface, work:interface, hcid:interface ;\n");
