@@ -6,6 +6,7 @@
 * Implemented plugin launcher tool.
 * Added shortcuts for quickly closing some dialogs.
 * Added support to switch presets with mouse scroll.
+* Fixed bug of failing UI show when plugins's global configuration file is missing.
 * Optimized plugin window sizing.
 
 === 1.0.34 ===

@@ -2116,11 +2116,11 @@ namespace lsp
             }
 
             // Load fallback schema
+            schema          = LSP_BUILTIN_PREFIX DEFAULT_SCHEMA_PATH;
             if ((res = load_visual_schema(schema)) != STATUS_OK)
                 return res;
             sVisualSchema.set_native(schema);
 
-            schema          = LSP_BUILTIN_PREFIX DEFAULT_SCHEMA_PATH;
             if (s_port != NULL)
             {
                 s_port->begin_edit();
