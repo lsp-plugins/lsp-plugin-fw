@@ -100,12 +100,18 @@
 #define INT_CONTROL_DFL(id, label, alias, units, limits, dfl) \
     INT_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
+#define ADDON_LOG_CONTROL_ALL(revision, id, label, alias, units, min, max, dfl, step) \
+    { id, label, alias, units, R_CONTROL, revision, F_LOWER | F_UPPER | F_STEP | F_LOG, min, max, dfl, step, NULL, NULL, NULL }
+#define ADDON_LOG_CONTROL(revision, id, label, alias, units, limits) \
+    ADDON_LOG_CONTROL_ALL(revision, id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+#define ADDON_LOG_CONTROL_DFL(revision, id, label, alias, units, limits, dfl) \
+    ADDON_LOG_CONTROL_ALL(revision, id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 #define LOG_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
-    { id, label, alias, units, R_CONTROL, 0, F_LOWER | F_UPPER | F_STEP | F_LOG, min, max, dfl, step, NULL, NULL, NULL }
+    ADDON_LOG_CONTROL_ALL(0, id, label, alias, units, min, max, dfl, step)
 #define LOG_CONTROL(id, label, alias, units, limits) \
-    LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
+    ADDON_LOG_CONTROL_ALL(0, id, label, alias, units, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP)
 #define LOG_CONTROL_DFL(id, label, alias, units, limits, dfl) \
-    LOG_CONTROL_ALL(id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
+    ADDON_LOG_CONTROL_ALL(0, id, label, alias, units, limits ## _MIN, limits ## _MAX, dfl, limits ## _STEP)
 
 #define EXT_LOG_CONTROL_ALL(id, label, alias, units, min, max, dfl, step) \
     { id, label, alias, units, R_CONTROL, 0, F_LOWER | F_UPPER | F_STEP | F_LOG | F_EXT, min, max, dfl, step, NULL, NULL, NULL }
