@@ -538,6 +538,7 @@ namespace lsp
             const meta::port_t *meta = (em->pPort != NULL) ? em->pPort->metadata() : NULL;
             if ((meta == NULL) || (!meta::is_enum_unit(meta->unit)))
                 return NULL;
+            const ssize_t selected   = (em->pPort != NULL) ? em->pPort->value() : -1;
 
             // Create root menu
             tk::Menu *menu = create_menu();
@@ -546,7 +547,8 @@ namespace lsp
 
             // Add items from the enumeration
             LSPString lc_key;
-            for (const meta::port_item_t *item = meta->items; item->text != NULL; ++item)
+            ssize_t index = 0;
+            for (const meta::port_item_t *item = meta->items; item->text != NULL; ++item, ++index)
             {
                 // Create submenu item
                 tk::MenuItem *mi            = create_menu_item(menu);
@@ -565,6 +567,7 @@ namespace lsp
                 }
                 else
                     mi->text()->set_raw(item->text);
+                mi->checked()->set(index == selected);
 
                 // Bind slots
                 mi->slots()->bind(tk::SLOT_SUBMIT, slot_submit_enum_menu_item, em);
