@@ -148,7 +148,7 @@ namespace lsp
                 status_t        init_visual_schema();
                 status_t        load_global_config(config::PullParser *parser);
                 status_t        init_global_constants(const tk::StyleSheet *sheet);
-                status_t        apply_visual_schema(const tk::StyleSheet *sheet);
+                status_t        apply_visual_schema(const char *path, const tk::StyleSheet *sheet);
                 status_t        export_ports(
                     config::Serializer *s,
                     lltl::pphash<LSPString, config::param_t> *parameters,

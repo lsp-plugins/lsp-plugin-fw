@@ -2101,7 +2101,7 @@ namespace lsp
                 return res;
 
             // Try to load selected schema
-            ui::IPort *s_port   = port(UI_VISUAL_SCHEMA_PORT);
+            ui::IPort * const s_port    = port(UI_VISUAL_SCHEMA_PORT);
             const char *schema  = ((s_port != NULL) && (meta::is_path_port(s_port->metadata()))) ?
                                     s_port->buffer<const char>() :
                                     NULL;
@@ -2121,14 +2121,6 @@ namespace lsp
                 return res;
             sVisualSchema.set_native(schema);
 
-            if (s_port != NULL)
-            {
-                s_port->begin_edit();
-                s_port->write(schema, strlen(schema));
-                s_port->notify_all(ui::PORT_NONE);
-                s_port->end_edit();
-            }
-
             return STATUS_OK;
         }
 
@@ -2139,7 +2131,7 @@ namespace lsp
 
             tk::StyleSheet ss;
             status_t res = load_stylesheet(&ss, file);
-            return (res == STATUS_OK) ? apply_visual_schema(&ss) : res;
+            return (res == STATUS_OK) ? apply_visual_schema(file, &ss) : res;
         }
 
         status_t IWrapper::load_visual_schema(const io::Path *file)
@@ -2149,7 +2141,7 @@ namespace lsp
 
             tk::StyleSheet ss;
             status_t res = load_stylesheet(&ss, file);
-            return (res == STATUS_OK) ? apply_visual_schema(&ss) : res;
+            return (res == STATUS_OK) ? apply_visual_schema(file->as_utf8(), &ss) : res;
         }
 
         status_t IWrapper::load_visual_schema(const LSPString *file)
@@ -2160,10 +2152,10 @@ namespace lsp
             // Load style sheet
             tk::StyleSheet ss;
             status_t res = load_stylesheet(&ss, file);
-            return (res == STATUS_OK) ? apply_visual_schema(&ss) : res;
+            return (res == STATUS_OK) ? apply_visual_schema(file->get_utf8(), &ss) : res;
         }
 
-        status_t IWrapper::apply_visual_schema(const tk::StyleSheet *sheet)
+        status_t IWrapper::apply_visual_schema(const char *path, const tk::StyleSheet *sheet)
         {
             status_t res;
 
@@ -2174,6 +2166,23 @@ namespace lsp
             // Initialize global constants
             if ((res = init_global_constants(sheet)) != STATUS_OK)
                 return res;
+
+            // Save new path to the schema
+            if (path != NULL)
+            {
+                ui::IPort * const s_port   = port(UI_VISUAL_SCHEMA_PORT);
+                if (s_port != NULL)
+                {
+                    const char *prev_path = s_port->buffer<char>();
+                    if ((prev_path == NULL) || (strcmp(prev_path, path) != 0))
+                    {
+                        s_port->begin_edit();
+                        s_port->write(path, strlen(path));
+                        s_port->notify_all(ui::PORT_NONE);
+                        s_port->end_edit();
+                    }
+                }
+            }
 
             // Notify all listeners in reverse order
             lltl::parray<ISchemaListener> listeners;

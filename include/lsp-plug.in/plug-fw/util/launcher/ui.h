@@ -187,9 +187,10 @@ namespace lsp
                 virtual const meta::package_t      *package() const override;
                 virtual void                host_scaling_changed() override;
                 virtual void                main_iteration() override;
+                virtual void                visual_schema_reloaded(const tk::StyleSheet *sheet) override;
 
             public: // ui::IPortListener
-                virtual void notify(ui::IPort *port, size_t flags);
+                virtual void                notify(ui::IPort *port, size_t flags) override;
 
             public:
                 status_t                    main_loop();

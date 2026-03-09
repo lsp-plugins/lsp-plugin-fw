@@ -513,6 +513,8 @@ namespace lsp
 
         status_t UI::sync_icon_state(plugin_t *plugin, bool visible)
         {
+            status_t res;
+
             LSPString path;
             if (plugin->wImage == NULL)
                 return STATUS_BAD_STATE;
@@ -525,8 +527,29 @@ namespace lsp
             if (!plugin->wImage->bitmap()->is_empty())
                 return STATUS_OK;
 
+            // Obtain the schema name
+            io::Path schema_path;
+            if (pVisualSchema != NULL)
+            {
+                const char * xpath = pVisualSchema->buffer<char>();
+                if (xpath != NULL)
+                {
+                    if ((res = schema_path.set(xpath)) != STATUS_OK)
+                        return res;
+                }
+            }
+            if (schema_path.is_empty())
+            {
+                if ((res = schema_path.set(LSP_BUILTIN_PREFIX DEFAULT_SCHEMA_PATH)) != STATUS_OK)
+                    return res;
+            }
+
+            LSPString schema;
+            if ((res = schema_path.get_last_noext(&schema)) != STATUS_OK)
+                return res;
+
             // Load plugin icon
-            path.fmt_ascii(LSP_BUILTIN_PREFIX "icons/%s.xpm", plugin->pMeta->uid);
+            path.fmt_ascii(LSP_BUILTIN_PREFIX "icons/%s/%s.xpm", schema.get_utf8(), plugin->pMeta->uid);
             io::IInStream * is = pLoader->read_stream(&path);
             if (is == NULL)
             {
@@ -539,13 +562,12 @@ namespace lsp
 
             if (is != NULL)
             {
-                lsp_trace("Loading icon for plugin uid='%s'...", plugin->pMeta->uid);
+                lsp_trace("Loading icon for plugin uid='%s' from path='%s'...", plugin->pMeta->uid, path.get_utf8());
                 lsp_finally {
                     is->close();
                     delete is;
                 };
-                status_t res = plugin->wImage->bitmap()->load(is, NULL);
-                if (res != STATUS_OK)
+                if ((res = plugin->wImage->bitmap()->load(is, NULL)) != STATUS_OK)
                 {
                     lsp_warn("Could not load icon for plugin uid='%s', path='%s': code=%d", plugin->pMeta->uid, path.get_utf8(), int(res));
                     return res;
@@ -1195,6 +1217,20 @@ namespace lsp
             }
         }
 
+        void UI::visual_schema_reloaded(const tk::StyleSheet *sheet)
+        {
+            // Cleanup all previously loaded bitmaps
+            for (lltl::iterator<plugin_t> pi = vPlugins.values(); pi; ++pi)
+            {
+                plugin_t * const p = pi.get();
+
+                if (p->wImage != NULL)
+                    p->wImage->bitmap()->reset();
+            }
+
+            sync_widget_visibility();
+        }
+
         void UI::on_window_resize()
         {
             if (wWindow == NULL)
@@ -1525,19 +1561,7 @@ namespace lsp
                 {
                     // Try to load schema first
                     if (self->load_visual_schema(&sel->sLocation) == STATUS_OK)
-                    {
-                        const char * const value = sel->sLocation.get_utf8();
-
-                        if (self->pVisualSchema != NULL)
-                        {
-                            self->pVisualSchema->begin_edit();
-                            self->pVisualSchema->write(value, strlen(value));
-                            self->pVisualSchema->notify_all(ui::PORT_USER_EDIT);
-                            self->pVisualSchema->end_edit();
-                        }
-                    }
-
-                    lsp_trace("Visual schema has changed");
+                        lsp_trace("Visual schema has been successfully changed");
                     break;
                 }
             }

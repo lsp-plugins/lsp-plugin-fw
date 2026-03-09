@@ -2471,15 +2471,7 @@ namespace lsp
                 return res;
             }
 
-            // Update port containg path to schema
-            const char *value = path.get_utf8();
-            if (pVisualSchema != NULL)
-            {
-                pVisualSchema->begin_edit();
-                pVisualSchema->write(value, strlen(value));
-                pVisualSchema->notify_all(ui::PORT_USER_EDIT);
-                pVisualSchema->end_edit();
-            }
+            lsp_trace("Successfully loaded visual schema '%s'", path.get_utf8());
 
             return STATUS_OK;
         }
