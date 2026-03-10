@@ -8,6 +8,8 @@
 * Added support to switch presets with mouse scroll.
 * Fixed bug of failing UI show when plugins's global configuration file is missing.
 * Optimized plugin window sizing.
+* Updated resource packing tool: using strings as byte arrays causes compiler to crash
+  on low memory.
 
 === 1.0.34 ===
 * Added support of revisioned Add-on controls to not to change the order of

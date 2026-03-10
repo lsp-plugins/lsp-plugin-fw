@@ -53,7 +53,7 @@ namespace lsp
                     nTotal      = 0;
                 }
 
-                virtual ~OutFileStream()
+                virtual ~OutFileStream() override
                 {
                     pOut        = NULL;
                     nTotal      = 0;
@@ -62,17 +62,18 @@ namespace lsp
             protected:
                 void    out_byte(uint8_t b)
                 {
-                    if (nTotal > 0)
-                        fputs(", ", pOut);
-                    if (!(nTotal & 0xf))
-                        fputs("\n\t\t", pOut);
+                    if (!(nTotal & 0x1f)) // Start of line
+                        fprintf(pOut, "\n\t\t\"");
 
-                    fprintf(pOut, "0x%02x", b);
+                    fprintf(pOut, "\\x%02x", b);
+
                     ++nTotal;
+                    if (!(nTotal & 0x1f))
+                        fputs("\"", pOut);
                 }
 
             public:
-                virtual ssize_t write(const void *buf, size_t count)
+                virtual ssize_t write(const void *buf, size_t count) override
                 {
                     const uint8_t *p = reinterpret_cast<const uint8_t *>(buf);
 
@@ -80,6 +81,16 @@ namespace lsp
                         out_byte(p[i]);
 
                     return count;
+                }
+
+            public:
+                void finish()
+                {
+                    // Is there some data in the current line?
+                    if (nTotal == 0)
+                        fputs("\"\"", pOut);
+                    else if (nTotal & 0x1f)
+                        fputs("\"", pOut);
                 }
 
                 inline size_t   total() const { return nTotal; }
@@ -289,8 +300,7 @@ namespace lsp
             fprintf(fd, "{\n\n");
             fprintf(fd, "\tusing namespace lsp::resource;\n");
             fprintf(fd, "\tusing namespace lsp::core;\n\n");
-            fprintf(fd, "\tstatic const uint8_t data[] =\n");
-            fprintf(fd, "\t{");
+            fprintf(fd, "\tstatic const char *data =");
 
             // Initialize compressor
             return ctx->c.init(buf_size, ctx->os);
@@ -368,6 +378,17 @@ namespace lsp
                 }
             }
 
+            // Flush the compressor at exit
+            if (ctx->seg_bytes > 0)
+            {
+                if ((res = ctx->c.flush()) != STATUS_OK)
+                    return res;
+            }
+
+            // Complete the write to output stream
+            if (ctx->os != NULL)
+                ctx->os->finish();
+
             // Output statistics
             printf("Input size: %ld, compressed size: %ld, compression ratio: %.2f\n",
                     long(ctx->in_bytes), long(ctx->os->total()),
@@ -381,8 +402,8 @@ namespace lsp
         {
             FILE *fd = ctx->fd;
 
-            // End of data[] array
-            fprintf(fd, "\n\t};\n\n");
+            // End of data[] string
+            fprintf(fd, ";\n\n");
 
             // Start the entries description
             fprintf(fd, "\tstatic const raw_resource_t entries[] =\n");
