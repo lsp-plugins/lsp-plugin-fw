@@ -10,6 +10,7 @@
 * Optimized plugin window sizing.
 * Updated resource packing tool: using strings as byte arrays causes compiler to crash
   on low memory.
+* Updated module versions in dependencies.
 
 === 1.0.34 ===
 * Added support of revisioned Add-on controls to not to change the order of
