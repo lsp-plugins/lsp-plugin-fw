@@ -868,6 +868,21 @@ namespace lsp
                     sPath.submit(string, len, flags);
                 }
 
+                inline void free_mapped_path(char *mapped)
+                {
+                    if (mapped == NULL)
+                        return;
+
+                    // Destroy mapped path. On Windows, the library by itself should free the allocated memory
+                    // https://github.com/lv2/lilv/issues/14
+                    if (pExt->freePath)
+                        pExt->freePath->free_path(pExt->freePath->handle, mapped);
+                #ifndef PLATFORM_WINDOWS
+                    else
+                        ::free(mapped);
+                #endif /* PLATFORM_WINDOWS */
+                }
+
             public:
                 explicit PathPort(const meta::port_t *meta, lv2::Extensions *ext): Port(meta, ext)
                 {
@@ -895,19 +910,7 @@ namespace lsp
                         return;
 
                     char *mapped = NULL;
-                    lsp_finally {
-                        if (mapped != NULL)
-                        {
-                            // Destroy mapped path. On Windows, the library by itself should free the allocated memory
-                            // https://github.com/lv2/lilv/issues/14
-                            if (pExt->freePath)
-                                pExt->freePath->free_path(pExt->freePath->handle, mapped);
-                        #ifndef PLATFORM_WINDOWS
-                            else
-                                ::free(mapped);
-                        #endif /* PLATFORM_WINDOWS */
-                        }
-                    };
+                    lsp_finally { free_mapped_path(mapped); };
 
                     // We need to translate absolute path to relative path?
                     if ((pExt->mapPath != NULL) && (::strstr(path, LSP_BUILTIN_PREFIX) != path))
@@ -933,7 +936,6 @@ namespace lsp
                     size_t count            = 0;
                     uint32_t type           = -1;
                     const char *path        = reinterpret_cast<const char *>(pExt->retrieve_value(urid, &type, &count));
-                    char *mapped            = NULL;
 
                     if (path != NULL)
                     {
@@ -952,6 +954,9 @@ namespace lsp
 
                     if ((path != NULL) && (count > 0))
                     {
+                        char *mapped            = NULL;
+                        lsp_finally { free_mapped_path(mapped); };
+
                         // Save path as temporary variable
                         ::strncpy(tmp_path, path, count);
                         tmp_path[count] = '\0';
@@ -989,9 +994,6 @@ namespace lsp
                     else
                         set_string("", 0, plug::PF_STATE_IMPORT);
                     tx_request();
-
-                    if (mapped != NULL)
-                        ::free(mapped);
                 }
 
                 virtual bool tx_pending() override
