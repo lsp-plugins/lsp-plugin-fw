@@ -918,8 +918,8 @@ ARTIFACT_BIN_LAUNCHER       = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_ARTIFACT_NAME)$(EXEC
 ARTIFACT_BIN_LAUNCHER_DEPS_FULL = \
   $(DEPENDENCIES_LAUNCHER) \
   $(PLUGIN_SHARED)
-ARTIFACT_BIN_LAUNCHER_OBJ       = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/launcher, *.cpp))
-ARTIFACT_BIN_LAUNCHER_MAIN_OBJ  = $($(HOST)LSP_PLUGIN_FW_BIN)/util/launcher.o
+ARTIFACT_BIN_LAUNCHER_OBJ       = $(patsubst %.cpp,$(LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/launcher, *.cpp))
+ARTIFACT_BIN_LAUNCHER_MAIN_OBJ  = $(LSP_PLUGIN_FW_BIN)/util/launcher.o
 ARTIFACT_BIN_LAUNCHER_DEPS_ALL  = $(filter-out $(ARTIFACT_ID), $(call uniq, $(ARTIFACT_BIN_LAUNCHER_DEPS_FULL)))
 ARTIFACT_BIN_LAUNCHER_DEPS      = $(foreach dep, $(ARTIFACT_BIN_LAUNCHER_DEPS_ALL), $(if $($(dep)_OBJ), $(dep)))
 ARTIFACT_BIN_LAUNCHER_LIBS      = $(foreach dep, $(ARTIFACT_BIN_LAUNCHER_DEPS_ALL), $($(dep)_OBJ))
