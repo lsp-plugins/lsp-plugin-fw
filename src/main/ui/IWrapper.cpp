@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -183,7 +183,7 @@ namespace lsp
     {
         static constexpr ssize_t INVALID_PRESET_INDEX       = -1;
 
-        static void mark_presets_as_favourite(lltl::darray<preset_t> *list, json::Array array, bool user)
+        static void mark_presets_as_favourite(lltl::parray<preset_t> *list, json::Array array, bool user)
         {
             const uint32_t mask = (user) ? PRESET_FLAG_USER : PRESET_FLAG_NONE;
             LSPString prest_name;
@@ -212,7 +212,7 @@ namespace lsp
             }
         }
 
-        static status_t save_favourites_list(json::Serializer & json, const char *key, lltl::darray<preset_t> *list, size_t flags)
+        static status_t save_favourites_list(json::Serializer & json, const char *key, lltl::parray<preset_t> *list, size_t flags)
         {
             flags |= ui::PRESET_FLAG_FAVOURITE;
 
@@ -427,6 +427,7 @@ namespace lsp
                         IPort *up = new ControlPort(p, this);
                         if (up != NULL)
                         {
+                            lsp_trace("Created config control port id=%s", up->id());
                             vConfigPorts.add(up);
                             vConfigMapping.create(up->id(), up);
                         }
@@ -438,6 +439,7 @@ namespace lsp
                         IPort *up = new PathPort(p, this);
                         if (up != NULL)
                         {
+                            lsp_trace("Created config path port id=%s", up->id());
                             vConfigPorts.add(up);
                             vConfigMapping.create(up->id(), up);
                         }
@@ -483,6 +485,28 @@ namespace lsp
 
             // Bind custom functions
             ctl::bind_functions(&sGlobalVars);
+
+            // Initialize display settings
+            tk::display_settings_t settings;
+            resource::Environment env;
+
+            settings.resources      = pLoader;
+            settings.environment    = &env;
+
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
+            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
+
+            // Create the display
+            pDisplay = new tk::Display(&settings);
+            if (pDisplay == NULL)
+                return STATUS_NO_MEM;
+            if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
+                return res;
+
+            // Load visual schema
+            if ((res = init_visual_schema()) != STATUS_OK)
+                return res;
 
             return STATUS_OK;
         }
@@ -1008,11 +1032,13 @@ namespace lsp
                     return res;
             }
 
+            // Store window as a controller
+            pWindow     = wnd;
+
             // Call post-initialization
             if ((res = wnd->post_init()) != STATUS_OK)
                 return res;
 
-            pWindow     = wnd;
             return STATUS_OK;
         }
 
@@ -1233,6 +1259,8 @@ namespace lsp
                     if (p != NULL)
                         delete p;
                 };
+                if (!p->set_name(&key))
+                    return false;
                 if (!p->set_string(value))
                     return false;
 
@@ -1258,6 +1286,8 @@ namespace lsp
                     if (p != NULL)
                         delete p;
                 };
+                if (!p->set_name(&key))
+                    return false;
                 p->set_float(value);
 
                 // Replace value
@@ -1436,46 +1466,11 @@ namespace lsp
         status_t IWrapper::export_parameters(config::Serializer *s, lltl::pphash<LSPString, config::param_t> *parameters)
         {
             status_t res;
+
             // Export all available bundle versions
             for (lltl::iterator<lltl::pair<LSPString, config::param_t>> it = parameters->items(); it; ++it)
             {
-                const LSPString *key = it->key;
-                const config::param_t *p = it->value;
-                switch (p->type())
-                {
-                    case config::SF_TYPE_I32:
-                        res     = s->write_i32(key, p->v.i32, p->flags);
-                        break;
-                    case config::SF_TYPE_U32:
-                        res     = s->write_u32(key, p->v.u32, p->flags);
-                        break;
-                    case config::SF_TYPE_I64:
-                        res     = s->write_i64(key, p->v.i64, p->flags);
-                        break;
-                    case config::SF_TYPE_U64:
-                        res     = s->write_u64(key, p->v.u64, p->flags);
-                        break;
-                    case config::SF_TYPE_F32:
-                        res     = s->write_f32(key, p->v.f32, p->flags);
-                        break;
-                    case config::SF_TYPE_F64:
-                        res     = s->write_f64(key, p->v.f64, p->flags);
-                        break;
-                    case config::SF_TYPE_BOOL:
-                        res     = s->write_bool(key, p->v.bval, p->flags);
-                        break;
-                    case config::SF_TYPE_STR:
-                        res     = s->write_string(key, p->v.str, p->flags);
-                        break;
-                    case config::SF_TYPE_BLOB:
-                        res     = s->write_blob(key, &p->v.blob, p->flags);
-                        break;
-                    default:
-                        res     = STATUS_UNKNOWN_ERR;
-                        break;
-                }
-
-                if (res != STATUS_OK)
+                if ((res = s->write(it->value)) != STATUS_OK)
                     return res;
             }
 
@@ -1558,6 +1553,9 @@ namespace lsp
 
         status_t IWrapper::import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir)
         {
+            nFlags             |= F_IMPORT_SETTINGS_ACTIVE;
+            lsp_finally { nFlags &= ~F_IMPORT_SETTINGS_ACTIVE; };
+
             status_t res;
             config::param_t param;
             core::KVTStorage *kvt = kvt_lock();
@@ -2103,7 +2101,7 @@ namespace lsp
                 return res;
 
             // Try to load selected schema
-            ui::IPort *s_port   = port(UI_VISUAL_SCHEMA_PORT);
+            ui::IPort * const s_port    = port(UI_VISUAL_SCHEMA_PORT);
             const char *schema  = ((s_port != NULL) && (meta::is_path_port(s_port->metadata()))) ?
                                     s_port->buffer<const char>() :
                                     NULL;
@@ -2111,18 +2109,19 @@ namespace lsp
             if ((schema != NULL) && (strlen(schema) > 0))
             {
                 if ((res = load_visual_schema(schema)) == STATUS_OK)
+                {
+                    sVisualSchema.set_native(schema);
                     return res;
+                }
             }
 
             // Load fallback schema
-            schema          = LSP_BUILTIN_PREFIX "schema/modern.xml";
-            if (s_port != NULL)
-            {
-                s_port->write(schema, strlen(schema));
-                s_port->notify_all(ui::PORT_NONE);
-            }
+            schema          = LSP_BUILTIN_PREFIX DEFAULT_SCHEMA_PATH;
+            if ((res = load_visual_schema(schema)) != STATUS_OK)
+                return res;
+            sVisualSchema.set_native(schema);
 
-            return load_visual_schema(schema);
+            return STATUS_OK;
         }
 
         status_t IWrapper::load_visual_schema(const char *file)
@@ -2132,7 +2131,7 @@ namespace lsp
 
             tk::StyleSheet ss;
             status_t res = load_stylesheet(&ss, file);
-            return (res == STATUS_OK) ? apply_visual_schema(&ss) : res;
+            return (res == STATUS_OK) ? apply_visual_schema(file, &ss) : res;
         }
 
         status_t IWrapper::load_visual_schema(const io::Path *file)
@@ -2142,7 +2141,7 @@ namespace lsp
 
             tk::StyleSheet ss;
             status_t res = load_stylesheet(&ss, file);
-            return (res == STATUS_OK) ? apply_visual_schema(&ss) : res;
+            return (res == STATUS_OK) ? apply_visual_schema(file->as_utf8(), &ss) : res;
         }
 
         status_t IWrapper::load_visual_schema(const LSPString *file)
@@ -2153,10 +2152,10 @@ namespace lsp
             // Load style sheet
             tk::StyleSheet ss;
             status_t res = load_stylesheet(&ss, file);
-            return (res == STATUS_OK) ? apply_visual_schema(&ss) : res;
+            return (res == STATUS_OK) ? apply_visual_schema(file->get_utf8(), &ss) : res;
         }
 
-        status_t IWrapper::apply_visual_schema(const tk::StyleSheet *sheet)
+        status_t IWrapper::apply_visual_schema(const char *path, const tk::StyleSheet *sheet)
         {
             status_t res;
 
@@ -2167,6 +2166,23 @@ namespace lsp
             // Initialize global constants
             if ((res = init_global_constants(sheet)) != STATUS_OK)
                 return res;
+
+            // Save new path to the schema
+            if (path != NULL)
+            {
+                ui::IPort * const s_port   = port(UI_VISUAL_SCHEMA_PORT);
+                if (s_port != NULL)
+                {
+                    const char *prev_path = s_port->buffer<char>();
+                    if ((prev_path == NULL) || (strcmp(prev_path, path) != 0))
+                    {
+                        s_port->begin_edit();
+                        s_port->write(path, strlen(path));
+                        s_port->notify_all(ui::PORT_NONE);
+                        s_port->end_edit();
+                    }
+                }
+            }
 
             // Notify all listeners in reverse order
             lltl::parray<ISchemaListener> listeners;
@@ -2508,7 +2524,7 @@ namespace lsp
             return (nActivePreset >= 0) ? vPresets.get(nActivePreset) : NULL;
         }
 
-        const preset_t *IWrapper::all_presets() const
+        const preset_t * const *IWrapper::all_presets() const
         {
             return vPresets.array();
         }
@@ -2518,34 +2534,35 @@ namespace lsp
             return vPresets.size();
         }
 
-        void IWrapper::destroy_presets(lltl::darray<preset_t> *list)
+        void IWrapper::destroy_presets(lltl::parray<preset_t> *list)
         {
             for (size_t i=0, n=list->size(); i<n; ++i)
             {
-                preset_t *preset = list->uget(i);
+                preset_t * const preset = list->uget(i);
                 if (preset != NULL)
-                {
-                    preset->name.~LSPString();
-                    preset->path.~LSPString();
-                }
+                    delete preset;
             }
             list->flush();
         }
 
-        preset_t *IWrapper::add_preset(lltl::darray<preset_t> *list)
+        preset_t *IWrapper::add_preset(lltl::parray<preset_t> *list)
         {
-            preset_t *preset    = list->add();
+            preset_t * const preset     = new preset_t;
             if (preset == NULL)
                 return NULL;
 
-            new (&preset->name, inplace_new_tag_t()) LSPString();
-            new (&preset->path, inplace_new_tag_t()) LSPString();
             preset->flags       = 0;
+
+            if (!list->add(preset))
+            {
+                delete preset;
+                return NULL;
+            }
 
             return preset;
         }
 
-        void IWrapper::scan_factory_presets(lltl::darray<preset_t> *list)
+        void IWrapper::scan_factory_presets(lltl::parray<preset_t> *list)
         {
             const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
             if ((meta == NULL) || (meta->ui_presets == NULL))
@@ -2595,7 +2612,7 @@ namespace lsp
             }
         }
 
-        void IWrapper::scan_user_presets(lltl::darray<preset_t> *list)
+        void IWrapper::scan_user_presets(lltl::parray<preset_t> *list)
         {
             // File name format: <config>/presets/<plugin-uid>/<preset-name>.[preset|patch]
             io::Path path;
@@ -2644,7 +2661,7 @@ namespace lsp
             }
         }
 
-        void IWrapper::scan_favourite_presets(lltl::darray<preset_t> *list)
+        void IWrapper::scan_favourite_presets(lltl::parray<preset_t> *list)
         {
             const meta::plugin_t *meta = (pUI != NULL) ? pUI->metadata() : NULL;
             if ((meta == NULL) || (meta->ui_presets == NULL))
@@ -2706,7 +2723,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void IWrapper::select_presets(lltl::darray<preset_t> *list, const preset_t *active)
+        void IWrapper::select_presets(lltl::parray<preset_t> *list, const preset_t *active)
         {
             list->qsort(preset_compare_function);
             nActivePreset       = INVALID_PRESET_INDEX;
@@ -2723,7 +2740,7 @@ namespace lsp
         {
             const preset_t *active = active_preset();
 
-            lltl::darray<preset_t> presets;
+            lltl::parray<preset_t> presets;
             lsp_finally { destroy_presets(&presets); };
 
             scan_factory_presets(&presets);
@@ -2788,6 +2805,10 @@ namespace lsp
 
         void IWrapper::mark_active_preset_dirty()
         {
+            // Skip dirty markers when we're currently importing active preset
+            if (nFlags & F_IMPORT_SETTINGS_ACTIVE)
+                return;
+
             // Set flag only when there is an active preset
             const preset_t *preset = active_preset();
             if ((preset != NULL) && (!(nFlags & F_PRESET_DIRTY)))
@@ -2978,16 +2999,9 @@ namespace lsp
                     return res;
 
                 // Allocate new record
-                const preset_t *base = vPresets.array();
                 preset = add_preset(&vPresets);
                 if (preset == NULL)
-                {
-                    // The internal data structure of vPresets may change address,
-                    // so we need to notify clients
-                    if (base != vPresets.array())
-                        notify_presets_updated();
                     return STATUS_NO_MEM;
-                }
             }
 
             // Fill data structure
@@ -3255,6 +3269,10 @@ namespace lsp
             }
 
             return STATUS_OK;
+        }
+
+        void IWrapper::host_scaling_changed()
+        {
         }
 
     } /* namespace ui */

@@ -216,62 +216,72 @@ namespace lsp
         void LCString::bind_metadata(expr::Parameters *params)
         {
             LSPString tmp;
-            const meta::package_t *package = pWrapper->package();
-            const meta::plugin_t *plugin = pWrapper->ui()->metadata();
             char vst3_uid[40];
 
+            const meta::package_t * const package = pWrapper->package();
+            const ui::Module * const ui = pWrapper->ui();
+            const meta::plugin_t * const plugin = (ui != NULL) ? ui->metadata() : NULL;
+
             // Bind package meta information
-            params->set_cstring("meta_pkg_artifact", package->artifact);
-            params->set_cstring("meta_pkg_artifact_name", package->artifact_name);
-            params->set_cstring("meta_pkg_brand", package->brand);
-            params->set_cstring("meta_pkg_copyright", package->copyright);
-            params->set_cstring("meta_pkg_short_name", package->short_name);
-            params->set_cstring("meta_pkg_full_name", package->full_name);
-            params->set_cstring("meta_pkg_site", package->site);
-            params->set_cstring("meta_pkg_license", package->license);
-            tmp.fmt_utf8("%d.%d.%d",
-                package->version.major,
-                package->version.minor,
-                package->version.micro
-            );
-            if (package->version.branch)
-                tmp.fmt_append_utf8("-%s", package->version.branch);
-            params->set_string ("meta_pkg_version", &tmp);
+            if (package != NULL)
+            {
+                params->set_cstring("meta_pkg_artifact", package->artifact);
+                params->set_cstring("meta_pkg_artifact_name", package->artifact_name);
+                params->set_cstring("meta_pkg_brand", package->brand);
+                params->set_cstring("meta_pkg_copyright", package->copyright);
+                params->set_cstring("meta_pkg_short_name", package->short_name);
+                params->set_cstring("meta_pkg_full_name", package->full_name);
+                params->set_cstring("meta_pkg_site", package->site);
+                params->set_cstring("meta_pkg_license", package->license);
+                tmp.fmt_utf8("%d.%d.%d",
+                    package->version.major,
+                    package->version.minor,
+                    package->version.micro
+                );
+                if (package->version.branch)
+                    tmp.fmt_append_utf8("-%s", package->version.branch);
+                params->set_string ("meta_pkg_version", &tmp);
+            }
 
-            // Bind plugin meta information
-            params->set_cstring("meta_plugin_name", plugin->name);
-            params->set_cstring("meta_plugin_description", plugin->description);
-            params->set_cstring("meta_plugin_acronym", plugin->acronym);
-            params->set_cstring("meta_plugin_developer_name", plugin->developer->name);
-            params->set_cstring("meta_plugin_developer_nick", plugin->developer->nick);
-            params->set_cstring("meta_plugin_developer_site", plugin->developer->homepage);
-            params->set_cstring("meta_plugin_developer_mail", plugin->developer->mailbox);
-
-            char *gst_uid = meta::make_gst_canonical_name(plugin->uids.gst);
-            lsp_finally {
-                if (gst_uid != NULL)
-                    free(gst_uid);
-            };
-            params->set_cstring("meta_plugin_uid", plugin->uid);
-            params->set_cstring("meta_plugin_clap_uid", plugin->uids.clap);
-            params->set_cstring("meta_plugin_gst_uid", gst_uid);
-            params->set_int    ("meta_plugin_ladspa_id", plugin->uids.ladspa_id);
-            params->set_cstring("meta_plugin_ladspa_lbl", plugin->uids.ladspa_lbl);
-            params->set_cstring("meta_plugin_lv2_uri", plugin->uids.lv2);
-            params->set_cstring("meta_plugin_lv2ui_uri", plugin->uids.lv2ui);
-            params->set_cstring("meta_plugin_vst2_uid", plugin->uids.vst2);
-            params->set_cstring("meta_plugin_vst3_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->uids.vst3));
-            params->set_cstring("meta_plugin_vst3ui_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->uids.vst3ui));
-
-            params->set_cstring("meta_plugin_format", meta::plugin_format_name(pWrapper->plugin_format()));
+            // Bind graphics information
             params->set_cstring("meta_ui_graphics_library", pWrapper->graphics_backend());
 
-            tmp.fmt_utf8("%d.%d.%d",
-                int(LSP_MODULE_VERSION_MAJOR(plugin->version)),
-                int(LSP_MODULE_VERSION_MINOR(plugin->version)),
-                int(LSP_MODULE_VERSION_MICRO(plugin->version))
-            );
-            params->set_string ("meta_plugin_version", &tmp);
+            // Bind plugin meta information (if present)
+            if (plugin != NULL)
+            {
+                params->set_cstring("meta_plugin_name", plugin->name);
+                params->set_cstring("meta_plugin_description", plugin->description);
+                params->set_cstring("meta_plugin_acronym", plugin->acronym);
+                params->set_cstring("meta_plugin_developer_name", plugin->developer->name);
+                params->set_cstring("meta_plugin_developer_nick", plugin->developer->nick);
+                params->set_cstring("meta_plugin_developer_site", plugin->developer->homepage);
+                params->set_cstring("meta_plugin_developer_mail", plugin->developer->mailbox);
+
+                char *gst_uid = meta::make_gst_canonical_name(plugin->uids.gst);
+                lsp_finally {
+                    if (gst_uid != NULL)
+                        free(gst_uid);
+                };
+                params->set_cstring("meta_plugin_uid", plugin->uid);
+                params->set_cstring("meta_plugin_clap_uid", plugin->uids.clap);
+                params->set_cstring("meta_plugin_gst_uid", gst_uid);
+                params->set_int    ("meta_plugin_ladspa_id", plugin->uids.ladspa_id);
+                params->set_cstring("meta_plugin_ladspa_lbl", plugin->uids.ladspa_lbl);
+                params->set_cstring("meta_plugin_lv2_uri", plugin->uids.lv2);
+                params->set_cstring("meta_plugin_lv2ui_uri", plugin->uids.lv2ui);
+                params->set_cstring("meta_plugin_vst2_uid", plugin->uids.vst2);
+                params->set_cstring("meta_plugin_vst3_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->uids.vst3));
+                params->set_cstring("meta_plugin_vst3ui_uid", meta::uid_meta_to_vst3(vst3_uid, plugin->uids.vst3ui));
+
+                params->set_cstring("meta_plugin_format", meta::plugin_format_name(pWrapper->plugin_format()));
+
+                tmp.fmt_utf8("%d.%d.%d",
+                    int(LSP_MODULE_VERSION_MAJOR(plugin->version)),
+                    int(LSP_MODULE_VERSION_MINOR(plugin->version)),
+                    int(LSP_MODULE_VERSION_MICRO(plugin->version))
+                );
+                params->set_string ("meta_plugin_version", &tmp);
+            }
         }
 
         void LCString::notify(ui::IPort *port, size_t flags)

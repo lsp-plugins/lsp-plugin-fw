@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 янв. 2023 г.
@@ -66,7 +66,6 @@ namespace lsp
             #endif /* LSP_CLAP_OWN_EVENT_LOOP */
 
             protected:
-                static status_t                 slot_ui_resize(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_show(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_realized(tk::Widget *sender, void *ptr, void *data);
                 static status_t                 slot_ui_close(tk::Widget *sender, void *ptr, void *data);
@@ -107,6 +106,7 @@ namespace lsp
                 virtual meta::plugin_format_t   plugin_format() const override;
                 virtual const core::ShmState   *shm_state() override;
                 virtual void                    send_preset_state(const core::preset_state_t *state) override;
+                virtual void                    host_scaling_changed() override;
 
             public: // CLAP API
                 bool                            set_scale(double scale);

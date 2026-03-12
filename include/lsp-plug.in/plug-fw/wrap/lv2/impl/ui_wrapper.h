@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2021 г.
@@ -97,6 +97,7 @@ namespace lsp
             nLatencyID      = 0;
             pLatency        = NULL;
             bConnected      = false;
+            bSizing         = false;
             pOscBuffer      = NULL;
             pPackage        = NULL;
 
@@ -303,32 +304,9 @@ namespace lsp
             if ((res = IWrapper::init(root_widget)) != STATUS_OK)
                 return res;
 
-            // Initialize display settings
-            tk::display_settings_t settings;
-            resource::Environment env;
-
-            settings.resources      = pLoader;
-            settings.environment    = &env;
-
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
-
-            // Create the display
-            lsp_trace("Initializing display");
-            pDisplay = new tk::Display(&settings);
-            if (pDisplay == NULL)
-                return STATUS_NO_MEM;
-            if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
-                return res;
-
-            // Load visual schema
-            if ((res = init_visual_schema()) != STATUS_OK)
-                return res;
-
             // Initialize the UI
             lsp_trace("Initializing UI");
-            if ((res = pUI->init(this, pDisplay)) != STATUS_OK)
+            if ((res = pUI->init(this)) != STATUS_OK)
                 return res;
 
             // Build the UI
@@ -394,17 +372,16 @@ namespace lsp
             return STATUS_OK;
         }
 
-        bool UIWrapper::window_resized(tk::Window *wnd, size_t width, size_t height)
+        bool UIWrapper::accept_window_size(tk::Window *wnd, size_t width, size_t height)
         {
-            tk::Window *root = (pUI != NULL) ? window() : NULL;
+            tk::Window * const root = (pUI != NULL) ? window() : NULL;
             if (root == NULL)
                 return false;
 
-            if (wnd == root)
-            {
-//                lsp_trace("Window resized to w=%d, h=%d", int(width), int(height));
+            lsp_trace("Window resized to w=%d, h=%d", int(width), int(height));
+            if (pExt != NULL)
                 pExt->resize_ui(width, height);
-            }
+
             return true;
         }
 
@@ -584,7 +561,7 @@ namespace lsp
                 height = sr.nMinHeight;
 
             // Perform resize
-            //TODO: root->realize_widget(r)resize(width, height);
+            root->resize_window(width, height);
             return 0;
         }
 
@@ -1200,50 +1177,32 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
         {
-            UIWrapper *_this = static_cast<UIWrapper *>(ptr);
+            UIWrapper * const self = static_cast<UIWrapper *>(ptr);
 
-            tk::Window *wnd = _this->window();
-            if (wnd == NULL)
+            if (self->bSizing)
                 return STATUS_OK;
 
-            ws::rectangle_t r;
-            ws::size_limit_t sr;
-            bool resize = false;
+            lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
+            self->bSizing       = true;
+            lsp_finally { self->bSizing = false; };
 
-            // Get actual geometry and size constraints
-            wnd->get_screen_rectangle(&r);
-            wnd->get_padded_size_limits(&sr);
-            lsp_trace("r  = {%d %d %d %d}", int(r.nLeft), int(r.nTop), int(r.nWidth), int(r.nHeight));
-            lsp_trace("sr = {%d %d %d %d}", int(sr.nMinWidth), int(sr.nMinHeight), int(sr.nMaxWidth), int(sr.nMaxHeight));
-
-            if ((sr.nMaxWidth > 0) && (r.nWidth > sr.nMaxWidth))
+            tk::Window *wnd     = self->window();
+            if ((wnd == NULL) || (!wnd->visibility()->get()))
             {
-                r.nWidth        = sr.nMaxWidth;
-                resize          = true;
-            }
-            if ((sr.nMaxHeight > 0) && (r.nWidth > sr.nMaxHeight))
-            {
-                r.nHeight       = sr.nMaxHeight;
-                resize          = true;
-            }
-            if ((sr.nMinWidth > 0) && (r.nWidth < sr.nMinWidth))
-            {
-                r.nWidth        = sr.nMinWidth;
-                resize          = true;
-            }
-            if ((sr.nMinHeight > 0) && (r.nHeight < sr.nMinHeight))
-            {
-                r.nHeight       = sr.nMinHeight;
-                resize          = true;
+                lsp_trace("(wnd == NULL) || (!wnd->visibility()->get())");
+                return STATUS_OK;
             }
 
-            lsp_trace("final r = {%d %d %d %d}, resize=%s",
-                    int(r.nLeft), int(r.nTop), int(r.nWidth), int(r.nHeight),
-                    (resize) ? "true" : "false"
-                );
+            ws::rectangle_t rr;
+            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
+            {
+                lsp_trace("wnd->get_screen_rectangle(&rr) != STATUS_OK");
+                return STATUS_OK;
+            }
 
-            if (resize)
-                _this->pExt->resize_ui(r.nWidth, r.nHeight);
+            if (self->pExt != NULL)
+                self->pExt->resize_ui(rr.nWidth, rr.nHeight);
+
             return STATUS_OK;
         }
 

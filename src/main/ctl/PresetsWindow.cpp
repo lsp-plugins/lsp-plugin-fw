@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 мар. 2024 г.
@@ -93,8 +93,8 @@ namespace lsp
         //-----------------------------------------------------------------
         const ctl_class_t PresetsWindow::metadata = { "PresetsWindow", &Window::metadata };
 
-        PresetsWindow::PresetsWindow(ui::IWrapper *src, tk::Window *widget, PluginWindow *pluginWindow):
-            ctl::Window(src, widget)
+        PresetsWindow::PresetsWindow(ui::IWrapper *src, PluginWindow *pluginWindow):
+            ctl::Window(src, NULL)
         {
             pClass              = &metadata;
 
@@ -177,16 +177,43 @@ namespace lsp
 
         status_t PresetsWindow::init()
         {
-            status_t res = ctl::Window::init();
-            if (res != STATUS_OK)
-                return res;
+            status_t res;
 
+            // Create window
+            tk::PopupWindow *w = new tk::PopupWindow(pWrapper->display());
+            if (w == NULL)
+                return STATUS_NO_MEM;
+            if ((res = pWrapper->controller()->widgets()->add(w)) != STATUS_OK)
+            {
+                w->destroy();
+                delete w;
+                return res;
+            }
+            LSP_STATUS_ASSERT(w->init());
+            w->auto_close()->set(true);
+            wWidget         = w;
+
+            // Initialize controller
+            LSP_STATUS_ASSERT(ctl::Window::init());
+
+            // Bind parameters
             BIND_PORT(pWrapper, pPath, CONFIG_PATH_PORT);
             BIND_PORT(pWrapper, pFileType, CONFIG_FTYPE_PORT);
             BIND_PORT(pWrapper, pRelPaths, REL_PATHS_PORT);
             BIND_PORT(pWrapper, pUserFriendlyValues, CONFIG_USER_FRIENDLY_VALUES_PORT);
 
-            return STATUS_OK;
+            // Derserialize state
+            ui::UIContext uctx(pWrapper, controllers(), widgets());
+            if ((res = init_ui_context(&uctx, pWrapper->package(), pWrapper->metadata())) != STATUS_OK)
+                return res;
+
+            // Parse the XML document
+            ui::xml::RootNode root(&uctx, "window", this);
+            ui::xml::Handler handler(pWrapper->resources());
+            if ((res = handler.parse_resource(LSP_BUILTIN_PREFIX "ui/presets.xml", &root)) != STATUS_OK)
+                return res;
+
+            return post_init();
         }
 
         status_t PresetsWindow::post_init()
@@ -226,6 +253,9 @@ namespace lsp
                 bind_slot(list_id, tk::SLOT_CHANGE, slot_preset_select);
             }
 
+            // Bind shortcuts
+            bind_shortcut(wnd, ws::WSK_ESCAPE, tk::KM_NONE, slot_window_close);
+
             pWrapper->add_preset_listener(this);
             sync_preset_button_state();
             sync_preset_tab();
@@ -254,7 +284,8 @@ namespace lsp
             return false;
         }
 
-        void PresetsWindow::make_preset_list(preset_list_t *list, const ui::preset_t *presets,
+        void PresetsWindow::make_preset_list(
+            preset_list_t *list, const ui::preset_t * const *presets,
             size_t count, ui::preset_filter_t filter, bool indicate)
         {
             tk::ListBox *lb = list->wList;
@@ -277,7 +308,7 @@ namespace lsp
             for (size_t i=0; i<count; ++i)
             {
                 // Get preset and filter
-                const ui::preset_t *p = &presets[i];
+                const ui::preset_t * const p = presets[i];
                 if (!filter(p))
                     continue;
 
@@ -782,7 +813,7 @@ namespace lsp
         {
             lsp_trace("presets updated");
 
-            const ui::preset_t *presets = pWrapper->all_presets();
+            const ui::preset_t * const *presets = pWrapper->all_presets();
             const size_t count = pWrapper->num_presets();
 
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)

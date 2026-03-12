@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins
  * Created on: 27 июн. 2025 г.
@@ -129,12 +129,12 @@ namespace lsp
             if (wPresetName == NULL)
                 return NULL;
 
-            const ui::preset_t *list = pWrapper->all_presets();
+            const ui::preset_t * const *list = pWrapper->all_presets();
             const size_t count = pWrapper->num_presets();
 
             for (size_t i=0; i<count; ++i)
             {
-                const ui::preset_t *preset = &list[i];
+                const ui::preset_t * const preset = list[i];
                 if (!(preset->flags & ui::PRESET_FLAG_USER))
                     continue;
                 if (preset->name.equals_nocase(name))

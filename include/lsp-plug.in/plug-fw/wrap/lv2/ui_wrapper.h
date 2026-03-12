@@ -62,6 +62,7 @@ namespace lsp
                 size_t                      nLatencyID;     // ID of latency port
                 lv2::UIPort                *pLatency;       // Latency report port
                 bool                        bConnected;     // Flag that indicates that UI is connected to DSP backend
+                bool                        bSizing;        // Sizing is in progress
                 core::KVTStorage            sKVT;           // KVT storage
                 ipc::Mutex                  sKVTMutex;      // KVT mutex
                 uint8_t                    *pOscBuffer;     // OSC packet data
@@ -125,7 +126,7 @@ namespace lsp
                 virtual void                    dump_state_request() override;
                 virtual status_t                play_file(const char *file, wsize_t position, bool release) override;
                 virtual meta::plugin_format_t   plugin_format() const override;
-                virtual bool                    window_resized(tk::Window *wnd, size_t width, size_t height) override;
+                virtual bool                    accept_window_size(tk::Window *wnd, size_t width, size_t height) override;
                 virtual const core::ShmState   *shm_state() override;
                 virtual void                    send_preset_state(const core::preset_state_t *state) override;
         };

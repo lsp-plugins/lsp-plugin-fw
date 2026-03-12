@@ -267,10 +267,10 @@ namespace lsp
             B_DYNAMICS,
             B_EFFECTS,
             B_EQUALIZERS,
+            B_GENERATORS,
             B_MB_DYNAMICS,
             B_MB_PROCESSING,
             B_SAMPLERS,
-            B_GENERATORS,
             B_UTILITIES
         };
 
@@ -469,6 +469,7 @@ namespace lsp
             const char             *ui_presets;     // Prefix of the preset location
             const port_group_t     *port_groups;    // List of all port groups
             const bundle_t         *bundle;         // Bundle associated with plugin
+            const int               sort_order;     // Sorting order
         } plugin_t;
 
     } /* namespace meta */

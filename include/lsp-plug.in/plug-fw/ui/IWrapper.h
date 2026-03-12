@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2024 г.
@@ -94,12 +94,13 @@ namespace lsp
             protected:
                 enum flags_t
                 {
-                    F_QUIT              = 1 << 0,       // Quit main loop flag
-                    F_CONFIG_DIRTY      = 1 << 1,       // The configuration needs to be saved
-                    F_CONFIG_LOCK       = 1 << 2,       // The configuration file is locked for update
-                    F_PRESET_SYNC       = 1 << 3,       // New preset has been selected and we need to synchronize state
-                    F_PRESET_DIRTY      = 1 << 4,       // Active preset is dirty
-                    F_FAVOURITES_DIRTY  = 1 << 5,       // List of favourites had been updated
+                    F_QUIT                      = 1 << 0,       // Quit main loop flag
+                    F_CONFIG_DIRTY              = 1 << 1,       // The configuration needs to be saved
+                    F_CONFIG_LOCK               = 1 << 2,       // The configuration file is locked for update
+                    F_PRESET_SYNC               = 1 << 3,       // New preset has been selected and we need to synchronize state
+                    F_PRESET_DIRTY              = 1 << 4,       // Active preset is dirty
+                    F_FAVOURITES_DIRTY          = 1 << 5,       // List of favourites had been updated
+                    F_IMPORT_SETTINGS_ACTIVE    = 1 << 6,       // Settings import is active at this moment
                 };
 
             protected:
@@ -117,6 +118,7 @@ namespace lsp
                 expr::Variables                 sGlobalVars;        // Global variables
                 plug::position_t                sPosition;          // Melodic position
                 core::preset_data_t             vPresetData[2];     // Preset data
+                LSPString                       sVisualSchema;      // Current visual schema
 
                 lltl::parray<ui::IPort>         vPorts;             // All possible ports
                 lltl::hash_index<const char, ui::IPort> vPluginPorts; // Port mapping
@@ -131,7 +133,7 @@ namespace lsp
                 lltl::ptrset<ISchemaListener>   vSchemaListeners;   // Schema change listeners
                 lltl::parray<IPlayListener>     vPlayListeners;     // List of playback listeners
                 lltl::parray<IPresetListener>   vPresetListeners;   // List of preset listeners
-                lltl::darray<preset_t>          vPresets;           // List of available presets
+                lltl::parray<preset_t>          vPresets;           // List of available presets
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
@@ -146,7 +148,7 @@ namespace lsp
                 status_t        init_visual_schema();
                 status_t        load_global_config(config::PullParser *parser);
                 status_t        init_global_constants(const tk::StyleSheet *sheet);
-                status_t        apply_visual_schema(const tk::StyleSheet *sheet);
+                status_t        apply_visual_schema(const char *path, const tk::StyleSheet *sheet);
                 status_t        export_ports(
                     config::Serializer *s,
                     lltl::pphash<LSPString, config::param_t> *parameters,
@@ -181,17 +183,17 @@ namespace lsp
                 virtual void    visual_schema_reloaded(const tk::StyleSheet *sheet);
 
             protected:
-                static preset_t *add_preset(lltl::darray<preset_t> *list);
-                static void     destroy_presets(lltl::darray<preset_t> *list);
+                static preset_t *add_preset(lltl::parray<preset_t> *list);
+                static void     destroy_presets(lltl::parray<preset_t> *list);
 
             protected:
                 status_t        get_user_presets_path(io::Path *path);
                 status_t        get_plugin_presets_path(io::Path *path);
-                void            scan_factory_presets(lltl::darray<preset_t> *list);
-                void            scan_user_presets(lltl::darray<preset_t> *list);
-                void            scan_favourite_presets(lltl::darray<preset_t> *list);
+                void            scan_factory_presets(lltl::parray<preset_t> *list);
+                void            scan_user_presets(lltl::parray<preset_t> *list);
+                void            scan_favourite_presets(lltl::parray<preset_t> *list);
                 status_t        save_favourites(const io::Path *path);
-                void            select_presets(lltl::darray<preset_t> *list, const preset_t *active);
+                void            select_presets(lltl::parray<preset_t> *list, const preset_t *active);
                 void            update_preset_list();
                 preset_t       *find_preset(const LSPString *name, bool user);
                 void            notify_presets_updated();
@@ -230,19 +232,19 @@ namespace lsp
                  * Get window controller
                  * @return window controller
                  */
-                inline ctl::Window             *controller()        { return pWindow;       }
+                inline ctl::Window             *controller() const  { return pWindow;       }
 
                 /**
                  * Get the display
                  * @return display
                  */
-                inline tk::Display             *display()           { return pDisplay;      }
+                inline tk::Display             *display() const     { return pDisplay;      }
 
                 /**
                  * Get root window widget
                  * @return root window widget
                  */
-                inline tk::Window              *window()            { return wWindow;       }
+                inline tk::Window              *window() const      { return wWindow;       }
 
                 /**
                  * Return port by it's identifier
@@ -542,6 +544,9 @@ namespace lsp
             public: // ui::IPresetManager
                 virtual void                    mark_active_preset_dirty() override;
 
+            public:
+                virtual void                    host_scaling_changed();
+
             public: // Preset management
                 /**
                  * Add preset listener
@@ -581,7 +586,7 @@ namespace lsp
                  * Get list of all available presets
                  * @return list of all available presets
                  */
-                const preset_t                 *all_presets() const;
+                const preset_t * const         *all_presets() const;
 
                 /**
                  * Get number of all presets

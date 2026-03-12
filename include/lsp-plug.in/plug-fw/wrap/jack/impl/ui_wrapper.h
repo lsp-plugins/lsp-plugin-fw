@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 31 янв. 2022 г.
@@ -79,30 +79,8 @@ namespace lsp
             if ((res = IWrapper::init(root_widget)) != STATUS_OK)
                 return res;
 
-            // Initialize display settings
-            tk::display_settings_t settings;
-            resource::Environment env;
-
-            settings.resources      = pLoader;
-            settings.environment    = &env;
-
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_DICT_PATH, LSP_BUILTIN_PREFIX "i18n"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_LANG, "us"));
-            LSP_STATUS_ASSERT(env.set(LSP_TK_ENV_CONFIG, "lsp-plugins"));
-
-            // Create the display
-            pDisplay = new tk::Display(&settings);
-            if (pDisplay == NULL)
-                return STATUS_NO_MEM;
-            if ((res = pDisplay->init(0, NULL)) != STATUS_OK)
-                return res;
-
-            // Load visual schema
-            if ((res = init_visual_schema()) != STATUS_OK)
-                return res;
-
             // Initialize the UI
-            if ((res = pUI->init(this, pDisplay)) != STATUS_OK)
+            if ((res = pUI->init(this)) != STATUS_OK)
                 return res;
 
             // Build the UI
@@ -576,6 +554,66 @@ namespace lsp
         const core::ShmState *UIWrapper::shm_state()
         {
             return (pWrapper != NULL) ? pWrapper->shm_state() : NULL;
+        }
+
+        status_t UIWrapper::select_ui_schema(const char *name)
+        {
+            if (name == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            LSPString tmp;
+            if (!tmp.set_native(name))
+                return STATUS_NO_MEM;
+
+            return select_ui_schema(tmp);
+        }
+
+        status_t UIWrapper::select_ui_schema(const LSPString *name)
+        {
+            if (name == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            return select_ui_schema(*name);
+        }
+
+        status_t UIWrapper::select_ui_schema(const LSPString & name)
+        {
+            ctl::PluginWindow * const pwnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            if (pwnd == NULL)
+                return STATUS_NOT_IMPLEMENTED;
+
+            // Form the right path to the schema
+            LSPString path;
+            size_t offset = 0;
+            if (!name.starts_with_ascii(LSP_BUILTIN_PREFIX, offset))
+            {
+                if (!path.append_ascii(LSP_BUILTIN_PREFIX))
+                    return STATUS_NO_MEM;
+            }
+            else
+                offset     += strlen(LSP_BUILTIN_PREFIX);
+            if ((!name.starts_with_ascii("schema/", offset)) &&
+                (!name.starts_with_ascii("schema\\", offset)))
+            {
+                if (!path.append_ascii("schema/"))
+                    return STATUS_NO_MEM;
+            }
+            if (!path.append(&name))
+                return STATUS_NO_MEM;
+            if (!path.ends_with_ascii_nocase(".xml"))
+            {
+                if (!path.append_ascii(".xml"))
+                    return STATUS_NO_MEM;
+            }
+
+            // Schema differs from current?
+            if (sVisualSchema.equals(&path))
+                return STATUS_OK;
+
+            // Load new visual schema
+            status_t res = pwnd->select_ui_schema(path);
+            if (res == STATUS_OK)
+                sVisualSchema.swap(path);
+
+            return res;
         }
 
     } /* namespace jack */

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 11 июн. 2021 г.
@@ -49,7 +49,11 @@ namespace lsp
 
             public:
                 explicit Window(ui::IWrapper *src, tk::Window *window);
+                Window(const Window &) = delete;
+                Window(Window &&) = delete;
                 virtual ~Window() override;
+                Window & operator = (const Window &) = delete;
+                Window & operator = (Window &&) = delete;
 
                 virtual status_t        init() override;
                 virtual void            destroy() override;

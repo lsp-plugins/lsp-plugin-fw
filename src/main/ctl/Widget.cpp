@@ -351,10 +351,10 @@ namespace lsp
 
                 case 't':
                     ++name;
-                    if (!strcmp(name, "text.halign"))       PARSE_FLOAT(value, l->set_halign(__));
-                    else if (!strcmp(name, "text.h"))       PARSE_FLOAT(value, l->set_halign(__));
-                    else if (!strcmp(name, "text.valign"))  PARSE_FLOAT(value, l->set_valign(__));
-                    else if (!strcmp(name, "text.v"))       PARSE_FLOAT(value, l->set_valign(__));
+                    if (!strcmp(name, "ext.halign"))        PARSE_FLOAT(value, l->set_halign(__));
+                    else if (!strcmp(name, "ext.h"))        PARSE_FLOAT(value, l->set_halign(__));
+                    else if (!strcmp(name, "ext.valign"))   PARSE_FLOAT(value, l->set_valign(__));
+                    else if (!strcmp(name, "ext.v"))        PARSE_FLOAT(value, l->set_valign(__));
                     else return false;
 
                     break;
@@ -439,19 +439,23 @@ namespace lsp
             if (e == NULL)
                 return false;
 
-            if      (!strcmp(name, "embed"))        PARSE_BOOL(value, e->set(__));
-            else if (!strcmp(name, "embed.h"))      PARSE_BOOL(value, e->set_horizontal(__));
-            else if (!strcmp(name, "embed.hor"))    PARSE_BOOL(value, e->set_horizontal(__));
-            else if (!strcmp(name, "embed.v"))      PARSE_BOOL(value, e->set_vertical(__));
-            else if (!strcmp(name, "embed.vert"))   PARSE_BOOL(value, e->set_vertical(__));
-            else if (!strcmp(name, "embed.l"))      PARSE_BOOL(value, e->set_left(__));
-            else if (!strcmp(name, "embed.left"))   PARSE_BOOL(value, e->set_left(__));
-            else if (!strcmp(name, "embed.r"))      PARSE_BOOL(value, e->set_right(__));
-            else if (!strcmp(name, "embed.right"))  PARSE_BOOL(value, e->set_right(__));
-            else if (!strcmp(name, "embed.t"))      PARSE_BOOL(value, e->set_top(__));
-            else if (!strcmp(name, "embed.top"))    PARSE_BOOL(value, e->set_top(__));
-            else if (!strcmp(name, "embed.b"))      PARSE_BOOL(value, e->set_bottom(__));
-            else if (!strcmp(name, "embed.bottom")) PARSE_BOOL(value, e->set_bottom(__));
+            if (name[0] != 'e')
+                return false;
+            ++name;
+
+            if      (!strcmp(name, "mbed"))         PARSE_BOOL(value, e->set(__));
+            else if (!strcmp(name, "mbed.h"))       PARSE_BOOL(value, e->set_horizontal(__));
+            else if (!strcmp(name, "mbed.hor"))     PARSE_BOOL(value, e->set_horizontal(__));
+            else if (!strcmp(name, "mbed.v"))       PARSE_BOOL(value, e->set_vertical(__));
+            else if (!strcmp(name, "mbed.vert"))    PARSE_BOOL(value, e->set_vertical(__));
+            else if (!strcmp(name, "mbed.l"))       PARSE_BOOL(value, e->set_left(__));
+            else if (!strcmp(name, "mbed.left"))    PARSE_BOOL(value, e->set_left(__));
+            else if (!strcmp(name, "mbed.r"))       PARSE_BOOL(value, e->set_right(__));
+            else if (!strcmp(name, "mbed.right"))   PARSE_BOOL(value, e->set_right(__));
+            else if (!strcmp(name, "mbed.t"))       PARSE_BOOL(value, e->set_top(__));
+            else if (!strcmp(name, "mbed.top"))     PARSE_BOOL(value, e->set_top(__));
+            else if (!strcmp(name, "mbed.b"))       PARSE_BOOL(value, e->set_bottom(__));
+            else if (!strcmp(name, "mbed.bottom"))  PARSE_BOOL(value, e->set_bottom(__));
             else return false;
 
             return true;

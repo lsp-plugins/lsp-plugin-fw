@@ -112,6 +112,27 @@ namespace lsp
                  * The JACK connection has been lost
                  */
                 void                                connection_lost();
+
+                /**
+                 * Select UI schema
+                 * @param name schema name
+                 * @return status of operation
+                 */
+                status_t                            select_ui_schema(const char *name);
+
+                /**
+                 * Select UI schema
+                 * @param name schema name
+                 * @return status of operation
+                 */
+                status_t                            select_ui_schema(const LSPString *name);
+
+                /**
+                 * Select UI schema
+                 * @param name schema name
+                 * @return status of operation
+                 */
+                status_t                            select_ui_schema(const LSPString & name);
         };
 
     } /* namespace jack */

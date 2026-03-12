@@ -67,9 +67,6 @@ namespace lsp
                     return STATUS_OK;
                 }
 
-                // Remember the root widget
-                pContext->ui()->set_root(widget->widget());
-
                 // Create child handler
                 *child = new WidgetNode(pContext, this, widget);
                 return (*child != NULL) ? STATUS_OK : STATUS_NO_MEM;

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 янв. 2023 г.
@@ -21,10 +21,12 @@
 
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/io/IInStream.h>
+#include <lsp-plug.in/lltl/ptrset.h>
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
+#include <lsp-plug.in/plug-fw/meta/registry.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/util/validator/validator.h>
@@ -105,6 +107,29 @@ namespace lsp
             if (pkg != NULL)
                 validate_package(&ctx, pkg);
 
+
+            // Enumerate all plugins from plugin metadata
+            lltl::ptrset<const meta::plugin_t> metadata, visited;
+            for (const meta::Registry *r = meta::Registry::root(); r != NULL; r = r->next())
+            {
+                const meta::plugin_t *plug = r->plugin();
+                if (plug == NULL)
+                {
+                    validation_error(&ctx, "Plugin metadata entry with NULL pointer provided");
+                    continue;
+                }
+                if (metadata.contains(plug))
+                {
+                    validation_error(&ctx, "Duplicate plugin metadata entry uid='%s', plugin_name='%s'", plug->uid, plug->name);
+                    continue;
+                }
+                if (!metadata.put(plug))
+                {
+                    validation_error(&ctx, "Out of memory while registering uid='%s', plugin_name='%s'", plug->uid, plug->name);
+                    continue;
+                }
+            }
+
             // Iterate over all plugin factories and validate their metadata
             // Generate descriptors
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
@@ -115,6 +140,17 @@ namespace lsp
                     const meta::plugin_t *meta = f->enumerate(i);
                     if (meta == NULL)
                         break;
+
+                    if (!metadata.contains(meta))
+                        validation_error(&ctx, "Factory returned non-registered plugin metadata for plugin uid='%s', plugin_name='%s'",
+                            meta->uid, meta->name);
+                    if (visited.contains(meta))
+                        validation_error(&ctx, "Factory returned duplicate plugin metadata for plugin uid='%s', plugin_name='%s'. "
+                            "Use LSP_REGISTER_METADATA macro for registering plugin metadata.",
+                            meta->uid, meta->name);
+                    if (!visited.put(meta))
+                        validation_error(&ctx, "Out of memory while registering visited plugin uid='%s', plugin_name='%s'",
+                            meta->uid, meta->name);
 
                     ++ctx.plugins;
                     validate_plugin(&ctx, meta);

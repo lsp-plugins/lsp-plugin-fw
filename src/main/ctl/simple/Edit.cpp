@@ -69,6 +69,7 @@ namespace lsp
             pClass          = &metadata;
             pPort           = NULL;
             nInputDelay     = INPUT_DELAY;
+            bValidityCheck  = false;
         }
 
         Edit::~Edit()
@@ -94,7 +95,6 @@ namespace lsp
             {
                 ed->slots()->bind(tk::SLOT_KEY_UP, slot_key_up, this);
                 ed->slots()->bind(tk::SLOT_CHANGE, slot_change_value, this);
-                inject_style(ed, INPUT_STYLE_VALID);
 
                 sEmptyText.init(pWrapper, ed->empty_text());
 
@@ -171,6 +171,7 @@ namespace lsp
                 sBorderRadius.set("bradius", name, value);
 
                 set_constraints(ed->constraints(), name, value);
+                set_value(&bValidityCheck, "validity.check", name, value);
             }
 
             Widget::set(ctx, name, value);
@@ -188,6 +189,13 @@ namespace lsp
         {
             Widget::end(ctx);
             commit_value();
+
+            tk::Edit *ed = tk::widget_cast<tk::Edit>(wWidget);
+            if (ed != NULL)
+            {
+                if (bValidityCheck)
+                    inject_style(ed, INPUT_STYLE_VALID);
+            }
         }
 
         void Edit::submit_value()
@@ -283,10 +291,13 @@ namespace lsp
             }
 
             // Update style
-            revoke_style(ed, INPUT_STYLE_INVALID);
-            revoke_style(ed, INPUT_STYLE_MISMATCH);
-            revoke_style(ed, INPUT_STYLE_VALID);
-            inject_style(ed, INPUT_STYLE_VALID);
+            if (bValidityCheck)
+            {
+                revoke_style(ed, INPUT_STYLE_INVALID);
+                revoke_style(ed, INPUT_STYLE_MISMATCH);
+                revoke_style(ed, INPUT_STYLE_VALID);
+                inject_style(ed, INPUT_STYLE_VALID);
+            }
         }
 
         void Edit::setup_timer()
@@ -369,7 +380,7 @@ namespace lsp
 
             // Update style
             tk::Widget *v = self->wWidget;
-            if (v != NULL)
+            if ((v != NULL) && (self->bValidityCheck))
             {
                 const char *style = self->get_input_style();
 

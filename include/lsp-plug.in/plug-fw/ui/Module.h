@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -47,8 +47,6 @@ namespace lsp
             protected:
                 const meta::plugin_t               *pMetadata;
                 IWrapper                           *pWrapper;
-                tk::Display                        *pDisplay;           // Display object
-                tk::Widget                         *wRoot;              // Root widget (window)
 
             protected:
                 void                            do_destroy();
@@ -69,10 +67,9 @@ namespace lsp
                 /** Initialize UI
                  *
                  * @param wrapper plugin wrapper
-                 * @param dpy display object
                  * @return status of operation
                  */
-                virtual status_t                init(IWrapper *wrapper, tk::Display *dpy);
+                virtual status_t                init(IWrapper *wrapper);
 
                 /**
                  * Destroy the UI
@@ -114,12 +111,9 @@ namespace lsp
                 virtual void                    kvt_changed(core::KVTStorage *kvt, const char *id, const core::kvt_param_t *value);
 
             public:
-                inline const meta::plugin_t    *metadata() const        { return pMetadata;         }
-                inline IWrapper                *wrapper()               { return pWrapper;          }
-                inline tk::Display             *display()               { return pDisplay;          }
-                inline tk::Widget              *root()                  { return wRoot;             }
-
-                inline void                     set_root(tk::Widget *root)  { wRoot = root;         }
+                inline const meta::plugin_t    *metadata() const        { return pMetadata;             }
+                inline IWrapper                *wrapper()               { return pWrapper;              }
+                tk::Display                    *display() const;
 
             public:
                 /** Method executed when the time position of plugin was updated

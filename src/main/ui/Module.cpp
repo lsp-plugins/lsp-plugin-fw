@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -30,8 +30,6 @@ namespace lsp
         {
             pMetadata       = meta;
             pWrapper        = NULL;
-            pDisplay        = NULL;
-            wRoot           = NULL;
         }
 
         Module::~Module()
@@ -69,14 +67,11 @@ namespace lsp
 
         void Module::do_destroy()
         {
-            // Forget the root widget
-            wRoot       = NULL;
         }
 
-        status_t Module::init(IWrapper *wrapper, tk::Display *dpy)
+        status_t Module::init(IWrapper *wrapper)
         {
             pWrapper        = wrapper;
-            pDisplay        = dpy;
 
             return STATUS_OK;
         }
@@ -102,6 +97,11 @@ namespace lsp
         status_t Module::add_custom_port(ui::IPort *port)
         {
             return pWrapper->bind_custom_port(port);
+        }
+
+        tk::Display *Module::display() const
+        {
+            return (pWrapper != NULL) ? pWrapper->display() : NULL;
         }
 
     } /* namespace ui */
