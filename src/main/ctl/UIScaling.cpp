@@ -120,6 +120,8 @@ namespace lsp
                     return res;
             }
 
+            sync_parameters();
+
             return STATUS_OK;
         }
 

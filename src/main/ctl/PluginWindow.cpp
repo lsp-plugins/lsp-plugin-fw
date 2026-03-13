@@ -308,6 +308,30 @@ namespace lsp
             sFontScaling.bind_zoom_in("trg_font_zoom_in", tk::SLOT_SUBMIT);
             sFontScaling.bind_zoom_out("trg_font_zoom_out", tk::SLOT_SUBMIT);
 
+            // Update other parameters
+            sync_language_selection();
+            sync_visual_schemas();
+
+            // Notify other parameters
+            if (pInvertVScroll != NULL)
+                pInvertVScroll->notify_all(ui::PORT_NONE);
+            if (pInvertGraphDotVScroll != NULL)
+                pInvertGraphDotVScroll->notify_all(ui::PORT_NONE);
+            if (sFilterPointThickness.pPort != NULL)
+                sFilterPointThickness.pPort->notify_all(ui::PORT_NONE);
+
+            sUIScaling.sync_parameters();
+            sFontScaling.sync_parameters();
+            notify_ui_behaviour_flags(ui::PORT_NONE);
+            sync_language_selection();
+            if (pInvertVScroll != NULL)
+                sync_invert_vscroll(pInvertVScroll);
+            if (pInvertGraphDotVScroll != NULL)
+                sync_invert_vscroll(pInvertVScroll);
+
+            if (sFilterPointThickness.pPort != NULL)
+                sync_enum_menu(&sFilterPointThickness, sFilterPointThickness.pPort);
+
             return STATUS_OK;
         }
 
@@ -1353,18 +1377,6 @@ namespace lsp
                 wnd->actions()->set_maximizable(bResizable);
             }
 
-            if (pVisualSchema != NULL)
-                notify(pVisualSchema, ui::PORT_NONE);
-            if (pInvertVScroll != NULL)
-                notify(pInvertVScroll, ui::PORT_NONE);
-            if (pInvertGraphDotVScroll != NULL)
-                notify(pInvertGraphDotVScroll, ui::PORT_NONE);
-            if (sFilterPointThickness.pPort != NULL)
-                notify(sFilterPointThickness.pPort, ui::PORT_NONE);
-
-            notify_ui_behaviour_flags(ui::PORT_NONE);
-            sUIScaling.sync_parameters();
-            sFontScaling.sync_parameters();
 
             // Call for parent class method
             Window::end(ctx);

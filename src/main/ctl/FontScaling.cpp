@@ -96,6 +96,8 @@ namespace lsp
             for (size_t scale = FONT_SCALING_FACTOR_BEGIN; scale <= FONT_SCALING_FACTOR_END; scale += FONT_SCALING_FACTOR_STEP)
                 LSP_STATUS_ASSERT(add_scaling_menu_item(scale));
 
+            sync_parameters();
+
             return STATUS_OK;
         }
 
