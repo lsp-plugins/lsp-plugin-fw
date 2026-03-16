@@ -864,7 +864,7 @@ namespace lsp
 
                 inline void set_string(const char *string, size_t len, size_t flags)
                 {
-                    lsp_trace("submitting path to '%s' (length = %d), flags=0x%x", string, int(len), int(flags));
+                    lsp_trace("submitting path to id=%s as '%s' (length = %d), flags=0x%x", id(), string, int(len), int(flags));
                     sPath.submit(string, len, flags);
                 }
 
@@ -904,7 +904,7 @@ namespace lsp
                 {
                     const char *path = sPath.sPath;
 
-                    lsp_trace("save port id=%s, urid=%d (%s), value=%s", pMetadata->id, urid, get_uri(), path);
+                    lsp_trace("save port id=%s, urid=%d (%s), value='%s'", pMetadata->id, urid, get_uri(), path);
 
                     if (::strlen(path) <= 0)
                         return;
@@ -912,18 +912,46 @@ namespace lsp
                     char *mapped = NULL;
                     lsp_finally { free_mapped_path(mapped); };
 
-                    // We need to translate absolute path to relative path?
+                    // Do we need to translate absolute path to relative path?
                     if ((pExt->mapPath != NULL) && (::strstr(path, LSP_BUILTIN_PREFIX) != path))
                     {
                         mapped = pExt->mapPath->abstract_path(pExt->mapPath->handle, path);
                         if (mapped != NULL)
                         {
-                            lsp_trace("mapped path: %s -> %s", path, mapped);
+                            lsp_trace("mapped path id=%s: '%s' -> '%s'", id(), path, mapped);
                             path = mapped;
+
+                        #ifdef LSP_DEBUG
+                            // Check that mapped path is correct
+                            status_t res;
+                            io::Path io_path;
+                            char *unmapped = pExt->mapPath->absolute_path(pExt->mapPath->handle, mapped);
+                            lsp_finally { free_mapped_path(unmapped); };
+
+                            if (unmapped != NULL)
+                            {
+                                lsp_trace("unmapped path id=%s: '%s' -> '%s'", id(), mapped, unmapped);
+
+                                // Path may be a symlink within a DAW. Make it pointing to the real path
+                                if ((res = io_path.set_native(unmapped)) == STATUS_OK)
+                                {
+                                    if ((res = io_path.to_final_path()) == STATUS_OK)
+                                        lsp_trace("mapped path final transform id=%s: '%s' -> '%s' -> '%s' -> '%s'",
+                                            id(), sPath.sPath, mapped, unmapped, io_path.as_utf8());
+                                    else
+                                        lsp_warn("Failed to obtain final path id=%s: error=%d", id(), int(res));
+                                }
+                                else
+                                    lsp_warn("Failed path check id=%s: error=%d", id(), int(res));
+                            }
+                            else
+                                lsp_warn("Failed to unmap path id=%s, path '%s' as '%s'", id(), mapped, path);
+                        #endif /* LSP_DEBUG */
                         }
                     }
 
                     // Store the actual value of the path
+                    lsp_trace("saving path id=%s, urid=%d ('%s'), path='%s'", id(), urid, get_uri(), path);
                     pExt->store_value(urid, pExt->uridPathType, path, ::strlen(path) + sizeof(char));
                 }
 
@@ -931,11 +959,12 @@ namespace lsp
                 {
                     char tmp_path[PATH_MAX];
 
-                    lsp_trace("restore port id=%s, urid=%d (%s)", pMetadata->id, urid, get_uri());
-
                     size_t count            = 0;
                     uint32_t type           = -1;
                     const char *path        = reinterpret_cast<const char *>(pExt->retrieve_value(urid, &type, &count));
+
+                    lsp_trace("restore port id=%s, urid=%d ('%s'), type=%d (%s)",
+                        pMetadata->id, urid, get_uri(), int(type), pExt->unmap_urid(type));
 
                     if (path != NULL)
                     {
@@ -954,45 +983,57 @@ namespace lsp
 
                     if ((path != NULL) && (count > 0))
                     {
-                        char *mapped            = NULL;
-                        lsp_finally { free_mapped_path(mapped); };
+                        char *unmapped          = NULL;
+                        lsp_finally { free_mapped_path(unmapped); };
 
                         // Save path as temporary variable
                         ::strncpy(tmp_path, path, count);
                         tmp_path[count] = '\0';
                         path        = tmp_path;
 
-                        // We need to translate relative path to absolute path?
+                        lsp_trace("restore port id=%s, urid=%d ('%s'), type=%d (%s) path='%s'",
+                            pMetadata->id, urid, get_uri(), int(type), pExt->unmap_urid(type), path);
+
+                        // Do we need to translate relative pth to absolute path?
+                        status_t res;
                         io::Path io_path;
                         if ((pExt->mapPath != NULL) && (::strstr(path, LSP_BUILTIN_PREFIX) != path))
                         {
-                            mapped = pExt->mapPath->absolute_path(pExt->mapPath->handle, path);
-                            if (mapped != NULL)
+                            unmapped = pExt->mapPath->absolute_path(pExt->mapPath->handle, path);
+                            if (unmapped != NULL)
                             {
-                                lsp_trace("unmapped path: %s -> %s", path, mapped);
-                                path  = mapped;
+                                lsp_trace("unmapped path id=%s: '%s' -> '%s'", id(), path, unmapped);
+                                path  = unmapped;
 
                                 // Path may be a symlink within a DAW. Make it pointing to the real path
-                                if (io_path.set_native(path) == STATUS_OK)
+                                if ((res = io_path.set_native(path)) == STATUS_OK)
                                 {
-                                    if (io_path.to_final_path() == STATUS_OK)
+                                    if ((res = io_path.to_final_path()) == STATUS_OK)
                                     {
-                                        lsp_trace("final path: %s -> %s", path, io_path.as_native());
+                                        lsp_trace("unmapped final path id=%s: '%s' -> '%s' -> '%s'", id(), tmp_path, unmapped, io_path.as_native());
                                         path = io_path.as_native();
                                     }
+                                    else
+                                        lsp_warn("Failed to obtain final path id=%s: error=%d", id(), int(res));
                                 }
+                                else
+                                    lsp_warn("Failed path check id=%s: error=%d", id(), int(res));
 
                                 count = ::strnlen(path, PATH_MAX-1);
                             }
                             else
-                                lsp_warn("Failed to unmap path '%s', keeping it being as is", path);
+                                lsp_warn("Failed to unmap path id=%s, path '%s', keeping it being as is", id(), path);
                         }
 
                         // Restore the actual value of the path
                         set_string(path, count, plug::PF_STATE_IMPORT);
                     }
                     else
+                    {
+                        lsp_trace("restore port id=%s, urid=%d ('%s'), type=%d (%s) path=''",
+                            pMetadata->id, urid, get_uri(), int(type), pExt->unmap_urid(type));
                         set_string("", 0, plug::PF_STATE_IMPORT);
+                    }
                     tx_request();
                 }
 
