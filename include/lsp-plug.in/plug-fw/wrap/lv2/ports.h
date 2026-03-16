@@ -936,8 +936,13 @@ namespace lsp
                                 if ((res = io_path.set_native(unmapped)) == STATUS_OK)
                                 {
                                     if ((res = io_path.to_final_path()) == STATUS_OK)
+                                    {
                                         lsp_trace("mapped path final transform id=%s: '%s' -> '%s' -> '%s' -> '%s'",
                                             id(), sPath.sPath, mapped, unmapped, io_path.as_utf8());
+
+                                        if (!io_path.is_reg())
+                                            lsp_warn("Port id=%s the final path '%s' is not a regular file!", id(), io_path.as_native());
+                                    }
                                     else
                                         lsp_warn("Failed to obtain final path id=%s: error=%d", id(), int(res));
                                 }
@@ -1012,6 +1017,9 @@ namespace lsp
                                     {
                                         lsp_trace("unmapped final path id=%s: '%s' -> '%s' -> '%s'", id(), tmp_path, unmapped, io_path.as_native());
                                         path = io_path.as_native();
+
+                                        if (!io_path.is_reg())
+                                            lsp_warn("Port id=%s the final path '%s' is not a regular file!", id(), io_path.as_native());
                                     }
                                     else
                                         lsp_warn("Failed to obtain final path id=%s: error=%d", id(), int(res));
