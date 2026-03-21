@@ -62,20 +62,27 @@ namespace lsp
             if (launch == NULL)
                 return STATUS_OK;
 
+            // Get pluigin's executable name
             LSPString program;
-            if (!program.set_ascii(package->artifact))
-                return STATUS_NO_MEM;
-            if (!program.append('-'))
-                return STATUS_NO_MEM;
-            if (!program.append_ascii(launch->uid))
-                return STATUS_NO_MEM;
-            program.replace_all('_', '-');
+            status_t res = get_plugin_executable(program, package, launch);
+            if (res != STATUS_OK)
+            {
+                lsp_warn("Failed to obtain plugin executable, code=%d", int(res));
+                return res;
+            }
 
             lsp_info("Launching plugin uid='%s', executable='%s', name='%s'...", launch->uid, program.get_native(), launch->description);
 
+            // Execute in detached mode
+            res = system::exec_detached(&program, NULL);
+            if (res == STATUS_OK)
+                return STATUS_OK;
+
+            // Execute in conservative mode
+            lsp_warn("Failed to launch plugin uid='%s' as detached process, code=%d, launching in conservative mode", int(res));
             ipc::Process proc;
             proc.set_command(&program);
-            status_t res = proc.launch();
+            res = proc.launch();
             if (res != STATUS_OK)
             {
                 lsp_error("Error launching process '%s': code=%d", program.get_native(), res);

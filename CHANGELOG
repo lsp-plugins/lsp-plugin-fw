@@ -4,6 +4,7 @@
 
 === 1.0.36 ===
 * Fixed regression related to UI scaling and font scaling.
+* Added multiple plugins launch option by Launcher tool.
 
 === 1.0.35 ===
 * Implemented plugin launcher tool.

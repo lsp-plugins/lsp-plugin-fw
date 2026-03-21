@@ -100,6 +100,8 @@ namespace lsp
                         res = p.read_int(&tmp.nHeight);
                     else if (ev.sValue.equals_ascii("favourites"))
                         res = read_favourites(tmp.vFavourites, p);
+                    else if (ev.sValue.equals_ascii("launch_multiple"))
+                        res = p.read_bool(&tmp.bLaunchMultiple);
                     else
                         res = p.skip_current();
                 }
@@ -119,6 +121,7 @@ namespace lsp
             {
                 lsp::swap(config.nWidth, tmp.nWidth);
                 lsp::swap(config.nHeight, tmp.nHeight);
+                lsp::swap(config.bLaunchMultiple, tmp.bLaunchMultiple);
                 config.vFavourites.swap(tmp.vFavourites);
             }
 
@@ -144,6 +147,7 @@ namespace lsp
             {
                 LSP_STATUS_ASSERT(s.prop_int("width", uint32_t(config.nWidth)));
                 LSP_STATUS_ASSERT(s.prop_int("height", uint32_t(config.nHeight)));
+                LSP_STATUS_ASSERT(s.prop_bool("launch_multiple", config.bLaunchMultiple));
                 LSP_STATUS_ASSERT(s.write_property("favourites"));
 
                 s.start_array();
@@ -162,15 +166,16 @@ namespace lsp
         {
             json::init_serial_flags(&flags);
 
-            flags.padding       = 4;
-            flags.separator     = true;
-            flags.multiline     = true;
+            flags.padding           = 4;
+            flags.separator         = true;
+            flags.multiline         = true;
         }
 
         void init_config(config_t & config)
         {
-            config.nWidth       = 400;
-            config.nHeight      = 648;
+            config.nWidth           = 400;
+            config.nHeight          = 648;
+            config.bLaunchMultiple  = false;
         }
 
         void free_config(config_t & config)

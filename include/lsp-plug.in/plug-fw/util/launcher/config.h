@@ -37,6 +37,7 @@ namespace lsp
         {
             size_t                  nWidth;             // Window width
             size_t                  nHeight;            // Window height
+            bool                    bLaunchMultiple;    // Launch multiple plugins
             lltl::phashset<char>    vFavourites;        // List of favourites
         } config_t;
 

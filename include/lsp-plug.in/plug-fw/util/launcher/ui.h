@@ -106,6 +106,7 @@ namespace lsp
 
                 ui::IPort                  *pWindowWidth;       // Launcher window width
                 ui::IPort                  *pWindowHeight;      // Launcher window height
+                ui::IPort                  *pLaunchMultiple;    // Launch multiple plugins
                 ui::IPort                  *pLanguage;          // Language selection
                 ui::IPort                  *pVisualSchema;      // Visual schema selection
                 tk::Edit                   *wFilter;            // Filter edit
@@ -170,6 +171,7 @@ namespace lsp
                 i18n::IDictionary          *get_default_dict();
                 status_t                    locate_window();
                 status_t                    sync_icon_state(plugin_t *plugin, bool visible);
+                inline void                 mark_config_changed();
 
             public:
                 UI(resource::ILoader * loader, const meta::package_t *package, const meta::plugin_t **launch);
