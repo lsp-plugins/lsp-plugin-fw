@@ -2156,21 +2156,26 @@ namespace lsp
 
         status_t PluginWindow::slot_window_resize(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
                 return STATUS_OK;
 
-            const ws::rectangle_t *r = static_cast<const ws::rectangle_t *>(data);
-            if (r == NULL)
+            const ws::event_t * const ev = static_cast<const ws::event_t *>(data);
+            if (ev == NULL)
                 return STATUS_OK;
 
 //            lsp_trace("Resize: x=%d, y=%d, w=%d, h=%d", int(r->nLeft), int(r->nTop), int(r->nWidth), int(r->nHeight));
 
-            tk::Window *wnd = tk::widget_cast<tk::Window>(_this->wWidget);
+            tk::Window * const wnd = tk::widget_cast<tk::Window>(self->wWidget);
             if ((wnd == NULL) || (wnd->has_parent()))
                 return STATUS_OK;
 
-            ws::rectangle_t wp = *r;
+            ws::rectangle_t wp;
+            wp.nLeft        = ev->nLeft;
+            wp.nTop         = ev->nTop;
+            wp.nWidth       = ev->nWidth;
+            wp.nHeight      = ev->nHeight;
+
             ssize_t sw = 0, sh = 0;
             wnd->display()->screen_size(wnd->screen(), &sw, &sh);
 
@@ -2178,12 +2183,12 @@ namespace lsp
             size_t changed = 0;
             if (wp.nLeft >= sw)
             {
-                wp.nLeft    = sw - r->nWidth;
+                wp.nLeft    = sw - wp.nWidth;
                 ++changed;
             }
             if (wp.nTop >= sh)
             {
-                wp.nTop     = sh - r->nHeight;
+                wp.nTop     = sh - wp.nHeight;
                 ++changed;
             }
             if ((wp.nLeft + wp.nWidth) < 0)
