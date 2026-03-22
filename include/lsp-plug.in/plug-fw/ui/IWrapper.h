@@ -145,6 +145,8 @@ namespace lsp
                 status_t        build_ui(const char *path, void *handle = NULL, ssize_t screen = -1);
                 void            build_config_header(LSPString *c);
                 void            build_global_config_header(LSPString *c);
+                status_t        do_save_global_config();
+                status_t        do_load_global_config();
                 status_t        init_visual_schema();
                 status_t        load_global_config(config::PullParser *parser);
                 status_t        init_global_constants(const tk::StyleSheet *sheet);
@@ -160,6 +162,7 @@ namespace lsp
                 status_t        export_parameters(config::Serializer *s, lltl::pphash<LSPString, config::param_t> *parameters);
 
                 status_t        save_global_config(io::IOutSequence *os, lltl::pphash<LSPString, config::param_t> *parameters);
+                status_t        load_global_config(io::IInSequence *is);
                 status_t        read_parameters(const io::Path *file, lltl::pphash<LSPString, config::param_t> *params);
                 status_t        get_user_config_path(io::Path *path);
                 static void     drop_parameters(lltl::pphash<LSPString, config::param_t> *params);
@@ -424,21 +427,21 @@ namespace lsp
                 /**
                  * Load global configuration file
                  * @param file the path to file to load
+                 * @param lock the name of the lock file to prevent race conditions
                  * @return status of operation
                  */
-                virtual status_t                load_global_config(const char *file);
-                virtual status_t                load_global_config(const io::Path *file);
-                virtual status_t                load_global_config(const LSPString *file);
-                virtual status_t                load_global_config(io::IInSequence *is);
+                virtual status_t                load_global_config(const char *file, const char *lock);
+                virtual status_t                load_global_config(const io::Path *file, const io::Path *lock);
+                virtual status_t                load_global_config(const LSPString *file, const LSPString *lock);
 
                 /**
                  * Save global configuration file
                  * @param file the pato to the configuration file
                  * @return status of operation
                  */
-                virtual status_t                save_global_config(const char *file);
-                virtual status_t                save_global_config(const io::Path *file);
-                virtual status_t                save_global_config(const LSPString *file);
+                virtual status_t                save_global_config(const char *file, const char *lock);
+                virtual status_t                save_global_config(const io::Path *file, const io::Path *lock);
+                virtual status_t                save_global_config(const LSPString *file, const LSPString *lock);
 
                 /**
                  * Send request to perform preview playback of the file

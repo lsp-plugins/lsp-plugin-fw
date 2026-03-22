@@ -8,6 +8,7 @@
 * Fixed recurse plugin window positioning bug which could yield memory
   leaks in the X11-emulated Wayland environment.
 * Added multiple plugins launch option by Launcher tool.
+* Fixed possible read/write concurrency on the global configuration file.
 
 === 1.0.35 ===
 * Implemented plugin launcher tool.
