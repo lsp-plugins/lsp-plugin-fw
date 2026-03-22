@@ -2174,16 +2174,31 @@ namespace lsp
             ssize_t sw = 0, sh = 0;
             wnd->display()->screen_size(wnd->screen(), &sw, &sh);
 
+            // Fit plugin window into a screen
+            size_t changed = 0;
             if (wp.nLeft >= sw)
+            {
                 wp.nLeft    = sw - r->nWidth;
+                ++changed;
+            }
             if (wp.nTop >= sh)
+            {
                 wp.nTop     = sh - r->nHeight;
+                ++changed;
+            }
             if ((wp.nLeft + wp.nWidth) < 0)
+            {
                 wp.nLeft    = 0;
+                ++changed;
+            }
             if ((wp.nTop + wp.nHeight) < 0)
+            {
                 wp.nTop     = 0;
+                ++changed;
+            }
 
-            wnd->position()->set(wp.nLeft, wp.nTop);
+            if (changed > 0)
+                wnd->position()->set(wp.nLeft, wp.nTop);
 
             return STATUS_OK;
         }
