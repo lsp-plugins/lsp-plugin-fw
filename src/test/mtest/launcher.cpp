@@ -40,7 +40,7 @@ MTEST_BEGIN("", launcher)
         resources.set(tempdir(), "resources");
 
     #ifndef LSP_NO_BUILTIN_RESOURCES
-        make_repository(&resdir);
+        make_repository(&resources);
     #endif /* LSP_NO_BUILTIN_RESOURCES */
 
         system::set_env_var(LSP_RESOURCE_PATH_VAR, resources.as_string());
