@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins
  * Created on: 30 окт. 2025 г.
@@ -375,9 +375,8 @@ namespace lsp
             safe_release(app_timer->run_loop);
 
             // Delete the timer structure
-            delete timer;
-
             lsp_trace("Destroyed application timer ptr=%p", timer);
+            delete timer;
         }
 
 #endif /* PLATFORM */
