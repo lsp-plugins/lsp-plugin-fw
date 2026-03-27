@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 дек. 2022 г.
@@ -30,6 +30,7 @@
 #include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
+#include <lsp-plug.in/plug-fw/core/AudioTracer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -100,6 +101,8 @@ namespace lsp
                 uint32_t    nBufSize;           // The actual current buffer size
                 uint32_t    nBufCap;            // The quantized capacity of the buffer
                 bool        bZero;              // Buffer contains zero data
+
+                IF_DEBUG( core::AudioTracer sTracer; )
 
             public:
                 explicit AudioPort(const meta::port_t *meta) : Port(meta)
@@ -173,6 +176,7 @@ namespace lsp
                     {
                         if (ptr != NULL)
                         {
+                            IF_DEBUG( sTracer.submit(ptr, samples) ); // Trace input data
                             dsp::sanitize2(pBuffer, ptr, samples);
                             bZero       = false;
                         }
@@ -193,11 +197,19 @@ namespace lsp
                 {
                     // Sanitize plugin's output if possible
                     if (meta::is_out_port(pMetadata))
+                    {
                         dsp::sanitize1(pBind, nBufSize);
+                        IF_DEBUG( sTracer.submit(pBind, nBufSize) );    // Trace output data
+                    }
 
                     pBind       = NULL;
                     nBufSize    = 0;
                     nOffset     = 0;
+                }
+
+                virtual void trace(const void *instance) override
+                {
+                    IF_DEBUG( sTracer.set_trace("clap", id(), instance) );
                 }
         };
 

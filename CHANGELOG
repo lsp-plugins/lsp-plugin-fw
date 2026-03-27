@@ -9,6 +9,7 @@
   leaks in the X11-emulated Wayland environment.
 * Added multiple plugins launch option by Launcher tool.
 * Fixed possible read/write concurrency on the global configuration file.
+* Added possibility to trace content of audio ports in debug mode.
 
 === 1.0.35 ===
 * Implemented plugin launcher tool.

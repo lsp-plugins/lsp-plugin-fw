@@ -27,6 +27,7 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
+#include <lsp-plug.in/plug-fw/core/AudioTracer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
@@ -35,7 +36,6 @@
 #include <lsp-plug.in/plug-fw/wrap/lv2/extensions.h>
 #include <lsp-plug.in/plug-fw/wrap/lv2/types.h>
 #include <lsp-plug.in/stdlib/math.h>
-
 
 namespace lsp
 {
@@ -168,6 +168,8 @@ namespace lsp
                 float     *pSanitized;
                 bool       bZero;
 
+                IF_DEBUG( core::AudioTracer sTracer; )
+
             public:
                 explicit AudioPort(const meta::port_t *meta, lv2::Extensions *ext) : Port(meta, ext)
                 {
@@ -207,6 +209,7 @@ namespace lsp
             public:
                 virtual void bind(void *data) override
                 {
+                    lsp_trace("LV2 port data bind id=%s, data=%p", id(), data);
                     pData      = static_cast<float *>(data);
                 };
 
@@ -219,6 +222,8 @@ namespace lsp
                     pBuffer  = &pData[off];
                     if (pSanitized == NULL)
                         return;
+
+                    IF_DEBUG( sTracer.submit(&pData[off], samples) ); // Trace input data
 
                     // Sanitize plugin's input if possible
                     if (pData != NULL)
@@ -240,10 +245,18 @@ namespace lsp
                 {
                     // Sanitize plugin's output
                     if ((pBuffer != NULL) && (meta::is_out_port(pMetadata)))
+                    {
                         dsp::sanitize1(pBuffer, samples);
+                        IF_DEBUG( sTracer.submit(pBuffer, samples) ); // Trace output data
+                    }
 
                     // Clear the buffer pointer
                     pBuffer    = NULL;
+                }
+
+                virtual void trace(const void *instance) override
+                {
+                    IF_DEBUG( sTracer.set_trace("lv2", id(), instance) );
                 }
         };
 

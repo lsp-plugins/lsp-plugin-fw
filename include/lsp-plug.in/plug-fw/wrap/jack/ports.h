@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 нояб. 2020 г.
@@ -33,6 +33,7 @@
 #include <lsp-plug.in/dsp/dsp.h>
 
 #include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
+#include <lsp-plug.in/plug-fw/core/AudioTracer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
@@ -101,6 +102,8 @@ namespace lsp
                 plug::midi_t   *pMidi;              // Midi buffer for operating MIDI messages
                 float          *pSanitized;         // Input float data for sanitized buffers
                 size_t          nBufSize;           // Size of sanitized buffer in samples
+
+                IF_DEBUG( core::AudioTracer sTracer; )
 
             public:
                 explicit DataPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
@@ -310,6 +313,8 @@ namespace lsp
                     }
                     else if (pSanitized != NULL) // Need to sanitize?
                     {
+                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pDataBuffer), samples) ); // Trace input data
+
                         // Perform sanitize() if possible
                         if (samples <= nBufSize)
                         {
@@ -365,10 +370,19 @@ namespace lsp
                         pMidi->clear();
                     }
                     else if (meta::is_audio_out_port(pMetadata))
+                    {
                         // Sanitize output data
                         dsp::sanitize1(reinterpret_cast<float *>(pDataBuffer), samples);
 
+                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pDataBuffer), samples) ); // Trace output data
+                    }
+
                     pBuffer     = NULL;
+                }
+
+                virtual void trace(const void *instance) override
+                {
+                    IF_DEBUG( sTracer.set_trace("jack", id(), instance) );
                 }
         };
 
