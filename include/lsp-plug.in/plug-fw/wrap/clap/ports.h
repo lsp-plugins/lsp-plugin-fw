@@ -180,10 +180,14 @@ namespace lsp
                             dsp::sanitize2(pBuffer, ptr, samples);
                             bZero       = false;
                         }
-                        else if (!bZero)
+                        else
                         {
-                            dsp::fill_zero(pBuffer, nBufCap);
-                            bZero       = true;
+                            if (!bZero)
+                            {
+                                dsp::fill_zero(pBuffer, nBufCap);
+                                bZero       = true;
+                            }
+                            IF_DEBUG( sTracer.submit(pBuffer, samples) ); // Trace input data
                         }
                         pBind       = pBuffer;
                     }

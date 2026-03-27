@@ -223,19 +223,23 @@ namespace lsp
                     if (pSanitized == NULL)
                         return;
 
-                    IF_DEBUG( sTracer.submit(&pData[off], samples) ); // Trace input data
-
                     // Sanitize plugin's input if possible
                     if (pData != NULL)
                     {
+                        IF_DEBUG( sTracer.submit(&pData[off], samples) ); // Trace input data
                         dsp::sanitize2(pSanitized, pBuffer, samples);
                         bZero      = false;
                     }
-                    else if (!bZero)
+                    else
                     {
-                        // This is optional sidechain port that is connectionOptional?
-                        dsp::fill_zero(pSanitized, pExt->nMaxBlockLength);
-                        bZero      = true;
+                        if (!bZero)
+                        {
+                            // This is optional sidechain port that is connectionOptional?
+                            IF_DEBUG( sTracer.submit(&pData[off], samples) ); // Trace input data
+                            dsp::fill_zero(pSanitized, pExt->nMaxBlockLength);
+                            bZero      = true;
+                        }
+                        IF_DEBUG( sTracer.submit(pSanitized, samples) ); // Trace input data
                     }
                     pBuffer      = pSanitized;
                 }

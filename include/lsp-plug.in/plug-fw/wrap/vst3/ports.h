@@ -169,9 +169,10 @@ namespace lsp
                             IF_DEBUG( sTracer.submit(ptr, samples) ); // Trace input data
                             dsp::sanitize2(pBuffer, ptr, samples);
                         }
-                        else if (pBind != NULL)
+                        else
                         {
-                            dsp::fill_zero(pBuffer, nBufCap);
+                            if (pBind != NULL)
+                                dsp::fill_zero(pBuffer, nBufCap);
                             IF_DEBUG( sTracer.submit(pBuffer, samples) ); // Trace input data
                         }
                         pBind       = pBuffer;
