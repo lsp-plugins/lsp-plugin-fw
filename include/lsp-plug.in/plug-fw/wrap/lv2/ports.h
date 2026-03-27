@@ -209,7 +209,7 @@ namespace lsp
             public:
                 virtual void bind(void *data) override
                 {
-                    lsp_trace("LV2 port data bind id=%s, data=%p", id(), data);
+//                    lsp_trace("LV2 port data bind id=%s, data=%p", id(), data);
                     pData      = static_cast<float *>(data);
                 };
 
