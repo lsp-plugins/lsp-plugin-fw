@@ -10,6 +10,7 @@
 * Added multiple plugins launch option by Launcher tool.
 * Fixed possible read/write concurrency on the global configuration file.
 * Added possibility to trace content of audio ports in debug mode.
+* Updated module versions in dependencies.
 
 === 1.0.35 ===
 * Implemented plugin launcher tool.
