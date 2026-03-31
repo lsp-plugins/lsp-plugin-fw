@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plug-fw
  * Created on: 22 окт. 2015 г.
@@ -82,6 +82,13 @@ namespace lsp
                  * type is not supported by plugin format
                  */
                 virtual void *buffer();
+
+            public:
+                /**
+                 * Enable/disable port data trace (debug purpose only)
+                 * @param instance instance associated with trace, NULL for disable
+                 */
+                virtual void trace(const void *instance);
 
             public:
                 /**

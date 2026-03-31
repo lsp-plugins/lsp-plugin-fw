@@ -462,6 +462,24 @@ namespace lsp
             return res;
         }
 
+        status_t get_plugin_executable(LSPString & dst, const meta::package_t *package, const meta::plugin_t *plugin)
+        {
+            // Check that we need to launch plugin
+            if ((package == NULL) || (plugin == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            LSPString program;
+            if (!program.set_ascii(package->artifact))
+                return STATUS_NO_MEM;
+            if (!program.append('-'))
+                return STATUS_NO_MEM;
+            if (!program.append_ascii(plugin->uid))
+                return STATUS_NO_MEM;
+            program.replace_all('_', '-');
+            dst.swap(program);
+
+            return STATUS_OK;
+        }
 
     } /* namespace launcher */
 } /* namespace lsp */

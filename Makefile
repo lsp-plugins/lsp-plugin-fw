@@ -146,6 +146,7 @@ help:
 	echo "  doc                       Generate standalone HTML documentation"
 	echo "  jack                      Standalone JACK plugin format binaries"
 	echo "  ladspa                    LADSPA plugin format binaries"
+	echo "  launcher                  Build launcher application for standalone JACK plugins"
 	echo "  lv2                       LV2 plugin format binaries"
 	echo "  ui                        Enables UI for LV2"
 	echo "  vst2                      VST 2.x plugin format binaries"

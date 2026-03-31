@@ -28,6 +28,7 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/resource/ILoader.h>
 #include <lsp-plug.in/runtime/LSPString.h>
+#include <lsp-plug.in/plug-fw/meta/types.h>
 
 namespace lsp
 {
@@ -86,6 +87,15 @@ namespace lsp
          * @param metadata plugin metadata to destroy
          */
         void destroy_plugin_metadata(plugin_registry_t & metadata);
+
+        /**
+         * Get the name of plugin's executable file
+         * @param dst destination string to store value
+         * @param package package metadata
+         * @param plugin plugin metadata
+         * @return status of operation
+         */
+        status_t get_plugin_executable(LSPString & dst, const meta::package_t *package, const meta::plugin_t *plugin);
     } /* namespace launcher */
 } /* namespace lsp */
 

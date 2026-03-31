@@ -29,6 +29,7 @@
 #include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/io/InSequence.h>
+#include <lsp-plug.in/io/NativeFile.h>
 #include <lsp-plug.in/io/OutFileStream.h>
 #include <lsp-plug.in/io/OutSequence.h>
 #include <lsp-plug.in/io/Path.h>
@@ -62,6 +63,9 @@ namespace lsp
 
 #define PORT_HASH_IFACE         lltl::hash_iface{ lltl::char_hash_func }
 #define PORT_COMPARE_IFACE      lltl::compare_iface { lltl::char_cmp_func }
+
+#define GLOBAL_CONFIG_FILE_NAME "lsp-plugins.cfg"
+#define GLOBAL_CONFIG_LOCK_NAME "lsp-plugins.lock"
 
 #ifdef TRACE_STRCMP_CALLS
     static ssize_t trace_plugin_strcmp_func(const void *a, const void *b, size_t size)
@@ -471,16 +475,7 @@ namespace lsp
             }
 
             // Load the global configuration file
-            io::Path gconfig;
-            if ((res = get_user_config_path(&gconfig)) == STATUS_OK)
-            {
-                lsp_trace("User config path: %s", gconfig.as_utf8());
-                if (res == STATUS_OK)
-                    res = gconfig.append_child("lsp-plugins.cfg");
-                if (res == STATUS_OK)
-                    res = load_global_config(&gconfig);
-            }
-            else
+            if ((res = do_load_global_config()) != STATUS_OK)
                 lsp_warn("Failed to obtain plugin configuration: error=%d", int(res));
 
             // Bind custom functions
@@ -850,6 +845,49 @@ namespace lsp
                 lsp_trace("CONFIG IS MARKED AS DIRTY");
         }
 
+        status_t IWrapper::do_save_global_config()
+        {
+            // Save global configuration
+            io::Path path, lock;
+            status_t res;
+
+            if ((res = get_user_config_path(&path)) != STATUS_OK)
+                return res;
+            if ((res = path.mkdir(true)) != STATUS_OK)
+                return res;
+            if ((res = lock.set(&path)) != STATUS_OK)
+                return res;
+            if ((res = path.append_child(GLOBAL_CONFIG_FILE_NAME)) != STATUS_OK)
+                return res;
+            if ((res = lock.append_child(GLOBAL_CONFIG_LOCK_NAME)) != STATUS_OK)
+                return res;
+            res = save_global_config(&path, &lock);
+
+            lsp_trace("Save global configuration to '%s': result=%d", path.as_native(), int(res));
+
+            return res;
+        }
+
+        status_t IWrapper::do_load_global_config()
+        {
+            // Load the global configuration file
+            io::Path path, lock;
+            status_t res;
+
+            if ((res = get_user_config_path(&path)) != STATUS_OK)
+                return res;
+            if ((res = lock.set(&path)) != STATUS_OK)
+                return res;
+            if ((res = path.append_child(GLOBAL_CONFIG_FILE_NAME)) != STATUS_OK)
+                return res;
+            if ((res = lock.append_child(GLOBAL_CONFIG_LOCK_NAME)) != STATUS_OK)
+                return res;
+            res = load_global_config(&path, &lock);
+
+            lsp_trace("Load global configuration from '%s': result=%d", path.as_native(), int(res));
+            return res;
+        }
+
         void IWrapper::main_iteration()
         {
             // Synchronize meta ports
@@ -867,16 +905,9 @@ namespace lsp
             if ((nFlags & (F_CONFIG_LOCK | F_CONFIG_DIRTY)) == F_CONFIG_DIRTY)
             {
                 // Save global configuration
-                io::Path path;
-                status_t res = get_user_config_path(&path);
-                if (res == STATUS_OK)
-                    res = path.mkdir(true);
-                if (res == STATUS_OK)
-                    res = path.append_child("lsp-plugins.cfg");
-                if (res == STATUS_OK)
-                    res = save_global_config(&path);
-
-                lsp_trace("Save global configuration to %s: result=%d", path.as_native(), int(res));
+                status_t res = do_save_global_config();
+                if (res != STATUS_OK)
+                    lsp_warn("Failed to save global configuration: result=%d", int(res));
 
                 // Reset flags
                 nFlags     &= ~F_CONFIG_DIRTY;
@@ -1693,34 +1724,52 @@ namespace lsp
             return (res == STATUS_EOF) ? STATUS_OK : res;
         }
 
-        status_t IWrapper::load_global_config(const char *file)
+        status_t IWrapper::load_global_config(const char *file, const char *lock)
         {
-            config::PullParser parser;
-            status_t res = parser.open(file);
-            if (res == STATUS_OK)
-                res = load_global_config(&parser);
-            status_t res2 = parser.close();
-            return (res == STATUS_OK) ? res2 : res;
+            io::Path path, plock;
+            status_t res;
+            if ((res = path.set(file)) != STATUS_OK)
+                return res;
+            if ((res = plock.set(lock)) != STATUS_OK)
+                return res;
+
+            return load_global_config(&path, &plock);
         }
 
-        status_t IWrapper::load_global_config(const LSPString *file)
+        status_t IWrapper::load_global_config(const LSPString *file, const LSPString *lock)
         {
-            config::PullParser parser;
-            status_t res = parser.open(file);
-            if (res == STATUS_OK)
-                res = load_global_config(&parser);
-            status_t res2 = parser.close();
-            return (res == STATUS_OK) ? res2 : res;
+            io::Path path, plock;
+            status_t res;
+            if ((res = path.set(file)) != STATUS_OK)
+                return res;
+            if ((res = plock.set(lock)) != STATUS_OK)
+                return res;
+
+            return load_global_config(&path, &plock);
         }
 
-        status_t IWrapper::load_global_config(const io::Path *file)
+        status_t IWrapper::load_global_config(const io::Path *file, const io::Path *lock)
         {
+            // Check arguments
+            if ((file == NULL) || (lock == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            // Obtain file lock
+            status_t res;
+            io::NativeFile fd;
+            if ((res = fd.open(lock, io::File::FM_READWRITE | io::File::FM_CREATE | io::File::FM_LOCK)) != STATUS_OK)
+            {
+                lsp_warn("Failed to obtain lock on file '%s': code=%d", lock->as_native(), int(res));
+                return res;
+            }
+            lsp_finally { fd.close(); };
+
+            // Do the stuff
             config::PullParser parser;
-            status_t res = parser.open(file);
-            if (res == STATUS_OK)
+            if ((res = parser.open(file)) == STATUS_OK)
                 res = load_global_config(&parser);
-            status_t res2 = parser.close();
-            return (res == STATUS_OK) ? res2 : res;
+            res = update_status(res, parser.close());
+            return res;
         }
 
         status_t IWrapper::load_global_config(io::IInSequence *is)
@@ -1876,39 +1925,56 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IWrapper::save_global_config(const char *file)
+        status_t IWrapper::save_global_config(const char *file, const char *lock)
         {
-            io::Path path;
-            status_t res = path.set(file);
-            if (res != STATUS_OK)
+            io::Path path, plock;
+            status_t res;
+            if ((res = path.set(file)) != STATUS_OK)
+                return res;
+            if ((res = plock.set(lock)) != STATUS_OK)
                 return res;
 
-            return save_global_config(&path);
+            return save_global_config(&path, &plock);
         }
 
-        status_t IWrapper::save_global_config(const LSPString *file)
+        status_t IWrapper::save_global_config(const LSPString *file, const LSPString *lock)
         {
-            io::Path path;
-            status_t res = path.set(file);
-            if (res != STATUS_OK)
+            io::Path path, plock;
+            status_t res;
+            if ((res = path.set(file)) != STATUS_OK)
+                return res;
+            if ((res = plock.set(lock)) != STATUS_OK)
                 return res;
 
-            return save_global_config(&path);
+            return save_global_config(&path, &plock);
         }
 
-        status_t IWrapper::save_global_config(const io::Path *file)
+        status_t IWrapper::save_global_config(const io::Path *file, const io::Path *lock)
         {
-            io::OutFileStream os;
-            io::OutSequence o;
+            // Check input arguments
+            if ((file == NULL) || (lock == NULL))
+                return STATUS_BAD_ARGUMENTS;
 
             // Obtain actual versions of all modules
+            status_t res;
             lltl::pphash<LSPString, config::param_t> parameters;
-            status_t res = read_parameters(file, &parameters);
+            res = read_parameters(file, &parameters);
             if ((res != STATUS_OK) && (res != STATUS_NOT_FOUND))
                 return res;
             lsp_finally { drop_parameters(&parameters); };
 
-            // Write new file
+            // Obtain file lock
+            io::NativeFile fd;
+            if ((res = fd.open(lock, io::File::FM_READWRITE | io::File::FM_CREATE | io::File::FM_LOCK)) != STATUS_OK)
+            {
+                lsp_warn("Failed to obtain lock on file '%s': code=%d", lock->as_native(), int(res));
+                return res;
+            }
+            lsp_finally { fd.close(); };
+
+            // Write new configuration file
+            io::OutFileStream os;
+            io::OutSequence o;
             if ((res = os.open(file, io::File::FM_WRITE_NEW)) != STATUS_OK)
                 return res;
 

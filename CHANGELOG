@@ -2,6 +2,16 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.36 ===
+* Fixed test build.
+* Fixed regression related to UI scaling and font scaling.
+* Fixed recurse plugin window positioning bug which could yield memory
+  leaks in the X11-emulated Wayland environment.
+* Added multiple plugins launch option by Launcher tool.
+* Fixed possible read/write concurrency on the global configuration file.
+* Added possibility to trace content of audio ports in debug mode.
+* Updated module versions in dependencies.
+
 === 1.0.35 ===
 * Implemented plugin launcher tool.
 * Added shortcuts for quickly closing some dialogs.

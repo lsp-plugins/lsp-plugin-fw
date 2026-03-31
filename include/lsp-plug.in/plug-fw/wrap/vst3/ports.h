@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 4 дек. 2023 г.
@@ -27,6 +27,7 @@
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
+#include <lsp-plug.in/plug-fw/core/AudioTracer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -77,6 +78,8 @@ namespace lsp
                 Steinberg::Vst::Speaker     nSpeaker;   // Associated speaker
                 bool                        bActive;    // Activity flag
                 bool                        bZero;      // Indicator that data in the buffer is zeroed out
+
+                IF_DEBUG( core::AudioTracer sTracer; )
 
             public:
                 explicit AudioPort(const meta::port_t *meta) : Port(meta)
@@ -162,9 +165,16 @@ namespace lsp
                     else // if (meta::is_in_port(pMetadata))
                     {
                         if ((ptr != NULL) && (bActive))
+                        {
+                            IF_DEBUG( sTracer.submit(ptr, samples) ); // Trace input data
                             dsp::sanitize2(pBuffer, ptr, samples);
-                        else if (pBind != NULL)
-                            dsp::fill_zero(pBuffer, nBufCap);
+                        }
+                        else
+                        {
+                            if (pBind != NULL)
+                                dsp::fill_zero(pBuffer, nBufCap);
+                            IF_DEBUG( sTracer.submit(pBuffer, samples) ); // Trace input data
+                        }
                         pBind       = pBuffer;
                     }
 
@@ -179,7 +189,10 @@ namespace lsp
                 {
                     // Sanitize plugin's output if possible
                     if (meta::is_out_port(pMetadata))
+                    {
                         dsp::sanitize1(pBind, nBufSize);
+                        IF_DEBUG( sTracer.submit(pBind, nBufSize) ); // Trace output data
+                    }
 
                     pBind       = NULL;
                     nBufSize    = 0;
@@ -193,6 +206,11 @@ namespace lsp
                 inline void advance(size_t samples)
                 {
                     nOffset    += samples;
+                }
+
+                virtual void trace(const void *instance) override
+                {
+                    IF_DEBUG( sTracer.set_trace("vst3", id(), instance) );
                 }
         };
 

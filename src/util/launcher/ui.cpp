@@ -36,6 +36,7 @@
 #define UI_LAUNCHER_PREFIX                      "_launcher_"
 #define UI_LAUNCHER_WIDTH_ID                    UI_LAUNCHER_PREFIX "width"
 #define UI_LAUNCHER_HEIGHT_ID                   UI_LAUNCHER_PREFIX "height"
+#define UI_LAUNCHER_LAUNCH_MULTIPLE_ID          UI_LAUNCHER_PREFIX "launch_multiple"
 
 namespace lsp
 {
@@ -45,6 +46,7 @@ namespace lsp
         {
             INT_CONTROL_ALL(UI_LAUNCHER_WIDTH_ID, "Plugin launcher window width", NULL, U_NONE, 0, 65536, 640, 1),
             INT_CONTROL_ALL(UI_LAUNCHER_HEIGHT_ID, "Plugin launcher window height", NULL, U_NONE, 0, 65536, 800, 1),
+            SWITCH(UI_LAUNCHER_LAUNCH_MULTIPLE_ID, "Launch multiple plugins", NULL, 0),
             PORTS_END
         };
     } /* namespace meta */
@@ -108,6 +110,7 @@ namespace lsp
 
             pWindowWidth        = NULL;
             pWindowHeight       = NULL;
+            pLaunchMultiple     = NULL;
             pLanguage           = NULL;
             pVisualSchema       = NULL;
             pAboutWindow        = NULL;
@@ -209,6 +212,11 @@ namespace lsp
             if ((delta = (pa->sort_order - pb->sort_order)) != 0)
                 return delta;
             return strcmp(pa->uid, pb->uid);
+        }
+
+        inline void UI::mark_config_changed()
+        {
+            ++nConfigChanges;
         }
 
         status_t UI::scan_metadata()
@@ -398,7 +406,7 @@ namespace lsp
                 if (res != STATUS_NOT_FOUND)
                     lsp_warn("Error loading launcher config, error code: %d", int(res));
                 else
-                    ++nConfigChanges;
+                    mark_config_changed();
             }
 
             if ((res = create_launcher_ports()) != STATUS_OK)
@@ -467,6 +475,7 @@ namespace lsp
             // Bind ports
             BIND_PORT(this, pWindowWidth, UI_LAUNCHER_WIDTH_ID);
             BIND_PORT(this, pWindowHeight, UI_LAUNCHER_HEIGHT_ID);
+            BIND_PORT(this, pLaunchMultiple, UI_LAUNCHER_LAUNCH_MULTIPLE_ID);
             BIND_PORT(this, pLanguage, LANGUAGE_PORT);
             BIND_PORT(this, pVisualSchema, UI_VISUAL_SCHEMA_PORT);
 
@@ -658,10 +667,16 @@ namespace lsp
                 pWindowWidth->set_value(sConfig.nWidth);
             if (pWindowHeight != NULL)
                 pWindowHeight->set_value(sConfig.nHeight);
+            if (pLaunchMultiple != NULL)
+                pLaunchMultiple->set_value((sConfig.bLaunchMultiple) ? 1.0f : 0.0f);
+
+            // Notify about changes applied
             if (pWindowWidth != NULL)
                 pWindowWidth->notify_all(ui::PORT_NONE);
             if (pWindowHeight != NULL)
                 pWindowHeight->notify_all(ui::PORT_NONE);
+            if (pLaunchMultiple != NULL)
+                pLaunchMultiple->notify_all(ui::PORT_NONE);
         }
 
         status_t UI::create_catalog()
@@ -1200,13 +1215,26 @@ namespace lsp
                 sync_language_selection();
             if (port == pWindowWidth)
             {
-                sConfig.nWidth  = pWindowWidth->value();
+                if (flags & ui::PORT_USER_EDIT)
+                {
+                    sConfig.nWidth  = pWindowWidth->value();
+                    mark_config_changed();
+                }
                 wWindow->size()->set_width(sConfig.nWidth);
             }
             if (port == pWindowHeight)
             {
-                sConfig.nHeight = pWindowHeight->value();
+                if (flags & ui::PORT_USER_EDIT)
+                {
+                    sConfig.nHeight = pWindowHeight->value();
+                    mark_config_changed();
+                }
                 wWindow->size()->set_height(sConfig.nHeight);
+            }
+            if ((port == pLaunchMultiple) && (flags & ui::PORT_USER_EDIT))
+            {
+                sConfig.bLaunchMultiple = pLaunchMultiple->value() >= 0.5f;
+                mark_config_changed();
             }
             if (port == pVisualSchema)
             {
@@ -1244,9 +1272,6 @@ namespace lsp
             const bool notify_height    = (pWindowHeight != NULL) && (ssize_t(height) != ssize_t(pWindowHeight->value()));
             if ((!notify_width) && (!notify_height))
                 return;
-
-            // Mark configuration as changed
-            ++nConfigChanges;
 
             // Wrap with begin_edit()/end_edit() stuff
             if (notify_width)
@@ -1422,26 +1447,54 @@ namespace lsp
             if (self == NULL)
                 return STATUS_OK;
 
-            if (self->pLaunch != NULL)
+            // Lookup for the plugin to launch
+            const meta::plugin_t *plugin = NULL;
+            for (lltl::iterator<plugin_t> pi = self->vPlugins.values(); pi; ++pi)
             {
-                for (lltl::iterator<plugin_t> pi = self->vPlugins.values(); pi; ++pi)
+                const plugin_t * const p = pi.get();
+                if ((p != NULL) && (p->wButton == sender))
                 {
-                    const plugin_t * const p = pi.get();
-                    if ((p != NULL) && (p->wButton == sender))
-                    {
-                        *self->pLaunch    = p->pMeta;
-                        break;
-                    }
+                    plugin      = p->pMeta;
+                    break;
                 }
             }
 
-            // Ensure that configuration files have been saved
-            self->main_iteration();
+            // Depending on multiple plugin launch mode, launch in detached mode or exit
+            const bool multiple = (self->pLaunchMultiple != NULL) ? self->pLaunchMultiple->value() >= 0.5f : false;
+            if (multiple)
+            {
+                // Get pluigin's executable name
+                LSPString program;
+                status_t res = get_plugin_executable(program, self->package(), plugin);
+                if (res != STATUS_OK)
+                {
+                    lsp_warn("Failed to obtain plugin executable, code=%d", int(res));
+                    return res;
+                }
 
-            // Leave the main event loop
-            tk::Display * const dpy = self->display();
-            if (dpy != NULL)
-                dpy->quit_main();
+                lsp_info("Launching plugin uid='%s', executable='%s', name='%s'...", plugin->uid, program.get_native(), plugin->description);
+
+                // Execute in detached mode
+                res = system::exec_detached(&program, NULL);
+                if (res != STATUS_OK)
+                {
+                    lsp_warn("Failed to launch plugin uid='%s', executable='%s', name='%s': code=%d",
+                        plugin->uid, program.get_native(), plugin->description, int(res));
+                }
+            }
+            else
+            {
+                // Save pointer to plugin metadata for execution
+                *self->pLaunch  = plugin;
+
+                // Ensure that configuration files have been saved
+                self->main_iteration();
+
+                // Leave the main event loop
+                tk::Display * const dpy = self->display();
+                if (dpy != NULL)
+                    dpy->quit_main();
+            }
 
             return STATUS_OK;
         }
@@ -1472,14 +1525,14 @@ namespace lsp
                         if ((id = strdup(b->pMeta->uid)) != NULL)
                         {
                             if (self->sConfig.vFavourites.put(id, &id))
-                                ++self->nConfigChanges;
+                                self->mark_config_changed();
                         }
                     }
                     else
                     {
                         // Remove from list
                         if (self->sConfig.vFavourites.remove(b->pMeta->uid, &id))
-                            ++self->nConfigChanges;
+                            self->mark_config_changed();
                     }
 
                     self->sync_favourites_state(b);

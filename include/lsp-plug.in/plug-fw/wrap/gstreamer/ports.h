@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 29 мая 2024 г.
@@ -24,10 +24,12 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
+#include <lsp-plug.in/plug-fw/core/AudioTracer.h>
 #include <lsp-plug.in/plug-fw/wrap/gstreamer/types.h>
 #include <lsp-plug.in/stdlib/math.h>
 
@@ -42,6 +44,8 @@ namespace lsp
             protected:
                 float      *pBuffer;
                 bool        bZero;
+
+                IF_DEBUG( core::AudioTracer sTracer; )
 
             public:
                 explicit AudioPort(const meta::port_t *meta) : plug::IPort(meta)
@@ -85,6 +89,7 @@ namespace lsp
                 {
                     bZero       = false;
 
+                    IF_DEBUG( sTracer.submit(src, samples) );       // Trace input data
                     dsp::sanitize2(pBuffer, src, samples);
                 }
 
@@ -92,6 +97,7 @@ namespace lsp
                 inline void sanitize_output(float *dst, size_t samples)
                 {
                     dsp::sanitize2(dst, pBuffer, samples);
+                    IF_DEBUG( sTracer.submit(pBuffer, samples) );   // Trace output data
                 }
 
                 // Deinterleave and sanitize samples from buffer
@@ -120,6 +126,11 @@ namespace lsp
                         *dst        = pBuffer[i];
                         dst        += stride;
                     }
+                }
+
+                virtual void trace(const void *instance) override
+                {
+                    IF_DEBUG( sTracer.set_trace("gstreamer", id(), instance) );
                 }
         };
 

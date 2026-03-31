@@ -58,5 +58,9 @@ namespace lsp
             return NULL;
         }
 
+        void IPort::trace(const void *instance)
+        {
+        }
+
     } /* namespace plug */
 } /* namespace lsp */

@@ -308,6 +308,30 @@ namespace lsp
             sFontScaling.bind_zoom_in("trg_font_zoom_in", tk::SLOT_SUBMIT);
             sFontScaling.bind_zoom_out("trg_font_zoom_out", tk::SLOT_SUBMIT);
 
+            // Update other parameters
+            sync_language_selection();
+            sync_visual_schemas();
+
+            // Notify other parameters
+            if (pInvertVScroll != NULL)
+                pInvertVScroll->notify_all(ui::PORT_NONE);
+            if (pInvertGraphDotVScroll != NULL)
+                pInvertGraphDotVScroll->notify_all(ui::PORT_NONE);
+            if (sFilterPointThickness.pPort != NULL)
+                sFilterPointThickness.pPort->notify_all(ui::PORT_NONE);
+
+            sUIScaling.sync_parameters();
+            sFontScaling.sync_parameters();
+            notify_ui_behaviour_flags(ui::PORT_NONE);
+            sync_language_selection();
+            if (pInvertVScroll != NULL)
+                sync_invert_vscroll(pInvertVScroll);
+            if (pInvertGraphDotVScroll != NULL)
+                sync_invert_vscroll(pInvertVScroll);
+
+            if (sFilterPointThickness.pPort != NULL)
+                sync_enum_menu(&sFilterPointThickness, sFilterPointThickness.pPort);
+
             return STATUS_OK;
         }
 
@@ -1353,18 +1377,6 @@ namespace lsp
                 wnd->actions()->set_maximizable(bResizable);
             }
 
-            if (pVisualSchema != NULL)
-                notify(pVisualSchema, ui::PORT_NONE);
-            if (pInvertVScroll != NULL)
-                notify(pInvertVScroll, ui::PORT_NONE);
-            if (pInvertGraphDotVScroll != NULL)
-                notify(pInvertGraphDotVScroll, ui::PORT_NONE);
-            if (sFilterPointThickness.pPort != NULL)
-                notify(sFilterPointThickness.pPort, ui::PORT_NONE);
-
-            notify_ui_behaviour_flags(ui::PORT_NONE);
-            sUIScaling.sync_parameters();
-            sFontScaling.sync_parameters();
 
             // Call for parent class method
             Window::end(ctx);
@@ -2144,34 +2156,54 @@ namespace lsp
 
         status_t PluginWindow::slot_window_resize(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *_this = static_cast<PluginWindow *>(ptr);
-            if (_this == NULL)
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
+            if (self == NULL)
                 return STATUS_OK;
 
-            const ws::rectangle_t *r = static_cast<const ws::rectangle_t *>(data);
-            if (r == NULL)
+            const ws::event_t * const ev = static_cast<const ws::event_t *>(data);
+            if (ev == NULL)
                 return STATUS_OK;
 
 //            lsp_trace("Resize: x=%d, y=%d, w=%d, h=%d", int(r->nLeft), int(r->nTop), int(r->nWidth), int(r->nHeight));
 
-            tk::Window *wnd = tk::widget_cast<tk::Window>(_this->wWidget);
+            tk::Window * const wnd = tk::widget_cast<tk::Window>(self->wWidget);
             if ((wnd == NULL) || (wnd->has_parent()))
                 return STATUS_OK;
 
-            ws::rectangle_t wp = *r;
+            ws::rectangle_t wp;
+            wp.nLeft        = ev->nLeft;
+            wp.nTop         = ev->nTop;
+            wp.nWidth       = ev->nWidth;
+            wp.nHeight      = ev->nHeight;
+
             ssize_t sw = 0, sh = 0;
             wnd->display()->screen_size(wnd->screen(), &sw, &sh);
 
+            // Fit plugin window into a screen
+            size_t changed = 0;
             if (wp.nLeft >= sw)
-                wp.nLeft    = sw - r->nWidth;
+            {
+                wp.nLeft    = sw - wp.nWidth;
+                ++changed;
+            }
             if (wp.nTop >= sh)
-                wp.nTop     = sh - r->nHeight;
+            {
+                wp.nTop     = sh - wp.nHeight;
+                ++changed;
+            }
             if ((wp.nLeft + wp.nWidth) < 0)
+            {
                 wp.nLeft    = 0;
+                ++changed;
+            }
             if ((wp.nTop + wp.nHeight) < 0)
+            {
                 wp.nTop     = 0;
+                ++changed;
+            }
 
-            wnd->position()->set(wp.nLeft, wp.nTop);
+            if (changed > 0)
+                wnd->position()->set(wp.nLeft, wp.nTop);
 
             return STATUS_OK;
         }

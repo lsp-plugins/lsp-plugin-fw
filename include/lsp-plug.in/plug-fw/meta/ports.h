@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -145,14 +145,19 @@
 #define HUE_CTL(id, label, dfl) \
     { id, label, NULL, U_NONE, R_CONTROL, 0, F_UPPER | F_LOWER | F_STEP | F_CYCLIC, 0.0f, 1.0f, (dfl), 0.25f/360.0f, NULL, NULL     }
 
-#define UNLIMITED_METER(id, label, units, dfl) \
-    { id, label, NULL, units, R_METER, 0, 0, 0.0f, 0.0f, dfl, 0.0f, NULL, NULL, NULL }
-#define METER(id, label, units, limits) \
-    { id, label, NULL, units, R_METER, 0, F_LOWER | F_UPPER | F_STEP, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
-#define METERZ(id, label, units, limits) \
-    { id, label, NULL, units, R_METER, 0, F_LOWER | F_UPPER | F_STEP, limits ## _MIN, limits ## _MAX, 0.0f, 0.0f, NULL, NULL, NULL }
-#define METER_MINMAX(id, label, units, min, max) \
-    { id, label, NULL, units, R_METER, 0, F_LOWER | F_UPPER | F_STEP, min, max, min, 0.0f, NULL, NULL, NULL }
+#define ADDON_UNLIMITED_METER(revision, id, label, units, dfl) \
+    { id, label, NULL, units, R_METER, revision, 0, 0.0f, 0.0f, dfl, 0.0f, NULL, NULL, NULL }
+#define ADDON_METER(revision, id, label, units, limits) \
+    { id, label, NULL, units, R_METER, revision, F_LOWER | F_UPPER | F_STEP, limits ## _MIN, limits ## _MAX, limits ## _DFL, limits ## _STEP, NULL, NULL, NULL }
+#define ADDON_METERZ(revision, id, label, units, limits) \
+    { id, label, NULL, units, R_METER, revision, F_LOWER | F_UPPER | F_STEP, limits ## _MIN, limits ## _MAX, 0.0f, 0.0f, NULL, NULL, NULL }
+#define ADDON_METER_MINMAX(revision, id, label, units, min, max) \
+    { id, label, NULL, units, R_METER, revision, F_LOWER | F_UPPER | F_STEP, min, max, min, 0.0f, NULL, NULL, NULL }
+
+#define UNLIMITED_METER(id, label, units, dfl) ADDON_UNLIMITED_METER(0, id, label, units, dfl)
+#define METER(id, label, units, limits) ADDON_METER(0, id, label, units, limits)
+#define METERZ(id, label, units, limits) ADDON_METERZ(0, id, label, units, limits)
+#define METER_MINMAX(id, label, units, min, max) ADDON_METER_MINMAX(0, id, label, units, min, max)
 
 #define INT_METER_UNLIMITED(id, label, units, dfl) \
     { id, label, NULL, units, R_METER, 0, F_INT, 0.0f, 0.0f, dfl, 0.0f, NULL, NULL, NULL }

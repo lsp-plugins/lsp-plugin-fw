@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 дек. 2021 г.
@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
+#include <lsp-plug.in/plug-fw/core/AudioTracer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
@@ -252,6 +253,8 @@ namespace lsp
                 float          *pSanitized;
                 size_t          nBufSize;
 
+                IF_DEBUG( core::AudioTracer sTracer; )
+
             public:
                 explicit AudioPort(const meta::port_t *meta, AEffect *effect, audioMasterCallback callback):
                     Port(meta, effect, callback)
@@ -296,6 +299,8 @@ namespace lsp
                     if (pSanitized == NULL)
                         return;
 
+                    IF_DEBUG( sTracer.submit(pBuffer, samples) ); // Trace input data
+
                     // Perform sanitize() if possible
                     if (samples > nBufSize)
                     {
@@ -313,7 +318,10 @@ namespace lsp
                 {
                     // Sanitize output data
                     if ((pBuffer != NULL) && (meta::is_out_port(pMetadata)))
+                    {
                         dsp::sanitize1(pBuffer, samples);
+                        IF_DEBUG( sTracer.submit(pBuffer, samples) ); // Trace output data
+                    }
                 };
 
                 void set_block_size(size_t size)
@@ -334,6 +342,11 @@ namespace lsp
                     nBufSize    = size;
                     pSanitized  = buf;
                     dsp::fill_zero(pSanitized, nBufSize);
+                }
+
+                virtual void trace(const void *instance) override
+                {
+                    IF_DEBUG( sTracer.set_trace("vst2", id(), instance) );
                 }
         };
 
