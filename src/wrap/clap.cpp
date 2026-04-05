@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 дек. 2022 г.
@@ -688,18 +688,19 @@ namespace lsp
 
         //---------------------------------------------------------------------
         // Library-related stuff
-        static void destroy_factory(factory_t * &factory)
+        static void destroy_factory(factory_t * factory)
         {
-            if (factory != NULL)
+            if (factory == NULL)
+                return;
+
+            lsp_trace("Destroying plugin factory interface %p", factory);
+
+            if (factory->factory != NULL)
             {
-                if (factory->factory != NULL)
-                {
-                    factory->factory->release();
-                    factory->factory     = NULL;
-                }
-                free(factory);
-                factory     = NULL;
+                factory->factory->release();
+                factory->factory     = NULL;
             }
+            free(factory);
         }
 
         static bool init_library(const char *plugin_path)
@@ -708,7 +709,7 @@ namespace lsp
             IF_DEBUG( lsp::debug::redirect(CLAP_LOG_FILE); );
         #endif /* LSP_IDE_DEBUG */
 
-            // Check that data already has been initialized
+            // Check that data already has been initialized (perform quick test)
             if (library.initialized())
                 return true;
 
@@ -718,9 +719,7 @@ namespace lsp
             if (factory == NULL)
                 return false;
 
-            lsp_finally {
-                destroy_factory(factory);
-            };
+            lsp_finally { destroy_factory(factory); };
 
             factory->get_plugin_count       = get_plugin_count;
             factory->get_plugin_descriptor  = get_plugin_descriptor;
@@ -732,7 +731,7 @@ namespace lsp
 
             lsp_trace("Created plugin factory %p wrapped by interface %p", factory->factory, factory);
 
-            // Commit the generated objects to the global variables
+            // Deploy the generated objects to the global variables
             lsp_singletone_init(library) {
                 lsp::swap(plugin_factory, factory);
             };
@@ -742,8 +741,12 @@ namespace lsp
 
         static void destroy_library(void)
         {
-            lsp_trace("Destroying plugin factory interface %p", plugin_factory);
-            destroy_factory(plugin_factory);
+            factory_t *factory = NULL;
+            lsp_singletone_finalize(library) {
+                lsp::swap(plugin_factory, factory);
+            };
+
+            destroy_factory(factory);
         }
 
         const void *get_factory(const char *factory_id)
