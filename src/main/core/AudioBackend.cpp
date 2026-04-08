@@ -1,0 +1,357 @@
+/*
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *
+ * This file is part of lsp-plugin-fw
+ * Created on: 9 апр. 2026 г.
+ *
+ * lsp-plugin-fw is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * any later version.
+ *
+ * lsp-plugin-fw is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <lsp-plug.in/audio/iface/builtin.h>
+#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/ipc/Library.h>
+#include <lsp-plug.in/io/Dir.h>
+#include <lsp-plug.in/io/Path.h>
+#include <lsp-plug.in/plug-fw/core/AudioBackend.h>
+
+namespace lsp
+{
+    namespace core
+    {
+        static constexpr const char *AUDIO_LIBRARY_FILE_PART    = "lsp-audio";
+        static const ::lsp::version_t plugin_fw_version         = LSP_DEFINE_VERSION(LSP_PLUGIN_FW);
+        static const ::lsp::version_t audio_iface_version       = LSP_DEFINE_VERSION(LSP_AUDIO_IFACE);
+
+    #ifdef PLATFORM_POSIX
+        #ifdef ARCH_32BIT
+            static const char *library_paths[] =
+            {
+            #ifdef LSP_INSTALL_PREFIX
+                LSP_INSTALL_PREFIX "/lib",
+                LSP_INSTALL_PREFIX "/lib64",
+                LSP_INSTALL_PREFIX "/bin",
+                LSP_INSTALL_PREFIX "/sbin",
+            #endif /* LSP_INSTALL_PREFIX */
+
+                "/usr/local/lib32",
+                "/usr/lib32",
+                "/lib32",
+                "/usr/local/lib",
+                "/usr/lib",
+                "/lib",
+                "/usr/local/bin",
+                "/usr/bin",
+                "/bin",
+                "/usr/local/sbin",
+                "/usr/sbin",
+                "/sbin",
+                NULL
+            };
+        #endif
+
+        #ifdef ARCH_64BIT
+            static const char *library_paths[] =
+            {
+            #ifdef LSP_INSTALL_PREFIX
+                LSP_INSTALL_PREFIX "/lib",
+                LSP_INSTALL_PREFIX "/lib64",
+                LSP_INSTALL_PREFIX "/bin",
+                LSP_INSTALL_PREFIX "/sbin",
+            #endif /* LSP_INSTALL_PREFIX */
+
+                "/usr/local/lib64",
+                "/usr/lib64",
+                "/lib64",
+                "/usr/local/lib",
+                "/usr/lib",
+                "/lib",
+                "/usr/local/bin",
+                "/usr/bin",
+                "/bin",
+                "/usr/local/sbin",
+                "/usr/sbin",
+                "/sbin",
+                NULL
+            };
+        #endif /* ARCH_64_BIT */
+    #endif /* PLATFORM_POSIX */
+
+        void free_audio_backends(lltl::parray<AudioBackendInfo> * list)
+        {
+            if (list == NULL)
+                return;
+
+            for (lltl::iterator<AudioBackendInfo> it=list->values(); it; ++it)
+            {
+                AudioBackendInfo * const info = it.get();
+                if (info != NULL)
+                    delete info;
+            }
+            list->flush();
+        }
+
+        static bool check_duplicate(lltl::parray<AudioBackendInfo> *list, const AudioBackendInfo *info)
+        {
+            for (lltl::iterator<AudioBackendInfo> it = list->values(); it; ++it)
+            {
+                const AudioBackendInfo *src = it.get();
+
+                if ((src->uid.equals(&info->uid))
+                    && (src->display.equals(&info->display))
+                    && (src->lc_key.equals(&info->lc_key))
+                    && (version_cmp(src->version, info->version) == 0))
+                    return true;
+            }
+
+            return false;
+        }
+
+        static status_t commit_audio_factory(
+            lltl::parray<AudioBackendInfo> *list,
+            const LSPString *path,
+            audio::factory_t *factory,
+            const version_t *mversion)
+        {
+            for (size_t id=0; ; ++id)
+            {
+                // Get metadata record
+                const audio::backend_metadata_t *meta = factory->metadata(factory, id);
+                if (meta == NULL)
+                    break;
+                else if (meta->id == NULL)
+                    continue;
+
+                // Create library descriptor
+                AudioBackendInfo *info = new AudioBackendInfo();
+                if (info == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally {
+                    if (info != NULL)
+                        delete info;
+                };
+
+                info->builtin           = (path != NULL) ? NULL : factory;
+                info->local_id          = id;
+                version_copy(&info->version, mversion);
+                if (path != NULL)
+                {
+                    if (!info->library.set(path))
+                        return STATUS_NO_MEM;
+                }
+
+                if ((!info->uid.set_utf8(meta->id)) ||
+                    (!info->display.set_utf8((meta->display != NULL) ? meta->display : meta->id)) ||
+                    (!info->lc_key.set_utf8((meta->lc_key != NULL) ? meta->lc_key : meta->id)))
+                    return STATUS_NO_MEM;
+
+                // Check for duplicates
+                if (check_duplicate(list, info))
+                {
+                    lsp_trace("    library %s provides duplicated backend %s (%s)",
+                        info->library.get_native(),
+                        info->uid.get_native(),
+                        info->display.get_native());
+                    return STATUS_DUPLICATED;
+                }
+
+                // Add backend descriptor to the list
+                if (!list->add(info))
+                    return STATUS_NO_MEM;
+                info = NULL;
+            }
+
+            return STATUS_OK;
+        }
+
+        static status_t register_audio_backend(lltl::parray<AudioBackendInfo> *list, const LSPString *path)
+        {
+            ipc::Library lib;
+
+            lsp_trace("  probing library %s", path->get_native());
+
+            // Open library
+            status_t res = lib.open(path);
+            if (res != STATUS_OK)
+                return res;
+            lsp_finally { lib.close(); };
+
+            // Perform R3D interface version control
+            module_version_t vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_AUDIO_IFACE_VERSION_FUNC_NAME));
+            const version_t *mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
+            if (mversion == NULL)
+            {
+                lsp_trace("    not provided audio backend interface version");
+                return STATUS_INCOMPATIBLE;
+            }
+            else if (version_cmp(&audio_iface_version, mversion) != 0)
+            {
+                lsp_trace("    mismatched audio backend interface version: %d.%d.%d-%s vs %d.%d.%d-%s",
+                    audio_iface_version.major, audio_iface_version.minor, audio_iface_version.micro, audio_iface_version.branch,
+                    mversion->major, mversion->minor, mversion->micro, mversion->branch);
+                return STATUS_INCOMPATIBLE;
+            }
+
+            // Get the module version
+            vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_VERSION_FUNC_NAME));
+            mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
+            if (mversion == NULL)
+            {
+                lsp_trace("    missing module version function");
+                return STATUS_INCOMPATIBLE;
+            }
+
+            // Lookup function
+            audio::factory_function_t func = reinterpret_cast<audio::factory_function_t>(lib.import(LSP_AUDIO_FACTORY_FUNCTION_NAME));
+            if (func == NULL)
+            {
+                lsp_trace("    missing factory function %s", LSP_AUDIO_FACTORY_FUNCTION_NAME);
+                return STATUS_NOT_FOUND;
+            }
+
+            // Try to instantiate factory
+            size_t found = 0;
+            for (int idx=0; ; ++idx)
+            {
+                audio::factory_t * const factory  = func(idx);
+                if (factory == NULL)
+                    break;
+
+                // Fetch metadata and store
+                res = commit_audio_factory(list, path, factory, mversion);
+                ++found;
+            }
+
+            // Close the library
+            return (found > 0) ? res : STATUS_NOT_FOUND;
+        }
+
+        static status_t register_audio_backend(lltl::parray<AudioBackendInfo> *list, const io::Path *path)
+        {
+            if (path == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            return register_audio_backend(list, path->as_string());
+        }
+
+//        static status_t register_audio_backend(lltl::parray<AudioBackendInfo> *list, const char *path)
+//        {
+//            LSPString tmp;
+//            if (path == NULL)
+//                return STATUS_BAD_ARGUMENTS;
+//            if (!tmp.set_utf8(path))
+//                return STATUS_NO_MEM;
+//            return register_audio_backend(list, &tmp);
+//        }
+
+        static void lookup_audio_backends(lltl::parray<AudioBackendInfo> *list, const io::Path *path, const char *part)
+        {
+            io::Dir dir;
+
+            lsp_trace("Lookup audio backend in directory:%s", path->as_native());
+
+            status_t res = dir.open(path);
+            if (res != STATUS_OK)
+                return;
+
+            io::Path child;
+            LSPString item, substring;
+            if (!substring.set_utf8(part))
+                return;
+
+            io::fattr_t fattr;
+            while ((res = dir.read(&item, false)) == STATUS_OK)
+            {
+                if (item.index_of(&substring) < 0)
+                    continue;
+                if (!ipc::Library::valid_library_name(&item))
+                    continue;
+
+                if ((res = child.set(path, &item)) != STATUS_OK)
+                    continue;
+                if ((res = child.stat(&fattr)) != STATUS_OK)
+                    continue;
+
+                switch (fattr.type)
+                {
+                    case io::fattr_t::FT_DIRECTORY:
+                    case io::fattr_t::FT_BLOCK:
+                    case io::fattr_t::FT_CHARACTER:
+                        continue;
+                    default:
+                        register_audio_backend(list, &child);
+                        break;
+                }
+            }
+        }
+
+        void lookup_audio_backends(lltl::parray<AudioBackendInfo> * list, const char *path, const char *part)
+        {
+            io::Path tmp;
+            if (tmp.set(path) != STATUS_OK)
+                return;
+            lookup_audio_backends(list, &tmp, part);
+        }
+
+//        static void lookup_audio_backends(lltl::parray<AudioBackendInfo> *list, const LSPString *path, const char *part)
+//        {
+//            io::Path tmp;
+//            if (tmp.set(path) != STATUS_OK)
+//                return;
+//            lookup_audio_backends(list, &tmp, part);
+//        }
+
+        status_t scan_audio_backends(lltl::parray<AudioBackendInfo> *list)
+        {
+            if (list == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            status_t res;
+            lltl::parray<AudioBackendInfo> tmp;
+            lsp_finally { free_audio_backends(&tmp); };
+
+            // Scan for built-in libraries
+            for (int idx=0; ; ++idx)
+            {
+                audio::factory_t * const factory = audio::Factory::enumerate(idx);
+                if (factory == NULL)
+                    break;
+
+                // Commit factory to the list of backends
+                if ((res = commit_audio_factory(&tmp, NULL, factory, &plugin_fw_version)) != STATUS_OK)
+                    return res;
+            }
+
+            // Scan for another locations
+            io::Path path;
+            res = ipc::Library::get_self_file(&path);
+            if (res == STATUS_OK)
+                res     = path.parent();
+            if (res == STATUS_OK)
+                lookup_audio_backends(&tmp, &path, AUDIO_LIBRARY_FILE_PART);
+
+            // Scan for standard paths
+        #ifdef PLATFORM_POSIX
+            for (const char **paths = library_paths; *paths != NULL; ++paths)
+                lookup_audio_backends(&tmp, *paths, AUDIO_LIBRARY_FILE_PART);
+        #endif /* PLATFORM_POSIX */
+
+            tmp.swap(list);
+
+            return STATUS_OK;
+        }
+
+    } /* namespace core */
+} /* namespace lsp */
+
+

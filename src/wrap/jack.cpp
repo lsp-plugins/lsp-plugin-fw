@@ -790,7 +790,7 @@ namespace lsp
             // Output routing if specified
             if (!sCmdLine.routing.is_empty())
             {
-                printf("JACK connection routing:\n");
+                printf("Audio connection routing:\n");
                 for (size_t i=0, n=sCmdLine.routing.size(); i<n; ++i)
                 {
                     jack::connection_t *conn = sCmdLine.routing.uget(i);

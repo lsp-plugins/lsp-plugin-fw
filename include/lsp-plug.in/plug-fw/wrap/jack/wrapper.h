@@ -27,6 +27,7 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
+#include <lsp-plug.in/plug-fw/core/AudioBackend.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/core/ShmClient.h>
@@ -114,6 +115,7 @@ namespace lsp
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
                 core::ShmClient                *pShmClient;         // Shared memory client
 
+                lltl::parray<core::AudioBackendInfo>    vAudioBackends;     // All available audio backends
                 lltl::parray<jack::Port>        vAllPorts;          // All ports
                 lltl::parray<jack::Port>        vParams;            // All input parameters
                 lltl::parray<jack::MeterPort>   vMeters;            // Meters

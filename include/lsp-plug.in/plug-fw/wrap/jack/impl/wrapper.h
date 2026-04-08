@@ -112,6 +112,10 @@ namespace lsp
                 return res;
             }
 
+            // Scan for audio backends
+            if ((res = core::scan_audio_backends(&vAudioBackends)) != STATUS_OK)
+                return res;
+
             // Obtain plugin metadata
             if (pPlugin == NULL)
                 return STATUS_BAD_STATE;
@@ -579,6 +583,9 @@ namespace lsp
                 delete pExecutor;
                 pExecutor   = NULL;
             }
+
+            // Destroy audio backend information
+            core::free_audio_backends(&vAudioBackends);
 
             // Destroy package
             meta::free_manifest(pPackage);
