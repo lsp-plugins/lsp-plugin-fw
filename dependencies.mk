@@ -1,6 +1,6 @@
 #
-# Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
-#           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+# Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+#           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
 #
 # This file is part of lsp-plugin-fw
 #
@@ -80,7 +80,8 @@ DEPENDENCIES_GST_BIN =
 
 # JACK dependencies
 DEPENDENCIES_JACK = \
-  $(DEPENDENCIES_COMMON)
+  $(DEPENDENCIES_COMMON) \
+  LSP_AUDIO_IFACE
 
 DEPENDENCIES_JACK_UI = \
   $(DEPENDENCIES_COMMON_UI)
@@ -236,7 +237,8 @@ LINUX_DEPENDENCIES_JACK_UI = \
 LINUX_DEPENDENCIES_JACK_WRAP = \
   LIBDL
 
-LINUX_DEPENDENCIES_JACK_BIN =
+LINUX_DEPENDENCIES_JACK_BIN = \
+  LSP_AUDIO_JACK_LIB
   
 LINUX_DEPENDENCIES_JACK_UI_BIN = \
   LSP_R3D_GLX_LIB

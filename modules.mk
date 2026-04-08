@@ -1,6 +1,6 @@
 #
-# Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
-#           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+# Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+#           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
 #
 # This file is part of lsp-plugin-fw
 #
@@ -25,6 +25,18 @@ LSP_3RD_PARTY_TYPE         := hdr
 LSP_3RD_PARTY_INC_OPT      := -idirafter
 LSP_3RD_PARTY_URL_RO       := https://github.com/lsp-plugins/$(LSP_3RD_PARTY_NAME).git
 LSP_3RD_PARTY_URL_RW       := git@github.com:lsp-plugins/$(LSP_3RD_PARTY_NAME).git
+
+LSP_AUDIO_IFACE_VERSION    := 1.0.0
+LSP_AUDIO_IFACE_NAME       := lsp-audio-iface
+LSP_AUDIO_IFACE_TYPE       := src
+LSP_AUDIO_IFACE_URL_RO     := https://github.com/lsp-plugins/$(LSP_AUDIO_IFACE_NAME).git
+LSP_AUDIO_IFACE_URL_RW     := git@github.com:lsp-plugins/$(LSP_AUDIO_IFACE_NAME).git
+
+LSP_AUDIO_JACK_LIB_VERSION := 1.0.0
+LSP_AUDIO_JACK_LIB_NAME    := lsp-audio-jack-lib
+LSP_AUDIO_JACK_LIB_TYPE    := src
+LSP_AUDIO_JACK_LIB_URL_RO  := https://github.com/lsp-plugins/$(LSP_AUDIO_JACK_LIB_NAME).git
+LSP_AUDIO_JACK_LIB_URL_RW  := git@github.com:lsp-plugins/$(LSP_AUDIO_JACK_LIB_NAME).git
 
 LSP_COMMON_LIB_VERSION     := 1.0.46
 LSP_COMMON_LIB_NAME        := lsp-common-lib
