@@ -27,6 +27,7 @@
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
+#include <lsp-plug.in/audio/iface/backend.h>
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/stdlib/math.h>
@@ -37,9 +38,6 @@
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
-
-#include <jack/jack.h>
-#include <jack/midiport.h>
 
 namespace lsp
 {
@@ -96,7 +94,7 @@ namespace lsp
         class DataPort: public Port
         {
             private:
-                jack_port_t    *pPort;              // JACK port descriptor
+                audio::port_id_t nPortID;           // Port identifier of the backend
                 void           *pDataBuffer;        // Real data buffer passed from JACK
                 void           *pBuffer;            // Data buffer
                 plug::midi_t   *pMidi;              // Midi buffer for operating MIDI messages
@@ -108,7 +106,7 @@ namespace lsp
             public:
                 explicit DataPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
                 {
-                    pPort       = NULL;
+                    nPortID     = -1;
                     pDataBuffer = NULL;
                     pBuffer     = NULL;
                     pMidi       = NULL;
@@ -121,7 +119,7 @@ namespace lsp
 
                 virtual ~DataPort() override
                 {
-                    pPort       = NULL;
+                    nPortID     = -1;
                     pDataBuffer = NULL;
                     pBuffer     = NULL;
                     pMidi       = NULL;
@@ -152,12 +150,12 @@ namespace lsp
             public:
                 status_t disconnect()
                 {
-                    if (pPort == NULL)
+                    if (nPortID < 0)
                         return STATUS_OK;
 
-                    jack_client_t *cl   = pWrapper->client();
-                    if (cl != NULL)
-                        jack_port_unregister(cl, pPort);
+                    audio::backend_t * const backend = pWrapper->backend();
+                    if (backend != NULL)
+                        backend->unregister_port(backend, nPortID);
 
                     if (pSanitized != NULL)
                     {
@@ -171,7 +169,7 @@ namespace lsp
                         pMidi       = NULL;
                     }
 
-                    pPort       = NULL;
+                    nPortID     = -1;
                     nBufSize    = 0;
 
                     return STATUS_OK;
@@ -179,13 +177,17 @@ namespace lsp
 
                 status_t connect()
                 {
+                    audio::backend_t * const backend = pWrapper->backend();
+                    if (backend == NULL)
+                        return STATUS_DISCONNECTED;
+
                     // Determine port type
-                    const char *port_type = NULL;
+                    uint32_t port_flags     = 0;
                     if (meta::is_audio_port(pMetadata))
-                        port_type = JACK_DEFAULT_AUDIO_TYPE;
+                        port_flags         |= audio::PORT_TYPE_AUDIO;
                     else if (meta::is_midi_port(pMetadata))
                     {
-                        port_type   = JACK_DEFAULT_MIDI_TYPE;
+                        port_flags         |= audio::PORT_TYPE_MIDI;
                         pMidi       = static_cast<plug::midi_t *>(::malloc(sizeof(plug::midi_t)));
                         if (pMidi == NULL)
                             return STATUS_NO_MEM;
@@ -195,29 +197,21 @@ namespace lsp
                         return STATUS_BAD_FORMAT;
 
                     // Determine flags
-                    size_t flags = (meta::is_out_port(pMetadata)) ? JackPortIsOutput : JackPortIsInput;
-
-                    // Get client
-                    jack_client_t *cl   = pWrapper->client();
-                    if (cl == NULL)
-                    {
-                        if (pMidi != NULL)
-                        {
-                            ::free(pMidi);
-                            pMidi   = NULL;
-                        }
-                        return STATUS_DISCONNECTED;
-                    }
+                    port_flags |= (meta::is_out_port(pMetadata)) ? audio::PORT_DIR_OUT : audio::PORT_DIR_IN;
 
                     // Register port
-                    pPort       = jack_port_register(cl, pMetadata->id, port_type, flags, 0);
+                    nPortID     = backend->register_port(backend, pMetadata->id, port_flags);
 
-                    return (pPort != NULL) ? STATUS_OK : STATUS_UNKNOWN_ERR;
+                    return (nPortID >= 0) ? STATUS_OK : STATUS_UNKNOWN_ERR;
                 }
 
-                const char *jack_name() const
+                const char *system_name() const
                 {
-                    return jack_port_name(pPort);
+                    if (nPortID < 0)
+                        return NULL;
+
+                    audio::backend_t * const backend = pWrapper->backend();
+                    return backend->port_system_name(backend, nPortID);
                 }
 
                 void set_buffer_size(size_t size)
@@ -246,85 +240,94 @@ namespace lsp
                     dsp::fill_zero(pSanitized, nBufSize);
                 }
 
-                void report_latency(ssize_t latency)
-                {
-                    // Only output ports should report latency
-                    if ((pMetadata == NULL) || (!meta::is_out_port(pMetadata)))
-                        return;
-
-                    // Report latency
-                    jack_latency_range_t range;
-                    jack_port_get_latency_range(pPort, JackCaptureLatency, &range);
-                    range.min += latency;
-                    range.max += latency;
-                    jack_port_set_latency_range (pPort, JackCaptureLatency, &range);
-                }
-
                 bool before_process(size_t samples)
                 {
-                    if (pPort == NULL)
+                    if (nPortID < 0)
                     {
                         pBuffer     = NULL;
                         return false;
                     }
 
-                    pDataBuffer = jack_port_get_buffer(pPort, samples);
-                    pBuffer     = pDataBuffer;
+                    status_t res;
+                    audio::backend_t * const backend = pWrapper->backend();
 
                     if (pMidi != NULL)
                     {
-                        if ((pBuffer != NULL) && (meta::is_in_port(pMetadata)))
+                        if (meta::is_in_port(pMetadata))
                         {
                             // Clear our buffer
                             pMidi->clear();
 
                             // Read MIDI events
-                            jack_midi_event_t   midi_event;
+                            audio::midi_event_t midi_event;
                             midi::event_t       ev;
 
-                            jack_nframes_t event_count = jack_midi_get_event_count(pBuffer);
-                            for (jack_nframes_t i=0; i<event_count; i++)
+                            const size_t event_count = backend->midi_events_count(backend, nPortID);
+                            for (size_t i=0; i<event_count; ++i)
                             {
                                 // Read MIDI event
-                                if (jack_midi_event_get(&midi_event, pBuffer, i) != 0)
+                                if ((res = backend->read_midi_event(backend, nPortID, &midi_event, i)) != STATUS_OK)
                                 {
-                                    lsp_warn("Could not fetch MIDI event #%d from JACK port", int(i));
+                                    lsp_warn("Could not fetch MIDI event #%d from MIDI port", int(i));
                                     continue;
                                 }
 
                                 // Convert MIDI event
-                                if (midi::decode(&ev, midi_event.buffer) <= 0)
+                                if (midi::decode(&ev, midi_event.data) <= 0)
                                 {
-                                    lsp_warn("Could not decode MIDI event #%d at timestamp %d from JACK port", int(i), int(midi_event.time));
+                                    lsp_warn("Could not decode MIDI event #%d at timestamp %d from MIDI port", int(i), int(midi_event.timestamp));
                                     continue;
                                 }
 
                                 // Update timestamp and store event
-                                ev.timestamp    = midi_event.time;
+                                ev.timestamp    = midi_event.timestamp;
                                 if (!pMidi->push(ev))
-                                    lsp_warn("Could not append MIDI event #%d at timestamp %d due to buffer overflow", int(i), int(midi_event.time));
+                                    lsp_warn("Could not append MIDI event #%d at timestamp %d due to buffer overflow", int(i), int(midi_event.timestamp));
                             }
 
                             // All MIDI events ARE ordered chronologically, we do not need to perform sort
                         }
-
-                        // Replace pBuffer with pMidi
-                        pBuffer     = pMidi;
                     }
-                    else if (pSanitized != NULL) // Need to sanitize?
+                    else
                     {
-                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pDataBuffer), samples) ); // Trace input data
-
-                        // Perform sanitize() if possible
-                        if (samples <= nBufSize)
+                        const size_t buf_count = backend->audio_buffers_count(backend, nPortID);
+                        if (pSanitized != NULL) // Need to sanitize?
                         {
-                            dsp::sanitize2(pSanitized, reinterpret_cast<float *>(pDataBuffer), samples);
-                            pBuffer = pSanitized;
+                            float * const buf1  = backend->get_audio_buffer(backend, nPortID, 0);
+                            if ((buf_count == 0) || (buf1 == NULL))
+                            {
+                                dsp::fill_zero(pSanitized, samples);
+                                pDataBuffer     = NULL;
+                            }
+                            else if (buf_count > 1)
+                            {
+                                // Need to mix buffers together
+                                float * buf2        = backend->get_audio_buffer(backend, nPortID, 1);
+                                dsp::add3(pSanitized, buf1, buf2, samples);
+                                for (size_t i=2; ; ++i)
+                                {
+                                    if ((buf2 = backend->get_audio_buffer(backend, nPortID, i)) == NULL)
+                                        break;
+                                    dsp::add2(pSanitized, buf2, samples);
+                                }
+
+                                // Now we can sanitize the data
+                                dsp::sanitize1(pSanitized, samples);
+                                pDataBuffer     = pSanitized;
+                            }
+                            else
+                            {
+                                dsp::sanitize2(pSanitized, buf1, samples);
+                                pDataBuffer     = buf1;
+                            }
+
+                            IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pDataBuffer), samples) ); // Trace input data
+                            pBuffer         = pSanitized;
                         }
                         else
                         {
-                            lsp_warn("Could not sanitize buffer data for port %s, not enough buffer size (required: %d, actual: %d)",
-                                    pMetadata->id, int(samples), int(nBufSize));
+                            pDataBuffer     = backend->get_audio_buffer(backend, nPortID, 0);
+                            pBuffer         = pDataBuffer;
                         }
                     }
 
@@ -335,8 +338,7 @@ namespace lsp
                 {
                     if ((pMidi != NULL) && (pDataBuffer != NULL) && (meta::is_out_port(pMetadata)))
                     {
-                        // Reset buffer
-                        jack_midi_clear_buffer(pDataBuffer);
+                        audio::backend_t * const backend = pWrapper->backend();
 
                         // Transfer MIDI events
                         pMidi->sort();  // All events SHOULD be ordered chonologically
@@ -354,10 +356,10 @@ namespace lsp
                             }
 
                             // Allocate MIDI event
-                            jack_midi_data_t *midi_data     = jack_midi_event_reserve(pDataBuffer, ev->timestamp, size);
+                            uint8_t * const midi_data       = backend->write_midi_event(backend, nPortID, ev->timestamp, size);
                             if (midi_data == NULL)
                             {
-                                lsp_warn("Could not write MIDI message of type 0x%02x, size=%d, timestamp=%d to JACK output port buffer=%p",
+                                lsp_warn("Could not write MIDI message of type 0x%02x, size=%d, timestamp=%d to output port buffer=%p",
                                         int(ev->type), int(size), int(ev->timestamp), pBuffer);
                                 continue;
                             }
@@ -372,9 +374,11 @@ namespace lsp
                     else if (meta::is_audio_out_port(pMetadata))
                     {
                         // Sanitize output data
-                        dsp::sanitize1(reinterpret_cast<float *>(pDataBuffer), samples);
-
-                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pDataBuffer), samples) ); // Trace output data
+                        if (pDataBuffer != NULL)
+                        {
+                            dsp::sanitize1(reinterpret_cast<float *>(pDataBuffer), samples);
+                            IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pDataBuffer), samples) ); // Trace output data
+                        }
                     }
 
                     pBuffer     = NULL;

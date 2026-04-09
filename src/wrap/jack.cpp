@@ -46,6 +46,7 @@
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 
+#include <lsp-plug.in/plug-fw/core/AudioBackend.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/jack/types.h>
@@ -137,6 +138,7 @@ namespace lsp
             bool            list;
             bool            version;
             bool            minimized;
+            bool            list_backends;
             lltl::darray<connection_t> routing;
         } cmdline_t;
 
@@ -310,6 +312,8 @@ namespace lsp
             cfg->headless       = false;
             cfg->list           = false;
             cfg->version        = false;
+            cfg->minimized      = false;
+            cfg->list_backends  = false;
 
             // Parse arguments
             int i = 1;
@@ -333,6 +337,7 @@ namespace lsp
                     printf("  -hl, --headless           Launch in console only, without UI\n");
                     if (plugin_id == NULL)
                         printf("  -l, --list                List available plugin identifiers\n");
+                    printf("  -lb, --list-backends      List available audio backends and quit\n");
                     printf("  -mw, --minimized          Launch UI with minimized window\n");
                     printf("  -n, --name                Specify the client name for JACK\n");
                     printf("  -s, --schema              Specify the UI schema name\n");
@@ -412,6 +417,8 @@ namespace lsp
                     cfg->list           = true;
                 else if ((plugin_id == NULL) && (cfg->plugin_id == NULL))
                     cfg->plugin_id      = argv[i++];
+                else if ((!::strcmp(arg, "--list-backends")) || (!::strcmp(arg, "-lb")))
+                    cfg->list_backends  = true;
                 else if ((!::strcmp(arg, "--connect")) || (!::strcmp(arg, "-x")))
                 {
                     if (i >= argc)
@@ -773,6 +780,28 @@ namespace lsp
                 return STATUS_CANCELLED;
             }
 
+            // Obtain list of available audio backends
+            lltl::parray<core::AudioBackendInfo> audio_backends;
+            if ((res = core::scan_audio_backends(&audio_backends)) != STATUS_OK)
+            {
+                lsp_error("Error while scanning available audio backends: result=%d\n", int(res));
+                return res;
+            }
+            lsp_finally { core::free_audio_backends(&audio_backends); };
+            if (sCmdLine.list_backends)
+            {
+                printf("List of available audio backends:\n");
+                for (lltl::iterator<core::AudioBackendInfo> it=audio_backends.values(); it; ++it)
+                {
+                    const core::AudioBackendInfo *backend = it.get();
+                    printf("  %s - %s (%s)\n",
+                        backend->uid.get_native(),
+                        backend->display.get_native(),
+                        (backend->builtin != NULL) ? "builtin" : backend->library.get_native());
+                }
+                return STATUS_CANCELLED;
+            }
+
             // Plugin identifier has been specified?
             if (sCmdLine.plugin_id == NULL)
             {
@@ -847,7 +876,7 @@ namespace lsp
 
             // Initialize plugin wrapper
             pRouting            = &sCmdLine.routing;
-            pWrapper            = new jack::Wrapper(pFactory, pPlugin, pLoader, &info);
+            pWrapper            = new jack::Wrapper(pFactory, pPlugin, pLoader, &info, &audio_backends);
             if (pWrapper == NULL)
                 return STATUS_NO_MEM;
 
@@ -1029,7 +1058,7 @@ namespace lsp
             if (jw->connection_lost())
             {
                 // Disconnect wrapper and remember last connection time
-                fprintf(stderr, "Connection to JACK has been lost\n");
+                fprintf(stderr, "Connection to audio backend has been lost\n");
                 jw->disconnect();
             #ifdef WITH_UI_FEATURE
                 if (uw != NULL)

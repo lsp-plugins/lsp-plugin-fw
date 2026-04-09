@@ -41,7 +41,7 @@
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/dsp-units/units.h>
 
-#include <jack/jack.h>
+//#include <jack/jack.h>
 
 namespace lsp
 {
@@ -93,8 +93,13 @@ namespace lsp
                 } audio_return_t;
 
             private:
+                static const audio::callbacks_t callbacks;
+
+            private:
                 jack::Factory                  *pFactory;           // Factory for shared resources
-                jack_client_t                  *pClient;            // JACK connection client
+                audio::backend_t               *pBackend;           // Currently active backend
+                ipc::Library                    sBackendLibrary;    // Currently used backend library
+                size_t                          nCurrentBackend;    // Currently used audio backend
                 char                           *sClientName;        // JACK client name
                 state_t                         nState;             // Connection state to JACK server
                 bool                            bUpdateSettings;    // Plugin settings are required to be updated
@@ -129,23 +134,30 @@ namespace lsp
             protected:
                 void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
                 int             sync_position(jack_transport_state_t state, const jack_position_t *pos);
-                int             latency_callback(jack_latency_callback_mode_t mode);
-                int             run(size_t samples);
+                status_t        run(const audio::io_position_t *position, size_t samples);
 
                 status_t        import_settings(config::PullParser *parser);
                 status_t        import_settings_work(config::PullParser *parser);
 
             protected:
-                static int      process(jack_nframes_t nframes, void *arg);
-                static int      sync_buffer_size(jack_nframes_t nframes, void *arg);
-                static int      sync_sample_rate(jack_nframes_t nframes, void *arg);
-                static int      jack_sync(jack_transport_state_t state, jack_position_t *pos, void *arg);
-                static int      latency_callback(jack_latency_callback_mode_t mode, void *arg);
-                static void     shutdown(void *arg);
+                static status_t on_connected(void *user_data, const audio::io_parameters_t *params);
+                static status_t on_activated(void *user_data);
+                static status_t on_io_changed(void *user_data, const audio::io_parameters_t *params);
+                static status_t on_process(void *user_data, const audio::io_position_t *position, uint32_t frames);
+                static status_t on_deactivated(void *user_data);
+                static void     on_connection_lost(void *user_data);
+                static void     on_disconnected(void *user_data);
+
+            protected:
                 static bool     set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
-                explicit Wrapper(jack::Factory *factory, plug::Module *plugin, resource::ILoader *loader, const wrapper_info_t *info);
+                explicit Wrapper(
+                    jack::Factory *factory,
+                    plug::Module *plugin,
+                    resource::ILoader *loader,
+                    const wrapper_info_t *info,
+                    lltl::parray<core::AudioBackendInfo> *backends);
                 Wrapper(const Wrapper &) = delete;
                 Wrapper(Wrapper &&) = delete;
                 virtual ~Wrapper() override;
@@ -169,11 +181,12 @@ namespace lsp
                 virtual const core::ShmState       *shm_state() override;
 
             public:
-                inline jack_client_t               *client();
+                inline audio::backend_t            *backend();
                 inline bool                         initialized() const;
                 inline bool                         connected() const;
                 inline bool                         disconnected() const;
                 inline bool                         connection_lost() const;
+                inline const core::AudioBackendInfo *get_audio_backend(size_t index) const { return vAudioBackends.get(index);  }
 
                 inline core::SamplePlayer          *sample_player();
 

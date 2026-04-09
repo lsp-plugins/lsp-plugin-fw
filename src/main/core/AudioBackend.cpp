@@ -121,13 +121,14 @@ namespace lsp
         static status_t commit_audio_factory(
             lltl::parray<AudioBackendInfo> *list,
             const LSPString *path,
+            size_t factory_id,
             audio::factory_t *factory,
             const version_t *mversion)
         {
-            for (size_t id=0; ; ++id)
+            for (size_t local_id=0; ; ++local_id)
             {
                 // Get metadata record
-                const audio::backend_metadata_t *meta = factory->metadata(factory, id);
+                const audio::backend_metadata_t *meta = factory->metadata(factory, local_id);
                 if (meta == NULL)
                     break;
                 else if (meta->id == NULL)
@@ -143,7 +144,8 @@ namespace lsp
                 };
 
                 info->builtin           = (path != NULL) ? NULL : factory;
-                info->local_id          = id;
+                info->factory_id        = factory_id;
+                info->local_id          = local_id;
                 version_copy(&info->version, mversion);
                 if (path != NULL)
                 {
@@ -187,7 +189,7 @@ namespace lsp
                 return res;
             lsp_finally { lib.close(); };
 
-            // Perform R3D interface version control
+            // Perform audio interface version control
             module_version_t vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_AUDIO_IFACE_VERSION_FUNC_NAME));
             const version_t *mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
             if (mversion == NULL)
@@ -222,14 +224,14 @@ namespace lsp
 
             // Try to instantiate factory
             size_t found = 0;
-            for (int idx=0; ; ++idx)
+            for (int factory_id=0; ; ++factory_id)
             {
-                audio::factory_t * const factory  = func(idx);
+                audio::factory_t * const factory  = func(factory_id);
                 if (factory == NULL)
                     break;
 
                 // Fetch metadata and store
-                res = commit_audio_factory(list, path, factory, mversion);
+                res = commit_audio_factory(list, path, factory_id, factory, mversion);
                 ++found;
             }
 
@@ -321,14 +323,14 @@ namespace lsp
             lsp_finally { free_audio_backends(&tmp); };
 
             // Scan for built-in libraries
-            for (int idx=0; ; ++idx)
+            for (int factory_id=0; ; ++factory_id)
             {
-                audio::factory_t * const factory = audio::Factory::enumerate(idx);
+                audio::factory_t * const factory = audio::Factory::enumerate(factory_id);
                 if (factory == NULL)
                     break;
 
                 // Commit factory to the list of backends
-                if ((res = commit_audio_factory(&tmp, NULL, factory, &plugin_fw_version)) != STATUS_OK)
+                if ((res = commit_audio_factory(&tmp, NULL, factory_id, factory, &plugin_fw_version)) != STATUS_OK)
                     return res;
             }
 
@@ -347,6 +349,85 @@ namespace lsp
         #endif /* PLATFORM_POSIX */
 
             tmp.swap(list);
+
+            return STATUS_OK;
+        }
+
+        status_t create_audio_backend(audio::backend_t ** backend, ipc::Library *library, const AudioBackendInfo *info)
+        {
+            status_t res;
+            audio::backend_t * result;
+
+            if (info->builtin != NULL)
+            {
+                if ((result = info->builtin->create(info->builtin, info->local_id)) == NULL)
+                    return STATUS_NO_MEM;
+                *backend = result;
+                return STATUS_OK;
+            }
+
+            // Open library
+            if ((res = library->open(&info->library)) != STATUS_OK)
+            {
+                lsp_error("Failed to load library %s: code=%d", info->library.get_native(), int(res));
+                return res;
+            }
+            bool close_library = true;
+            lsp_finally {
+                if (close_library)
+                    library->close();
+            };
+
+            // Perform audio interface version control
+            module_version_t vfunc = reinterpret_cast<module_version_t>(library->import(LSP_AUDIO_IFACE_VERSION_FUNC_NAME));
+            const version_t *mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
+            if (mversion == NULL)
+            {
+                lsp_error("Failed to load library %s: not provided audio backend interface version", info->library.get_native());
+                return STATUS_INCOMPATIBLE;
+            }
+            else if (version_cmp(&audio_iface_version, mversion) != 0)
+            {
+                lsp_error(
+                    "Failed to load library %s: mismatched audio backend interface version: %d.%d.%d-%s vs %d.%d.%d-%s",
+                    info->library.get_native(),
+                    audio_iface_version.major, audio_iface_version.minor, audio_iface_version.micro, audio_iface_version.branch,
+                    mversion->major, mversion->minor, mversion->micro, mversion->branch);
+                return STATUS_INCOMPATIBLE;
+            }
+
+            // Get the module version
+            vfunc = reinterpret_cast<module_version_t>(library->import(LSP_VERSION_FUNC_NAME));
+            mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
+            if (mversion == NULL)
+            {
+                lsp_error("Failed to load library %s: missing module version function", info->library.get_native());
+                return STATUS_INCOMPATIBLE;
+            }
+
+            // Lookup factory function
+            audio::factory_function_t factory_func = reinterpret_cast<audio::factory_function_t>(library->import(LSP_AUDIO_FACTORY_FUNCTION_NAME));
+            if (factory_func == NULL)
+            {
+                lsp_error("Failed to load library %s: missing factory function %s", info->library.get_native(), LSP_AUDIO_FACTORY_FUNCTION_NAME);
+                return STATUS_NOT_FOUND;
+            }
+
+            // Get audio factory
+            audio::factory_t * const factory = factory_func(int(info->factory_id));
+            if (factory == NULL)
+            {
+                lsp_error("Failed to load library %s: unable to obtain factory with index %d", info->library.get_native(), int(info->factory_id));
+                return STATUS_NOT_FOUND;
+            }
+
+            // Now intantiate client
+            if ((result = factory->create(factory, info->local_id)) == NULL)
+                return STATUS_NO_MEM;
+
+            // Return successful result
+            *backend = result;
+            close_library = false;
 
             return STATUS_OK;
         }

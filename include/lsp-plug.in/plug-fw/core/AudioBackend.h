@@ -40,6 +40,7 @@ namespace lsp
             LSPString           lc_key;             // Localization key
             version_t           version;            // Module version
             audio::factory_t   *builtin;            // Pointer to built-in factory
+            size_t              factory_id;         // The ID of the factory
             size_t              local_id;           // The ID of the item inside of the factory
         } AudioBackendInfo;
 
@@ -55,6 +56,15 @@ namespace lsp
          * @param list list of audio backends to clear
          */
         void free_audio_backends(lltl::parray<AudioBackendInfo> * list);
+
+        /**
+         * Create audio backend
+         * @param backend pointer to store audio backend
+         * @param library library object for loading shared object (if needed)
+         * @param info backend descriptor
+         * @return status of operation
+         */
+        status_t create_audio_backend(audio::backend_t ** backend, ipc::Library *library, const AudioBackendInfo *info);
     } /* namespace core */
 } /* namespace lsp */
 
