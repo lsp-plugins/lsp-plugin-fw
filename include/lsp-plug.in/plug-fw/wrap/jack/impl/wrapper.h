@@ -256,7 +256,7 @@ namespace lsp
             switch (nState)
             {
                 case S_CREATED:
-                    lsp_error("connect() on uninitialized JACK wrapper");
+                    lsp_error("connect() on uninitialized audio backend wrapper");
                     return STATUS_BAD_STATE;
                 case S_CONNECTED:
                     return STATUS_OK;
@@ -427,6 +427,14 @@ namespace lsp
             if (self->pPlugin != NULL)
                 self->pPlugin->deactivate();
 
+            // Disconnect all data ports
+            for (size_t i=0, n=self->vDataPorts.size(); i<n; ++i)
+            {
+                jack::DataPort * const dp = self->vDataPorts.uget(i);
+                if (dp != NULL)
+                    dp->disconnect();
+            }
+
             return STATUS_OK;
         }
 
@@ -440,15 +448,6 @@ namespace lsp
 
         void Wrapper::on_disconnected(void *user_data)
         {
-            jack::Wrapper * const self     = static_cast<jack::Wrapper *>(user_data);
-
-            // Disconnect all data ports
-            for (size_t i=0, n=self->vDataPorts.size(); i<n; ++i)
-            {
-                jack::DataPort * const dp = self->vDataPorts.uget(i);
-                if (dp != NULL)
-                    dp->disconnect();
-            }
         }
 
         status_t Wrapper::run(const audio::io_position_t *position, size_t samples)

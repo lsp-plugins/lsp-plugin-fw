@@ -1073,7 +1073,7 @@ namespace lsp
                 // Try each second to make new connection
                 if ((ctime - nLastReconnect) >= RECONNECT_INTERVAL)
                 {
-                    printf("Trying to connect to JACK\n");
+                    printf("Trying to connect to the audio backend\n");
                     if (jw->connect() == STATUS_OK)
                     {
                         if (!pRouting->is_empty())
@@ -1082,7 +1082,7 @@ namespace lsp
                             jw->set_routing(pRouting);
                         }
 
-                        printf("Successfully connected to JACK\n");
+                        printf("Successfully connected to audio backend\n");
                         bNotify             = true;
                     }
                     nLastReconnect      = ctime;
