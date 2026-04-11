@@ -323,7 +323,18 @@ namespace lsp
             LSPString tmp;
             tmp.set_utf16(vst3::to_utf16(bus->name));
 
-            lsp_trace("  name       : %s", tmp.get_utf8());
+            LSPString dump;
+            constexpr size_t count = sizeof(Steinberg::Vst::BusInfo::name)/sizeof(Steinberg::Vst::BusInfo::name[0]);
+            for (size_t i=0; i<count; ++i)
+            {
+                if (i > 0)
+                    dump.append(' ');
+                dump.fmt_append_ascii("%04x", int(bus->name[i]));
+                if (bus->name[i] == 0)
+                    break;
+            }
+
+            lsp_trace("  name       : %s (%s)", tmp.get_utf8(), dump.get_utf8());
             lsp_trace("  type       : %s", bus_type_to_str(bus->busType));
             lsp_trace("  media type : %s", media_type_to_str(bus->mediaType));
             lsp_trace("  direction  : %s", bus_direction_to_str(bus->direction));
