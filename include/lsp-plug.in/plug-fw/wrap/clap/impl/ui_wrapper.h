@@ -840,12 +840,18 @@ namespace lsp
             if (!initialize_ui())
                 return false;
 
-            tk::Window *wnd  = window();
+            // Process all pending events before starting the display and show the window
+            tk::Display * const dpy = display();
+            if (dpy == NULL)
+                return false;
+            tk::Window * const wnd  = window();
             if (wnd == NULL)
                 return false;
 
-            // Show the window and start event loop
+            dpy->process_pending_events();
             wnd->show(pTransientFor);
+
+            // Start the event loop
             bool res    = start_event_loop();
             if (!res)
             {
@@ -887,17 +893,22 @@ namespace lsp
             if (pWrapper != NULL)
                 pWrapper->ui_visibility_changed();
 
+            // Hide the window
+            tk::Window * const wnd = window();
+            if (wnd != NULL)
+            {
+                sMutex.lock();
+                lsp_finally { sMutex.unlock(); };
+                wnd->hide();
+            }
+
             // Stop the event loop
             stop_event_loop();
 
-            // Do the sync barrier
-            sMutex.lock();
-            lsp_finally { sMutex.unlock(); };
-
-            // Hide the window
-            tk::Window *wnd = window();
-            if (wnd != NULL)
-                wnd->hide();
+            // Process pending events
+            tk::Display * const dpy = display();
+            if (dpy != NULL)
+                dpy->process_pending_events();
 
             return true;
         }

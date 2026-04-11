@@ -4,6 +4,8 @@
 
 === 1.0.37 ===
 * Updated CLAP DSO de-initialization flow.
+* Fixed out-of-sync event handling for CLAP and VST2 extra UI run loop under
+  Linux when hiding and showing plugin window.
 
 === 1.0.36 ===
 * Fixed test build.

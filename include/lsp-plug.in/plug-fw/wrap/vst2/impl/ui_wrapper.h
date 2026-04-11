@@ -497,12 +497,17 @@ namespace lsp
             }
 
             // Show the UI window
-            tk::Window *wnd  = window();
+            tk::Display * const dpy = display();
+            if (dpy == NULL)
+                return false;
+            tk::Window * const wnd  = window();
             if (wnd == NULL)
                 return false;
 
-            // Show the window and start event loop
+            dpy->process_pending_events();
             wnd->show();
+
+            // Show the window and start event loop
             bool res    = start_event_loop();
             if (!res)
             {
@@ -515,19 +520,23 @@ namespace lsp
 
         void UIWrapper::hide_ui()
         {
-        #ifdef LSP_VST2_ALT_EVENT_LOOP
+            tk::Window * const wnd = window();
+            if (wnd != NULL)
+            {
+                // Do the sync barrier
+                sMutex.lock();
+                lsp_finally { sMutex.unlock(); };
+
+                wnd->hide();
+            }
+
             // Stop the event loop
             stop_event_loop();
 
-            // Do the sync barrier
-            sMutex.lock();
-            lsp_finally { sMutex.unlock(); };
-        #endif /* LSP_VST2_ALT_EVENT_LOOP */
-
-            // Hide the window
-            tk::Window *wnd     = window();
-            if (wnd != NULL)
-                wnd->hide();
+            // Process pending events
+            tk::Display * const dpy = display();
+            if (dpy != NULL)
+                dpy->process_pending_events();
         }
 
         void UIWrapper::resize_ui()
