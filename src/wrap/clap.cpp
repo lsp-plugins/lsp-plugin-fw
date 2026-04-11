@@ -346,10 +346,18 @@ namespace lsp
 
         bool CLAP_ABI ui_get_size(const clap_plugin_t *plugin, uint32_t *width, uint32_t *height)
         {
-            lsp_trace("plugin = %p, width=%p, height=%p", plugin, width, height);
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             UIWrapper *uw = w->ui_wrapper();
-            return (uw != NULL) ? uw->get_size(width, height) : false;
+            const bool result = (uw != NULL) ? uw->get_size(width, height) : false;
+            if (result)
+            {
+                lsp_trace("plugin = %p, width=%p, height=%p, UIWrapper=%p -> width=%d, height=%d",
+                    plugin, width, height, uw, int(*width), int(*height));
+                return false;
+            }
+
+            lsp_trace("plugin = %p, width=%p, height=%p, UIWrapper=%p -> false", plugin, width, height, uw);
+            return false;
         }
 
         bool CLAP_ABI ui_can_resize(const clap_plugin_t *plugin)
