@@ -518,6 +518,10 @@ namespace lsp
 
         void Wrapper::open()
         {
+        #ifdef WITH_UI_FEATURE
+            if (pUIWrapper != NULL)
+                atomic_add(&nUIReq, 1);
+        #endif /* WITH_UI_FEATURE */
         }
 
     #ifdef WITH_UI_FEATURE
