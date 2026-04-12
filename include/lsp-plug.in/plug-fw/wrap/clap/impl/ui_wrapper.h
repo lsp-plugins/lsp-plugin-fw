@@ -533,8 +533,7 @@ namespace lsp
 
             UIWrapper *self     = static_cast<UIWrapper *>(ptr);
             if ((self->bRealizeActive) ||
-                (self->nLastWidth == r->nWidth) ||
-                (self->nLastHeight == r->nHeight))
+                ((self->nLastWidth == r->nWidth) && (self->nLastHeight == r->nHeight)))
                 return STATUS_OK;
 
             lsp_finally { self->bRealizeActive = false; };
