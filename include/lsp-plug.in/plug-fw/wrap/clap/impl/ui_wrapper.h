@@ -498,6 +498,7 @@ namespace lsp
             if ((pExt == NULL) || (wnd != wWindow))
                 return IWrapper::accept_window_size(wnd, width, height);
 
+            lsp_trace("request_resize(%d, %d)", int(width), int(height));
             return pExt->gui->request_resize(pExt->host, width, height);
         }
 
@@ -536,6 +537,8 @@ namespace lsp
             ws::rectangle_t rr;
             if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
                 return STATUS_OK;
+
+            lsp_trace("request_resize(%d, %d)", int(rr.nWidth), int(rr.nHeight));
             self->pExt->gui->request_resize(self->pExt->host, rr.nWidth, rr.nHeight);
 
             return STATUS_OK;
