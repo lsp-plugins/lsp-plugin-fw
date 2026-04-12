@@ -523,9 +523,11 @@ namespace lsp
             tk::Window * const wnd = window();
             if (wnd != NULL)
             {
+            #ifdef LSP_VST2_ALT_EVENT_LOOP
                 // Do the sync barrier
                 sMutex.lock();
                 lsp_finally { sMutex.unlock(); };
+            #endif /* LSP_VST2_ALT_EVENT_LOOP */
 
                 wnd->hide();
             }
