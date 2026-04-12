@@ -55,6 +55,8 @@ namespace lsp
                 float                           fScaling;       // Scaling factor
                 ipc::Mutex                      sMutex;         // Main loop mutex
                 ws::IWindow                    *pTransientFor;  // TransientFor window
+                ssize_t                         nLastWidth;     // Last realized width
+                ssize_t                         nLastHeight;    // Last realized height
                 bool                            bRequestProcess;// Request the process() call flag
                 bool                            bUIActive;      // UI is active flag
                 bool                            bRealizeActive; // Realize is active

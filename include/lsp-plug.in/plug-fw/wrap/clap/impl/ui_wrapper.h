@@ -43,6 +43,8 @@ namespace lsp
             pExt            = wrapper->extensions();
             fScaling        = -100.0f;
             pTransientFor   = NULL;
+            nLastWidth      = -1;
+            nLastHeight     = -1;
 
             bRequestProcess = false;
             bUIActive       = false;
@@ -499,6 +501,8 @@ namespace lsp
                 return IWrapper::accept_window_size(wnd, width, height);
 
             lsp_trace("request_resize(%d, %d)", int(width), int(height));
+            nLastWidth  = width;
+            nLastHeight = height;
             return pExt->gui->request_resize(pExt->host, width, height);
         }
 
@@ -521,25 +525,25 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
         {
+            const ws::rectangle_t *r = static_cast<ws::rectangle_t *>(data);
         #ifdef LSP_TRACE
             lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
-            const ws::rectangle_t *r = static_cast<ws::rectangle_t *>(data);
             lsp_trace("realized.w = %d, realized.h = %d", int(r->nWidth), int(r->nHeight));
         #endif /* LSP_TRACE */
 
             UIWrapper *self     = static_cast<UIWrapper *>(ptr);
-            if (self->bRealizeActive)
+            if ((self->bRealizeActive) ||
+                (self->nLastWidth == r->nWidth) ||
+                (self->nLastHeight == r->nHeight))
                 return STATUS_OK;
-            self->bRealizeActive = true;
+
             lsp_finally { self->bRealizeActive = false; };
+            self->bRealizeActive    = true;
+            self->nLastWidth        = r->nWidth;
+            self->nLastHeight       = r->nHeight;
 
-            tk::Window *wnd     = self->window();
-            ws::rectangle_t rr;
-            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
-                return STATUS_OK;
-
-            lsp_trace("request_resize(%d, %d)", int(rr.nWidth), int(rr.nHeight));
-            self->pExt->gui->request_resize(self->pExt->host, rr.nWidth, rr.nHeight);
+            lsp_trace("request_resize(%d, %d)", int(r->nWidth), int(r->nHeight));
+            self->pExt->gui->request_resize(self->pExt->host, r->nWidth, r->nHeight);
 
             return STATUS_OK;
         }
@@ -590,10 +594,8 @@ namespace lsp
                     return false;
 
                 // Return result
-                if (width != NULL)
-                    *width  = rr.nWidth;
-                if (height != NULL)
-                    *height = rr.nHeight;
+                nLastWidth      = rr.nWidth;
+                nLastHeight     = rr.nHeight;
             }
             else
             {
@@ -601,15 +603,16 @@ namespace lsp
                 wnd->get_size_limits(&sr);
 
                 // Return result
-                if (width != NULL)
-                    *width  = lsp_max(sr.nMinWidth, 32);
-                if (height != NULL)
-                    *height = lsp_max(sr.nMinHeight, 32);
+                nLastWidth      = lsp_max(sr.nMinWidth, 32);
+                nLastHeight     = lsp_max(sr.nMinHeight, 32);
             }
 
-            lsp_trace("return width = %d, height = %d",
-                (width != NULL) ? int(*width) : 0,
-                (height != NULL) ? int(*height) : 0);
+            if (width != NULL)
+                *width  = int(nLastWidth);
+            if (height != NULL)
+                *height = int(nLastHeight);
+
+            lsp_trace("return width = %d, height = %d", int(nLastWidth), int(nLastHeight));
 
             return true;
         }
@@ -869,6 +872,8 @@ namespace lsp
             if ((sr.nMinWidth >= 0) && (sr.nMinHeight >= 0))
             {
                 lsp_trace("request_resize(%d, %d)", int(sr.nMinWidth), int(sr.nMinHeight));
+                nLastWidth  = sr.nMinWidth;
+                nLastHeight = sr.nMinHeight;
                 pExt->gui->request_resize(pExt->host, sr.nMinWidth, sr.nMinHeight);
             }
 
