@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 25 янв. 2024 г.
@@ -334,7 +334,7 @@ namespace lsp
                     break;
             }
 
-            lsp_trace("  name       : %s (%s)", tmp.get_utf8(), dump.get_utf8());
+            lsp_trace("  name       : %s (%s) @ %d bytes", tmp.get_utf8(), dump.get_utf8(), int(sizeof(Steinberg::Vst::BusInfo::name)));
             lsp_trace("  type       : %s", bus_type_to_str(bus->busType));
             lsp_trace("  media type : %s", media_type_to_str(bus->mediaType));
             lsp_trace("  direction  : %s", bus_direction_to_str(bus->direction));
