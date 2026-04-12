@@ -599,9 +599,9 @@ namespace lsp
 
                 // Return result
                 if (width != NULL)
-                    *width  = lsp_min(sr.nMinWidth, 32);
+                    *width  = lsp_max(sr.nMinWidth, 32);
                 if (height != NULL)
-                    *height = lsp_min(sr.nMinHeight, 32);
+                    *height = lsp_max(sr.nMinHeight, 32);
             }
 
             lsp_trace("return width = %d, height = %d",
