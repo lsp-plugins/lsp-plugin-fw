@@ -42,10 +42,8 @@ namespace lsp
             pWrapper        = wrapper;
             pExt            = wrapper->extensions();
             fScaling        = -100.0f;
-            pParent         = NULL;
             pTransientFor   = NULL;
 
-            bUIInitialized  = false;
             bRequestProcess = false;
             bUIActive       = false;
             bRealizeActive  = false;
@@ -84,9 +82,9 @@ namespace lsp
             pDisplay->slots()->bind(tk::SLOT_IDLE, slot_display_idle, this);
             pDisplay->set_idle_interval(1000 / UI_FRAMES_PER_SECOND);
 
-            // Initialize the UI
-            if ((res = pUI->init(this)) != STATUS_OK)
-                return res;
+            // Lazy initialize the UI ONLY after whe have the parent/transient settings
+            if ((res = initialize_ui()) != STATUS_OK)
+                return false;
 
             return res;
         }
@@ -105,9 +103,6 @@ namespace lsp
 
             // Stop the event loop
             stop_event_loop();
-
-            // Cleanup UI initialized flag
-            bUIInitialized  = false;
 
             // Destroy the transient window wrapper
             if (pTransientFor != NULL)
@@ -741,10 +736,14 @@ namespace lsp
         #endif
         }
 
-        bool UIWrapper::set_parent(const clap_window_t *window)
+        bool UIWrapper::set_parent(const clap_window_t *clap_window)
         {
-            pParent     = to_native_handle(window);
-            return initialize_ui();
+            tk::Window * const wnd  = window();
+            if (wnd == NULL)
+                return false;
+
+            status_t res = wnd->native()->set_parent(to_native_handle(clap_window));
+            return res == STATUS_OK;
         }
 
         bool UIWrapper::set_transient(const clap_window_t *window)
@@ -774,21 +773,23 @@ namespace lsp
             wnd->title()->set_raw(title);
         }
 
-        bool UIWrapper::initialize_ui()
+        status_t UIWrapper::initialize_ui()
         {
-            if (bUIInitialized)
-                return true;
-
             lsp_trace("Initializing UI contents");
 
             status_t res = STATUS_OK;
+
+            // Initialize the UI
+            if ((res = pUI->init(this)) != STATUS_OK)
+                return res;
+
             const meta::plugin_t *meta = pUI->metadata();
             if (pUI->metadata() == NULL)
-                return false;
+                return STATUS_BAD_STATE;
 
             if (meta->ui_resource != NULL)
             {
-                if ((res = build_ui(meta->ui_resource, pParent)) != STATUS_OK)
+                if ((res = build_ui(meta->ui_resource, NULL)) != STATUS_OK)
                 {
                     lsp_error("Error building UI for resource %s: code=%d", meta->ui_resource, int(res));
                     return false;
@@ -808,10 +809,9 @@ namespace lsp
             // Call the post-initialization routine
             lsp_trace("Doing post-init");
             res = pUI->post_init();
-            bUIInitialized = (res == STATUS_OK);
-            lsp_trace("bUIInitialized = %d, res=%d", int(bUIInitialized), int(res));
+            lsp_trace("result=%d", int(res));
 
-            return bUIInitialized;
+            return res;
         }
 
         bool UIWrapper::ui_active() const
@@ -836,10 +836,6 @@ namespace lsp
 
         bool UIWrapper::show()
         {
-            // Lazy initialize the UI ONLY after whe have the parent/transient settings
-            if (!initialize_ui())
-                return false;
-
             // Process all pending events before starting the display and show the window
             tk::Display * const dpy = display();
             if (dpy == NULL)

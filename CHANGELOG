@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.37 ===
+* Improved UI initialization for CLAP format.
 * Updated CLAP DSO de-initialization flow.
 * Fixed out-of-sync event handling for CLAP and VST2 extra UI run loop under
   Linux when hiding and showing plugin window.

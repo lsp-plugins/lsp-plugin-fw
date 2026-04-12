@@ -54,9 +54,7 @@ namespace lsp
                 HostExtensions                 *pExt;           // Host extensions
                 float                           fScaling;       // Scaling factor
                 ipc::Mutex                      sMutex;         // Main loop mutex
-                void                           *pParent;        // Parent window handle
                 ws::IWindow                    *pTransientFor;  // TransientFor window
-                bool                            bUIInitialized; // UI initialized flag
                 bool                            bRequestProcess;// Request the process() call flag
                 bool                            bUIActive;      // UI is active flag
                 bool                            bRealizeActive; // Realize is active
@@ -83,7 +81,7 @@ namespace lsp
                 void                            stop_event_loop();
                 void                            tranfet_ui_to_dsp();
                 void                            transfer_dsp_to_ui();
-                bool                            initialize_ui();
+                status_t                        initialize_ui();
                 void                            do_destroy();
 
             public:
