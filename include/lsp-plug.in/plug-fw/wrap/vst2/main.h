@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 18 дек. 2021 г.
@@ -28,14 +28,14 @@
     #error "This header should not be included directly"
 #endif /* LSP_PLUG_IN_VST2_MAIN_IMPL */
 
-// Do not use tracefile because this file does not use jack-core
+// Do not use tracefile because this file does not use vst2-core
 #ifdef LSP_TRACEFILE
     #undef LSP_TRACEFILE
 #endif /* LSP_TRACEFILE */
 
 #ifndef VST2_PLUGIN_UID
     #error "Plugin metadata identifier not defined"
-#endif /* JACK_PLUGIN_UID */
+#endif /* VST2_PLUGIN_UID */
 
 #if defined(PLATFORM_WINDOWS)
     #include <lsp-plug.in/plug-fw/wrap/vst2/main/winnt.h>

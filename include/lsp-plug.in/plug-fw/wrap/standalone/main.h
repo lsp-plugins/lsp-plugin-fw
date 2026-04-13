@@ -28,9 +28,9 @@
     #error "This header should not be included directly"
 #endif /* LSP_PLUG_IN_STANDALONE_MAIN_IMPL */
 
-#ifndef JACK_PLUGIN_UID
+#ifndef STANDALONE_PLUGIN_UID
     #error "Plugin metadata identifier not defined"
-#endif /* JACK_PLUGIN_UID */
+#endif /* STANDALONE_PLUGIN_UID */
 
 #if defined(PLATFORM_WINDOWS)
     #include <lsp-plug.in/plug-fw/wrap/standalone/main/winnt.h>

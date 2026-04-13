@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 февр. 2022 г.
@@ -168,7 +168,7 @@ namespace lsp
             else
                 fprintf(out, "\t\t\t'gst_uid' => null,\n");
 
-            fprintf(out, "\t\t\t'jack' => true,\n");
+            fprintf(out, "\t\t\t'standalone' => true,\n");
             fprintf(out, "\t\t\t'groups' => ");
             php_print_plugin_groups(out, m->classes);
             fprintf(out, "\n");
