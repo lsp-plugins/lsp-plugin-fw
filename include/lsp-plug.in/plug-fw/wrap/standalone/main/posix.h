@@ -47,7 +47,7 @@
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
     #ifdef ARCH_32BIT
         static const char *core_library_paths[] =
@@ -113,7 +113,7 @@ namespace lsp
                 (str[2] == 'o');
         }
 
-        static jack_create_plugin_loop_t lookup_jack_main(void **hInstance, const version_t *required, const char *path)
+        static standalone_create_plugin_loop_t lookup_standalone_main(void **hInstance, const version_t *required, const char *path)
         {
             lsp_trace("Searching core library at %s", path);
 
@@ -187,7 +187,7 @@ namespace lsp
                         continue;
                 #endif /* LSP_PLUGIN_ARTIFACT_GROUP */
 
-                    jack_create_plugin_loop_t f = lookup_jack_main(hInstance, required, ptr);
+                    standalone_create_plugin_loop_t f = lookup_standalone_main(hInstance, required, ptr);
                     if (f != NULL)
                         return f;
                 }
@@ -205,7 +205,7 @@ namespace lsp
                 #endif /* LSP_PLUGIN_ARTIFACT_NAME */
 
                     // Skip library if it doesn't contain 'lsp-plugins' in name
-                    if (strstr(de->d_name, "-jack-") == NULL)
+                    if (strstr(de->d_name, "-standalone-") == NULL)
                         continue;
 
                     // Skip library if it doesn't contain 'lsp-plugins' in name
@@ -255,10 +255,10 @@ namespace lsp
                     }
 
                     // Fetch function
-                    jack_create_plugin_loop_t f = reinterpret_cast<jack_create_plugin_loop_t>(dlsym(inst, JACK_CREATE_PLUGIN_LOOP_NAME));
+                    standalone_create_plugin_loop_t f = reinterpret_cast<standalone_create_plugin_loop_t>(dlsym(inst, STANDALONE_CREATE_PLUGIN_LOOP_NAME));
                     if (!f)
                     {
-                        lsp_trace("function '%s' not found: %s", JACK_CREATE_PLUGIN_LOOP_NAME, dlerror());
+                        lsp_trace("function '%s' not found: %s", STANDALONE_CREATE_PLUGIN_LOOP_NAME, dlerror());
                         continue;
                     }
 
@@ -270,12 +270,12 @@ namespace lsp
             return NULL;
         }
 
-        static jack_create_plugin_loop_t get_main_function(void **hInstance, const version_t *required, const char *binary_path)
+        static standalone_create_plugin_loop_t get_main_function(void **hInstance, const version_t *required, const char *binary_path)
         {
             lsp_debug("Trying to find CORE library");
 
             char path[PATH_MAX+1];
-            jack_create_plugin_loop_t jack_main  = NULL;
+            standalone_create_plugin_loop_t sa_main  = NULL;
 
             // Try to find files in current directory
             if (binary_path != NULL)
@@ -285,7 +285,7 @@ namespace lsp
                 if (rchr != NULL)
                 {
                     *rchr       = '\0';
-                    jack_main   = lookup_jack_main(hInstance, required, path);
+                    sa_main     = lookup_standalone_main(hInstance, required, path);
                 }
             }
 
@@ -312,71 +312,71 @@ namespace lsp
             }
 
             // Scan home directory first
-            if ((jack_main == NULL) && (homedir != NULL))
+            if ((sa_main == NULL) && (homedir != NULL))
             {
                 lsp_trace("home directory = %s", homedir);
-                jack_main       = lookup_jack_main(hInstance, required, homedir);
+                sa_main       = lookup_standalone_main(hInstance, required, homedir);
 
-                if (jack_main == NULL)
+                if (sa_main == NULL)
                 {
                     snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib", homedir);
-                    jack_main       = lookup_jack_main(hInstance, required, path);
+                    sa_main       = lookup_standalone_main(hInstance, required, path);
                 }
 
-                if (jack_main == NULL)
+                if (sa_main == NULL)
                 {
                     snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib64", homedir);
-                    jack_main       = lookup_jack_main(hInstance, required, path);
+                    sa_main       = lookup_standalone_main(hInstance, required, path);
                 }
 
-                if (jack_main == NULL)
+                if (sa_main == NULL)
                 {
                     snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "bin", homedir);
-                    jack_main       = lookup_jack_main(hInstance, required, path);
+                    sa_main       = lookup_standalone_main(hInstance, required, path);
                 }
             }
 
             // Scan system directories
-            if (jack_main == NULL)
+            if (sa_main == NULL)
             {
                 for (const char **p = core_library_paths; (p != NULL) && (*p != NULL); ++p)
                 {
-                    jack_main       = lookup_jack_main(hInstance, required, *p);
-                    if (jack_main != NULL)
+                    sa_main       = lookup_standalone_main(hInstance, required, *p);
+                    if (sa_main != NULL)
                         break;
                 }
             }
 
             // Try to lookup additional directories obtained from file mapping
-            if (jack_main == NULL)
+            if (sa_main == NULL)
             {
                 char *libpath = get_library_path();
                 if (libpath != NULL)
                 {
-                    jack_main     = lookup_jack_main(hInstance, required, libpath);
+                    sa_main     = lookup_standalone_main(hInstance, required, libpath);
                     ::free(libpath);
                 }
             }
 
-            if (jack_main == NULL)
+            if (sa_main == NULL)
             {
                 char **paths = get_library_paths(core_library_paths);
                 if (paths != NULL)
                 {
                     for (char **p = paths; (p != NULL) && (*p != NULL); ++p)
                     {
-                        jack_main     = lookup_jack_main(hInstance, required, *p);
-                        if (jack_main != NULL)
+                        sa_main     = lookup_standalone_main(hInstance, required, *p);
+                        if (sa_main != NULL)
                             break;
 
                         snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib", *p);
-                        jack_main       = lookup_jack_main(hInstance, required, path);
-                        if (jack_main != NULL)
+                        sa_main       = lookup_standalone_main(hInstance, required, path);
+                        if (sa_main != NULL)
                             break;
 
                         snprintf(path, PATH_MAX, "%s" FILE_SEPARATOR_S "lib64", *p);
-                        jack_main       = lookup_jack_main(hInstance, required, path);
-                        if (jack_main != NULL)
+                        sa_main       = lookup_standalone_main(hInstance, required, path);
+                        if (sa_main != NULL)
                             break;
                     }
 
@@ -389,9 +389,9 @@ namespace lsp
                 delete [] buf;
 
             // Return factory instance (if present)
-            return jack_main;
+            return sa_main;
         }
-    } /* namespace jack */
+    } /* namespace standalone */
 }; /* namespace lsp */
 
 //------------------------------------------------------------------------
@@ -410,9 +410,9 @@ static void sigint_handler(int sig)
 
 int main(int argc, const char **argv)
 {
-    IF_DEBUG( lsp::debug::redirect("lsp-jack-loader.log"); );
+    IF_DEBUG( lsp::debug::redirect("lsp-standalone-loader.log"); );
 
-    // JACK library instance
+    // Standalone library instance
     void *hInstance = NULL;
     lsp_finally {
         if (hInstance != NULL)
@@ -428,15 +428,15 @@ int main(int argc, const char **argv)
     };
 
     // Get factory
-    lsp::jack_create_plugin_loop_t factory = lsp::jack::get_main_function(&hInstance, &version, argv[0]);
+    lsp::standalone_create_plugin_loop_t factory = lsp::standalone::get_main_function(&hInstance, &version, argv[0]);
     if (factory == NULL)
     {
-        lsp_error("Could not find JACK plugin core library");
+        lsp_error("Could not find Standalone plugin core library");
         return -lsp::STATUS_NOT_FOUND;
     }
 
     lsp::IPluginLoop *loop = NULL;
-    lsp::status_t res = factory(&loop, JACK_PLUGIN_UID, argc, argv);
+    lsp::status_t res = factory(&loop, STANDALONE_PLUGIN_UID, argc, argv);
     if (res != lsp::STATUS_OK)
         return (res == lsp::STATUS_CANCELLED) ? 0 : -res;
 
@@ -447,7 +447,7 @@ int main(int argc, const char **argv)
 
     // Set-up plugin loop handler
     plugin_loop = loop;
-    // Ignore SIGPIPE signal since JACK can suddenly lose socket connection
+    // Ignore SIGPIPE signal since Stndalone can suddenly lose socket connection
     signal(SIGPIPE, SIG_IGN);
     // Handle the Ctrl-C event from console
     signal(SIGINT, sigint_handler);

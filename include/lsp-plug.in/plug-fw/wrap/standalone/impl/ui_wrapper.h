@@ -26,22 +26,22 @@
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/wrap/standalone/ui_wrapper.h>
 
-#define JACK_STATUS_OFF         "PluginWindow::StatusBar::Label::FAIL"
-#define JACK_STATUS_ON          "PluginWindow::StatusBar::Label::OK"
+#define STANDALONE_STATUS_OFF       "PluginWindow::StatusBar::Label::FAIL"
+#define STANDALONE_STATUS_ON        "PluginWindow::StatusBar::Label::OK"
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
-        UIWrapper::UIWrapper(jack::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui) : ui::IWrapper(ui, loader)
+        UIWrapper::UIWrapper(standalone::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui) : ui::IWrapper(ui, loader)
         {
             pPlugin             = wrapper->pPlugin;
             pWrapper            = wrapper;
 
             nPosition           = 0;
-            pJackStatus         = NULL;
-            pJackIndicatorPanel = NULL;
-            bJackConnected      = false;
+            pConnStatus         = NULL;
+            pConnIndicatorPanel = NULL;
+            bConnConnected      = false;
         }
 
         UIWrapper::~UIWrapper()
@@ -93,12 +93,12 @@ namespace lsp
                 }
             }
 
-            // Call the post-initialization routine and show the 'jack' state indicator
+            // Call the post-initialization routine and show the audio backend connection state indicator
             if ((res = pUI->post_init()) == STATUS_OK)
             {
-                pJackStatus = controller()->widgets()->get<tk::Label>("jack_status");
-                pJackIndicatorPanel = controller()->widgets()->get<tk::Widget>("jack_indicator");
-                set_connection_status(bJackConnected);
+                pConnStatus = controller()->widgets()->get<tk::Label>("jack_status");
+                pConnIndicatorPanel = controller()->widgets()->get<tk::Widget>("jack_indicator");
+                set_connection_status(bConnConnected);
             }
 
             tk::Window *root    = window();
@@ -117,7 +117,7 @@ namespace lsp
 
         void UIWrapper::do_destroy()
         {
-            pJackStatus = NULL;
+            pConnStatus = NULL;
 
             // Call the parent class for destroy
             IWrapper::destroy();
@@ -204,12 +204,12 @@ namespace lsp
         status_t UIWrapper::create_port(const meta::port_t *port, const char *postfix)
         {
             // Find the matching port for the backend
-            jack::Port *jp    = pWrapper->port_by_id(port->id);
+            standalone::Port *jp    = pWrapper->port_by_id(port->id);
             if (jp == NULL)
                 return STATUS_OK;
 
             // Create UI port
-            jack::UIPort *jup = NULL;
+            standalone::UIPort *jup = NULL;
 
             switch (port->role)
             {
@@ -218,64 +218,64 @@ namespace lsp
                 case meta::R_AUDIO_SEND:
                 case meta::R_AUDIO_RETURN:
                     // Stub port
-                    jup     = new jack::UIPort(jp);
+                    jup     = new standalone::UIPort(jp);
                     break;
 
                 case meta::R_MESH:
-                    jup     = new jack::UIMeshPort(jp);
+                    jup     = new standalone::UIMeshPort(jp);
                     if (meta::is_out_port(port))
                         vSyncPorts.add(jup);
                     break;
 
                 case meta::R_FBUFFER:
-                    jup     = new jack::UIFrameBufferPort(jp);
+                    jup     = new standalone::UIFrameBufferPort(jp);
                     if (meta::is_out_port(port))
                         vSyncPorts.add(jup);
                     break;
 
                 case meta::R_STREAM:
-                    jup     = new jack::UIStreamPort(jp);
+                    jup     = new standalone::UIStreamPort(jp);
                     if (meta::is_out_port(port))
                         vSyncPorts.add(jup);
                     break;
 
                 case meta::R_OSC_OUT:
-                    jup     = new jack::UIOscPortIn(jp);
+                    jup     = new standalone::UIOscPortIn(jp);
                     vSyncPorts.add(jup);
                     break;
                 case meta::R_OSC_IN:
-                    jup     = new jack::UIOscPortOut(jp);
+                    jup     = new standalone::UIOscPortOut(jp);
                     break;
 
                 case meta::R_PATH:
-                    jup     = new jack::UIPathPort(jp, this);
+                    jup     = new standalone::UIPathPort(jp, this);
                     break;
 
                 case meta::R_STRING:
                 case meta::R_SEND_NAME:
                 case meta::R_RETURN_NAME:
-                    jup     = new jack::UIStringPort(jp, this);
+                    jup     = new standalone::UIStringPort(jp, this);
                     vSyncPorts.add(jup);
                     break;
 
                 case meta::R_CONTROL:
-                    jup     = new jack::UIControlPort(jp, this);
+                    jup     = new standalone::UIControlPort(jp, this);
                     break;
 
                 case meta::R_BYPASS:
-                    jup     = new jack::UIControlPort(jp, NULL);
+                    jup     = new standalone::UIControlPort(jp, NULL);
                     break;
 
                 case meta::R_METER:
-                    jup     = new jack::UIMeterPort(jp);
+                    jup     = new standalone::UIMeterPort(jp);
                     vSyncPorts.add(jup);
                     break;
 
                 case meta::R_PORT_SET:
                 {
                     LSPString postfix_str;
-                    jack::PortGroup *pg     = static_cast<jack::PortGroup *>(jp);
-                    jack::UIPortGroup *upg  = new jack::UIPortGroup(pg, this);
+                    standalone::PortGroup *pg       = static_cast<standalone::PortGroup *>(jp);
+                    standalone::UIPortGroup *upg    = new standalone::UIPortGroup(pg, this);
                     vPorts.add(upg);
 
                     for (size_t row=0; row<pg->rows(); ++row)
@@ -370,8 +370,8 @@ namespace lsp
         bool UIWrapper::sync(ws::timestamp_t ts)
         {
             // Update the state of connection
-            if (!bJackConnected)
-                set_connection_status(bJackConnected = true);
+            if (!bConnConnected)
+                set_connection_status(bConnConnected = true);
 
             // Initialize DSP state
             dsp::context_t ctx;
@@ -393,7 +393,7 @@ namespace lsp
                 size_t sync = vSyncPorts.size();
                 for (size_t i=0; i<sync; ++i)
                 {
-                    jack::UIPort *jup   = vSyncPorts.uget(i);
+                    standalone::UIPort *jup = vSyncPorts.uget(i);
                     do {
                         if (jup->sync())
                             jup->notify_all(ui::PORT_NONE);
@@ -435,7 +435,9 @@ namespace lsp
             // Check if inline display is present
             plug::canvas_data_t *data = NULL;
             if (pWrapper->test_display_draw())
-                data = pWrapper->render_inline_display(JACK_INLINE_DISPLAY_SIZE, JACK_INLINE_DISPLAY_SIZE);
+                data = pWrapper->render_inline_display(
+                    STANDALONE_INLINE_DISPLAY_SIZE,
+                    STANDALONE_INLINE_DISPLAY_SIZE);
 
             // Check that returned data is valid
             if ((data != NULL) && (data->pData != NULL) && (data->nWidth > 0) && (data->nHeight > 0))
@@ -477,27 +479,27 @@ namespace lsp
 
         void UIWrapper::connection_lost()
         {
-            if (bJackConnected)
-                set_connection_status(bJackConnected = false);
+            if (bConnConnected)
+                set_connection_status(bConnConnected = false);
         }
 
         void UIWrapper::set_connection_status(bool connected)
         {
-            if (!pJackStatus)
+            if (!pConnStatus)
                 return;
 
-            ctl::revoke_style(pJackStatus, JACK_STATUS_OFF);
-            ctl::revoke_style(pJackStatus, JACK_STATUS_ON);
-            ctl::inject_style(pJackStatus, (connected) ? JACK_STATUS_ON : JACK_STATUS_OFF);
-            pJackStatus->text()->set((connected) ? "statuses.jack.on" : "statuses.jack.off");
+            ctl::revoke_style(pConnStatus, STANDALONE_STATUS_OFF);
+            ctl::revoke_style(pConnStatus, STANDALONE_STATUS_ON);
+            ctl::inject_style(pConnStatus, (connected) ? STANDALONE_STATUS_ON : STANDALONE_STATUS_OFF);
+            pConnStatus->text()->set((connected) ? "statuses.jack.on" : "statuses.jack.off");
 
-            if (pJackIndicatorPanel)
-                pJackIndicatorPanel->visibility()->set(true);
+            if (pConnIndicatorPanel)
+                pConnIndicatorPanel->visibility()->set(true);
         }
 
         void UIWrapper::visual_schema_reloaded(const tk::StyleSheet *sheet)
         {
-            set_connection_status(bJackConnected);
+            set_connection_status(bConnConnected);
         }
 
         status_t UIWrapper::export_settings(config::Serializer *s, size_t flags, const io::Path *basedir)
@@ -616,7 +618,7 @@ namespace lsp
             return res;
         }
 
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_IMPL_UI_WRAPPER_H_ */

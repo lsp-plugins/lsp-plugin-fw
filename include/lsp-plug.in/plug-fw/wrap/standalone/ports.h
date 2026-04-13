@@ -41,7 +41,7 @@
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
         class Wrapper;
 
@@ -679,7 +679,7 @@ namespace lsp
             public:
                 virtual int init() override
                 {
-                    pMesh   = jack::create_mesh(pMetadata);
+                    pMesh   = standalone::create_mesh(pMetadata);
                     return (pMesh == NULL) ? STATUS_NO_MEM : STATUS_OK;
                 }
 
@@ -688,7 +688,7 @@ namespace lsp
                     if (pMesh == NULL)
                         return;
 
-                    jack::destroy_mesh(pMesh);
+                    standalone::destroy_mesh(pMesh);
                     pMesh = NULL;
                 }
 
@@ -817,7 +817,7 @@ namespace lsp
         class PathPort: public Port
         {
             private:
-                jack::path_t    sPath;
+                standalone::path_t  sPath;
 
             public:
                 explicit PathPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
@@ -910,7 +910,7 @@ namespace lsp
                 }
         };
 
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 

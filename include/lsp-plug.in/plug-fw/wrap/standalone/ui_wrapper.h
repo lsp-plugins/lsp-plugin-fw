@@ -35,30 +35,30 @@
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
         /**
-         * UI wrapper for JACK
+         * UI wrapper for Standalone versions of plugins
          */
         class UIWrapper: public ui::IWrapper
         {
             protected:
                 plug::Module                   *pPlugin;
-                jack::Wrapper                  *pWrapper;
+                standalone::Wrapper            *pWrapper;
 
                 atomic_t                        nPosition;          // Position counter
-                tk::Label                      *pJackStatus;        // Jack status
-                tk::Widget                     *pJackIndicatorPanel;// Jack indicator panel
-                bool                            bJackConnected;     // Jack is connected
+                tk::Label                      *pConnStatus;        // Audio backend connection status
+                tk::Widget                     *pConnIndicatorPanel;// Audio backend indicator panel
+                bool                            bConnConnected;     // Audio backend is connected
 
-                lltl::parray<jack::UIPort>      vSyncPorts;         // Ports for synchronization
+                lltl::parray<standalone::UIPort>vSyncPorts;         // Ports for synchronization
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
 
             protected:
                 void                        do_destroy();
 
             public:
-                explicit UIWrapper(jack::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui);
+                explicit UIWrapper(standalone::Wrapper *wrapper, resource::ILoader *loader, ui::Module *ui);
                 virtual ~UIWrapper() override;
 
                 virtual status_t                    init(void *root_widget) override;
@@ -66,7 +66,7 @@ namespace lsp
 
             protected:
                 status_t                            create_port(const meta::port_t *port, const char *postfix);
-                static ssize_t                      compare_ports(const jack::UIPort *a, const jack::UIPort *b);
+                static ssize_t                      compare_ports(const standalone::UIPort *a, const standalone::UIPort *b);
                 size_t                              rebuild_sorted_ports();
                 void                                sync_kvt(core::KVTStorage *kvt);
                 void                                ui_activated();
@@ -109,7 +109,7 @@ namespace lsp
                 void                                sync_inline_display();
 
                 /**
-                 * The JACK connection has been lost
+                 * The Standalone connection has been lost
                  */
                 void                                connection_lost();
 
@@ -135,7 +135,7 @@ namespace lsp
                 status_t                            select_ui_schema(const LSPString & name);
         };
 
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 

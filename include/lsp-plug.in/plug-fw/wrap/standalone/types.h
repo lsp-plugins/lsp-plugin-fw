@@ -29,11 +29,11 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/alloc.h>
 
-#define JACK_INLINE_DISPLAY_SIZE        128
+#define STANDALONE_INLINE_DISPLAY_SIZE      128
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
         typedef struct connection_t
         {
@@ -183,7 +183,7 @@ namespace lsp
             if (mesh != NULL)
                 free(mesh);
         }
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 

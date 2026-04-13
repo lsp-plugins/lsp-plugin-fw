@@ -38,7 +38,7 @@
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
         class Factory: public core::ICatalogFactory
         {
@@ -70,7 +70,7 @@ namespace lsp
             #endif /* WITH_UI_FEATURE */
         };
 
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 

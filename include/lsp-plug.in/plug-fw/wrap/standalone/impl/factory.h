@@ -29,7 +29,7 @@
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
         Factory::Factory()
         {
@@ -131,7 +131,7 @@ namespace lsp
         {
             sCatalogManager.release(catalog);
         }
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_IMPL_FACTORY_H_ */

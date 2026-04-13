@@ -26,8 +26,8 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 
-#define JACK_CREATE_PLUGIN_LOOP         jack_create_plugin_loop
-#define JACK_CREATE_PLUGIN_LOOP_NAME    LSP_STRINGIFY(JACK_CREATE_PLUGIN_LOOP)
+#define STANDALONE_CREATE_PLUGIN_LOOP       standalone_create_plugin_loop
+#define STANDALONE_CREATE_PLUGIN_LOOP_NAME  LSP_STRINGIFY(STANDALONE_CREATE_PLUGIN_LOOP)
 
 namespace lsp
 {
@@ -60,8 +60,9 @@ namespace lsp
      * @param argv list of additional arguments
      * @return status of operation
      */
-    typedef status_t (* jack_create_plugin_loop_t)(IPluginLoop **loop, const char *plugin_id, int argc, const char **argv);
-}
+    typedef status_t (* standalone_create_plugin_loop_t)(IPluginLoop **loop, const char *plugin_id, int argc, const char **argv);
+
+} /* namespace lsp */
 
 #ifdef __cplusplus
 extern "C"
@@ -69,7 +70,7 @@ extern "C"
 #endif /* __cplusplus */
 
     LSP_EXPORT_MODIFIER
-    int JACK_CREATE_PLUGIN_LOOP(lsp::IPluginLoop **loop, const char *plugin_id, int argc, const char **argv);
+    int STANDALONE_CREATE_PLUGIN_LOOP(lsp::IPluginLoop **loop, const char *plugin_id, int argc, const char **argv);
 
 
 #ifdef __cplusplus

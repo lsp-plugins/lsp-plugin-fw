@@ -29,7 +29,7 @@
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
         const audio::callbacks_t Wrapper::callbacks =
         {
@@ -43,7 +43,7 @@ namespace lsp
         };
 
         Wrapper::Wrapper(
-            jack::Factory *factory,
+                standalone::Factory *factory,
             plug::Module *plugin,
             resource::ILoader *loader,
             const wrapper_info_t *info,
@@ -94,7 +94,7 @@ namespace lsp
             pShmClient      = NULL;
         }
 
-        static ssize_t cmp_port_identifiers(const jack::Port *pa, const jack::Port *pb)
+        static ssize_t cmp_port_identifiers(const standalone::Port *pa, const standalone::Port *pb)
         {
             const meta::port_t *a = pa->metadata();
             const meta::port_t *b = pb->metadata();
@@ -200,14 +200,14 @@ namespace lsp
                 if (strchr(src, ':') == NULL)
                 {
                     ++self_ports;
-                    jack::Port *p = port_by_id(src);
+                    standalone::Port *p         = port_by_id(src);
                     const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
                     if ((meta == NULL) || !(meta::is_audio_out_port(meta) || meta::is_midi_out_port(meta)))
                     {
                         fprintf(stderr, "  %s -> %s: invalid port '%s', should be AUDIO OUT or MIDI OUT\n", src, dst, src);
                         continue;
                     }
-                    jack::DataPort *dp = static_cast<jack::DataPort *>(p);
+                    standalone::DataPort *dp    = static_cast<standalone::DataPort *>(p);
                     src     = dp->system_name();
                 }
 
@@ -215,14 +215,14 @@ namespace lsp
                 if (strchr(dst, ':') == NULL)
                 {
                     ++self_ports;
-                    jack::Port *p = port_by_id(dst);
+                    standalone::Port *p         = port_by_id(dst);
                     const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
                     if ((meta == NULL) || !(meta::is_audio_in_port(meta) || meta::is_midi_in_port(meta)))
                     {
                         fprintf(stderr, "  %s -> %s: invalid port '%s', should be AUDIO IN or MIDI IN\n", src, dst, dst);
                         continue;
                     }
-                    jack::DataPort *dp = static_cast<jack::DataPort *>(p);
+                    standalone::DataPort *dp    = static_cast<standalone::DataPort *>(p);
                     dst     = dp->system_name();
                 }
 
@@ -287,28 +287,9 @@ namespace lsp
                     return res;
             }
 
-            // Init client identifier and ensure that it is not longer than jack_client_name_size()
-            char *client_name = NULL;
-            lsp_finally {
-                if (client_name != NULL)
-                    free(client_name);
-            };
-            {
-                const size_t max_client_size  = jack_client_name_size();
-                client_name         = static_cast<char *>(malloc(max_client_size));
-                if (client_name == NULL)
-                    return STATUS_NO_MEM;
-
-                strncpy(
-                    client_name,
-                    (sClientName != NULL) ? sClientName : pPlugin->metadata()->uid,
-                    max_client_size);
-                client_name[max_client_size-1] = '\0';
-            }
-
             // Obtain the connection to the backend
             audio::connection_params_t params;
-            params.client_name      = client_name;
+            params.client_name      = (sClientName != NULL) ? sClientName : pPlugin->metadata()->uid;
             params.url              = NULL;
 
             // Establish connection to the backend
@@ -325,12 +306,12 @@ namespace lsp
 
         status_t Wrapper::on_connected(void *user_data, const audio::io_parameters_t *params)
         {
-            jack::Wrapper * const self     = static_cast<jack::Wrapper *>(user_data);
+            standalone::Wrapper * const self    = static_cast<standalone::Wrapper *>(user_data);
 
             // Connect data ports
             for (size_t i=0, n=self->vDataPorts.size(); i<n; ++i)
             {
-                jack::DataPort * const dp = self->vDataPorts.uget(i);
+                standalone::DataPort * const dp = self->vDataPorts.uget(i);
                 if (dp == NULL)
                     continue;
 
@@ -340,7 +321,7 @@ namespace lsp
 
             for (size_t i=0, n=self->vAudioBuffers.size(); i<n; ++i)
             {
-                jack::AudioBufferPort * const ap = self->vAudioBuffers.uget(i);
+                standalone::AudioBufferPort * const ap = self->vAudioBuffers.uget(i);
                 if (ap == NULL)
                     continue;
                 ap->set_buffer_size(params->max_buffer_size);
@@ -359,7 +340,7 @@ namespace lsp
 
         status_t Wrapper::on_activated(void *user_data)
         {
-            jack::Wrapper * const self     = static_cast<jack::Wrapper *>(user_data);
+            standalone::Wrapper * const self    = static_cast<standalone::Wrapper *>(user_data);
 
             // Now we ready for processing
             if (self->pPlugin != NULL)
@@ -370,19 +351,19 @@ namespace lsp
 
         status_t Wrapper::on_io_changed(void *user_data, const audio::io_parameters_t *params)
         {
-            jack::Wrapper * const self     = static_cast<jack::Wrapper *>(user_data);
+            standalone::Wrapper * const self    = static_cast<standalone::Wrapper *>(user_data);
 
             // Update buffer size
             for (size_t i=0, n=self->vDataPorts.size(); i<n; ++i)
             {
-                jack::DataPort *p = self->vDataPorts.uget(i);
+                standalone::DataPort *p = self->vDataPorts.uget(i);
                 if (p != NULL)
                     p->set_buffer_size(params->max_buffer_size);
             }
 
             for (size_t i=0, n=self->vAudioBuffers.size(); i<n; ++i)
             {
-                jack::AudioBufferPort *p = self->vAudioBuffers.uget(i);
+                standalone::AudioBufferPort *p = self->vAudioBuffers.uget(i);
                 if (p != NULL)
                     p->set_buffer_size(params->max_buffer_size);
             }
@@ -415,13 +396,13 @@ namespace lsp
             lsp_finally { dsp::finish(&ctx); };
 
             // Call the run() method
-            jack::Wrapper * const self  = static_cast<jack::Wrapper *>(user_data);
+            standalone::Wrapper * const self    = static_cast<standalone::Wrapper *>(user_data);
             return self->run(position, frames);
         }
 
         status_t Wrapper::on_deactivated(void *user_data)
         {
-            jack::Wrapper * const self     = static_cast<jack::Wrapper *>(user_data);
+            standalone::Wrapper * const self    = static_cast<standalone::Wrapper *>(user_data);
 
             // Deactivate plugin
             if (self->pPlugin != NULL)
@@ -430,7 +411,7 @@ namespace lsp
             // Disconnect all data ports
             for (size_t i=0, n=self->vDataPorts.size(); i<n; ++i)
             {
-                jack::DataPort * const dp = self->vDataPorts.uget(i);
+                standalone::DataPort * const dp     = self->vDataPorts.uget(i);
                 if (dp != NULL)
                     dp->disconnect();
             }
@@ -441,9 +422,9 @@ namespace lsp
         void Wrapper::on_connection_lost(void *user_data)
         {
             // Reset the client state
-            jack::Wrapper * const self     = static_cast<jack::Wrapper *>(user_data);
+            standalone::Wrapper * const self    = static_cast<standalone::Wrapper *>(user_data);
             self->nState            = S_CONN_LOST;
-            lsp_warn("BACKEND NOTIFICATION: shutdown");
+            lsp_warn("AUDIO BACKEND NOTIFICATION: shutdown");
         }
 
         void Wrapper::on_disconnected(void *user_data)
@@ -487,7 +468,7 @@ namespace lsp
             // Pre-process data ports
             for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
             {
-                jack::DataPort * const dp = vDataPorts.uget(i);
+                standalone::DataPort * const dp = vDataPorts.uget(i);
                 if (dp != NULL)
                     dp->before_process(samples);
             }
@@ -496,7 +477,7 @@ namespace lsp
             for (size_t i=0, n=vParams.size(); i<n; ++i)
             {
                 // Get port
-                jack::Port *port = vParams.uget(i);
+                standalone::Port * const port   = vParams.uget(i);
                 if (port == NULL)
                     continue;
 
@@ -558,7 +539,7 @@ namespace lsp
             // Post-process data ports
             for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
             {
-                jack::DataPort * const dp = vDataPorts.uget(i);
+                standalone::DataPort * const dp = vDataPorts.uget(i);
                 if (dp != NULL)
                     dp->after_process(samples);
             }
@@ -569,7 +550,7 @@ namespace lsp
                 lsp_finally { unlock_meters(); };
                 for (size_t i=0, n=vMeters.size(); i<n; ++i)
                 {
-                    jack::MeterPort *mp = vMeters.uget(i);
+                    standalone::MeterPort * const mp    = vMeters.uget(i);
                     if (mp != NULL)
                         mp->commit();
                 }
@@ -683,26 +664,26 @@ namespace lsp
 
         void Wrapper::create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix)
         {
-            jack::Port *jp  = NULL;
+            standalone::Port *jp    = NULL;
 
             switch (port->role)
             {
                 case meta::R_MESH:
-                    jp      = new jack::MeshPort(port, this);
+                    jp      = new standalone::MeshPort(port, this);
                     break;
 
                 case meta::R_FBUFFER:
-                    jp      = new jack::FrameBufferPort(port, this);
+                    jp      = new standalone::FrameBufferPort(port, this);
                     break;
 
                 case meta::R_STREAM:
-                    jp      = new jack::StreamPort(port, this);
+                    jp      = new standalone::StreamPort(port, this);
                     break;
 
                 case meta::R_MIDI_IN:
                 case meta::R_MIDI_OUT:
                 {
-                    jack::MidiPort * const jmp = new jack::MidiPort(port, this);
+                    standalone::MidiPort * const jmp = new standalone::MidiPort(port, this);
                     vDataPorts.add(jmp);
                     jp      = jmp;
                     break;
@@ -710,7 +691,7 @@ namespace lsp
                 case meta::R_AUDIO_IN:
                 case meta::R_AUDIO_OUT:
                 {
-                    jack::AudioPort * const jap = new jack::AudioPort(port, this);
+                    standalone::AudioPort * const jap = new standalone::AudioPort(port, this);
                     vDataPorts.add(jap);
                     jp      = jap;
                     break;
@@ -719,7 +700,7 @@ namespace lsp
                 case meta::R_AUDIO_SEND:
                 case meta::R_AUDIO_RETURN:
                 {
-                    jack::AudioBufferPort * const jbp = new jack::AudioBufferPort(port, this);
+                    standalone::AudioBufferPort * const jbp = new standalone::AudioBufferPort(port, this);
                     vAudioBuffers.add(jbp);
                     jp      = jbp;
                     break;
@@ -727,30 +708,30 @@ namespace lsp
 
                 case meta::R_OSC_IN:
                 case meta::R_OSC_OUT:
-                    jp      = new jack::OscPort(port, this);
+                    jp      = new standalone::OscPort(port, this);
                     break;
 
                 case meta::R_PATH:
-                    jp      = new jack::PathPort(port, this);
+                    jp      = new standalone::PathPort(port, this);
                     vParams.add(jp);
                     break;
 
                 case meta::R_STRING:
                 case meta::R_SEND_NAME:
                 case meta::R_RETURN_NAME:
-                    jp      = new jack::StringPort(port, this);
+                    jp      = new standalone::StringPort(port, this);
                     vParams.add(jp);
                     break;
 
                 case meta::R_CONTROL:
                 case meta::R_BYPASS:
-                    jp      = new jack::ControlPort(port, this);
+                    jp      = new standalone::ControlPort(port, this);
                     vParams.add(jp);
                     break;
 
                 case meta::R_METER:
                 {
-                    jack::MeterPort * const jmp = new jack::MeterPort(port, this);
+                    standalone::MeterPort * const jmp = new standalone::MeterPort(port, this);
                     vMeters.add(jmp);
                     jp      = jmp;
                     break;
@@ -759,7 +740,7 @@ namespace lsp
                 case meta::R_PORT_SET:
                 {
                     LSPString postfix_str;
-                    jack::PortGroup * const pg  = new jack::PortGroup(port, this);
+                    standalone::PortGroup * const pg  = new standalone::PortGroup(port, this);
                     pg->init();
                     vParams.add(pg);
                     vAllPorts.add(pg);
@@ -809,38 +790,6 @@ namespace lsp
             return pPackage;
         }
 
-        int Wrapper::sync_position(jack_transport_state_t state, const jack_position_t *pos)
-        {
-            plug::position_t npos   = sPosition;
-
-            // Update settings
-            npos.speed          = (state == JackTransportRolling) ? 1.0f : 0.0f;
-            npos.frame          = pos->frame;
-
-            if (pos->valid & JackPositionBBT)
-            {
-                npos.numerator      = pos->beats_per_bar;
-                npos.denominator    = pos->beat_type;
-                npos.beatsPerMinute = pos->beats_per_minute;
-                npos.tick           = pos->tick;
-                npos.ticksPerBeat   = pos->ticks_per_beat;
-            }
-
-    //        lsp_trace("numerator = %.3f, denominator = %.3f, bpm = %.3f, tick = %.3f, tpb = %.3f",
-    //                float(npos.numerator), float(npos.denominator), float(npos.beatsPerMinute),
-    //                float(npos.tick), float(npos.ticksPerBeat));
-
-            // Call plugin for position update
-            if (pPlugin->set_position(&npos))
-                bUpdateSettings = true;
-
-            // Update current position and increment version counter
-            sPosition = npos;
-            atomic_add(&nPosition, 1);
-
-            return 0;
-        }
-
         ipc::IExecutor *Wrapper::executor()
         {
             lsp_trace("executor = %p", reinterpret_cast<void *>(pExecutor));
@@ -888,18 +837,18 @@ namespace lsp
             return (res) ? canvas->data() : NULL;
         }
 
-        jack::Port *Wrapper::port_by_idx(size_t index)
+        standalone::Port *Wrapper::port_by_idx(size_t index)
         {
             return vAllPorts.get(index);
         }
 
-        jack::Port *Wrapper::port_by_id(const char *id)
+        standalone::Port *Wrapper::port_by_id(const char *id)
         {
             ssize_t first = 0, last = vSortedPorts.size() - 1;
             while (first <= last)
             {
                 ssize_t middle = (first + last) >> 1;
-                jack::Port *p = vSortedPorts.uget(middle);
+                standalone::Port * const p  = vSortedPorts.uget(middle);
                 const meta::port_t *meta = p->metadata();
                 int cmp = strcmp(id, meta->id);
 
@@ -972,7 +921,7 @@ namespace lsp
             // Reset all ports to default values
             for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
             {
-                jack::Port *p = vAllPorts.uget(i);
+                standalone::Port * const p = vAllPorts.uget(i);
                 if (p == NULL)
                     continue;
                 p->set_default();
@@ -1073,7 +1022,7 @@ namespace lsp
                 {
                     for (size_t i=0, n=vAllPorts.size(); i<n; ++i)
                     {
-                        jack::Port *p = vAllPorts.uget(i);
+                        standalone::Port * const p  = vAllPorts.uget(i);
                         if (p == NULL)
                             continue;
                         const meta::port_t *meta = p->metadata();
@@ -1104,7 +1053,7 @@ namespace lsp
             return res;
         }
 
-        bool Wrapper::set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base)
+        bool Wrapper::set_port_value(standalone::Port *port, const config::param_t *param, size_t flags, const io::Path *base)
         {
             // Get metadata
             const meta::port_t *p = (port != NULL) ? port->metadata() : NULL;
@@ -1183,7 +1132,7 @@ namespace lsp
 
                     // Submit string to the port
                     const char *value = param->v.str;
-                    jack::StringPort *sp = static_cast<jack::StringPort *>(port);
+                    standalone::StringPort * const sp = static_cast<standalone::StringPort *>(port);
                     plug::string_t *str = sp->data();
                     if (str != NULL)
                         str->submit(value, false);
@@ -1290,7 +1239,7 @@ namespace lsp
             return (pShmClient != NULL) ? pShmClient->state() : NULL;
         }
 
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_IMPL_WRAPPER_H_ */

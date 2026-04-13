@@ -42,7 +42,7 @@
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
         class AudioBufferPort;
         class DataPort;
@@ -71,34 +71,34 @@ namespace lsp
 
                 typedef struct audio_send_t
                 {
-                    const char                 *sID;
-                    size_t                      nChannels;
-                    bool                        bPublish;
-                    core::AudioSend            *pSend;
-                    jack::StringPort           *pName;
-                    char                        sLastName[MAX_SHM_SEGMENT_NAME_BYTES];
-                    jack::AudioBufferPort      *vChannels[];
+                    const char                     *sID;
+                    size_t                          nChannels;
+                    bool                            bPublish;
+                    core::AudioSend                *pSend;
+                    standalone::StringPort         *pName;
+                    char                            sLastName[MAX_SHM_SEGMENT_NAME_BYTES];
+                    standalone::AudioBufferPort    *vChannels[];
                 } audio_send_t;
 
                 typedef struct audio_return_t
                 {
-                    const char                 *sID;
-                    size_t                      nChannels;
-                    core::AudioReturn          *pReturn;
-                    jack::StringPort           *pName;
-                    jack::AudioBufferPort      *vChannels[];
+                    const char                     *sID;
+                    size_t                          nChannels;
+                    core::AudioReturn              *pReturn;
+                    standalone::StringPort         *pName;
+                    standalone::AudioBufferPort    *vChannels[];
                 } audio_return_t;
 
             private:
                 static const audio::callbacks_t callbacks;
 
             private:
-                jack::Factory                  *pFactory;           // Factory for shared resources
+                standalone::Factory            *pFactory;           // Factory for shared resources
                 audio::backend_t               *pBackend;           // Currently active backend
                 ipc::Library                    sBackendLibrary;    // Currently used backend library
                 size_t                          nCurrentBackend;    // Currently used audio backend
-                char                           *sClientName;        // JACK client name
-                state_t                         nState;             // Connection state to JACK server
+                char                           *sClientName;        // Standalone client name
+                state_t                         nState;             // Connection state to Audio server
                 bool                            bUpdateSettings;    // Plugin settings are required to be updated
                 ssize_t                         nLatency;           // The actual latency of device
                 ipc::IExecutor                 *pExecutor;          // Off-line task executor
@@ -117,20 +117,19 @@ namespace lsp
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
                 core::ShmClient                *pShmClient;         // Shared memory client
 
-                lltl::parray<core::AudioBackendInfo>    vAudioBackends;     // All available audio backends
-                lltl::parray<jack::Port>        vAllPorts;          // All ports
-                lltl::parray<jack::Port>        vParams;            // All input parameters
-                lltl::parray<jack::MeterPort>   vMeters;            // Meters
-                lltl::parray<jack::Port>        vSortedPorts;       // Alphabetically-sorted ports
-                lltl::parray<jack::DataPort>    vDataPorts;         // Data ports (audio, MIDI)
-                lltl::parray<jack::AudioBufferPort> vAudioBuffers;  // Audio buffers
-                lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
+                lltl::parray<core::AudioBackendInfo>        vAudioBackends;     // All available audio backends
+                lltl::parray<standalone::Port>              vAllPorts;          // All ports
+                lltl::parray<standalone::Port>              vParams;            // All input parameters
+                lltl::parray<standalone::MeterPort>         vMeters;            // Meters
+                lltl::parray<standalone::Port>              vSortedPorts;       // Alphabetically-sorted ports
+                lltl::parray<standalone::DataPort>          vDataPorts;         // Data ports (audio, MIDI)
+                lltl::parray<standalone::AudioBufferPort>   vAudioBuffers;      // Audio buffers
+                lltl::parray<meta::port_t>                  vGenMetadata;       // Generated metadata for virtual ports
 
                 meta::package_t                *pPackage;           // Package descriptor
 
             protected:
                 void            create_port(lltl::parray<plug::IPort> *plugin_ports, const meta::port_t *port, const char *postfix);
-                int             sync_position(jack_transport_state_t state, const jack_position_t *pos);
                 status_t        run(const audio::io_position_t *position, size_t samples);
 
                 status_t        import_settings(config::PullParser *parser);
@@ -146,11 +145,11 @@ namespace lsp
                 static void     on_disconnected(void *user_data);
 
             protected:
-                static bool     set_port_value(jack::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
+                static bool     set_port_value(standalone::Port *port, const config::param_t *param, size_t flags, const io::Path *base);
 
             public:
                 explicit Wrapper(
-                    jack::Factory *factory,
+                    standalone::Factory *factory,
                     plug::Module *plugin,
                     resource::ILoader *loader,
                     const wrapper_info_t *info,
@@ -195,8 +194,8 @@ namespace lsp
                 bool                                lock_meters_soft();
                 void                                unlock_meters();
 
-                jack::Port                         *port_by_id(const char *id);
-                jack::Port                         *port_by_idx(size_t index);
+                standalone::Port                   *port_by_id(const char *id);
+                standalone::Port                   *port_by_idx(size_t index);
 
                 status_t                            import_settings(const char *path);
                 status_t                            import_settings(const LSPString *path);
@@ -210,7 +209,7 @@ namespace lsp
 
                 inline bool                         test_display_draw();
         };
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 
