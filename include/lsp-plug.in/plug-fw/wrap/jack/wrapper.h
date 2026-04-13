@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 нояб. 2020 г.
@@ -40,8 +40,6 @@
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/dsp-units/units.h>
-
-//#include <jack/jack.h>
 
 namespace lsp
 {

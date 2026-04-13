@@ -487,7 +487,7 @@ namespace lsp
             // Pre-process data ports
             for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
             {
-                jack::DataPort *dp = vDataPorts.uget(i);
+                jack::DataPort * const dp = vDataPorts.uget(i);
                 if (dp != NULL)
                     dp->before_process(samples);
             }
@@ -558,7 +558,7 @@ namespace lsp
             // Post-process data ports
             for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
             {
-                jack::DataPort *dp = vDataPorts.uget(i);
+                jack::DataPort * const dp = vDataPorts.uget(i);
                 if (dp != NULL)
                     dp->after_process(samples);
             }
@@ -701,21 +701,27 @@ namespace lsp
 
                 case meta::R_MIDI_IN:
                 case meta::R_MIDI_OUT:
+                {
+                    jack::MidiPort * const jmp = new jack::MidiPort(port, this);
+                    vDataPorts.add(jmp);
+                    jp      = jmp;
+                    break;
+                }
                 case meta::R_AUDIO_IN:
                 case meta::R_AUDIO_OUT:
                 {
-                    jack::DataPort *jdp = new jack::DataPort(port, this);
-                    vDataPorts.add(jdp);
-                    jp      = jdp;
+                    jack::AudioPort * const jap = new jack::AudioPort(port, this);
+                    vDataPorts.add(jap);
+                    jp      = jap;
                     break;
                 }
 
                 case meta::R_AUDIO_SEND:
                 case meta::R_AUDIO_RETURN:
                 {
-                    jack::AudioBufferPort *jap = new jack::AudioBufferPort(port, this);
-                    vAudioBuffers.add(jap);
-                    jp      = jap;
+                    jack::AudioBufferPort * const jbp = new jack::AudioBufferPort(port, this);
+                    vAudioBuffers.add(jbp);
+                    jp      = jbp;
                     break;
                 }
 
@@ -744,16 +750,16 @@ namespace lsp
 
                 case meta::R_METER:
                 {
-                    jack::MeterPort *mp = new jack::MeterPort(port, this);
-                    vMeters.add(mp);
-                    jp      = mp;
+                    jack::MeterPort * const jmp = new jack::MeterPort(port, this);
+                    vMeters.add(jmp);
+                    jp      = jmp;
                     break;
                 }
 
                 case meta::R_PORT_SET:
                 {
                     LSPString postfix_str;
-                    jack::PortGroup     *pg      = new jack::PortGroup(port, this);
+                    jack::PortGroup * const pg  = new jack::PortGroup(port, this);
                     pg->init();
                     vParams.add(pg);
                     vAllPorts.add(pg);

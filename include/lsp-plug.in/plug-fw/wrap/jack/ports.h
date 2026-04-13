@@ -93,25 +93,13 @@ namespace lsp
 
         class DataPort: public Port
         {
-            private:
-                audio::port_id_t nPortID;           // Port identifier of the backend
-                void           *pDataBuffer;        // Real data buffer passed from JACK
-                void           *pBuffer;            // Data buffer
-                plug::midi_t   *pMidi;              // Midi buffer for operating MIDI messages
-                float          *pSanitized;         // Input float data for sanitized buffers
-                size_t          nBufSize;           // Size of sanitized buffer in samples
-
-                IF_DEBUG( core::AudioTracer sTracer; )
+            protected:
+                audio::port_id_t    nPortID;            // Port identifier of the backend
 
             public:
                 explicit DataPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
                 {
                     nPortID     = -1;
-                    pDataBuffer = NULL;
-                    pBuffer     = NULL;
-                    pMidi       = NULL;
-                    pSanitized  = NULL;
-                    nBufSize    = 0;
                 }
 
                 DataPort(const DataPort &) = delete;
@@ -120,15 +108,85 @@ namespace lsp
                 virtual ~DataPort() override
                 {
                     nPortID     = -1;
-                    pDataBuffer = NULL;
-                    pBuffer     = NULL;
-                    pMidi       = NULL;
-                    pSanitized  = NULL;
-                    nBufSize    = 0;
                 };
 
                 DataPort & operator = (const DataPort &) = delete;
                 DataPort & operator = (DataPort &&) = delete;
+
+            public:
+                const char *system_name() const
+                {
+                    if (nPortID < 0)
+                        return NULL;
+
+                    audio::backend_t * const backend = pWrapper->backend();
+                    return backend->port_system_name(backend, nPortID);
+                }
+
+                status_t disconnect()
+                {
+                    if (nPortID < 0)
+                        return STATUS_OK;
+
+                    audio::backend_t * const backend = pWrapper->backend();
+                    if (backend != NULL)
+                        backend->unregister_port(backend, nPortID);
+
+                    nPortID     = -1;
+
+                    return STATUS_OK;
+                }
+
+            public:
+                virtual status_t connect()
+                {
+                    return STATUS_NOT_IMPLEMENTED;
+                }
+
+                virtual void set_buffer_size(size_t size)
+                {
+                }
+
+                virtual void before_process(size_t samples)
+                {
+                }
+
+                virtual void after_process(size_t samples)
+                {
+                }
+        };
+
+        class AudioPort: public DataPort
+        {
+            private:
+                float              *pBuffer;            // Real buffer passed from audio backend
+                float              *pSanitized;         // Buffer for storing sanitized data
+                size_t              nBufSize;           // Size of sanitized buffer in samples
+                bool                bZero;
+
+                IF_DEBUG( core::AudioTracer sTracer; )
+
+            public:
+                explicit AudioPort(const meta::port_t *meta, Wrapper *w) : DataPort(meta, w)
+                {
+                    pBuffer     = NULL;
+                    pSanitized  = NULL;
+                    nBufSize    = 0;
+                    bZero       = false;
+                }
+
+                AudioPort(const AudioPort &) = delete;
+                AudioPort(AudioPort &&) = delete;
+
+                virtual ~AudioPort() override
+                {
+                    pBuffer     = NULL;
+                    pSanitized  = NULL;
+                    nBufSize    = 0;
+                };
+
+                AudioPort & operator = (const AudioPort &) = delete;
+                AudioPort & operator = (AudioPort &&) = delete;
 
             public:
                 virtual int init() override
@@ -139,92 +197,48 @@ namespace lsp
                 virtual void destroy() override
                 {
                     disconnect();
-                }
-
-            public:
-                virtual void *buffer() override
-                {
-                    return (pMidi != NULL) ? pMidi : pBuffer;
-                };
-
-            public:
-                status_t disconnect()
-                {
-                    if (nPortID < 0)
-                        return STATUS_OK;
-
-                    audio::backend_t * const backend = pWrapper->backend();
-                    if (backend != NULL)
-                        backend->unregister_port(backend, nPortID);
 
                     if (pSanitized != NULL)
                     {
                         ::free(pSanitized);
                         pSanitized = NULL;
                     }
-
-                    if (pMidi != NULL)
-                    {
-                        ::free(pMidi);
-                        pMidi       = NULL;
-                    }
-
-                    nPortID     = -1;
-                    nBufSize    = 0;
-
-                    return STATUS_OK;
                 }
 
-                status_t connect()
+            public:
+                virtual void *buffer() override
+                {
+                    if (nPortID < 0)
+                        return NULL;
+                    return (pSanitized != NULL) ? pSanitized : pBuffer;
+                };
+
+            public:
+                virtual status_t connect() override
                 {
                     audio::backend_t * const backend = pWrapper->backend();
                     if (backend == NULL)
                         return STATUS_DISCONNECTED;
 
-                    // Determine port type
-                    uint32_t port_flags     = 0;
-                    if (meta::is_audio_port(pMetadata))
-                        port_flags         |= audio::PORT_TYPE_AUDIO;
-                    else if (meta::is_midi_port(pMetadata))
-                    {
-                        port_flags         |= audio::PORT_TYPE_MIDI;
-                        pMidi       = static_cast<plug::midi_t *>(::malloc(sizeof(plug::midi_t)));
-                        if (pMidi == NULL)
-                            return STATUS_NO_MEM;
-                        pMidi->clear();
-                    }
-                    else
-                        return STATUS_BAD_FORMAT;
-
-                    // Determine flags
-                    port_flags |= (meta::is_out_port(pMetadata)) ? audio::PORT_DIR_OUT : audio::PORT_DIR_IN;
-
                     // Register port
-                    nPortID     = backend->register_port(backend, pMetadata->id, port_flags);
+                    nPortID     = backend->register_port(
+                        backend, pMetadata->id,
+                        (meta::is_out_port(pMetadata)) ? audio::PORT_AUDIO_OUT : audio::PORT_AUDIO_IN);
 
                     return (nPortID >= 0) ? STATUS_OK : STATUS_UNKNOWN_ERR;
                 }
 
-                const char *system_name() const
-                {
-                    if (nPortID < 0)
-                        return NULL;
-
-                    audio::backend_t * const backend = pWrapper->backend();
-                    return backend->port_system_name(backend, nPortID);
-                }
-
-                void set_buffer_size(size_t size)
+                virtual void set_buffer_size(size_t size) override
                 {
                     // set_buffer_size should affect only input audio ports at this moment
-                    if ((!meta::is_in_port(pMetadata)) || (pMidi != NULL))
+                    if (!meta::is_in_port(pMetadata))
                         return;
 
                     // Buffer size has changed?
                     if (nBufSize == size)
                         return;
 
-                    float *buf  = reinterpret_cast<float *>(::realloc(pSanitized, sizeof(float) * size));
+                    float * const buf  = reinterpret_cast<float *>(::realloc(pSanitized, sizeof(float) * size));
                     if (buf == NULL)
                     {
                         if (pSanitized != NULL)
@@ -237,156 +251,234 @@ namespace lsp
 
                     nBufSize    = size;
                     pSanitized  = buf;
-                    dsp::fill_zero(pSanitized, nBufSize);
                 }
 
-                bool before_process(size_t samples)
+                virtual void before_process(size_t samples) override
                 {
                     if (nPortID < 0)
-                    {
-                        pBuffer     = NULL;
-                        return false;
-                    }
+                        return;
 
-                    status_t res;
                     audio::backend_t * const backend = pWrapper->backend();
 
-                    if (pMidi != NULL)
+                    // Need to sanitize?
+                    pBuffer         = backend->get_audio_buffer(backend, nPortID, 0);
+                    if (pSanitized == NULL)
                     {
-                        if (meta::is_in_port(pMetadata))
+                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pBuffer), samples) ); // Trace input data
+                        return;
+                    }
+
+                    // Need to mix multiple buffers?
+                    const size_t buf_count = backend->audio_buffers_count(backend, nPortID);
+                    if ((buf_count == 0) || (pBuffer == NULL))
+                    {
+                        // Ensure that pSanitized now contains zeros
+                        if (!bZero)
                         {
-                            // Clear our buffer
-                            pMidi->clear();
-
-                            // Read MIDI events
-                            audio::midi_event_t midi_event;
-                            midi::event_t       ev;
-
-                            const size_t event_count = backend->midi_events_count(backend, nPortID);
-                            for (size_t i=0; i<event_count; ++i)
-                            {
-                                // Read MIDI event
-                                if ((res = backend->read_midi_event(backend, nPortID, &midi_event, i)) != STATUS_OK)
-                                {
-                                    lsp_warn("Could not fetch MIDI event #%d from MIDI port", int(i));
-                                    continue;
-                                }
-
-                                // Convert MIDI event
-                                if (midi::decode(&ev, midi_event.data) <= 0)
-                                {
-                                    lsp_warn("Could not decode MIDI event #%d at timestamp %d from MIDI port", int(i), int(midi_event.timestamp));
-                                    continue;
-                                }
-
-                                // Update timestamp and store event
-                                ev.timestamp    = midi_event.timestamp;
-                                if (!pMidi->push(ev))
-                                    lsp_warn("Could not append MIDI event #%d at timestamp %d due to buffer overflow", int(i), int(midi_event.timestamp));
-                            }
-
-                            // All MIDI events ARE ordered chronologically, we do not need to perform sort
+                            dsp::fill_zero(pSanitized, nBufSize);
+                            bZero           = true;
                         }
+                    }
+                    else if (buf_count > 1)
+                    {
+                        // Need to mix buffers together
+                        float * buf         = backend->get_audio_buffer(backend, nPortID, 1);
+                        dsp::add3(pSanitized, pBuffer, buf, samples);
+
+                        for (size_t index = 2; index < buf_count; ++index)
+                        {
+                            float * buf         = backend->get_audio_buffer(backend, nPortID, 1);
+                            dsp::add2(pSanitized, buf, samples);
+                        }
+
+                        // Reset cleanup flag
+                        bZero           = false;
                     }
                     else
                     {
-                        const size_t buf_count = backend->audio_buffers_count(backend, nPortID);
-                        if (pSanitized != NULL) // Need to sanitize?
-                        {
-                            float * const buf1  = backend->get_audio_buffer(backend, nPortID, 0);
-                            if ((buf_count == 0) || (buf1 == NULL))
-                            {
-                                dsp::fill_zero(pSanitized, samples);
-                                pDataBuffer     = NULL;
-                            }
-                            else if (buf_count > 1)
-                            {
-                                // Need to mix buffers together
-                                float * buf2        = backend->get_audio_buffer(backend, nPortID, 1);
-                                dsp::add3(pSanitized, buf1, buf2, samples);
-                                for (size_t i=2; ; ++i)
-                                {
-                                    if ((buf2 = backend->get_audio_buffer(backend, nPortID, i)) == NULL)
-                                        break;
-                                    dsp::add2(pSanitized, buf2, samples);
-                                }
-
-                                // Now we can sanitize the data
-                                dsp::sanitize1(pSanitized, samples);
-                                pDataBuffer     = pSanitized;
-                            }
-                            else
-                            {
-                                dsp::sanitize2(pSanitized, buf1, samples);
-                                pDataBuffer     = buf1;
-                            }
-
-                            IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pDataBuffer), samples) ); // Trace input data
-                            pBuffer         = pSanitized;
-                        }
-                        else
-                        {
-                            pDataBuffer     = backend->get_audio_buffer(backend, nPortID, 0);
-                            pBuffer         = pDataBuffer;
-                        }
+                        dsp::sanitize2(pSanitized, pBuffer, samples);
+                        bZero           = false;    // Reset cleanup flag
                     }
 
-                    return false;
+                    IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pSanitized), samples) ); // Trace input data
+
+                    return;
                 }
 
-                void after_process(size_t samples)
+                virtual void after_process(size_t samples) override
                 {
-                    if ((pMidi != NULL) && (meta::is_out_port(pMetadata)))
+                    // Need to sanitize output data?
+                    if (pSanitized == NULL)
                     {
-                        audio::backend_t * const backend = pWrapper->backend();
-
-                        // Transfer MIDI events
-                        pMidi->sort();  // All events SHOULD be ordered chonologically
-
-                        // Transmit all events
-                        for (size_t i=0, events=pMidi->nEvents; i<events; ++i)
-                        {
-                            // Determine size of the message
-                            midi::event_t *ev   = &pMidi->vEvents[i];
-                            ssize_t size        = midi::size_of(ev);
-                            if (size <= 0)
-                            {
-                                lsp_warn("Could not encode output MIDI message of type 0x%02x, timestamp=%d", int(ev->type), int(ev->timestamp));
-                                continue;
-                            }
-
-                            // Allocate MIDI event
-                            uint8_t * const midi_data       = backend->write_midi_event(backend, nPortID, ev->timestamp, size);
-                            if (midi_data == NULL)
-                            {
-                                lsp_warn("Could not write MIDI message of type 0x%02x, size=%d, timestamp=%d to output port buffer=%p",
-                                        int(ev->type), int(size), int(ev->timestamp), pBuffer);
-                                continue;
-                            }
-
-                            // Encode MIDI event
-                            midi::encode(midi_data, ev);
-                        }
-
-                        // Cleanup the output buffer
-                        pMidi->clear();
+                        dsp::sanitize1(reinterpret_cast<float *>(pBuffer), samples);
+                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pBuffer), samples) ); // Trace output data
                     }
-                    else if (meta::is_audio_out_port(pMetadata))
-                    {
-                        // Sanitize output data
-                        if (pDataBuffer != NULL)
-                        {
-                            dsp::sanitize1(reinterpret_cast<float *>(pDataBuffer), samples);
-                            IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pDataBuffer), samples) ); // Trace output data
-                        }
-                    }
-
                     pBuffer     = NULL;
                 }
 
                 virtual void trace(const void *instance) override
                 {
-                    IF_DEBUG( sTracer.set_trace("jack", id(), instance) );
+                    IF_DEBUG( sTracer.set_trace("standalone", id(), instance) );
+                }
+        };
+
+        class MidiPort: public DataPort
+        {
+            private:
+                plug::midi_t       *pMidi;              // Midi buffer for operating MIDI messages
+
+            public:
+                explicit MidiPort(const meta::port_t *meta, Wrapper *w) : DataPort(meta, w)
+                {
+                    pMidi       = NULL;
+                }
+
+                MidiPort(const MidiPort &) = delete;
+                MidiPort(MidiPort &&) = delete;
+
+                virtual ~MidiPort() override
+                {
+                    pMidi       = NULL;
+                };
+
+                MidiPort & operator = (const MidiPort &) = delete;
+                MidiPort & operator = (MidiPort &&) = delete;
+
+            public:
+                virtual int init() override
+                {
+                    return connect();
+                }
+
+                virtual void destroy() override
+                {
+                    disconnect();
+
+                    if (pMidi != NULL)
+                    {
+                        ::free(pMidi);
+                        pMidi       = NULL;
+                    }
+                }
+
+            public:
+                virtual void *buffer() override
+                {
+                    return (nPortID >= 0) ? pMidi : NULL;
+                };
+
+            public:
+                virtual status_t connect() override
+                {
+                    audio::backend_t * const backend = pWrapper->backend();
+                    if (backend == NULL)
+                        return STATUS_DISCONNECTED;
+
+                    if (pMidi == NULL)
+                    {
+                        pMidi       = static_cast<plug::midi_t *>(::malloc(sizeof(plug::midi_t)));
+                        if (pMidi == NULL)
+                            return STATUS_NO_MEM;
+                    }
+                    pMidi->clear();
+
+                    // Register port
+                    nPortID     = backend->register_port(
+                        backend, pMetadata->id,
+                        (meta::is_out_port(pMetadata)) ? audio::PORT_MIDI_OUT : audio::PORT_MIDI_IN);
+
+                    return (nPortID >= 0) ? STATUS_OK : STATUS_UNKNOWN_ERR;
+                }
+
+                virtual void before_process(size_t samples) override
+                {
+                    if (pMidi == NULL)
+                        return;
+
+                    // Only input MIDI ports require pre-processing
+                    if ((nPortID < 0) || (!meta::is_in_port(pMetadata)))
+                        return;
+
+                    status_t res;
+                    audio::backend_t * const backend = pWrapper->backend();
+
+                    // Clear input MIDI buffer
+                    pMidi->clear();
+
+                    // Read MIDI events
+                    audio::midi_event_t midi_event;
+                    midi::event_t       ev;
+
+                    const size_t event_count = backend->midi_events_count(backend, nPortID);
+                    for (size_t i=0; i<event_count; ++i)
+                    {
+                        // Read MIDI event
+                        if ((res = backend->read_midi_event(backend, nPortID, &midi_event, i)) != STATUS_OK)
+                        {
+                            lsp_warn("Could not fetch MIDI event #%d from MIDI port", int(i));
+                            continue;
+                        }
+
+                        // Convert MIDI event
+                        if (midi::decode(&ev, midi_event.data) <= 0)
+                        {
+                            lsp_warn("Could not decode MIDI event #%d at timestamp %d from MIDI port", int(i), int(midi_event.timestamp));
+                            continue;
+                        }
+
+                        // Update timestamp and store event
+                        ev.timestamp    = midi_event.timestamp;
+                        if (!pMidi->push(ev))
+                            lsp_warn("Could not append MIDI event #%d at timestamp %d due to buffer overflow", int(i), int(midi_event.timestamp));
+                    }
+
+                    // All MIDI events ARE ordered chronologically, we do not need to perform sort
+                }
+
+                virtual void after_process(size_t samples) override
+                {
+                    if (pMidi == NULL)
+                        return;
+
+                    // Cleanup output MIDI buffer at exit
+                    lsp_finally { pMidi->clear(); };
+
+                    // Only output MIDI ports require post-processing
+                    if ((nPortID < 0) || (!meta::is_out_port(pMetadata)))
+                        return;
+
+                    audio::backend_t * const backend = pWrapper->backend();
+
+                    // Transfer MIDI events
+                    pMidi->sort();  // All events SHOULD be ordered chonologically
+
+                    // Transmit all events
+                    for (size_t i=0, events=pMidi->nEvents; i<events; ++i)
+                    {
+                        // Determine size of the message
+                        midi::event_t *ev   = &pMidi->vEvents[i];
+                        ssize_t size        = midi::size_of(ev);
+                        if (size <= 0)
+                        {
+                            lsp_warn(
+                                "Could not encode output MIDI message of type 0x%02x, timestamp=%d",
+                                int(ev->type), int(ev->timestamp));
+                            continue;
+                        }
+
+                        // Allocate MIDI event
+                        uint8_t * const midi_data       = backend->write_midi_event(backend, nPortID, ev->timestamp, size);
+                        if (midi_data == NULL)
+                        {
+                            lsp_warn(
+                                "Could not write MIDI message of type 0x%02x, size=%d, timestamp=%d",
+                                int(ev->type), int(size), int(ev->timestamp));
+                            continue;
+                        }
+
+                        // Encode MIDI event
+                        midi::encode(midi_data, ev);
+                    }
                 }
         };
 
