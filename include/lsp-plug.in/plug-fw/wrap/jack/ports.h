@@ -144,7 +144,7 @@ namespace lsp
             public:
                 virtual void *buffer() override
                 {
-                    return pBuffer;
+                    return (pMidi != NULL) ? pMidi : pBuffer;
                 };
 
             public:
@@ -336,7 +336,7 @@ namespace lsp
 
                 void after_process(size_t samples)
                 {
-                    if ((pMidi != NULL) && (pDataBuffer != NULL) && (meta::is_out_port(pMetadata)))
+                    if ((pMidi != NULL) && (meta::is_out_port(pMetadata)))
                     {
                         audio::backend_t * const backend = pWrapper->backend();
 
