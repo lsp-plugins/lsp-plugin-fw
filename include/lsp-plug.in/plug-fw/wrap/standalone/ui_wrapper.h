@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 29 янв. 2021 г.
@@ -19,17 +19,17 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_UI_WRAPPER_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_UI_WRAPPER_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_UI_WRAPPER_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_UI_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 
-#include <lsp-plug.in/plug-fw/wrap/jack/ui_ports.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/ui_ports.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/wrapper.h>
 
 #include <lsp-plug.in/tk/tk.h>
 
@@ -139,4 +139,4 @@ namespace lsp
 } /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_UI_WRAPPER_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_UI_WRAPPER_H_ */

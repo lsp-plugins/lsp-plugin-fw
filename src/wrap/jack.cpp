@@ -48,16 +48,16 @@
 
 #include <lsp-plug.in/plug-fw/core/AudioBackend.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/types.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/factory.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/impl/factory.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/impl/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/defs.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/types.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/impl/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/impl/wrapper.h>
 
 #ifdef WITH_UI_FEATURE
-    #include <lsp-plug.in/plug-fw/wrap/jack/ui_wrapper.h>
-    #include <lsp-plug.in/plug-fw/wrap/jack/impl/ui_wrapper.h>
+    #include <lsp-plug.in/plug-fw/wrap/standalone/ui_wrapper.h>
+    #include <lsp-plug.in/plug-fw/wrap/standalone/impl/ui_wrapper.h>
 #endif /* WITH_UI_FEATURE */
 
 #if defined(LSP_TESTING) && (defined(PLATFORM_LINUX) || defined(PLATFORM_BSD))

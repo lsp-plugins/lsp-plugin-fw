@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 29 янв. 2021 г.
@@ -19,15 +19,15 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_UI_PORTS_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_UI_PORTS_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_UI_PORTS_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_UI_PORTS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/ports.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 
 #include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/ports.h>
 #include <lsp-plug.in/protocol/midi.h>
 #include <lsp-plug.in/protocol/osc.h>
 
@@ -555,4 +555,4 @@ namespace lsp
 } /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_UI_PORTS_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_UI_PORTS_H_ */

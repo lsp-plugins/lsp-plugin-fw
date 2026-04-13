@@ -19,24 +19,30 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_MAIN_WINNT_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_MAIN_WINNT_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 
-#ifndef LSP_PLUG_IN_JACK_MAIN_IMPL
+#ifndef LSP_PLUG_IN_STANDALONE_MAIN_IMPL
     #error "This header should not be included directly"
-#endif /* LSP_PLUG_IN_JACK_MAIN_IMPL */
+#endif /* LSP_PLUG_IN_STANDALONE_MAIN_IMPL */
 
-#ifndef JACK_PLUGIN_UID
-    #error "Plugin metadata identifier not defined"
-#endif /* JACK_PLUGIN_UID */
+#error "Needs to be implemented"
 
-#if defined(PLATFORM_WINDOWS)
-    #include <lsp-plug.in/plug-fw/wrap/jack/main/winnt.h>
-#else
-    #include <lsp-plug.in/plug-fw/wrap/jack/main/posix.h>
-#endif /* PLATFORM_WINDOWS */
+#include <windows.h>
+
+static BOOL WINAPI ctrlc_handler(DWORD dwCtrlType)
+{
+    if (dwCtrlType != CTRL_C_EVENT)
+        return FALSE;
+
+    wrapper.bInterrupt     = true;
+    return TRUE;
+}
+
+// Handle the Ctrl-C event from console
+SetConsoleCtrlHandler(ctrlc_handler, TRUE);
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_MAIN_WINNT_H_ */

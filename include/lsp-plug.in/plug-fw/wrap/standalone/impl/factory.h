@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 6 авг. 2024 г.
@@ -19,12 +19,12 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_IMPL_FACTORY_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_IMPL_FACTORY_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_IMPL_FACTORY_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_IMPL_FACTORY_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/factory.h>
 
-#include <lsp-plug.in/plug-fw/wrap/jack/factory.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
 namespace lsp
@@ -134,4 +134,4 @@ namespace lsp
     } /* namespace jack */
 } /* namespace lsp */
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_IMPL_FACTORY_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_IMPL_FACTORY_H_ */

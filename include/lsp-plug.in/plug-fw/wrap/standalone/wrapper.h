@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_WRAPPER_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_WRAPPER_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_WRAPPER_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/plug.h>
@@ -31,8 +31,6 @@
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/core/ShmClient.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/factory.h>
-
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/lltl/parray.h>
@@ -40,6 +38,7 @@
 #include <lsp-plug.in/ipc/NativeExecutor.h>
 #include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/dsp-units/units.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/factory.h>
 
 namespace lsp
 {
@@ -215,4 +214,4 @@ namespace lsp
 } /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_WRAPPER_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_WRAPPER_H_ */

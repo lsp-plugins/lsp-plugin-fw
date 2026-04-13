@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_PORTS_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_PORTS_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_PORTS_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_PORTS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
@@ -36,8 +36,8 @@
 #include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/core/AudioTracer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/types.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/types.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/wrapper.h>
 
 namespace lsp
 {
@@ -914,4 +914,4 @@ namespace lsp
 } /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_PORTS_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_PORTS_H_ */

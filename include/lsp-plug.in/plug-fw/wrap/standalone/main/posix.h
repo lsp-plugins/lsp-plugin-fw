@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 янв. 2021 г.
@@ -19,19 +19,19 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_MAIN_POSIX_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_MAIN_POSIX_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 
-#ifndef LSP_PLUG_IN_JACK_MAIN_IMPL
+#ifndef LSP_PLUG_IN_STANDALONE_MAIN_IMPL
     #error "This header should not be included directly"
-#endif /* LSP_PLUG_IN_JACK_MAIN_IMPL */
+#endif /* LSP_PLUG_IN_STANDALONE_MAIN_IMPL */
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/common/types.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/common/libpath.h>
 
 // System libraries
@@ -463,4 +463,4 @@ int main(int argc, const char **argv)
 }
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_POSIX_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_MAIN_POSIX_H_ */

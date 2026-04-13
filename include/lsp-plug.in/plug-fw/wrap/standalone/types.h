@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 26 нояб. 2020 г.
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_TYPES_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_TYPES_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_TYPES_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_TYPES_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/const.h>
@@ -187,4 +187,4 @@ namespace lsp
 } /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_TYPES_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_TYPES_H_ */

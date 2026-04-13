@@ -19,13 +19,13 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_IMPL_WRAPPER_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_IMPL_WRAPPER_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_IMPL_WRAPPER_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_IMPL_WRAPPER_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/ports.h>
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/ports.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/wrapper.h>
 
 namespace lsp
 {
@@ -1293,4 +1293,4 @@ namespace lsp
     } /* namespace jack */
 } /* namespace lsp */
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_IMPL_WRAPPER_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_IMPL_WRAPPER_H_ */

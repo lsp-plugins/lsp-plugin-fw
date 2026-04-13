@@ -30,7 +30,7 @@
 
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/defs.h>
 
 #include <private/test/repository.h>
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 23 дек. 2020 г.
@@ -100,9 +100,9 @@ namespace lsp
             fprintf(out,    "\n");
 
             fprintf(out,    "// Include factory function implementation\n");
-            fprintf(out,    "#define LSP_PLUG_IN_JACK_MAIN_IMPL\n");
+            fprintf(out,    "#define LSP_PLUG_IN_STANDALONE_MAIN_IMPL\n");
             fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/jack/main.h>\n");
-            fprintf(out,    "#undef LSP_PLUG_IN_JACK_MAIN_IMPL\n");
+            fprintf(out,    "#undef LSP_PLUG_IN_STANDALONE_MAIN_IMPL\n");
 
             return STATUS_OK;
         }
