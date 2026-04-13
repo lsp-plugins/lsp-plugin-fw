@@ -26,8 +26,8 @@
 #include <lsp-plug.in/plug-fw/core/SamplePlayer.h>
 #include <lsp-plug.in/plug-fw/wrap/standalone/ui_wrapper.h>
 
-#define STANDALONE_STATUS_OFF       "PluginWindow::StatusBar::Label::FAIL"
-#define STANDALONE_STATUS_ON        "PluginWindow::StatusBar::Label::OK"
+#define BACKEND_STATUS_OFF          "PluginWindow::StatusBar::Label::FAIL"
+#define BACKEND_STATUS_ON           "PluginWindow::StatusBar::Label::OK"
 
 namespace lsp
 {
@@ -96,8 +96,8 @@ namespace lsp
             // Call the post-initialization routine and show the audio backend connection state indicator
             if ((res = pUI->post_init()) == STATUS_OK)
             {
-                pConnStatus = controller()->widgets()->get<tk::Label>("jack_status");
-                pConnIndicatorPanel = controller()->widgets()->get<tk::Widget>("jack_indicator");
+                pConnStatus = controller()->widgets()->get<tk::Label>("backend_status");
+                pConnIndicatorPanel = controller()->widgets()->get<tk::Widget>("backend_indicator");
                 set_connection_status(bConnConnected);
             }
 
@@ -173,7 +173,7 @@ namespace lsp
 
         meta::plugin_format_t UIWrapper::plugin_format() const
         {
-            return meta::PLUGIN_JACK;
+            return meta::PLUGIN_STANDALONE;
         }
 
         void UIWrapper::dump_state_request()
@@ -488,10 +488,10 @@ namespace lsp
             if (!pConnStatus)
                 return;
 
-            ctl::revoke_style(pConnStatus, STANDALONE_STATUS_OFF);
-            ctl::revoke_style(pConnStatus, STANDALONE_STATUS_ON);
-            ctl::inject_style(pConnStatus, (connected) ? STANDALONE_STATUS_ON : STANDALONE_STATUS_OFF);
-            pConnStatus->text()->set((connected) ? "statuses.jack.on" : "statuses.jack.off");
+            ctl::revoke_style(pConnStatus, BACKEND_STATUS_OFF);
+            ctl::revoke_style(pConnStatus, BACKEND_STATUS_ON);
+            ctl::inject_style(pConnStatus, (connected) ? BACKEND_STATUS_ON : BACKEND_STATUS_OFF);
+            pConnStatus->text()->set((connected) ? "statuses.backend.on" : "statuses.backend.off");
 
             if (pConnIndicatorPanel)
                 pConnIndicatorPanel->visibility()->set(true);

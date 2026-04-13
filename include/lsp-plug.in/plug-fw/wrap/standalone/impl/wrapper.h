@@ -1231,7 +1231,7 @@ namespace lsp
 
         meta::plugin_format_t Wrapper::plugin_format() const
         {
-            return meta::PLUGIN_JACK;
+            return meta::PLUGIN_STANDALONE;
         }
 
         const core::ShmState *Wrapper::shm_state()
