@@ -19,7 +19,7 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/util/jack_make/jack_make.h>
+#include <lsp-plug.in/plug-fw/util/standalone_make/standalone_make.h>
 
 #ifndef LSP_IDE_DEBUG
 int main(int argc, const char **argv)
