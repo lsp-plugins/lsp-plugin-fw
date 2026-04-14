@@ -165,19 +165,6 @@ namespace lsp
                         de->d_type  = DT_REG;
                 }
 
-                // Scan symbolic link if present
-                if (de->d_type == DT_LNK)
-                {
-                    struct stat st;
-                    if (stat(ptr, &st) != 0)
-                        continue;
-
-                    if (S_ISDIR(st.st_mode))
-                        de->d_type = DT_DIR;
-                    else if (S_ISREG(st.st_mode))
-                        de->d_type = DT_REG;
-                }
-
                 // Analyze file
                 if (de->d_type == DT_DIR)
                 {
