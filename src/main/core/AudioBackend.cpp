@@ -146,6 +146,7 @@ namespace lsp
                 info->builtin           = (path != NULL) ? NULL : factory;
                 info->factory_id        = factory_id;
                 info->local_id          = local_id;
+                info->priority          = meta->priority;
                 version_copy(&info->version, mversion);
                 if (path != NULL)
                 {
@@ -313,6 +314,11 @@ namespace lsp
 //            lookup_audio_backends(list, &tmp, part);
 //        }
 
+        static ssize_t compare_backends(const AudioBackendInfo *a, const AudioBackendInfo *b)
+        {
+            return a->uid.compare_to(&b->uid);
+        }
+
         status_t scan_audio_backends(lltl::parray<AudioBackendInfo> *list)
         {
             if (list == NULL)
@@ -347,6 +353,9 @@ namespace lsp
             for (const char **paths = library_paths; *paths != NULL; ++paths)
                 lookup_audio_backends(&tmp, *paths, AUDIO_LIBRARY_FILE_PART);
         #endif /* PLATFORM_POSIX */
+
+            // Sort backends by identifier
+            tmp.qsort(compare_backends);
 
             tmp.swap(list);
 

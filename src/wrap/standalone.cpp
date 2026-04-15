@@ -43,6 +43,10 @@
 #include <lsp-plug.in/plug-fw/core/AudioBackend.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/wrap/standalone/defs.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/dummy/backend.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/dummy/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/dummy/impl/backend.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/dummy/impl/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/standalone/types.h>
 #include <lsp-plug.in/plug-fw/wrap/standalone/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/standalone/wrapper.h>
@@ -122,6 +126,7 @@ namespace lsp
         // Standalone plugin loop definitions
         typedef struct cmdline_t
         {
+            const char     *backend;
             const char     *cfg_file;
             const char     *plugin_id;
             const char     *client_name;
@@ -297,12 +302,14 @@ namespace lsp
             status_t res;
 
             // Initialize config with default values
+            cfg->backend        = NULL;
             cfg->cfg_file       = NULL;
             cfg->plugin_id      = NULL;
             cfg->client_name    = NULL;
             cfg->script_name    = NULL;
             cfg->schema         = NULL;
             cfg->parent_id      = NULL;
+
             cfg->headless       = false;
             cfg->list           = false;
             cfg->version        = false;
@@ -322,6 +329,7 @@ namespace lsp
                             (plugin_id != NULL) ? "" : " plugin-id"
                     );
                     printf("Available parameters:\n");
+                    printf("  -b, --backend <id>        Select audio backend for processing\n");
                     printf("  -c, --config <file>       Load settings file on startup\n");
                     IF_XDND_PROXY_SUPPORT(
                         printf("  --dnd-proxy <id>          Create window as child and DnD proxy of specified window ID\n");
@@ -344,6 +352,20 @@ namespace lsp
                     printf("\n");
 
                     return STATUS_CANCELLED;
+                }
+                else if ((!::strcmp(arg, "--backend")) || (!::strcmp(arg, "-b")))
+                {
+                    if (cfg->backend != NULL)
+                    {
+                        fprintf(stderr, "Duplicate backend identifier specified\n");
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified backend name for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->backend = argv[i++];
                 }
                 else if ((!::strcmp(arg, "--config")) || (!::strcmp(arg, "-c")))
                 {
@@ -787,11 +809,12 @@ namespace lsp
                 printf("List of available audio backends:\n");
                 for (lltl::iterator<core::AudioBackendInfo> it=audio_backends.values(); it; ++it)
                 {
-                    const core::AudioBackendInfo *backend = it.get();
-                    printf("  %s - %s (%s)\n",
+                    const core::AudioBackendInfo * const backend = it.get();
+                    printf("  %-10s - %s (%s), priority: %d\n",
                         backend->uid.get_native(),
                         backend->display.get_native(),
-                        (backend->builtin != NULL) ? "builtin" : backend->library.get_native());
+                        (backend->builtin != NULL) ? "builtin" : backend->library.get_native(),
+                        int(backend->priority));
                 }
                 return STATUS_CANCELLED;
             }
@@ -899,8 +922,17 @@ namespace lsp
                 }
                 if (sCmdLine.schema != NULL)
                     pUIWrapper->select_ui_schema(sCmdLine.schema);
+
+//                if (sCmdLine.backend != NULL)
+//                    pUIWrapper->select_backend(sCmdLine.backend);
             }
         #endif /* WITH_UI_FEATURE */
+
+        // #ifndef WITH_UI_FEATURE
+            // Select autio backend (if specified in parameters)
+            if (sCmdLine.backend != NULL)
+                pWrapper->select_backend(sCmdLine.backend);
+        //#endif /* WITH_UI_FEATURE */
 
             // Load configuration (if specified in parameters)
             if (sCmdLine.cfg_file != NULL)

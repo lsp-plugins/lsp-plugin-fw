@@ -172,10 +172,34 @@ namespace lsp
                 pShmClient->init(this, pFactory, plugin_ports.array(), plugin_ports.size());
             }
 
+            // Select the most prioritized backend
+            nCurrentBackend = select_current_backend();
+
             // Update state, mark initialized
-            nState      = S_INITIALIZED;
+            nState          = S_INITIALIZED;
 
             return STATUS_OK;
+        }
+
+        size_t Wrapper::select_current_backend()
+        {
+            size_t best_index = 0;
+            const core::AudioBackendInfo *best = vAudioBackends.get(best_index);
+            if (best == NULL)
+                return best_index;
+
+            // Select backend with the highest priority
+            for (size_t i=1, n=vAudioBackends.size(); i<n; ++i)
+            {
+                const core::AudioBackendInfo * const curr = vAudioBackends.uget(i);
+                if (curr->priority > best->priority)
+                {
+                    best        = curr;
+                    best_index  = i;
+                }
+            }
+
+            return best_index;
         }
 
         void Wrapper::set_routing(const lltl::darray<connection_t> *routing)
@@ -283,8 +307,12 @@ namespace lsp
                 if (info == NULL)
                     return STATUS_NOT_FOUND;
 
+                lsp_info("Using audio backend: %s (%s)", info->uid.get_native(), info->display.get_native());
                 if ((res = core::create_audio_backend(&pBackend, &sBackendLibrary, info)) != STATUS_OK)
+                {
+                    lsp_warn("Failed to create audio backend: code=%d", int(res));
                     return res;
+                }
             }
 
             // Obtain the connection to the backend
@@ -587,6 +615,47 @@ namespace lsp
             nState      = S_DISCONNECTED;
 
             return STATUS_OK;
+        }
+
+        const core::AudioBackendInfo *Wrapper::find_backend(const LSPString *id)
+        {
+            for (lltl::iterator<core::AudioBackendInfo> it = vAudioBackends.values(); it; ++it)
+            {
+                const core::AudioBackendInfo * const info = it.get();
+                if (info == NULL)
+                    continue;
+                if (info->uid.equals(id))
+                    return info;
+            }
+            return NULL;
+        }
+
+        status_t Wrapper::select_backend(const char *id)
+        {
+            LSPString back_id;
+            if (!back_id.set_native(id))
+                return STATUS_NO_MEM;
+
+            const core::AudioBackendInfo * const info = find_backend(&back_id);
+            if (info == NULL)
+                return STATUS_NOT_FOUND;
+
+            const ssize_t idx = vAudioBackends.index_of(info);
+            if (idx < 0)
+                return STATUS_UNKNOWN_ERR;
+            if (idx == ssize_t(nCurrentBackend))
+                return STATUS_OK;
+
+            // Here we need to shut-down current connection first
+            status_t res = disconnect();
+            if (res != STATUS_OK)
+                return res;
+
+            // Change current backend to new one
+            nCurrentBackend     = idx;
+
+            // Make a new connection
+            return connect();
         }
 
         void Wrapper::destroy()

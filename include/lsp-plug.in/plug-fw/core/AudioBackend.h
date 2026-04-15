@@ -42,6 +42,7 @@ namespace lsp
             audio::factory_t   *builtin;            // Pointer to built-in factory
             size_t              factory_id;         // The ID of the factory
             size_t              local_id;           // The ID of the item inside of the factory
+            size_t              priority;           // Backend priority
         } AudioBackendInfo;
 
         /**

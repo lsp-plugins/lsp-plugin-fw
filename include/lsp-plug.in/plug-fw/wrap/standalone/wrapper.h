@@ -134,6 +134,8 @@ namespace lsp
 
                 status_t        import_settings(config::PullParser *parser);
                 status_t        import_settings_work(config::PullParser *parser);
+                const core::AudioBackendInfo *find_backend(const LSPString *id);
+                size_t          select_current_backend();
 
             protected:
                 static status_t on_connected(void *user_data, const audio::io_parameters_t *params);
@@ -189,6 +191,7 @@ namespace lsp
                 status_t                            connect();
                 void                                set_routing(const lltl::darray<connection_t> *routing);
                 status_t                            disconnect();
+                status_t                            select_backend(const char *id);
 
                 bool                                lock_meters();
                 bool                                lock_meters_soft();
