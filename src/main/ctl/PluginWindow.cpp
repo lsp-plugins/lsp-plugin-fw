@@ -891,7 +891,7 @@ namespace lsp
 
             LSP_STATUS_ASSERT(
                 add_ui_flag(menu,
-                    UI_UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT,
+                    UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT,
                     "actions.ui_behavior.show_piano_layout_on_graph"));
 
             return STATUS_OK;

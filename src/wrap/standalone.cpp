@@ -923,8 +923,8 @@ namespace lsp
                 if (sCmdLine.schema != NULL)
                     pUIWrapper->select_ui_schema(sCmdLine.schema);
 
-//                if (sCmdLine.backend != NULL)
-//                    pUIWrapper->select_backend(sCmdLine.backend);
+                if (sCmdLine.backend != NULL)
+                    pUIWrapper->select_backend(sCmdLine.backend);
             }
         #endif /* WITH_UI_FEATURE */
 
@@ -1075,27 +1075,32 @@ namespace lsp
 
         status_t PluginLoop::sync_state(ws::timestamp_t sched, ws::timestamp_t ctime)
         {
-            standalone::Wrapper *jw     = pWrapper;
+            standalone::Wrapper * const jw      = pWrapper;
         #ifdef WITH_UI_FEATURE
-            standalone::UIWrapper *uw   = pUIWrapper;
+            standalone::UIWrapper * const uw    = pUIWrapper;
         #endif /* WITH_UI_FEATURE */
 
             // If connection to audio backend was lost - notify
             if (jw->connection_lost())
             {
-                // Disconnect wrapper and remember last connection time
-                fprintf(stderr, "Connection to audio backend has been lost\n");
-                jw->disconnect();
             #ifdef WITH_UI_FEATURE
                 if (uw != NULL)
-                    uw->connection_lost();
+                    uw->set_connection_status(jw->selected_backend(), false);
             #endif /* WITH_UI_FEATURE */
+
+                // Disconnect wrapper and remember last connection time
+                fprintf(stderr, "Connection to the audio backend has been lost\n");
+                jw->disconnect();
                 nLastReconnect      = ctime;
             }
 
             // If we are currently in disconnected state - try to perform a connection
             if (jw->disconnected())
             {
+            #ifdef WITH_UI_FEATURE
+                uw->set_connection_status(jw->selected_backend(), false);
+            #endif /* WITH_UI_FEATURE */
+
                 // Try each second to make new connection
                 if ((ctime - nLastReconnect) >= RECONNECT_INTERVAL)
                 {
@@ -1108,7 +1113,7 @@ namespace lsp
                             jw->set_routing(pRouting);
                         }
 
-                        printf("Successfully connected to audio backend\n");
+                        printf("Successfully connected to the audio backend\n");
                         bNotify             = true;
                     }
                     nLastReconnect      = ctime;
@@ -1116,9 +1121,11 @@ namespace lsp
             }
 
             // If we are connected - do usual stuff with UI
+        #ifdef WITH_UI_FEATURE
             if (jw->connected())
             {
-            #ifdef WITH_UI_FEATURE
+                uw->set_connection_status(jw->selected_backend(), true);
+
                 // Sync state (transfer DSP to UI)
                 if (uw != NULL)
                 {
@@ -1137,8 +1144,8 @@ namespace lsp
                         nLastIconSync   = ctime;
                     }
                 }
-            #endif /* WITH_UI_FEATURE */
             }
+        #endif /* WITH_UI_FEATURE */
 
             return STATUS_OK;
         }

@@ -39,9 +39,11 @@ namespace lsp
             pWrapper            = wrapper;
 
             nPosition           = 0;
-            pConnStatus         = NULL;
-            pConnIndicatorPanel = NULL;
+            pConnBackend        = NULL;
             bConnConnected      = false;
+            pConnStatus         = NULL;
+            pConnName           = NULL;
+            pConnIndicatorPanel = NULL;
         }
 
         UIWrapper::~UIWrapper()
@@ -97,8 +99,10 @@ namespace lsp
             if ((res = pUI->post_init()) == STATUS_OK)
             {
                 pConnStatus = controller()->widgets()->get<tk::Label>("backend_status");
+                pConnName = controller()->widgets()->get<tk::Label>("backend_name");
                 pConnIndicatorPanel = controller()->widgets()->get<tk::Widget>("backend_indicator");
-                set_connection_status(bConnConnected);
+                update_connection_name();
+                sync_connection_status(bConnConnected);
             }
 
             tk::Window *root    = window();
@@ -369,10 +373,6 @@ namespace lsp
 
         bool UIWrapper::sync(ws::timestamp_t ts)
         {
-            // Update the state of connection
-            if (!bConnConnected)
-                set_connection_status(bConnConnected = true);
-
             // Initialize DSP state
             dsp::context_t ctx;
             dsp::start(&ctx);
@@ -477,21 +477,62 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void UIWrapper::connection_lost()
+        void UIWrapper::set_connection_status(const core::AudioBackendInfo * backend, bool connected)
         {
-            if (bConnConnected)
-                set_connection_status(bConnConnected = false);
+            if (bConnConnected != connected)
+            {
+                bConnConnected = connected;
+                sync_connection_status(bConnConnected);
+            }
+            if (pConnBackend != backend)
+            {
+                pConnBackend = backend;
+                update_connection_name();
+            }
         }
 
-        void UIWrapper::set_connection_status(bool connected)
+        void UIWrapper::sync_connection_status(bool connected)
         {
-            if (!pConnStatus)
-                return;
+            if (pConnStatus)
+            {
+                ctl::revoke_style(pConnStatus, BACKEND_STATUS_OFF);
+                ctl::revoke_style(pConnStatus, BACKEND_STATUS_ON);
+                ctl::inject_style(pConnStatus, (connected) ? BACKEND_STATUS_ON : BACKEND_STATUS_OFF);
+                pConnStatus->text()->set((connected) ? "statuses.backend.on" : "statuses.backend.off");
+            }
 
-            ctl::revoke_style(pConnStatus, BACKEND_STATUS_OFF);
-            ctl::revoke_style(pConnStatus, BACKEND_STATUS_ON);
-            ctl::inject_style(pConnStatus, (connected) ? BACKEND_STATUS_ON : BACKEND_STATUS_OFF);
-            pConnStatus->text()->set((connected) ? "statuses.backend.on" : "statuses.backend.off");
+            if (pConnIndicatorPanel)
+                pConnIndicatorPanel->visibility()->set(true);
+        }
+
+        void UIWrapper::update_connection_name()
+        {
+            if (pConnName)
+            {
+                LSPString tmp;
+                tk::String * const text = pConnName->text();
+
+                if (pConnBackend == NULL)
+                    text->set("statuses.backend.label.unknown");
+                else if (!pConnBackend->lc_key.is_empty())
+                {
+                    bool set = tmp.set_ascii("statuses.backend.label.");
+                    if (set)
+                        set = tmp.append(&pConnBackend->lc_key);
+                    if (set)
+                        text->set(&tmp);
+                }
+                else if (!pConnBackend->display.is_empty())
+                    text->set_raw(&pConnBackend->display);
+                else
+                {
+                    bool set = tmp.set_ascii("statuses.backend.label.");
+                    if (set)
+                        set = tmp.append(&pConnBackend->uid);
+                    if (set)
+                        text->set(&tmp);
+                }
+            }
 
             if (pConnIndicatorPanel)
                 pConnIndicatorPanel->visibility()->set(true);
@@ -499,7 +540,8 @@ namespace lsp
 
         void UIWrapper::visual_schema_reloaded(const tk::StyleSheet *sheet)
         {
-            set_connection_status(bConnConnected);
+            update_connection_name();
+            set_connection_status(pConnBackend, bConnConnected);
         }
 
         status_t UIWrapper::export_settings(config::Serializer *s, size_t flags, const io::Path *basedir)
@@ -616,6 +658,25 @@ namespace lsp
                 sVisualSchema.swap(path);
 
             return res;
+        }
+
+        status_t UIWrapper::enumerate_backends(core::AudioBackendInfoList & list)
+        {
+            return (pWrapper != NULL) ? pWrapper->enumerate_backends(list) : STATUS_BAD_STATE;
+        }
+
+        status_t UIWrapper::select_backend(const LSPString & name)
+        {
+            status_t res = pWrapper->select_backend(name);
+            if (res != STATUS_OK)
+                return res;
+
+            // Update connection status
+            set_connection_status(
+                pWrapper->selected_backend(),
+                pWrapper->connected());
+
+            return STATUS_OK;
         }
 
     } /* namespace standalone */

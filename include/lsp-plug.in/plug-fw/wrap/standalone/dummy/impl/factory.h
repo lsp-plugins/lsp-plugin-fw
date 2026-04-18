@@ -42,7 +42,7 @@ namespace lsp
                 {
                     "dummy",
                     "Dummy Audio Backend",
-                    "dummy_audio_backend",
+                    "dummy",
                     0
                 }
             };

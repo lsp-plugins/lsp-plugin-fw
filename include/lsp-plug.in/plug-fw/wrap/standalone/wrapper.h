@@ -117,7 +117,7 @@ namespace lsp
                 core::SamplePlayer             *pSamplePlayer;      // Sample player
                 core::ShmClient                *pShmClient;         // Shared memory client
 
-                lltl::parray<core::AudioBackendInfo>        vAudioBackends;     // All available audio backends
+                core::AudioBackendInfoList                  vAudioBackends;     // All available audio backends
                 lltl::parray<standalone::Port>              vAllPorts;          // All ports
                 lltl::parray<standalone::Port>              vParams;            // All input parameters
                 lltl::parray<standalone::MeterPort>         vMeters;            // Meters
@@ -180,6 +180,8 @@ namespace lsp
 
             public:
                 inline audio::backend_t            *backend();
+                inline const core::AudioBackendInfo*selected_backend() const;
+                status_t                            enumerate_backends(core::AudioBackendInfoList & list) const;
                 inline bool                         initialized() const;
                 inline bool                         connected() const;
                 inline bool                         disconnected() const;
@@ -192,6 +194,8 @@ namespace lsp
                 void                                set_routing(const lltl::darray<connection_t> *routing);
                 status_t                            disconnect();
                 status_t                            select_backend(const char *id);
+                status_t                            select_backend(const LSPString * id);
+                status_t                            select_backend(const LSPString & id);
 
                 bool                                lock_meters();
                 bool                                lock_meters_soft();

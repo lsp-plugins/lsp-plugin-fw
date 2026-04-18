@@ -38,6 +38,7 @@
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/expr/Variables.h>
 
+#include <lsp-plug.in/plug-fw/core/AudioBackend.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/ShmState.h>
 #include <lsp-plug.in/plug-fw/core/presets.h>
@@ -666,6 +667,36 @@ namespace lsp
                  * @return status of operation
                  */
                 status_t                        switch_preset_data();
+
+            public: // Audio backend management
+                /**
+                 * Enumerate audio backends. The caller is responsible for deleting data.
+                 * @param list pointer to store audio backends
+                 * @return status of operation
+                 */
+                virtual status_t                enumerate_backends(core::AudioBackendInfoList & list);
+
+                /**
+                 * Select Audio backend for standalone version
+                 * @param name audio backend name
+                 * @return status of operation
+                 */
+                status_t                        select_backend(const char *name);
+
+                /**
+                 * Select Audio backend for standalone version
+                 * @param name audio backend name
+                 * @return status of operation
+                 */
+                status_t                        select_backend(const LSPString * name);
+
+                /**
+                 * Select Audio backend for standalone version
+                 * @param name audio backend name
+                 * @return status of operation
+                 */
+                virtual status_t                select_backend(const LSPString & name);
+
         };
 
     } /* namespace ui */

@@ -165,6 +165,7 @@ namespace lsp
             SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", NULL, 0.0f),
             SWITCH(UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID, "Show piano keyboard layout on frequency graph", NULL, 1.0f),
             SWITCH(UI_CONFIG_USER_FRIENDLY_VALUES_ID, "User-friendly values in configuration file", NULL, 1.0f),
+            PATH(AUDIO_BACKEND_ID, "Audio driver (backend) for standalone version of plugins"),
             PORTS_END
         };
 
@@ -3339,6 +3340,34 @@ namespace lsp
 
         void IWrapper::host_scaling_changed()
         {
+        }
+
+        status_t IWrapper::enumerate_backends(core::AudioBackendInfoList & list)
+        {
+            return core::scan_audio_backends(&list);
+        }
+
+        status_t IWrapper::select_backend(const char *name)
+        {
+            if (name == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            LSPString tmp;
+            if (!tmp.set_native(name))
+                return STATUS_NO_MEM;
+
+            return select_backend(tmp);
+        }
+
+        status_t IWrapper::select_backend(const LSPString * name)
+        {
+            if (name == NULL)
+                return STATUS_BAD_ARGUMENTS;
+            return select_backend(*name);
+        }
+
+        status_t IWrapper::select_backend(const LSPString & name)
+        {
+            return STATUS_OK;
         }
 
     } /* namespace ui */

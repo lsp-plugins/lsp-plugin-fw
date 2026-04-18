@@ -45,18 +45,36 @@ namespace lsp
             size_t              priority;           // Backend priority
         } AudioBackendInfo;
 
+        typedef lltl::parray<AudioBackendInfo>      AudioBackendInfoList;
+
         /**
          * Scan for all audio backends
          * @param list list to store audio backends
          * @return status of operation
          */
-        status_t scan_audio_backends(lltl::parray<AudioBackendInfo> * list);
+        status_t scan_audio_backends(AudioBackendInfoList * list);
 
         /**
          * Cleanup the list of audio backends
          * @param list list of audio backends to clear
          */
-        void free_audio_backends(lltl::parray<AudioBackendInfo> * list);
+        void free_audio_backends(AudioBackendInfoList * list);
+
+        /**
+         * Copy list of backends to another list of backends
+         * @param dst destination list to append backends
+         * @param src source list to obtain backends
+         * @return status of operation
+         */
+        status_t copy_backends(AudioBackendInfoList * dst, const AudioBackendInfoList * src);
+
+        /**
+         * Add list of backends to another list
+         * @param dst destination list to append backends
+         * @param src source list to obtain backends
+         * @return status of operation
+         */
+        status_t add_backends(AudioBackendInfoList * dst, const AudioBackendInfoList * src);
 
         /**
          * Create audio backend

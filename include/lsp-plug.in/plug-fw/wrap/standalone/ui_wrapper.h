@@ -47,9 +47,11 @@ namespace lsp
                 standalone::Wrapper            *pWrapper;
 
                 atomic_t                        nPosition;          // Position counter
-                tk::Label                      *pConnStatus;        // Audio backend connection status
-                tk::Widget                     *pConnIndicatorPanel;// Audio backend indicator panel
+                const core::AudioBackendInfo   *pConnBackend;       // Currently used audio backend
                 bool                            bConnConnected;     // Audio backend is connected
+                tk::Label                      *pConnStatus;        // Audio backend connection status
+                tk::Label                      *pConnName;          // Audio backend name
+                tk::Widget                     *pConnIndicatorPanel;// Audio backend indicator panel
 
                 lltl::parray<standalone::UIPort>vSyncPorts;         // Ports for synchronization
                 lltl::parray<meta::port_t>      vGenMetadata;       // Generated metadata for virtual ports
@@ -71,7 +73,8 @@ namespace lsp
                 void                                sync_kvt(core::KVTStorage *kvt);
                 void                                ui_activated();
                 void                                ui_deactivated();
-                void                                set_connection_status(bool connected);
+                void                                sync_connection_status(bool connected);
+                void                                update_connection_name();
 
             protected:
                 virtual void                        visual_schema_reloaded(const tk::StyleSheet *sheet) override;
@@ -92,9 +95,12 @@ namespace lsp
                 virtual status_t                    export_settings(config::Serializer *s, size_t flags, const io::Path *basedir = NULL) override;
                 virtual status_t                    import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir = NULL) override;
                 virtual const core::ShmState       *shm_state() override;
+                virtual status_t                    enumerate_backends(core::AudioBackendInfoList & list) override;
+                virtual status_t                    select_backend(const LSPString & name) override;
 
                 using ui::IWrapper::export_settings;
                 using ui::IWrapper::import_settings;
+                using ui::IWrapper::select_backend;
 
             public:
                 /**
@@ -109,9 +115,11 @@ namespace lsp
                 void                                sync_inline_display();
 
                 /**
-                 * The Standalone connection has been lost
+                 * Change the status of connection
+                 * @param backend currently used audio backend
+                 * @param connected connection established flag
                  */
-                void                                connection_lost();
+                void                                set_connection_status(const core::AudioBackendInfo * backend, bool connected);
 
                 /**
                  * Select UI schema
@@ -133,6 +141,7 @@ namespace lsp
                  * @return status of operation
                  */
                 status_t                            select_ui_schema(const LSPString & name);
+
         };
 
     } /* namespace standalone */

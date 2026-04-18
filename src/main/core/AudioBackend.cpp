@@ -88,7 +88,7 @@ namespace lsp
         #endif /* ARCH_64_BIT */
     #endif /* PLATFORM_POSIX */
 
-        void free_audio_backends(lltl::parray<AudioBackendInfo> * list)
+        void free_audio_backends(AudioBackendInfoList * list)
         {
             if (list == NULL)
                 return;
@@ -102,7 +102,7 @@ namespace lsp
             list->flush();
         }
 
-        static bool check_duplicate(lltl::parray<AudioBackendInfo> *list, const AudioBackendInfo *info)
+        static bool check_duplicate(AudioBackendInfoList *list, const AudioBackendInfo *info)
         {
             for (lltl::iterator<AudioBackendInfo> it = list->values(); it; ++it)
             {
@@ -119,7 +119,7 @@ namespace lsp
         }
 
         static status_t commit_audio_factory(
-            lltl::parray<AudioBackendInfo> *list,
+            AudioBackendInfoList *list,
             const LSPString *path,
             size_t factory_id,
             audio::factory_t *factory,
@@ -178,7 +178,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        static status_t register_audio_backend(lltl::parray<AudioBackendInfo> *list, const LSPString *path)
+        static status_t register_audio_backend(AudioBackendInfoList *list, const LSPString *path)
         {
             ipc::Library lib;
 
@@ -240,14 +240,14 @@ namespace lsp
             return (found > 0) ? res : STATUS_NOT_FOUND;
         }
 
-        static status_t register_audio_backend(lltl::parray<AudioBackendInfo> *list, const io::Path *path)
+        static status_t register_audio_backend(AudioBackendInfoList *list, const io::Path *path)
         {
             if (path == NULL)
                 return STATUS_BAD_ARGUMENTS;
             return register_audio_backend(list, path->as_string());
         }
 
-//        static status_t register_audio_backend(lltl::parray<AudioBackendInfo> *list, const char *path)
+//        static status_t register_audio_backend(AudioBackendInfoList *list, const char *path)
 //        {
 //            LSPString tmp;
 //            if (path == NULL)
@@ -257,7 +257,7 @@ namespace lsp
 //            return register_audio_backend(list, &tmp);
 //        }
 
-        static void lookup_audio_backends(lltl::parray<AudioBackendInfo> *list, const io::Path *path, const char *part)
+        static void lookup_audio_backends(AudioBackendInfoList *list, const io::Path *path, const char *part)
         {
             io::Dir dir;
 
@@ -298,7 +298,7 @@ namespace lsp
             }
         }
 
-        void lookup_audio_backends(lltl::parray<AudioBackendInfo> * list, const char *path, const char *part)
+        void lookup_audio_backends(AudioBackendInfoList * list, const char *path, const char *part)
         {
             io::Path tmp;
             if (tmp.set(path) != STATUS_OK)
@@ -306,7 +306,7 @@ namespace lsp
             lookup_audio_backends(list, &tmp, part);
         }
 
-//        static void lookup_audio_backends(lltl::parray<AudioBackendInfo> *list, const LSPString *path, const char *part)
+//        static void lookup_audio_backends(AudioBackendInfoList *list, const LSPString *path, const char *part)
 //        {
 //            io::Path tmp;
 //            if (tmp.set(path) != STATUS_OK)
@@ -319,13 +319,13 @@ namespace lsp
             return a->uid.compare_to(&b->uid);
         }
 
-        status_t scan_audio_backends(lltl::parray<AudioBackendInfo> *list)
+        status_t scan_audio_backends(AudioBackendInfoList *list)
         {
             if (list == NULL)
                 return STATUS_BAD_ARGUMENTS;
 
             status_t res;
-            lltl::parray<AudioBackendInfo> tmp;
+            AudioBackendInfoList tmp;
             lsp_finally { free_audio_backends(&tmp); };
 
             // Scan for built-in libraries
@@ -359,6 +359,74 @@ namespace lsp
 
             tmp.swap(list);
 
+            return STATUS_OK;
+        }
+
+        status_t copy_backends(AudioBackendInfoList * dst, const AudioBackendInfoList * src)
+        {
+            // Create temporary list
+            AudioBackendInfoList tmp;
+            if (!tmp.reserve(src->size()))
+                return STATUS_NO_MEM;
+            lsp_finally { free_audio_backends(&tmp); };
+
+            // Fill temporary list with data
+            for (lltl::iterator<const AudioBackendInfo> it=src->values(); it; ++it)
+            {
+                const AudioBackendInfo *s = it.get();
+                if (s == NULL)
+                    continue;
+
+                // Create backend info
+                AudioBackendInfo *d = new AudioBackendInfo;
+                if (d == NULL)
+                    return STATUS_NO_MEM;
+                if (!tmp.add(d))
+                {
+                    delete d;
+                    return STATUS_NO_MEM;
+                }
+
+                // Copy backend info
+                if (!d->library.set(&s->library))
+                    return STATUS_NO_MEM;
+                if (!d->uid.set(&s->uid))
+                    return STATUS_NO_MEM;
+                if (!d->display.set(&s->display))
+                    return STATUS_NO_MEM;
+                if (!d->lc_key.set(&s->lc_key))
+                    return STATUS_NO_MEM;
+
+                version_copy(&d->version, &s->version);
+
+                d->builtin      = s->builtin;
+                d->factory_id   = s->factory_id;
+                d->local_id     = s->local_id;
+                d->priority     = s->priority;
+            }
+
+            // Commit result
+            tmp.swap(dst);
+            return STATUS_OK;
+        }
+
+        status_t add_backends(AudioBackendInfoList * dst, const AudioBackendInfoList * src)
+        {
+            // Create temporary list
+            AudioBackendInfoList tmp;
+            lsp_finally { free_audio_backends(&tmp); };
+
+            // Copy backends to temporary list
+            status_t res = copy_backends(dst, src);
+            if (res != STATUS_OK)
+                return res;
+
+            // Append temporary list to the destination list
+            if (!dst->add(tmp))
+                return STATUS_NO_MEM;
+
+            // Free temporary list
+            tmp.flush();
             return STATUS_OK;
         }
 

@@ -632,17 +632,32 @@ namespace lsp
 
         status_t Wrapper::select_backend(const char *id)
         {
+            if (id == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
             LSPString back_id;
             if (!back_id.set_native(id))
                 return STATUS_NO_MEM;
+            return select_backend(back_id);
+        }
 
-            const core::AudioBackendInfo * const info = find_backend(&back_id);
+        status_t Wrapper::select_backend(const LSPString *id)
+        {
+            if (id == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            return select_backend(*id);
+        }
+
+        status_t Wrapper::select_backend(const LSPString & id)
+        {
+            const core::AudioBackendInfo * const info = find_backend(&id);
             if (info == NULL)
                 return STATUS_NOT_FOUND;
 
             const ssize_t idx = vAudioBackends.index_of(info);
             if (idx < 0)
-                return STATUS_UNKNOWN_ERR;
+                return STATUS_NOT_FOUND;
             if (idx == ssize_t(nCurrentBackend))
                 return STATUS_OK;
 
@@ -1254,6 +1269,16 @@ namespace lsp
         audio::backend_t *Wrapper::backend()
         {
             return pBackend;
+        }
+
+        inline const core::AudioBackendInfo *Wrapper::selected_backend() const
+        {
+            return vAudioBackends.get(nCurrentBackend);
+        }
+
+        status_t Wrapper::enumerate_backends(core::AudioBackendInfoList & list) const
+        {
+            return core::copy_backends(&list, &vAudioBackends);
         }
 
         bool Wrapper::initialized() const
