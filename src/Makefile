@@ -54,15 +54,16 @@ else
   override HOST                    =
 endif
 
-DEPENDENT_FEATURES          = \
+ALLOWED_FEATURES            = \
+  clap doc gst ladspa lv2 standalone ui vst2 vst3 \
+  $(call fcheck,ui,$(BUILD_FEATURES),launcher) \
+  $(call fcheck,standalone,$(BUILD_FEATURES),xdg) \
+  $(call fcheck,standalone test,$(BUILD_FEATURES),jack)
+  
+ALLOWED_INSTALL_FEATURES    = \
+  clap doc gst ladspa lv2 standalone vst2 vst3 \
   $(call fcheck,ui,$(BUILD_FEATURES),launcher) \
   $(call fcheck,standalone,$(BUILD_FEATURES),xdg)
-DEPENDENT_INSTALL_FEATURES = \
-  $(call fcheck,ui,$(BUILD_FEATURES),launcher) \
-  $(call fcheck,standalone,$(BUILD_FEATURES),xdg)
-
-ALLOWED_FEATURES            = clap doc gst ladspa lv2 standalone ui vst2 vst3 $(DEPENDENT_FEATURES)
-ALLOWED_INSTALL_FEATURES    = clap doc gst ladspa lv2 standalone vst2 vst3 $(DEPENDENT_INSTALL_FEATURES)
 
 INTERNAL_FEATURES           =
 ifeq ($(TEST),1)
@@ -89,6 +90,12 @@ else
 endif
 HOST_DEPENDENCIES_TEST          = $(DEPENDENCIES_TEST)
 HOST_DEPENDENCIES_TEST_UI       = $(DEPENDENCIES_TEST_UI)
+
+OVERALL_FEATURES               := $(sort $(ENABLED_FEATURES) $(INTERNAL_FEATURES)) 
+
+$(info ENABLED_FEATURES = $(ENABLED_FEATURES))
+$(info OVERALL_FEATURES = $(OVERALL_FEATURES))
+$(info DEPENDENCIES_STANDALONE = $(DEPENDENCIES_STANDALONE))
 
 MERGED_DEPENDENCIES             = \
   $(DEPENDENCIES_COMMON) \
