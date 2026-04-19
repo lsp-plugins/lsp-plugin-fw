@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-pluginfw
  * Created on: 2 апр. 2024 г.
@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/plug-fw/const.h>
+#include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/core/presets.h>
 
 namespace lsp
@@ -200,6 +201,35 @@ namespace lsp
         {
             data->empty         = true;
             data->dirty         = false;
+        }
+
+        status_t get_user_presets_path(io::Path *path)
+        {
+            io::Path tmp;
+            status_t res    = get_user_config_path(&tmp);
+            if (res == STATUS_OK)
+                res             = tmp.append_child("presets");
+            if (res == STATUS_OK)
+                tmp.swap(path);
+
+            return res;
+        }
+
+        status_t get_plugin_presets_path(io::Path *path, const char *uid)
+        {
+            if (uid == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            // File name format: <config>/presets/<plugin-uid>/<preset-name>.[preset|patch]
+            io::Path tmp;
+            status_t res    = get_user_presets_path(&tmp);
+            if (res == STATUS_OK)
+                res             = tmp.append_child(uid);
+
+            if (res == STATUS_OK)
+                tmp.swap(path);
+
+            return res;
         }
 
     } /* namespace core */

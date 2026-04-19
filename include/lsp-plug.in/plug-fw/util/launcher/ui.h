@@ -109,12 +109,16 @@ namespace lsp
                 ui::IPort                  *pLaunchMultiple;    // Launch multiple plugins
                 ui::IPort                  *pLanguage;          // Language selection
                 ui::IPort                  *pVisualSchema;      // Visual schema selection
+                ui::IPort                  *pBackend;           // Backend selection
                 tk::Edit                   *wFilter;            // Filter edit
                 tk::TabControl             *wTabs;              // Tab control for tabs
                 tk::Widget                 *wLanguageArea;      // Language selector area
                 tk::ComboBox               *wLanguage;          // Language selector
                 tk::Widget                 *wSchemaArea;        // Visual schema selector area
                 tk::ComboBox               *wVisualSchema;      // Visual schema selector
+                tk::Widget                 *wBackendArea;       // Audio backend selection area
+                tk::ComboBox               *wBackend;           // Audio backend selector
+
                 tk::WidgetContainer        *wAllBundles;        // Container with full list of bundles
                 tk::WidgetContainer        *wFavourites;        // Container with favourites
                 tk::WidgetContainer        *wAllArea;           // Scroll area with all plugins
@@ -125,6 +129,7 @@ namespace lsp
                 lltl::parray<category_t>    vCategories;
                 lltl::parray<res_sel_t>     vLangSel;
                 lltl::parray<res_sel_t>     vSchemaSel;
+                lltl::parray<res_sel_t>     vBackendSel;
 
             protected:
                 template <typename T>
@@ -142,12 +147,14 @@ namespace lsp
                 static status_t             slot_toggle_favourites(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_select_language(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_select_visual_schema(tk::Widget *sender, void *ptr, void *data);
+                static status_t             slot_select_audio_backend(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_show_about(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_show_bundle_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t             slot_mouse_scroll(tk::Widget *sender, void *ptr, void *data);
 
             protected:
+                static void                 clear_list(lltl::parray<res_sel_t> & list);
                 static ssize_t              plugin_cmp_function(const plugin_t *a, const plugin_t *b);
 
             protected:
@@ -160,6 +167,7 @@ namespace lsp
                 void                        sync_widget_visibility();
                 void                        sync_language_selection();
                 void                        sync_visual_schema_selection();
+                void                        sync_audio_backend_selection();
                 void                        select_plugin_image(tk::Widget *sender, bool select);
                 status_t                    post_init();
                 void                        deploy_config();
@@ -168,6 +176,7 @@ namespace lsp
                 void                        sync_favourites_state(bundle_t *b);
                 status_t                    init_i18n_support();
                 status_t                    init_visual_schema_support();
+                status_t                    init_audio_backend_support();
                 i18n::IDictionary          *get_default_dict();
                 status_t                    locate_window();
                 status_t                    sync_icon_state(plugin_t *plugin, bool visible);

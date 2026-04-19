@@ -19,14 +19,15 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_PORTS_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_PORTS_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_PORTS_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_PORTS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
+#include <lsp-plug.in/audio/iface/backend.h>
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/stdlib/math.h>
@@ -35,15 +36,12 @@
 #include <lsp-plug.in/plug-fw/core/AudioBuffer.h>
 #include <lsp-plug.in/plug-fw/core/AudioTracer.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/types.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
-
-#include <jack/jack.h>
-#include <jack/midiport.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/types.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/wrapper.h>
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
         class Wrapper;
 
@@ -95,25 +93,13 @@ namespace lsp
 
         class DataPort: public Port
         {
-            private:
-                jack_port_t    *pPort;              // JACK port descriptor
-                void           *pDataBuffer;        // Real data buffer passed from JACK
-                void           *pBuffer;            // Data buffer
-                plug::midi_t   *pMidi;              // Midi buffer for operating MIDI messages
-                float          *pSanitized;         // Input float data for sanitized buffers
-                size_t          nBufSize;           // Size of sanitized buffer in samples
-
-                IF_DEBUG( core::AudioTracer sTracer; )
+            protected:
+                audio::port_id_t    nPortID;            // Port identifier of the backend
 
             public:
                 explicit DataPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
                 {
-                    pPort       = NULL;
-                    pDataBuffer = NULL;
-                    pBuffer     = NULL;
-                    pMidi       = NULL;
-                    pSanitized  = NULL;
-                    nBufSize    = 0;
+                    nPortID     = -1;
                 }
 
                 DataPort(const DataPort &) = delete;
@@ -121,16 +107,86 @@ namespace lsp
 
                 virtual ~DataPort() override
                 {
-                    pPort       = NULL;
-                    pDataBuffer = NULL;
-                    pBuffer     = NULL;
-                    pMidi       = NULL;
-                    pSanitized  = NULL;
-                    nBufSize    = 0;
+                    nPortID     = -1;
                 };
 
                 DataPort & operator = (const DataPort &) = delete;
                 DataPort & operator = (DataPort &&) = delete;
+
+            public:
+                const char *system_name() const
+                {
+                    if (nPortID < 0)
+                        return NULL;
+
+                    audio::backend_t * const backend = pWrapper->backend();
+                    return backend->port_system_name(backend, nPortID);
+                }
+
+                status_t disconnect()
+                {
+                    if (nPortID < 0)
+                        return STATUS_OK;
+
+                    audio::backend_t * const backend = pWrapper->backend();
+                    if (backend != NULL)
+                        backend->unregister_port(backend, nPortID);
+
+                    nPortID     = -1;
+
+                    return STATUS_OK;
+                }
+
+            public:
+                virtual status_t connect()
+                {
+                    return STATUS_NOT_IMPLEMENTED;
+                }
+
+                virtual void set_buffer_size(size_t size)
+                {
+                }
+
+                virtual void before_process(size_t samples)
+                {
+                }
+
+                virtual void after_process(size_t samples)
+                {
+                }
+        };
+
+        class AudioPort: public DataPort
+        {
+            private:
+                float              *pBuffer;            // Real buffer passed from audio backend
+                float              *pSanitized;         // Buffer for storing sanitized data
+                size_t              nBufSize;           // Size of sanitized buffer in samples
+                bool                bZero;
+
+                IF_DEBUG( core::AudioTracer sTracer; )
+
+            public:
+                explicit AudioPort(const meta::port_t *meta, Wrapper *w) : DataPort(meta, w)
+                {
+                    pBuffer     = NULL;
+                    pSanitized  = NULL;
+                    nBufSize    = 0;
+                    bZero       = false;
+                }
+
+                AudioPort(const AudioPort &) = delete;
+                AudioPort(AudioPort &&) = delete;
+
+                virtual ~AudioPort() override
+                {
+                    pBuffer     = NULL;
+                    pSanitized  = NULL;
+                    nBufSize    = 0;
+                };
+
+                AudioPort & operator = (const AudioPort &) = delete;
+                AudioPort & operator = (AudioPort &&) = delete;
 
             public:
                 virtual int init() override
@@ -141,96 +197,48 @@ namespace lsp
                 virtual void destroy() override
                 {
                     disconnect();
-                }
-
-            public:
-                virtual void *buffer() override
-                {
-                    return pBuffer;
-                };
-
-            public:
-                status_t disconnect()
-                {
-                    if (pPort == NULL)
-                        return STATUS_OK;
-
-                    jack_client_t *cl   = pWrapper->client();
-                    if (cl != NULL)
-                        jack_port_unregister(cl, pPort);
 
                     if (pSanitized != NULL)
                     {
                         ::free(pSanitized);
                         pSanitized = NULL;
                     }
-
-                    if (pMidi != NULL)
-                    {
-                        ::free(pMidi);
-                        pMidi       = NULL;
-                    }
-
-                    pPort       = NULL;
-                    nBufSize    = 0;
-
-                    return STATUS_OK;
                 }
 
-                status_t connect()
+            public:
+                virtual void *buffer() override
                 {
-                    // Determine port type
-                    const char *port_type = NULL;
-                    if (meta::is_audio_port(pMetadata))
-                        port_type = JACK_DEFAULT_AUDIO_TYPE;
-                    else if (meta::is_midi_port(pMetadata))
-                    {
-                        port_type   = JACK_DEFAULT_MIDI_TYPE;
-                        pMidi       = static_cast<plug::midi_t *>(::malloc(sizeof(plug::midi_t)));
-                        if (pMidi == NULL)
-                            return STATUS_NO_MEM;
-                        pMidi->clear();
-                    }
-                    else
-                        return STATUS_BAD_FORMAT;
+                    if (nPortID < 0)
+                        return NULL;
+                    return (pSanitized != NULL) ? pSanitized : pBuffer;
+                };
 
-                    // Determine flags
-                    size_t flags = (meta::is_out_port(pMetadata)) ? JackPortIsOutput : JackPortIsInput;
-
-                    // Get client
-                    jack_client_t *cl   = pWrapper->client();
-                    if (cl == NULL)
-                    {
-                        if (pMidi != NULL)
-                        {
-                            ::free(pMidi);
-                            pMidi   = NULL;
-                        }
+            public:
+                virtual status_t connect() override
+                {
+                    audio::backend_t * const backend = pWrapper->backend();
+                    if (backend == NULL)
                         return STATUS_DISCONNECTED;
-                    }
 
                     // Register port
-                    pPort       = jack_port_register(cl, pMetadata->id, port_type, flags, 0);
+                    nPortID     = backend->register_port(
+                        backend, pMetadata->id,
+                        (meta::is_out_port(pMetadata)) ? audio::PORT_AUDIO_OUT : audio::PORT_AUDIO_IN);
 
-                    return (pPort != NULL) ? STATUS_OK : STATUS_UNKNOWN_ERR;
+                    return (nPortID >= 0) ? STATUS_OK : STATUS_UNKNOWN_ERR;
                 }
 
-                const char *jack_name() const
-                {
-                    return jack_port_name(pPort);
-                }
-
-                void set_buffer_size(size_t size)
+                virtual void set_buffer_size(size_t size) override
                 {
                     // set_buffer_size should affect only input audio ports at this moment
-                    if ((!meta::is_in_port(pMetadata)) || (pMidi != NULL))
+                    if (!meta::is_in_port(pMetadata))
                         return;
 
                     // Buffer size has changed?
-                    if (nBufSize == size)
+                    if ((pSanitized != NULL) && (nBufSize == size))
                         return;
 
-                    float *buf  = reinterpret_cast<float *>(::realloc(pSanitized, sizeof(float) * size));
+                    float * const buf  = reinterpret_cast<float *>(::realloc(pSanitized, sizeof(float) * size));
                     if (buf == NULL)
                     {
                         if (pSanitized != NULL)
@@ -243,146 +251,234 @@ namespace lsp
 
                     nBufSize    = size;
                     pSanitized  = buf;
-                    dsp::fill_zero(pSanitized, nBufSize);
                 }
 
-                void report_latency(ssize_t latency)
+                virtual void before_process(size_t samples) override
                 {
-                    // Only output ports should report latency
-                    if ((pMetadata == NULL) || (!meta::is_out_port(pMetadata)))
+                    if (nPortID < 0)
                         return;
 
-                    // Report latency
-                    jack_latency_range_t range;
-                    jack_port_get_latency_range(pPort, JackCaptureLatency, &range);
-                    range.min += latency;
-                    range.max += latency;
-                    jack_port_set_latency_range (pPort, JackCaptureLatency, &range);
+                    audio::backend_t * const backend = pWrapper->backend();
+
+                    // Need to sanitize?
+                    pBuffer         = backend->get_audio_buffer(backend, nPortID, 0);
+                    if (pSanitized == NULL)
+                    {
+                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pBuffer), samples) ); // Trace input data
+                        return;
+                    }
+
+                    // Need to mix multiple buffers?
+                    const size_t buf_count = backend->audio_buffers_count(backend, nPortID);
+                    if ((buf_count == 0) || (pBuffer == NULL))
+                    {
+                        // Ensure that pSanitized now contains zeros
+                        if (!bZero)
+                        {
+                            dsp::fill_zero(pSanitized, nBufSize);
+                            bZero           = true;
+                        }
+                    }
+                    else if (buf_count > 1)
+                    {
+                        // Need to mix buffers together
+                        float * buf         = backend->get_audio_buffer(backend, nPortID, 1);
+                        dsp::add3(pSanitized, pBuffer, buf, samples);
+
+                        for (size_t index = 2; index < buf_count; ++index)
+                        {
+                            float * buf         = backend->get_audio_buffer(backend, nPortID, 1);
+                            dsp::add2(pSanitized, buf, samples);
+                        }
+
+                        // Reset cleanup flag
+                        bZero           = false;
+                    }
+                    else
+                    {
+                        dsp::sanitize2(pSanitized, pBuffer, samples);
+                        bZero           = false;    // Reset cleanup flag
+                    }
+
+                    IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pSanitized), samples) ); // Trace input data
+
+                    return;
                 }
 
-                bool before_process(size_t samples)
+                virtual void after_process(size_t samples) override
                 {
-                    if (pPort == NULL)
+                    // Need to sanitize output data?
+                    if (pSanitized == NULL)
                     {
-                        pBuffer     = NULL;
-                        return false;
+                        dsp::sanitize1(reinterpret_cast<float *>(pBuffer), samples);
+                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pBuffer), samples) ); // Trace output data
                     }
-
-                    pDataBuffer = jack_port_get_buffer(pPort, samples);
-                    pBuffer     = pDataBuffer;
-
-                    if (pMidi != NULL)
-                    {
-                        if ((pBuffer != NULL) && (meta::is_in_port(pMetadata)))
-                        {
-                            // Clear our buffer
-                            pMidi->clear();
-
-                            // Read MIDI events
-                            jack_midi_event_t   midi_event;
-                            midi::event_t       ev;
-
-                            jack_nframes_t event_count = jack_midi_get_event_count(pBuffer);
-                            for (jack_nframes_t i=0; i<event_count; i++)
-                            {
-                                // Read MIDI event
-                                if (jack_midi_event_get(&midi_event, pBuffer, i) != 0)
-                                {
-                                    lsp_warn("Could not fetch MIDI event #%d from JACK port", int(i));
-                                    continue;
-                                }
-
-                                // Convert MIDI event
-                                if (midi::decode(&ev, midi_event.buffer) <= 0)
-                                {
-                                    lsp_warn("Could not decode MIDI event #%d at timestamp %d from JACK port", int(i), int(midi_event.time));
-                                    continue;
-                                }
-
-                                // Update timestamp and store event
-                                ev.timestamp    = midi_event.time;
-                                if (!pMidi->push(ev))
-                                    lsp_warn("Could not append MIDI event #%d at timestamp %d due to buffer overflow", int(i), int(midi_event.time));
-                            }
-
-                            // All MIDI events ARE ordered chronologically, we do not need to perform sort
-                        }
-
-                        // Replace pBuffer with pMidi
-                        pBuffer     = pMidi;
-                    }
-                    else if (pSanitized != NULL) // Need to sanitize?
-                    {
-                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pDataBuffer), samples) ); // Trace input data
-
-                        // Perform sanitize() if possible
-                        if (samples <= nBufSize)
-                        {
-                            dsp::sanitize2(pSanitized, reinterpret_cast<float *>(pDataBuffer), samples);
-                            pBuffer = pSanitized;
-                        }
-                        else
-                        {
-                            lsp_warn("Could not sanitize buffer data for port %s, not enough buffer size (required: %d, actual: %d)",
-                                    pMetadata->id, int(samples), int(nBufSize));
-                        }
-                    }
-
-                    return false;
-                }
-
-                void after_process(size_t samples)
-                {
-                    if ((pMidi != NULL) && (pDataBuffer != NULL) && (meta::is_out_port(pMetadata)))
-                    {
-                        // Reset buffer
-                        jack_midi_clear_buffer(pDataBuffer);
-
-                        // Transfer MIDI events
-                        pMidi->sort();  // All events SHOULD be ordered chonologically
-
-                        // Transmit all events
-                        for (size_t i=0, events=pMidi->nEvents; i<events; ++i)
-                        {
-                            // Determine size of the message
-                            midi::event_t *ev   = &pMidi->vEvents[i];
-                            ssize_t size        = midi::size_of(ev);
-                            if (size <= 0)
-                            {
-                                lsp_warn("Could not encode output MIDI message of type 0x%02x, timestamp=%d", int(ev->type), int(ev->timestamp));
-                                continue;
-                            }
-
-                            // Allocate MIDI event
-                            jack_midi_data_t *midi_data     = jack_midi_event_reserve(pDataBuffer, ev->timestamp, size);
-                            if (midi_data == NULL)
-                            {
-                                lsp_warn("Could not write MIDI message of type 0x%02x, size=%d, timestamp=%d to JACK output port buffer=%p",
-                                        int(ev->type), int(size), int(ev->timestamp), pBuffer);
-                                continue;
-                            }
-
-                            // Encode MIDI event
-                            midi::encode(midi_data, ev);
-                        }
-
-                        // Cleanup the output buffer
-                        pMidi->clear();
-                    }
-                    else if (meta::is_audio_out_port(pMetadata))
-                    {
-                        // Sanitize output data
-                        dsp::sanitize1(reinterpret_cast<float *>(pDataBuffer), samples);
-
-                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pDataBuffer), samples) ); // Trace output data
-                    }
-
                     pBuffer     = NULL;
                 }
 
                 virtual void trace(const void *instance) override
                 {
-                    IF_DEBUG( sTracer.set_trace("jack", id(), instance) );
+                    IF_DEBUG( sTracer.set_trace("standalone", id(), instance) );
+                }
+        };
+
+        class MidiPort: public DataPort
+        {
+            private:
+                plug::midi_t       *pMidi;              // Midi buffer for operating MIDI messages
+
+            public:
+                explicit MidiPort(const meta::port_t *meta, Wrapper *w) : DataPort(meta, w)
+                {
+                    pMidi       = NULL;
+                }
+
+                MidiPort(const MidiPort &) = delete;
+                MidiPort(MidiPort &&) = delete;
+
+                virtual ~MidiPort() override
+                {
+                    pMidi       = NULL;
+                };
+
+                MidiPort & operator = (const MidiPort &) = delete;
+                MidiPort & operator = (MidiPort &&) = delete;
+
+            public:
+                virtual int init() override
+                {
+                    return connect();
+                }
+
+                virtual void destroy() override
+                {
+                    disconnect();
+
+                    if (pMidi != NULL)
+                    {
+                        ::free(pMidi);
+                        pMidi       = NULL;
+                    }
+                }
+
+            public:
+                virtual void *buffer() override
+                {
+                    return (nPortID >= 0) ? pMidi : NULL;
+                };
+
+            public:
+                virtual status_t connect() override
+                {
+                    audio::backend_t * const backend = pWrapper->backend();
+                    if (backend == NULL)
+                        return STATUS_DISCONNECTED;
+
+                    if (pMidi == NULL)
+                    {
+                        pMidi       = static_cast<plug::midi_t *>(::malloc(sizeof(plug::midi_t)));
+                        if (pMidi == NULL)
+                            return STATUS_NO_MEM;
+                    }
+                    pMidi->clear();
+
+                    // Register port
+                    nPortID     = backend->register_port(
+                        backend, pMetadata->id,
+                        (meta::is_out_port(pMetadata)) ? audio::PORT_MIDI_OUT : audio::PORT_MIDI_IN);
+
+                    return (nPortID >= 0) ? STATUS_OK : STATUS_UNKNOWN_ERR;
+                }
+
+                virtual void before_process(size_t samples) override
+                {
+                    if (pMidi == NULL)
+                        return;
+
+                    // Only input MIDI ports require pre-processing
+                    if ((nPortID < 0) || (!meta::is_in_port(pMetadata)))
+                        return;
+
+                    status_t res;
+                    audio::backend_t * const backend = pWrapper->backend();
+
+                    // Clear input MIDI buffer
+                    pMidi->clear();
+
+                    // Read MIDI events
+                    audio::midi_event_t midi_event;
+                    midi::event_t       ev;
+
+                    const size_t event_count = backend->midi_events_count(backend, nPortID);
+                    for (size_t i=0; i<event_count; ++i)
+                    {
+                        // Read MIDI event
+                        if ((res = backend->read_midi_event(backend, nPortID, &midi_event, i)) != STATUS_OK)
+                        {
+                            lsp_warn("Could not fetch MIDI event #%d from MIDI port", int(i));
+                            continue;
+                        }
+
+                        // Convert MIDI event
+                        if (midi::decode(&ev, midi_event.data) <= 0)
+                        {
+                            lsp_warn("Could not decode MIDI event #%d at timestamp %d from MIDI port", int(i), int(midi_event.timestamp));
+                            continue;
+                        }
+
+                        // Update timestamp and store event
+                        ev.timestamp    = midi_event.timestamp;
+                        if (!pMidi->push(ev))
+                            lsp_warn("Could not append MIDI event #%d at timestamp %d due to buffer overflow", int(i), int(midi_event.timestamp));
+                    }
+
+                    // All MIDI events ARE ordered chronologically, we do not need to perform sort
+                }
+
+                virtual void after_process(size_t samples) override
+                {
+                    if (pMidi == NULL)
+                        return;
+
+                    // Cleanup output MIDI buffer at exit
+                    lsp_finally { pMidi->clear(); };
+
+                    // Only output MIDI ports require post-processing
+                    if ((nPortID < 0) || (!meta::is_out_port(pMetadata)))
+                        return;
+
+                    audio::backend_t * const backend = pWrapper->backend();
+
+                    // Transfer MIDI events
+                    pMidi->sort();  // All events SHOULD be ordered chonologically
+
+                    // Transmit all events
+                    for (size_t i=0, events=pMidi->nEvents; i<events; ++i)
+                    {
+                        // Determine size of the message
+                        midi::event_t *ev   = &pMidi->vEvents[i];
+                        ssize_t size        = midi::size_of(ev);
+                        if (size <= 0)
+                        {
+                            lsp_warn(
+                                "Could not encode output MIDI message of type 0x%02x, timestamp=%d",
+                                int(ev->type), int(ev->timestamp));
+                            continue;
+                        }
+
+                        // Allocate MIDI event
+                        uint8_t * const midi_data       = backend->write_midi_event(backend, nPortID, ev->timestamp, size);
+                        if (midi_data == NULL)
+                        {
+                            lsp_warn(
+                                "Could not write MIDI message of type 0x%02x, size=%d, timestamp=%d",
+                                int(ev->type), int(size), int(ev->timestamp));
+                            continue;
+                        }
+
+                        // Encode MIDI event
+                        midi::encode(midi_data, ev);
+                    }
                 }
         };
 
@@ -583,7 +679,7 @@ namespace lsp
             public:
                 virtual int init() override
                 {
-                    pMesh   = jack::create_mesh(pMetadata);
+                    pMesh   = standalone::create_mesh(pMetadata);
                     return (pMesh == NULL) ? STATUS_NO_MEM : STATUS_OK;
                 }
 
@@ -592,7 +688,7 @@ namespace lsp
                     if (pMesh == NULL)
                         return;
 
-                    jack::destroy_mesh(pMesh);
+                    standalone::destroy_mesh(pMesh);
                     pMesh = NULL;
                 }
 
@@ -721,7 +817,7 @@ namespace lsp
         class PathPort: public Port
         {
             private:
-                jack::path_t    sPath;
+                standalone::path_t  sPath;
 
             public:
                 explicit PathPort(const meta::port_t *meta, Wrapper *w) : Port(meta, w)
@@ -814,8 +910,8 @@ namespace lsp
                 }
         };
 
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_PORTS_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_PORTS_H_ */

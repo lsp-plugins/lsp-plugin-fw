@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 23 дек. 2020 г.
@@ -19,12 +19,12 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/util/jack_make/jack_make.h>
+#include <lsp-plug.in/plug-fw/util/standalone_make/standalone_make.h>
 
 #ifndef LSP_IDE_DEBUG
 int main(int argc, const char **argv)
 {
-    return lsp::jack_make::main(argc, argv);
+    return lsp::standalone_make::main(argc, argv);
 }
 #endif /* LSP_IDE_DEBUG */
 

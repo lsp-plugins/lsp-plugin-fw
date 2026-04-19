@@ -24,6 +24,8 @@
 
 #include <lsp-plug.in/plug-fw/version.h>
 
+#include <lsp-plug.in/plug-fw/core/config.h>
+
 // Different port prefixes
 #define UI_CONFIG_PORT_PREFIX                   "_ui_"
 #define UI_CONFIG_PORT_PREFIX_LEN               4
@@ -33,50 +35,6 @@
 
 #define TIME_PORT_PREFIX                        "_time_"
 #define TIME_PORT_PREFIX_LEN                    6
-
-// UI configuration ports
-#define UI_LAST_VERSION_PORT_ID                 "last_version"
-#define UI_DLG_DEFAULT_PATH_ID                  "dlg_default_path"
-#define UI_DLG_DEFAULT_FTYPE_ID                 "dlg_default_ftype"
-#define UI_DLG_SAMPLE_PATH_ID                   "dlg_sample_path"
-#define UI_DLG_SAMPLE_FTYPE_ID                  "dlg_sample_ftype"
-#define UI_DLG_IR_PATH_ID                       "dlg_ir_path"
-#define UI_DLG_IR_FTYPE_ID                      "dlg_ir_ftype"
-#define UI_DLG_CONFIG_PATH_ID                   "dlg_config_path"
-#define UI_DLG_CONFIG_FTYPE_ID                  "dlg_config_ftype"
-#define UI_DLG_MODEL3D_PATH_ID                  "dlg_model3d_path"
-#define UI_DLG_MODEL3D_FTYPE_ID                 "dlg_model3d_ftype"
-#define UI_DLG_REW_PATH_ID                      "dlg_rew_path"
-#define UI_DLG_REW_FTYPE_ID                     "dlg_rew_ftype"
-#define UI_DLG_HYDROGEN_PATH_ID                 "dlg_hydrogen_path"
-#define UI_DLG_HYDROGEN_FTYPE_ID                "dlg_hydrogen_ftype"
-#define UI_DLG_LSPC_BUNDLE_PATH_ID              "dlg_lspc_bundle_path"
-#define UI_DLG_LSPC_BUNDLE_FTYPE_ID             "dlg_lspc_bundle_ftype"
-#define UI_DLG_SFZ_PATH_ID                      "dlg_sfz_path"
-#define UI_DLG_SFZ_FTYPE_ID                     "dlg_sfz_ftype"
-#define UI_R3D_BACKEND_PORT_ID                  "r3d_backend"
-#define UI_LANGUAGE_PORT_ID                     "language"
-#define UI_REL_PATHS_PORT_ID                    "use_relative_paths"
-#define UI_SCALING_PORT_ID                      "ui_scaling"
-#define UI_SCALING_HOST_PORT_ID                 "ui_scaling_host"
-#define UI_FONT_SCALING_PORT_ID                 "font_scaling"
-#define UI_BUNDLE_SCALING_PORT_ID               "ui_bundle_scaling"
-#define UI_VISUAL_SCHEMA_FILE_ID                "visual_schema_file"
-#define UI_PREVIEW_AUTO_PLAY_ID                 "preview_auto_play"
-#define UI_ENABLE_KNOB_SCALE_ACTIONS_ID         "enable_knob_scale_actions"
-#define UI_USER_HYDROGEN_KIT_PATH_ID            "user_hydrogen_kit_path"
-#define UI_OVERRIDE_HYDROGEN_KIT_PATH_ID        "override_hydrogen_kit_path"
-#define UI_OVERRIDE_HYDROGEN_KITS_ID            "override_hydrogen_kits"
-#define UI_INVERT_VSCROLL_ID                    "invert_vscroll"
-#define UI_GRAPH_DOT_INVERT_VSCROLL_ID          "invert_graph_dot_vscroll"
-#define UI_ZOOMABLE_SPECTRUM_GRAPH_ID           "zoomable_spectrum_graph"
-#define UI_FILTER_POINT_THICK_ID                "filter_point_thickness"
-#define UI_DOCUMENTATION_PATH_ID                "documentation_path"
-#define UI_FILELIST_NAVIGATION_AUTOLOAD_ID      "file_list_navigation_autoload"
-#define UI_FILELIST_NAVIGATION_AUTOPLAY_ID      "file_list_navigation_auto_play"
-#define UI_TAKE_INST_NAME_FROM_FILE_ID          "take_instrument_name_from_file"
-#define UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID        "graph_piano_layout"
-#define UI_CONFIG_USER_FRIENDLY_VALUES_ID       "config_user_friendly_values"
 
 #define MSTUD_PORT                              UI_CONFIG_PORT_PREFIX UI_MOUNT_STUD_PORT_ID
 #define VERSION_PORT                            UI_CONFIG_PORT_PREFIX UI_LAST_VERSION_PORT_ID
@@ -119,8 +77,9 @@
 #define UI_DOCUMENTATION_PORT                   UI_CONFIG_PORT_PREFIX UI_DOCUMENTATION_PATH_ID
 #define UI_FILELIST_NAVIGATION_AUTOLOAD_PORT    UI_CONFIG_PORT_PREFIX UI_FILELIST_NAVIGATION_AUTOLOAD_ID
 #define UI_TAKE_INST_NAME_FROM_FILE_PORT        UI_CONFIG_PORT_PREFIX UI_TAKE_INST_NAME_FROM_FILE_ID
-#define UI_UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT   UI_CONFIG_PORT_PREFIX UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID
+#define UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT      UI_CONFIG_PORT_PREFIX UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID
 #define CONFIG_USER_FRIENDLY_VALUES_PORT        UI_CONFIG_PORT_PREFIX UI_CONFIG_USER_FRIENDLY_VALUES_ID
+#define AUDIO_BACKEND_PORT                      UI_CONFIG_PORT_PREFIX AUDIO_BACKEND_ID
 
 // Some UI constants
 #define SCHEMA_PATH                             "schema"

@@ -38,6 +38,7 @@
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/expr/Variables.h>
 
+#include <lsp-plug.in/plug-fw/core/AudioBackend.h>
 #include <lsp-plug.in/plug-fw/core/KVTStorage.h>
 #include <lsp-plug.in/plug-fw/core/ShmState.h>
 #include <lsp-plug.in/plug-fw/core/presets.h>
@@ -137,6 +138,8 @@ namespace lsp
 
             protected:
                 static ssize_t  compare_ports(const IPort *a, const IPort *b);
+                static status_t load_global_config(const io::Path & location, void *self);
+                static status_t save_global_config(const io::Path & location, void *self);
 
             protected:
                 void            global_config_changed(IPort *src);
@@ -145,8 +148,8 @@ namespace lsp
                 status_t        build_ui(const char *path, void *handle = NULL, ssize_t screen = -1);
                 void            build_config_header(LSPString *c);
                 void            build_global_config_header(LSPString *c);
-                status_t        do_save_global_config();
-                status_t        do_load_global_config();
+                status_t        save_global_config();
+                status_t        load_global_config();
                 status_t        init_visual_schema();
                 status_t        load_global_config(config::PullParser *parser);
                 status_t        init_global_constants(const tk::StyleSheet *sheet);
@@ -162,9 +165,7 @@ namespace lsp
                 status_t        export_parameters(config::Serializer *s, lltl::pphash<LSPString, config::param_t> *parameters);
 
                 status_t        save_global_config(io::IOutSequence *os, lltl::pphash<LSPString, config::param_t> *parameters);
-                status_t        load_global_config(io::IInSequence *is);
                 status_t        read_parameters(const io::Path *file, lltl::pphash<LSPString, config::param_t> *params);
-                status_t        get_user_config_path(io::Path *path);
                 static void     drop_parameters(lltl::pphash<LSPString, config::param_t> *params);
                 void            get_bundle_version_key(LSPString *key);
                 void            get_bundle_scaling_key(LSPString *key);
@@ -190,8 +191,6 @@ namespace lsp
                 static void     destroy_presets(lltl::parray<preset_t> *list);
 
             protected:
-                status_t        get_user_presets_path(io::Path *path);
-                status_t        get_plugin_presets_path(io::Path *path);
                 void            scan_factory_presets(lltl::parray<preset_t> *list);
                 void            scan_user_presets(lltl::parray<preset_t> *list);
                 void            scan_favourite_presets(lltl::parray<preset_t> *list);
@@ -425,25 +424,6 @@ namespace lsp
                 virtual status_t                load_stylesheet(tk::StyleSheet *sheet, const LSPString *file);
 
                 /**
-                 * Load global configuration file
-                 * @param file the path to file to load
-                 * @param lock the name of the lock file to prevent race conditions
-                 * @return status of operation
-                 */
-                virtual status_t                load_global_config(const char *file, const char *lock);
-                virtual status_t                load_global_config(const io::Path *file, const io::Path *lock);
-                virtual status_t                load_global_config(const LSPString *file, const LSPString *lock);
-
-                /**
-                 * Save global configuration file
-                 * @param file the pato to the configuration file
-                 * @return status of operation
-                 */
-                virtual status_t                save_global_config(const char *file, const char *lock);
-                virtual status_t                save_global_config(const io::Path *file, const io::Path *lock);
-                virtual status_t                save_global_config(const LSPString *file, const LSPString *lock);
-
-                /**
                  * Send request to perform preview playback of the file
                  *
                  * @param file file name or empty/null if need to stop the playback
@@ -666,6 +646,36 @@ namespace lsp
                  * @return status of operation
                  */
                 status_t                        switch_preset_data();
+
+            public: // Audio backend management
+                /**
+                 * Enumerate audio backends. The caller is responsible for deleting data.
+                 * @param list pointer to store audio backends
+                 * @return status of operation
+                 */
+                virtual status_t                enumerate_backends(core::AudioBackendInfoList & list);
+
+                /**
+                 * Select Audio backend for standalone version
+                 * @param name audio backend name
+                 * @return status of operation
+                 */
+                status_t                        select_backend(const char *name);
+
+                /**
+                 * Select Audio backend for standalone version
+                 * @param name audio backend name
+                 * @return status of operation
+                 */
+                status_t                        select_backend(const LSPString * name);
+
+                /**
+                 * Select Audio backend for standalone version
+                 * @param name audio backend name
+                 * @return status of operation
+                 */
+                virtual status_t                select_backend(const LSPString & name);
+
         };
 
     } /* namespace ui */

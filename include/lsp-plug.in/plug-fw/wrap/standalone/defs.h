@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 янв. 2021 г.
@@ -19,15 +19,15 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_DEFS_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_DEFS_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_DEFS_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_DEFS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 
-#define JACK_CREATE_PLUGIN_LOOP         jack_create_plugin_loop
-#define JACK_CREATE_PLUGIN_LOOP_NAME    LSP_STRINGIFY(JACK_CREATE_PLUGIN_LOOP)
+#define STANDALONE_CREATE_PLUGIN_LOOP       standalone_create_plugin_loop
+#define STANDALONE_CREATE_PLUGIN_LOOP_NAME  LSP_STRINGIFY(STANDALONE_CREATE_PLUGIN_LOOP)
 
 namespace lsp
 {
@@ -60,8 +60,9 @@ namespace lsp
      * @param argv list of additional arguments
      * @return status of operation
      */
-    typedef status_t (* jack_create_plugin_loop_t)(IPluginLoop **loop, const char *plugin_id, int argc, const char **argv);
-}
+    typedef status_t (* standalone_create_plugin_loop_t)(IPluginLoop **loop, const char *plugin_id, int argc, const char **argv);
+
+} /* namespace lsp */
 
 #ifdef __cplusplus
 extern "C"
@@ -69,7 +70,7 @@ extern "C"
 #endif /* __cplusplus */
 
     LSP_EXPORT_MODIFIER
-    int JACK_CREATE_PLUGIN_LOOP(lsp::IPluginLoop **loop, const char *plugin_id, int argc, const char **argv);
+    int STANDALONE_CREATE_PLUGIN_LOOP(lsp::IPluginLoop **loop, const char *plugin_id, int argc, const char **argv);
 
 
 #ifdef __cplusplus
@@ -78,4 +79,4 @@ extern "C"
 
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_DEFS_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_DEFS_H_ */

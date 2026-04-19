@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 29 янв. 2021 г.
@@ -19,8 +19,6 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifdef USE_LIBJACK
-
 #include <lsp-plug.in/test-fw/mtest.h>
 
 #include <lsp-plug.in/common/types.h>
@@ -30,7 +28,7 @@
 
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/defs.h>
 
 #include <private/test/repository.h>
 
@@ -182,7 +180,7 @@ MTEST_BEGIN("", standalone)
             plugin_not_found(cfg.plugin_id, &list);
 
         // Form the list of arguments
-        printf("Calling JACK_MAIN_FUNCTION\n");
+        printf("Calling STANDALONE_MAIN_FUNCTION\n");
 
         // Pass the path to resource directory
         if (cfg.add_resource_path)
@@ -204,7 +202,7 @@ MTEST_BEGIN("", standalone)
 
         // Call the main function
         lsp::IPluginLoop *loop = NULL;
-        status_t result = JACK_CREATE_PLUGIN_LOOP(
+        status_t result = STANDALONE_CREATE_PLUGIN_LOOP(
             &loop,
             cfg.plugin_id,
             cfg.args.size(),
@@ -218,5 +216,3 @@ MTEST_BEGIN("", standalone)
     }
 
 MTEST_END
-
-#endif /* USE_LIBJACK */

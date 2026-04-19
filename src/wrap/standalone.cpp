@@ -19,12 +19,6 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifdef USE_LIBJACK
-
-#include <jack/jack.h>
-#include <jack/transport.h>
-#include <jack/midiport.h>
-
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/singletone.h>
 #include <lsp-plug.in/common/static.h>
@@ -46,17 +40,22 @@
 #include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 
+#include <lsp-plug.in/plug-fw/core/AudioBackend.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/defs.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/types.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/factory.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/wrapper.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/impl/factory.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/impl/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/defs.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/dummy/backend.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/dummy/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/dummy/impl/backend.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/dummy/impl/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/types.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/wrapper.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/impl/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/impl/wrapper.h>
 
 #ifdef WITH_UI_FEATURE
-    #include <lsp-plug.in/plug-fw/wrap/jack/ui_wrapper.h>
-    #include <lsp-plug.in/plug-fw/wrap/jack/impl/ui_wrapper.h>
+    #include <lsp-plug.in/plug-fw/wrap/standalone/ui_wrapper.h>
+    #include <lsp-plug.in/plug-fw/wrap/standalone/impl/ui_wrapper.h>
 #endif /* WITH_UI_FEATURE */
 
 #if defined(LSP_TESTING) && (defined(PLATFORM_LINUX) || defined(PLATFORM_BSD))
@@ -68,11 +67,11 @@
 
 #define RECONNECT_INTERVAL          1000u   /* 1 second     */
 #define ICON_SYNC_INTERVAL          200u    /* 5 FPS        */
-#define JACK_LOG_FILE               "lsp-jack-lib.log"
+#define STANDALONE_LOG_FILE         "lsp-standalone-lib.log"
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
         //---------------------------------------------------------------------
         static lsp::singletone_t library;
@@ -124,9 +123,10 @@ namespace lsp
         static StaticFinalizer finalizer(drop_factory);
 
         //---------------------------------------------------------------------
-        // JACK plugin loop definitions
+        // Standalone plugin loop definitions
         typedef struct cmdline_t
         {
+            const char     *backend;
             const char     *cfg_file;
             const char     *plugin_id;
             const char     *client_name;
@@ -137,27 +137,28 @@ namespace lsp
             bool            list;
             bool            version;
             bool            minimized;
+            bool            list_backends;
             lltl::darray<connection_t> routing;
         } cmdline_t;
 
         struct LSP_HIDDEN_MODIFIER PluginLoop: public IPluginLoop
         {
             public:
-                cmdline_t           sCmdLine;           // Command-line arguments
-                resource::ILoader  *pLoader;            // Resource loader
-                jack::Factory      *pFactory;           // Plugin factory
-                plug::Module       *pPlugin;            // Plugin
-                jack::Wrapper      *pWrapper;           // Plugin wrapper
-                ws::timestamp_t     nLastReconnect;     // Last connection time
-                io::IInSequence    *pScript;            // Script sequence
+                cmdline_t               sCmdLine;           // Command-line arguments
+                resource::ILoader      *pLoader;            // Resource loader
+                standalone::Factory    *pFactory;           // Plugin factory
+                plug::Module           *pPlugin;            // Plugin
+                standalone::Wrapper    *pWrapper;           // Plugin wrapper
+                ws::timestamp_t         nLastReconnect;     // Last connection time
+                io::IInSequence        *pScript;            // Script sequence
             #ifdef WITH_UI_FEATURE
-                ui::Module         *pUI;                // Plugin UI
-                jack::UIWrapper    *pUIWrapper;         // Plugin UI wrapper
-                ws::timestamp_t     nLastIconSync;      // Last icon synchronization time
+                ui::Module             *pUI;                // Plugin UI
+                standalone::UIWrapper  *pUIWrapper;         // Plugin UI wrapper
+                ws::timestamp_t         nLastIconSync;      // Last icon synchronization time
             #endif /* WITH_UI_FEATURE */
-                const lltl::darray<connection_t> *pRouting;  // Routing
-                bool                bNotify;            // Notify all ports
-                volatile bool       bInterrupt;         // Interrupt signal received
+                const lltl::darray<connection_t> *pRouting; // Routing
+                bool                    bNotify;            // Notify all ports
+                volatile bool           bInterrupt;         // Interrupt signal received
 
             private:
                 void                wait_for_events(wssize_t delay);
@@ -190,12 +191,12 @@ namespace lsp
         {
             if ((src == NULL) || (src->is_empty()))
             {
-                fprintf(stderr, "Not specified source JACK port name in connection string\n");
+                fprintf(stderr, "Not specified source audio port name in connection string\n");
                 return STATUS_INVALID_VALUE;
             }
             if ((dst == NULL) || (dst->is_empty()))
             {
-                fprintf(stderr, "Not specified destination JACK port name in connection string\n");
+                fprintf(stderr, "Not specified destination audio port name in connection string\n");
                 return STATUS_INVALID_VALUE;
             }
 
@@ -301,15 +302,19 @@ namespace lsp
             status_t res;
 
             // Initialize config with default values
+            cfg->backend        = NULL;
             cfg->cfg_file       = NULL;
             cfg->plugin_id      = NULL;
             cfg->client_name    = NULL;
             cfg->script_name    = NULL;
             cfg->schema         = NULL;
             cfg->parent_id      = NULL;
+
             cfg->headless       = false;
             cfg->list           = false;
             cfg->version        = false;
+            cfg->minimized      = false;
+            cfg->list_backends  = false;
 
             // Parse arguments
             int i = 1;
@@ -324,6 +329,9 @@ namespace lsp
                             (plugin_id != NULL) ? "" : " plugin-id"
                     );
                     printf("Available parameters:\n");
+                    printf("  -b, --backend <id>        Select audio backend for processing (use --list-backends option\n");
+                    printf("                            to obtain list of available audio backends or use 'auto' to\n");
+                    printf("                            select the backend with highest priority)\n");
                     printf("  -c, --config <file>       Load settings file on startup\n");
                     IF_XDND_PROXY_SUPPORT(
                         printf("  --dnd-proxy <id>          Create window as child and DnD proxy of specified window ID\n");
@@ -333,18 +341,33 @@ namespace lsp
                     printf("  -hl, --headless           Launch in console only, without UI\n");
                     if (plugin_id == NULL)
                         printf("  -l, --list                List available plugin identifiers\n");
+                    printf("  -lb, --list-backends      List available audio backends and quit\n");
                     printf("  -mw, --minimized          Launch UI with minimized window\n");
-                    printf("  -n, --name                Specify the client name for JACK\n");
+                    printf("  -n, --name                Specify the client name\n");
                     printf("  -s, --schema              Specify the UI schema name\n");
                     printf("  -v, --version             Output the version of the software\n");
-                    printf("  -x, --connect <src>=<dst> Connect input/output JACK port to another\n");
-                    printf("                            input/output JACK port when JACK connection\n");
+                    printf("  -x, --connect <src>=<dst> Connect input/output audio port to another\n");
+                    printf("                            input/output audio port when connection to audio backend\n");
                     printf("                            is estimated. Multiple options are allowed,\n");
                     printf("                            the connection <src>=<dst> pairs can be separated\n");
                     printf("                            by comma. Use backslash for escaping characters\n");
                     printf("\n");
 
                     return STATUS_CANCELLED;
+                }
+                else if ((!::strcmp(arg, "--backend")) || (!::strcmp(arg, "-b")))
+                {
+                    if (cfg->backend != NULL)
+                    {
+                        fprintf(stderr, "Duplicate backend identifier specified\n");
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified backend name for '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->backend = argv[i++];
                 }
                 else if ((!::strcmp(arg, "--config")) || (!::strcmp(arg, "-c")))
                 {
@@ -369,7 +392,7 @@ namespace lsp
                     }
                     if (i >= argc)
                     {
-                        fprintf(stderr, "Not specified JACK client for '%s' parameter\n", arg);
+                        fprintf(stderr, "Not specified client name for '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->client_name = argv[i++];
@@ -412,6 +435,8 @@ namespace lsp
                     cfg->list           = true;
                 else if ((plugin_id == NULL) && (cfg->plugin_id == NULL))
                     cfg->plugin_id      = argv[i++];
+                else if ((!::strcmp(arg, "--list-backends")) || (!::strcmp(arg, "-lb")))
+                    cfg->list_backends  = true;
                 else if ((!::strcmp(arg, "--connect")) || (!::strcmp(arg, "-x")))
                 {
                     if (i >= argc)
@@ -760,7 +785,7 @@ namespace lsp
             // Need just to output version?
             if (sCmdLine.version)
             {
-                if ((res = jack::output_version(sCmdLine)) != STATUS_OK)
+                if ((res = standalone::output_version(sCmdLine)) != STATUS_OK)
                     return -res;
                 return STATUS_CANCELLED;
             }
@@ -768,8 +793,31 @@ namespace lsp
             // Need just to list available plugins?
             if (sCmdLine.list)
             {
-                if ((res = jack::list_plugins()) != STATUS_OK)
+                if ((res = standalone::list_plugins()) != STATUS_OK)
                     return -res;
+                return STATUS_CANCELLED;
+            }
+
+            // Obtain list of available audio backends
+            lltl::parray<core::AudioBackendInfo> audio_backends;
+            if ((res = core::scan_audio_backends(&audio_backends)) != STATUS_OK)
+            {
+                lsp_error("Error while scanning available audio backends: result=%d\n", int(res));
+                return res;
+            }
+            lsp_finally { core::free_audio_backends(&audio_backends); };
+            if (sCmdLine.list_backends)
+            {
+                printf("List of available audio backends:\n");
+                for (lltl::iterator<core::AudioBackendInfo> it=audio_backends.values(); it; ++it)
+                {
+                    const core::AudioBackendInfo * const backend = it.get();
+                    printf("  %-10s - %s (%s), priority: %d\n",
+                        backend->uid.get_native(),
+                        backend->display.get_native(),
+                        (backend->builtin != NULL) ? "builtin" : backend->library.get_native(),
+                        int(backend->priority));
+                }
                 return STATUS_CANCELLED;
             }
 
@@ -790,10 +838,10 @@ namespace lsp
             // Output routing if specified
             if (!sCmdLine.routing.is_empty())
             {
-                printf("JACK connection routing:\n");
+                printf("Audio connection routing:\n");
                 for (size_t i=0, n=sCmdLine.routing.size(); i<n; ++i)
                 {
-                    jack::connection_t *conn = sCmdLine.routing.uget(i);
+                    standalone::connection_t * const conn   = sCmdLine.routing.uget(i);
                     if (conn != NULL)
                         printf("%s -> %s\n", conn->src, conn->dst);
                 }
@@ -847,7 +895,7 @@ namespace lsp
 
             // Initialize plugin wrapper
             pRouting            = &sCmdLine.routing;
-            pWrapper            = new jack::Wrapper(pFactory, pPlugin, pLoader, &info);
+            pWrapper            = new standalone::Wrapper(pFactory, pPlugin, pLoader, &info, &audio_backends);
             if (pWrapper == NULL)
                 return STATUS_NO_MEM;
 
@@ -859,7 +907,7 @@ namespace lsp
             if (pUI != NULL)
             {
                 // Create UI wrapper
-                pUIWrapper      = new jack::UIWrapper(pWrapper, pLoader, pUI);
+                pUIWrapper      = new standalone::UIWrapper(pWrapper, pLoader, pUI);
                 if (pUIWrapper == NULL)
                     return STATUS_NO_MEM;
 
@@ -876,6 +924,25 @@ namespace lsp
                 }
                 if (sCmdLine.schema != NULL)
                     pUIWrapper->select_ui_schema(sCmdLine.schema);
+
+                if (sCmdLine.backend != NULL)
+                {
+                    if ((res = pUIWrapper->select_backend(sCmdLine.backend)) != STATUS_OK)
+                    {
+                        lsp_error("Could not select backend '%s': code=%d", sCmdLine.backend, res);
+                        return res;
+                    }
+                }
+            }
+        #else
+            // Select autio backend (if specified in parameters)
+            if (sCmdLine.backend != NULL)
+            {
+                if ((res = pWrapper->select_backend(sCmdLine.backend)) != STATUS_OK)
+                {
+                    lsp_error("Could not select backend '%s': code=%d", sCmdLine.backend, res);
+                    return res;
+                }
             }
         #endif /* WITH_UI_FEATURE */
 
@@ -949,7 +1016,7 @@ namespace lsp
             {
                 const system::time_millis_t ts1 = system::get_time_millis();
 
-                // Synchronize with JACK
+                // Synchronize with backend
                 if ((res = sync_state(ts1, ts1)) != STATUS_OK)
                 {
                     fprintf(stderr, "Unexpected error, code=%d", res);
@@ -1020,31 +1087,36 @@ namespace lsp
 
         status_t PluginLoop::sync_state(ws::timestamp_t sched, ws::timestamp_t ctime)
         {
-            jack::Wrapper *jw       = pWrapper;
+            standalone::Wrapper * const jw      = pWrapper;
         #ifdef WITH_UI_FEATURE
-            jack::UIWrapper *uw     = pUIWrapper;
+            standalone::UIWrapper * const uw    = pUIWrapper;
         #endif /* WITH_UI_FEATURE */
 
-            // If connection to JACK was lost - notify
+            // If connection to audio backend was lost - notify
             if (jw->connection_lost())
             {
-                // Disconnect wrapper and remember last connection time
-                fprintf(stderr, "Connection to JACK has been lost\n");
-                jw->disconnect();
             #ifdef WITH_UI_FEATURE
                 if (uw != NULL)
-                    uw->connection_lost();
+                    uw->set_connection_status(jw->selected_backend(), false);
             #endif /* WITH_UI_FEATURE */
+
+                // Disconnect wrapper and remember last connection time
+                fprintf(stderr, "Connection to the audio backend has been lost\n");
+                jw->disconnect();
                 nLastReconnect      = ctime;
             }
 
             // If we are currently in disconnected state - try to perform a connection
             if (jw->disconnected())
             {
+            #ifdef WITH_UI_FEATURE
+                uw->set_connection_status(jw->selected_backend(), false);
+            #endif /* WITH_UI_FEATURE */
+
                 // Try each second to make new connection
                 if ((ctime - nLastReconnect) >= RECONNECT_INTERVAL)
                 {
-                    printf("Trying to connect to JACK\n");
+                    printf("Trying to connect to the audio backend\n");
                     if (jw->connect() == STATUS_OK)
                     {
                         if (!pRouting->is_empty())
@@ -1053,7 +1125,7 @@ namespace lsp
                             jw->set_routing(pRouting);
                         }
 
-                        printf("Successfully connected to JACK\n");
+                        printf("Successfully connected to the audio backend\n");
                         bNotify             = true;
                     }
                     nLastReconnect      = ctime;
@@ -1061,9 +1133,11 @@ namespace lsp
             }
 
             // If we are connected - do usual stuff with UI
+        #ifdef WITH_UI_FEATURE
             if (jw->connected())
             {
-            #ifdef WITH_UI_FEATURE
+                uw->set_connection_status(jw->selected_backend(), true);
+
                 // Sync state (transfer DSP to UI)
                 if (uw != NULL)
                 {
@@ -1082,8 +1156,8 @@ namespace lsp
                         nLastIconSync   = ctime;
                     }
                 }
-            #endif /* WITH_UI_FEATURE */
             }
+        #endif /* WITH_UI_FEATURE */
 
             return STATUS_OK;
         }
@@ -1108,7 +1182,7 @@ namespace lsp
         {
             bInterrupt      = true;
         }
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 namespace lsp
@@ -1126,17 +1200,17 @@ extern "C"
     using namespace lsp;
 
     LSP_EXPORT_MODIFIER
-    status_t JACK_CREATE_PLUGIN_LOOP(lsp::IPluginLoop **loop, const char *plugin_id, int argc, const char **argv)
+    status_t STANDALONE_CREATE_PLUGIN_LOOP(lsp::IPluginLoop **loop, const char *plugin_id, int argc, const char **argv)
     {
     #ifndef LSP_IDE_DEBUG
-        IF_DEBUG( lsp::debug::redirect(JACK_LOG_FILE); );
+        IF_DEBUG( lsp::debug::redirect(STANDALONE_LOG_FILE); );
     #endif /* LSP_IDE_DEBUG */
 
         // Initialize DSP
         dsp::init();
 
         // Create loop
-        jack::PluginLoop *w         = new jack::PluginLoop();
+        standalone::PluginLoop *w       = new standalone::PluginLoop();
         if (w == NULL)
             return STATUS_NO_MEM;
         lsp_finally {
@@ -1155,5 +1229,3 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-
-#endif /* USE_LIBJACK */

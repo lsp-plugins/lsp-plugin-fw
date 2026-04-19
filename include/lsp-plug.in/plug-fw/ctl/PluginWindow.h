@@ -60,6 +60,13 @@ namespace lsp
                     size_t              id;
                 } backend_sel_t;
 
+                typedef struct audio_sel_t
+                {
+                    ctl::PluginWindow  *ctl;
+                    tk::MenuItem       *item;
+                    LSPString           id;
+                } audio_backend_sel_t;
+
                 typedef struct lang_sel_t
                 {
                     ctl::PluginWindow  *ctl;
@@ -138,6 +145,7 @@ namespace lsp
                 ui::IPort                  *pPVersion;
                 ui::IPort                  *pPBypass;
                 ui::IPort                  *pR3DBackend;
+                ui::IPort                  *pAudioBackend;              // Audio backend driver port
                 ui::IPort                  *pLanguage;
                 ui::IPort                  *pVisualSchema;
                 ui::IPort                  *pInvertVScroll;
@@ -147,6 +155,7 @@ namespace lsp
                 enum_menu_t                 sFilterPointThickness;
 
                 lltl::parray<backend_sel_t> vBackendSel;
+                lltl::parray<audio_sel_t>   vAudioSel;
                 lltl::parray<lang_sel_t>    vLangSel;
                 lltl::parray<schema_sel_t>  vSchemaSel;
                 lltl::parray<preset_sel_t>  vPresetSel;
@@ -178,6 +187,8 @@ namespace lsp
                 static status_t slot_debug_dump(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_select_backend(tk::Widget *sender, void *ptr, void *data);
+
+                static status_t slot_select_audio(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_select_language(tk::Widget *sender, void *ptr, void *data);
 
@@ -238,6 +249,7 @@ namespace lsp
                 status_t            create_presets_window();
 
                 status_t            init_r3d_support(tk::Menu *menu);
+                status_t            init_audio_backends(tk::Menu *menu);
                 status_t            init_i18n_support(tk::Menu *menu);
                 status_t            init_scaling_support(tk::Menu *menu);
                 status_t            init_font_scaling_support(tk::Menu *menu);
@@ -246,8 +258,11 @@ namespace lsp
                 status_t            add_ui_flag(tk::Menu *menu, const char *port, const char *key);
                 status_t            init_presets(tk::Menu *menu, bool add_submenu);
                 status_t            create_main_menu();
+                status_t            add_audio_backend(tk::Menu *menu, const char *text, bool raw, const char *id);
+                status_t            add_audio_backend(tk::Menu *menu, const LSPString & text, bool raw, const LSPString & id);
                 bool                has_path_ports();
                 void                sync_language_selection();
+                void                sync_audio_selection();
                 void                sync_visual_schemas();
                 void                sync_invert_vscroll(ui::IPort *port);
                 void                sync_ui_behaviour_flags(ui::IPort *port);
@@ -293,6 +308,8 @@ namespace lsp
                 void                host_scaling_changed();
                 status_t            post_init();
                 status_t            select_ui_schema(const LSPString & path);
+                status_t            select_audio_backend(const LSPString & uid);
+                void                audio_backend_selected(const LSPString & uid);
 
             public: // ui::IPresetListener
                 virtual void        preset_activated(const ui::preset_t *preset) override;
