@@ -122,37 +122,46 @@ namespace lsp
             // Cancel greeting timer
             wGreetingTimer.cancel();
 
-            // Delete UI rendering backend bindings
-            for (size_t i=0, n=vBackendSel.size(); i<n; ++i)
+            // Delete audio backend bindings
+            for (lltl::iterator<audio_sel_t> it=vAudioSel.values(); it; ++it)
             {
-                backend_sel_t *s = vBackendSel.uget(i);
+                audio_sel_t * const s = it.get();
+                if (s != NULL)
+                    delete s;
+            }
+            vBackendSel.flush();
+
+            // Delete UI rendering backend bindings
+            for (lltl::iterator<backend_sel_t> it=vBackendSel.values(); it; ++it)
+            {
+                backend_sel_t * const s = it.get();
                 if (s != NULL)
                     delete s;
             }
             vBackendSel.flush();
 
             // Delete language selection bindings
-            for (size_t i=0, n=vLangSel.size(); i<n; ++i)
+            for (lltl::iterator<lang_sel_t> it=vLangSel.values(); it; ++it)
             {
-                lang_sel_t *s = vLangSel.uget(i);
+                lang_sel_t * const s = it.get();
                 if (s != NULL)
                     delete s;
             }
             vLangSel.flush();
 
             // Delete UI schema selection bindings
-            for (size_t i=0, n=vSchemaSel.size(); i<n; ++i)
+            for (lltl::iterator<schema_sel_t> it=vSchemaSel.values(); it; ++it)
             {
-                schema_sel_t *s = vSchemaSel.uget(i);
+                schema_sel_t * const s = it.get();
                 if (s != NULL)
                     delete s;
             }
             vSchemaSel.flush();
 
             // Delete preset list
-            for (size_t i=0, n=vPresetSel.size(); i<n; ++i)
+            for (lltl::iterator<preset_sel_t> it=vPresetSel.values(); it; ++it)
             {
-                preset_sel_t *s = vPresetSel.uget(i);
+                preset_sel_t * const s = it.get();
                 if (s != NULL)
                     delete s;
             }
@@ -1172,6 +1181,7 @@ namespace lsp
             status_t res                = pWrapper->enumerate_backends(backends);
             if (res != STATUS_OK)
                 return res;
+            lsp_finally { core::free_audio_backends(&backends); };
 
             // Create submenu item
             tk::MenuItem *item          = create_menu_item(menu);

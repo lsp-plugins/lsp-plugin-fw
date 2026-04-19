@@ -97,7 +97,10 @@ namespace lsp
             {
                 AudioBackendInfo * const info = it.get();
                 if (info != NULL)
+                {
+                    version_destroy(&info->version);
                     delete info;
+                }
             }
             list->flush();
         }
