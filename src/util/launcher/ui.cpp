@@ -114,6 +114,7 @@ namespace lsp
             pLaunchMultiple     = NULL;
             pLanguage           = NULL;
             pVisualSchema       = NULL;
+            pBackend            = NULL;
             pAboutWindow        = NULL;
             nConfigChanges      = 0;
 
@@ -123,6 +124,8 @@ namespace lsp
             wLanguage           = NULL;
             wSchemaArea         = NULL;
             wVisualSchema       = NULL;
+            wBackendArea        = NULL;
+            wBackend            = NULL;
             wAllBundles         = NULL;
             wFavourites         = NULL;
             wAllArea            = NULL;
@@ -132,6 +135,17 @@ namespace lsp
         UI::~UI()
         {
             do_destroy();
+        }
+
+        void UI::clear_list(lltl::parray<res_sel_t> & list)
+        {
+            for (lltl::iterator<res_sel_t> it = list.values(); it; ++it)
+            {
+                res_sel_t * const b = it.get();
+                if (b != NULL)
+                    delete b;
+            }
+            list.flush();
         }
 
         void UI::do_destroy()
@@ -170,23 +184,10 @@ namespace lsp
             }
             vPlugins.flush();
 
-            // Delete UI language selection bindings
-            for (lltl::iterator<res_sel_t> it = vLangSel.values(); it; ++it)
-            {
-                res_sel_t *s = it.get();
-                if (s != NULL)
-                    delete s;
-            }
-            vLangSel.flush();
-
-            // Delete UI schema selection bindings
-            for (lltl::iterator<res_sel_t> it = vSchemaSel.values(); it; ++it)
-            {
-                res_sel_t *s = it.get();
-                if (s != NULL)
-                    delete s;
-            }
-            vSchemaSel.flush();
+            // Delete different lists
+            clear_list(vLangSel);
+            clear_list(vSchemaSel);
+            clear_list(vBackendSel);
 
             // Destroy config
             launcher::free_config(sConfig);
@@ -479,6 +480,7 @@ namespace lsp
             BIND_PORT(this, pLaunchMultiple, UI_LAUNCHER_LAUNCH_MULTIPLE_ID);
             BIND_PORT(this, pLanguage, LANGUAGE_PORT);
             BIND_PORT(this, pVisualSchema, UI_VISUAL_SCHEMA_PORT);
+            BIND_PORT(this, pBackend, AUDIO_BACKEND_PORT);
 
             // Bind events to the display
             pDisplay->slots()->bind(tk::SLOT_IDLE, slot_display_idle, this);
@@ -505,6 +507,10 @@ namespace lsp
             // Init visual schema support
             LSP_STATUS_ASSERT(init_visual_schema_support());
             sync_visual_schema_selection();
+
+            // Init audio backend selection
+            LSP_STATUS_ASSERT(init_audio_backend_support());
+            sync_audio_backend_selection();
 
             // Create plugin catalog
             LSP_STATUS_ASSERT(create_catalog());
@@ -910,8 +916,6 @@ namespace lsp
         {
             wSchemaArea                 = controller()->widgets()->get<tk::ComboBox>("trg_visual_schema_select_area");
             wVisualSchema               = controller()->widgets()->get<tk::ComboBox>("trg_visual_schema_select");
-            if (wLanguage == NULL)
-                return STATUS_OK;
             if ((pLoader == NULL) || (pVisualSchema == NULL))
                 return STATUS_OK;
 
@@ -974,6 +978,95 @@ namespace lsp
             }
 
             wVisualSchema->slots()->bind(tk::SLOT_SUBMIT, slot_select_visual_schema, this);
+
+            return STATUS_OK;
+        }
+
+        status_t UI::init_audio_backend_support()
+        {
+            wBackendArea                = controller()->widgets()->get<tk::ComboBox>("trg_audio_driver_select_area");
+            wBackend                    = controller()->widgets()->get<tk::ComboBox>("trg_audio_driver_select");
+            if (wBackend == NULL)
+                return STATUS_OK;
+
+            // Enumerate audio backends
+            core::AudioBackendInfoList backends;
+            status_t res = enumerate_backends(backends);
+            if (res != STATUS_OK)
+                return res;
+            lsp_finally { core::free_audio_backends(&backends); };
+
+            // Generate the 'Audio Driver' menu items
+            res_sel_t *item = new res_sel_t();
+            if (item == NULL)
+                return STATUS_NO_MEM;
+            lsp_finally {
+                if (item != NULL)
+                    delete item;
+            };
+
+            // Create 'auto' item
+            item->wItem = create_widget<tk::ListBoxItem>(NULL);
+            if (item->wItem == NULL)
+                return STATUS_NO_MEM;
+            LSP_STATUS_ASSERT(wBackend->items()->add(item->wItem));
+            if ((res = item->wItem->text()->set("lists.audio_backend_item.auto")) != STATUS_OK)
+                return res;
+            if (!item->sLocation.set_ascii("auto"))
+                return STATUS_NO_MEM;
+            if (!vBackendSel.add(item))
+                return STATUS_NO_MEM;
+            item    = NULL;
+
+            LSPString name;
+            for (lltl::iterator<core::AudioBackendInfo> it=backends.values(); it; ++it)
+            {
+                // Enumerate next backend information
+                const core::AudioBackendInfo * const info = it.get();
+                if (info == NULL)
+                    break;
+
+                // Determine the text
+                bool raw = false;
+                if (!info->lc_key.is_empty())
+                {
+                    if (name.set_ascii("lists.audio_backend_item."))
+                        name.append(&info->lc_key);
+                }
+                else if (!info->display.is_empty())
+                {
+                    name.set(&info->display);
+                    raw         = true;
+                }
+                else
+                {
+                    if (name.set_ascii("lists.audio_backend_item."))
+                        name.append(&info->uid);
+                }
+
+                // Create item
+                item = new res_sel_t();
+                if (item == NULL)
+                    return STATUS_NO_MEM;
+
+                // Create 'auto' item
+                item->wItem = create_widget<tk::ListBoxItem>(NULL);
+                if (item->wItem == NULL)
+                    return STATUS_NO_MEM;
+                LSP_STATUS_ASSERT(wBackend->items()->add(item->wItem));
+                if (raw)
+                    LSP_STATUS_ASSERT(item->wItem->text()->set_raw(&name));
+                else
+                    LSP_STATUS_ASSERT(item->wItem->text()->set(&name));
+
+                if (!item->sLocation.set(&info->uid))
+                    return STATUS_NO_MEM;
+                if (!vBackendSel.add(item))
+                    return STATUS_NO_MEM;
+                item    = NULL;
+            }
+
+            wBackend->slots()->bind(tk::SLOT_SUBMIT, slot_select_audio_backend, this);
 
             return STATUS_OK;
         }
@@ -1198,10 +1291,34 @@ namespace lsp
 
             for (size_t i=0, n=vSchemaSel.size(); i<n; ++i)
             {
-                res_sel_t *xsel    = vSchemaSel.uget(i);
+                res_sel_t * const xsel  = vSchemaSel.uget(i);
                 if ((xsel->wItem != NULL) && (xsel->sLocation.equals(&xpath)))
                 {
                     wVisualSchema->selected()->set(xsel->wItem);
+                    break;
+                }
+            }
+        }
+
+        void UI::sync_audio_backend_selection()
+        {
+            if (wBackend == NULL)
+                return;
+
+            // Update selecetd item
+            const char *path = (pBackend != NULL) ? pBackend->buffer<const char>() : NULL;
+            if (path == NULL)
+                return;
+            LSPString xuid;
+            if (!xuid.set_utf8(path))
+                return;
+
+            for (size_t i=0, n=vBackendSel.size(); i<n; ++i)
+            {
+                res_sel_t * const xsel  = vBackendSel.uget(i);
+                if ((xsel->wItem != NULL) && (xsel->sLocation.equals(&xuid)))
+                {
+                    wBackend->selected()->set(xsel->wItem);
                     break;
                 }
             }
@@ -1244,6 +1361,8 @@ namespace lsp
                 sUIScaling.sync_parameters();
                 sFontScaling.sync_parameters();
             }
+            if (port == pBackend)
+                sync_audio_backend_selection();
         }
 
         void UI::visual_schema_reloaded(const tk::StyleSheet *sheet)
@@ -1553,6 +1672,10 @@ namespace lsp
             if (self->wLanguage == NULL)
                 return STATUS_OK;
 
+            ui::IPort * const port = self->pLanguage;
+            if (port == NULL)
+                return STATUS_OK;
+
             tk::ListBoxItem * const item = self->wLanguage->selected()->get();
             if (item == NULL)
                 return STATUS_OK;
@@ -1578,14 +1701,17 @@ namespace lsp
 
                     // Update parameter
                     const char * const dlang = sel->sLocation.get_utf8();
+                    if (dlang == NULL)
+                        return STATUS_OK;
+
                     const char * const slang = self->pLanguage->buffer<char>();
                     lsp_trace("Current language in settings: \"%s\"", slang);
                     if ((slang == NULL) || (strcmp(slang, dlang)))
                     {
-                        self->pLanguage->begin_edit();
-                        self->pLanguage->write(dlang, strlen(dlang));
-                        self->pLanguage->notify_all(ui::PORT_USER_EDIT);
-                        self->pLanguage->end_edit();
+                        port->begin_edit();
+                        lsp_finally { port->end_edit(); };
+                        port->write(dlang, strlen(dlang));
+                        port->notify_all(ui::PORT_USER_EDIT);
                     }
                     lsp_trace("Language has been selected");
                     break;
@@ -1616,6 +1742,44 @@ namespace lsp
                     // Try to load schema first
                     if (self->load_visual_schema(&sel->sLocation) == STATUS_OK)
                         lsp_trace("Visual schema has been successfully changed");
+                    break;
+                }
+            }
+
+            return STATUS_OK;
+        }
+
+        status_t UI::slot_select_audio_backend(tk::Widget *sender, void *ptr, void *data)
+        {
+            UI * const self = static_cast<UI *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            if (self->wBackend == NULL)
+                return STATUS_OK;
+
+            ui::IPort * const port = self->pBackend;
+            if (port == NULL)
+                return STATUS_OK;
+
+            tk::ListBoxItem * const item = self->wBackend->selected()->get();
+            if (item == NULL)
+                return STATUS_OK;
+
+            for (lltl::iterator<res_sel_t> it=self->vBackendSel.values(); it; ++it)
+            {
+                const res_sel_t * const sel = it.get();
+                if (sel->wItem == item)
+                {
+                    const char *uid = sel->sLocation.get_utf8();
+                    if (uid == NULL)
+                        return STATUS_OK;
+
+                    // Update parameter
+                    port->begin_edit();
+                    lsp_finally { port->end_edit(); };
+                    port->write(uid, strlen(uid));
+                    port->notify_all(ui::PORT_USER_EDIT);
                     break;
                 }
             }
