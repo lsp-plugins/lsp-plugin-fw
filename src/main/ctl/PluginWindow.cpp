@@ -22,6 +22,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/plug-fw/ctl.h>
 #include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/core/presets.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
@@ -83,6 +84,7 @@ namespace lsp
             pPVersion                   = NULL;
             pPBypass                    = NULL;
             pR3DBackend                 = NULL;
+            pAudioBackend               = NULL;
             pLanguage                   = NULL;
             pVisualSchema               = NULL;
             pInvertVScroll              = NULL;
@@ -251,6 +253,7 @@ namespace lsp
             BIND_PORT(pWrapper, pPVersion, VERSION_PORT);
             BIND_PORT(pWrapper, pPBypass, meta::PORT_NAME_BYPASS);
             BIND_PORT(pWrapper, pR3DBackend, R3D_BACKEND_PORT);
+            BIND_PORT(pWrapper, pAudioBackend, AUDIO_BACKEND_PORT);
             BIND_PORT(pWrapper, pLanguage, LANGUAGE_PORT);
             BIND_PORT(pWrapper, pVisualSchema, UI_VISUAL_SCHEMA_PORT);
             BIND_PORT(pWrapper, pInvertVScroll, UI_INVERT_VSCROLL_PORT);
@@ -497,6 +500,8 @@ namespace lsp
                 // Add support of 3D rendering backend switch
                 if (meta->extensions & meta::E_3D_BACKEND)
                     init_r3d_support(wMenu);
+
+                init_audio_backends(wMenu);
 
                 // Create UI behaviour menu
                 init_ui_behaviour(wMenu);
@@ -1107,6 +1112,156 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t PluginWindow::add_audio_backend(tk::Menu *menu, const char *text, bool raw, const char *id)
+        {
+            LSPString stext, sid;
+            if (!stext.set_utf8(text))
+                return STATUS_NO_MEM;
+            if (!sid.set_utf8(id))
+                return STATUS_NO_MEM;
+
+            return add_audio_backend(menu, stext, raw, sid);
+        }
+
+        status_t PluginWindow::add_audio_backend(tk::Menu *menu, const LSPString & text, bool raw, const LSPString & id)
+        {
+            // Create menu item
+            tk::MenuItem * const item = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+
+            item->type()->set_radio();
+            if (raw)
+                item->text()->set_raw(&text);
+            else
+                item->text()->set_key(&text);
+
+            // Create backend information
+            audio_sel_t * sel = new audio_sel_t();
+            if (sel == NULL)
+                return STATUS_NO_MEM;
+            lsp_finally {
+                if (sel != NULL)
+                    delete sel;
+            };
+
+            sel->ctl    = this;
+            sel->item   = item;
+            if (!sel->id.set(&id))
+                return STATUS_NO_MEM;
+
+            item->slots()->bind(tk::SLOT_SUBMIT, slot_select_audio, sel);
+            if (!vAudioSel.add(sel))
+                return STATUS_NO_MEM;
+
+            sel         = NULL;
+            return STATUS_OK;
+        }
+
+        status_t PluginWindow::init_audio_backends(tk::Menu *menu)
+        {
+            if (menu == NULL)
+                return STATUS_OK;
+
+            ws::IDisplay * const dpy    = menu->display()->display();
+            if (dpy == NULL)
+                return STATUS_OK;
+
+            // Enumerate backends
+            core::AudioBackendInfoList backends;
+            status_t res                = pWrapper->enumerate_backends(backends);
+            if (res != STATUS_OK)
+                return res;
+
+            // Create submenu item
+            tk::MenuItem *item          = create_menu_item(menu);
+            if (item == NULL)
+                return STATUS_NO_MEM;
+            item->text()->set("actions.audio_driver");
+
+            // Create submenu
+            menu                        = create_menu();
+            if (menu == NULL)
+                return STATUS_NO_MEM;
+            item->menu()->set(menu);
+
+            // Add 'default' menu item
+            if ((res = add_audio_backend(menu, "lists.audio_backend.auto", false, "auto")) != STATUS_OK)
+                return res;
+
+            // Add separator
+            tk::MenuItem * const sep    = new tk::MenuItem(menu->display());
+            if (sep == NULL)
+                return STATUS_NO_MEM;
+            widgets()->add(sep);
+            sep->init();
+            sep->type()->set_separator();
+            menu->add(sep);
+
+            LSPString name;
+
+            for (lltl::iterator<core::AudioBackendInfo> it = backends.values(); it; ++it)
+            {
+                // Enumerate next backend information
+                const core::AudioBackendInfo * const info = it.get();
+                if (info == NULL)
+                    break;
+
+                bool raw = false;
+                if (!info->lc_key.is_empty())
+                {
+                    if (name.set_ascii("lists.audio_backend."))
+                        name.append(&info->lc_key);
+                }
+                else if (!info->display.is_empty())
+                {
+                    name.set(&info->display);
+                    raw         = true;
+                }
+                else
+                {
+                    if (name.set_ascii("lists.audio_backend."))
+                        name.append(&info->uid);
+                }
+
+                // Add menu item
+                if ((res = add_audio_backend(menu, name, raw, info->uid)) != STATUS_OK)
+                    return res;
+            }
+
+            // Sync audio backend selection
+            sync_audio_selection();
+
+            return STATUS_OK;
+        }
+
+        void PluginWindow::sync_audio_selection()
+        {
+            tk::Display *dpy    = wWidget->display();
+            if (dpy == NULL)
+                return;
+
+            if (pAudioBackend == NULL)
+                return;
+
+            const char *uid     = pAudioBackend->buffer<char>();
+            if ((uid == NULL) || (strlen(uid) <= 0))
+                uid                 = "auto";
+
+            LSPString suid;
+            if (!suid.set_utf8(uid))
+                return;
+
+            for (lltl::iterator<audio_sel_t> it = vAudioSel.values(); it; ++it)
+            {
+                audio_sel_t * const sel = it.get();
+                if (sel == NULL)
+                    continue;
+
+                sel->item->checked()->set(sel->id.equals(&suid));
+            }
+        }
+
         bool PluginWindow::has_path_ports()
         {
             for (size_t i = 0, n = pWrapper->ports(); i < n; ++i)
@@ -1150,18 +1305,39 @@ namespace lsp
             if (value == NULL)
                 return STATUS_NO_MEM;
 
-            if (sel->ctl->pR3DBackend != NULL)
+            ui::IPort * const port = sel->ctl->pR3DBackend;
+            if (port != NULL)
             {
-                const char *backend = sel->ctl->pR3DBackend->buffer<char>();
+                const char *backend = port->buffer<char>();
                 if ((backend == NULL) || (strcmp(backend, value)))
                 {
-                    sel->ctl->pR3DBackend->write(value, strlen(value));
-                    sel->ctl->pR3DBackend->notify_all(ui::PORT_USER_EDIT);
+                    port->begin_edit();
+                    lsp_finally { port->end_edit(); };
+                    port->write(value, strlen(value));
+                    port->notify_all(ui::PORT_USER_EDIT);
                 }
             }
 
             return STATUS_OK;
         }
+
+        status_t PluginWindow::slot_select_audio(tk::Widget *sender, void *ptr, void *data)
+        {
+            const audio_sel_t * const sel = reinterpret_cast<audio_sel_t *>(ptr);
+            if ((sender == NULL) || (sel == NULL) || (sel->ctl == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            // Select backend
+            status_t res = sel->ctl->select_audio_backend(sel->id);
+            if (res != STATUS_OK)
+                return STATUS_OK;
+
+            // Notify about change of audio backend
+            sel->ctl->audio_backend_selected(sel->id);
+
+            return STATUS_OK;
+        }
+
 
         status_t PluginWindow::slot_select_language(tk::Widget *sender, void *ptr, void *data)
         {
@@ -1405,6 +1581,8 @@ namespace lsp
                 notify_ui_behaviour_flags(flags);
                 sync_language_selection();
             }
+            if (port == pAudioBackend)
+                sync_audio_selection();
             if ((port == pInvertVScroll) || (port == pInvertGraphDotVScroll))
                 sync_invert_vscroll(port);
 
@@ -2506,6 +2684,33 @@ namespace lsp
             lsp_trace("Successfully loaded visual schema '%s'", path.get_utf8());
 
             return STATUS_OK;
+        }
+
+        status_t PluginWindow::select_audio_backend(const LSPString & uid)
+        {
+            return pWrapper->select_backend(&uid);
+        }
+
+        void PluginWindow::audio_backend_selected(const LSPString & uid)
+        {
+            // Get port
+            ui::IPort * const port = pAudioBackend;
+            if (port == NULL)
+                return;
+
+            // Commit new state
+            const char * const new_uid = uid.get_utf8();
+            if (new_uid == NULL)
+                return;
+
+            const char *old_uid = port->buffer<char>();
+            if ((old_uid == NULL) || (strcmp(old_uid, new_uid)))
+            {
+                port->begin_edit();
+                lsp_finally { port->end_edit(); };
+                port->write(new_uid, strlen(new_uid));
+                port->notify_all(ui::PORT_USER_EDIT);
+            }
         }
 
     } /* namespace ctl */

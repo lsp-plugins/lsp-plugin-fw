@@ -329,7 +329,9 @@ namespace lsp
                             (plugin_id != NULL) ? "" : " plugin-id"
                     );
                     printf("Available parameters:\n");
-                    printf("  -b, --backend <id>        Select audio backend for processing\n");
+                    printf("  -b, --backend <id>        Select audio backend for processing (use --list-backends option\n");
+                    printf("                            to obtain list of available audio backends or use 'auto' to\n");
+                    printf("                            select the backend with highest priority)\n");
                     printf("  -c, --config <file>       Load settings file on startup\n");
                     IF_XDND_PROXY_SUPPORT(
                         printf("  --dnd-proxy <id>          Create window as child and DnD proxy of specified window ID\n");
@@ -924,15 +926,25 @@ namespace lsp
                     pUIWrapper->select_ui_schema(sCmdLine.schema);
 
                 if (sCmdLine.backend != NULL)
-                    pUIWrapper->select_backend(sCmdLine.backend);
+                {
+                    if ((res = pUIWrapper->select_backend(sCmdLine.backend)) != STATUS_OK)
+                    {
+                        lsp_error("Could not select backend '%s': code=%d", sCmdLine.backend, res);
+                        return res;
+                    }
+                }
             }
-        #endif /* WITH_UI_FEATURE */
-
-        // #ifndef WITH_UI_FEATURE
+        #else
             // Select autio backend (if specified in parameters)
             if (sCmdLine.backend != NULL)
-                pWrapper->select_backend(sCmdLine.backend);
-        //#endif /* WITH_UI_FEATURE */
+            {
+                if ((res = pWrapper->select_backend(sCmdLine.backend)) != STATUS_OK)
+                {
+                    lsp_error("Could not select backend '%s': code=%d", sCmdLine.backend, res);
+                    return res;
+                }
+            }
+        #endif /* WITH_UI_FEATURE */
 
             // Load configuration (if specified in parameters)
             if (sCmdLine.cfg_file != NULL)

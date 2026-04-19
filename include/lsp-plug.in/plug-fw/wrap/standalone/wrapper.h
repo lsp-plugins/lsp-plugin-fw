@@ -96,7 +96,7 @@ namespace lsp
                 standalone::Factory            *pFactory;           // Factory for shared resources
                 audio::backend_t               *pBackend;           // Currently active backend
                 ipc::Library                    sBackendLibrary;    // Currently used backend library
-                size_t                          nCurrentBackend;    // Currently used audio backend
+                const core::AudioBackendInfo   *pBackendInfo;       // Currently used audio backend
                 char                           *sClientName;        // Standalone client name
                 state_t                         nState;             // Connection state to Audio server
                 bool                            bUpdateSettings;    // Plugin settings are required to be updated
@@ -134,8 +134,17 @@ namespace lsp
 
                 status_t        import_settings(config::PullParser *parser);
                 status_t        import_settings_work(config::PullParser *parser);
+                status_t        process_global_config(config::PullParser & parser);
+                void            register_data_ports();
+                void            unregister_data_ports();
+                void            destroy_audio_backend();
+
                 const core::AudioBackendInfo *find_backend(const LSPString *id);
-                size_t          select_current_backend();
+                const core::AudioBackendInfo *select_default_backend();
+
+
+            protected:
+                static status_t process_global_config(const io::Path & location, void *self);
 
             protected:
                 static status_t on_connected(void *user_data, const audio::io_parameters_t *params);

@@ -52,7 +52,7 @@ namespace lsp
         {
             pFactory        = factory;
             pBackend        = NULL;
-            nCurrentBackend = 0;
+            pBackendInfo    = NULL;
             sClientName     = (info->client_name != NULL) ? strdup(info->client_name) : NULL;
             nState          = S_CREATED;
             bUpdateSettings = true;
@@ -173,7 +173,10 @@ namespace lsp
             }
 
             // Select the most prioritized backend
-            nCurrentBackend = select_current_backend();
+            pBackendInfo    = select_default_backend();
+
+            // Read global configuration file
+            core::process_global_config(process_global_config, this);
 
             // Update state, mark initialized
             nState          = S_INITIALIZED;
@@ -181,25 +184,64 @@ namespace lsp
             return STATUS_OK;
         }
 
-        size_t Wrapper::select_current_backend()
+        const core::AudioBackendInfo *Wrapper::select_default_backend()
         {
             size_t best_index = 0;
             const core::AudioBackendInfo *best = vAudioBackends.get(best_index);
-            if (best == NULL)
-                return best_index;
 
             // Select backend with the highest priority
             for (size_t i=1, n=vAudioBackends.size(); i<n; ++i)
             {
                 const core::AudioBackendInfo * const curr = vAudioBackends.uget(i);
                 if (curr->priority > best->priority)
-                {
                     best        = curr;
-                    best_index  = i;
+            }
+
+            return best;
+        }
+
+
+        status_t Wrapper::process_global_config(config::PullParser & parser)
+        {
+            status_t res;
+            config::param_t param;
+            LSPString tmp;
+
+            while ((res = parser.next(&param)) == STATUS_OK)
+            {
+                // Update selected audio backend identifier if possible
+                if ((param.name.equals_ascii(AUDIO_BACKEND_ID)) &&
+                    (param.is_string()))
+                {
+                    if (tmp.set_utf8(param.get_string()))
+                    {
+                        const core::AudioBackendInfo * const info = find_backend(&tmp);
+                        if (info != NULL)
+                            pBackendInfo        = info;
+                    }
                 }
             }
 
-            return best_index;
+            return (res == STATUS_EOF) ? STATUS_OK : res;
+        }
+
+        status_t Wrapper::process_global_config(const io::Path & location, void *self)
+        {
+            if (self == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            status_t res;
+            config::PullParser parser;
+            if ((res = parser.open(&location)) == STATUS_OK)
+            {
+                Wrapper * const pself = static_cast<Wrapper *>(self);
+                res = pself->process_global_config(parser);
+            }
+
+            res = update_status(res, parser.close());
+
+            lsp_trace("Load global configuration from '%s': result=%d", location.as_native(), int(res));
+            return res;
         }
 
         void Wrapper::set_routing(const lltl::darray<connection_t> *routing)
@@ -274,6 +316,50 @@ namespace lsp
             }
         }
 
+        void Wrapper::register_data_ports()
+        {
+            // Connect data ports
+            for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
+            {
+                standalone::DataPort * const dp = vDataPorts.uget(i);
+                if (dp == NULL)
+                    continue;
+
+                dp->connect();
+            }
+        }
+
+        void Wrapper::unregister_data_ports()
+        {
+            // Connect data ports
+            for (size_t i=0, n=vDataPorts.size(); i<n; ++i)
+            {
+                standalone::DataPort * const dp = vDataPorts.uget(i);
+                if (dp == NULL)
+                    continue;
+
+                dp->disconnect();
+            }
+        }
+
+        void Wrapper::destroy_audio_backend()
+        {
+            if (pBackend == NULL)
+                return;
+
+            // Disconnect and unregister ports
+            pBackend->disconnect(pBackend);
+            nState      = S_DISCONNECTED;
+            unregister_data_ports();
+
+            // Destroy backend and close the library (if loaded)
+            pBackend->destroy(pBackend);
+            sBackendLibrary.close();
+
+            // Cleanup backend pointer
+            pBackend    = NULL;
+        }
+
         status_t Wrapper::connect()
         {
             // Check connection state
@@ -303,7 +389,7 @@ namespace lsp
             status_t res;
             if (pBackend == NULL)
             {
-                const core::AudioBackendInfo * const info = vAudioBackends.get(nCurrentBackend);
+                const core::AudioBackendInfo * const info = pBackendInfo;
                 if (info == NULL)
                     return STATUS_NOT_FOUND;
 
@@ -313,6 +399,9 @@ namespace lsp
                     lsp_warn("Failed to create audio backend: code=%d", int(res));
                     return res;
                 }
+
+                // Connect data ports
+                register_data_ports();
             }
 
             // Obtain the connection to the backend
@@ -329,8 +418,7 @@ namespace lsp
             }
 
             nState = S_CONNECTED;
-            return STATUS_OK;
-        }
+            return STATUS_OK;        }
 
         status_t Wrapper::on_connected(void *user_data, const audio::io_parameters_t *params)
         {
@@ -343,7 +431,6 @@ namespace lsp
                 if (dp == NULL)
                     continue;
 
-                dp->connect();
                 dp->set_buffer_size(params->max_buffer_size);
             }
 
@@ -435,14 +522,6 @@ namespace lsp
             // Deactivate plugin
             if (self->pPlugin != NULL)
                 self->pPlugin->deactivate();
-
-            // Disconnect all data ports
-            for (size_t i=0, n=self->vDataPorts.size(); i<n; ++i)
-            {
-                standalone::DataPort * const dp     = self->vDataPorts.uget(i);
-                if (dp != NULL)
-                    dp->disconnect();
-            }
 
             return STATUS_OK;
         }
@@ -632,42 +711,43 @@ namespace lsp
 
         status_t Wrapper::select_backend(const char *id)
         {
-            if (id == NULL)
-                return STATUS_BAD_ARGUMENTS;
-
             LSPString back_id;
-            if (!back_id.set_native(id))
-                return STATUS_NO_MEM;
+            if (id != NULL)
+            {
+                if (!back_id.set_native(id))
+                    return STATUS_NO_MEM;
+            }
             return select_backend(back_id);
         }
 
         status_t Wrapper::select_backend(const LSPString *id)
         {
             if (id == NULL)
-                return STATUS_BAD_ARGUMENTS;
+            {
+                LSPString empty;
+                return select_backend(empty);
+            }
 
             return select_backend(*id);
         }
 
         status_t Wrapper::select_backend(const LSPString & id)
         {
-            const core::AudioBackendInfo * const info = find_backend(&id);
+            const core::AudioBackendInfo * const info =
+                ((id.is_empty()) || (id.equals_ascii("auto"))) ?
+                    select_default_backend() :
+                    find_backend(&id);
             if (info == NULL)
                 return STATUS_NOT_FOUND;
 
-            const ssize_t idx = vAudioBackends.index_of(info);
-            if (idx < 0)
-                return STATUS_NOT_FOUND;
-            if (idx == ssize_t(nCurrentBackend))
+            if (info == pBackendInfo)
                 return STATUS_OK;
 
-            // Here we need to shut-down current connection first
-            status_t res = disconnect();
-            if (res != STATUS_OK)
-                return res;
+            // We need to disconnect and destroy previously used backend
+            destroy_audio_backend();
 
-            // Change current backend to new one
-            nCurrentBackend     = idx;
+            // Change current backend descriptor to new one
+            pBackendInfo     = info;
 
             // Make a new connection
             return connect();
@@ -679,11 +759,7 @@ namespace lsp
             disconnect();
 
             // Destroy backend
-            if (pBackend != NULL)
-            {
-                pBackend->destroy(pBackend);
-                sBackendLibrary.close();
-            }
+            destroy_audio_backend();
 
             // Destroy sample player
             if (pSamplePlayer != NULL)
@@ -1273,7 +1349,7 @@ namespace lsp
 
         inline const core::AudioBackendInfo *Wrapper::selected_backend() const
         {
-            return vAudioBackends.get(nCurrentBackend);
+            return pBackendInfo;
         }
 
         status_t Wrapper::enumerate_backends(core::AudioBackendInfoList & list) const

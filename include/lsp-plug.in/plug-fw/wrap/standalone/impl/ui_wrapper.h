@@ -520,7 +520,7 @@ namespace lsp
                     if (set)
                         set = tmp.append(&pConnBackend->lc_key);
                     if (set)
-                        text->set(&tmp);
+                        text->set_key(&tmp);
                 }
                 else if (!pConnBackend->display.is_empty())
                     text->set_raw(&pConnBackend->display);
@@ -530,7 +530,7 @@ namespace lsp
                     if (set)
                         set = tmp.append(&pConnBackend->uid);
                     if (set)
-                        text->set(&tmp);
+                        text->set_key(&tmp);
                 }
             }
 
@@ -670,6 +670,11 @@ namespace lsp
             status_t res = pWrapper->select_backend(name);
             if (res != STATUS_OK)
                 return res;
+
+            // Notify plugin window about selection of backend
+            ctl::PluginWindow * const pwnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
+            if (pwnd != NULL)
+                pwnd->audio_backend_selected(name);
 
             // Update connection status
             set_connection_status(

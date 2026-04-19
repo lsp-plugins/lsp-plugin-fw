@@ -24,6 +24,7 @@
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/meta/ports.h>
 #include <lsp-plug.in/plug-fw/meta/registry.h>
+#include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/ui/const.h>
 #include <lsp-plug.in/plug-fw/util/launcher/ui.h>
 #include <lsp-plug.in/plug-fw/util/launcher/window.h>

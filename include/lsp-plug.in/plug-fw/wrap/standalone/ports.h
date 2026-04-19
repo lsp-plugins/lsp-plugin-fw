@@ -235,7 +235,7 @@ namespace lsp
                         return;
 
                     // Buffer size has changed?
-                    if (nBufSize == size)
+                    if ((pSanitized != NULL) && (nBufSize == size))
                         return;
 
                     float * const buf  = reinterpret_cast<float *>(::realloc(pSanitized, sizeof(float) * size));

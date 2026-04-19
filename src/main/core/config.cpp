@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 апр. 2021 г.
@@ -19,11 +19,14 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/dsp-units/units.h>
+#include <lsp-plug.in/fmt/config/types.h>
+#include <lsp-plug.in/io/NativeFile.h>
 #include <lsp-plug.in/plug-fw/const.h>
 #include <lsp-plug.in/plug-fw/core/config.h>
 #include <lsp-plug.in/plug-fw/meta/func.h>
-#include <lsp-plug.in/fmt/config/types.h>
-#include <lsp-plug.in/dsp-units/units.h>
+#include <lsp-plug.in/runtime/system.h>
 
 namespace lsp
 {
@@ -222,6 +225,48 @@ namespace lsp
                     return STATUS_BAD_TYPE;
             }
             return STATUS_OK;
+        }
+
+
+        status_t get_user_config_path(io::Path *path)
+        {
+            io::Path tmp;
+            status_t res    = system::get_user_config_path(&tmp);
+            if (res == STATUS_OK)
+                res             = tmp.append_child("lsp-plugins");
+            if (res == STATUS_OK)
+                tmp.swap(path);
+
+            return res;
+        }
+
+        status_t process_global_config(config_processor_t handler, void *data)
+        {
+            if (handler == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            // Load the global configuration file
+            io::Path path, lock;
+            status_t res;
+            if ((res = core::get_user_config_path(&path)) != STATUS_OK)
+                return res;
+            if ((res = lock.set(&path)) != STATUS_OK)
+                return res;
+            if ((res = path.append_child(GLOBAL_CONFIG_FILE_NAME)) != STATUS_OK)
+                return res;
+            if ((res = lock.append_child(GLOBAL_CONFIG_LOCK_NAME)) != STATUS_OK)
+                return res;
+
+            // Obtain file lock
+            io::NativeFile fd;
+            if ((res = fd.open(&lock, io::File::FM_READWRITE | io::File::FM_CREATE | io::File::FM_LOCK)) != STATUS_OK)
+            {
+                lsp_warn("Failed to obtain lock on file '%s': code=%d", lock.as_native(), int(res));
+                return res;
+            }
+            lsp_finally { fd.close(); };
+
+            return handler(path, data);
         }
 
     } /* namespace core */
