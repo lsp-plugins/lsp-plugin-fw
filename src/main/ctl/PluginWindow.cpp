@@ -113,6 +113,18 @@ namespace lsp
             Window::destroy();
         }
 
+        template <class T>
+        static void drop_list(lltl::parray<T> & list)
+        {
+            for (lltl::iterator<T> it=list.values(); it; ++it)
+            {
+                T * const s = it.get();
+                if (s != NULL)
+                    delete s;
+            }
+            list.flush();
+        }
+
         void PluginWindow::do_destroy()
         {
             sUIScaling.destroy();
@@ -122,50 +134,12 @@ namespace lsp
             // Cancel greeting timer
             wGreetingTimer.cancel();
 
-            // Delete audio backend bindings
-            for (lltl::iterator<audio_sel_t> it=vAudioSel.values(); it; ++it)
-            {
-                audio_sel_t * const s = it.get();
-                if (s != NULL)
-                    delete s;
-            }
-            vBackendSel.flush();
-
-            // Delete UI rendering backend bindings
-            for (lltl::iterator<backend_sel_t> it=vBackendSel.values(); it; ++it)
-            {
-                backend_sel_t * const s = it.get();
-                if (s != NULL)
-                    delete s;
-            }
-            vBackendSel.flush();
-
-            // Delete language selection bindings
-            for (lltl::iterator<lang_sel_t> it=vLangSel.values(); it; ++it)
-            {
-                lang_sel_t * const s = it.get();
-                if (s != NULL)
-                    delete s;
-            }
-            vLangSel.flush();
-
-            // Delete UI schema selection bindings
-            for (lltl::iterator<schema_sel_t> it=vSchemaSel.values(); it; ++it)
-            {
-                schema_sel_t * const s = it.get();
-                if (s != NULL)
-                    delete s;
-            }
-            vSchemaSel.flush();
-
-            // Delete preset list
-            for (lltl::iterator<preset_sel_t> it=vPresetSel.values(); it; ++it)
-            {
-                preset_sel_t * const s = it.get();
-                if (s != NULL)
-                    delete s;
-            }
-            vPresetSel.flush();
+            // Drop different bindings
+            drop_list(vAudioSel);
+            drop_list(vBackendSel);
+            drop_list(vLangSel);
+            drop_list(vSchemaSel);
+            drop_list(vPresetSel);
 
             pUserPaths      = NULL;
 

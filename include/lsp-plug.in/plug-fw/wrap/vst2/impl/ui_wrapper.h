@@ -37,10 +37,6 @@ namespace lsp
         {
             pWrapper        = wrapper;
             nKeyState       = 0;
-            sRect.top       = 0;
-            sRect.left      = 0;
-            sRect.bottom    = 0;
-            sRect.right     = 0;
 
         #ifdef LSP_VST2_ALT_EVENT_LOOP
             pIdleThread     = NULL;
@@ -218,7 +214,7 @@ namespace lsp
             }
 
             // Bind resize slot
-            tk::Window *wnd  = window();
+            tk::Window * const wnd  = window();
             if (wnd != NULL)
             {
                 wnd->slots()->bind(tk::SLOT_RESIZE, slot_ui_resize, this);
@@ -227,7 +223,26 @@ namespace lsp
             }
 
             // Call the post-initialization routine
-            return pUI->post_init();
+            res = pUI->post_init();
+
+            // Obtain the minimum size of the window
+            if (res == STATUS_OK)
+            {
+                ws::size_limit_t sr;
+                wnd->get_padded_size_limits(&sr);
+
+                ERect * const r = pWrapper->ui_rect();
+
+                r->left         = 0;
+                r->top          = 0;
+                r->right        = lsp_max(sr.nMinWidth, 10);
+                r->bottom       = lsp_max(sr.nMinHeight, 10);
+
+                lsp_trace("Initial window size: hor=(%d, %d), vert=(%d, %d)",
+                    int(r->left), int(r->right), int(r->top), (r->bottom));
+            }
+
+            return res;
         }
 
         void UIWrapper::destroy()
@@ -237,6 +252,12 @@ namespace lsp
 
         void UIWrapper::do_destroy()
         {
+            if (pWrapper != NULL)
+            {
+                pWrapper->pUIWrapper    = NULL;
+                pWrapper                = NULL;
+            }
+
             // Terminate idle thread
             stop_event_loop();
 
@@ -405,12 +426,7 @@ namespace lsp
                 // Measure the time of next frame to appear
                 system::time_millis_t deadline = ctime + FRAME_PERIOD;
 
-                // Perform main iteration with locked mutex
-                if (self->sMutex.lock())
-                {
-                    lsp_finally { self->sMutex.unlock(); };
-                    self->pDisplay->main_iteration();
-                }
+                self->pDisplay->main_iteration();
 
                 // Wait for the next frame to appear
                 system::time_millis_t ftime = system::get_time_millis();
@@ -428,6 +444,9 @@ namespace lsp
         bool UIWrapper::start_event_loop()
         {
         #ifdef LSP_VST2_ALT_EVENT_LOOP
+            if (pIdleThread != NULL)
+                return false;
+
             // Launch the main loop thread
             lsp_trace("Creating main event loop thread");
             pIdleThread   = new ipc::Thread(event_loop, this);
@@ -455,21 +474,25 @@ namespace lsp
         {
         #ifdef LSP_VST2_ALT_EVENT_LOOP
             // Terminate idle thread if it is present
-            if (pIdleThread != NULL)
-            {
-                if (pDisplay != NULL)
-                    pDisplay->quit_main();
+            if (pIdleThread == NULL)
+                return;
 
-                pIdleThread->cancel();
-                pIdleThread->join();
+            pIdleThread->cancel();
+            pIdleThread->join();
 
-                delete pIdleThread;
-                pIdleThread     = NULL;
-            }
+            delete pIdleThread;
+            pIdleThread     = NULL;
         #endif /* LSP_VST2_ALT_EVENT_LOOP */
+
+            // Process pending events
+            if (pDisplay != NULL)
+            {
+                pDisplay->quit_main();
+                pDisplay->process_pending_events();
+            }
         }
 
-        bool UIWrapper::show_ui()
+        bool UIWrapper::show_ui(void *root_widget)
         {
             // Reset key state
             nKeyState = 0;
@@ -505,40 +528,50 @@ namespace lsp
                 return false;
 
             dpy->process_pending_events();
+            wnd->native()->set_parent(root_widget);
             wnd->show();
 
             // Show the window and start event loop
             bool res    = start_event_loop();
             if (!res)
             {
+                lsp_warn("Failed to start event loop");
                 wnd->hide();
                 return res;
             }
+
+            // Update UI request
+            if (pWrapper != NULL)
+                atomic_add(&pWrapper->nUIReq, 1);
 
             return true;
         }
 
         void UIWrapper::hide_ui()
         {
-            tk::Window * const wnd = window();
-            if (wnd != NULL)
-            {
-            #ifdef LSP_VST2_ALT_EVENT_LOOP
-                // Do the sync barrier
-                sMutex.lock();
-                lsp_finally { sMutex.unlock(); };
-            #endif /* LSP_VST2_ALT_EVENT_LOOP */
-
-                wnd->hide();
-            }
-
             // Stop the event loop
             stop_event_loop();
 
-            // Process pending events
-            tk::Display * const dpy = display();
-            if (dpy != NULL)
-                dpy->process_pending_events();
+            // Hide the window
+            tk::Window * const wnd = window();
+            if (wnd != NULL)
+            {
+                wnd->hide();
+                wnd->native()->set_parent(NULL);
+            }
+
+            if (pDisplay != NULL)
+                pDisplay->process_pending_events();
+
+            // Update UI request
+            if (pWrapper != NULL)
+                atomic_add(&pWrapper->nUIReq, 1);
+        }
+
+        bool UIWrapper::is_visible() const
+        {
+            const tk::Window * const wnd = window();
+            return (wnd != NULL) && (wnd->visibility()->get());
         }
 
         void UIWrapper::resize_ui()
@@ -551,14 +584,15 @@ namespace lsp
             if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
                 return;
 
-            lsp_trace("Get geometry: width=%d, height=%d", int(rr.nWidth), int(rr.nHeight));
-            lsp_trace("audioMasterSizeWindow width=%d, height=%d", int(rr.nWidth), int(rr.nHeight));
-            if (((sRect.right - sRect.left) != rr.nWidth) ||
-                  ((sRect.bottom - sRect.top) != rr.nHeight))
+            ERect * const r     = pWrapper->ui_rect();
+
+            if (((r->right - r->left) != rr.nWidth) ||
+                ((r->bottom - r->top) != rr.nHeight))
             {
-                pWrapper->pMaster(pWrapper->pEffect, audioMasterSizeWindow, rr.nWidth, rr.nHeight, 0, 0);
-                sRect.right     = rr.nWidth;
-                sRect.bottom    = rr.nHeight;
+                r->right        = r->left + rr.nWidth;
+                r->bottom       = r->top  + rr.nHeight;
+                lsp_trace("audioMasterSizeWindow width=%d, height=%d", int(rr.nWidth), int(rr.nHeight));
+                pWrapper->pMaster(pWrapper->pEffect, audioMasterSizeWindow, rr.nWidth, rr.nHeight, NULL, 0);
             }
         }
 
@@ -571,21 +605,9 @@ namespace lsp
             // For windows, we do not need to call main_iteration() because the main
             // event loop is provided by the hosting application
         #ifndef PLATFORM_WINDOWS
-            if (sMutex.lock())
-            {
-                lsp_finally { sMutex.unlock(); };
-                if (pDisplay != NULL)
-                    pDisplay->main_iteration();
-            }
+            if (pDisplay != NULL)
+                pDisplay->main_iteration();
         #endif /* PLATFORM_WINDOWS */
-        }
-
-        ERect *UIWrapper::ui_rect()
-        {
-            lsp_trace("left=%d, top=%d, right=%d, bottom=%d",
-                    int(sRect.left), int(sRect.top), int(sRect.right), int(sRect.bottom)
-                );
-            return &sRect;
         }
 
         status_t UIWrapper::slot_ui_resize(tk::Widget *sender, void *ptr, void *data)
@@ -677,7 +699,11 @@ namespace lsp
                         if (ui_wrapper != NULL)
                         {
                             if (ui_wrapper->init(root_widget) == STATUS_OK)
+                            {
+                                wrapper->pUIWrapper = ui_wrapper;
+                                atomic_add(&wrapper->nUIReq, 1);
                                 return ui_wrapper;
+                            }
 
                             ui_wrapper->destroy();
                             delete wrapper;

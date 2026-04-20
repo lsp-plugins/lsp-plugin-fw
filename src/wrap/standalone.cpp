@@ -36,10 +36,9 @@
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ipc/Library.h>
 
-#include <lsp-plug.in/plug-fw/plug.h>
-
 #include <lsp-plug.in/plug-fw/core/AudioBackend.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
+#include <lsp-plug.in/plug-fw/plug.h>
 #include <lsp-plug.in/plug-fw/wrap/standalone/defs.h>
 #include <lsp-plug.in/plug-fw/wrap/standalone/dummy/backend.h>
 #include <lsp-plug.in/plug-fw/wrap/standalone/dummy/factory.h>

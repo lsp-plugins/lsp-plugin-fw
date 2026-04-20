@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 дек. 2021 г.
@@ -60,6 +60,11 @@ namespace lsp
             pUIWrapper      = NULL;
             nUIReq          = 0;
             nUIResp         = 0;
+
+            sUIRect.top     = 0;
+            sUIRect.left    = 0;
+            sUIRect.bottom  = 0;
+            sUIRect.right   = 0;
         #endif /* WITH_UI_FEATURE */
 
             nLatency        = 0;
@@ -525,19 +530,14 @@ namespace lsp
         }
 
     #ifdef WITH_UI_FEATURE
-        void Wrapper::set_ui_wrapper(UIWrapper *ui)
-        {
-            if (pUIWrapper == ui)
-                return;
-
-            pUIWrapper  = ui;
-            if (ui != NULL)
-                atomic_add(&nUIReq, 1);
-        }
-
         UIWrapper *Wrapper::ui_wrapper()
         {
             return pUIWrapper;
+        }
+
+        ERect *Wrapper::ui_rect()
+        {
+            return &sUIRect;
         }
     #endif /* WITH_UI_FEATURE */
 
@@ -654,10 +654,14 @@ namespace lsp
             const uatomic_t ui_req = nUIReq;
             if (ui_req != nUIResp)
             {
-                if (pPlugin->ui_active())
-                    pPlugin->deactivate_ui();
-                if (pUIWrapper != NULL)
-                    pPlugin->activate_ui();
+                const bool ui_active = (pUIWrapper != NULL) && (pUIWrapper->is_visible());
+                if (pPlugin->ui_active() != ui_active)
+                {
+                    if (ui_active)
+                        pPlugin->activate_ui();
+                    else
+                        pPlugin->deactivate_ui();
+                }
                 nUIResp     = ui_req;
             }
         #endif /* WITH_UI_FEATURE */

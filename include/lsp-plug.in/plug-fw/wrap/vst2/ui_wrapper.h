@@ -44,9 +44,7 @@ namespace lsp
             private:
                 vst2::Wrapper                      *pWrapper;       // VST Wrapper
                 size_t                              nKeyState;      // State of the keys
-                ERect                               sRect;
             #ifdef LSP_VST2_ALT_EVENT_LOOP
-                ipc::Mutex                          sMutex;         // UI barrier mutex
                 ipc::Thread                        *pIdleThread;    // Thread that simulates effEditIdle
             #endif /* LSP_VST2_ALT_EVENT_LOOP */
 
@@ -89,8 +87,9 @@ namespace lsp
                 virtual void                    send_preset_state(const core::preset_state_t *state) override;
 
             public:
-                bool                            show_ui();
+                bool                            show_ui(void *root_widget);
                 void                            hide_ui();
+                bool                            is_visible() const;
                 void                            resize_ui();
                 void                            idle_ui();
                 ERect                          *ui_rect();

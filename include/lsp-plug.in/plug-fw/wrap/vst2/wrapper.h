@@ -72,6 +72,7 @@ namespace lsp
                 UIWrapper                          *pUIWrapper;     // UI wrapper
                 uatomic_t                           nUIReq;         // UI change request
                 uatomic_t                           nUIResp;        // UI change response
+                ERect                               sUIRect;        // UI rect
             #endif /* WITH_UI_FEATURE */
 
                 uint32_t                            nLatency;
@@ -155,8 +156,8 @@ namespace lsp
 
         #ifdef WITH_UI_FEATURE
             public: // UI-related stuff
-                inline void                     set_ui_wrapper(UIWrapper *ui);
                 inline UIWrapper               *ui_wrapper();
+                inline ERect                   *ui_rect();
         #endif /* WITH_UI_FEATURE */
 
             public: // core::IWrapper
