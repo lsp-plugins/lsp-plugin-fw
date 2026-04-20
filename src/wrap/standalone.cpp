@@ -28,7 +28,6 @@
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/parray.h>
-#include <lsp-plug.in/ws/ws.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/io/InFileStream.h>
@@ -38,7 +37,6 @@
 #include <lsp-plug.in/ipc/Library.h>
 
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/ui.h>
 
 #include <lsp-plug.in/plug-fw/core/AudioBackend.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
@@ -54,6 +52,7 @@
 #include <lsp-plug.in/plug-fw/wrap/standalone/impl/wrapper.h>
 
 #ifdef WITH_UI_FEATURE
+    #include <lsp-plug.in/plug-fw/ui.h>
     #include <lsp-plug.in/plug-fw/wrap/standalone/ui_wrapper.h>
     #include <lsp-plug.in/plug-fw/wrap/standalone/impl/ui_wrapper.h>
 #endif /* WITH_UI_FEATURE */
