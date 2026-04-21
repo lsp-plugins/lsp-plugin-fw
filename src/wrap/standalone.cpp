@@ -30,6 +30,7 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/runtime/system.h>
+#include <lsp-plug.in/expr/Tokenizer.h>
 #include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/io/InStringSequence.h>
 #include <lsp-plug.in/io/InSequence.h>
@@ -147,12 +148,12 @@ namespace lsp
                 standalone::Factory    *pFactory;           // Plugin factory
                 plug::Module           *pPlugin;            // Plugin
                 standalone::Wrapper    *pWrapper;           // Plugin wrapper
-                ws::timestamp_t         nLastReconnect;     // Last connection time
+                system::time_millis_t   nLastReconnect;     // Last connection time
                 io::IInSequence        *pScript;            // Script sequence
             #ifdef WITH_UI_FEATURE
                 ui::Module             *pUI;                // Plugin UI
                 standalone::UIWrapper  *pUIWrapper;         // Plugin UI wrapper
-                ws::timestamp_t         nLastIconSync;      // Last icon synchronization time
+                system::time_millis_t   nLastIconSync;      // Last icon synchronization time
             #endif /* WITH_UI_FEATURE */
                 const lltl::darray<connection_t> *pRouting; // Routing
                 bool                    bNotify;            // Notify all ports
@@ -161,7 +162,7 @@ namespace lsp
             private:
                 void                wait_for_events(wssize_t delay);
                 status_t            init_modules();
-                status_t            sync_state(ws::timestamp_t sched, ws::timestamp_t ctime);
+                status_t            sync_state(system::time_millis_t sched, system::time_millis_t ctime);
                 void                load_configuration_file(const char *cfg_file);
 
             private:
@@ -994,7 +995,7 @@ namespace lsp
         {
             LSPString command;
             status_t res            = STATUS_OK;
-            ws::timestamp_t period  = 40; // 40 ms period (25 frames per second)
+            constexpr system::time_millis_t     period  = 40; // 40 ms period (25 frames per second)
 
             // Cleanup interrupt flag
             bInterrupt              = false;
@@ -1083,7 +1084,7 @@ namespace lsp
             fprintf(stderr, "Error loading configuration file: '%s': no accessible wrapper\n", cfg_file);
         }
 
-        status_t PluginLoop::sync_state(ws::timestamp_t sched, ws::timestamp_t ctime)
+        status_t PluginLoop::sync_state(system::time_millis_t sched, system::time_millis_t ctime)
         {
             standalone::Wrapper * const jw      = pWrapper;
         #ifdef WITH_UI_FEATURE
