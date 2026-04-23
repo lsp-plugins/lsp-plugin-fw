@@ -48,7 +48,7 @@ ROOTDIR_ALL_DEPENDENCIES   := $(ALL_DEPENDENCIES)
 EXTRA_DEPENDENCIES         := $(subtract $(MODDIR_DEPENDENCIES),$(ROOTDIR_DEPENDENCIES))
 
 # Artifact settings
-ifeq ($(CROSS_COMPILE),1)
+ifeq ($(call fcheck,crosscompile,$(BUILD_FEATURES),ON),ON)
   override HOST                    = HOST_
 else
   override HOST                    =
@@ -66,7 +66,7 @@ ALLOWED_INSTALL_FEATURES    = \
   $(call fcheck,standalone,$(BUILD_FEATURES),xdg)
 
 INTERNAL_FEATURES           =
-ifeq ($(TEST),1)
+ifeq ($(call fcheck,test,$(BUILD_FEATURES),ON),ON)
   INTERNAL_FEATURES            += test
 endif
 ENABLED_FEATURES           := $(call intersection,$(BUILD_FEATURES),$(ALLOWED_FEATURES))
@@ -81,7 +81,7 @@ INTERNAL_FEATURES          += \
 ENABLED_FEATURES_DEFS      := $(foreach feature,$(ENABLED_FEATURES),$(shell echo "$(feature)" | tr a-z A-Z))
 
 # Setup test dependencies
-ifeq ($(TEST),1)
+ifeq ($(call fcheck,test,$(BUILD_FEATURES),ON),ON)
   DEPENDENCIES_TEST      := $(sort $(MODDIR_TEST_DEPENDENCIES) $(ROOTDIR_TEST_DEPENDENCIES))
   DEPENDENCIES_TEST_UI   := $(sort $(TEST_DEPENDENCIES_UI))
 else
@@ -551,7 +551,7 @@ HOST_CXX_OBJ                = \
 HOST_MM_OBJ                = \
   $(call fcheck,vst3,$(ENABLED_FEATURES),$(HOST_MM_OBJ_WRAP_VST3))
 
-ifeq ($(TEST),1)
+ifeq ($(call fcheck,test,$(BUILD_FEATURES),ON),ON)
   CXX_SRC                    += $(CXX_SRC_TEST)
   CXX_OBJ                    += $(OBJ_TEST)
   LSP_PLUGIN_FW_OBJ          += $(LSP_PLUGIN_FW_OBJ_TEST)
@@ -983,7 +983,7 @@ HOST_ARTIFACT_BIN_LAUNCHER_OBJS      = \
   $(HOST_ARTIFACT_BIN_LAUNCHER_OBJ) \
   $(HOST_ARTIFACT_BIN_LAUNCHER_MAIN_OBJ)
 
-ifeq ($(TEST),1)
+ifeq ($(call fcheck,test,$(BUILD_FEATURES),ON),ON)
   ARTIFACT_BIN_TEST                    = $(HOST_LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-test$(EXECUTABLE_EXT)
   ARTIFACT_BIN_TEST_PATH               = $(HOST_LSP_PLUGIN_FW_BIN)
   ARTIFACT_BIN_TEST_DEPS_ALL           = $(filter-out $(ARTIFACT_ID), $(call uniq, $(DEPENDENCIES_STANDALONE) $(DEPENDENCIES_STANDALONE_UI) $(DEPENDENCIES_TEST) $(DEPENDENCIES_TEST_UI) $(PLUGIN_SHARED)))
