@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -66,21 +66,25 @@ namespace lsp
                 Module &operator = (const Module &) = delete;
                 Module &operator = (Module &&) = delete;
 
-                /** Initialize plugin module
+                /**
+                 * Initialize plugin module
                  *
+                 * Caller thread: [user]
                  * @param wrapper plugin wrapper interface
                  * @param ports list of ports supplied by plugin wrapper
                  */
                 virtual void                init(IWrapper *wrapper, IPort **ports);
 
-                /** Destroy plugin module
-                 *
+                /**
+                 * Destroy plugin module
+                 * Caller thread: [any]
                  */
                 virtual void                destroy();
 
             public:
                 /**
-                 * Get plugin's metadata
+                 * Get plugin's metadata. Realtime-safe.
+                 * Caller thread: [any]
                  * @return plugin's metadata
                  */
                 const meta::plugin_t       *metadata() const                { return pMetadata;         }
@@ -89,21 +93,30 @@ namespace lsp
                  * Get the plugin's latency. The latency can be issued by some buffers that need to gather some
                  * audio data before starting the processing. For example, look-ahead compressors, FFT processors,
                  * linear-phase filters, etc. Delays should not report the latency because they
+                 * Caller thread: [audio]
                  * @return plugin's latency in samples
                  */
                 inline size_t               latency() const                 { return nLatency;          }
+
+                /**
+                 * Set the plugin's latency
+                 * @param latency plugin;s latency
+                 * Caller thread: [audio]
+                 */
                 inline void                 set_latency(ssize_t latency)    { nLatency = latency;       }
 
                 /**
                  * Get the plugin's post-processing tail size (for example, reverb can report it's tail size.
                  * The plugin can have infinite tail, for example, when using some feed-back features
                  * (like feed-back delay).
+                 * Caller thread: [audio]
                  * @return plugin's post-processing tail size in samples, 0 if no tail, negative for infinite tail.
                  */
                 inline ssize_t              tail_size() const               { return nTailSize;         }
 
                 /**
                  * Report the plugin's post-processing tail size in samples.
+                 * Caller thread: [audio]
                  * @param tail post-processing tail size in samples, 0 if no tail, negative for infinite tail.
                  */
                 inline void                 set_tail_size(ssize_t tail)     { nTailSize = tail;         }
@@ -111,43 +124,41 @@ namespace lsp
                 /**
                  * Set the plugin's actual sample rate. The plugin is safe for allocating some data or call some
                  * blocking functions.
+                 * Caller thread: [user]
                  * @param sr sample rate.
                  */
                 void                        set_sample_rate(uint32_t sr);
 
                 /**
                  * Get current sample rate of the plugin
-                 * @deprecated use sample_rate() instead
-                 * @return current sample rate of the plugin
-                 */
-                inline uint32_t             get_sample_rate() const         { return fSampleRate;       }
-
-                /**
-                 * Get current sample rate of the plugin
-                 * @deprecated use sample_rate() instead
+                 * Caller thread: [audio]
                  * @return current sample rate of the plugin
                  */
                 inline uint32_t             sample_rate() const             { return fSampleRate;       }
 
                 /**
                  * Called when the plugin is activated by the host
+                 * Caller thread: [user]
                  */
                 void                        activate();
 
                 /**
                  * Called when the plugin is deactivated by the host
+                 * Caller thread: [user]
                  */
                 void                        deactivate();
 
                 /**
                  * Set plugin's active/inactive state
                  * @param active active state flag
+                 * Caller thread: [user]
                  */
                 void                        set_active(bool active);
 
                 /**
                  * Check current activity state of the plugin.
                  * @return true if plugin is active
+                 * Caller thread: [user]
                  */
                 inline bool                 active() const                  { return bActivated;        }
 
@@ -155,50 +166,62 @@ namespace lsp
                  * Return the pointer to the wrapper which wraps the plugin into some plugin format and
                  * provides additional functions for interaction with the host and UI.
                  * @return pointer to the plugin wraper.
+                 * Caller thread: [user]
                  */
                 inline IWrapper            *wrapper()                       { return pWrapper;          }
 
                 /**
-                 * Called when the host starts the plugin's UI
+                 * Called by the wrapper when the host starts at least one plugin's UI
+                 * Caller thread: [audio]
                  */
                 void                        activate_ui();
 
                 /**
-                 * Called when the host closes the plugin's UI
+                 * Called when the host closes all of the plugin's UIs
+                 * Caller thread: [audio]
                  */
                 void                        deactivate_ui();
 
                 /**
-                 * Check that plugin's UI is active
+                 * Check that at least one plugin's UI is active
+                 * Caller thread: [audio]
                  * @return true if plugin's UI is active
                  */
                 inline bool                 ui_active() const               { return bUIActive;         }
 
             public:
-                /** Update sample rate of data processing. The plugin is safe for allocating some data or call some
+                /**
+                 * Update sample rate of data processing. The plugin is safe for allocating some data or call some
                  * blocking functions.
+                 * Caller thread: [user]
                  *
                  * @param sr new sample rate
                  */
                 virtual void                update_sample_rate(long sr);
 
                 /**
-                 * Handle plugin activation event. Consider this method is called from realtime thread.
+                 * Handle plugin activation event. Afer activation the wrapper starts issuing process() and
+                 * update_settings() calls.
+                 * Caller thread: [user]
                  */
                 virtual void                activated();
 
                 /**
-                 * Handle plugin deactivation event. Consider this method is called from realtime thread.
+                 * Handle plugin deactivation event. Before the call the wrapper stops issuing process() and
+                 * update_settings() calls.
+                 * Caller thread: [user]
                  */
                 virtual void                deactivated();
 
                 /**
-                 * Triggered input port change, need to update configuration
+                 * Triggered change of one or more input ports, need to update plugin's setup.
+                 * Caller thread: [audio]
                  */
                 virtual void                update_settings();
 
                 /**
-                 * Report current time position for plugin
+                 * Report current time position for the plugin.
+                 * Caller thread: [audio]
                  *
                  * @param pos current time position
                  * @return true if need to call for plugin setting update
@@ -209,6 +232,7 @@ namespace lsp
                  * Process data. Called from realtime thread and can not issue any locks nor
                  * memory allocations nor system library calls except the calls that guarantee to
                  * be lock-free and of limited estimated execution time.
+                 * Caller thread: [audio]
                  *
                  * @param samples number of samples to process
                  */
@@ -219,6 +243,7 @@ namespace lsp
                  * and can issue synchronization locks and memory allocations.
                  * This feature will not work unless E_INLINE_DISPLAY extension is
                  * specified in plugin's metadata.
+                 * Caller thread: [user]
                  *
                  * @param cv canvas for drawing plugin's inline display data
                  * @param width maximum canvas width
@@ -228,55 +253,65 @@ namespace lsp
                 virtual bool                inline_display(ICanvas *cv, size_t width, size_t height);
 
                 /**
-                 * Handle UI activation event. Consider this method is called from realtime thread.
+                 * Handle UI activation event. Issued when the wrapper detects at least one plugin's UI opened.
+                 * Caller thread: [audio]
                  */
                 virtual void                ui_activated();
 
                 /**
-                 * Handle UI deactivation event. Consider this method is called from realtime thread.
+                 * Handle UI deactivation event. Issued when the wrapper detects all of the plugin's UI closed.
+                 * Caller thread: [audio]
                  */
                 virtual void                ui_deactivated();
 
                 /**
-                 * Lock the KVT storage. Do not use this method in realtime thread. Use kvt_try_lock instead.
+                 * Lock the KVT storage. Thread safe. Do not use this method in realtime thread. Use kvt_try_lock instead.
+                 * Caller thread: [user]
                  * @return pointer to KVT storage or NULL
                  */
                 virtual core::KVTStorage   *kvt_lock();
 
                 /**
-                 * Try to lock the KVT storage
+                 * Try to lock the KVT storage, thread safe
+                 * Caller thread: [any]
                  * @return pointer to KVT storage or NULL if not locked/not supported
                  */
                 virtual core::KVTStorage   *kvt_trylock();
 
                 /**
                  * Release the KVT storage
+                 * Caller thread: [any]
                  */
                 virtual void                kvt_release();
 
                 /**
                  * Callback before the state of the plugin becomes saved.
+                 * Caller thread: [user]
                  */
                 virtual void                before_state_save();
 
                 /**
                  * Callback for case when plugin's state has been just saved
+                 * Caller thread: [user]
                  */
                 virtual void                state_saved();
 
                 /**
                  * Callback before the state of the plugin becomes saved. The plugin can store to
                  * KVT some internal state that can be used after state has been loaded.
+                 * Caller thread: [user]
                  */
                 virtual void                before_state_load();
 
                 /**
                  * Callback for case when plugin's state has been just loaded
+                 * Caller thread: [user]
                  */
                 virtual void                state_loaded();
 
                 /**
-                 * Dump plugin state
+                 * Dump plugin state. This is a debug call which breaks RT safety.
+                 * Caller thread: [audio]
                  * @param v state dumper
                  */
                 virtual void                dump(dspu::IStateDumper *v) const;
