@@ -95,7 +95,6 @@ namespace lsp
 
                 AUDIO_DUMMY_BACKEND_EXP(register_port);
                 AUDIO_DUMMY_BACKEND_EXP(unregister_port);
-                AUDIO_DUMMY_BACKEND_EXP(set_port_latency);
                 AUDIO_DUMMY_BACKEND_EXP(port_system_name);
 
                 AUDIO_DUMMY_BACKEND_EXP(connect_ports);
@@ -415,19 +414,6 @@ namespace lsp
                     return NULL;
 
                 return port->sID;
-            }
-
-            status_t backend_t::set_port_latency(audio::backend_t *self, port_id_t port_id, uint32_t latency)
-            {
-                backend_t * const back  = cast(self);
-                if ((port_id < 0) || (port_id >= back->nCapacity))
-                    return STATUS_INVALID_VALUE;
-
-                port_t * const port = &back->vPorts[port_id];
-                if (port->nType == PORT_TYPE_FREE)
-                    return STATUS_INVALID_VALUE;
-
-                return STATUS_OK;
             }
 
             status_t backend_t::connect_ports(audio::backend_t *self, const char *source, const char *destination)

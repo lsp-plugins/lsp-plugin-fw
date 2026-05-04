@@ -88,7 +88,6 @@ namespace lsp
                     static port_id_t    register_port(audio::backend_t *self, const char *id, uint32_t flags);
                     static status_t     unregister_port(audio::backend_t *self, port_id_t port_id);
                     static const char  *port_system_name(audio::backend_t *self, port_id_t port_id);
-                    static status_t     set_port_latency(audio::backend_t *self, port_id_t port_id, uint32_t latency);
 
                     static status_t     connect_ports(audio::backend_t *self, const char *source, const char *destination);
                     static status_t     disconnect_ports(audio::backend_t *self, const char *source, const char *destination);
