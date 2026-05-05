@@ -754,7 +754,7 @@ HOST_OBJ_PLUG                       = $(HOST_OBJ_PLUG_META) $(HOST_OBJ_PLUG_DSP)
 
 #------------------------------------------------------------------------------
 # Binaries
-ARTIFACT_BIN_CLAP                   = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME).clap
+ARTIFACT_BIN_CLAP                   = $(PLUGIN_SHARED_NAME).clap
 ARTIFACT_LIB_CLAP                   = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-clap$(LIBRARY_EXT)
 ARTIFACT_LIB_CLAP_DEPS_FULL         = \
   $(DEPENDENCIES_CLAP) \
@@ -906,7 +906,8 @@ ARTIFACT_LIB_VST2_OBJS              = \
   $(call fcheck,ui,$(ENABLED_FEATURES),$(OBJ_PLUG_UI)) \
   $(OBJ_WRAP_VST2)
 
-ARTIFACT_LIB_VST3                   = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)$(VST3_EXT)
+ARTIFACT_BIN_VST3                   = $(PLUGIN_SHARED_NAME)$(VST3_EXT)
+ARTIFACT_LIB_VST3                   = $(LSP_PLUGIN_FW_BIN)/$(PLUGIN_SHARED_NAME)-vst3$(LIBRARY_EXT)
 ARTIFACT_LIB_VST3_DEPS_FULL         = \
   $(DEPENDENCIES_VST3) \
   $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_VST3_UI)) \
@@ -1423,7 +1424,6 @@ $($(HOST)UTL_PLUGLIST_GEN): $($(HOST)UTL_PLUGLIST_GEN_DEPS) $($(HOST)UTL_PLUGLIS
 $(ARTIFACT_LIB_CLAP): $(ARTIFACT_LIB_CLAP_DEPS) $(ARTIFACT_LIB_CLAP_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_CLAP))"
 	$(CXX) -o $(ARTIFACT_LIB_CLAP) $(ARTIFACT_LIB_CLAP_LIBS) $(ARTIFACT_LIB_CLAP_OBJS) $(SO_FLAGS) $(ARTIFACT_LIB_CLAP_LDFLAGS)
-	cp -f $(ARTIFACT_LIB_CLAP) $(ARTIFACT_BIN_CLAP)
 
 $(ARTIFACT_LIB_GST): $(ARTIFACT_LIB_GST_DEPS) $(ARTIFACT_LIB_GST_OBJS) $(PLUG_DEPS)
 	echo "  $(CXX)  [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_LIB_GST))"
@@ -1575,7 +1575,7 @@ install: validate $(BIN_INSTALL) $(INSTALL_TARGETS)
 install_clap: clap
 	echo "Install clap"
 	mkdir -p "$(DESTDIR)$(CLAP_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_BIN_CLAP) "$(DESTDIR)$(CLAP_LIBDIR)/"
+	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(DESTDIR)$(CLAP_LIBDIR)/$(ARTIFACT_BIN_CLAP)"
 
 install_doc: doc
 	echo "Install doc"
@@ -1626,7 +1626,7 @@ install_vst3: vst3
 	$(if $(findstring MacOS, $(PLATFORM)), \
 	  $($(HOST)UTL_VST3_MODINFO) -i "$(DESTDIR)$(VST3_LIBDIR)/Contents/Info.plist" -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/PkgInfo" \
     )
-	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
+	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}/$(ARTIFACT_BIN_VST3)"
 
 install_launcher: launcher
 	echo "Install launcher"
@@ -1649,7 +1649,7 @@ package_clap: clap $(BIN_PACKAGE)
 	echo "Package clap"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_BIN_CLAP) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)/"
+	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)/$(ARTIFACT_BIN_CLAP)"
 	$(foreach target,$(BIN_PACKAGE_CLAP), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
@@ -1776,7 +1776,7 @@ package_vst3: vst3 $(BIN_PACKAGE)
 	$(if $(findstring MacOS, $(PLATFORM)), \
 	  $($(HOST)UTL_VST3_MODINFO) -i "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Info.plist" -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/PkgInfo" \
     )
-	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/"
+	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/$(ARTIFACT_BIN_VST3)"
 	$(foreach target,$(BIN_PACKAGE_VST3), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
@@ -1803,7 +1803,7 @@ uninstall: $(BIN_UNINSTALL) $(UNINSTALL_TARGETS)
 
 uninstall_clap:
 	echo "Uninstall clap"
-	-rm -f "$(DESTDIR)$(CLAP_LIBDIR)/$(notdir $(ARTIFACT_BIN_CLAP))"
+	-rm -f "$(DESTDIR)$(CLAP_LIBDIR)/$(ARTIFACT_BIN_CLAP)"
 	
 uninstall_doc:
 	echo "Uninstall doc"
