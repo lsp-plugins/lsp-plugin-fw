@@ -222,7 +222,7 @@ namespace lsp
         {
             LSP_STATUS_ASSERT(os->write_ascii("\t<key>"));
             LSP_STATUS_ASSERT(os->write_ascii(key));
-            LSP_STATUS_ASSERT(os->writeln_ascii("<key>"));
+            LSP_STATUS_ASSERT(os->writeln_ascii("</key>"));
             return STATUS_OK;
         };
 
@@ -252,6 +252,7 @@ namespace lsp
             LSP_STATUS_ASSERT(os.writeln_ascii("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"));
             LSP_STATUS_ASSERT(os.writeln_ascii("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">"));
             LSP_STATUS_ASSERT(os.writeln_ascii("<plist version=\"1.0\">"));
+            LSP_STATUS_ASSERT(os.writeln_ascii("<dict>"));
             {
                 // Generate version string
                 LSPString version;
@@ -293,6 +294,7 @@ namespace lsp
                 LSP_STATUS_ASSERT(write_key(&os, "NSHumanReadableCopyright"));
                 LSP_STATUS_ASSERT(write_escaped_string(&os, manifest->copyright));
             }
+            LSP_STATUS_ASSERT(os.writeln_ascii("</dict>"));
             LSP_STATUS_ASSERT(os.writeln_ascii("</plist>"));
 
             return STATUS_OK;
@@ -402,5 +404,4 @@ namespace lsp
         }
     } /* namespace vst3_modinfo */
 } /* namespace lsp */
-
 
