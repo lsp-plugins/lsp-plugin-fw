@@ -346,6 +346,12 @@ namespace lsp
 
         bool CLAP_ABI ui_get_size(const clap_plugin_t *plugin, uint32_t *width, uint32_t *height)
         {
+            if ((width == NULL) || (height == NULL))
+            {
+                lsp_trace("plugin = %p, width=%p, height=%p -> false", plugin, width, height);
+                return false;
+            }
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             UIWrapper *uw = w->ui_wrapper();
             const bool result = (uw != NULL) ? uw->get_size(width, height) : false;
@@ -353,7 +359,7 @@ namespace lsp
             {
                 lsp_trace("plugin = %p, width=%p, height=%p, UIWrapper=%p -> width=%d, height=%d",
                     plugin, width, height, uw, int(*width), int(*height));
-                return false;
+                return true;
             }
 
             lsp_trace("plugin = %p, width=%p, height=%p, UIWrapper=%p -> false", plugin, width, height, uw);
@@ -787,4 +793,3 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-
