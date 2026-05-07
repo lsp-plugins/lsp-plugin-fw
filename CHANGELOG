@@ -4,6 +4,8 @@
 
 === 1.0.37 ===
 * Updated makefiles to not to clash with launcher tool on MacOS.
+* Some fixes arount CLAP plugin format for better support of MacOS (contributed
+  by Benjamin Zeiss @ GitHub).
 * Fixed metadata generation of VST3 binaries for MacOS (contributed by bzeiss @ GitHub).
 * Added caller thread description for each plugin's method.
 * Updated build system: ASAN, CROSS_COMPILE, DEBUG, DEVEL, PROFILE, STRICT,
