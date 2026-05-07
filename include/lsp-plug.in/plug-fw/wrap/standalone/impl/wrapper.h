@@ -637,10 +637,11 @@ namespace lsp
             ssize_t latency = pPlugin->latency();
             if (latency != nLatency)
             {
-                lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
-
-                nLatency = latency;
-                pBackend->set_latency(pBackend, nLatency);
+                if (pBackend->set_latency(pBackend, nLatency) == STATUS_OK)
+                {
+                    lsp_trace("Plugin latency changed from %d to %d", int(nLatency), int(latency));
+                    nLatency = latency;
+                }
             }
 
             // Post-process data ports
