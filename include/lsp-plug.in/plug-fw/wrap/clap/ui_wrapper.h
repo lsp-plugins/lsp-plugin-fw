@@ -37,9 +37,9 @@
 #include <lsp-plug.in/plug-fw/wrap/clap/wrapper.h>
 #include <lsp-plug.in/plug-fw/plug.h>
 
-#ifndef PLATFORM_WINDOWS
+#if (!defined(PLATFORM_WINDOWS)) && (!defined(PLATFORM_MACOSX))
     #define LSP_CLAP_OWN_EVENT_LOOP
-#endif /* PLATFORM_WINDOWS */
+#endif /* !PLATFORM_WINDOWS && !PLATFORM_MACOSX */
 
 namespace lsp
 {
@@ -60,6 +60,7 @@ namespace lsp
                 bool                            bRequestProcess;// Request the process() call flag
                 bool                            bUIActive;      // UI is active flag
                 bool                            bRealizeActive; // Realize is active
+                bool                            bDestroying;    // Destroy is active
 
             #ifdef LSP_CLAP_OWN_EVENT_LOOP
                 ipc::Thread                    *pUIThread;      // Thread that performs the UI event loop
