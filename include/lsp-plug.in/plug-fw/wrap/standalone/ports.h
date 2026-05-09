@@ -320,7 +320,7 @@ namespace lsp
 
                                 // Check that src was not mixed with none of the buffers
                                 if (src != NULL)
-                                    dsp::sanitize1(pSanitized, src, samples);
+                                    dsp::sanitize1(pSanitized, samples);
 
                                 bZero           = false;    // Reset cleanup flag
                             }
@@ -451,11 +451,14 @@ namespace lsp
                     audio::midi_event_t midi_event;
                     midi::event_t       ev;
 
-                    const size_t event_count = backend->midi_events_count(backend, nPortID);
-                    for (size_t i=0; i<event_count; ++i)
+                    uint32_t index      = 0;
+                    for (size_t i=0; ; ++i)
                     {
                         // Read MIDI event
-                        if ((res = backend->read_midi_event(backend, nPortID, &midi_event, i)) != STATUS_OK)
+                        res = backend->read_midi_event(backend, nPortID, &midi_event, &index);
+                        if (res == STATUS_NO_DATA)
+                            break;
+                        else if (res != STATUS_OK)
                         {
                             lsp_warn("Could not fetch MIDI event #%d from MIDI port", int(i));
                             continue;
@@ -474,7 +477,8 @@ namespace lsp
                             lsp_warn("Could not append MIDI event #%d at timestamp %d due to buffer overflow", int(i), int(midi_event.timestamp));
                     }
 
-                    // All MIDI events ARE ordered chronologically, we do not need to perform sort
+                    // There is no guarantee that all MIDI events ordered chronologically, need to perform sort
+                    pMidi->sort();
                 }
 
                 virtual void after_process(size_t samples) override
