@@ -418,7 +418,8 @@ namespace lsp
             }
 
             nState = S_CONNECTED;
-            return STATUS_OK;        }
+            return STATUS_OK;
+        }
 
         status_t Wrapper::on_connected(void *user_data, const audio::io_parameters_t *params)
         {
