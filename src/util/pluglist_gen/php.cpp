@@ -55,7 +55,6 @@ namespace lsp
                         ch = 't';
                         break;
 
-                    case '\'':
                     case '\"':
                     case '$':
                     case '\\':
