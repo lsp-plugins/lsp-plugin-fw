@@ -100,6 +100,7 @@ namespace lsp
                 char                           *sClientName;        // Standalone client name
                 state_t                         nState;             // Connection state to Audio server
                 bool                            bUpdateSettings;    // Plugin settings are required to be updated
+                bool                            bRoutingOnce;       // Apply routing only once
                 ssize_t                         nLatency;           // The actual latency of device
                 ipc::IExecutor                 *pExecutor;          // Off-line task executor
                 core::KVTStorage                sKVT;               // Key-value tree
@@ -118,6 +119,8 @@ namespace lsp
                 core::ShmClient                *pShmClient;         // Shared memory client
 
                 core::AudioBackendInfoList                  vAudioBackends;     // All available audio backends
+                lltl::darray<connection_t>                  sRouting;           // Routing information
+
                 lltl::parray<standalone::Port>              vAllPorts;          // All ports
                 lltl::parray<standalone::Port>              vParams;            // All input parameters
                 lltl::parray<standalone::MeterPort>         vMeters;            // Meters
@@ -138,6 +141,7 @@ namespace lsp
                 void            register_data_ports();
                 void            unregister_data_ports();
                 void            destroy_audio_backend();
+                void            apply_routing();
 
                 const core::AudioBackendInfo *find_backend(const LSPString *id);
                 const core::AudioBackendInfo *select_default_backend();
@@ -200,7 +204,7 @@ namespace lsp
                 inline core::SamplePlayer          *sample_player();
 
                 status_t                            connect();
-                void                                set_routing(const lltl::darray<connection_t> *routing);
+                status_t                            set_routing(const lltl::darray<connection_t> *routing, bool once);
                 status_t                            disconnect();
                 status_t                            select_backend(const char *id);
                 status_t                            select_backend(const LSPString * id);

@@ -137,6 +137,7 @@ namespace lsp
             bool            version;
             bool            minimized;
             bool            list_backends;
+            bool            routing_once;
             lltl::darray<connection_t> routing;
         } cmdline_t;
 
@@ -155,7 +156,6 @@ namespace lsp
                 standalone::UIWrapper  *pUIWrapper;         // Plugin UI wrapper
                 system::time_millis_t   nLastIconSync;      // Last icon synchronization time
             #endif /* WITH_UI_FEATURE */
-                const lltl::darray<connection_t> *pRouting; // Routing
                 bool                    bNotify;            // Notify all ports
                 volatile bool           bInterrupt;         // Interrupt signal received
 
@@ -314,6 +314,7 @@ namespace lsp
             cfg->version        = false;
             cfg->minimized      = false;
             cfg->list_backends  = false;
+            cfg->routing_once   = false;
 
             // Parse arguments
             int i = 1;
@@ -350,6 +351,7 @@ namespace lsp
                     printf("                            is estimated. Multiple options are allowed,\n");
                     printf("                            the connection <src>=<dst> pairs can be separated\n");
                     printf("                            by comma. Use backslash for escaping characters\n");
+                    printf("  -xo, --connect-once       Connect audio ports only once, on start (off by default)\n");
                     printf("\n");
 
                     return STATUS_CANCELLED;
@@ -430,6 +432,8 @@ namespace lsp
                     cfg->minimized      = true;
                 else if ((!::strcmp(arg, "--version")) || (!::strcmp(arg, "-v")))
                     cfg->version        = true;
+                else if ((!::strcmp(arg, "--connect-once")) || (!::strcmp(arg, "-xo")))
+                    cfg->routing_once   = true;
                 else if ((plugin_id == NULL) && ((!::strcmp(arg, "--list")) || (!::strcmp(arg, "-l"))))
                     cfg->list           = true;
                 else if ((plugin_id == NULL) && (cfg->plugin_id == NULL))
@@ -699,7 +703,6 @@ namespace lsp
             pUIWrapper              = NULL;
             nLastIconSync           = 0;
         #endif /* WITH_UI_FEATURE */
-            pRouting                = NULL;
             bNotify                 = true;
             bInterrupt              = false;
         }
@@ -893,12 +896,14 @@ namespace lsp
             info.client_name    = sCmdLine.client_name;
 
             // Initialize plugin wrapper
-            pRouting            = &sCmdLine.routing;
             pWrapper            = new standalone::Wrapper(pFactory, pPlugin, pLoader, &info, &audio_backends);
             if (pWrapper == NULL)
                 return STATUS_NO_MEM;
 
             if ((res = pWrapper->init()) != STATUS_OK)
+                return res;
+
+            if ((res = pWrapper->set_routing(&sCmdLine.routing, sCmdLine.routing_once)) != STATUS_OK)
                 return res;
 
         #ifdef WITH_UI_FEATURE
@@ -1118,12 +1123,6 @@ namespace lsp
                     printf("Trying to connect to the audio backend\n");
                     if (jw->connect() == STATUS_OK)
                     {
-                        if (!pRouting->is_empty())
-                        {
-                            printf("Connecting ports...");
-                            jw->set_routing(pRouting);
-                        }
-
                         printf("Successfully connected to the audio backend\n");
                         bNotify             = true;
                     }

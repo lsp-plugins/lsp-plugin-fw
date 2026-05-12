@@ -210,7 +210,7 @@ namespace lsp
                 {
                     if (nPortID < 0)
                         return NULL;
-                    return (pSanitized != NULL) ? pSanitized : pBuffer;
+                    return (pBuffer != NULL) ? pBuffer : pSanitized;
                 };
 
             public:
@@ -230,14 +230,11 @@ namespace lsp
 
                 virtual void set_buffer_size(size_t size) override
                 {
-                    // set_buffer_size should affect only input audio ports at this moment
-                    if (!meta::is_in_port(pMetadata))
-                        return;
-
                     // Buffer size has changed?
                     if ((pSanitized != NULL) && (nBufSize == size))
                         return;
 
+                    // Re-allocate buffer
                     float * const buf  = reinterpret_cast<float *>(::realloc(pSanitized, sizeof(float) * size));
                     if (buf == NULL)
                     {
@@ -260,47 +257,92 @@ namespace lsp
 
                     audio::backend_t * const backend = pWrapper->backend();
 
-                    // Need to sanitize?
-                    pBuffer         = backend->get_audio_buffer(backend, nPortID, 0);
-                    if (pSanitized == NULL)
+                    if (meta::is_audio_out_port(pMetadata))
                     {
-                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pBuffer), samples) ); // Trace input data
-                        return;
-                    }
+                        // For output buffers, we should have only one output buffer
+                        pBuffer         = backend->get_audio_buffer(backend, nPortID, 0);
 
-                    // Need to mix multiple buffers?
-                    const size_t buf_count = backend->audio_buffers_count(backend, nPortID);
-                    if ((buf_count == 0) || (pBuffer == NULL))
-                    {
-                        // Ensure that pSanitized now contains zeros
-                        if (!bZero)
-                        {
-                            dsp::fill_zero(pSanitized, nBufSize);
-                            bZero           = true;
-                        }
-                    }
-                    else if (buf_count > 1)
-                    {
-                        // Need to mix buffers together
-                        float * buf         = backend->get_audio_buffer(backend, nPortID, 1);
-                        dsp::add3(pSanitized, pBuffer, buf, samples);
-
-                        for (size_t index = 2; index < buf_count; ++index)
-                        {
-                            float * buf         = backend->get_audio_buffer(backend, nPortID, 1);
-                            dsp::add2(pSanitized, buf, samples);
-                        }
-
-                        // Reset cleanup flag
-                        bZero           = false;
+                        // For audio buffers, we always need to provide non-null input
+                        if (pBuffer == NULL)
+                            pBuffer     = pSanitized;
                     }
                     else
                     {
-                        dsp::sanitize2(pSanitized, pBuffer, samples);
-                        bZero           = false;    // Reset cleanup flag
-                    }
+                        // Do we have sanitized buffer?
+                        float *src      = backend->get_audio_buffer(backend, nPortID, 0);
+                        if (pSanitized == NULL)
+                        {
+                            pBuffer         = src;
+                            IF_DEBUG( sTracer.submit(pBuffer, samples) ); // Trace input data
+                            return;
+                        }
 
-                    IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pSanitized), samples) ); // Trace input data
+                        // Need to mix multiple buffers?
+                        const size_t buf_count = backend->audio_buffers_count(backend, nPortID);
+                        if (buf_count == 1)
+                        {
+                            // Fill sanitized buffer with single item
+                            if (src != NULL)
+                            {
+                                dsp::sanitize2(pSanitized, src, samples);
+                                bZero           = false;    // Reset cleanup flag
+                            }
+                            else if (!bZero)
+                            {
+                                dsp::fill_zero(pSanitized, nBufSize);
+                                bZero           = true;     // Set cleanup flag
+                            }
+                        }
+                        else if (buf_count > 1)
+                        {
+                            // Find first non-null buffer
+                            size_t index        = 1;
+                            for (; (src == NULL) && (index < buf_count); ++index)
+                                src                 = backend->get_audio_buffer(backend, nPortID, index);
+
+                            if (src != NULL)
+                            {
+                                // Find second buffer to mix with
+                                for (; index < buf_count; ++index)
+                                {
+                                    float * buf     = backend->get_audio_buffer(backend, nPortID, index);
+                                    if (buf == NULL)
+                                        continue;
+
+                                    if (src != NULL)
+                                    {
+                                        dsp::add3(pSanitized, src, buf, samples);
+                                        src         = NULL;
+                                    }
+                                    else
+                                        dsp::add2(pSanitized, buf, samples);
+                                }
+
+                                // Check that src was not mixed with none of the buffers
+                                if (src != NULL)
+                                    dsp::sanitize1(pSanitized, samples);
+
+                                bZero           = false;    // Reset cleanup flag
+                            }
+                            else if (!bZero)
+                            {
+                                dsp::fill_zero(pSanitized, nBufSize);
+                                bZero           = true;     // Set cleanup flag
+                            }
+                        }
+                        else
+                        {
+                            // Ensure that pSanitized now contains zeros
+                            if (!bZero)
+                            {
+                                dsp::fill_zero(pSanitized, nBufSize);
+                                bZero           = true;
+                            }
+                        }
+
+                        // Trace input data
+                        IF_DEBUG( sTracer.submit(pSanitized, samples) );
+                    }
 
                     return;
                 }
@@ -308,10 +350,10 @@ namespace lsp
                 virtual void after_process(size_t samples) override
                 {
                     // Need to sanitize output data?
-                    if (pSanitized == NULL)
+                    if (meta::is_audio_out_port(pMetadata))
                     {
-                        dsp::sanitize1(reinterpret_cast<float *>(pBuffer), samples);
-                        IF_DEBUG( sTracer.submit(reinterpret_cast<float *>(pBuffer), samples) ); // Trace output data
+                        dsp::sanitize1(pBuffer, samples);
+                        IF_DEBUG( sTracer.submit(pBuffer, samples) ); // Trace output data
                     }
                     pBuffer     = NULL;
                 }
@@ -409,11 +451,14 @@ namespace lsp
                     audio::midi_event_t midi_event;
                     midi::event_t       ev;
 
-                    const size_t event_count = backend->midi_events_count(backend, nPortID);
-                    for (size_t i=0; i<event_count; ++i)
+                    uint32_t index      = 0;
+                    for (size_t i=0; ; ++i)
                     {
                         // Read MIDI event
-                        if ((res = backend->read_midi_event(backend, nPortID, &midi_event, i)) != STATUS_OK)
+                        res = backend->read_midi_event(backend, nPortID, &midi_event, &index);
+                        if (res == STATUS_NO_DATA)
+                            break;
+                        else if (res != STATUS_OK)
                         {
                             lsp_warn("Could not fetch MIDI event #%d from MIDI port", int(i));
                             continue;
@@ -432,7 +477,8 @@ namespace lsp
                             lsp_warn("Could not append MIDI event #%d at timestamp %d due to buffer overflow", int(i), int(midi_event.timestamp));
                     }
 
-                    // All MIDI events ARE ordered chronologically, we do not need to perform sort
+                    // There is no guarantee that all MIDI events ordered chronologically, need to perform sort
+                    pMidi->sort();
                 }
 
                 virtual void after_process(size_t samples) override

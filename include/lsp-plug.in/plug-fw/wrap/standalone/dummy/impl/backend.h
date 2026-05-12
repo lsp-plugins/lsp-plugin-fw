@@ -103,7 +103,6 @@ namespace lsp
                 AUDIO_DUMMY_BACKEND_EXP(audio_buffers_count);
                 AUDIO_DUMMY_BACKEND_EXP(get_audio_buffer);
 
-                AUDIO_DUMMY_BACKEND_EXP(midi_events_count);
                 AUDIO_DUMMY_BACKEND_EXP(read_midi_event);
                 AUDIO_DUMMY_BACKEND_EXP(write_midi_event);
 
@@ -456,14 +455,9 @@ namespace lsp
                 return NULL;
             }
 
-            size_t backend_t::midi_events_count(audio::backend_t *self, port_id_t port_id)
+            status_t backend_t::read_midi_event(audio::backend_t *self, port_id_t port_id, midi_event_t *event, uint32_t *index)
             {
-                return 0;
-            }
-
-            status_t backend_t::read_midi_event(audio::backend_t *self, port_id_t port_id, midi_event_t *event, uint32_t index)
-            {
-                if (event == NULL)
+                if ((event == NULL) || (index == NULL))
                     return STATUS_BAD_ARGUMENTS;
 
                 backend_t * const back  = cast(self);
@@ -476,7 +470,7 @@ namespace lsp
                 if (port->nType != PORT_MIDI_IN)
                     return STATUS_BAD_FORMAT;
 
-                return STATUS_NO_DATA;
+                return (*index == 0) ? STATUS_NO_DATA : STATUS_OVERFLOW;
             }
 
             uint8_t *backend_t::write_midi_event(audio::backend_t *self, port_id_t port_id, uint32_t timestamp, uint32_t size)

@@ -56,6 +56,7 @@ namespace lsp
             sClientName     = (info->client_name != NULL) ? strdup(info->client_name) : NULL;
             nState          = S_CREATED;
             bUpdateSettings = true;
+            bRoutingOnce    = false;
             nLatency        = 0;
             pExecutor       = NULL;
 
@@ -244,76 +245,27 @@ namespace lsp
             return res;
         }
 
-        void Wrapper::set_routing(const lltl::darray<connection_t> *routing)
+        status_t Wrapper::set_routing(const lltl::darray<connection_t> *routing, bool once)
         {
-            if (pBackend == NULL)
-                return;
+            lltl::darray<connection_t> xrouting;
+            lsp_finally { xrouting.flush(); };
 
-            if (routing->size() <= 0)
-                return;
-
-            for (size_t i=0, n=routing->size(); i<n; ++i)
+            // Copy routing data
+            if ((routing != NULL) && (routing->size() > 0))
             {
-                const connection_t *conn = routing->uget(i);
-                if (conn == NULL)
-                    continue;
+                if (!xrouting.reserve(routing->size()))
+                    return STATUS_NO_MEM;
+                connection_t * items = xrouting.add_n(routing->size());
+                if (items == NULL)
+                    return STATUS_NO_MEM;
 
-                size_t self_ports = 0;
-                const char *src = conn->src;
-                const char *dst = conn->dst;
-
-                // Check the source port
-                if (strchr(src, ':') == NULL)
-                {
-                    ++self_ports;
-                    standalone::Port *p         = port_by_id(src);
-                    const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
-                    if ((meta == NULL) || !(meta::is_audio_out_port(meta) || meta::is_midi_out_port(meta)))
-                    {
-                        fprintf(stderr, "  %s -> %s: invalid port '%s', should be AUDIO OUT or MIDI OUT\n", src, dst, src);
-                        continue;
-                    }
-                    standalone::DataPort *dp    = static_cast<standalone::DataPort *>(p);
-                    src     = dp->system_name();
-                }
-
-                // Check the destination port
-                if (strchr(dst, ':') == NULL)
-                {
-                    ++self_ports;
-                    standalone::Port *p         = port_by_id(dst);
-                    const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
-                    if ((meta == NULL) || !(meta::is_audio_in_port(meta) || meta::is_midi_in_port(meta)))
-                    {
-                        fprintf(stderr, "  %s -> %s: invalid port '%s', should be AUDIO IN or MIDI IN\n", src, dst, dst);
-                        continue;
-                    }
-                    standalone::DataPort *dp    = static_cast<standalone::DataPort *>(p);
-                    dst     = dp->system_name();
-                }
-
-                // At least one self port should be defined
-                if (self_ports <= 0)
-                {
-                    fprintf(stderr, "  %s -> %s: at least one port should belong to the plugin\n", src, dst);
-                    continue;
-                }
-
-                // Perform the connection
-                status_t res = pBackend->connect_ports(pBackend, src, dst);
-                switch (res)
-                {
-                    case STATUS_OK:
-                        fprintf(stderr, "  %s -> %s: OK\n", src, dst);
-                        break;
-                    case STATUS_ALREADY_BOUND:
-                        fprintf(stderr, "  %s -> %s: connection already has been estimated\n", src, dst);
-                        break;
-                    default:
-                        fprintf(stderr, "  %s -> %s: error, code=%d\n", src, dst, int(res));
-                        break;
-                }
+                for (lltl::iterator<const connection_t> it=routing->values(); it; ++it, ++items)
+                    *items = *(it.get());
             }
+
+            xrouting.swap(sRouting);
+            bRoutingOnce = once;
+            return STATUS_OK;
         }
 
         void Wrapper::register_data_ports()
@@ -417,8 +369,87 @@ namespace lsp
                 return res;
             }
 
+            // Apply routing
+            apply_routing();
+
             nState = S_CONNECTED;
-            return STATUS_OK;        }
+
+            return STATUS_OK;
+        }
+
+        void Wrapper::apply_routing()
+        {
+            if (sRouting.size() <= 0)
+                return;
+
+            // Apply routing
+            for (lltl::iterator<connection_t> it=sRouting.values(); it; ++it)
+            {
+                const connection_t *conn = it.get();
+                if (conn == NULL)
+                    continue;
+
+                size_t self_ports = 0;
+                const char *src = conn->src;
+                const char *dst = conn->dst;
+
+                // Check the source port
+                if (strchr(src, ':') == NULL)
+                {
+                    ++self_ports;
+                    standalone::Port *p         = port_by_id(src);
+                    const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
+                    if ((meta == NULL) || !(meta::is_audio_out_port(meta) || meta::is_midi_out_port(meta)))
+                    {
+                        fprintf(stderr, "  %s -> %s: invalid port '%s', should be AUDIO OUT or MIDI OUT\n", src, dst, src);
+                        continue;
+                    }
+                    standalone::DataPort *dp    = static_cast<standalone::DataPort *>(p);
+                    src     = dp->system_name();
+                }
+
+                // Check the destination port
+                if (strchr(dst, ':') == NULL)
+                {
+                    ++self_ports;
+                    standalone::Port *p         = port_by_id(dst);
+                    const meta::port_t *meta = (p != NULL) ? p->metadata() : NULL;
+                    if ((meta == NULL) || !(meta::is_audio_in_port(meta) || meta::is_midi_in_port(meta)))
+                    {
+                        fprintf(stderr, "  %s -> %s: invalid port '%s', should be AUDIO IN or MIDI IN\n", src, dst, dst);
+                        continue;
+                    }
+                    standalone::DataPort *dp    = static_cast<standalone::DataPort *>(p);
+                    dst     = dp->system_name();
+                }
+
+                // At least one self port should be defined
+                if (self_ports <= 0)
+                {
+                    fprintf(stderr, "  %s -> %s: at least one port should belong to the plugin\n", src, dst);
+                    continue;
+                }
+
+                // Perform the connection
+                status_t res = pBackend->connect_ports(pBackend, src, dst);
+                switch (res)
+                {
+                    case STATUS_OK:
+                        fprintf(stderr, "  %s -> %s: OK\n", src, dst);
+                        break;
+                    case STATUS_ALREADY_BOUND:
+                        fprintf(stderr, "  %s -> %s: connection already has been estimated\n", src, dst);
+                        break;
+                    default:
+                        fprintf(stderr, "  %s -> %s: error, code=%d\n", src, dst, int(res));
+                        break;
+                }
+            }
+
+            // Cleanup routing if apply only once
+            if (bRoutingOnce)
+                sRouting.flush();
+        }
 
         status_t Wrapper::on_connected(void *user_data, const audio::io_parameters_t *params)
         {
@@ -457,7 +488,7 @@ namespace lsp
         {
             standalone::Wrapper * const self    = static_cast<standalone::Wrapper *>(user_data);
 
-            // Now we ready for processing
+            // Now we are ready for processing
             if (self->pPlugin != NULL)
                 self->pPlugin->activate();
 
@@ -744,14 +775,17 @@ namespace lsp
             if (info == pBackendInfo)
                 return STATUS_OK;
 
+            const bool need_connect = (pBackend != NULL);
+
             // We need to disconnect and destroy previously used backend
-            destroy_audio_backend();
+            if (need_connect)
+                destroy_audio_backend();
 
             // Change current backend descriptor to new one
             pBackendInfo     = info;
 
             // Make a new connection
-            return connect();
+            return (need_connect) ? connect() : STATUS_OK;
         }
 
         void Wrapper::destroy()
