@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 5 мар. 2023 г.
@@ -26,7 +26,7 @@ namespace lsp
 {
     namespace ui
     {
-        ProxyPort::ProxyPort(): ui::IPort(&sMetadata)
+        ProxyPort::ProxyPort(): ui::IPort(NULL)
         {
             pPort               = NULL;
             sID                 = NULL;
@@ -42,6 +42,8 @@ namespace lsp
             sMetadata.step      = 0;
             sMetadata.items     = NULL;
             sMetadata.members   = NULL;
+
+            pMetadata           = &sMetadata;
         }
 
         ProxyPort::~ProxyPort()
