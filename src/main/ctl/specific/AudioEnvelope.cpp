@@ -373,7 +373,7 @@ namespace lsp
         size_t AudioEnvelope::get_function(points_t point)
         {
             ui::IPort *port = vTypes[point];
-            return (port != NULL) ? port->value() : dspu::ADSREnvelope::ADSR_NONE;
+            return (port != NULL) ? size_t(port->value()) : size_t(dspu::ADSREnvelope::ADSR_NONE);
         }
 
         void AudioEnvelope::curve_function(float *y, const float *x, size_t count, const tk::AudioEnvelope *sender, void *data)
