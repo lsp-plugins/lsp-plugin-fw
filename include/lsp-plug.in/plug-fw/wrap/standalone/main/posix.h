@@ -103,14 +103,21 @@ namespace lsp
 
         static bool is_shared_object(const char *str)
         {
-            size_t len = strlen(str);
-            if (len < 3)
+        #if defined(PLATFORM_MACOSX)
+            static const char suffix[] = ".dylib";
+        #else
+            static const char suffix[] = ".so";
+        #endif /* PLATFORM_MACOSX */
+
+            if (str == NULL)
                 return false;
-            str += len - 3;
-            return
-                (str[0] == '.') &&
-                (str[1] == 's') &&
-                (str[2] == 'o');
+
+            size_t len = strlen(str);
+            size_t suffix_len = sizeof(suffix) - 1;
+            if (len < suffix_len)
+                return false;
+
+            return strcmp(&str[len - suffix_len], suffix) == 0;
         }
 
         static standalone_create_plugin_loop_t lookup_standalone_main(void **hInstance, const version_t *required, const char *path)
