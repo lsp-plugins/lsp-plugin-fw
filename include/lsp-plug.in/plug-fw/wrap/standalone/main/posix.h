@@ -101,23 +101,24 @@ namespace lsp
         };
     #endif /* ARCH_32_BIT */
 
+    #if defined(PLATFORM_MACOSX)
+        static const char lib_suffix[] = ".dylib";
+    #else
+        static const char lib_suffix[] = ".so";
+    #endif /* PLATFORM_MACOSX */
+
+        static constexpr size_t lib_suffix_len = sizeof(lib_suffix) - 1;
+
         static bool is_shared_object(const char *str)
         {
-        #if defined(PLATFORM_MACOSX)
-            static const char suffix[] = ".dylib";
-        #else
-            static const char suffix[] = ".so";
-        #endif /* PLATFORM_MACOSX */
-
             if (str == NULL)
                 return false;
 
             size_t len = strlen(str);
-            size_t suffix_len = sizeof(suffix) - 1;
-            if (len < suffix_len)
+            if (len < lib_suffix_len)
                 return false;
 
-            return strcmp(&str[len - suffix_len], suffix) == 0;
+            return strcmp(&str[len - lib_suffix_len], lib_suffix) == 0;
         }
 
         static standalone_create_plugin_loop_t lookup_standalone_main(void **hInstance, const version_t *required, const char *path)
