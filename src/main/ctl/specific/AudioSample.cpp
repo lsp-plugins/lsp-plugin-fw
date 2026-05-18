@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 20 июл. 2021 г.
@@ -644,6 +644,7 @@ namespace lsp
             if (status == STATUS_OK)
             {
                 as->main_visibility()->set(false);
+                as->channel_visibility()->set(true);
                 return;
             }
 
@@ -656,12 +657,17 @@ namespace lsp
             if (status == STATUS_UNSPECIFIED)
             {
                 inject_style(as, "AudioSample::ok");
+                as->channel_visibility()->set(false);
                 as->main_text()->set("labels.click_or_drag_to_load");
             }
             else if (status == STATUS_LOADING)
             {
+                plug::mesh_t * const mesh = (pMeshPort != NULL) ? pMeshPort->buffer<plug::mesh_t>() : NULL;
+                const bool is_empty = (mesh == NULL) || (mesh->nBuffers < 0);
+
                 inject_style(as, "AudioSample::info");
                 as->main_text()->set("statuses.loading");
+                as->channel_visibility()->set(!is_empty);
             }
             else
             {
@@ -671,6 +677,7 @@ namespace lsp
 
                 inject_style(as, "AudioSample::error");
                 as->main_visibility()->set(true);
+                as->channel_visibility()->set(false);
                 as->main_text()->set(&code);
             }
         }

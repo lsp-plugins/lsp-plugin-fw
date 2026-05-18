@@ -17,6 +17,7 @@
   Linux when hiding and showing plugin window.
 * Renamed 'jack' feature to 'standalone'.
 * Moved JACK-related code into a separate JACK backend, feature 'jack'.
+* Updated behaviour of the AudioSample controller when displaying load status.
 * Added support of PipeWire audio backend, new feature 'pipewire'.
 
 
