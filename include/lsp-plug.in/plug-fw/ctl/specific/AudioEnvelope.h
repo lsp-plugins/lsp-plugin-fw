@@ -46,8 +46,9 @@ namespace lsp
                 {
                     ui::IPort          *pPort;
                     tk::Float          *pValue;
-                    float               fOldValue;
-                    float               fNewValue;
+                    float               fValue;
+                    bool                bChanged;
+                    bool                bSync;
                 } point_t;
 
                 enum points_t
