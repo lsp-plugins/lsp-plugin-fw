@@ -200,7 +200,7 @@ namespace lsp
             BIND_PORT(pWrapper, pPath, CONFIG_PATH_PORT);
             BIND_PORT(pWrapper, pFileType, CONFIG_FTYPE_PORT);
             BIND_PORT(pWrapper, pRelPaths, REL_PATHS_PORT);
-            BIND_PORT(pWrapper, pUserFriendlyValues, CONFIG_USER_FRIENDLY_VALUES_PORT);
+            BIND_PORT(pWrapper, pUserFriendlyValues, UI_CONFIG_USER_FRIENDLY_VALUES_PORT);
 
             // Derserialize state
             ui::UIContext uctx(pWrapper, controllers(), widgets());

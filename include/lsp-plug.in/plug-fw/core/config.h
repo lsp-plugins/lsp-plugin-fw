@@ -73,6 +73,7 @@
 #define UI_TAKE_INST_NAME_FROM_FILE_ID          "take_instrument_name_from_file"
 #define UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID        "graph_piano_layout"
 #define UI_CONFIG_USER_FRIENDLY_VALUES_ID       "config_user_friendly_values"
+#define UI_REVEAL_SAMPLE_ON_LISTEN_ID           "reveal_audio_sample_on_listen"
 #define AUDIO_BACKEND_ID                        "audio_backend"
 
 namespace lsp

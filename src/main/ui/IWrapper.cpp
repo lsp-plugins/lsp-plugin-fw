@@ -162,6 +162,7 @@ namespace lsp
             SWITCH(UI_TAKE_INST_NAME_FROM_FILE_ID, "Take instrument name from the name of loaded file", NULL, 0.0f),
             SWITCH(UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID, "Show piano keyboard layout on frequency graph", NULL, 1.0f),
             SWITCH(UI_CONFIG_USER_FRIENDLY_VALUES_ID, "User-friendly values in configuration file", NULL, 1.0f),
+            SWITCH(UI_REVEAL_SAMPLE_ON_LISTEN_ID, "Reveal related sample when the 'Listen' button is toggled", NULL, 0.0f),
             PATH(AUDIO_BACKEND_ID, "Audio driver (backend) for standalone version of plugins"),
             PORTS_END
         };
@@ -566,6 +567,19 @@ namespace lsp
 
         void IWrapper::dump_state_request()
         {
+        }
+
+        IPort *IWrapper::portf(const char *id_fmt, ...)
+        {
+            char port_id[0x40];
+            va_list v;
+            va_start(v, id_fmt);
+
+            ::vsnprintf(port_id, sizeof(port_id)/sizeof(char), id_fmt, v);
+            ui::IPort * const p = this->port(port_id);
+            va_end(v);
+
+            return p;
         }
 
         IPort *IWrapper::port(const char *id)
@@ -3232,6 +3246,29 @@ namespace lsp
         status_t IWrapper::select_backend(const LSPString & name)
         {
             return STATUS_OK;
+        }
+
+        tk::Widget *IWrapper::find_widget(const char *uid)
+        {
+            tk::Registry * const reg = (pWindow != NULL) ? pWindow->widgets() : NULL;
+            return (reg != NULL) ? reg->find(uid) : NULL;
+        }
+
+        tk::Widget *IWrapper::find_widget(const LSPString *uid)
+        {
+            tk::Registry * const reg = (pWindow != NULL) ? pWindow->widgets() : NULL;
+            return (reg != NULL) ? reg->find(uid) : NULL;
+        }
+
+        tk::Widget *IWrapper::find_widgetf(const char *fmt, ...)
+        {
+            LSPString id;
+            va_list v;
+            va_start(v, fmt);
+            const ssize_t res = id.vfmt_utf8(fmt, v);
+            va_end(v);
+
+            return (res > 0) ? find_widget(&id) : NULL;
         }
 
     } /* namespace ui */

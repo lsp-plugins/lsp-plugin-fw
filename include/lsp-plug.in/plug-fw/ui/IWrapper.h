@@ -257,6 +257,14 @@ namespace lsp
                 IPort                          *port(const char *id);
 
                 /**
+                 * Return port by it's identifier built from format string
+                 *
+                 * @param id port identifier
+                 * @return pointer to the port instance or NULL
+                 */
+                IPort                          *portf(const char *id_fmt, ...);
+
+                /**
                  * Return port by it's identifier
                  *
                  * @param id port identifier
@@ -676,6 +684,60 @@ namespace lsp
                  */
                 virtual status_t                select_backend(const LSPString & name);
 
+            public: // Widget management
+                /**
+                 * Get widget of specific type by it's unique identifier
+                 * @param uid unique identifier of widget
+                 * @return the resolved widget or NULL
+                 */
+                template <typename Widget>
+                inline Widget              *get_widget(const char *uid)
+                {
+                    return tk::widget_cast<Widget>(find_widget(uid));
+                }
+
+                /**
+                 * Get widget of specific type by it's unique identifier
+                 * @param uid unique identifier of widget
+                 * @return the resolved widget or NULL
+                 */
+                template <typename Widget>
+                inline Widget              *get_widget(const LSPString *uid)
+                {
+                    return tk::widget_cast<Widget>(find_widget(uid));
+                }
+
+                /**
+                 * Get widget of specific type by it's unique identifier
+                 * @param uid unique identifier of widget
+                 * @return the resolved widget or NULL
+                 */
+                template <typename Widget, typename ... Args>
+                inline Widget              *get_widgetf(const char *uid, Args && ... args)
+                {
+                    return tk::widget_cast<Widget>(find_widgetf(uid, lsp::forward<Args>(args)...));
+                }
+
+                /**
+                 * Find widget by it's uinque identifier and return the pointer to the instance
+                 * @param uid unique identifier of widget
+                 * @return the resolved widget or NULL
+                 */
+                tk::Widget                 *find_widget(const char *uid);
+
+                /**
+                 * Find widget by it's uinque identifier and return the pointer to the instance
+                 * @param uid unique identifier of widget
+                 * @return the resolved widget or NULL
+                 */
+                tk::Widget                 *find_widget(const LSPString *uid);
+
+                /**
+                 * Find widget by it's uinque identifier (using format string) and return the pointer to the instance
+                 * @param uid unique identifier of widget (format string)
+                 * @return the resolved widget or NULL
+                 */
+                tk::Widget                 *find_widgetf(const char *fmt, ...);
         };
 
     } /* namespace ui */

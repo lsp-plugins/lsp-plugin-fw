@@ -882,6 +882,11 @@ namespace lsp
                     UI_SHOW_PIANO_LAYOUT_ON_GRAPH_PORT,
                     "actions.ui_behavior.show_piano_layout_on_graph"));
 
+            LSP_STATUS_ASSERT(
+                add_ui_flag(menu,
+                    UI_REVEAL_SAMPLE_ON_LISTEN_PORT,
+                    "actions.ui_behavior.reveal_sample_on_listen"));
+
             return STATUS_OK;
         }
 
