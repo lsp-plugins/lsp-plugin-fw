@@ -120,7 +120,9 @@ namespace lsp
                     dsp::finish(&ctx);
                 };
 
-                static const size_t period = BACKEND_SAMPLE_RATE / BACKEND_BUFFER_SIZE;
+                constexpr float period      = float(BACKEND_SAMPLE_RATE) / float(BACKEND_BUFFER_SIZE);
+                float delta                 = 0.0f;
+                system::time_millis_t start = system::get_time_millis();
 
                 while (!ipc::Thread::is_cancelled())
                 {
@@ -138,7 +140,18 @@ namespace lsp
                     }
 
                     // Sleep for a while
-                    ipc::Thread::sleep(period);
+                    const system::time_millis_t current     = system::get_time_millis();
+                    const float delay                       = period + delta - (current - start);
+                    if (delay > 0.0f)
+                    {
+                        const system::time_millis_t sleep       = system::time_millis_t(delay);
+                        delta                                   = delay - float(sleep);
+                        if (sleep > 0)
+                            ipc::Thread::sleep(sleep);
+                    }
+
+                    // Update start time point of the period
+                    start                                   = current;
                 }
 
                 return STATUS_OK;
