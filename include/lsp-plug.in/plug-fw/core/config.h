@@ -70,6 +70,8 @@
 #define UI_DOCUMENTATION_PATH_ID                "documentation_path"
 #define UI_FILELIST_NAVIGATION_AUTOLOAD_ID      "file_list_navigation_autoload"
 #define UI_FILELIST_NAVIGATION_AUTOPLAY_ID      "file_list_navigation_auto_play"
+#define UI_IR_LIST_NAVIGATION_AUTOLOAD_ID       "ir_list_navigation_autoload"
+#define UI_IR_LIST_NAVIGATION_AUTOPLAY_ID       "ir_list_navigation_auto_play"
 #define UI_TAKE_INST_NAME_FROM_FILE_ID          "take_instrument_name_from_file"
 #define UI_SHOW_PIANO_LAYOUT_ON_GRAPH_ID        "graph_piano_layout"
 #define UI_CONFIG_USER_FRIENDLY_VALUES_ID       "config_user_friendly_values"
