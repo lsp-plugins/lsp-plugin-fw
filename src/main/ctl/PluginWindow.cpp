@@ -1728,7 +1728,7 @@ namespace lsp
                 return STATUS_OK;
 
             tk::Widget *w = self->widgets()->find("trg_next_preset");
-            self->pPresetsWindow->select_next_preset(sender == w);
+            self->pPresetsWindow->select_next_preset(sender == w, true);
             return STATUS_OK;
         }
 
@@ -1902,7 +1902,7 @@ namespace lsp
             if (invert)
                 next    = !next;
 
-            pPresetsWindow->select_next_preset(next);
+            pPresetsWindow->select_next_preset(next, true);
         }
 
         status_t PluginWindow::show_greeting_window()

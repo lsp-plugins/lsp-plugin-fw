@@ -245,6 +245,9 @@ namespace lsp
             bind_slot("btn_paste", tk::SLOT_SUBMIT, slot_import_settings_from_clipboard);
             bind_slot("preset_category", tk::SLOT_SUBMIT, slot_preset_tab_selected);
 
+            bind_slot("btn_previous_preset", tk::SLOT_SUBMIT, slot_select_next_preset);
+            bind_slot("btn_next_preset", tk::SLOT_SUBMIT, slot_select_next_preset);
+
             for (size_t i=0; i<ui::PRESET_TAB_TOTAL; ++i)
             {
                 const char *list_id = preset_lists_ids[i];
@@ -1001,7 +1004,7 @@ namespace lsp
             return true;
         }
 
-        void PresetsWindow::select_active_preset(const ui::preset_t *preset, bool force)
+        void PresetsWindow::select_active_preset(const ui::preset_t *preset, bool force, bool close)
         {
             const ui::preset_t *dirty = (pWrapper->active_preset_dirty()) ? pWrapper->active_preset() : NULL;
 
@@ -1017,7 +1020,7 @@ namespace lsp
             {
                 pNewPreset          = NULL;
                 pWrapper->select_active_preset(preset, force);
-                if (force)
+                if (close)
                     hide();
             }
         }
@@ -1065,29 +1068,56 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void PresetsWindow::select_next_preset(bool forward)
+        void PresetsWindow::select_next_preset(bool forward, bool close)
         {
             // Obtain the current list of presets
             const ui::preset_tab_t tab  = pWrapper->preset_tab();
             preset_list_t *list         = (tab < ui::PRESET_TAB_TOTAL) ? &vPresetsLists[tab] : NULL;
             if (list == NULL)
                 return;
+
+            // We need to ensure that current preset is in the list
+            const ui::preset_t * preset  = pWrapper->active_preset();
+            ssize_t preset_index        = (preset != NULL) ? list->vPresets.index_of(preset) : -1;
+
+            // Iterate over the whole list of presets
             const ssize_t num_presets   = list->vPresets.size();
             if (num_presets <= 0)
                 return;
 
-            // We need to ensure that current preset is in the list
-            const ui::preset_t *preset  = pWrapper->active_preset();
-            ssize_t preset_index        = (preset != NULL) ? list->vPresets.index_of(preset) : -1;
-
-            // Obtain the index of the next preset
-            if (preset_index >= 0)
+            if (wWidget->visibility()->get())
             {
+                // Walk over the list until we find next visible item
                 const ssize_t direction     = (forward) ? 1 : num_presets - 1;
-                preset_index                = (preset_index + direction) % num_presets;
+                if (preset_index < 0)
+                    preset_index                = (forward) ? num_presets - 1 : 0;
+                const ssize_t old_preset_index = preset_index;
+
+                while (true)
+                {
+                    preset_index            = (preset_index + direction) % num_presets;
+                    if (preset_index == old_preset_index)
+                        return;
+
+                    tk::ListBoxItem * const item  = list->vItems.get(preset_index);
+                    if (item->visibility()->get())
+                        break;
+                }
+
+                // Scroll to selected item
+                list->wList->scroll_to(preset_index);
             }
             else
-                preset_index                = 0;
+            {
+                // Obtain the index of the next preset
+                if (preset_index >= 0)
+                {
+                    const ssize_t direction     = (forward) ? 1 : num_presets - 1;
+                    preset_index                = (preset_index + direction) % num_presets;
+                }
+                else
+                    preset_index                = 0;
+            }
 
             // Obtain new preset
             preset                      = list->vPresets.get(preset_index);
@@ -1095,7 +1125,7 @@ namespace lsp
                 return;
 
             // Select new active preset
-            select_active_preset(preset, true);
+            select_active_preset(preset, true, close);
         }
 
         //-----------------------------------------------------------------
@@ -1434,7 +1464,7 @@ namespace lsp
                 const size_t index = list->vItems.index_of(item);
                 const ui::preset_t *preset = list->vPresets.get(index);
 
-                self->select_active_preset(preset, false);
+                self->select_active_preset(preset, false, false);
             }
 
             return STATUS_OK;
@@ -1462,7 +1492,7 @@ namespace lsp
                 const size_t index = list->vItems.index_of(item);
                 const ui::preset_t *preset = list->vPresets.get(index);
 
-                self->select_active_preset(preset, true);
+                self->select_active_preset(preset, true, true);
             }
 
             return STATUS_OK;
@@ -1544,6 +1574,17 @@ namespace lsp
             if (self->pWrapper != NULL)
                 self->pWrapper->set_preset_tab(ui::preset_tab_t(lsp_min(index, ui::PRESET_TAB_TOTAL - 1)));
 
+            return STATUS_OK;
+        }
+
+        status_t PresetsWindow::slot_select_next_preset(tk::Widget *sender, void *ptr, void *data)
+        {
+            PresetsWindow * const self = static_cast<PresetsWindow *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            tk::Widget * const w = self->widgets()->find("btn_next_preset");
+            self->select_next_preset(sender == w, false);
             return STATUS_OK;
         }
 

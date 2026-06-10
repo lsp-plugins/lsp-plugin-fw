@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.37 ===
+* Added previous and next preset selection in the preset window.
 * Fixed generic UI failure for CLAP: removed normalization for discrete parameters.
 * Updated makefiles to not to clash with launcher tool on MacOS.
 * Some fixes arount CLAP plugin format for better support of MacOS (contributed
