@@ -22,7 +22,7 @@
 * Updated behaviour of the AudioSample controller when displaying load status.
 * Fixed some bugs in AudioEnvelope controller.
 * Added support of PipeWire audio backend, new feature 'pipewire'.
-
+* Updated module versions in dependencies.
 
 === 1.0.36 ===
 * Fixed test build.
