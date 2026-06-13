@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.38 ===
+
+
 === 1.0.37 ===
 * Added previous and next preset selection in the preset window.
 * Fixed generic UI failure for CLAP: removed normalization for discrete parameters.
