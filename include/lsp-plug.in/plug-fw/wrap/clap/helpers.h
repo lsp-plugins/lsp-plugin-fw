@@ -460,13 +460,16 @@ namespace lsp
                 min             = 0.0f;
                 max             = 1.0f;
             }
-            else
-            {
-                if ((meta->flags & meta::F_INT) ||
+            else if ((meta->flags & meta::F_INT) ||
                     (meta->unit == meta::U_ENUM) ||
                     (meta->unit == meta::U_SAMPLES))
-                    value  = truncf(value);
-
+            {
+                value   = truncf(value);
+                min     = truncf(min);
+                max     = truncf(max);
+            }
+            else
+            {
                 // Normalize value
                 value           = (max != min) ? (value - min) / (max - min) : 0.0f;
                 min             = 0.0f;
@@ -530,13 +533,15 @@ namespace lsp
             {
                 value = (value >= 0.5f) ? max : min;
             }
+            else if ((meta->flags & meta::F_INT) ||
+                    (meta->unit == meta::U_ENUM) ||
+                    (meta->unit == meta::U_SAMPLES))
+            {
+                value  = truncf(value);
+            }
             else
             {
                 value = min + value * (max - min);
-                if ((meta->flags & meta::F_INT) ||
-                    (meta->unit == meta::U_ENUM) ||
-                    (meta->unit == meta::U_SAMPLES))
-                    value  = truncf(value);
             }
 
 //                lsp_trace("result = %.3f", value);

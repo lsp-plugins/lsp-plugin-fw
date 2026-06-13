@@ -509,8 +509,7 @@ namespace lsp
 
                         vGenMetadata.add(cm);
 
-                        size_t col          = 0;
-                        for (; cm->id != NULL; ++cm, ++col)
+                        for (; cm->id != NULL; ++cm)
                         {
                             if (meta::is_growing_port(cm))
                                 cm->start    = cm->min + ((cm->max - cm->min) * row) / float(pg->rows());

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 25 дек. 2021 г.
@@ -19,8 +19,8 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_UTIL_JACK_MAKE_JACK_MAKE_H_
-#define LSP_PLUG_IN_PLUG_FW_UTIL_JACK_MAKE_JACK_MAKE_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_UTIL_STANDALONE_MAKE_STANDALONE_MAKE_H_
+#define LSP_PLUG_IN_PLUG_FW_UTIL_STANDALONE_MAKE_STANDALONE_MAKE_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 
@@ -33,10 +33,10 @@
 
 namespace lsp
 {
-    namespace jack_make
+    namespace standalone_make
     {
         /**
-         * Enumerate JACK plugins
+         * Enumerate Standalone plugins
          * @param list list to store plugins
          * @return status of operation
          */
@@ -76,7 +76,7 @@ namespace lsp
         status_t gen_makefile(const io::Path *base, lltl::parray<meta::plugin_t> *list);
 
         /**
-         * Generate all necessary files to build JACK plugin wrappers
+         * Generate all necessary files to build Standalone plugin wrappers
          * @param out_dir output directory to generate files
          * @return status of operation
          */
@@ -89,8 +89,9 @@ namespace lsp
          * @return status of operation
          */
         status_t main(int argc, const char **argv);
-    }
-}
+
+    } /* namespace standalone_make */
+} /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_UTIL_JACK_MAKE_JACK_MAKE_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_UTIL_STANDALONE_MAKE_STANDALONE_MAKE_H_ */

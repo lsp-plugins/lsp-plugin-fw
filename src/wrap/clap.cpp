@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 дек. 2022 г.
@@ -346,10 +346,24 @@ namespace lsp
 
         bool CLAP_ABI ui_get_size(const clap_plugin_t *plugin, uint32_t *width, uint32_t *height)
         {
-            lsp_trace("plugin = %p, width=%p, height=%p", plugin, width, height);
+            if ((width == NULL) || (height == NULL))
+            {
+                lsp_trace("plugin = %p, width=%p, height=%p -> false", plugin, width, height);
+                return false;
+            }
+
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             UIWrapper *uw = w->ui_wrapper();
-            return (uw != NULL) ? uw->get_size(width, height) : false;
+            const bool result = (uw != NULL) ? uw->get_size(width, height) : false;
+            if (result)
+            {
+                lsp_trace("plugin = %p, width=%p, height=%p, UIWrapper=%p -> width=%d, height=%d",
+                    plugin, width, height, uw, int(*width), int(*height));
+                return true;
+            }
+
+            lsp_trace("plugin = %p, width=%p, height=%p, UIWrapper=%p -> false", plugin, width, height, uw);
+            return false;
         }
 
         bool CLAP_ABI ui_can_resize(const clap_plugin_t *plugin)
@@ -688,18 +702,19 @@ namespace lsp
 
         //---------------------------------------------------------------------
         // Library-related stuff
-        static void destroy_factory(factory_t * &factory)
+        static void destroy_factory(factory_t * factory)
         {
-            if (factory != NULL)
+            if (factory == NULL)
+                return;
+
+            lsp_trace("Destroying plugin factory interface %p", factory);
+
+            if (factory->factory != NULL)
             {
-                if (factory->factory != NULL)
-                {
-                    factory->factory->release();
-                    factory->factory     = NULL;
-                }
-                free(factory);
-                factory     = NULL;
+                factory->factory->release();
+                factory->factory     = NULL;
             }
+            free(factory);
         }
 
         static bool init_library(const char *plugin_path)
@@ -708,7 +723,7 @@ namespace lsp
             IF_DEBUG( lsp::debug::redirect(CLAP_LOG_FILE); );
         #endif /* LSP_IDE_DEBUG */
 
-            // Check that data already has been initialized
+            // Check that data already has been initialized (perform quick test)
             if (library.initialized())
                 return true;
 
@@ -718,9 +733,7 @@ namespace lsp
             if (factory == NULL)
                 return false;
 
-            lsp_finally {
-                destroy_factory(factory);
-            };
+            lsp_finally { destroy_factory(factory); };
 
             factory->get_plugin_count       = get_plugin_count;
             factory->get_plugin_descriptor  = get_plugin_descriptor;
@@ -732,7 +745,7 @@ namespace lsp
 
             lsp_trace("Created plugin factory %p wrapped by interface %p", factory->factory, factory);
 
-            // Commit the generated objects to the global variables
+            // Deploy the generated objects to the global variables
             lsp_singletone_init(library) {
                 lsp::swap(plugin_factory, factory);
             };
@@ -742,8 +755,12 @@ namespace lsp
 
         static void destroy_library(void)
         {
-            lsp_trace("Destroying plugin factory interface %p", plugin_factory);
-            destroy_factory(plugin_factory);
+            factory_t *factory = NULL;
+            lsp_singletone_finalize(library) {
+                lsp::swap(plugin_factory, factory);
+            };
+
+            destroy_factory(factory);
         }
 
         const void *get_factory(const char *factory_id)
@@ -776,4 +793,3 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-

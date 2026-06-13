@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 дек. 2021 г.
@@ -685,16 +685,17 @@ namespace lsp
             #ifdef WITH_UI_FEATURE
                 case effEditOpen: // Run editor
                 {
-                    UIWrapper *ui = w->ui_wrapper();
+                    UIWrapper * ui = w->ui_wrapper();
                     if (ui == NULL)
                     {
                         if ((ui = UIWrapper::create(w, ptr)) == NULL)
                             break;
                     }
 
-                    if (ui->show_ui())
+                    lsp_trace("effEditOpen ui=%p, ptr=%p", ui, ptr);
+                    if (ui->show_ui(ptr))
                     {
-                        w->set_ui_wrapper(ui);
+                        lsp_trace("show_ui success");
                         v = 1;
                     }
                     break;
@@ -702,12 +703,11 @@ namespace lsp
 
                 case effEditClose: // Close editor
                 {
-                    UIWrapper *ui = w->ui_wrapper();
+                    UIWrapper * const ui = w->ui_wrapper();
                     lsp_trace("effEditClose ui=%p", ui);
                     if (ui == NULL)
                         break;
 
-                    w->set_ui_wrapper(NULL);
                     ui->hide_ui();
                     ui->destroy();
                     delete ui;
@@ -717,7 +717,7 @@ namespace lsp
 
                 case effEditIdle: // Run editor's iteration
                 {
-                    UIWrapper *ui = w->ui_wrapper();
+                    UIWrapper * const ui = w->ui_wrapper();
                     if (ui == NULL)
                         break;
 
@@ -728,13 +728,16 @@ namespace lsp
 
                 case effEditGetRect: // Return UI dimensions
                 {
-                    UIWrapper *ui = w->ui_wrapper();
+                    UIWrapper * ui = w->ui_wrapper();
                     if (ui == NULL)
-                        break;
+                    {
+                        if ((ui = UIWrapper::create(w, NULL)) == NULL)
+                            break;
+                    }
 
-                    ERect **er = reinterpret_cast<ERect **>(ptr);
-                    *er = ui->ui_rect();
-                    lsp_trace("Edit rect = {%d, %d, %d, %d}", int((*er)->left), int((*er)->top), int((*er)->right), int((*er)->bottom));
+                    ERect ** const er = reinterpret_cast<ERect **>(ptr);
+                    *er = w->ui_rect();
+                    lsp_trace("effEditGetRect rect = {%d, %d, %d, %d}", int((*er)->left), int((*er)->top), int((*er)->right), int((*er)->bottom));
                     v = 1;
                     break;
                 }

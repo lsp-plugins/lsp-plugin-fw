@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 #
-# Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
-#           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+# Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+#           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
 #
 # This file is part of lsp-plugin-fw
 #
@@ -110,7 +110,7 @@ config testconfig devel:
 distsrc:
 	echo "Building source code archive"
 	mkdir -p "$(DISTSRC)/modules"
-	$(MAKE) -f "make/modules.mk" tree VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" MODULES="$(DISTSRC)/modules" TREE="1"
+	$(MAKE) -f "make/modules.mk" tree TREE="1" BUILD_FEATURES="$(FEATURES)" VERBOSE="$(VERBOSE)" BASEDIR="$(BASEDIR)" MODULES="$(DISTSRC)/modules"
 	$(if $(DISTSRC_DIRS), cp -R $(DISTSRC_DIRS) "$(DISTSRC)/")
 	$(if $(DISTSRC_FILES), cp $(DISTSRC_FILES) "$(DISTSRC)/")
 	find "$(DISTSRC)" -iname '.git' | xargs -exec rm -rf {}
@@ -142,15 +142,16 @@ help:
 	$(MAKE) -f "$(BASEDIR)/make/configure.mk" $(@) VERBOSE="$(VERBOSE)"
 	echo ""
 	echo "Available FEATURES:"
-	echo "  clap                      CLAP plugin format binaries"
+	echo "  clap                      CLAP plugins"
 	echo "  doc                       Generate standalone HTML documentation"
-	echo "  jack                      Standalone JACK plugin format binaries"
-	echo "  ladspa                    LADSPA plugin format binaries"
-	echo "  launcher                  Build launcher application for standalone JACK plugins"
-	echo "  lv2                       LV2 plugin format binaries"
-	echo "  ui                        Enables UI for LV2"
-	echo "  vst2                      VST 2.x plugin format binaries"
-	echo "  vst3                      VST 3.x plugin format binaries"
+	echo "  gst                       GStreamer plugins"
+	echo "  jack                      JACK audio backend for standalone plugins"
+	echo "  ladspa                    LADSPA plugins"
+	echo "  launcher                  Build launcher application for standalone plugin applications"
+	echo "  lv2                       LV2 plugins"
+	echo "  standalone                Standalone plugin applications"
+	echo "  vst2                      VST 2.x plugin binaries"
+	echo "  vst3                      VST 3.x plugin binaries"
 	echo "  xdg                       Desktop integration icons"
 
 	

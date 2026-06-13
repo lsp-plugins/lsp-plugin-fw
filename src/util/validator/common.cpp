@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 8 янв. 2023 г.
@@ -351,8 +351,7 @@ namespace lsp
                     if (ctx->gen_ports.add(cm))
                     {
                         // Perform checks of ports in the group
-                        size_t col          = 0;
-                        for (; cm->id != NULL; ++cm, ++col)
+                        for (; cm->id != NULL; ++cm)
                         {
                             if (meta::is_growing_port(cm))
                                 cm->start    = cm->min + ((cm->max - cm->min) * row) / float(num_rows);

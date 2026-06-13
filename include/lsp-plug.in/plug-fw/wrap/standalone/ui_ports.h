@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 29 янв. 2021 г.
@@ -19,29 +19,29 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_UI_PORTS_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_UI_PORTS_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_UI_PORTS_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_UI_PORTS_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 #include <lsp-plug.in/plug-fw/core/osc_buffer.h>
-#include <lsp-plug.in/plug-fw/wrap/jack/ports.h>
 #include <lsp-plug.in/plug-fw/ui.h>
 
 #include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/plug-fw/wrap/standalone/ports.h>
 #include <lsp-plug.in/protocol/midi.h>
 #include <lsp-plug.in/protocol/osc.h>
 
 namespace lsp
 {
-    namespace jack
+    namespace standalone
     {
         class UIPort: public ui::IPort
         {
             protected:
-                jack::Port     *pPort;
+                standalone::Port   *pPort;
 
             public:
-                explicit UIPort(jack::Port *port) : ui::IPort(port->metadata())
+                explicit UIPort(standalone::Port *port) : ui::IPort(port->metadata())
                 {
                     pPort       = port;
                 }
@@ -71,7 +71,7 @@ namespace lsp
                 ui::IPresetManager     *pManager;
 
             public:
-                explicit UIControlPort(jack::Port *port, ui::IPresetManager *manager): UIPort(port)
+                explicit UIControlPort(standalone::Port *port, ui::IPresetManager *manager): UIPort(port)
                 {
                     fValue      = port->value();
                     pManager    = manager;
@@ -118,10 +118,10 @@ namespace lsp
         class UIPortGroup: public UIControlPort
         {
             private:
-                jack::PortGroup        *pPG;
+                standalone::PortGroup   *pPG;
 
             public:
-                explicit UIPortGroup(jack::PortGroup *port, ui::IPresetManager *manager) : UIControlPort(port, manager)
+                explicit UIPortGroup(standalone::PortGroup *port, ui::IPresetManager *manager) : UIControlPort(port, manager)
                 {
                     pPG                 = port;
                 }
@@ -142,7 +142,7 @@ namespace lsp
                 float   fValue;
 
             public:
-                explicit UIMeterPort(jack::Port *port): UIPort(port)
+                explicit UIMeterPort(standalone::Port *port): UIPort(port)
                 {
                     fValue      = port->value();
                 }
@@ -167,7 +167,7 @@ namespace lsp
                 virtual bool sync() override
                 {
                     float value = fValue;
-                    jack::MeterPort *mp = static_cast<jack::MeterPort *>(pPort);
+                    standalone::MeterPort * const mp = static_cast<standalone::MeterPort *>(pPort);
                     fValue      = mp->sync_value();
 
                     return fValue != value;
@@ -180,9 +180,9 @@ namespace lsp
                 plug::mesh_t   *pMesh;
 
             public:
-                explicit UIMeshPort(jack::Port *port): UIPort(port)
+                explicit UIMeshPort(standalone::Port *port): UIPort(port)
                 {
-                    pMesh       = jack::create_mesh(port->metadata());
+                    pMesh       = standalone::create_mesh(port->metadata());
                 }
 
                 UIMeshPort(const UIMeshPort &) = delete;
@@ -190,7 +190,7 @@ namespace lsp
 
                 virtual ~UIMeshPort() override
                 {
-                    jack::destroy_mesh(pMesh);
+                    standalone::destroy_mesh(pMesh);
                     pMesh = NULL;
                 }
 
@@ -226,7 +226,7 @@ namespace lsp
                 plug::stream_t     *pStream;
 
             public:
-                explicit UIStreamPort(jack::Port *port): UIPort(port)
+                explicit UIStreamPort(standalone::Port *port): UIPort(port)
                 {
                     pStream     = plug::stream_t::create(pMetadata->min, pMetadata->max, pMetadata->start);
                 }
@@ -262,7 +262,7 @@ namespace lsp
                 plug::frame_buffer_t    sFB;
 
             public:
-                explicit UIFrameBufferPort(jack::Port *port): UIPort(port)
+                explicit UIFrameBufferPort(standalone::Port *port): UIPort(port)
                 {
                     sFB.init(pMetadata->start, pMetadata->step);
                 }
@@ -300,7 +300,7 @@ namespace lsp
                 bool            bSyncAgain;
 
             public:
-                explicit UIOscPortIn(jack::Port *port): UIPort(port)
+                explicit UIOscPortIn(standalone::Port *port): UIPort(port)
                 {
                     bSyncAgain      = false;
                     nCapacity       = 0x100;
@@ -379,7 +379,7 @@ namespace lsp
         class UIOscPortOut: public UIPort
         {
             public:
-                explicit UIOscPortOut(jack::Port *port): UIPort(port)
+                explicit UIOscPortOut(standalone::Port *port): UIPort(port)
                 {
                 }
 
@@ -405,17 +405,17 @@ namespace lsp
         class UIPathPort: public UIPort
         {
             private:
-                ui::IPresetManager *pManager;
-                jack::path_t       *pPath;
-                char                sPath[PATH_MAX];
+                ui::IPresetManager     *pManager;
+                standalone::path_t     *pPath;
+                char                    sPath[PATH_MAX];
 
             public:
-                explicit UIPathPort(jack::Port *port, ui::IPresetManager *manager): UIPort(port)
+                explicit UIPathPort(standalone::Port *port, ui::IPresetManager *manager): UIPort(port)
                 {
                     pManager                = manager;
 
                     plug::path_t *path      = pPort->buffer<plug::path_t>();
-                    pPath                   = (path != NULL) ? static_cast<jack::path_t *>(path) : NULL;
+                    pPath                   = (path != NULL) ? static_cast<standalone::path_t *>(path) : NULL;
                     sPath[0]                = '\0';
                 }
 
@@ -471,11 +471,11 @@ namespace lsp
                 uint32_t            nSerial;
 
             public:
-                explicit UIStringPort(jack::Port *port, ui::IPresetManager *manager): UIPort(port)
+                explicit UIStringPort(standalone::Port *port, ui::IPresetManager *manager): UIPort(port)
                 {
                     pManager                = manager;
 
-                    jack::StringPort *sp    = static_cast<jack::StringPort *>(port);
+                    standalone::StringPort * const sp = static_cast<standalone::StringPort *>(port);
                     pValue                  = sp->data();
                     pData                   = (pValue != NULL) ? reinterpret_cast<char *>(malloc(pValue->max_bytes() + 1)) : NULL;
                     nSerial                 = (pValue != NULL) ?  pValue->serial() - 1 : 0;
@@ -541,7 +541,7 @@ namespace lsp
 
                 virtual bool sync() override
                 {
-                    jack::StringPort *sp    = static_cast<jack::StringPort *>(pPort);
+                    standalone::StringPort * const sp    = static_cast<standalone::StringPort *>(pPort);
                     if ((sp != NULL) && (sp->check_reset_pending()))
                     {
                         write("", 0, 0);
@@ -551,8 +551,8 @@ namespace lsp
                 }
         };
 
-    } /* namespace jack */
+    } /* namespace standalone */
 } /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_UI_PORTS_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_UI_PORTS_H_ */

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 23 дек. 2020 г.
@@ -20,17 +20,17 @@
  */
 
 #include <lsp-plug.in/plug-fw/plug.h>
-#include <lsp-plug.in/plug-fw/util/jack_make/jack_make.h>
 #include <lsp-plug.in/plug-fw/util/common/checksum.h>
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <lsp-plug.in/plug-fw/util/standalone_make/standalone_make.h>
 
 namespace lsp
 {
-    namespace jack_make
+    namespace standalone_make
     {
         static ssize_t meta_sort_func(const meta::plugin_t *a, const meta::plugin_t *b)
         {
@@ -81,10 +81,10 @@ namespace lsp
             // Write to file
             fprintf(out,    "//------------------------------------------------------------------------------\n");
             if (fname != NULL)
-                fprintf(out,    "// File:            %s\n", fname);
-            fprintf(out,    "// JACK Plugin:     %s - %s [JACK]\n", meta->name, meta->description);
-            fprintf(out,    "// JACK UID:        '%s'\n", meta->uid);
-            fprintf(out,    "// Version:         %d.%d.%d\n",
+                fprintf(out,    "// File:               %s\n", fname);
+            fprintf(out,    "// Standalone Plugin:  %s - %s [STANDALONE]\n", meta->name, meta->description);
+            fprintf(out,    "// Standalone UID:     '%s'\n", meta->uid);
+            fprintf(out,    "// Version:            %d.%d.%d\n",
                     LSP_MODULE_VERSION_MAJOR(meta->version),
                     LSP_MODULE_VERSION_MINOR(meta->version),
                     LSP_MODULE_VERSION_MICRO(meta->version)
@@ -93,16 +93,16 @@ namespace lsp
 
             // Write code
             fprintf(out,    "// Pass Plugin UID for factory function\n");
-            fprintf(out,    "#define JACK_PLUGIN_UID     \"%s\"\n", meta->uid);
+            fprintf(out,    "#define STANDALONE_PLUGIN_UID  \"%s\"\n", meta->uid);
             fprintf(out,    "\n");
 
             fprintf(out,    "#include <lsp-plug.in/common/types.h>\n");
             fprintf(out,    "\n");
 
             fprintf(out,    "// Include factory function implementation\n");
-            fprintf(out,    "#define LSP_PLUG_IN_JACK_MAIN_IMPL\n");
-            fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/jack/main.h>\n");
-            fprintf(out,    "#undef LSP_PLUG_IN_JACK_MAIN_IMPL\n");
+            fprintf(out,    "#define LSP_PLUG_IN_STANDALONE_MAIN_IMPL\n");
+            fprintf(out,    "    #include <lsp-plug.in/plug-fw/wrap/standalone/main.h>\n");
+            fprintf(out,    "#undef LSP_PLUG_IN_STANDALONE_MAIN_IMPL\n");
 
             return STATUS_OK;
         }
@@ -250,7 +250,7 @@ namespace lsp
             fprintf(out, "DEP_CXX = $(foreach src,$(CXX_FILES),$(patsubst %%.cpp,%%.d,$(src)))\n");
             fprintf(out, "DEP_CXX_FILE = $(patsubst %%.d,%%.cpp,$(@))\n");
             fprintf(out, "DEP_DEP_FILE = $(patsubst %%.d,$(EXT_PREFIX)%%$(EXECUTABLE_EXT),$(@))\n");
-            fprintf(out, "JACK_CXX_DEFS = \\\n");
+            fprintf(out, "STANDALONE_CXX_DEFS = \\\n");
             fprintf(out, "  $(if $(EXT_ARTIFACT_NAME),-DEXT_ARTIFACT_NAME=\\\"$(EXT_ARTIFACT_NAME)\\\") \\\n");
             fprintf(out, "  $(if $(EXT_ARTIFACT_GROUP),-DEXT_ARTIFACT_GROUP=\\\"$(EXT_ARTIFACT_GROUP)\\\")\n");
             fprintf(out, "\n");
@@ -260,7 +260,7 @@ namespace lsp
 
             fprintf(out, "\n");
             fprintf(out, "$(DEP_CXX): dep_clean\n");
-            fprintf(out, "\t$(CXX) -MM -MT \"$(DEP_DEP_FILE)\" -MF $(@) $(CXXFLAGS) $(CXXDEFS) $(EXT_CXXFLAGS) $(JACK_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(DEP_CXX_FILE)\n");
+            fprintf(out, "\t$(CXX) -MM -MT \"$(DEP_DEP_FILE)\" -MF $(@) $(CXXFLAGS) $(CXXDEFS) $(EXT_CXXFLAGS) $(STANDALONE_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(DEP_CXX_FILE)\n");
 
             fprintf(out, "\n");
             fprintf(out, "depend: $(DEP_CXX)\n");
@@ -271,8 +271,8 @@ namespace lsp
 
             fprintf(out, "\n");
             fprintf(out, "$(EXE_FILES):\n");
-            fprintf(out, "\techo \"  $(CXX)  [jack] $(FILE)\"\n");
-            fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(CXXDEFS) $(EXT_CXXFLAGS) $(JACK_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
+            fprintf(out, "\techo \"  $(CXX)  [standalone] $(FILE)\"\n");
+            fprintf(out, "\t$(CXX) -o $(@) $(CXXFLAGS) $(CXXDEFS) $(EXT_CXXFLAGS) $(STANDALONE_CXX_DEFS) $(INCLUDE) $(EXT_INCLUDE) $(FILE) $(EXT_OBJS) $(LIBS) $(EXE_FLAGS) $(EXT_LDFLAGS)\n");
 
             fprintf(out, "\n");
             fprintf(out, "install: $(EXE_FILES)\n");
@@ -341,8 +341,8 @@ namespace lsp
 
             return res;
         }
-    }
-}
+    } /* namespace standalone_make */
+} /* namespace lsp */
 
 
 

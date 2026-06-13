@@ -42,13 +42,14 @@ namespace lsp
             pWrapper        = wrapper;
             pExt            = wrapper->extensions();
             fScaling        = -100.0f;
-            pParent         = NULL;
             pTransientFor   = NULL;
+            nLastWidth      = -1;
+            nLastHeight     = -1;
 
-            bUIInitialized  = false;
             bRequestProcess = false;
             bUIActive       = false;
             bRealizeActive  = false;
+            bDestroying     = false;
 
         #ifdef LSP_CLAP_OWN_EVENT_LOOP
             pUIThread       = NULL;
@@ -84,9 +85,9 @@ namespace lsp
             pDisplay->slots()->bind(tk::SLOT_IDLE, slot_display_idle, this);
             pDisplay->set_idle_interval(1000 / UI_FRAMES_PER_SECOND);
 
-            // Initialize the UI
-            if ((res = pUI->init(this)) != STATUS_OK)
-                return res;
+            // Initialize the UI early so gui.get_size() can report real dimensions.
+            if ((res = initialize_ui()) != STATUS_OK)
+                return false;
 
             return res;
         }
@@ -98,6 +99,11 @@ namespace lsp
 
         void UIWrapper::do_destroy()
         {
+            if (bDestroying)
+                return;
+
+            bDestroying     = true;
+
             // Update UI status
             bUIActive       = false;
             if (pWrapper != NULL)
@@ -105,9 +111,6 @@ namespace lsp
 
             // Stop the event loop
             stop_event_loop();
-
-            // Cleanup UI initialized flag
-            bUIInitialized  = false;
 
             // Destroy the transient window wrapper
             if (pTransientFor != NULL)
@@ -500,9 +503,14 @@ namespace lsp
 
         bool UIWrapper::accept_window_size(tk::Window *wnd, size_t width, size_t height)
         {
-            if ((pExt == NULL) || (wnd != wWindow))
+            if (wnd != wWindow)
                 return IWrapper::accept_window_size(wnd, width, height);
+            if ((bDestroying) || (pExt == NULL) || (pExt->gui == NULL))
+                return false;
 
+            lsp_trace("request_resize(%d, %d)", int(width), int(height));
+            nLastWidth  = width;
+            nLastHeight = height;
             return pExt->gui->request_resize(pExt->host, width, height);
         }
 
@@ -525,23 +533,29 @@ namespace lsp
 
         status_t UIWrapper::slot_ui_realized(tk::Widget *sender, void *ptr, void *data)
         {
+            const ws::rectangle_t *r = static_cast<ws::rectangle_t *>(data);
+            UIWrapper *self     = static_cast<UIWrapper *>(ptr);
+            if ((self == NULL) || (self->bDestroying) || (r == NULL))
+                return STATUS_OK;
+            if ((self->pExt == NULL) || (self->pExt->gui == NULL))
+                return STATUS_OK;
+
         #ifdef LSP_TRACE
             lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
-            const ws::rectangle_t *r = static_cast<ws::rectangle_t *>(data);
             lsp_trace("realized.w = %d, realized.h = %d", int(r->nWidth), int(r->nHeight));
         #endif /* LSP_TRACE */
 
-            UIWrapper *self     = static_cast<UIWrapper *>(ptr);
-            if (self->bRealizeActive)
+            if ((self->bRealizeActive) ||
+                ((self->nLastWidth == r->nWidth) && (self->nLastHeight == r->nHeight)))
                 return STATUS_OK;
-            self->bRealizeActive = true;
-            lsp_finally { self->bRealizeActive = false; };
 
-            tk::Window *wnd     = self->window();
-            ws::rectangle_t rr;
-            if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
-                return STATUS_OK;
-            self->pExt->gui->request_resize(self->pExt->host, rr.nWidth, rr.nHeight);
+            lsp_finally { self->bRealizeActive = false; };
+            self->bRealizeActive    = true;
+            self->nLastWidth        = r->nWidth;
+            self->nLastHeight       = r->nHeight;
+
+            lsp_trace("request_resize(%d, %d)", int(r->nWidth), int(r->nHeight));
+            self->pExt->gui->request_resize(self->pExt->host, r->nWidth, r->nHeight);
 
             return STATUS_OK;
         }
@@ -550,7 +564,9 @@ namespace lsp
         {
             lsp_trace("sender = %p, ptr = %p, data = %p", sender, ptr, data);
             UIWrapper *this_ = static_cast<UIWrapper *>(ptr);
-            if (this_->pExt != NULL)
+            if ((this_ == NULL) || (this_->bDestroying))
+                return STATUS_OK;
+            if ((this_->pExt != NULL) && (this_->pExt->gui != NULL))
                 this_->pExt->gui->closed(this_->pExt->host, false);
             return STATUS_OK;
         }
@@ -585,33 +601,33 @@ namespace lsp
             if (wnd->visibility()->get())
             {
                 ws::rectangle_t rr;
+                rr.nLeft        = 0;
+                rr.nTop         = 0;
                 rr.nWidth       = 0;
                 rr.nHeight      = 0;
 
-                if (wnd->get_screen_rectangle(&rr) != STATUS_OK)
-                    return false;
+                wnd->get_padded_rectangle(&rr);
 
                 // Return result
-                if (width != NULL)
-                    *width  = rr.nWidth;
-                if (height != NULL)
-                    *height = rr.nHeight;
+                nLastWidth      = rr.nWidth;
+                nLastHeight     = rr.nHeight;
             }
             else
             {
                 ws::size_limit_t sr;
-                wnd->get_size_limits(&sr);
+                wnd->get_padded_size_limits(&sr);
 
                 // Return result
-                if (width != NULL)
-                    *width  = lsp_min(sr.nMinWidth, 32);
-                if (height != NULL)
-                    *height = lsp_min(sr.nMinHeight, 32);
+                nLastWidth      = lsp_max(sr.nMinWidth, 32);
+                nLastHeight     = lsp_max(sr.nMinHeight, 32);
             }
 
-            lsp_trace("return width = %d, height = %d",
-                (width != NULL) ? int(*width) : 0,
-                (height != NULL) ? int(*height) : 0);
+            if (width != NULL)
+                *width  = uint32_t(nLastWidth);
+            if (height != NULL)
+                *height = uint32_t(nLastHeight);
+
+            lsp_trace("return width = %d, height = %d", int(nLastWidth), int(nLastHeight));
 
             return true;
         }
@@ -631,6 +647,9 @@ namespace lsp
 
         bool UIWrapper::get_resize_hints(clap_gui_resize_hints_t *hints)
         {
+            if (hints == NULL)
+                return false;
+
             tk::Window *wnd     = window();
             if (wnd == NULL)
                 return false;
@@ -655,6 +674,9 @@ namespace lsp
 
         bool UIWrapper::adjust_size(uint32_t *width, uint32_t *height)
         {
+            if ((width == NULL) || (height == NULL))
+                return false;
+
             tk::Window *wnd     = window();
             if (wnd == NULL)
                 return false;
@@ -666,23 +688,23 @@ namespace lsp
             ws::size_limit_t sr;
             wnd->get_padded_size_limits(&sr);
 
-            ws::rectangle_t r;
-            r.nLeft     = 0;
-            r.nTop      = 0;
-            r.nWidth    = *width;
-            r.nHeight   = *height;
+            ws::rectangle_t srq, drq;
+            srq.nLeft    = 0;
+            srq.nTop     = 0;
+            srq.nWidth   = *width;
+            srq.nHeight  = *height;
 
-            tk::SizeConstraints::apply(&r, &sr);
+            tk::SizeConstraints::apply(&drq, &srq, &sr);
 
             lsp_trace("adjust size width = %d -> %d, height = %d -> %d",
-                *width, int(r.nWidth),
-                *height, int(r.nHeight));
+                *width, int(drq.nWidth),
+                *height, int(drq.nHeight));
 
-            if ((r.nWidth > ssize_t(*width)) || (r.nHeight > ssize_t(*height)))
+            if ((drq.nWidth < 0) || (drq.nHeight < 0))
                 return false;
 
-            *width      = r.nWidth;
-            *height     = r.nHeight;
+            *width      = uint32_t(drq.nWidth);
+            *height     = uint32_t(drq.nHeight);
 
             return true;
         }
@@ -701,30 +723,31 @@ namespace lsp
             lsp_finally { sMutex.unlock(); };
 
             // Ensure that we can resize the window to the desired size
-            ws::rectangle_t r;
+            ws::rectangle_t srq, drq;
             ws::size_limit_t sr;
             wnd->get_padded_size_limits(&sr);
 
-            r.nLeft     = 0;
-            r.nTop      = 0;
-            r.nWidth    = width;
-            r.nHeight   = height;
+            srq.nLeft    = 0;
+            srq.nTop     = 0;
+            srq.nWidth   = width;
+            srq.nHeight  = height;
 
-            tk::SizeConstraints::apply(&r, &sr);
-            if ((r.nWidth > ssize_t(width)) || (r.nHeight > ssize_t(height)))
+            tk::SizeConstraints::apply(&drq, &srq, &sr);
+            if ((drq.nWidth != ssize_t(width)) || (drq.nHeight != ssize_t(height)))
             {
-//                lsp_trace("failed size check: r.nWidth=%d, width=%d, r.nHeight=%d, height=%d",
-//                    int(r.nWidth), int(width), int(r.nHeight), int(height));
+                lsp_trace("failed size check: width=%d -> %d, height=%d -> %d",
+                    int(width), int(drq.nWidth), int(height), int(drq.nHeight));
                 return false;
             }
 
             // Check that we need to resize window
-            wnd->get_padded_screen_rectangle(&r);
-            if ((r.nWidth != ssize_t(width)) && (r.nHeight != ssize_t(height)))
+            ws::rectangle_t r;
+            wnd->get_padded_rectangle(&r);
+            if ((r.nWidth != drq.nWidth) || (r.nHeight != drq.nHeight))
             {
                 lsp_trace("width = %d -> %d, height = %d -> %d, call for resize",
-                    int(width), int(r.nWidth), int(height), int(r.nHeight));
-                wnd->resize_window(width, height);
+                    int(r.nWidth), int(drq.nWidth), int(r.nHeight), int(drq.nHeight));
+                wnd->resize_window(drq.nWidth, drq.nHeight);
             }
 
             return true;
@@ -732,6 +755,9 @@ namespace lsp
 
         void *UIWrapper::to_native_handle(const clap_window_t *window)
         {
+            if (window == NULL)
+                return NULL;
+
         #if defined(PLATFORM_WINDOWS)
             return static_cast<void *>(window->win32);
         #elif defined(PLATFORM_MACOSX)
@@ -741,10 +767,25 @@ namespace lsp
         #endif
         }
 
-        bool UIWrapper::set_parent(const clap_window_t *window)
+        bool UIWrapper::set_parent(const clap_window_t *clap_window)
         {
-            pParent     = to_native_handle(window);
-            return initialize_ui();
+            if (clap_window == NULL)
+                return false;
+
+            tk::Window * const wnd  = window();
+            if (wnd == NULL)
+                return false;
+
+            if (!sMutex.lock())
+                return false;
+            lsp_finally { sMutex.unlock(); };
+
+            status_t res = wnd->native()->set_parent(to_native_handle(clap_window));
+            if (res != STATUS_OK)
+                return false;
+
+            wnd->position()->set(0, 0);
+            return true;
         }
 
         bool UIWrapper::set_transient(const clap_window_t *window)
@@ -774,21 +815,23 @@ namespace lsp
             wnd->title()->set_raw(title);
         }
 
-        bool UIWrapper::initialize_ui()
+        status_t UIWrapper::initialize_ui()
         {
-            if (bUIInitialized)
-                return true;
-
             lsp_trace("Initializing UI contents");
 
             status_t res = STATUS_OK;
+
+            // Initialize the UI
+            if ((res = pUI->init(this)) != STATUS_OK)
+                return res;
+
             const meta::plugin_t *meta = pUI->metadata();
             if (pUI->metadata() == NULL)
-                return false;
+                return STATUS_BAD_STATE;
 
             if (meta->ui_resource != NULL)
             {
-                if ((res = build_ui(meta->ui_resource, pParent)) != STATUS_OK)
+                if ((res = build_ui(meta->ui_resource, NULL)) != STATUS_OK)
                 {
                     lsp_error("Error building UI for resource %s: code=%d", meta->ui_resource, int(res));
                     return false;
@@ -808,10 +851,9 @@ namespace lsp
             // Call the post-initialization routine
             lsp_trace("Doing post-init");
             res = pUI->post_init();
-            bUIInitialized = (res == STATUS_OK);
-            lsp_trace("bUIInitialized = %d, res=%d", int(bUIInitialized), int(res));
+            lsp_trace("result=%d", int(res));
 
-            return bUIInitialized;
+            return res;
         }
 
         bool UIWrapper::ui_active() const
@@ -836,16 +878,18 @@ namespace lsp
 
         bool UIWrapper::show()
         {
-            // Lazy initialize the UI ONLY after whe have the parent/transient settings
-            if (!initialize_ui())
+            // Process all pending events before starting the display and show the window
+            tk::Display * const dpy = display();
+            if (dpy == NULL)
                 return false;
-
-            tk::Window *wnd  = window();
+            tk::Window * const wnd  = window();
             if (wnd == NULL)
                 return false;
 
-            // Show the window and start event loop
+            dpy->process_pending_events();
             wnd->show(pTransientFor);
+
+            // Start the event loop
             bool res    = start_event_loop();
             if (!res)
             {
@@ -864,7 +908,10 @@ namespace lsp
             if ((sr.nMinWidth >= 0) && (sr.nMinHeight >= 0))
             {
                 lsp_trace("request_resize(%d, %d)", int(sr.nMinWidth), int(sr.nMinHeight));
-                pExt->gui->request_resize(pExt->host, sr.nMinWidth, sr.nMinHeight);
+                nLastWidth  = sr.nMinWidth;
+                nLastHeight = sr.nMinHeight;
+                if ((pExt != NULL) && (pExt->gui != NULL))
+                    pExt->gui->request_resize(pExt->host, sr.nMinWidth, sr.nMinHeight);
             }
 
             // Fetch preset state
@@ -887,17 +934,22 @@ namespace lsp
             if (pWrapper != NULL)
                 pWrapper->ui_visibility_changed();
 
+            // Hide the window
+            tk::Window * const wnd = window();
+            if (wnd != NULL)
+            {
+                sMutex.lock();
+                lsp_finally { sMutex.unlock(); };
+                wnd->hide();
+            }
+
             // Stop the event loop
             stop_event_loop();
 
-            // Do the sync barrier
-            sMutex.lock();
-            lsp_finally { sMutex.unlock(); };
-
-            // Hide the window
-            tk::Window *wnd = window();
-            if (wnd != NULL)
-                wnd->hide();
+            // Process pending events
+            tk::Display * const dpy = display();
+            if (dpy != NULL)
+                dpy->process_pending_events();
 
             return true;
         }
@@ -905,7 +957,7 @@ namespace lsp
         status_t UIWrapper::slot_display_idle(tk::Widget *sender, void *ptr, void *data)
         {
             UIWrapper *self = static_cast<UIWrapper *>(ptr);
-            if (self != NULL)
+            if ((self != NULL) && (!self->bDestroying))
                 self->main_iteration();
 
             return STATUS_OK;

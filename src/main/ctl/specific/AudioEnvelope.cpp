@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins
  * Created on: 9 июн. 2025 г.
@@ -20,6 +20,8 @@
  */
 
 #include <lsp-plug.in/plug-fw/ctl.h>
+
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/dsp-units/util/ADSREnvelope.h>
 
 namespace lsp
@@ -68,8 +70,9 @@ namespace lsp
 
                     p->pPort        = NULL;
                     p->pValue       = NULL;
-                    p->fOldValue    = 0.0f;
-                    p->fNewValue    = 0.0f;
+                    p->fValue       = 0.0f;
+                    p->bChanged     = false;
+                    p->bSync        = false;
                 }
 
                 vTypes[i]           = NULL;
@@ -222,9 +225,9 @@ namespace lsp
                     if ((p->pPort == NULL) || (p->pValue == NULL))
                         continue;
 
-                    const float value = get_normalized(p->pPort);
-                    p->fOldValue    = value;
-                    p->fNewValue    = value;
+                    p->fValue       = get_normalized(p->pPort);
+                    p->bSync        = true;
+                    p->bChanged     = false;
                 }
 
             // Align time points
@@ -243,9 +246,12 @@ namespace lsp
                 if (p->pPort == NULL)
                     continue;
 
-                p->fNewValue    = lsp_limit(p->fNewValue, 0.0f, 1.0f);
-                if ((prev != NULL) && (p->fNewValue < prev->fNewValue))
-                    p->fNewValue    = prev->fNewValue;
+                const float v   = p->fValue;
+                p->fValue       = lsp_limit(p->fValue, 0.0f, 1.0f);
+                if ((prev != NULL) && (p->fValue < prev->fValue))
+                    p->fValue       = prev->fValue;
+                if (v != p->fValue)
+                    p->bChanged     = true;
 
                 prev            = p;
             }
@@ -267,8 +273,11 @@ namespace lsp
                     if ((p->pPort == NULL) || (p->pValue == NULL))
                         continue;
 
-                    if (p->fNewValue != p->pValue->get())
-                        p->pValue->set(p->fNewValue);
+                    if ((p->bChanged) || (p->bSync))
+                    {
+                        p->pValue->set(p->fValue);
+                        p->bSync    = false;
+                    }
                 }
         }
 
@@ -281,14 +290,16 @@ namespace lsp
                 if (dst->pPort == NULL)
                     continue;
 
-                if ((dst < actor) && (dst->fNewValue > actor->fNewValue))
+                if ((dst < actor) && (dst->fValue > actor->fValue))
                 {
-                    dst->fNewValue      = actor->fNewValue;
+                    dst->fValue         = actor->fValue;
+                    dst->bChanged       = true;
                     changed             = true;
                 }
-                else if ((dst > actor) && (dst->fNewValue < actor->fNewValue))
+                else if ((dst > actor) && (dst->fValue < actor->fValue))
                 {
-                    dst->fNewValue      = actor->fNewValue;
+                    dst->fValue         = actor->fValue;
+                    dst->bChanged       = true;
                     changed             = true;
                 }
             }
@@ -297,6 +308,10 @@ namespace lsp
 
         void AudioEnvelope::notify(ui::IPort *port, size_t flags)
         {
+            // Avoid recursive calls
+            if (bSubmitting)
+                return;
+
             // Update state of points
             bool changed = false;
             for (size_t i=0; i<P_TOTAL; ++i)
@@ -307,7 +322,15 @@ namespace lsp
                     if ((p->pPort != port) || (p->pValue == NULL))
                         continue;
 
-                    p->fNewValue    = get_normalized(p->pPort);
+                    lsp_trace("%s = %f", p->pPort->id(), p->pPort->value());
+
+                    const float v   = get_normalized(p->pPort);
+                    if (p->fValue == v)
+                        continue;
+
+                    p->fValue       = v;
+                    p->bSync        = true;
+
                     if (j == R_TIME)
                     {
                         changed         = true;
@@ -335,6 +358,7 @@ namespace lsp
             // Avoid recursive calls
             if (bSubmitting)
                 return;
+
             bSubmitting = true;
             lsp_finally { bSubmitting = false; };
 
@@ -346,9 +370,8 @@ namespace lsp
                     if ((p->pPort == NULL) || (p->pValue == NULL))
                         continue;
 
-                    p->fNewValue = p->pValue->get();
-                    if (p->fNewValue != p->fOldValue)
-                        set_normalized(p->pPort, p->fNewValue);
+                    if (p->bChanged)
+                        set_normalized(p->pPort, p->fValue);
                 }
 
             // Commit new values and notify about changes
@@ -359,12 +382,10 @@ namespace lsp
                     if ((p->pPort == NULL) || (p->pValue == NULL))
                         continue;
 
-                    if (p->fNewValue != p->fOldValue)
+                    if (p->bChanged)
                     {
                         const float value   = get_normalized(p->pPort);
-                        p->fNewValue        = value;
-                        p->fOldValue        = value;
-
+                        p->fValue           = value;
                         p->pPort->notify_all(ui::PORT_USER_EDIT);
                     }
                 }
@@ -373,7 +394,7 @@ namespace lsp
         size_t AudioEnvelope::get_function(points_t point)
         {
             ui::IPort *port = vTypes[point];
-            return (port != NULL) ? port->value() : dspu::ADSREnvelope::ADSR_NONE;
+            return (port != NULL) ? size_t(port->value()) : size_t(dspu::ADSREnvelope::ADSR_NONE);
         }
 
         void AudioEnvelope::curve_function(float *y, const float *x, size_t count, const tk::AudioEnvelope *sender, void *data)
@@ -432,7 +453,8 @@ namespace lsp
                     if ((p->pPort == NULL) || (p->pValue == NULL))
                         continue;
 
-                    p->pPort->begin_edit();
+                    if (p->bChanged)
+                        p->pPort->begin_edit();
                 }
         }
 
@@ -446,7 +468,11 @@ namespace lsp
                     if ((p->pPort == NULL) || (p->pValue == NULL))
                         continue;
 
-                    p->pPort->end_edit();
+                    if (p->bChanged)
+                    {
+                        p->pPort->end_edit();
+                        p->bChanged     = false;
+                    }
                 }
         }
 

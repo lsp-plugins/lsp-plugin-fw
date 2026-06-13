@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 февр. 2022 г.
@@ -171,7 +171,7 @@ namespace lsp
                 return res;
             if ((res = s->prop_string("gst_uid", gst_uid)) != STATUS_OK)
                 return res;
-            if ((res = s->prop_bool("jack", true)) != STATUS_OK)
+            if ((res = s->prop_bool("standalone", true)) != STATUS_OK)
                 return res;
             if ((res = s->write_property("groups")) != STATUS_OK)
                 return res;

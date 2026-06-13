@@ -94,6 +94,8 @@ namespace lsp
                 // Bind slots
                 lbox->slots()->bind(tk::SLOT_SUBMIT, slot_submit, this);
                 lbox->slots()->bind(tk::SLOT_CHANGE, slot_change, this);
+                lbox->slots()->bind(tk::SLOT_MOUSE_DBL_CLICK, slot_dbl_click, this);
+                lbox->slots()->bind(tk::SLOT_KEY_DOWN, slot_key_down, this);
 
                 sAutoLoad.parse(":" UI_FILELIST_NAVIGATION_AUTOLOAD_PORT);
                 sAutoPlay.parse(":" UI_FILELIST_NAVIGATION_AUTOPLAY_PORT);
@@ -273,7 +275,7 @@ namespace lsp
             inject_style(wWidget, (bActive) ? AFOLDER_STYLE_ACTIVE : AFOLDER_STYLE_INACTIVE);
         }
 
-        void AudioFolder::apply_action()
+        void AudioFolder::apply_action(bool load, bool play)
         {
             if ((!bActive) || (pPort == NULL))
                 return;
@@ -302,11 +304,14 @@ namespace lsp
                 return;
 
             // Apply changes
-            pWrapper->play_file(NULL, 0, false);
-            if (bAutoPlay)
-                pWrapper->play_file(buf, 0, true);
+            if (play)
+            {
+                pWrapper->play_file(NULL, 0, false);
+                if (bAutoPlay)
+                    pWrapper->play_file(buf, 0, true);
+            }
 
-            if (bAutoLoad)
+            if (load)
             {
                 pPort->begin_edit();
                 pPort->write(buf, strlen(buf));
@@ -327,23 +332,51 @@ namespace lsp
 
         status_t AudioFolder::slot_submit(tk::Widget *sender, void *ptr, void *data)
         {
-            ctl::AudioFolder *self      = static_cast<ctl::AudioFolder *>(ptr);
+            ctl::AudioFolder * const self   = static_cast<ctl::AudioFolder *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
 
             if ((self->bAutoLoad) || (self->bAutoPlay))
-                self->apply_action();
+                self->apply_action(self->bAutoLoad, self->bAutoPlay);
+            return STATUS_OK;
+        }
+
+        status_t AudioFolder::slot_dbl_click(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::AudioFolder * const self   = static_cast<ctl::AudioFolder *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            const ws::event_t * const ev = static_cast<ws::event_t *>(data);
+            if (ev->nCode == ws::MCB_LEFT)
+                self->apply_action(true, false);
             return STATUS_OK;
         }
 
         status_t AudioFolder::slot_change(tk::Widget *sender, void *ptr, void *data)
         {
-            ctl::AudioFolder *self      = static_cast<ctl::AudioFolder *>(ptr);
+            ctl::AudioFolder * const self   = static_cast<ctl::AudioFolder *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
 
             if ((self->bAutoLoad) || (self->bAutoPlay))
-                self->apply_action();
+                self->apply_action(self->bAutoLoad, self->bAutoPlay);
+            return STATUS_OK;
+        }
+
+        status_t AudioFolder::slot_key_down(tk::Widget *sender, void *ptr, void *data)
+        {
+            ctl::AudioFolder * const self   = static_cast<ctl::AudioFolder *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            const ws::event_t * const ev = static_cast<ws::event_t *>(data);
+            if ((ev->nCode == ws::WSK_KEYPAD_ENTER) ||
+                (ev->nCode == ws::WSK_RETURN))
+                self->apply_action(true, false);
+            else if ((ev->nCode == ' ') ||
+                (ev->nCode == ws::WSK_KEYPAD_SPACE))
+                self->apply_action(false, true);
             return STATUS_OK;
         }
 

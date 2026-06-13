@@ -240,19 +240,20 @@
     { NULL, NULL, NULL }
 
 // Reduced ports
-#define AUDIO_INPUT_MONO    AUDIO_INPUT(PORT_NAME_INPUT, "Input")
-#define AUDIO_INPUT_LEFT    AUDIO_INPUT(PORT_NAME_INPUT_L, "Input L")
-#define AUDIO_INPUT_RIGHT   AUDIO_INPUT(PORT_NAME_INPUT_R, "Input R")
-#define AUDIO_INPUT_A       AUDIO_INPUT("in_a", "Input A")
-#define AUDIO_INPUT_B       AUDIO_INPUT("in_b", "Input B")
-#define AUDIO_INPUT_N(n)    AUDIO_INPUT("in" #n, "Input " #n)
+#define AUDIO_INPUT_MONO        AUDIO_INPUT(PORT_NAME_INPUT, "Input")
+#define AUDIO_INPUT_LEFT        AUDIO_INPUT(PORT_NAME_INPUT_L, "Input L")
+#define AUDIO_INPUT_RIGHT       AUDIO_INPUT(PORT_NAME_INPUT_R, "Input R")
+#define AUDIO_INPUT_A           AUDIO_INPUT("in_a", "Input A")
+#define AUDIO_INPUT_B           AUDIO_INPUT("in_b", "Input B")
+#define AUDIO_INPUT_N(n)        AUDIO_INPUT("in" #n, "Input " #n)
+#define AUDIO_INPUT_NM(n, m)    AUDIO_INPUT("in" #n, "Input " #m)
 
-#define AUDIO_OUTPUT_MONO   AUDIO_OUTPUT(PORT_NAME_OUTPUT, "Output")
-#define AUDIO_OUTPUT_LEFT   AUDIO_OUTPUT(PORT_NAME_OUTPUT_L, "Output L")
-#define AUDIO_OUTPUT_RIGHT  AUDIO_OUTPUT(PORT_NAME_OUTPUT_R, "Output R")
-#define AUDIO_OUTPUT_A      AUDIO_OUTPUT("out_a", "Output A")
-#define AUDIO_OUTPUT_B      AUDIO_OUTPUT("out_b", "Output B")
-#define AUDIO_OUTPUT_N(n)   AUDIO_OUTPUT("out" #n, "Output " #n)
+#define AUDIO_OUTPUT_MONO       AUDIO_OUTPUT(PORT_NAME_OUTPUT, "Output")
+#define AUDIO_OUTPUT_LEFT       AUDIO_OUTPUT(PORT_NAME_OUTPUT_L, "Output L")
+#define AUDIO_OUTPUT_RIGHT      AUDIO_OUTPUT(PORT_NAME_OUTPUT_R, "Output R")
+#define AUDIO_OUTPUT_A          AUDIO_OUTPUT("out_a", "Output A")
+#define AUDIO_OUTPUT_B          AUDIO_OUTPUT("out_b", "Output B")
+#define AUDIO_OUTPUT_NM(n, m)   AUDIO_OUTPUT("out" #n, "Output " #m)
 
 #define AUDIO_INPUT_STEREO \
     AUDIO_INPUT_LEFT, \

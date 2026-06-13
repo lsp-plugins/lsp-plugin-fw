@@ -116,6 +116,21 @@ namespace lsp
          */
         void init_preset_data(preset_data_t *data);
 
+        /**
+         * Get location of user's preset files
+         * @param path pointer to store location of user's preset files
+         * @return status of operation
+         */
+        status_t get_user_presets_path(io::Path *path);
+
+        /**
+         * Get path of the directory to store plugin's presets
+         * @param path pointer to store location of plugins's preset directory
+         * @param uid unique plugin identifier
+         * @return status of operation
+         */
+        status_t get_plugin_presets_path(io::Path *path, const char *uid);
+
     } /* namespace core */
 } /* namespace lsp */
 

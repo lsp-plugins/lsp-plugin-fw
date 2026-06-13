@@ -2,6 +2,28 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.37 ===
+* Added previous and next preset selection in the preset window.
+* Fixed generic UI failure for CLAP: removed normalization for discrete parameters.
+* Updated makefiles to not to clash with launcher tool on MacOS.
+* Some fixes arount CLAP plugin format for better support of MacOS (contributed
+  by Benjamin Zeiss @ GitHub).
+* Fixed metadata generation of VST3 binaries for MacOS (contributed by bzeiss @ GitHub).
+* Added caller thread description for each plugin's method.
+* Updated build system: ASAN, CROSS_COMPILE, DEBUG, DEVEL, PROFILE, STRICT,
+  TEST, TRACE makefile flags replaced with 'asan', 'crosscompile', 'debug',
+  'devel', 'profile', 'strict', 'test' and 'trace' FEATURE flags.
+* Improved UI initialization for CLAP format.
+* Updated CLAP DSO de-initialization flow.
+* Fixed out-of-sync event handling for CLAP and VST2 extra UI run loop under
+  Linux when hiding and showing plugin window.
+* Renamed 'jack' feature to 'standalone'.
+* Moved JACK-related code into a separate JACK backend, feature 'jack'.
+* Updated behaviour of the AudioSample controller when displaying load status.
+* Fixed some bugs in AudioEnvelope controller.
+* Added support of PipeWire audio backend, new feature 'pipewire'.
+* Updated module versions in dependencies.
+
 === 1.0.36 ===
 * Fixed test build.
 * Fixed regression related to UI scaling and font scaling.

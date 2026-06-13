@@ -65,7 +65,12 @@ namespace lsp
 
             public:
                 explicit                ComboGroup(ui::IWrapper *wrapper, tk::ComboGroup *cgroup);
-                virtual                ~ComboGroup();
+                ComboGroup(const ComboGroup &) = delete;
+                ComboGroup(ComboGroup &&) = delete;
+                virtual                ~ComboGroup() override;
+
+                ComboGroup & operator = (const ComboGroup &) = delete;
+                ComboGroup & operator = (ComboGroup &&) = delete;
 
                 virtual status_t        init() override;
 

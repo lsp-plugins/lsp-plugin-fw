@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2021 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 22 янв. 2021 г.
@@ -19,24 +19,24 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_MAIN_H_
+#define LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_MAIN_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 
-#ifndef LSP_PLUG_IN_JACK_MAIN_IMPL
+#ifndef LSP_PLUG_IN_STANDALONE_MAIN_IMPL
     #error "This header should not be included directly"
-#endif /* LSP_PLUG_IN_JACK_MAIN_IMPL */
+#endif /* LSP_PLUG_IN_STANDALONE_MAIN_IMPL */
 
-#ifndef JACK_PLUGIN_UID
+#ifndef STANDALONE_PLUGIN_UID
     #error "Plugin metadata identifier not defined"
-#endif /* JACK_PLUGIN_UID */
+#endif /* STANDALONE_PLUGIN_UID */
 
 #if defined(PLATFORM_WINDOWS)
-    #include <lsp-plug.in/plug-fw/wrap/jack/main/winnt.h>
+    #include <lsp-plug.in/plug-fw/wrap/standalone/main/winnt.h>
 #else
-    #include <lsp-plug.in/plug-fw/wrap/jack/main/posix.h>
+    #include <lsp-plug.in/plug-fw/wrap/standalone/main/posix.h>
 #endif /* PLATFORM_WINDOWS */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_JACK_MAIN_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_STANDALONE_MAIN_H_ */

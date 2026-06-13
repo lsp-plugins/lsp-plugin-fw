@@ -549,7 +549,10 @@ namespace lsp
             if (isPlatformTypeSupported(type) != Steinberg::kResultTrue)
                 return Steinberg::kResultFalse;
 
+            // Re-register new run loop and process pending events
             unregister_run_loop();
+            if (pDisplay != NULL)
+                pDisplay->process_pending_events();
             register_run_loop();
 
             // Show the window
@@ -570,7 +573,10 @@ namespace lsp
         {
             lsp_trace("this=%p", this);
 
+            // Unregister run loop and process all pending events
             unregister_run_loop();
+            if (pDisplay != NULL)
+                pDisplay->process_pending_events();
 
             // Hide the window
             if (wWindow == NULL)

@@ -40,7 +40,7 @@ namespace lsp
             PLUGIN_UNKNOWN,
             PLUGIN_CLAP,
             PLUGIN_GSTREAMER,
-            PLUGIN_JACK,
+            PLUGIN_STANDALONE,
             PLUGIN_LADSPA,
             PLUGIN_LV2,
             PLUGIN_VST2,

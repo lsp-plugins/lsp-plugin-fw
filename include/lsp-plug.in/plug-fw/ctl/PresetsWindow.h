@@ -113,6 +113,7 @@ namespace lsp
                 static status_t     slot_preset_select(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_dbl_click(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_preset_tab_selected(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_select_next_preset(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t     slot_refresh_preset_list(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_reset_settings(tk::Widget *sender, void *ptr, void *data);
@@ -153,7 +154,7 @@ namespace lsp
                 void                sync_preset_lists();
                 void                sync_preset_tab();
                 void                do_destroy();
-                void                select_active_preset(const ui::preset_t *preset, bool force);
+                void                select_active_preset(const ui::preset_t *preset, bool force, bool close);
                 bool                has_path_ports();
                 bool                request_change_preset_conrifmation(const ui::preset_t *preset);
                 bool                request_reset_state_confirmation();
@@ -190,7 +191,7 @@ namespace lsp
                 status_t            import_settings_from_clipboard();
                 status_t            export_settings_to_clipboard();
                 status_t            reset_settings();
-                void                select_next_preset(bool forward);
+                void                select_next_preset(bool forward, bool close);
         };
 
 

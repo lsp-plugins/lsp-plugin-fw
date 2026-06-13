@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -1429,7 +1429,7 @@ namespace lsp
             {
                 case PLUGIN_CLAP:       return "CLAP";
                 case PLUGIN_GSTREAMER:  return "GST";
-                case PLUGIN_JACK:       return "JACK";
+                case PLUGIN_STANDALONE: return "Standalone";
                 case PLUGIN_LADSPA:     return "LADSPA";
                 case PLUGIN_LV2:        return "LV2";
                 case PLUGIN_VST2:       return "VST2";

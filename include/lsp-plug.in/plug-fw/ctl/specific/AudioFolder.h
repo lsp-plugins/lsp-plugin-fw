@@ -59,6 +59,8 @@ namespace lsp
             protected:
                 static status_t     slot_submit(tk::Widget *sender, void *ptr, void *data);
                 static status_t     slot_change(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_dbl_click(tk::Widget *sender, void *ptr, void *data);
+                static status_t     slot_key_down(tk::Widget *sender, void *ptr, void *data);
 
             protected:
                 void                sync_state();
@@ -66,7 +68,7 @@ namespace lsp
                 void                sync_auto_play();
                 void                set_activity(bool active);
                 void                update_styles();
-                void                apply_action();
+                void                apply_action(bool load, bool play);
                 bool                sync_list();
 
             public:
