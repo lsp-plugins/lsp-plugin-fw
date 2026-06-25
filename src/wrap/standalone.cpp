@@ -1114,7 +1114,8 @@ namespace lsp
             if (jw->disconnected())
             {
             #ifdef WITH_UI_FEATURE
-                uw->set_connection_status(jw->selected_backend(), false);
+                if (uw != NULL)
+                    uw->set_connection_status(jw->selected_backend(), false);
             #endif /* WITH_UI_FEATURE */
 
                 // Try each second to make new connection
@@ -1134,7 +1135,8 @@ namespace lsp
         #ifdef WITH_UI_FEATURE
             if (jw->connected())
             {
-                uw->set_connection_status(jw->selected_backend(), true);
+                if (uw != NULL)
+                    uw->set_connection_status(jw->selected_backend(), true);
 
                 // Sync state (transfer DSP to UI)
                 if (uw != NULL)

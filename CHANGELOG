@@ -3,7 +3,8 @@
 *******************************************************************************
 
 === 1.0.39 ===
-
+* Fixed regression that caused a crash when launching standalone plugins
+  in headless mode.
 
 === 1.0.38 ===
 * Updated module versions in dependencies.
