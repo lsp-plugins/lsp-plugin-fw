@@ -242,9 +242,9 @@ ifeq ($(PLATFORM),Linux)
   else ifeq ($(ARCHITECTURE_FAMILY),x86_64)
     VST3_ARCH              := x86_64-linux
   else ifeq ($(ARCHITECTURE_FAMILY),arm32)
-    VST3_ARCH              := armv7l-linux
+    VST3_ARCH              := arm-linux
   else ifeq ($(ARCHITECTURE_FAMILY),aarch64)
-    VST3_ARCH              := armv8l-linux
+    VST3_ARCH              := aarch64-linux
   else
     VST3_ARCH              := $(shell uname -m)-linux
   endif
