@@ -250,6 +250,14 @@ namespace lsp
             status_t res;
             if ((res = core::get_user_config_path(&path)) != STATUS_OK)
                 return res;
+            if (!path.exists())
+            {
+                if ((res = path.mkdir(true)) != STATUS_OK)
+                {
+                    lsp_warn("Failed to recursively create directory '%s': code=%d", path.as_native(), int(res));
+                    return res;
+                }
+            }
             if ((res = lock.set(&path)) != STATUS_OK)
                 return res;
             if ((res = path.append_child(GLOBAL_CONFIG_FILE_NAME)) != STATUS_OK)
