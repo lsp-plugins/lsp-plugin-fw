@@ -222,15 +222,19 @@ PLUGIN_SHARED_NAME     ?= $($(ROOT_ARTIFACT_ID)_NAME)
 INSTALL_LIBDIR         := $($(ROOT_ARTIFACT_ID)_NAME)
 INSTALL_GROUP_LIBDIR   := $(if $(PLUGIN_GROUP_NAME),$(PLUGIN_GROUP_NAME),$(INSTALL_LIBDIR))
 
-CLAP_LIBDIR            := $(LIBDIR)/clap
 GST_LIBDIR             := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
 STANDALONE_LIBDIR      := $(LIBDIR)/$(INSTALL_GROUP_LIBDIR)
-LADSPA_LIBDIR          := $(LIBDIR)/ladspa
-LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
 ifeq ($(PLATFORM),MacOS)
-  VST2_LIBDIR            := /Library/Audio/Plug-Ins/VST/$(INSTALL_LIBDIR).vst
-  VST3_LIBDIR            := /Library/Audio/Plug-Ins/VST3/$(INSTALL_LIBDIR).vst3
+  MACOS_PLUGIN_LIBDIR    := /Library/Audio/Plug-Ins
+  LADSPA_LIBDIR          := $(MACOS_PLUGIN_LIBDIR)/LADSPA
+  CLAP_LIBDIR            := $(MACOS_PLUGIN_LIBDIR)/CLAP
+  LV2_LIBDIR             := $(MACOS_PLUGIN_LIBDIR)/LV2/$(INSTALL_LIBDIR).lv2
+  VST2_LIBDIR            := $(MACOS_PLUGIN_LIBDIR)/VST/$(INSTALL_LIBDIR).vst
+  VST3_LIBDIR            := $(MACOS_PLUGIN_LIBDIR)/VST3/$(INSTALL_LIBDIR).vst3
 else
+  CLAP_LIBDIR            := $(LIBDIR)/clap
+  LADSPA_LIBDIR          := $(LIBDIR)/ladspa
+  LV2_LIBDIR             := $(LIBDIR)/lv2/$(INSTALL_LIBDIR).lv2
   VST2_LIBDIR            := $(LIBDIR)/vst/$(INSTALL_LIBDIR).vst
   VST3_LIBDIR            := $(LIBDIR)/vst3/$(INSTALL_LIBDIR).vst3
 endif

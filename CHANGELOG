@@ -6,6 +6,7 @@
 * Fixed regression that caused a crash when launching standalone plugins
   in headless mode.
 * Fixed VST3 paths for 32-bit and 64-bit ARM architectures.
+* Updated installation paths of LV2, LADSPA and CLAP plugins for MacOS.
 
 === 1.0.38 ===
 * Updated module versions in dependencies.
