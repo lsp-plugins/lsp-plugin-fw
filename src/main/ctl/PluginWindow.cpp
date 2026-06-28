@@ -298,6 +298,9 @@ namespace lsp
             sync_language_selection();
             sync_visual_schemas();
 
+            // Backend selection
+            bind_trigger("backend_name", tk::SLOT_MOUSE_CLICK, slot_show_backend_selection_menu);
+
             // Notify other parameters
             if (pInvertVScroll != NULL)
                 pInvertVScroll->notify_all(ui::PORT_NONE);
@@ -1228,6 +1231,7 @@ namespace lsp
 
             // Sync audio backend selection
             sync_audio_selection();
+            wBackendSelection       = menu;
 
             return STATUS_OK;
         }
@@ -1708,14 +1712,20 @@ namespace lsp
 
         status_t PluginWindow::slot_show_main_menu(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            return __this->show_menu(__this->wMenu, sender, data);
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
+            return self->show_menu(self->wMenu, sender, data);
         }
 
         status_t PluginWindow::slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            return __this->show_menu(__this->wPresets, sender, data);
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
+            return self->show_menu(self->wPresets, sender, data);
+        }
+
+        status_t PluginWindow::slot_show_backend_selection_menu(tk::Widget *sender, void *ptr, void *data)
+        {
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
+            return self->show_menu(self->wBackendSelection, sender, data);
         }
 
         status_t PluginWindow::slot_select_next_preset(tk::Widget *sender, void *ptr, void *data)
@@ -1758,9 +1768,9 @@ namespace lsp
 
         status_t PluginWindow::slot_greeting_close(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *__this = static_cast<PluginWindow *>(ptr);
-            if (__this->wGreeting != NULL)
-                __this->wGreeting->visibility()->set(false);
+            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            if (self->wGreeting != NULL)
+                self->wGreeting->visibility()->set(false);
             return STATUS_OK;
         }
 

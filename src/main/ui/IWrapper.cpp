@@ -3247,9 +3247,9 @@ namespace lsp
         {
             if (name == NULL)
                 return STATUS_BAD_ARGUMENTS;
-            LSPString opt;
-            if (options != NULL)
-                options = &opt;
+            LSPString empty;
+            if (options == NULL)
+                options = &empty;
             return select_backend(*name, *options);
         }
 
