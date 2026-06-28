@@ -122,7 +122,7 @@ namespace lsp
                 };
 
                 const size_t buffer_size    = back->sIOParams.buffer_size;
-                const float period          = float(back->sIOParams.sample_rate) / float(buffer_size);
+                const float period          = float(buffer_size * 1000.0f) / float(back->sIOParams.sample_rate);
                 float delta                 = 0.0f;
                 system::time_millis_t start = system::get_time_millis();
 
