@@ -359,7 +359,7 @@ namespace lsp
             // Obtain the connection to the backend
             audio::connection_params_t params;
             params.client_name      = (sClientName != NULL) ? sClientName : pPlugin->metadata()->uid;
-            params.url              = NULL;
+            params.url              = sBackendOptions.get_utf8();
 
             // Establish connection to the backend
             if ((res = pBackend->connect(pBackend, &params, &callbacks, this)) != STATUS_OK)
@@ -741,30 +741,36 @@ namespace lsp
             return NULL;
         }
 
-        status_t Wrapper::select_backend(const char *id)
+        status_t Wrapper::select_backend(const char *id, const char *options)
         {
-            LSPString back_id;
+            LSPString back_id, opt;
             if (id != NULL)
             {
                 if (!back_id.set_native(id))
                     return STATUS_NO_MEM;
             }
-            return select_backend(back_id);
-        }
-
-        status_t Wrapper::select_backend(const LSPString *id)
-        {
-            if (id == NULL)
+            if (options != NULL)
             {
-                LSPString empty;
-                return select_backend(empty);
+                if (!opt.set_native(options))
+                    return STATUS_NO_MEM;
             }
-
-            return select_backend(*id);
+            return select_backend(back_id, opt);
         }
 
-        status_t Wrapper::select_backend(const LSPString & id)
+        status_t Wrapper::select_backend(const LSPString *id, const LSPString *options)
         {
+            LSPString empty;
+            if (id == NULL)
+                id = &empty;
+            if (options == NULL)
+                options = &empty;
+
+            return select_backend(*id, *options);
+        }
+
+        status_t Wrapper::select_backend(const LSPString & id, const LSPString & options)
+        {
+            // Verify arguments
             const core::AudioBackendInfo * const info =
                 ((id.is_empty()) || (id.equals_ascii("auto"))) ?
                     select_default_backend() :
@@ -772,10 +778,15 @@ namespace lsp
             if (info == NULL)
                 return STATUS_NOT_FOUND;
 
-            if (info == pBackendInfo)
+            // Ensure that configuration did not change
+            if ((info == pBackendInfo) && (options.equals(&sBackendOptions)))
                 return STATUS_OK;
 
+            // Set-up parameters
             const bool need_connect = (pBackend != NULL);
+            LSPString opts;
+            if (!opts.set(&options))
+                return STATUS_NO_MEM;
 
             // We need to disconnect and destroy previously used backend
             if (need_connect)
@@ -783,6 +794,7 @@ namespace lsp
 
             // Change current backend descriptor to new one
             pBackendInfo     = info;
+            sBackendOptions.swap(&opts);
 
             // Make a new connection
             return (need_connect) ? connect() : STATUS_OK;

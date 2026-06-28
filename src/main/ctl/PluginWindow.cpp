@@ -2685,7 +2685,7 @@ namespace lsp
 
         status_t PluginWindow::select_audio_backend(const LSPString & uid)
         {
-            return pWrapper->select_backend(&uid);
+            return pWrapper->select_backend(&uid, NULL);
         }
 
         void PluginWindow::audio_backend_selected(const LSPString & uid)

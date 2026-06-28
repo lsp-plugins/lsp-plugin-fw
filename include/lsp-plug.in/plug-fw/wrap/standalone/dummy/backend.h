@@ -40,8 +40,8 @@ namespace lsp
             {
                 protected:
                     static constexpr size_t MAX_PORT_ID_BYTES   = 16;
-                    static constexpr size_t BACKEND_SAMPLE_RATE = 48000;
-                    static constexpr size_t BACKEND_BUFFER_SIZE = 1024;
+                    static constexpr size_t DEFAULT_BACKEND_SAMPLE_RATE = 48000;
+                    static constexpr size_t DEFAULT_BACKEND_BUFFER_SIZE = 1024;
 
                     typedef struct port_t
                     {
@@ -67,8 +67,11 @@ namespace lsp
                 protected:
                     port_t             *alloc_port(const char *id, uint32_t flags);
                     void                free_port(port_t *port);
+                    status_t            parse_connection_param(const LSPString & name, const LSPString & value);
+                    status_t            parse_connection_params(const char *params);
 
                 protected:
+                    static status_t     parse_uint(size_t & dst, const LSPString & name, const LSPString & value);
                     static status_t     thread_main(void *self);
 
                 public:

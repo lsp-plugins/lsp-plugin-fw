@@ -9,6 +9,8 @@
 * Updated installation paths of LV2, LADSPA and CLAP plugins for MacOS.
 * Fixed bug related to saving global configuration file when user's configuration
   directory of LSP Plugins does not exist.
+* Added possibility to pass specific parameters to the audio backend driver
+  from command line.
 
 === 1.0.38 ===
 * Updated module versions in dependencies.

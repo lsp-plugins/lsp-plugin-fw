@@ -28,6 +28,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/finally.h>
 #include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/expr/Tokenizer.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/plug-fw/wrap/standalone/dummy/backend.h>
 #include <lsp-plug.in/stdlib/string.h>
@@ -65,9 +66,9 @@ namespace lsp
                 pCallbacks                      = NULL;
 
                 io_parameters_t * const ip      = &sIOParams;
-                ip->sample_rate                 = BACKEND_SAMPLE_RATE;
-                ip->buffer_size                 = BACKEND_BUFFER_SIZE;
-                ip->max_buffer_size             = BACKEND_BUFFER_SIZE;
+                ip->sample_rate                 = DEFAULT_BACKEND_SAMPLE_RATE;
+                ip->buffer_size                 = DEFAULT_BACKEND_BUFFER_SIZE;
+                ip->max_buffer_size             = DEFAULT_BACKEND_BUFFER_SIZE;
 
                 io_position_t * const npos      = &sIOPosition;
                 npos->frame                     = 0;
@@ -120,7 +121,8 @@ namespace lsp
                     dsp::finish(&ctx);
                 };
 
-                constexpr float period      = float(BACKEND_SAMPLE_RATE) / float(BACKEND_BUFFER_SIZE);
+                const size_t buffer_size    = back->sIOParams.buffer_size;
+                const float period          = float(back->sIOParams.sample_rate) / float(buffer_size);
                 float delta                 = 0.0f;
                 system::time_millis_t start = system::get_time_millis();
 
@@ -130,13 +132,13 @@ namespace lsp
                     if ((back->pCallbacks) && (back->pCallbacks->on_process))
                     {
                         // Cleanup buffers
-                        dsp::fill_zero(back->pInBuffer, BACKEND_BUFFER_SIZE);
-                        dsp::fill_zero(back->pOutBuffer, BACKEND_BUFFER_SIZE);
+                        dsp::fill_zero(back->pInBuffer, buffer_size);
+                        dsp::fill_zero(back->pOutBuffer, buffer_size);
 
                         back->pCallbacks->on_process(
                             back->pUserData,
                             &back->sIOPosition,
-                            BACKEND_BUFFER_SIZE);
+                            buffer_size);
                     }
 
                     // Sleep for a while
@@ -157,6 +159,146 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            status_t backend_t::parse_uint(size_t & dst, const LSPString & name, const LSPString & value)
+            {
+                io::InStringSequence is(&value);
+                expr::Tokenizer t(&is);
+
+                switch (t.get_token(expr::TF_GET))
+                {
+                    case expr::TT_IVALUE:
+                        dst = uint32_t(t.int_value());
+                        break;
+                    default:
+                        fprintf(stderr, "Bad value for the '%s' parameter: %s\n", name.get_utf8(), value.get_native());
+                        return STATUS_INVALID_VALUE;
+                }
+
+                if (t.get_token(expr::TF_GET) != expr::TT_EOF)
+                {
+                    fprintf(stderr, "Bad value for the '%s' parameter: %s\n", name.get_utf8(), value.get_native());
+                    return STATUS_INVALID_VALUE;
+                }
+
+                return STATUS_OK;
+            }
+
+            status_t backend_t::parse_connection_param(const LSPString & name, const LSPString & value)
+            {
+                status_t res = STATUS_OK;
+                if (name.equals_ascii("sample_rate"))
+                {
+                    res = parse_uint(sIOParams.sample_rate, name, value);
+                    if ((sIOParams.sample_rate < 8000) || (sIOParams.sample_rate > 384000))
+                    {
+                        fprintf(stderr, "Sample rate %d out of range [8000, 384000] Hz\n", int(sIOParams.sample_rate));
+                        return STATUS_INVALID_VALUE;
+                    }
+                }
+                else if (name.equals_ascii("buffer_size"))
+                {
+                    res = parse_uint(sIOParams.buffer_size, name, value);
+                    if ((sIOParams.buffer_size < 32) || (sIOParams.buffer_size > 16384))
+                    {
+                        fprintf(stderr, "Buffer size %d out of range [32, 16384] samples\n", int(sIOParams.buffer_size));
+                        return STATUS_INVALID_VALUE;
+                    }
+
+                    sIOParams.max_buffer_size   = sIOParams.buffer_size;
+                }
+                return res;
+            }
+
+            status_t backend_t::parse_connection_params(const char *params)
+            {
+                io_parameters_t * const ip      = &sIOParams;
+                ip->sample_rate                 = DEFAULT_BACKEND_SAMPLE_RATE;
+                ip->buffer_size                 = DEFAULT_BACKEND_BUFFER_SIZE;
+                ip->max_buffer_size             = DEFAULT_BACKEND_BUFFER_SIZE;
+
+                if (params == NULL)
+                    return STATUS_OK;
+
+                status_t res;
+                LSPString text, name, value, *str;
+                if (!text.set_utf8(params))
+                    return STATUS_NO_MEM;
+
+                str = &name;
+                lsp_wchar_t curr = 0;
+                size_t count = 0;
+                for (size_t i=0, n=text.length(); i<n; ++i)
+                {
+                    lsp_wchar_t prev    = curr;
+                    curr                = text.char_at(i);
+                    if (prev == '\\')
+                    {
+                        switch (curr)
+                        {
+                            case '\\':
+                            case '/':
+                            case ' ':
+                            case '=':
+                            case ',':
+                                break;
+                            case 'r': curr = '\r'; break;
+                            case 'n': curr = '\n'; break;
+                            case 't': curr = '\t'; break;
+                            case 'v': curr = '\v'; break;
+                            default:
+                                if (!str->append(prev))
+                                    return STATUS_NO_MEM;
+                                break;
+                        }
+                        if (!str->append(curr))
+                            return STATUS_NO_MEM;
+                        ++count;
+                        curr    = 0;
+                    }
+                    else
+                    {
+                        switch (curr)
+                        {
+                            case '\\':
+                                break;
+                            case '=':
+                                ++count;
+                                if (str == &value)
+                                {
+                                    if (!str->append(curr))
+                                        return STATUS_NO_MEM;
+                                }
+                                else // dst == &key
+                                    str = &value;
+                                break;
+                            case ',':
+                                // Add and cleanup strings
+                                if ((res = parse_connection_param(name, value)) != STATUS_OK)
+                                    return res;
+                                str     = &name;
+                                name.clear();
+                                value.clear();
+                                count = 0;
+                                break;
+                            default:
+                                if (!str->append(curr))
+                                    return STATUS_NO_MEM;
+                                ++count;
+                                break;
+                        }
+                    }
+                }
+
+                // Parse last parameter if present
+                if (count > 0)
+                {
+                    if ((res = parse_connection_param(name, value)) != STATUS_OK)
+                        return res;
+                }
+
+                return STATUS_OK;
+            }
+
             status_t backend_t::connect(
                 audio::backend_t *self,
                 const connection_params_t *params,
@@ -165,15 +307,22 @@ namespace lsp
             {
                 backend_t * const back = cast(self);
 
+                // Parse connection parameters
+                const io_parameters_t * const ip = &back->sIOParams;
+                status_t res            = back->parse_connection_params(params->url);
+                if (res != STATUS_OK)
+                    return res;
+
                 // Check that backend is disconnected
                 if (back->pThread != NULL)
                     return STATUS_BAD_STATE;
 
                 // Initialize buffers
                 uint8_t *data           = NULL;
-                float * buffers         = alloc_aligned<float>(data, sizeof(float) * BACKEND_BUFFER_SIZE * 2, 0x40);
-                back->pInBuffer         = advance_ptr<float>(buffers, BACKEND_BUFFER_SIZE);
-                back->pOutBuffer        = advance_ptr<float>(buffers, BACKEND_BUFFER_SIZE);
+
+                float * buffers         = alloc_aligned<float>(data, sizeof(float) * ip->buffer_size * 2, 0x40);
+                back->pInBuffer         = advance_ptr<float>(buffers, ip->buffer_size);
+                back->pOutBuffer        = advance_ptr<float>(buffers, ip->buffer_size);
                 if (buffers == NULL)
                     return STATUS_NO_MEM;
                 lsp_finally {
@@ -212,8 +361,8 @@ namespace lsp
                 };
 
                 // Issue connected callback
-                status_t res = ((callbacks) && (callbacks->on_connected)) ?
-                    callbacks->on_connected(user_data, &back->sIOParams) :
+                res = ((callbacks) && (callbacks->on_connected)) ?
+                    callbacks->on_connected(user_data, ip) :
                     STATUS_OK;
                 lsp_finally {
                     if ((thread != NULL) && (callbacks) && (callbacks->on_connection_lost))
@@ -288,9 +437,9 @@ namespace lsp
 
                 // Cleanup I/O parameters
                 io_parameters_t * const ip      = &back->sIOParams;
-                ip->sample_rate                 = BACKEND_SAMPLE_RATE;
-                ip->buffer_size                 = BACKEND_BUFFER_SIZE;
-                ip->max_buffer_size             = BACKEND_BUFFER_SIZE;
+                ip->sample_rate                 = DEFAULT_BACKEND_SAMPLE_RATE;
+                ip->buffer_size                 = DEFAULT_BACKEND_BUFFER_SIZE;
+                ip->max_buffer_size             = DEFAULT_BACKEND_BUFFER_SIZE;
 
                 // Cleanup I/O position
                 io_position_t * const npos      = &back->sIOPosition;

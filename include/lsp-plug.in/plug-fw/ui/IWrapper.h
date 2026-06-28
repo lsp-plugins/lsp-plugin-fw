@@ -666,23 +666,26 @@ namespace lsp
                 /**
                  * Select Audio backend for standalone version
                  * @param name audio backend name
+                 * @param options backend options
                  * @return status of operation
                  */
-                status_t                        select_backend(const char *name);
+                status_t                        select_backend(const char *name, const char *options);
 
                 /**
                  * Select Audio backend for standalone version
                  * @param name audio backend name
+                 * @param options backend options
                  * @return status of operation
                  */
-                status_t                        select_backend(const LSPString * name);
+                status_t                        select_backend(const LSPString *name, const LSPString *options);
 
                 /**
                  * Select Audio backend for standalone version
                  * @param name audio backend name
+                 * @param options backend options
                  * @return status of operation
                  */
-                virtual status_t                select_backend(const LSPString & name);
+                virtual status_t                select_backend(const LSPString & name, const LSPString & options);
 
             public: // Widget management
                 /**

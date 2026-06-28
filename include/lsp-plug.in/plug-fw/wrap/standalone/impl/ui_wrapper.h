@@ -665,9 +665,9 @@ namespace lsp
             return (pWrapper != NULL) ? pWrapper->enumerate_backends(list) : STATUS_BAD_STATE;
         }
 
-        status_t UIWrapper::select_backend(const LSPString & name)
+        status_t UIWrapper::select_backend(const LSPString & name, const LSPString & options)
         {
-            status_t res = pWrapper->select_backend(name);
+            status_t res = pWrapper->select_backend(name, options);
             if (res != STATUS_OK)
                 return res;
 
