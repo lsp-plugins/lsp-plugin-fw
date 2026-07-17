@@ -811,40 +811,39 @@ namespace lsp
             return Steinberg::kResultOk;
         }
 
-    #ifdef PLATFORM_MACOSX
-        // Physical pixels per logical point of the main display (2.0 on Retina).
-        // CoreGraphics C API — usable from this plain C++ translation unit.
-        static double display_backing_scale()
+        /**
+         * Get the scale of the physical pixel on the device. That means, that for a logical pixel
+         * that covers 2 physical device pixels the return value will be 0.5.
+         * @return the scale of the physical pixel relative to the logical pixel on the device
+         *         in percents.
+         */
+        static double display_pixel_scale()
         {
-            CGDisplayModeRef mode = CGDisplayCopyDisplayMode(CGMainDisplayID());
-            if (mode == NULL)
-                return 0.0;
-            const size_t px = CGDisplayModeGetPixelWidth(mode);
-            const size_t pt = CGDisplayModeGetWidth(mode);
-            CGDisplayModeRelease(mode);
-            return (pt > 0) ? double(px) / double(pt) : 0.0;
-        }
-    #endif /* PLATFORM_MACOSX */
-
-        Steinberg::tresult PLUGIN_API UIWrapper::setContentScaleFactor(Steinberg::IPlugViewContentScaleSupport::ScaleFactor factor)
-        {
-            lsp_trace("this=%p, factor=%f", this, factor);
-
-        #ifdef PLATFORM_MACOSX
             // On macOS hosts report the factor in PHYSICAL pixels per point — on a
             // Retina display REAPER passes 2.0 even though AppKit already handles
             // the backing scale transparently and the UI is laid out in points.
             // Divide out the display's own backing scale so the stored factor is a
             // LOGICAL zoom: Retina (backing 2.0) + host 2.0 -> 100%, and a host
             // that genuinely asks for 150% logical zoom on Retina passes 3.0.
-            const double backing = display_backing_scale();
-            if (backing > 0.0)
-                fScalingFactor = (factor / backing) * 100.0f;
-            else
-                fScalingFactor = factor * 100.0f;
-        #else
-            fScalingFactor = factor * 100.0f;
-        #endif
+            #if defined(PLATFORM_MACOSX)
+                // Physical pixels per logical point of the main display (2.0 on Retina).
+                // CoreGraphics C API — usable from this plain C++ translation unit.
+                CGDisplayModeRef mode = CGDisplayCopyDisplayMode(CGMainDisplayID());
+                if (mode == NULL)
+                    return 100.0;
+                const size_t px = CGDisplayModeGetPixelWidth(mode);
+                const size_t pt = CGDisplayModeGetWidth(mode);
+                CGDisplayModeRelease(mode);
+                return (pt > 0) ? (double(pt) * 100.0) / double(px) : 100.0;
+            #else
+                return 100.0;
+            #endif
+        }
+
+        Steinberg::tresult PLUGIN_API UIWrapper::setContentScaleFactor(Steinberg::IPlugViewContentScaleSupport::ScaleFactor factor)
+        {
+            lsp_trace("this=%p, factor=%f", this, factor);
+            fScalingFactor = factor * display_pixel_scale();
 
             ctl::PluginWindow *wnd = ctl::ctl_cast<ctl::PluginWindow>(pWindow);
             if (wnd != NULL)
