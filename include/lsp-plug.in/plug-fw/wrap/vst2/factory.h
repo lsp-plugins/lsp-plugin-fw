@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 7 сент. 2024 г.
@@ -28,6 +28,7 @@
 #include <lsp-plug.in/plug-fw/core/ICatalogFactory.h>
 #include <lsp-plug.in/plug-fw/meta/types.h>
 #include <lsp-plug.in/plug-fw/plug.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/pluglist.h>
 #include <lsp-plug.in/resource/ILoader.h>
 
 namespace lsp
@@ -55,6 +56,7 @@ namespace lsp
             public:
                 size_t                  acquire();
                 size_t                  release();
+                PlugList               *make_plugin_list();
 
             public: // core::ICatalogFactory
                 virtual core::Catalog  *acquire_catalog() override;

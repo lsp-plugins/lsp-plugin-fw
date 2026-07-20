@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugins-send
  * Created on: 7 сент. 2024 г.
@@ -25,9 +25,11 @@
 #include <lsp-plug.in/plug-fw/version.h>
 
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/plug-fw/core/Resources.h>
 #include <lsp-plug.in/plug-fw/meta/manifest.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/pluglist.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 
 namespace lsp
@@ -78,7 +80,7 @@ namespace lsp
                 {
                     // Enumerate next element
                     const meta::plugin_t *meta = f->enumerate(i);
-                    if (meta == NULL)
+                    if ((meta == NULL) || (meta->uids.vst2 == NULL))
                         break;
 
                     // Check plugin identifier
@@ -100,6 +102,35 @@ namespace lsp
 
             // No plugin has been found
             return STATUS_NOT_FOUND;
+        }
+
+        PlugList *Factory::make_plugin_list()
+        {
+            lltl::darray<VstInt32> plugin_ids;
+            for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
+            {
+                for (size_t i=0; ; ++i)
+                {
+                    // Enumerate next element
+                    const meta::plugin_t *meta = f->enumerate(i);
+                    if ((meta == NULL) || (meta->uids.vst2 == NULL))
+                        break;
+
+                    // Parse VST2 identifier
+                    VstInt32 * const vst2_id = plugin_ids.add();
+                    if (vst2_id == NULL)
+                        return NULL;
+
+                    *vst2_id = vst2::cconst(meta->uids.vst2);
+                }
+            }
+
+            // Create plugin list
+            PlugList * const result = new PlugList(plugin_ids.array(), plugin_ids.size());
+            if (result != NULL)
+                plugin_ids.release();
+
+            return result;
         }
 
         core::Catalog *Factory::acquire_catalog()
