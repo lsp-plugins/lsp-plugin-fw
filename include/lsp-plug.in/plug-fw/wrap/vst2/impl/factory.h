@@ -106,7 +106,7 @@ namespace lsp
 
         PlugList *Factory::make_plugin_list()
         {
-            lltl::darray<VstInt32> plugin_ids;
+            lltl::parray<meta::plugin_t> plugins;
             for (plug::Factory *f = plug::Factory::root(); f != NULL; f = f->next())
             {
                 for (size_t i=0; ; ++i)
@@ -117,18 +117,21 @@ namespace lsp
                         break;
 
                     // Parse VST2 identifier
-                    VstInt32 * const vst2_id = plugin_ids.add();
-                    if (vst2_id == NULL)
+                    const meta::plugin_t **const item = const_cast<const meta::plugin_t **>(plugins.add());
+                    if (item == NULL)
                         return NULL;
 
-                    *vst2_id = vst2::cconst(meta->uids.vst2);
+                    *item = meta;
                 }
             }
 
             // Create plugin list
-            PlugList * const result = new PlugList(plugin_ids.array(), plugin_ids.size());
+            PlugList * const result = new PlugList(
+                this,
+                const_cast<const meta::plugin_t **>(plugins.array()),
+                plugins.size());
             if (result != NULL)
-                plugin_ids.release();
+                plugins.release();
 
             return result;
         }

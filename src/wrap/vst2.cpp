@@ -309,11 +309,11 @@ namespace lsp
         }
 
     #ifdef LSP_DEBUG
+        #define C(code) case code: r = #code; break;
+
         const char *decode_opcode(VstInt32 opcode)
         {
             const char *r = NULL;
-
-        #define C(code) case code: r = #code; break;
 
             switch (opcode)
             {
@@ -407,10 +407,37 @@ namespace lsp
                     r = "unknown";
                     break;
             }
-        #undef C
-        #undef D
             return r;
         }
+
+        const char *decode_plugin_category(VstIntPtr code)
+        {
+            const char *r = NULL;
+
+            switch (code)
+            {
+                C(kPlugCategUnknown)
+                C(kPlugCategEffect)
+
+                C(kPlugCategSynth)
+                C(kPlugCategAnalysis)
+                C(kPlugCategMastering)
+                C(kPlugCategSpacializer)
+                C(kPlugCategRoomFx)
+                C(kPlugSurroundFx)
+                C(kPlugCategRestoration)
+                C(kPlugCategOfflineProcess)
+                C(kPlugCategShell)
+                C(kPlugCategGenerator)
+
+                default:
+                    r = "unknown";
+                    break;
+            }
+            return r;
+        }
+
+        #undef C
     #endif /* LSP_DEBUG */
 
         VstIntPtr get_category(const int *classes)
@@ -493,9 +520,6 @@ namespace lsp
     //                    break;
     //
     //                    result = kPlugCategOfflineProcess;   ///< Offline Process
-    //                    break;
-    //
-    //                    result = kPlugCategShell;            ///< Plug-in is container of other plug-ins  @see effShellGetNextPlugin
     //                    break;
                     default:
                         break;
@@ -679,7 +703,9 @@ namespace lsp
                         break;
 
                     v = get_category(m->classes);
-                    lsp_trace("plugin_category = %d", int(v));
+                    lsp_trace("plugin_category = %d (%s)",
+                        int(v),
+                        decode_plugin_category(v));
                     break;
                 }
 
@@ -926,7 +952,7 @@ namespace lsp
                 e, opcode, decode_opcode(opcode), index, (long long)(value), ptr, opt);
 
             // Get VST plugin list object
-            PlugList * const list = static_cast<PlugList *>(e->object);
+            vst2::PlugList * const list = static_cast<PlugList *>(e->object);
 
             switch (opcode)
             {
@@ -935,13 +961,50 @@ namespace lsp
                     v   = kVstVersion;
                     break;
 
-                case effGetPlugCategory:
-                    v   = kPlugCategShell;
+                case effGetVendorString: // Get vendor string
+                {
+                    const meta::package_t *package = list->factory()->manifest();
+                    if (package != NULL)
+                    {
+                        char *dst = reinterpret_cast<char *>(ptr);
+                        snprintf(dst, kVstMaxProductStrLen, "%s VST", package->brand);
+                        dst[kVstMaxVendorStrLen - 1] = '\0';
+                        lsp_trace("vendor_string = %s", reinterpret_cast<char *>(ptr));
+                        v = 1;
+                    }
                     break;
+                }
+
+                case effGetPlugCategory:
+                {
+                    const meta::plugin_t * meta = list->current();
+                    v = (meta != NULL) ? get_category(meta->classes) : kPlugCategShell;
+                    lsp_trace("plugin_category = %d (%s)",
+                        int(v),
+                        decode_plugin_category(v));
+                    break;
+                }
 
                 case effShellGetNextPlugin:
-                    v   = (list != NULL) ? list->get_next() : 0;
+                {
+                    const meta::plugin_t * meta = list->get_next();
+                    if (meta != NULL)
+                    {
+                        v   = vst2::cconst(meta->uids.vst2);
+                        char *dst = static_cast<char *>(ptr);
+                        if (dst != NULL)
+                        {
+                            vst_strncpy(dst, meta->vst2_name, kVstMaxEffectNameLen);
+                            dst[kVstMaxEffectNameLen - 1] = '\0';
+                            lsp_trace("effect_string = %s", dst);
+                        }
+                    }
+
+                    lsp_trace("Return plugin UID=%s, code=0x%x",
+                        (meta != NULL) ? meta->uids.vst2 : "<null>",
+                        int(v));
                     break;
+                }
 
                 case effClose: // Finalize the plugin
                     if (e != NULL)

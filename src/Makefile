@@ -241,6 +241,7 @@ endif
 DOC_SHAREDDIR          := $(SHAREDDIR)/doc/$($(ROOT_ARTIFACT_ID)_NAME)
 
 ifeq ($(PLATFORM),Linux)
+  VST2_EXT               := .so
   ifeq ($(ARCHITECTURE_FAMILY),ia32)
     VST3_ARCH              := i386-linux
   else ifeq ($(ARCHITECTURE_FAMILY),x86_64)
@@ -255,6 +256,7 @@ ifeq ($(PLATFORM),Linux)
   VST3_EXT               := .so
   VST3_LDFLAGS           :=
 else ifeq ($(PLATFORM),BSD)
+  VST2_EXT               := .so
   ifeq ($(ARCHITECTURE_FAMILY),ia32)
     VST3_ARCH              := i386-freebsd
   else ifeq ($(ARCHITECTURE_FAMILY),x86_64)
@@ -269,6 +271,7 @@ else ifeq ($(PLATFORM),BSD)
   VST3_EXT               := .so
   VST3_LDFLAGS           :=
 else ifeq ($(PLATFORM),Windows)
+  VST2_EXT               := .vst
   ifeq ($(ARCHITECTURE_FAMILY),ia32)
     VST3_ARCH              := x86-win
   else ifeq ($(ARCHITECTURE_FAMILY),x86_64)
@@ -283,9 +286,11 @@ else ifeq ($(PLATFORM),Windows)
   VST3_EXT               := .vst3
   VST3_LDFLAGS           := -Wl,--kill-at
 else ifeq ($(PLATFORM),MacOS)
+  VST2_EXT               := 
   VST3_ARCH              := MacOS
   VST3_EXT               := 
 else
+  VST2_EXT               := $(LIBRARY_EXT)
   VST3_ARCH              := $(shell uname -m)-${shell uname -s | tr '[:upper:]' '[:lower:]'}
   VST3_EXT               := $(LIBRARY_EXT)
 endif
@@ -636,25 +641,6 @@ $(HOST)UTL_GST_MAKE_OBJS            = \
   $($(HOST)UTL_GST_MAKE_OBJ) \
   $($(HOST)UTL_GST_MAKE_MAIN_OBJ)
 
-$(HOST)UTL_VST2_MAKE                = $($(HOST)UTL_BIN_PATH)/vst2_make$(EXECUTABLE_EXT)
-$(HOST)UTL_VST2_MAKE_OBJ            = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/vst2_make, *.cpp))
-$(HOST)UTL_VST2_MAKE_MAIN_OBJ       = $($(HOST)LSP_PLUGIN_FW_BIN)/util/vst2_make.o
-$(HOST)UTL_VST2_MAKE_DEPS_ALL       = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
-$(HOST)UTL_VST2_MAKE_DEPS           = $(foreach dep, $($(HOST)UTL_VST2_MAKE_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
-$(HOST)UTL_VST2_MAKE_LIBS           = $(foreach dep, $($(HOST)UTL_VST2_MAKE_DEPS_ALL), $($(HOST)$(dep)_OBJ))
-$(HOST)UTL_VST2_MAKE_LDFLAGS        = $(foreach dep, $($(HOST)UTL_VST2_MAKE_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
-$(HOST)UTL_VST2_MAKE_OBJS           = \
-  $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
-  $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
-  $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
-  $($(HOST)LSP_PLUGIN_FW_OBJ_UTL_RES) \
-  $($(HOST)OBJ_PLUG_META) \
-  $($(HOST)OBJ_PLUG_DSP) \
-  $($(HOST)OBJ_PLUG_SHARED) \
-  $($(HOST)UTL_COMMON_OBJ) \
-  $($(HOST)UTL_VST2_MAKE_OBJ) \
-  $($(HOST)UTL_VST2_MAKE_MAIN_OBJ)
-  
 $(HOST)UTL_VST3_MODINFO             = $($(HOST)UTL_BIN_PATH)/vst3_modinfo$(EXECUTABLE_EXT)
 $(HOST)UTL_VST3_MODINFO_OBJ         = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/vst3_modinfo, *.cpp))
 $(HOST)UTL_VST3_MODINFO_MAIN_OBJ    = $($(HOST)LSP_PLUGIN_FW_BIN)/util/vst3_modinfo.o
@@ -882,6 +868,7 @@ ARTIFACT_LIB_LV2_UI_OBJS            = \
   $(OBJ_PLUG_UI) \
   $(OBJ_WRAP_LV2_UI)
 
+ARTIFACT_BIN_VST2                   = $(PLUGIN_SHARED_NAME)$(VST2_EXT)
 ARTIFACT_LIB_VST2                   = $(LSP_PLUGIN_FW_BIN)/$(LIBRARY_PREFIX)$(PLUGIN_SHARED_NAME)-vst2$(LIBRARY_EXT)
 ARTIFACT_LIB_VST2_PATH              = $(LSP_PLUGIN_FW_BIN)/vst2
 ARTIFACT_LIB_VST2_SETTINGS          = $(ARTIFACT_LIB_VST2_PATH)/.settings.mk
@@ -1016,7 +1003,6 @@ ifeq ($(call fcheck,test,$(BUILD_FEATURES),ON),ON)
     $($(HOST)UTL_COMMON_OBJ) \
     $($(HOST)UTL_VALIDATOR_OBJ) \
     $($(HOST)UTL_STANDALONE_MAKE_OBJ) \
-    $($(HOST)UTL_VST2_MAKE_OBJ) \
     $($(HOST)UTL_VST3_MODINFO_OBJ) \
     $($(HOST)UTL_LV2TTL_GEN_OBJ) \
     $($(HOST)UTL_REPOSITORY_OBJ) \
@@ -1051,44 +1037,32 @@ BIN_UNINSTALL                        = $(foreach dep, $(UNIQ_DEPENDENCIES_BIN), 
 
 BIN_PACKAGE                          = $(foreach dep, $(UNIQ_BIN_DEPENDENCIES), package_$(dep))
 BIN_PACKAGE_CLAP_DEPS                = \
-  $(DEPENDENCIES_BIN) \
   $(DEPENDENCIES_CLAP_BIN) \
   $(call fcheck,ui,$(ENABLED_FEATURES),\
-    $(DEPENDENCIES_UI_BIN) \
     $(DEPENDENCIES_CLAP_UI_BIN) \
   )
 BIN_PACKAGE_GST_DEPS                 = \
-  $(DEPENDENCIES_BIN) \
   $(DEPENDENCIES_GST_BIN)
 BIN_PACKAGE_STANDALONE_DEPS          = \
-  $(DEPENDENCIES_BIN) \
   $(DEPENDENCIES_STANDALONE_BIN) \
   $(call fcheck,ui,$(ENABLED_FEATURES),\
-    $(DEPENDENCIES_UI_BIN) \
     $(DEPENDENCIES_STANDALONE_UI_BIN) \
   )
 BIN_PACKAGE_LADSPA_DEPS              = \
-  $(DEPENDENCIES_BIN) \
   $(DEPENDENCIES_LADSPA_BIN)
 BIN_PACKAGE_LV2_DEPS                 = \
-  $(DEPENDENCIES_BIN) \
   $(DEPENDENCIES_LV2_BIN) \
   $(call fcheck,ui,$(ENABLED_FEATURES),\
-    $(DEPENDENCIES_UI_BIN) \
     $(DEPENDENCIES_LV2_UI_BIN) \
   )
 BIN_PACKAGE_VST2_DEPS                = \
-  $(DEPENDENCIES_BIN) \
   $(DEPENDENCIES_VST2_BIN) \
   $(call fcheck,ui,$(ENABLED_FEATURES),\
-    $(DEPENDENCIES_UI_BIN) \
     $(DEPENDENCIES_VST2_UI_BIN) \
   )
 BIN_PACKAGE_VST3_DEPS                = \
-  $(DEPENDENCIES_BIN) \
   $(DEPENDENCIES_VST3_BIN) \
   $(call fcheck,ui,$(ENABLED_FEATURES),\
-    $(DEPENDENCIES_UI_BIN) \
     $(DEPENDENCIES_VST3_UI_BIN) \
   )
 
@@ -1389,11 +1363,6 @@ $($(HOST)UTL_GST_MAKE): $($(HOST)UTL_GST_MAKE_DEPS) $($(HOST)UTL_GST_MAKE_OBJS) 
 	mkdir -p $(dir $(@))
 	$($(HOST)CXX) -o $(@) $($(HOST)UTL_GST_MAKE_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_GST_MAKE_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_GST_MAKE_LDFLAGS)
 
-$($(HOST)UTL_VST2_MAKE): $($(HOST)UTL_VST2_MAKE_DEPS) $($(HOST)UTL_VST2_MAKE_OBJS) $($(HOST)PLUG_DEPS)
-	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
-	mkdir -p $(dir $(@))
-	$($(HOST)CXX) -o $(@) $($(HOST)UTL_VST2_MAKE_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_VST2_MAKE_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_VST2_MAKE_LDFLAGS)
-
 $($(HOST)UTL_VST3_MODINFO): $($(HOST)UTL_VST3_MODINFO_DEPS) $($(HOST)UTL_VST3_MODINFO_OBJS) $($(HOST)PLUG_DEPS)
 	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
@@ -1536,23 +1505,7 @@ meta: $($(HOST)UTL_PLUGLIST_GEN)
 
 lv2: $($(HOST)UTL_LV2TTL_GEN) $(ARTIFACT_LIB_LV2) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(ARTIFACT_LIB_LV2_UI) $(DEPENDENCIES_UI_BIN)) 
 
-vst2: $($(HOST)UTL_VST2_MAKE) $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
-	echo "  $(notdir $($(HOST)UTL_VST2_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_VST2_PATH))"
-	mkdir -p "$(ARTIFACT_LIB_VST2_PATH)"
-	$($(HOST)UTL_VST2_MAKE) "$(ARTIFACT_LIB_VST2_PATH)"
-	echo "  make VST2"
-	echo "" > $(ARTIFACT_LIB_VST2_SETTINGS)
-	echo '# Auto-generated script, do not edit' >> $(ARTIFACT_LIB_VST2_SETTINGS)
-	echo 'EXT_ARTIFACT_NAME=$(PLUGIN_SHARED_NAME)' >> $(ARTIFACT_LIB_VST2_SETTINGS)
-	echo 'EXT_ARTIFACT_GROUP=$(PLUGIN_GROUP_NAME)' >> $(ARTIFACT_LIB_VST2_SETTINGS)
-	echo 'EXT_PREFIX=$(PLUGIN_ARTIFACT_PREFIX)' >> $(ARTIFACT_LIB_VST2_SETTINGS)
-	echo 'EXT_OBJS=$(WRAP_VST2_OBJS)' >> $(ARTIFACT_LIB_VST2_SETTINGS)
-	echo 'EXT_CFLAGS=$(WRAP_VST2_CFLAGS)' >> $(ARTIFACT_LIB_VST2_SETTINGS)
-	echo 'EXT_CXXFLAGS=$(WRAP_VST2_CFLAGS)' >> $(ARTIFACT_LIB_VST2_SETTINGS)
-	echo 'EXT_LDFLAGS=$(WRAP_VST2_LDFLAGS)' >> $(ARTIFACT_LIB_VST2_SETTINGS)
-	echo 'EXT_INCLUDE=$(WRAP_VST2_INC)' >> $(ARTIFACT_LIB_VST2_SETTINGS)
-	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
-	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
+vst2: $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
 
 vst3: $($(HOST)UTL_VST3_MODINFO) $(ARTIFACT_LIB_VST3) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
 
@@ -1615,8 +1568,7 @@ install_lv2: lv2
 install_vst2: vst2
 	echo "Install vst2"
 	mkdir -p "$(DESTDIR)$(VST2_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)$(VST2_LIBDIR)/"
-	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(DESTDIR)$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
+	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)$(VST2_LIBDIR)/$(ARTIFACT_BIN_VST2)"
 
 install_vst3: vst3
 	echo "Install vst3"
@@ -1757,8 +1709,7 @@ package_vst2: vst2 $(BIN_PACKAGE)
 	echo "Package vst2"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/"
-	$(MAKE) -C "$(ARTIFACT_LIB_VST2_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_VST2_SETTINGS)"
+	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/$(ARTIFACT_BIN_VST2)"
 	$(foreach target,$(BIN_PACKAGE_VST2), \
 	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)

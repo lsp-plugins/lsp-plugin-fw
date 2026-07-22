@@ -23,6 +23,7 @@
 #define LSP_PLUG_IN_PLUG_FW_WRAP_VST2_PLUGLIST_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
+#include <lsp-plug.in/plug-fw/meta/types.h>
 
 #include <steinberg/vst2.h>
 
@@ -30,18 +31,21 @@ namespace lsp
 {
     namespace vst2
     {
+        class Factory;
+
         /**
          * Plugin list
          */
         class PlugList
         {
             private:
-                VstInt32                   *vPluginIds;
+                vst2::Factory              *pFactory;
+                const meta::plugin_t      **vPlugins;
                 size_t                      nCount;
                 size_t                      nIndex;
 
             public:
-                PlugList(VstInt32 * list, size_t count);
+                PlugList(vst2::Factory * factory, const meta::plugin_t **list, size_t count);
                 PlugList(const PlugList &) = delete;
                 PlugList(const PlugList &&) = delete;
                 ~PlugList();
@@ -50,8 +54,10 @@ namespace lsp
                 PlugList & operator = (PlugList &&) = delete;
 
             public:
-                VstInt32                get_next();
-                VstInt32                get(size_t index);
+                const meta::plugin_t   *get_next();
+                const meta::plugin_t   *get(size_t index) const;
+                const meta::plugin_t   *current() const;
+                vst2::Factory          *factory() const;
                 void                    rewind();
         };
 

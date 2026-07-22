@@ -31,38 +31,52 @@ namespace lsp
 {
     namespace vst2
     {
-        PlugList::PlugList(VstInt32 * list, size_t count)
+        PlugList::PlugList(vst2::Factory *factory, const meta::plugin_t **list, size_t count)
         {
-            vPluginIds      = list;
+            pFactory        = factory;
+            vPlugins        = list;
             nCount          = count;
             nIndex          = 0;
         }
 
         PlugList::~PlugList()
         {
-            if (vPluginIds != NULL)
+            if (vPlugins != NULL)
             {
-                free(vPluginIds);
-                vPluginIds      = NULL;
+                free(vPlugins);
+                vPlugins       = NULL;
             }
             nCount          = 0;
             nIndex          = 0;
         }
 
-        VstInt32 PlugList::get_next()
+        const meta::plugin_t *PlugList::get_next()
         {
-            return (nIndex < nCount) ? vPluginIds[nIndex++] : 0;
+            return (nIndex < nCount) ? vPlugins[nIndex++] : 0;
         }
 
-        VstInt32 PlugList::get(size_t index)
+        const meta::plugin_t *PlugList::get(size_t index) const
         {
-            return (index < nCount) ? vPluginIds[index] : 0;
+            return (index < nCount) ? vPlugins[index] : 0;
+        }
+
+        const meta::plugin_t *PlugList::current() const
+        {
+            if (nIndex <= 0)
+                return NULL;
+            return get(nIndex - 1);
         }
 
         void PlugList::rewind()
         {
             nIndex          = 0;
         }
+
+        vst2::Factory *PlugList::factory() const
+        {
+            return pFactory;
+        }
+
     } /* namespace vst2 */
 } /* namespace lsp */
 
