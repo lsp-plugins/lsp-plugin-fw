@@ -3,6 +3,8 @@
 *******************************************************************************
 
 === 1.0.39 ===
+* VST2 plugins now are packaged into shell plugin which makes faster scanning of
+  plugins and requires less shared object files to provide.
 * Fixed VST3 scaling issues on MacOS (contributed by lltwist @ github.com)
 * Fixed out of sync parameters for the ctl::Envelope controller. 
 * Fixed regression that caused a crash when launching standalone plugins

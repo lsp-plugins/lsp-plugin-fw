@@ -1578,6 +1578,9 @@ install_vst2: vst2
 	  $(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)$(VST2_LIBDIR)/Contents/MacOS/$(ARTIFACT_BIN_VST2)", \
 	  $(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)$(VST2_LIBDIR)/$(ARTIFACT_BIN_VST2)" \
 	)
+	$(if $(findstring MacOS, $(PLATFORM)), \
+      codesign --force --deep --sign - "$(DESTDIR)$(VST2_LIBDIR)" \
+    )
 
 install_vst3: vst3
 	echo "Install vst3"
@@ -1590,6 +1593,9 @@ install_vst3: vst3
 	  $($(HOST)UTL_VST_MODINFO) -i "$(DESTDIR)$(VST3_LIBDIR)/Contents/Info.plist" -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/PkgInfo" \
     )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}/$(ARTIFACT_BIN_VST3)"
+	$(if $(findstring MacOS, $(PLATFORM)), \
+      codesign --force --deep --sign - "$(DESTDIR)$(VST3_LIBDIR)" \
+    )
 
 install_launcher: launcher
 	echo "Install launcher"
@@ -1722,7 +1728,7 @@ package_vst2: vst2 $(BIN_PACKAGE)
 	  mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)" \
 	)
 	$(if $(findstring MacOS, $(PLATFORM)), \
-	  $($(HOST)UTL_VST_MODINFO) -i "$(DESTDIR)$(VST2_LIBDIR)/Contents/Info.plist" -p "$(DESTDIR)$(VST2_LIBDIR)/Contents/PkgInfo" \
+	  $($(HOST)UTL_VST_MODINFO) -i "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/Contents/Info.plist" -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/Contents/PkgInfo" \
 	)
 	$(if $(findstring MacOS, $(PLATFORM)), \
 	  $(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/Contents/MacOS/$(ARTIFACT_BIN_VST2)", \
@@ -1735,6 +1741,9 @@ package_vst2: vst2 $(BIN_PACKAGE)
 	  cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
+	$(if $(findstring MacOS, $(PLATFORM)), \
+      codesign --force --deep --sign - "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)" \
+    )
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
@@ -1755,6 +1764,9 @@ package_vst3: vst3 $(BIN_PACKAGE)
 	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
+	$(if $(findstring MacOS, $(PLATFORM)), \
+      codesign --force --deep --sign - "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)" \
+    )
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
