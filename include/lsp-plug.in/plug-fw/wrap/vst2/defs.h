@@ -61,7 +61,6 @@ namespace lsp
         } state_header_t;
     #pragma pack(pop)
 
-        #define VST_MAIN_FUNCTION               vst_create_instance
         #define VST_MAIN_FUNCTION_STR           LSP_STRINGIFY(VST_MAIN_FUNCTION)
 
         #define LSP_VST_USER_MAGIC              CCONST('L', 'S', 'P', 'U')

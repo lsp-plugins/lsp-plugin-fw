@@ -1207,17 +1207,6 @@ namespace lsp
 extern "C"
 {
 #endif /* __cplusplus */
-    LSP_EXPORT_MODIFIER
-    AEffect *VST_MAIN_FUNCTION(const char *plugin_vst2_id, audioMasterCallback callback)
-    {
-    #ifndef LSP_IDE_DEBUG
-        IF_DEBUG(
-            lsp::debug::redirect(VST2_LOG_FILE);
-        );
-    #endif /* LSP_IDE_DEBUG */
-        return lsp::vst2::instantiate(plugin_vst2_id, callback);
-    }
-
     // The main function
     VST_MAIN(callback)
     {

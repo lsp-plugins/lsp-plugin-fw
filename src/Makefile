@@ -890,7 +890,6 @@ ARTIFACT_LIB_VST2_OBJS              = \
     $(LSP_PLUGIN_FW_OBJ_UI_RES), \
     $(LSP_PLUGIN_FW_OBJ_RES) \
   ) \
-  $(OBJ_EXPORT) \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_PLUG_SHARED) \
@@ -917,7 +916,6 @@ ARTIFACT_LIB_VST3_OBJS              = \
     $(LSP_PLUGIN_FW_OBJ_UI_RES), \
     $(LSP_PLUGIN_FW_OBJ_RES) \
   ) \
-  $(OBJ_EXPORT) \
   $(OBJ_PLUG_META) \
   $(OBJ_PLUG_DSP) \
   $(OBJ_PLUG_SHARED) \
