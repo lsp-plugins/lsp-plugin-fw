@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 23 дек. 2020 г.
+ * Created on: 4 февр. 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,12 +19,12 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/util/vst2_make/vst2_make.h>
+#include <lsp-plug.in/plug-fw/util/vst_modinfo/vst_modinfo.h>
 
 #ifndef LSP_IDE_DEBUG
 int main(int argc, const char **argv)
 {
-    return lsp::vst2_make::main(argc, argv);
+    return lsp::vst_modinfo::main(argc, argv);
 }
 #endif /* LSP_IDE_DEBUG */
 

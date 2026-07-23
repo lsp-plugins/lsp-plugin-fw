@@ -30,6 +30,7 @@
 #include <lsp-plug.in/plug-fw/wrap/vst2/factory.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/wrapper.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/impl/factory.h>
+#include <lsp-plug.in/plug-fw/wrap/vst2/impl/pluglist.h>
 #include <lsp-plug.in/plug-fw/wrap/vst2/impl/wrapper.h>
 
 #ifdef WITH_UI_FEATURE
@@ -308,11 +309,11 @@ namespace lsp
         }
 
     #ifdef LSP_DEBUG
+        #define C(code) case code: r = #code; break;
+
         const char *decode_opcode(VstInt32 opcode)
         {
             const char *r = NULL;
-
-        #define C(code) case code: r = #code; break;
 
             switch (opcode)
             {
@@ -406,10 +407,37 @@ namespace lsp
                     r = "unknown";
                     break;
             }
-        #undef C
-        #undef D
             return r;
         }
+
+        const char *decode_plugin_category(VstIntPtr code)
+        {
+            const char *r = NULL;
+
+            switch (code)
+            {
+                C(kPlugCategUnknown)
+                C(kPlugCategEffect)
+
+                C(kPlugCategSynth)
+                C(kPlugCategAnalysis)
+                C(kPlugCategMastering)
+                C(kPlugCategSpacializer)
+                C(kPlugCategRoomFx)
+                C(kPlugSurroundFx)
+                C(kPlugCategRestoration)
+                C(kPlugCategOfflineProcess)
+                C(kPlugCategShell)
+                C(kPlugCategGenerator)
+
+                default:
+                    r = "unknown";
+                    break;
+            }
+            return r;
+        }
+
+        #undef C
     #endif /* LSP_DEBUG */
 
         VstIntPtr get_category(const int *classes)
@@ -493,9 +521,6 @@ namespace lsp
     //
     //                    result = kPlugCategOfflineProcess;   ///< Offline Process
     //                    break;
-    //
-    //                    result = kPlugCategShell;            ///< Plug-in is container of other plug-ins  @see effShellGetNextPlugin
-    //                    break;
                     default:
                         break;
                 }
@@ -524,7 +549,7 @@ namespace lsp
                 case effGetTailSize:
                     break;
                 default:
-                    lsp_trace("vst_dispatcher effect=%p, opcode=%d (%s), index=%d, value=%llx, ptr=%p, opt = %.5f",
+                    lsp_trace("dispatcher effect=%p, opcode=%d (%s), index=%d, value=%llx, ptr=%p, opt = %.5f",
                         e, opcode, decode_opcode(opcode), index, (long long)(value), ptr, opt);
                     break;
             }
@@ -678,7 +703,9 @@ namespace lsp
                         break;
 
                     v = get_category(m->classes);
-                    lsp_trace("plugin_category = %d", int(v));
+                    lsp_trace("plugin_category = %d (%s)",
+                        int(v),
+                        decode_plugin_category(v));
                     break;
                 }
 
@@ -917,6 +944,85 @@ namespace lsp
             return v;
         }
 
+        VstIntPtr VSTCALLBACK shell_dispatcher(AEffect* e, VstInt32 opcode, VstInt32 index, VstIntPtr value, void* ptr, float opt)
+        {
+            VstIntPtr v = 0;
+
+            lsp_trace("shell_dispatcher effect=%p, opcode=%d (%s), index=%d, value=%llx, ptr=%p, opt = %.5f",
+                e, opcode, decode_opcode(opcode), index, (long long)(value), ptr, opt);
+
+            // Get VST plugin list object
+            vst2::PlugList * const list = static_cast<PlugList *>(e->object);
+
+            switch (opcode)
+            {
+                case effGetVstVersion: // Get VST version of plugin
+                    lsp_trace("vst_version = %d", int(kVstVersion));
+                    v   = kVstVersion;
+                    break;
+
+                case effGetVendorString: // Get vendor string
+                {
+                    const meta::package_t *package = list->factory()->manifest();
+                    if (package != NULL)
+                    {
+                        char *dst = reinterpret_cast<char *>(ptr);
+                        snprintf(dst, kVstMaxProductStrLen, "%s VST", package->brand);
+                        dst[kVstMaxVendorStrLen - 1] = '\0';
+                        lsp_trace("vendor_string = %s", reinterpret_cast<char *>(ptr));
+                        v = 1;
+                    }
+                    break;
+                }
+
+                case effGetPlugCategory:
+                {
+                    const meta::plugin_t * meta = list->current();
+                    v = (meta != NULL) ? get_category(meta->classes) : kPlugCategShell;
+                    lsp_trace("plugin_category = %d (%s)",
+                        int(v),
+                        decode_plugin_category(v));
+                    break;
+                }
+
+                case effShellGetNextPlugin:
+                {
+                    const meta::plugin_t * meta = list->get_next();
+                    if (meta != NULL)
+                    {
+                        v   = vst2::cconst(meta->uids.vst2);
+                        char *dst = static_cast<char *>(ptr);
+                        if (dst != NULL)
+                        {
+                            vst_strncpy(dst, meta->vst2_name, kVstMaxEffectNameLen);
+                            dst[kVstMaxEffectNameLen - 1] = '\0';
+                            lsp_trace("effect_string = %s", dst);
+                        }
+                    }
+
+                    lsp_trace("Return plugin UID=%s, code=0x%x",
+                        (meta != NULL) ? meta->uids.vst2 : "<null>",
+                        int(v));
+                    break;
+                }
+
+                case effClose: // Finalize the plugin
+                    if (e != NULL)
+                    {
+                        if (list != NULL)
+                            delete list;
+                        delete e;
+                    }
+                    v = 1;
+                    break;
+
+                default:
+                    break;
+            }
+
+            return v;
+        }
+
         void VSTCALLBACK process(AEffect* effect, float** inputs, float** outputs, VstInt32 sampleFrames)
         {
     //        lsp_trace("vst_process effect=%p, inputs=%p, outputs=%p, frames=%d", effect, inputs, outputs, int(sampleFrames));
@@ -973,12 +1079,9 @@ namespace lsp
         AEffect *instantiate(const char *uid, audioMasterCallback callback)
         {
             // Initialize debug
-        #ifndef LSP_IDE_DEBUG
-            IF_DEBUG( debug::redirect(VST2_LOG_FILE); );
-        #endif /* LSP_IDE_DEBUG */
             lsp_trace("uid=%s, callback=%p", uid, callback);
 
-            vst2::Factory *factory = get_factory();
+            vst2::Factory * const factory = get_factory();
             if (factory == NULL)
                 return NULL;
 
@@ -1055,6 +1158,48 @@ namespace lsp
             return release_ptr(e);
         }
 
+        AEffect *instantiate_shell(audioMasterCallback callback)
+        {
+            lsp_trace("creating shell wrapper, callback=%p", callback);
+            vst2::Factory * const factory = get_factory();
+            if (factory == NULL)
+                return NULL;
+
+            vst2::PlugList * const list = factory->make_plugin_list();
+            if (list == NULL)
+                return NULL;
+
+            // Create effect descriptor
+            AEffect *e                  = new AEffect;
+            if (e == NULL)
+            {
+                delete list;
+                return NULL;
+            }
+            ::bzero(e, sizeof(AEffect));
+
+            // Fill effect with values depending on metadata
+            e->magic                            = kEffectMagic;
+            e->dispatcher                       = vst2::shell_dispatcher;
+            e->process                          = NULL;
+            e->setParameter                     = NULL;
+            e->getParameter                     = NULL;
+            e->numPrograms                      = 0;
+            e->numParams                        = 0;
+            e->numInputs                        = 0;
+            e->numOutputs                       = 0;
+            e->flags                            = 0;
+            e->initialDelay                     = 0;
+            e->object                           = list;
+            e->user                             = NULL;
+            e->uniqueID                         = 0;
+            e->version                          = 0;
+            e->processReplacing                 = NULL;
+            e->processDoubleReplacing           = NULL;
+
+            return e;
+        }
+
     } /* namespace vst2 */
 } /* namespace lsp */
 
@@ -1062,11 +1207,40 @@ namespace lsp
 extern "C"
 {
 #endif /* __cplusplus */
-    LSP_EXPORT_MODIFIER
-    AEffect *VST_MAIN_FUNCTION(const char *plugin_vst2_id, audioMasterCallback callback)
+    // The main function
+    VST_MAIN(callback)
     {
-        return lsp::vst2::instantiate(plugin_vst2_id, callback);
+        // Initialize debug
+    #ifndef LSP_IDE_DEBUG
+        IF_DEBUG(
+            lsp::debug::redirect(VST2_LOG_FILE);
+        );
+    #endif /* LSP_IDE_DEBUG */
+
+        // Get VST Version of the Host
+        if ((!callback) || (!callback(NULL, audioMasterVersion, 0, 0, NULL, 0.0f)))
+        {
+            lsp_error("audioMastercallback failed request");
+            return 0;
+        }
+
+        // Determine what version of plugin host wants to create.
+        const VstInt32 vst2_uid = VstInt32(callback(
+            nullptr,
+            audioMasterCurrentId,
+            0, 0, nullptr, 0.0f));
+
+        // If plugin identifier is zero, host just wants to execute shell plugin
+        if (vst2_uid == 0)
+            return lsp::vst2::instantiate_shell(callback);
+
+        // Instantiate a plugin
+        char vst2_id_buf[8];
+        const char * const vst2_id_str = lsp::vst2::cconst_to_str(vst2_id_buf, vst2_uid);
+        return lsp::vst2::instantiate(vst2_id_str, callback);
     }
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
