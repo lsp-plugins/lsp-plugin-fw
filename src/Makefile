@@ -641,14 +641,14 @@ $(HOST)UTL_GST_MAKE_OBJS            = \
   $($(HOST)UTL_GST_MAKE_OBJ) \
   $($(HOST)UTL_GST_MAKE_MAIN_OBJ)
 
-$(HOST)UTL_VST3_MODINFO             = $($(HOST)UTL_BIN_PATH)/vst3_modinfo$(EXECUTABLE_EXT)
-$(HOST)UTL_VST3_MODINFO_OBJ         = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/vst3_modinfo, *.cpp))
-$(HOST)UTL_VST3_MODINFO_MAIN_OBJ    = $($(HOST)LSP_PLUGIN_FW_BIN)/util/vst3_modinfo.o
-$(HOST)UTL_VST3_MODINFO_DEPS_ALL    = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
-$(HOST)UTL_VST3_MODINFO_DEPS        = $(foreach dep, $($(HOST)UTL_VST3_MODINFO_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
-$(HOST)UTL_VST3_MODINFO_LIBS        = $(foreach dep, $($(HOST)UTL_VST3_MODINFO_DEPS_ALL), $($(HOST)$(dep)_OBJ))
-$(HOST)UTL_VST3_MODINFO_LDFLAGS     = $(foreach dep, $($(HOST)UTL_VST3_MODINFO_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
-$(HOST)UTL_VST3_MODINFO_OBJS        = \
+$(HOST)UTL_VST_MODINFO              = $($(HOST)UTL_BIN_PATH)/vst_modinfo$(EXECUTABLE_EXT)
+$(HOST)UTL_VST_MODINFO_OBJ          = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/vst_modinfo, *.cpp))
+$(HOST)UTL_VST_MODINFO_MAIN_OBJ     = $($(HOST)LSP_PLUGIN_FW_BIN)/util/vst_modinfo.o
+$(HOST)UTL_VST_MODINFO_DEPS_ALL     = $(call uniq, $($(HOST)LSP_PLUGIN_FW_DEPS))
+$(HOST)UTL_VST_MODINFO_DEPS         = $(foreach dep, $($(HOST)UTL_VST_MODINFO_DEPS_ALL), $(if $($(HOST)$(dep)_OBJ), $(HOST)$(dep)))
+$(HOST)UTL_VST_MODINFO_LIBS         = $(foreach dep, $($(HOST)UTL_VST_MODINFO_DEPS_ALL), $($(HOST)$(dep)_OBJ))
+$(HOST)UTL_VST_MODINFO_LDFLAGS      = $(foreach dep, $($(HOST)UTL_VST_MODINFO_DEPS_ALL), $($(HOST)$(dep)_LDFLAGS))
+$(HOST)UTL_VST_MODINFO_OBJS         = \
   $($(HOST)LSP_PLUGIN_FW_OBJ_CORE) \
   $($(HOST)LSP_PLUGIN_FW_OBJ_META) \
   $($(HOST)LSP_PLUGIN_FW_OBJ_DSP) \
@@ -657,8 +657,8 @@ $(HOST)UTL_VST3_MODINFO_OBJS        = \
   $($(HOST)OBJ_PLUG_DSP) \
   $($(HOST)OBJ_PLUG_SHARED) \
   $($(HOST)UTL_COMMON_OBJ) \
-  $($(HOST)UTL_VST3_MODINFO_OBJ) \
-  $($(HOST)UTL_VST3_MODINFO_MAIN_OBJ)
+  $($(HOST)UTL_VST_MODINFO_OBJ) \
+  $($(HOST)UTL_VST_MODINFO_MAIN_OBJ)
 
 $(HOST)UTL_LV2TTL_GEN               = $($(HOST)UTL_BIN_PATH)/lv2ttl_gen$(EXECUTABLE_EXT)
 $(HOST)UTL_LV2TTL_GEN_OBJ           = $(patsubst %.cpp,$($(HOST)LSP_PLUGIN_FW_BIN)/%.o,$(call rwildcard, util/lv2ttl_gen, *.cpp))
@@ -1003,7 +1003,7 @@ ifeq ($(call fcheck,test,$(BUILD_FEATURES),ON),ON)
     $($(HOST)UTL_COMMON_OBJ) \
     $($(HOST)UTL_VALIDATOR_OBJ) \
     $($(HOST)UTL_STANDALONE_MAKE_OBJ) \
-    $($(HOST)UTL_VST3_MODINFO_OBJ) \
+    $($(HOST)UTL_VST_MODINFO_OBJ) \
     $($(HOST)UTL_LV2TTL_GEN_OBJ) \
     $($(HOST)UTL_REPOSITORY_OBJ) \
     $($(HOST)UTL_RESPACK_OBJ) \
@@ -1363,10 +1363,10 @@ $($(HOST)UTL_GST_MAKE): $($(HOST)UTL_GST_MAKE_DEPS) $($(HOST)UTL_GST_MAKE_OBJS) 
 	mkdir -p $(dir $(@))
 	$($(HOST)CXX) -o $(@) $($(HOST)UTL_GST_MAKE_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_GST_MAKE_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_GST_MAKE_LDFLAGS)
 
-$($(HOST)UTL_VST3_MODINFO): $($(HOST)UTL_VST3_MODINFO_DEPS) $($(HOST)UTL_VST3_MODINFO_OBJS) $($(HOST)PLUG_DEPS)
+$($(HOST)UTL_VST_MODINFO): $($(HOST)UTL_VST_MODINFO_DEPS) $($(HOST)UTL_VST_MODINFO_OBJS) $($(HOST)PLUG_DEPS)
 	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
 	mkdir -p $(dir $(@))
-	$($(HOST)CXX) -o $(@) $($(HOST)UTL_VST3_MODINFO_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_VST3_MODINFO_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_VST3_MODINFO_LDFLAGS)
+	$($(HOST)CXX) -o $(@) $($(HOST)UTL_VST_MODINFO_OBJS) $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS) $($(HOST)UTL_VST_MODINFO_LIBS) $($(HOST)EXE_FLAGS) $($(HOST)UTL_VST_MODINFO_LDFLAGS)
 
 $($(HOST)UTL_LV2TTL_GEN): $($(HOST)UTL_LV2TTL_GEN_DEPS) $($(HOST)UTL_LV2TTL_GEN_OBJS) $($(HOST)PLUG_DEPS)
 	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(notdir $(@))"
@@ -1505,9 +1505,9 @@ meta: $($(HOST)UTL_PLUGLIST_GEN)
 
 lv2: $($(HOST)UTL_LV2TTL_GEN) $(ARTIFACT_LIB_LV2) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(ARTIFACT_LIB_LV2_UI) $(DEPENDENCIES_UI_BIN)) 
 
-vst2: $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
+vst2: $($(HOST)UTL_VST_MODINFO) $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
 
-vst3: $($(HOST)UTL_VST3_MODINFO) $(ARTIFACT_LIB_VST3) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
+vst3: $($(HOST)UTL_VST_MODINFO) $(ARTIFACT_LIB_VST3) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
 
 launcher: $(ARTIFACT_BIN_LAUNCHER)
 
@@ -1567,8 +1567,17 @@ install_lv2: lv2
 
 install_vst2: vst2
 	echo "Install vst2"
-	mkdir -p "$(DESTDIR)$(VST2_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)$(VST2_LIBDIR)/$(ARTIFACT_BIN_VST2)"
+	$(if $(findstring MacOS, $(PLATFORM)), \
+	  mkdir -p "$(DESTDIR)$(VST2_LIBDIR)/Contents/MacOS", \
+	  mkdir -p "$(DESTDIR)$(VST2_LIBDIR)" \
+	)
+	$(if $(findstring MacOS, $(PLATFORM)), \
+	  $($(HOST)UTL_VST_MODINFO) -i "$(DESTDIR)$(VST2_LIBDIR)/Contents/Info.plist" -p "$(DESTDIR)$(VST2_LIBDIR)/Contents/PkgInfo" \
+	)
+	$(if $(findstring MacOS, $(PLATFORM)), \
+	  $(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)$(VST2_LIBDIR)/Contents/MacOS/$(ARTIFACT_BIN_VST2)", \
+	  $(INSTALL) $(ARTIFACT_LIB_VST2) "$(DESTDIR)$(VST2_LIBDIR)/$(ARTIFACT_BIN_VST2)" \
+	)
 
 install_vst3: vst3
 	echo "Install vst3"
@@ -1576,9 +1585,9 @@ install_vst3: vst3
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
-	$($(HOST)UTL_VST3_MODINFO) -m "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$($(HOST)UTL_VST_MODINFO) -m "$(DESTDIR)$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
 	$(if $(findstring MacOS, $(PLATFORM)), \
-	  $($(HOST)UTL_VST3_MODINFO) -i "$(DESTDIR)$(VST3_LIBDIR)/Contents/Info.plist" -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/PkgInfo" \
+	  $($(HOST)UTL_VST_MODINFO) -i "$(DESTDIR)$(VST3_LIBDIR)/Contents/Info.plist" -p "$(DESTDIR)$(VST3_LIBDIR)/Contents/PkgInfo" \
     )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(DESTDIR)$(VST3_LIBDIR)/Contents/${VST3_ARCH}/$(ARTIFACT_BIN_VST3)"
 
@@ -1708,13 +1717,22 @@ package_lv2: lv2 $(BIN_PACKAGE)
 package_vst2: vst2 $(BIN_PACKAGE)
 	echo "Package vst2"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
-	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)"
-	$(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/$(ARTIFACT_BIN_VST2)"
+	$(if $(findstring MacOS, $(PLATFORM)), \
+	  mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/Contents/MacOS", \
+	  mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)" \
+	)
+	$(if $(findstring MacOS, $(PLATFORM)), \
+	  $($(HOST)UTL_VST_MODINFO) -i "$(DESTDIR)$(VST2_LIBDIR)/Contents/Info.plist" -p "$(DESTDIR)$(VST2_LIBDIR)/Contents/PkgInfo" \
+	)
+	$(if $(findstring MacOS, $(PLATFORM)), \
+	  $(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/Contents/MacOS/$(ARTIFACT_BIN_VST2)", \
+	  $(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/$(ARTIFACT_BIN_VST2)" \
+    )
 	$(foreach target,$(BIN_PACKAGE_VST2), \
-	    $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	  $(MAKE) -C "$($(patsubst package_%,%,$(target))_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	  cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
@@ -1725,9 +1743,9 @@ package_vst3: vst3 $(BIN_PACKAGE)
 	-rm -rf  "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}"
-	$($(HOST)UTL_VST3_MODINFO) -m "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
+	$($(HOST)UTL_VST_MODINFO) -m "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources/moduleinfo.json"
 	$(if $(findstring MacOS, $(PLATFORM)), \
-	  $($(HOST)UTL_VST3_MODINFO) -i "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Info.plist" -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/PkgInfo" \
+	  $($(HOST)UTL_VST_MODINFO) -i "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Info.plist" -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/PkgInfo" \
     )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/$(ARTIFACT_BIN_VST3)"
 	$(foreach target,$(BIN_PACKAGE_VST3), \

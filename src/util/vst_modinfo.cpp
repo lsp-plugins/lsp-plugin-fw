@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 4 февр. 2024 г.
@@ -19,12 +19,12 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/plug-fw/util/vst3_modinfo/vst3_modinfo.h>
+#include <lsp-plug.in/plug-fw/util/vst_modinfo/vst_modinfo.h>
 
 #ifndef LSP_IDE_DEBUG
 int main(int argc, const char **argv)
 {
-    return lsp::vst3_modinfo::main(argc, argv);
+    return lsp::vst_modinfo::main(argc, argv);
 }
 #endif /* LSP_IDE_DEBUG */
 
