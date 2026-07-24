@@ -60,9 +60,9 @@ DISTSRC_FILES               = \
   $(wildcard $(BASEDIR)/*.txt)
 
 .DEFAULT_GOAL              := all
-.PHONY: all compile install uninstall clean package
+.PHONY: all bundle compile install uninstall clean package
 
-compile all install uninstall:
+all compile bundle install uninstall:
 	$(CHK_CONFIG)
 	$(MAKE) -C "$(BASEDIR)/src" $(@) VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" DESTDIR="$(DESTDIR)"
 
@@ -124,6 +124,7 @@ distsrc:
 help:
 	echo "Available targets:"
 	echo "  all                       Build all binaries"
+	echo "  bundle                    Install only necessary binaries for bundling"
 	echo "  clean                     Clean all build files and configuration file"
 	echo "  config                    Configure build"
 	echo "  devel                     Configure build as development build"
