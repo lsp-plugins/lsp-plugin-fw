@@ -1694,7 +1694,7 @@ package_gst: gst $(BIN_PACKAGE)
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
-package_standalone: standalone $(BIN_PACKAGE)
+package_standalone: standalone $(BIN_PACKAGE) $(call fcheck,launcher,$(ENABLED_FEATURES),launcher)
 	echo "Package standalone"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(STANDALONE_LIBDIR)"
@@ -1848,7 +1848,7 @@ bundle_gst: gst $(BIN_BUNDLE)
 	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_GST_DEST)/$(LIBDIR)"; \
 	)
 
-bundle_standalone: standalone $(BIN_BUNDLE)
+bundle_standalone: standalone $(BIN_BUNDLE) $(call fcheck,launcher,$(ENABLED_FEATURES),launcher)
 	echo "Bundle standalone"
 	$(CHK_DESDIR)
 	-rm -rf "$(BUNDLE_STANDALONE_DEST)"

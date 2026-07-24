@@ -569,7 +569,10 @@ namespace lsp
             io::IInStream * is = pLoader->read_stream(&path);
             if (is == NULL)
             {
-                lsp_warn("Could not load reource file '%s' for plugin uid='%s': code=%d", int(pLoader->last_error()));
+                lsp_warn("Could not load reource file '%s' for plugin uid='%s': code=%d",
+                    path.get_utf8(),
+                    plugin->pMeta->uid,
+                    int(pLoader->last_error()));
                 path.set_ascii(LSP_BUILTIN_PREFIX "icons/default_icon.xpm");
                 is = pLoader->read_stream(&path);
                 if (is == NULL)
