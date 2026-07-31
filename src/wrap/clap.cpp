@@ -403,7 +403,7 @@ namespace lsp
 
         bool CLAP_ABI ui_set_parent(const clap_plugin_t *plugin, const clap_window_t *window)
         {
-            lsp_trace("plugin = %p, window=%p data=%p", plugin, window);
+            lsp_trace("plugin = %p, window=%p, handle=%p", plugin, window, (window) ? window->ptr : NULL);
             Wrapper *w = static_cast<Wrapper *>(plugin->plugin_data);
             UIWrapper *uw = w->ui_wrapper();
 
