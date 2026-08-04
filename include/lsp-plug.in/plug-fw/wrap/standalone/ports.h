@@ -284,7 +284,7 @@ namespace lsp
                             // Fill sanitized buffer with single item
                             if (src != NULL)
                             {
-                                dsp::sanitize2(pSanitized, src, samples);
+                                dsp::limit2(pSanitized, src, MIN_INPUT_PEAK, MAX_INPUT_PEAK, samples);
                                 bZero           = false;    // Reset cleanup flag
                             }
                             else if (!bZero)
@@ -320,7 +320,7 @@ namespace lsp
 
                                 // Check that src was not mixed with none of the buffers
                                 if (src != NULL)
-                                    dsp::sanitize1(pSanitized, samples);
+                                    dsp::limit1(pSanitized, MIN_INPUT_PEAK, MAX_INPUT_PEAK, samples);
 
                                 bZero           = false;    // Reset cleanup flag
                             }

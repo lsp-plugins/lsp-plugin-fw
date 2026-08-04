@@ -3,6 +3,8 @@
 *******************************************************************************
 
 === 1.0.39 ===
+* Added hard clipping of the input signal to the maximum peak value of 120 dBFS
+  to avoid mathematic failures which may yield to NaN and Inf values.
 * VST2 plugins now are packaged into shell plugin which makes faster scanning of
   plugins and requires less shared object files to provide.
 * Fixed VST3 scaling issues on MacOS (contributed by lltwist @ github.com)

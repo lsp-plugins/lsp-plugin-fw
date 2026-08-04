@@ -310,7 +310,7 @@ namespace lsp
                     }
 
                     // Santize input data and update buffer pointer
-                    dsp::sanitize2(pSanitized, pBuffer, samples);
+                    dsp::limit2(pSanitized, pBuffer, MIN_INPUT_PEAK, MAX_INPUT_PEAK, samples);
                     pBuffer     = pSanitized;
                 };
 
