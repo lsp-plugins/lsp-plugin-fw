@@ -1649,7 +1649,7 @@ $(BIN_PACKAGE): $(DEPENDENCIES_BIN)
 package: $(PACKAGE_TARGETS)
 	echo "Package OK"
 
-package_clap: clap $(BIN_PACKAGE)
+package_clap: clap $(BIN_PACKAGE_CLAP_DEPS)
 	echo "Package clap"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)"
@@ -1676,7 +1676,7 @@ package_doc: doc
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR).tar.gz" "$(ARTIFACT_DOC_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)"
 
-package_gst: gst $(BIN_PACKAGE)
+package_gst: gst $(BIN_PACKAGE_GST_DEPS)
 	echo "Package gst"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(GSTREAMER_PKGDIR)"
@@ -1693,7 +1693,7 @@ package_gst: gst $(BIN_PACKAGE)
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
-package_standalone: standalone $(BIN_PACKAGE) $(call fcheck,launcher,$(ENABLED_FEATURES),launcher)
+package_standalone: standalone $(BIN_PACKAGE_STANDALONE_DEPS) $(call fcheck,launcher,$(ENABLED_FEATURES),launcher)
 	echo "Package standalone"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(STANDALONE_LIBDIR)"
@@ -1721,7 +1721,7 @@ package_standalone: standalone $(BIN_PACKAGE) $(call fcheck,launcher,$(ENABLED_F
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
-package_ladspa: ladspa $(BIN_PACKAGE)
+package_ladspa: ladspa $(BIN_PACKAGE_LADSPA_DEPS)
 	echo "Package ladspa"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)"
@@ -1736,7 +1736,7 @@ package_ladspa: ladspa $(BIN_PACKAGE)
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
-package_lv2: lv2 $(BIN_PACKAGE)
+package_lv2: lv2 $(BIN_PACKAGE_LV2_DEPS)
 	echo "Package lv2"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)"
@@ -1755,7 +1755,7 @@ package_lv2: lv2 $(BIN_PACKAGE)
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
-package_vst2: vst2 $(BIN_PACKAGE)
+package_vst2: vst2 $(BIN_PACKAGE_VST2_DEPS)
 	echo "Package vst2"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	$(if $(findstring MacOS, $(PLATFORM)), \
@@ -1782,7 +1782,7 @@ package_vst2: vst2 $(BIN_PACKAGE)
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
 	-rm -rf "$(BUILDDIR)/$(BIN_PKG_DIR)"
 
-package_vst3: vst3 $(BIN_PACKAGE)
+package_vst3: vst3 $(BIN_PACKAGE_VST3_DEPS)
 	echo "Package vst3"
 	-rm -rf  "$(BUILDDIR)/$(BIN_PKG_DIR)"
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/Resources"
@@ -1817,7 +1817,7 @@ bundle: $(BUNDLE_TARGETS)
 	)
 	echo "Bundle OK"
 
-bundle_clap: clap $(BIN_BUNDLE)
+bundle_clap: clap $(BIN_BUNDLE_CLAP_DEPS)
 	echo "Bundle clap"
 	$(CHK_DESDIR)
 	-rm -rf "$(BUNDLE_CLAP_DEST)"
@@ -1834,7 +1834,7 @@ bundle_doc: doc
 	mkdir -p "$(BUNDLE_DOC_DEST)"
 	cp -R $(ARTIFACT_DOC_PATH)/* "$(BUNDLE_DOC_DEST)/"
 
-bundle_gst: gst $(BIN_BUNDLE)
+bundle_gst: gst $(BIN_BUNDLE_GST_DEPS)
 	echo "Bundle gst"
 	$(CHK_DESDIR)
 	-rm -rf "$(BUNDLE_GST_DEST)"
@@ -1847,7 +1847,7 @@ bundle_gst: gst $(BIN_BUNDLE)
 	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_GST_DEST)/$(LIBDIR)"; \
 	)
 
-bundle_standalone: standalone $(BIN_BUNDLE) $(call fcheck,launcher,$(ENABLED_FEATURES),launcher)
+bundle_standalone: standalone $(BIN_BUNDLE_STANDALONE_DEPS) $(call fcheck,launcher,$(ENABLED_FEATURES),launcher)
 	echo "Bundle standalone"
 	$(CHK_DESDIR)
 	-rm -rf "$(BUNDLE_STANDALONE_DEST)"
@@ -1871,7 +1871,7 @@ bundle_standalone: standalone $(BIN_BUNDLE) $(call fcheck,launcher,$(ENABLED_FEA
 	    $(INSTALL) "$(ARTIFACT_BIN_LAUNCHER)" "$(BUNDLE_STANDALONE_DEST)/$(BINDIR)/" \
 	)
 
-bundle_ladspa: ladspa $(BIN_BUNDLE)
+bundle_ladspa: ladspa $(BIN_BUNDLE_LADSPA_DEPS)
 	echo "Bundle ladspa"
 	$(CHK_DESDIR)
 	-rm -rf "$(BUNDLE_LADSPA_DEST)"
@@ -1881,7 +1881,7 @@ bundle_ladspa: ladspa $(BIN_BUNDLE)
 	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUNDLE_LADSPA_DEST)"; \
 	)
 
-bundle_lv2: lv2 $(BIN_BUNDLE)
+bundle_lv2: lv2 $(BIN_BUNDLE_LV2_DEPS)
 	echo "Bundle lv2"
 	$(CHK_DESDIR)
 	-rm -rf "$(BUNDLE_LV2_DEST)"
@@ -1895,7 +1895,7 @@ bundle_lv2: lv2 $(BIN_BUNDLE)
 	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_LV2_DEST)/$(LV2_BUNDLE_DIR)"; \
 	)
 
-bundle_vst2: vst2 $(BIN_BUNDLE)
+bundle_vst2: vst2 $(BIN_BUNDLE_VST2_DEPS)
 	echo "Bundle vst2"
 	$(CHK_DESDIR)
 	-rm -rf "$(BUNDLE_VST2_DEST)"
@@ -1921,7 +1921,7 @@ bundle_vst2: vst2 $(BIN_BUNDLE)
       codesign --force --deep --sign - "$(BUNDLE_VST2_DEST)/$(VST2_BUNDLE_DIR)" \
     )
 
-bundle_vst3: vst3 $(BIN_BUNDLE)
+bundle_vst3: vst3 $(BIN_BUNDLE_VST3_DEPS)
 	echo "Bundle vst3"
 	$(CHK_DESDIR)
 	-rm -rf "$(BUNDLE_VST3_DEST)"
