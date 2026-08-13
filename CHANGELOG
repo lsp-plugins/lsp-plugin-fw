@@ -17,6 +17,7 @@
   directory of LSP Plugins does not exist.
 * Added possibility to pass specific parameters to the audio backend driver
   from command line.
+* Updated module versions in dependencies.
 
 === 1.0.38 ===
 * Updated module versions in dependencies.
