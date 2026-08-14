@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 4 февр. 2024 г.
@@ -31,7 +31,7 @@
 
 namespace lsp
 {
-    namespace vst3_modinfo
+    namespace vst_modinfo
     {
         typedef struct cmdline_t
         {
@@ -402,6 +402,6 @@ namespace lsp
             // All seems to be OK
             return res;
         }
-    } /* namespace vst3_modinfo */
+    } /* namespace vst_modinfo */
 } /* namespace lsp */
 

@@ -50,6 +50,9 @@
 #define MAX_PARAM_ID_BYTES                  64
 #define FLOAT_CMP_PREC                      1e-6f               /* Float comparison precision                       */
 #define UI_FRAMES_PER_SECOND                25                  /* Preferred UI FPS                                 */
+#define MIN_INPUT_PEAK                      GAIN_AMP_MIN        /* The minimum peak value                           */
+#define MAX_INPUT_PEAK                      GAIN_AMP_MAX        /* The maximum peak value                           */
+#define THRESH_INPUT_PEAK                   GAIN_AMP_M_120_DB   /* The threshold peak value, all values below are considered -inf dB */
 
 // Prefix for built-in resource
 #define LSP_BUILTIN_PREFIX                  "builtin://"

@@ -3,7 +3,7 @@
  *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
- * Created on: 18 дек. 2021 г.
+ * Created on: 4 февр. 2024 г.
  *
  * lsp-plugin-fw is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,32 +19,26 @@
  * along with lsp-plugin-fw. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_PLUG_FW_WRAP_VST2_MAIN_H_
-#define LSP_PLUG_IN_PLUG_FW_WRAP_VST2_MAIN_H_
+#ifndef LSP_PLUG_IN_PLUG_FW_UTIL_VST_MODINFO_VST_MODINFO_H_
+#define LSP_PLUG_IN_PLUG_FW_UTIL_VST_MODINFO_VST_MODINFO_H_
 
 #include <lsp-plug.in/plug-fw/version.h>
 
-#ifndef LSP_PLUG_IN_VST2_MAIN_IMPL
-    #error "This header should not be included directly"
-#endif /* LSP_PLUG_IN_VST2_MAIN_IMPL */
+namespace lsp
+{
+    namespace vst_modinfo
+    {
 
-// Do not use tracefile because this file does not use vst2-core
-#ifdef LSP_TRACEFILE
-    #undef LSP_TRACEFILE
-#endif /* LSP_TRACEFILE */
+        /**
+         * Execute main function of the utility
+         * @param argc number of arguments
+         * @param argv list of arguments
+         * @return status of operation
+         */
+        int main(int argc, const char **argv);
 
-#ifndef VST2_PLUGIN_UID
-    #error "Plugin metadata identifier not defined"
-#endif /* VST2_PLUGIN_UID */
-
-#if defined(PLATFORM_WINDOWS)
-    #include <lsp-plug.in/plug-fw/wrap/vst2/main/winnt.h>
-#else
-    #include <lsp-plug.in/plug-fw/wrap/vst2/main/posix.h>
-#endif /* PLATFORM_WINDOWS */
-
-// This should be included to generate other VST stuff
-#include <steinberg/vst2main.h>
+    } /* namespace vst_modinfo */
+} /* namespace lsp */
 
 
-#endif /* LSP_PLUG_IN_PLUG_FW_WRAP_VST2_MAIN_H_ */
+#endif /* LSP_PLUG_IN_PLUG_FW_UTIL_VST_MODINFO_VST_MODINFO_H_ */

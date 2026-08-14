@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -905,7 +905,7 @@ namespace lsp
         void midi_t::sort()
         {
             if (nEvents > 1)
-                ::qsort(vEvents, nEvents, sizeof(midi::event_t), compare_midi_events);
+                lsp::ssort(vEvents, nEvents, sizeof(midi::event_t), compare_midi_events);
         }
 
         //-------------------------------------------------------------------------

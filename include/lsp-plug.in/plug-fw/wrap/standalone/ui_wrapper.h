@@ -96,7 +96,7 @@ namespace lsp
                 virtual status_t                    import_settings(config::PullParser *parser, size_t flags, const io::Path *basedir = NULL) override;
                 virtual const core::ShmState       *shm_state() override;
                 virtual status_t                    enumerate_backends(core::AudioBackendInfoList & list) override;
-                virtual status_t                    select_backend(const LSPString & name) override;
+                virtual status_t                    select_backend(const LSPString & name, const LSPString & options) override;
 
                 using ui::IWrapper::export_settings;
                 using ui::IWrapper::import_settings;

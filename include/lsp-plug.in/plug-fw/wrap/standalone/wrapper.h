@@ -97,6 +97,7 @@ namespace lsp
                 audio::backend_t               *pBackend;           // Currently active backend
                 ipc::Library                    sBackendLibrary;    // Currently used backend library
                 const core::AudioBackendInfo   *pBackendInfo;       // Currently used audio backend
+                LSPString                       sBackendOptions;    // Backend options
                 char                           *sClientName;        // Standalone client name
                 state_t                         nState;             // Connection state to Audio server
                 bool                            bUpdateSettings;    // Plugin settings are required to be updated
@@ -206,9 +207,9 @@ namespace lsp
                 status_t                            connect();
                 status_t                            set_routing(const lltl::darray<connection_t> *routing, bool once);
                 status_t                            disconnect();
-                status_t                            select_backend(const char *id);
-                status_t                            select_backend(const LSPString * id);
-                status_t                            select_backend(const LSPString & id);
+                status_t                            select_backend(const char *id, const char *options);
+                status_t                            select_backend(const LSPString * id, const LSPString *options);
+                status_t                            select_backend(const LSPString & id, const LSPString & options);
 
                 bool                                lock_meters();
                 bool                                lock_meters_soft();

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 1 авг. 2021 г.
@@ -224,7 +224,7 @@ namespace lsp
                 return;
 
             float v         = fReport;
-            float av        = fabs(v);
+            float av        = fabsf(v);
 
             // Peak value
             if (nFlags & MF_BALANCE)
@@ -265,25 +265,25 @@ namespace lsp
 
         void LedChannel::set_meter_text(tk::String *dst, float value)
         {
-            float avalue = fabs(value);
+            float avalue = fabsf(value);
             const meta::port_t *p = (pPort != NULL) ? pPort->metadata() : NULL;
 
             // Update the value
             if ((p != NULL) && (meta::is_decibel_unit(p->unit)))
             {
-                if (avalue >= GAIN_AMP_MAX)
+                if (avalue >= MAX_INPUT_PEAK)
                 {
                     dst->set_raw("+inf");
                     return;
                 }
-                else if (avalue < GAIN_AMP_MIN)
+                else if (avalue < THRESH_INPUT_PEAK)
                 {
                     dst->set_raw("-inf");
                     return;
                 }
 
-                value       = logf(fabs(value)) * ((p->unit == meta::U_GAIN_POW) ? 10.0f : 20.0f) / M_LN10;
-                avalue      = fabs(value);
+                value       = logf(fabsf(value)) * ((p->unit == meta::U_GAIN_POW) ? 10.0f : 20.0f) / M_LN10;
+                avalue      = fabsf(value);
             }
 
             // Now we are able to format values
@@ -311,16 +311,16 @@ namespace lsp
 
             bool xlog = (nFlags & MF_LOG) && (bLog);
             if (!xlog)
-                xlog = meta::is_log_rule(p);
+                xlog    = meta::is_log_rule(p);
 
-            if ((xlog) && (value < GAIN_AMP_M_120_DB))
-                value   = GAIN_AMP_M_120_DB;
+            if ((xlog) && (value < THRESH_INPUT_PEAK))
+                value   = THRESH_INPUT_PEAK;
 
             float mul = (p->unit == meta::U_GAIN_AMP) ? 20.0f/M_LN10 :
                         (p->unit == meta::U_GAIN_POW) ? 10.0f/M_LN10 :
                         1.0f;
 
-            return (xlog) ? mul * logf(fabs(value)) : value;
+            return (xlog) ? mul * logf(fabsf(value)) : value;
         }
 
         void LedChannel::sync_channel()

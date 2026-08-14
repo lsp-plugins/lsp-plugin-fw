@@ -90,7 +90,7 @@ namespace lsp
                     bZero       = false;
 
                     IF_DEBUG( sTracer.submit(src, samples) );       // Trace input data
-                    dsp::sanitize2(pBuffer, src, samples);
+                    dsp::limit2(pBuffer, src, MIN_INPUT_PEAK, MAX_INPUT_PEAK, samples);
                 }
 
                 // Sanitize non-interleaved output samples

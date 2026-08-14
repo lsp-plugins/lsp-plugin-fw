@@ -167,7 +167,7 @@ namespace lsp
                         if ((ptr != NULL) && (bActive))
                         {
                             IF_DEBUG( sTracer.submit(ptr, samples) ); // Trace input data
-                            dsp::sanitize2(pBuffer, ptr, samples);
+                            dsp::limit2(pBuffer, ptr, MIN_INPUT_PEAK, MAX_INPUT_PEAK, samples);
                         }
                         else
                         {

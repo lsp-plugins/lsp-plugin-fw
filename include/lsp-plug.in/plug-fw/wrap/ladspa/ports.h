@@ -116,7 +116,7 @@ namespace lsp
                     {
                         IF_DEBUG( sTracer.submit(&pData[off], samples) ); // Trace input data
 
-                        dsp::sanitize2(pSanitized, pBuffer, samples);
+                        dsp::limit2(pSanitized, pBuffer, MIN_INPUT_PEAK, MAX_INPUT_PEAK, samples);
                         pBuffer     = pSanitized;
                     }
                 }

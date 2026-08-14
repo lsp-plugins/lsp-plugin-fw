@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 4 февр. 2024 г.
@@ -22,10 +22,10 @@
 #include <lsp-plug.in/test-fw/mtest.h>
 #include <lsp-plug.in/io/Path.h>
 #include <lsp-plug.in/plug-fw/const.h>
-#include <lsp-plug.in/plug-fw/util/vst3_modinfo/vst3_modinfo.h>
+#include <lsp-plug.in/plug-fw/util/vst_modinfo/vst_modinfo.h>
 #include <lsp-plug.in/runtime/system.h>
 
-MTEST_BEGIN("", vst3_modinfo)
+MTEST_BEGIN("", vst_modinfo)
 
     MTEST_MAIN
     {
@@ -46,7 +46,7 @@ MTEST_BEGIN("", vst3_modinfo)
 
         const char *data[]=
         {
-            "vst3_modinfo",
+            "vst_modinfo",
             "-m",
             modinfo.as_native(),
             "-i",
@@ -59,7 +59,7 @@ MTEST_BEGIN("", vst3_modinfo)
         printf("Writing info.plist file to %s...\n", plist.as_native());
         printf("Writing PkgInfo file to %s...\n", pkginfo.as_native());
 
-        MTEST_ASSERT(lsp::vst3_modinfo::main(sizeof(data)/sizeof(const char *), data) == 0);
+        MTEST_ASSERT(lsp::vst_modinfo::main(sizeof(data)/sizeof(const char *), data) == 0);
     }
 
 MTEST_END

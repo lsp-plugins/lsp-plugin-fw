@@ -2,6 +2,23 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.39 ===
+* Added hard clipping of the input signal to the maximum peak value of 120 dBFS
+  to avoid mathematic failures which may yield to NaN and Inf values.
+* VST2 plugins now are packaged into shell plugin which makes faster scanning of
+  plugins and requires less shared object files to provide.
+* Fixed VST3 scaling issues on MacOS (contributed by lltwist @ github.com)
+* Fixed out of sync parameters for the ctl::Envelope controller. 
+* Fixed regression that caused a crash when launching standalone plugins
+  in headless mode.
+* Fixed VST3 paths for 32-bit and 64-bit ARM architectures.
+* Updated installation paths of LV2, LADSPA and CLAP plugins for MacOS.
+* Fixed bug related to saving global configuration file when user's configuration
+  directory of LSP Plugins does not exist.
+* Added possibility to pass specific parameters to the audio backend driver
+  from command line.
+* Updated module versions in dependencies.
+
 === 1.0.38 ===
 * Updated module versions in dependencies.
 

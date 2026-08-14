@@ -131,6 +131,7 @@ namespace lsp
             const char     *client_name;
             const char     *script_name;
             const char     *schema;
+            const char     *options;
             void           *parent_id;
             bool            headless;
             bool            list;
@@ -307,6 +308,7 @@ namespace lsp
             cfg->client_name    = NULL;
             cfg->script_name    = NULL;
             cfg->schema         = NULL;
+            cfg->options        = NULL;
             cfg->parent_id      = NULL;
 
             cfg->headless       = false;
@@ -344,6 +346,7 @@ namespace lsp
                     printf("  -lb, --list-backends      List available audio backends and quit\n");
                     printf("  -mw, --minimized          Launch UI with minimized window\n");
                     printf("  -n, --name                Specify the client name\n");
+                    printf("  -o, --options <options>   Additional options passed to the backend\n");
                     printf("  -s, --schema              Specify the UI schema name\n");
                     printf("  -v, --version             Output the version of the software\n");
                     printf("  -x, --connect <src>=<dst> Connect input/output audio port to another\n");
@@ -365,7 +368,7 @@ namespace lsp
                     }
                     if (i >= argc)
                     {
-                        fprintf(stderr, "Not specified backend name for '%s' parameter\n", arg);
+                        fprintf(stderr, "Not specified backend name for the '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->backend = argv[i++];
@@ -379,7 +382,7 @@ namespace lsp
                     }
                     if (i >= argc)
                     {
-                        fprintf(stderr, "Not specified file name for '%s' parameter\n", arg);
+                        fprintf(stderr, "Not specified file name for the '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->cfg_file = argv[i++];
@@ -393,10 +396,24 @@ namespace lsp
                     }
                     if (i >= argc)
                     {
-                        fprintf(stderr, "Not specified client name for '%s' parameter\n", arg);
+                        fprintf(stderr, "Not specified client name for the '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->client_name = argv[i++];
+                }
+                else if ((!::strcmp(arg, "--options")) || (!::strcmp(arg, "-o")))
+                {
+                    if (cfg->options != NULL)
+                    {
+                        fprintf(stderr, "Duplicate backend options argument specified\n");
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    if (i >= argc)
+                    {
+                        fprintf(stderr, "Not specified backend options for the '%s' parameter\n", arg);
+                        return STATUS_BAD_ARGUMENTS;
+                    }
+                    cfg->options = argv[i++];
                 }
                 else if ((!::strcmp(arg, "--schema")) || (!::strcmp(arg, "-s")))
                 {
@@ -407,7 +424,7 @@ namespace lsp
                     }
                     if (i >= argc)
                     {
-                        fprintf(stderr, "Not specified UI schema name for '%s' parameter\n", arg);
+                        fprintf(stderr, "Not specified UI schema name for the '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->schema = argv[i++];
@@ -421,7 +438,7 @@ namespace lsp
                     }
                     if (i >= argc)
                     {
-                        fprintf(stderr, "Not specified scipt file name for '%s' parameter\n", arg);
+                        fprintf(stderr, "Not specified scipt file name for the '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
                     cfg->script_name = argv[i++];
@@ -444,13 +461,13 @@ namespace lsp
                 {
                     if (i >= argc)
                     {
-                        fprintf(stderr, "Not specified connection string for '%s' parameter\n", arg);
+                        fprintf(stderr, "Not specified connection string for the '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
                     const char *conn = argv[i++];
                     if ((res = parse_connection(cfg, conn)) != STATUS_OK)
                     {
-                        fprintf(stderr, "Error in connection string for '%s' parameter: '%s'\n", arg, conn);
+                        fprintf(stderr, "Error in connection string for the '%s' parameter: '%s'\n", arg, conn);
                         return res;
                     }
                 }
@@ -459,7 +476,7 @@ namespace lsp
                 {
                     if (i >= argc)
                     {
-                        fprintf(stderr, "Not specified window hex identifier for '%s' parameter\n", arg);
+                        fprintf(stderr, "Not specified window hex identifier for the '%s' parameter\n", arg);
                         return STATUS_BAD_ARGUMENTS;
                     }
 
@@ -931,9 +948,12 @@ namespace lsp
 
                 if (sCmdLine.backend != NULL)
                 {
-                    if ((res = pUIWrapper->select_backend(sCmdLine.backend)) != STATUS_OK)
+                    if ((res = pUIWrapper->select_backend(sCmdLine.backend, sCmdLine.options)) != STATUS_OK)
                     {
-                        lsp_error("Could not select backend '%s': code=%d", sCmdLine.backend, res);
+                        if (sCmdLine.options != NULL)
+                            lsp_error("Could not select backend '%s' options '%s': code=%d", sCmdLine.backend, sCmdLine.options, res);
+                        else
+                            lsp_error("Could not select backend '%s': code=%d", sCmdLine.backend, res);
                         return res;
                     }
                 }
@@ -942,9 +962,12 @@ namespace lsp
             // Select autio backend (if specified in parameters)
             if (sCmdLine.backend != NULL)
             {
-                if ((res = pWrapper->select_backend(sCmdLine.backend)) != STATUS_OK)
+                if ((res = pWrapper->select_backend(sCmdLine.backend, sCmdLine.options)) != STATUS_OK)
                 {
-                    lsp_error("Could not select backend '%s': code=%d", sCmdLine.backend, res);
+                    if (sCmdLine.options != NULL)
+                        lsp_error("Could not select backend '%s' options '%s': code=%d", sCmdLine.backend, sCmdLine.options, res);
+                    else
+                        lsp_error("Could not select backend '%s': code=%d", sCmdLine.backend, res);
                     return res;
                 }
             }
@@ -1114,7 +1137,8 @@ namespace lsp
             if (jw->disconnected())
             {
             #ifdef WITH_UI_FEATURE
-                uw->set_connection_status(jw->selected_backend(), false);
+                if (uw != NULL)
+                    uw->set_connection_status(jw->selected_backend(), false);
             #endif /* WITH_UI_FEATURE */
 
                 // Try each second to make new connection
@@ -1134,7 +1158,8 @@ namespace lsp
         #ifdef WITH_UI_FEATURE
             if (jw->connected())
             {
-                uw->set_connection_status(jw->selected_backend(), true);
+                if (uw != NULL)
+                    uw->set_connection_status(jw->selected_backend(), true);
 
                 // Sync state (transfer DSP to UI)
                 if (uw != NULL)

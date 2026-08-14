@@ -3227,25 +3227,33 @@ namespace lsp
             return core::scan_audio_backends(&list);
         }
 
-        status_t IWrapper::select_backend(const char *name)
+        status_t IWrapper::select_backend(const char *name, const char *options)
         {
             if (name == NULL)
                 return STATUS_BAD_ARGUMENTS;
-            LSPString tmp;
+            LSPString tmp, opt;
             if (!tmp.set_native(name))
                 return STATUS_NO_MEM;
+            if (options != NULL)
+            {
+                if (!opt.set_native(options))
+                    return STATUS_NO_MEM;
+            }
 
-            return select_backend(tmp);
+            return select_backend(tmp, opt);
         }
 
-        status_t IWrapper::select_backend(const LSPString * name)
+        status_t IWrapper::select_backend(const LSPString *name, const LSPString *options)
         {
             if (name == NULL)
                 return STATUS_BAD_ARGUMENTS;
-            return select_backend(*name);
+            LSPString empty;
+            if (options == NULL)
+                options = &empty;
+            return select_backend(*name, *options);
         }
 
-        status_t IWrapper::select_backend(const LSPString & name)
+        status_t IWrapper::select_backend(const LSPString & name, const LSPString & options)
         {
             return STATUS_OK;
         }

@@ -437,9 +437,29 @@ namespace lsp
 
         status_t AudioEnvelope::slot_change(tk::Widget *sender, void *ptr, void *data)
         {
-            ctl::AudioEnvelope *self    = static_cast<ctl::AudioEnvelope *>(ptr);
-            if (self != NULL)
-                self->submit_ports();
+            ctl::AudioEnvelope * const self     = static_cast<ctl::AudioEnvelope *>(ptr);
+            if (self == NULL)
+                return STATUS_OK;
+
+            // Synchronize state of ports
+            for (size_t i=0; i<P_TOTAL; ++i)
+                for (size_t j=0; j<R_TOTAL; ++j)
+                {
+                    point_t *p      = &self->vPoints[i][j];
+                    if ((p->pPort == NULL) || (p->pValue == NULL))
+                        continue;
+
+                    const float new_value = p->pValue->get();
+                    if (p->fValue != new_value)
+                    {
+                        p->fValue   = new_value;
+                        p->bChanged = true;
+                    }
+                }
+
+            // Submit changed ports
+            self->submit_ports();
+
             return STATUS_OK;
         }
 

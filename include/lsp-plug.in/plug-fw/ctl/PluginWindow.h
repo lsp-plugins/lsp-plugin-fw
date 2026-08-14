@@ -134,6 +134,7 @@ namespace lsp
                 tk::Window                 *wUserPaths;                 // User paths configuration
                 tk::Menu                   *wMenu;                      // Menu
                 tk::Menu                   *wPresets;                   // Presets menu
+                tk::Menu                   *wBackendSelection;          // Backend selection menu
                 tk::CheckBox               *wRelPaths;                  // Relative path checkbox
                 tk::MenuItem               *wInvertVScroll;             // Global inversion of mouse vertical scroll
                 tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
@@ -168,7 +169,7 @@ namespace lsp
                 static status_t slot_show_main_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_presets_menu(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_select_next_preset(tk::Widget *sender, void *ptr, void *data);
-                static status_t slot_show_bundle_scaling_menu(tk::Widget *sender, void *ptr, void *data);
+                static status_t slot_show_backend_selection_menu(tk::Widget *sender, void *ptr, void *data);
 
                 static status_t slot_show_plugin_manual(tk::Widget *sender, void *ptr, void *data);
                 static status_t slot_show_ui_manual(tk::Widget *sender, void *ptr, void *data);
