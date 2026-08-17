@@ -1066,15 +1066,6 @@ BIN_PACKAGE_VST3_DEPS                = \
     $(DEPENDENCIES_VST3_UI_BIN) \
   )
   
-BIN_PACKAGE                          = $(foreach dep, $(UNIQ_BIN_DEPENDENCIES), package_$(dep))
-BIN_PACKAGE_CLAP                     = $(foreach dep, $(sort $(BIN_PACKAGE_CLAP_DEPS)), package_$(dep))
-BIN_PACKAGE_GST                      = $(foreach dep, $(sort $(BIN_PACKAGE_GST_DEPS)), package_$(dep))
-BIN_PACKAGE_STANDALONE               = $(foreach dep, $(sort $(BIN_PACKAGE_STANDALONE_DEPS)), package_$(dep))
-BIN_PACKAGE_LADSPA                   = $(foreach dep, $(sort $(BIN_PACKAGE_LADSPA_DEPS)), package_$(dep))
-BIN_PACKAGE_LV2                      = $(foreach dep, $(sort $(BIN_PACKAGE_LV2_DEPS)), package_$(dep))
-BIN_PACKAGE_VST2                     = $(foreach dep, $(sort $(BIN_PACKAGE_VST2_DEPS)), package_$(dep))
-BIN_PACKAGE_VST3                     = $(foreach dep, $(sort $(BIN_PACKAGE_VST3_DEPS)), package_$(dep))
-
 # Bundling
 BIN_BUNDLE_CLAP_DEPS                 = $(BIN_PACKAGE_CLAP_DEPS)
 BIN_BUNDLE_GST_DEPS                  = $(BIN_PACKAGE_GST_DEPS)
@@ -1083,15 +1074,6 @@ BIN_BUNDLE_LV2_DEPS                  = $(BIN_PACKAGE_LV2_DEPS)
 BIN_BUNDLE_STANDALONE_DEPS           = $(BIN_PACKAGE_STANDALONE_DEPS)
 BIN_BUNDLE_VST2_DEPS                 = $(BIN_PACKAGE_VST2_DEPS)
 BIN_BUNDLE_VST3_DEPS                 = $(BIN_PACKAGE_VST3_DEPS)
-
-BIN_BUNDLE                           = $(foreach dep, $(UNIQ_DEPENDENCIES_BIN), bundle_$(dep))
-BIN_BUNDLE_CLAP                      = $(foreach dep, $(sort $(BIN_BUNDLE_CLAP_DEPS)), bundle_$(dep))
-BIN_BUNDLE_GST                       = $(foreach dep, $(sort $(BIN_BUNDLE_GST_DEPS)), bundle_$(dep))
-BIN_BUNDLE_STANDALONE                = $(foreach dep, $(sort $(BIN_BUNDLE_STANDALONE_DEPS)), bundle_$(dep))
-BIN_BUNDLE_LADSPA                    = $(foreach dep, $(sort $(BIN_BUNDLE_LADSPA_DEPS)), bundle_$(dep))
-BIN_BUNDLE_LV2                       = $(foreach dep, $(sort $(BIN_BUNDLE_LV2_DEPS)), bundle_$(dep))
-BIN_BUNDLE_VST2                      = $(foreach dep, $(sort $(BIN_BUNDLE_VST2_DEPS)), bundle_$(dep))
-BIN_BUNDLE_VST3                      = $(foreach dep, $(sort $(BIN_BUNDLE_VST3_DEPS)), bundle_$(dep))
 
 BUNDLE_DEST                          = $(DESTDIR)
 BUNDLE_CLAP_DEST                     = $(BUNDLE_DEST)/CLAP
@@ -1177,7 +1159,7 @@ $(eval \
 .PHONY: bundle_clap bundle_doc bundle_gst bundle_ladspa bundle_lv2 bundle_standalone bundle_vst2 bundle_vst3
 .PHONY: install_xdg_msg uninstall_xdg_msg
 .PHONY: $(DEPENDENCIES) $(DEPENDENCIES_BIN)
-.PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL) $(BIN_PACKAGE)
+.PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL)
 .PHONY: $(ARTIFACT_XDG_INSTALL_DEPS) $(ARTIFACT_XDG_UNINSTALL_DEPS)
 .PHONY: $(SRC_DEPS) $(PLUG_DEPS)
 .PHONY: $(HOST_SRC_DEPS) $(HOST_PLUG_DEPS)
@@ -1644,8 +1626,6 @@ install_xdg: install_xdg_msg $(ARTIFACT_XDG_INST)
 
 #------------------------------------------------------------------------------
 # Packaging
-$(BIN_PACKAGE): $(DEPENDENCIES_BIN)
-
 package: $(PACKAGE_TARGETS)
 	echo "Package OK"
 
@@ -1807,8 +1787,6 @@ package_vst3: vst3 $(BIN_PACKAGE_VST3_DEPS)
 
 #------------------------------------------------------------------------------
 # Bundling
-$(BIN_BUNDLE): $(DEPENDENCIES_BIN)
-
 bundle: $(BUNDLE_TARGETS)
 	$(CHK_DESDIR)
 	cp -f $(BIN_PKG_FILES) "$(BUNDLE_DEST)/"
