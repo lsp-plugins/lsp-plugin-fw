@@ -1149,6 +1149,11 @@ $(eval \
   $(file >$(ARTIFACT_XDG_LIST_FILE),$(sort $(ARTIFACT_XDG_FILES))) \
 )
 
+define newline
+
+
+enddefine
+
 .DEFAULT_GOAL = all
 .PHONY: all bundle compile depend dep_clean install package uninstall
 .PHONY: clap doc gst ladspa launcher lv2 meta standalone test vst2 vst3
@@ -1791,7 +1796,7 @@ bundle: $(BUNDLE_TARGETS)
 	$(CHK_DESDIR)
 	cp -f $(BIN_PKG_FILES) "$(BUNDLE_DEST)/"
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUNDLE_DEST)/"; \
+	    cp -f $(file) "$(BUNDLE_DEST)/" $(newline) \
 	)
 	echo "Bundle OK"
 
@@ -1802,7 +1807,7 @@ bundle_clap: clap $(BIN_BUNDLE_CLAP_DEPS)
 	mkdir -p "$(BUNDLE_CLAP_DEST)"
 	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(BUNDLE_CLAP_DEST)/$(ARTIFACT_BIN_CLAP)"
 	$(foreach target,$(BIN_PACKAGE_CLAP_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_CLAP_DEST)"; \
+	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_CLAP_DEST)" $(newline) \
 	)
 
 bundle_doc: doc
@@ -1822,7 +1827,7 @@ bundle_gst: gst $(BIN_BUNDLE_GST_DEPS)
 	$(INSTALL) $(ARTIFACT_LIB_GST) "$(BUNDLE_GST_DEST)/$(GST_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)" install DESTDIR="$(BUNDLE_GST_DEST)/$(GSTREAMER_PKGDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
 	$(foreach target,$(BIN_PACKAGE_GST_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_GST_DEST)/$(LIBDIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_GST_DEST)/$(LIBDIR)" $(newline) \
 	)
 
 bundle_standalone: standalone $(BIN_BUNDLE_STANDALONE_DEPS) $(call fcheck,launcher,$(ENABLED_FEATURES),launcher)
@@ -1835,14 +1840,15 @@ bundle_standalone: standalone $(BIN_BUNDLE_STANDALONE_DEPS) $(call fcheck,launch
 	$(INSTALL) $(ARTIFACT_LIB_STANDALONE) "$(BUNDLE_STANDALONE_DEST)/$(STANDALONE_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_STANDALONE_PATH)" install DESTDIR="$(BUNDLE_STANDALONE_DEST)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_STANDALONE_SETTINGS)"
 	$(foreach target,$(BIN_PACKAGE_STANDALONE_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_STANDALONE_DEST)/$(LIBDIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_STANDALONE_DEST)/$(LIBDIR)" $(newline) \
 	)
 	$(if $(findstring xdg,$(ENABLED_FEATURES)), \
 	    $(foreach target,$(ARTIFACT_XDG_INST), \
 	        $(MAKE) -C "$($(patsubst xdg_install_%,%,$(target))_PATH)/res/xdg" \
 	            install_xdg DESTDIR="$(BUNDLE_STANDALONE_DEST)" \
 	            FILE_LIST="$(ARTIFACT_XDG_LIST_FILE)" \
-	            BATCH_FILE="$(ARTIFACT_XDG_BATCH_FILE)"; \
+	            BATCH_FILE="$(ARTIFACT_XDG_BATCH_FILE)" \
+	            $(newline) \
 	    ) \
 	)
 	$(call fcheck,launcher,$(ENABLED_FEATURES), \
@@ -1856,7 +1862,7 @@ bundle_ladspa: ladspa $(BIN_BUNDLE_LADSPA_DEPS)
 	mkdir -p "$(BUNDLE_LADSPA_DEST)"
 	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(BUNDLE_LADSPA_DEST)/"
 	$(foreach target,$(BIN_PACKAGE_LADSPA_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUNDLE_LADSPA_DEST)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUNDLE_LADSPA_DEST)" $(newline) \
 	)
 
 bundle_lv2: lv2 $(BIN_BUNDLE_LV2_DEPS)
@@ -1870,7 +1876,7 @@ bundle_lv2: lv2 $(BIN_BUNDLE_LV2_DEPS)
 	)
 	$($(HOST)UTL_LV2TTL_GEN) -o "$(BUNDLE_LV2_DEST)/$(LV2_BUNDLE_DIR)" -i "$(ARTIFACT_LIB_LV2)" $(call fcheck,ui,$(ENABLED_FEATURES),-ui $(ARTIFACT_LIB_LV2_UI))
 	$(foreach target,$(BIN_PACKAGE_LV2_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_LV2_DEST)/$(LV2_BUNDLE_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_LV2_DEST)/$(LV2_BUNDLE_DIR)" $(newline) \
 	)
 
 bundle_vst2: vst2 $(BIN_BUNDLE_VST2_DEPS)
@@ -1894,6 +1900,7 @@ bundle_vst2: vst2 $(BIN_BUNDLE_VST2_DEPS)
 	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_VST2_DEST)/$(VST2_BUNDLE_DIR)/Contents/MacOS", \
 	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_VST2_DEST)/$(VST2_BUNDLE_DIR)" \
       ) \
+      $(newline) \
 	)
 	$(if $(findstring MacOS, $(PLATFORM)), \
       codesign --force --deep --sign - "$(BUNDLE_VST2_DEST)/$(VST2_BUNDLE_DIR)" \
@@ -1911,7 +1918,7 @@ bundle_vst3: vst3 $(BIN_BUNDLE_VST3_DEPS)
     )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUNDLE_VST3_DEST)/$(VST3_BUNDLE_DIR)/Contents/${VST3_ARCH}/$(ARTIFACT_BIN_VST3)"
 	$(foreach target,$(BIN_PACKAGE_VST3_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_VST3_DEST)/$(VST3_BUNDLE_DIR)/Contents/${VST3_ARCH}"; \
+	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_VST3_DEST)/$(VST3_BUNDLE_DIR)/Contents/${VST3_ARCH}" $(newline) \
 	)
 	$(if $(findstring MacOS, $(PLATFORM)), \
       codesign --force --deep --sign - "$(BUNDLE_VST3_DEST)/$(VST3_BUNDLE_DIR)" \
