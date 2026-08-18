@@ -1152,7 +1152,7 @@ $(eval \
 define newline
 
 
-enddefine
+endef
 
 .DEFAULT_GOAL = all
 .PHONY: all bundle compile depend dep_clean install package uninstall
@@ -1640,10 +1640,10 @@ package_clap: clap $(BIN_PACKAGE_CLAP_DEPS)
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)/$(ARTIFACT_BIN_CLAP)"
 	$(foreach target,$(BIN_PACKAGE_CLAP_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
@@ -1655,7 +1655,7 @@ package_doc: doc
 	mkdir -p "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/$(DOC_SHAREDDIR)"
 	cp -R $(ARTIFACT_DOC_PATH)/* "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/$(DOC_SHAREDDIR)"
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR).tar.gz" "$(ARTIFACT_DOC_PKG_DIR)"
@@ -1669,10 +1669,10 @@ package_gst: gst $(BIN_PACKAGE_GST_DEPS)
 	$(INSTALL) $(ARTIFACT_LIB_GST) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(GST_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(GSTREAMER_PKGDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
 	$(foreach target,$(BIN_PACKAGE_GST_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
@@ -1686,18 +1686,19 @@ package_standalone: standalone $(BIN_PACKAGE_STANDALONE_DEPS) $(call fcheck,laun
 	$(INSTALL) $(ARTIFACT_LIB_STANDALONE) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(STANDALONE_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_STANDALONE_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_STANDALONE_SETTINGS)"
 	$(foreach target,$(BIN_PACKAGE_STANDALONE_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(if $(findstring xdg,$(ENABLED_FEATURES)), \
 	    $(foreach target,$(ARTIFACT_XDG_INST), \
 	        $(MAKE) -C "$($(patsubst xdg_install_%,%,$(target))_PATH)/res/xdg" \
 	            install_xdg DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" \
 	            FILE_LIST="$(ARTIFACT_XDG_LIST_FILE)" \
-	            BATCH_FILE="$(ARTIFACT_XDG_BATCH_FILE)"; \
+	            BATCH_FILE="$(ARTIFACT_XDG_BATCH_FILE)" \
+	            $(newline) \
 	    ) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	$(call fcheck,launcher,$(ENABLED_FEATURES), \
 	    $(INSTALL) "$(ARTIFACT_BIN_LAUNCHER)" "$(BUILDDIR)/$(BIN_PKG_DIR)/$(BINDIR)/" \
@@ -1712,10 +1713,10 @@ package_ladspa: ladspa $(BIN_PACKAGE_LADSPA_DEPS)
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)/"
 	$(foreach target,$(BIN_PACKAGE_LADSPA_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
@@ -1731,10 +1732,10 @@ package_lv2: lv2 $(BIN_PACKAGE_LV2_DEPS)
 	)
 	$($(HOST)UTL_LV2TTL_GEN) -o "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" $(call fcheck,ui,$(ENABLED_FEATURES),-ui $(ARTIFACT_LIB_LV2_UI))
 	$(foreach target,$(BIN_PACKAGE_LV2_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
@@ -1755,10 +1756,10 @@ package_vst2: vst2 $(BIN_PACKAGE_VST2_DEPS)
 	  $(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/$(ARTIFACT_BIN_VST2)" \
     )
 	$(foreach target,$(BIN_PACKAGE_VST2_DEPS), \
-	  $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	  $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	  cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	  cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	$(if $(findstring MacOS, $(PLATFORM)), \
@@ -1778,10 +1779,10 @@ package_vst3: vst3 $(BIN_PACKAGE_VST3_DEPS)
     )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/$(ARTIFACT_BIN_VST3)"
 	$(foreach target,$(BIN_PACKAGE_VST3_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	$(if $(findstring MacOS, $(PLATFORM)), \
