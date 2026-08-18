@@ -273,7 +273,7 @@ else ifeq ($(PLATFORM),BSD)
   VST3_EXT               := .so
   VST3_LDFLAGS           :=
 else ifeq ($(PLATFORM),Windows)
-  VST2_EXT               := .vst
+  VST2_EXT               := $(LIBRARY_EXT)
   ifeq ($(ARCHITECTURE_FAMILY),ia32)
     VST3_ARCH              := x86-win
   else ifeq ($(ARCHITECTURE_FAMILY),x86_64)
