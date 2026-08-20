@@ -273,7 +273,7 @@ else ifeq ($(PLATFORM),BSD)
   VST3_EXT               := .so
   VST3_LDFLAGS           :=
 else ifeq ($(PLATFORM),Windows)
-  VST2_EXT               := .vst
+  VST2_EXT               := $(LIBRARY_EXT)
   ifeq ($(ARCHITECTURE_FAMILY),ia32)
     VST3_ARCH              := x86-win
   else ifeq ($(ARCHITECTURE_FAMILY),x86_64)
@@ -1066,15 +1066,6 @@ BIN_PACKAGE_VST3_DEPS                = \
     $(DEPENDENCIES_VST3_UI_BIN) \
   )
   
-BIN_PACKAGE                          = $(foreach dep, $(UNIQ_BIN_DEPENDENCIES), package_$(dep))
-BIN_PACKAGE_CLAP                     = $(foreach dep, $(sort $(BIN_PACKAGE_CLAP_DEPS)), package_$(dep))
-BIN_PACKAGE_GST                      = $(foreach dep, $(sort $(BIN_PACKAGE_GST_DEPS)), package_$(dep))
-BIN_PACKAGE_STANDALONE               = $(foreach dep, $(sort $(BIN_PACKAGE_STANDALONE_DEPS)), package_$(dep))
-BIN_PACKAGE_LADSPA                   = $(foreach dep, $(sort $(BIN_PACKAGE_LADSPA_DEPS)), package_$(dep))
-BIN_PACKAGE_LV2                      = $(foreach dep, $(sort $(BIN_PACKAGE_LV2_DEPS)), package_$(dep))
-BIN_PACKAGE_VST2                     = $(foreach dep, $(sort $(BIN_PACKAGE_VST2_DEPS)), package_$(dep))
-BIN_PACKAGE_VST3                     = $(foreach dep, $(sort $(BIN_PACKAGE_VST3_DEPS)), package_$(dep))
-
 # Bundling
 BIN_BUNDLE_CLAP_DEPS                 = $(BIN_PACKAGE_CLAP_DEPS)
 BIN_BUNDLE_GST_DEPS                  = $(BIN_PACKAGE_GST_DEPS)
@@ -1083,15 +1074,6 @@ BIN_BUNDLE_LV2_DEPS                  = $(BIN_PACKAGE_LV2_DEPS)
 BIN_BUNDLE_STANDALONE_DEPS           = $(BIN_PACKAGE_STANDALONE_DEPS)
 BIN_BUNDLE_VST2_DEPS                 = $(BIN_PACKAGE_VST2_DEPS)
 BIN_BUNDLE_VST3_DEPS                 = $(BIN_PACKAGE_VST3_DEPS)
-
-BIN_BUNDLE                           = $(foreach dep, $(UNIQ_DEPENDENCIES_BIN), bundle_$(dep))
-BIN_BUNDLE_CLAP                      = $(foreach dep, $(sort $(BIN_BUNDLE_CLAP_DEPS)), bundle_$(dep))
-BIN_BUNDLE_GST                       = $(foreach dep, $(sort $(BIN_BUNDLE_GST_DEPS)), bundle_$(dep))
-BIN_BUNDLE_STANDALONE                = $(foreach dep, $(sort $(BIN_BUNDLE_STANDALONE_DEPS)), bundle_$(dep))
-BIN_BUNDLE_LADSPA                    = $(foreach dep, $(sort $(BIN_BUNDLE_LADSPA_DEPS)), bundle_$(dep))
-BIN_BUNDLE_LV2                       = $(foreach dep, $(sort $(BIN_BUNDLE_LV2_DEPS)), bundle_$(dep))
-BIN_BUNDLE_VST2                      = $(foreach dep, $(sort $(BIN_BUNDLE_VST2_DEPS)), bundle_$(dep))
-BIN_BUNDLE_VST3                      = $(foreach dep, $(sort $(BIN_BUNDLE_VST3_DEPS)), bundle_$(dep))
 
 BUNDLE_DEST                          = $(DESTDIR)
 BUNDLE_CLAP_DEST                     = $(BUNDLE_DEST)/CLAP
@@ -1167,6 +1149,11 @@ $(eval \
   $(file >$(ARTIFACT_XDG_LIST_FILE),$(sort $(ARTIFACT_XDG_FILES))) \
 )
 
+define newline
+
+
+endef
+
 .DEFAULT_GOAL = all
 .PHONY: all bundle compile depend dep_clean install package uninstall
 .PHONY: clap doc gst ladspa launcher lv2 meta standalone test vst2 vst3
@@ -1177,7 +1164,7 @@ $(eval \
 .PHONY: bundle_clap bundle_doc bundle_gst bundle_ladspa bundle_lv2 bundle_standalone bundle_vst2 bundle_vst3
 .PHONY: install_xdg_msg uninstall_xdg_msg
 .PHONY: $(DEPENDENCIES) $(DEPENDENCIES_BIN)
-.PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL) $(BIN_PACKAGE)
+.PHONY: $(BIN_INSTALL) $(BIN_UNINSTALL)
 .PHONY: $(ARTIFACT_XDG_INSTALL_DEPS) $(ARTIFACT_XDG_UNINSTALL_DEPS)
 .PHONY: $(SRC_DEPS) $(PLUG_DEPS)
 .PHONY: $(HOST_SRC_DEPS) $(HOST_PLUG_DEPS)
@@ -1478,9 +1465,9 @@ resources: $($(HOST)UTL_REPOSITORY)
 
 all: $(BUILD_TARGETS)
 
-clap: $(ARTIFACT_LIB_CLAP) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
+clap: $(ARTIFACT_LIB_CLAP) $(DEPENDENCIES_CLAP_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_CLAP_UI_BIN))
 
-gst: resources $($(HOST)UTL_GST_MAKE) $(ARTIFACT_LIB_GST) $(DEPENDENCIES_BIN)
+gst: resources $($(HOST)UTL_GST_MAKE) $(ARTIFACT_LIB_GST) $(DEPENDENCIES_GST_BIN)
 	echo "  $(notdir $($(HOST)UTL_GST_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_GST_PATH))"
 	mkdir -p "$(ARTIFACT_LIB_GST_PATH)"
 	$($(HOST)UTL_GST_MAKE) -o "$(ARTIFACT_LIB_GST_PATH)" -m "$($(HOST)UTL_RES_PATH)/manifest.json" -t "$(LSP_PLUGIN_FW_INC)/lsp-plug.in/plug-fw/wrap/gstreamer/template/plugin.h"
@@ -1514,7 +1501,7 @@ doc: meta
 	$(if $(ARTIFACT_DOC_PLUG_RES),cp -R $(ARTIFACT_DOC_PLUG_RES) $(ARTIFACT_DOC_PATH)/img/plugins)
 	$(MAKE) -C "$(ARTIFACT_DOC_BLD_PATH)" PHP=$(PHP) HTMLDIR=$(ARTIFACT_DOC_PATH) VERBOSE=$(VERBOSE)
 
-standalone: $($(HOST)UTL_STANDALONE_MAKE) $(ARTIFACT_LIB_STANDALONE) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
+standalone: $($(HOST)UTL_STANDALONE_MAKE) $(ARTIFACT_LIB_STANDALONE) $(DEPENDENCIES_STANDALONE_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_STANDALONE_UI_BIN))
 	echo "  $(notdir $($(HOST)UTL_STANDALONE_MAKE)) [$(ARTIFACT_NAME)] $(patsubst $(LSP_PLUGIN_FW_BIN)/%,%, $(ARTIFACT_LIB_STANDALONE_PATH))"
 	mkdir -p "$(ARTIFACT_LIB_STANDALONE_PATH)"
 	$($(HOST)UTL_STANDALONE_MAKE) "$(ARTIFACT_LIB_STANDALONE_PATH)"
@@ -1532,17 +1519,17 @@ standalone: $($(HOST)UTL_STANDALONE_MAKE) $(ARTIFACT_LIB_STANDALONE) $(DEPENDENC
 	$(MAKE) -C "$(ARTIFACT_LIB_STANDALONE_PATH)" depend VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_STANDALONE_SETTINGS)"
 	$(MAKE) -C "$(ARTIFACT_LIB_STANDALONE_PATH)"  VERBOSE="$(VERBOSE)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_STANDALONE_SETTINGS)"
 
-ladspa: $(ARTIFACT_LIB_LADSPA) $(DEPENDENCIES_BIN)
+ladspa: $(ARTIFACT_LIB_LADSPA) $(DEPENDENCIES_LADSPA_BIN)
 
 meta: $($(HOST)UTL_PLUGLIST_GEN)
 	mkdir -p "$(LSP_PLUGIN_FW_BIN)"
 	$($(HOST)UTL_PLUGLIST_GEN) --php "$(LSP_PLUGIN_FW_BIN)/plugins.php" --json "$(LSP_PLUGIN_FW_BIN)/plugins.json"
 
-lv2: $($(HOST)UTL_LV2TTL_GEN) $(ARTIFACT_LIB_LV2) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(ARTIFACT_LIB_LV2_UI) $(DEPENDENCIES_UI_BIN)) 
+lv2: $($(HOST)UTL_LV2TTL_GEN) $(ARTIFACT_LIB_LV2) $(DEPENDENCIES_LV2_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(ARTIFACT_LIB_LV2_UI) $(DEPENDENCIES_LV2_UI_BIN)) 
 
-vst2: $($(HOST)UTL_VST_MODINFO) $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
+vst2: $($(HOST)UTL_VST_MODINFO) $(ARTIFACT_LIB_VST2) $(DEPENDENCIES_VST2_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_VST2_UI_BIN))
 
-vst3: $($(HOST)UTL_VST_MODINFO) $(ARTIFACT_LIB_VST3) $(DEPENDENCIES_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_UI_BIN))
+vst3: $($(HOST)UTL_VST_MODINFO) $(ARTIFACT_LIB_VST3) $(DEPENDENCIES_VST3_BIN) $(call fcheck,ui,$(ENABLED_FEATURES),$(DEPENDENCIES_VST3_UI_BIN))
 
 launcher: $(ARTIFACT_BIN_LAUNCHER)
 
@@ -1644,8 +1631,6 @@ install_xdg: install_xdg_msg $(ARTIFACT_XDG_INST)
 
 #------------------------------------------------------------------------------
 # Packaging
-$(BIN_PACKAGE): $(DEPENDENCIES_BIN)
-
 package: $(PACKAGE_TARGETS)
 	echo "Package OK"
 
@@ -1655,10 +1640,10 @@ package_clap: clap $(BIN_PACKAGE_CLAP_DEPS)
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(CLAP_LIBDIR)/$(ARTIFACT_BIN_CLAP)"
 	$(foreach target,$(BIN_PACKAGE_CLAP_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
@@ -1670,7 +1655,7 @@ package_doc: doc
 	mkdir -p "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/$(DOC_SHAREDDIR)"
 	cp -R $(ARTIFACT_DOC_PATH)/* "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/$(DOC_SHAREDDIR)"
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(ARTIFACT_DOC_PKG_DIR).tar.gz" "$(ARTIFACT_DOC_PKG_DIR)"
@@ -1684,10 +1669,10 @@ package_gst: gst $(BIN_PACKAGE_GST_DEPS)
 	$(INSTALL) $(ARTIFACT_LIB_GST) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(GST_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(GSTREAMER_PKGDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
 	$(foreach target,$(BIN_PACKAGE_GST_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
@@ -1701,18 +1686,19 @@ package_standalone: standalone $(BIN_PACKAGE_STANDALONE_DEPS) $(call fcheck,laun
 	$(INSTALL) $(ARTIFACT_LIB_STANDALONE) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(STANDALONE_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_STANDALONE_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_STANDALONE_SETTINGS)"
 	$(foreach target,$(BIN_PACKAGE_STANDALONE_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(if $(findstring xdg,$(ENABLED_FEATURES)), \
 	    $(foreach target,$(ARTIFACT_XDG_INST), \
 	        $(MAKE) -C "$($(patsubst xdg_install_%,%,$(target))_PATH)/res/xdg" \
 	            install_xdg DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" \
 	            FILE_LIST="$(ARTIFACT_XDG_LIST_FILE)" \
-	            BATCH_FILE="$(ARTIFACT_XDG_BATCH_FILE)"; \
+	            BATCH_FILE="$(ARTIFACT_XDG_BATCH_FILE)" \
+	            $(newline) \
 	    ) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	$(call fcheck,launcher,$(ENABLED_FEATURES), \
 	    $(INSTALL) "$(ARTIFACT_BIN_LAUNCHER)" "$(BUILDDIR)/$(BIN_PKG_DIR)/$(BINDIR)/" \
@@ -1727,10 +1713,10 @@ package_ladspa: ladspa $(BIN_PACKAGE_LADSPA_DEPS)
 	mkdir -p "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)"
 	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LADSPA_LIBDIR)/"
 	$(foreach target,$(BIN_PACKAGE_LADSPA_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
@@ -1746,10 +1732,10 @@ package_lv2: lv2 $(BIN_PACKAGE_LV2_DEPS)
 	)
 	$($(HOST)UTL_LV2TTL_GEN) -o "$(BUILDDIR)/$(BIN_PKG_DIR)/$(LV2_LIBDIR)" -i "$(ARTIFACT_LIB_LV2)" $(call fcheck,ui,$(ENABLED_FEATURES),-ui $(ARTIFACT_LIB_LV2_UI))
 	$(foreach target,$(BIN_PACKAGE_LV2_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(BIN_PKG_DIR).tar.gz" "$(BIN_PKG_DIR)"
@@ -1770,10 +1756,10 @@ package_vst2: vst2 $(BIN_PACKAGE_VST2_DEPS)
 	  $(INSTALL) $(ARTIFACT_LIB_VST2) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST2_LIBDIR)/$(ARTIFACT_BIN_VST2)" \
     )
 	$(foreach target,$(BIN_PACKAGE_VST2_DEPS), \
-	  $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	  $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	  cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	  cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	$(if $(findstring MacOS, $(PLATFORM)), \
@@ -1793,10 +1779,10 @@ package_vst3: vst3 $(BIN_PACKAGE_VST3_DEPS)
     )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUILDDIR)/$(BIN_PKG_DIR)/$(VST3_LIBDIR)/Contents/${VST3_ARCH}/$(ARTIFACT_BIN_VST3)"
 	$(foreach target,$(BIN_PACKAGE_VST3_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUILDDIR)/$(BIN_PKG_DIR)" $(newline) \
 	)
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/"; \
+	    cp -f $(file) "$(BUILDDIR)/$(BIN_PKG_DIR)/" $(newline) \
 	)
 	cp -f $(BIN_PKG_FILES) "$(BUILDDIR)/$(BIN_PKG_DIR)/"
 	$(if $(findstring MacOS, $(PLATFORM)), \
@@ -1807,13 +1793,11 @@ package_vst3: vst3 $(BIN_PACKAGE_VST3_DEPS)
 
 #------------------------------------------------------------------------------
 # Bundling
-$(BIN_BUNDLE): $(DEPENDENCIES_BIN)
-
 bundle: $(BUNDLE_TARGETS)
 	$(CHK_DESDIR)
 	cp -f $(BIN_PKG_FILES) "$(BUNDLE_DEST)/"
 	$(foreach file,$(BIN_EXTRA_FILES), \
-	    cp -f $(file) "$(BUNDLE_DEST)/"; \
+	    cp -f $(file) "$(BUNDLE_DEST)/" $(newline) \
 	)
 	echo "Bundle OK"
 
@@ -1824,7 +1808,7 @@ bundle_clap: clap $(BIN_BUNDLE_CLAP_DEPS)
 	mkdir -p "$(BUNDLE_CLAP_DEST)"
 	$(INSTALL) $(ARTIFACT_LIB_CLAP) "$(BUNDLE_CLAP_DEST)/$(ARTIFACT_BIN_CLAP)"
 	$(foreach target,$(BIN_PACKAGE_CLAP_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_CLAP_DEST)"; \
+	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_CLAP_DEST)" $(newline) \
 	)
 
 bundle_doc: doc
@@ -1844,7 +1828,7 @@ bundle_gst: gst $(BIN_BUNDLE_GST_DEPS)
 	$(INSTALL) $(ARTIFACT_LIB_GST) "$(BUNDLE_GST_DEST)/$(GST_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_GST_PATH)" install DESTDIR="$(BUNDLE_GST_DEST)/$(GSTREAMER_PKGDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_GST_SETTINGS)"
 	$(foreach target,$(BIN_PACKAGE_GST_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_GST_DEST)/$(LIBDIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_GST_DEST)/$(LIBDIR)" $(newline) \
 	)
 
 bundle_standalone: standalone $(BIN_BUNDLE_STANDALONE_DEPS) $(call fcheck,launcher,$(ENABLED_FEATURES),launcher)
@@ -1857,14 +1841,15 @@ bundle_standalone: standalone $(BIN_BUNDLE_STANDALONE_DEPS) $(call fcheck,launch
 	$(INSTALL) $(ARTIFACT_LIB_STANDALONE) "$(BUNDLE_STANDALONE_DEST)/$(STANDALONE_LIBDIR)/"
 	$(MAKE) -C "$(ARTIFACT_LIB_STANDALONE_PATH)" install DESTDIR="$(BUNDLE_STANDALONE_DEST)/$(BINDIR)" CONFIG="$(CONFIG)" SETTINGS="$(ARTIFACT_LIB_STANDALONE_SETTINGS)"
 	$(foreach target,$(BIN_PACKAGE_STANDALONE_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_STANDALONE_DEST)/$(LIBDIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_STANDALONE_DEST)/$(LIBDIR)" $(newline) \
 	)
 	$(if $(findstring xdg,$(ENABLED_FEATURES)), \
 	    $(foreach target,$(ARTIFACT_XDG_INST), \
 	        $(MAKE) -C "$($(patsubst xdg_install_%,%,$(target))_PATH)/res/xdg" \
 	            install_xdg DESTDIR="$(BUNDLE_STANDALONE_DEST)" \
 	            FILE_LIST="$(ARTIFACT_XDG_LIST_FILE)" \
-	            BATCH_FILE="$(ARTIFACT_XDG_BATCH_FILE)"; \
+	            BATCH_FILE="$(ARTIFACT_XDG_BATCH_FILE)" \
+	            $(newline) \
 	    ) \
 	)
 	$(call fcheck,launcher,$(ENABLED_FEATURES), \
@@ -1878,7 +1863,7 @@ bundle_ladspa: ladspa $(BIN_BUNDLE_LADSPA_DEPS)
 	mkdir -p "$(BUNDLE_LADSPA_DEST)"
 	$(INSTALL) $(ARTIFACT_LIB_LADSPA) "$(BUNDLE_LADSPA_DEST)/"
 	$(foreach target,$(BIN_PACKAGE_LADSPA_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUNDLE_LADSPA_DEST)"; \
+	    $(MAKE) -C "$($(target)_PATH)" install DESTDIR="$(BUNDLE_LADSPA_DEST)" $(newline) \
 	)
 
 bundle_lv2: lv2 $(BIN_BUNDLE_LV2_DEPS)
@@ -1892,7 +1877,7 @@ bundle_lv2: lv2 $(BIN_BUNDLE_LV2_DEPS)
 	)
 	$($(HOST)UTL_LV2TTL_GEN) -o "$(BUNDLE_LV2_DEST)/$(LV2_BUNDLE_DIR)" -i "$(ARTIFACT_LIB_LV2)" $(call fcheck,ui,$(ENABLED_FEATURES),-ui $(ARTIFACT_LIB_LV2_UI))
 	$(foreach target,$(BIN_PACKAGE_LV2_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_LV2_DEST)/$(LV2_BUNDLE_DIR)"; \
+	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_LV2_DEST)/$(LV2_BUNDLE_DIR)" $(newline) \
 	)
 
 bundle_vst2: vst2 $(BIN_BUNDLE_VST2_DEPS)
@@ -1916,6 +1901,7 @@ bundle_vst2: vst2 $(BIN_BUNDLE_VST2_DEPS)
 	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_VST2_DEST)/$(VST2_BUNDLE_DIR)/Contents/MacOS", \
 	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_VST2_DEST)/$(VST2_BUNDLE_DIR)" \
       ) \
+      $(newline) \
 	)
 	$(if $(findstring MacOS, $(PLATFORM)), \
       codesign --force --deep --sign - "$(BUNDLE_VST2_DEST)/$(VST2_BUNDLE_DIR)" \
@@ -1933,7 +1919,7 @@ bundle_vst3: vst3 $(BIN_BUNDLE_VST3_DEPS)
     )
 	$(INSTALL) $(ARTIFACT_LIB_VST3) "$(BUNDLE_VST3_DEST)/$(VST3_BUNDLE_DIR)/Contents/${VST3_ARCH}/$(ARTIFACT_BIN_VST3)"
 	$(foreach target,$(BIN_PACKAGE_VST3_DEPS), \
-	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_VST3_DEST)/$(VST3_BUNDLE_DIR)/Contents/${VST3_ARCH}"; \
+	    $(MAKE) -C "$($(target)_PATH)" bundle DESTDIR="$(BUNDLE_VST3_DEST)/$(VST3_BUNDLE_DIR)/Contents/${VST3_ARCH}" $(newline) \
 	)
 	$(if $(findstring MacOS, $(PLATFORM)), \
       codesign --force --deep --sign - "$(BUNDLE_VST3_DEST)/$(VST3_BUNDLE_DIR)" \
