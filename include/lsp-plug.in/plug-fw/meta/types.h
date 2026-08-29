@@ -147,6 +147,7 @@ namespace lsp
             F_PEAK          = (1 << 9),     // Peak flag
             F_CYCLIC        = (1 << 10),    // Cyclic flag
             F_EXT           = (1 << 11),    // Extended range
+            F_SORTED        = (1 << 12),    // Sorted enumeration (port_item_t)
         };
 
         enum plugin_class_t
@@ -366,6 +367,7 @@ namespace lsp
         {
             const char             *text;           // Text to display, required
             const char             *lc_key;         // Localized key  (optional)
+            int                     order;          // Sorting order
         } port_item_t;
 
         /**

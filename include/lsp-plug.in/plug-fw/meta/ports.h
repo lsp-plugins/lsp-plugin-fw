@@ -69,6 +69,10 @@
     { id, label, alias, U_ENUM, R_CONTROL, revision, 0, 0, 0, dfl, 0, list, NULL, NULL }
 #define COMBO(id, label, alias, dfl, list) ADDON_COMBO(0, id, label, alias, dfl, list)
 
+#define ADDON_COMBO_SORTED(revision, id, label, alias, dfl, list) \
+    { id, label, alias, U_ENUM, R_CONTROL, revision, F_SORTED, 0, 0, dfl, 0, list, NULL, NULL }
+#define COMBO_SORTED(id, label, alias, dfl, list) ADDON_COMBO_SORTED(0, id, label, alias, dfl, list)
+
 #define ADDON_BLINK(revision, id, label) \
     { id, label, NULL, U_BOOL, R_METER, revision, 0, 0, 0, 0, 0, NULL, NULL, NULL }
 #define BLINK(id, label) ADDON_BLINK(0, id, label)

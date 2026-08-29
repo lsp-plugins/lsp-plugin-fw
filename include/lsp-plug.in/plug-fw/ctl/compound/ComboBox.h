@@ -44,6 +44,14 @@ namespace lsp
                 static const ctl_class_t metadata;
 
             protected:
+                typedef struct port_item_t
+                {
+                    tk::ListBoxItem        *pItem;
+                    ssize_t                 nIndex;
+                    ssize_t                 nKey;
+                } port_item_t;
+
+            protected:
                 ui::IPort                  *pPort;
 
                 ctl::Color                  sColor;
@@ -61,6 +69,7 @@ namespace lsp
 
                 ctl::LCString               sEmptyText;
                 lltl::parray<ListBoxItem>   vItems;             // Custom items
+                lltl::darray<port_item_t>   vPortItems;
 
                 float                       fMin;
                 float                       fMax;
@@ -70,10 +79,14 @@ namespace lsp
                 static status_t     slot_combo_submit(tk::Widget *sender, void *ptr, void *data);
 
             protected:
+                static ssize_t      compare_port_item(const port_item_t *a, const port_item_t *b);
+
+            protected:
                 virtual void        sync_metadata(ui::IPort *port) override;
                 void                submit_value();
                 void                do_destroy();
                 void                update_selection();
+                void                drop_port_items();
 
             public:
                 explicit ComboBox(ui::IWrapper *wrapper, tk::ComboBox *widget);
