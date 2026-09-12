@@ -77,7 +77,7 @@ namespace lsp
             wInvertVScroll              = NULL;
             wInvertGraphDotVScroll      = NULL;
 
-            for (size_t i=0; i<2; ++i)
+            for (size_t i=0; i<AB_TOTAL; ++i)
                 wPresetSwitch[i]            = NULL;
             wPresetCopy                 = NULL;
 
@@ -248,12 +248,14 @@ namespace lsp
             LSP_STATUS_ASSERT(create_presets_window());
 
             // Get presets widgets
-            wPresetSwitch[0]        = sWidgets.find("switch_preset_a");
-            wPresetSwitch[1]        = sWidgets.find("switch_preset_b");
-            wPresetCopy             = sWidgets.find("switch_preset_copy");
+            wPresetSwitch[AB_A_ACTIVE]  = sWidgets.find("switch_preset_a_active");
+            wPresetSwitch[AB_B_ACTIVE]  = sWidgets.find("switch_preset_b_active");
+            wPresetSwitch[AB_A_TOGGLE]  = sWidgets.find("switch_preset_a_toggle");
+            wPresetSwitch[AB_B_TOGGLE]  = sWidgets.find("switch_preset_b_toggle");
+            wPresetCopy                 = sWidgets.find("switch_preset_copy");
 
-            bind_slot("switch_preset_a", tk::SLOT_SUBMIT, slot_switch_ab_preset);
-            bind_slot("switch_preset_b", tk::SLOT_SUBMIT, slot_switch_ab_preset);
+            bind_slot("switch_preset_a_toggle", tk::SLOT_SUBMIT, slot_switch_ab_preset);
+            bind_slot("switch_preset_b_toggle", tk::SLOT_SUBMIT, slot_switch_ab_preset);
             bind_slot("switch_preset_copy", tk::SLOT_SUBMIT, slot_copy_ab_preset);
             sync_ab_state();
 
@@ -2291,38 +2293,12 @@ namespace lsp
         void PluginWindow::sync_ab_state()
         {
             const size_t active = pWrapper->active_preset_data();
-            for (size_t i=0; i<2; ++i)
-            {
-                tk::Widget *w       = wPresetSwitch[i];
-                if (w == NULL)
-                    continue;
+            const bool ab_a_active = active == 0;
 
-                const bool is_active = (i == active);
-
-                revoke_style(w, "PluginWindow::ABSwitch::Active");
-                revoke_style(w, "PluginWindow::ABSwitch::Inactive");
-                inject_style(w, (is_active) ? "PluginWindow::ABSwitch::Active" : "PluginWindow::ABSwitch::Inactive");
-
-                // Set editable
-                tk::Button *btn = tk::widget_cast<tk::Button>(w);
-                if (btn != NULL)
-                    btn->editable()->set(!is_active);
-            }
-
-            // Synchronize icon
-            tk::String *prop = NULL;
-            {
-                tk::Label *lbl = tk::widget_cast<tk::Label>(wPresetCopy);
-                if (lbl != NULL)
-                    prop = lbl->text();
-            }
-            {
-                tk::Button *btn = tk::widget_cast<tk::Button>(wPresetCopy);
-                if (btn != NULL)
-                    prop = btn->text();
-            }
-            if (prop != NULL)
-                prop->set((active == 0) ? "icons.arrow.right" : "icons.arrow.left");
+            wPresetSwitch[AB_A_ACTIVE]->visibility()->set(ab_a_active);
+            wPresetSwitch[AB_B_ACTIVE]->visibility()->set(!ab_a_active);
+            wPresetSwitch[AB_A_TOGGLE]->visibility()->set(!ab_a_active);
+            wPresetSwitch[AB_B_TOGGLE]->visibility()->set(ab_a_active);
         }
 
         status_t PluginWindow::slot_visual_schema_select(tk::Widget *sender, void *ptr, void *data)
@@ -2652,14 +2628,14 @@ namespace lsp
 
         status_t PluginWindow::slot_switch_ab_preset(tk::Widget *sender, void *ptr, void *data)
         {
-            PluginWindow *self = static_cast<PluginWindow *>(ptr);
+            PluginWindow * const self = static_cast<PluginWindow *>(ptr);
             if (self == NULL)
                 return STATUS_OK;
 
-            const size_t active = self->pWrapper->active_preset_data();
-            if (sender != self->wPresetSwitch[active])
+            const size_t active = (self->pWrapper->active_preset_data() == 0) ? AB_B_TOGGLE : AB_A_TOGGLE;
+            if (sender == self->wPresetSwitch[active])
             {
-                status_t res = self->pWrapper->switch_preset_data();
+                const status_t res = self->pWrapper->switch_preset_data();
                 if (res == STATUS_OK)
                     self->sync_ab_state();
             }

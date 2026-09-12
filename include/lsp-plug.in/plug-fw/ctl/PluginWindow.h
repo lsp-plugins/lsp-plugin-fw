@@ -119,6 +119,16 @@ namespace lsp
                     tk::MenuItem       *wItem;
                 } ui_flag_t;
 
+                enum ab_test_t
+                {
+                    AB_A_ACTIVE,
+                    AB_B_ACTIVE,
+                    AB_A_TOGGLE,
+                    AB_B_TOGGLE,
+
+                    AB_TOTAL
+                };
+
             protected:
                 bool                        bResizable;
 
@@ -140,7 +150,7 @@ namespace lsp
                 tk::MenuItem               *wInvertGraphDotVScroll;     // Invert mouse vertical scroll for GraphDot widgets
                 tk::Menu                   *wFilterPointThickness;      // Filter point thickness submenu
                 tk::Timer                   wGreetingTimer;             // Greeting window timer
-                tk::Widget                 *wPresetSwitch[2];           // Preset A, B
+                tk::Widget                 *wPresetSwitch[AB_TOTAL];    // A/B preset buttons
                 tk::Widget                 *wPresetCopy;                // Copy active to inactive preset
 
                 ui::IPort                  *pPVersion;
