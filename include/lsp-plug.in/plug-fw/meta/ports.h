@@ -419,7 +419,6 @@ namespace lsp
         extern const port_item_t midi_channels[];
         extern const port_item_t octaves[];
         extern const port_item_t notes[];
-        extern const port_item_t fft_windows[];
         extern const port_item_t fft_envelopes[];
 
     } /* namespace meta */

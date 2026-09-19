@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-plugin-fw
  * Created on: 24 нояб. 2020 г.
@@ -183,32 +183,6 @@ namespace lsp
             { NULL, NULL }
         };
 
-        const port_item_t fft_windows[] =
-        {
-            { "Hann",                   "fft.wnd.hann" },
-            { "Hamming",                "fft.wnd.hamming" },
-            { "Blackman",               "fft.wnd.blackman" },
-            { "Lanczos",                "fft.wnd.lanczos" },
-            { "Gaussian",               "fft.wnd.gauss" },
-            { "Poisson",                "fft.wnd.poisson" },
-            { "Parzen",                 "fft.wnd.parzen" },
-            { "Tukey",                  "fft.wnd.tukey" },
-            { "Welch",                  "fft.wnd.welch" },
-            { "Nuttall",                "fft.wnd.nuttall" },
-            { "Blackman-Nuttall",       "fft.wnd.blackman_nuttall" },
-            { "Blackman-Harris",        "fft.wnd.blackman_harris" },
-            { "Hann-Poisson",           "fft.wnd.hann_poisson" },
-            { "Bartlett-Hann",          "fft.wnd.bartlett_hann" },
-            { "Bartlett-Fejer",         "fft.wnd.bartlett_fejer" },
-            { "Triangular",             "fft.wnd.triangular" },
-            { "Rectangular",            "fft.wnd.rectangular" },
-            { "Flat top",               "fft.wnd.flat_top" },
-            { "Cosine",                 "fft.wnd.cosine" },
-            { "Squared Cosine",         "fft.wnd.sqr_cosine" },
-            { "Cubic",                  "fft.wnd.cubic" },
-            { NULL, NULL }
-        };
-
         const port_item_t fft_envelopes[] =
         {
             { "Violet noise",           "fft.env.violet" },
@@ -220,7 +194,8 @@ namespace lsp
             { "4.5 dB/oct raise",       "fft.env.raise_4_5db" },
             { NULL, NULL }
         };
-    }
-}
+
+    } /* namespace meta */
+} /* namespace lsp */
 
 
