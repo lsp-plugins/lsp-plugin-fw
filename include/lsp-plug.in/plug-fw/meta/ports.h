@@ -143,8 +143,11 @@
 
 #define PAN_CTL(id, label, alias, dfl) \
     CONTROL_ALL(id, label, alias, U_PERCENT, -100.0f, 100.0f, dfl, 0.1f)
+
+#define ADDON_PERCENTS(revision, id, label, alias, dfl, step) \
+    ADDON_CONTROL_ALL(revision, id, label, alias, U_PERCENT, 0.0f, 100.0f, dfl, step)
 #define PERCENTS(id, label, alias, dfl, step) \
-    CONTROL_ALL(id, label, alias, U_PERCENT, 0.0f, 100.0f, dfl, step)
+    ADDON_PERCENTS(0, id, label, alias, dfl, step)
 
 #define HUE_CTL(id, label, dfl) \
     { id, label, NULL, U_NONE, R_CONTROL, 0, F_UPPER | F_LOWER | F_STEP | F_CYCLIC, 0.0f, 1.0f, (dfl), 0.25f/360.0f, NULL, NULL     }
