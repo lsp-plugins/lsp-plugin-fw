@@ -485,9 +485,6 @@ namespace lsp
         {
             Widget::end(ctx);
 
-            if ((wWidget != NULL) && (wWidget->tag()->get() == 102))
-                lsp_trace("debug");
-
             // Parse minimum and maximum for begin and end
             end_param(&sBegin);
             end_param(&sEnd);
@@ -625,9 +622,6 @@ namespace lsp
             if (rs == NULL)
                 return;
 
-            if ((wWidget != NULL) && (wWidget->tag()->get() == 102))
-                lsp_trace("debug");
-
             // Initialize configuration
             sBegin.sValue.fValue    = lsp_xlimit(sBegin.sValue.fValue, sBegin.sMin.fValue, sBegin.sMax.fValue);
             sEnd.sValue.fValue      = lsp_xlimit(sEnd.sValue.fValue, sEnd.sMin.fValue, sEnd.sMax.fValue);
@@ -659,9 +653,6 @@ namespace lsp
                     limit_param(&sBegin, abs_min, abs_max);
                 }
             }
-
-            if ((wWidget != NULL) && (wWidget->tag()->get() == 102))
-                lsp_trace("debug");
 
             // Set step
             ui::IPort * const refp  = (sBegin.sValue.pPort != NULL) ? sBegin.sValue.pPort : sEnd.sValue.pPort;
